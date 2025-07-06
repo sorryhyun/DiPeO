@@ -14,6 +14,13 @@ from .error_handling import (
 # Export dynamic registry utilities
 from .dynamic_registry import DynamicRegistry, TypedDynamicRegistry
 
+# Export conversation detection utilities
+from .conversation_detection import (
+    is_conversation,
+    has_nested_conversation,
+    contains_conversation,
+)
+
 __all__ = [
     # Error handling utilities
     "ErrorResponse",
@@ -26,4 +33,8 @@ __all__ = [
     # Dynamic registry utilities
     "DynamicRegistry",
     "TypedDynamicRegistry",
+    # Conversation detection utilities
+    "is_conversation",
+    "has_nested_conversation",
+    "contains_conversation",
 ]

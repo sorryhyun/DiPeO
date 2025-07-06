@@ -5,7 +5,8 @@ import json
 from typing import Any
 import httpx
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_core.execution import create_node_output
 from dipeo_domain.models import ApiJobNodeData, NodeOutput, HttpMethod
 from pydantic import BaseModel
@@ -30,7 +31,7 @@ class ApiJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: ApiJobNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:

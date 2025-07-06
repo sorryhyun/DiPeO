@@ -2,6 +2,8 @@
 
 from typing import Any, Dict
 
+from dipeo_core.utils import is_conversation
+
 
 def prepare_judge_context(inputs: Dict[str, Any], diagram: Any) -> str:
     """Prepare context for judge nodes from conversation inputs."""
@@ -13,10 +15,10 @@ def prepare_judge_context(inputs: Dict[str, Any], diagram: Any) -> str:
         conversations = inputs["conversation"]
     # Then check for conversation data nested under 'default' (from condition nodes)
     elif "default" in inputs and isinstance(inputs["default"], dict):
-        if "default" in inputs["default"] and isinstance(inputs["default"]["default"], list):
+        if "default" in inputs["default"]:
             # Check if this looks like conversation data
             potential_conv = inputs["default"]["default"]
-            if potential_conv and isinstance(potential_conv[0], dict) and "role" in potential_conv[0]:
+            if is_conversation(potential_conv):
                 conversations = potential_conv
     
     if not conversations or not isinstance(conversations, list):

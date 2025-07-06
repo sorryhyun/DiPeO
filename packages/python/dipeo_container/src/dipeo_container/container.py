@@ -76,7 +76,7 @@ def _create_llm_service(api_key_service):
 
 
 def _create_notion_service():
-    from dipeo_server.infra.external.integrations import NotionAPIService
+    from dipeo_infra.external import NotionAPIService
 
     return NotionAPIService()
 
@@ -126,11 +126,6 @@ def _create_file_operations_service(file_service):
 
     return FileOperationsDomainService(file_service)
 
-
-def _create_notion_service():
-    from dipeo_infra import NotionAPIService
-
-    return NotionAPIService()
 
 
 def _create_diagram_storage_domain_service(storage_service):

@@ -5,6 +5,7 @@ from collections import deque
 import logging
 import json
 from datetime import datetime
+from dipeo_domain.models import NodeType
 
 log = logging.getLogger(__name__)
 
@@ -27,14 +28,14 @@ class ExecutionFlowController:
     def has_endpoint_executed(self) -> bool:
         """Check if any endpoint node has been executed."""
         for node_view in self.execution_view.node_views.values():
-            if node_view.node.type == "endpoint" and node_view.output is not None:
+            if node_view.node.type == NodeType.endpoint.value and node_view.output is not None:
                 log.info(f"Endpoint node {node_view.id} executed")
                 return True
         return False
     
     def should_skip_node_execution(self, node_view: Any) -> bool:
         """Determine if a node should be skipped due to max iterations."""
-        if node_view.node.type not in ["job", "person_job", "loop"]:
+        if node_view.node.type not in [NodeType.job.value, NodeType.person_job.value]:
             return False
             
         max_iter = node_view.data.get("max_iteration", 1)
@@ -45,7 +46,7 @@ class ExecutionFlowController:
         iterative_nodes = []
         
         for node_view in self.execution_view.node_views.values():
-            if node_view.node.type in ["job", "person_job", "loop"]:
+            if node_view.node.type in [NodeType.job.value, NodeType.person_job.value]:
                 max_iter = node_view.data.get("max_iteration", 1)
                 if node_view.exec_count < max_iter and node_view.output is None:
                     iterative_nodes.append(node_view)
@@ -64,14 +65,14 @@ class ExecutionFlowController:
                 continue
                 
             # Check if it's an iterative node that can still execute
-            if target.node.type in ["job", "person_job", "loop"]:
+            if target.node.type in [NodeType.job.value, NodeType.person_job.value]:
                 max_iter = target.data.get("max_iteration", 1)
                 if target.exec_count < max_iter and target.output is None:
                     if can_execute_fn(target):
                         successors.append(target)
                         
             # Check if it's a resettable condition node
-            elif (target.node.type == "condition" and 
+            elif (target.node.type == NodeType.condition.value and 
                   target.data.get("condition_type") == "detect_max_iterations"):
                 target.output = None  # Reset condition node
                 if can_execute_fn(target):
@@ -89,7 +90,7 @@ class ExecutionFlowController:
         
         for node_view in self.execution_view.node_views.values():
             if (node_view.output is None and 
-                node_view.node.type not in ["job", "person_job", "loop"] and
+                node_view.node.type not in [NodeType.job.value, NodeType.person_job.value] and
                 can_execute_fn(node_view)):
                 final_batch.append(node_view)
                 

@@ -6,9 +6,11 @@ from collections import deque
 import asyncio
 import logging
 import json
+import warnings
 
-from dipeo_core import RuntimeContext, get_global_registry
-from dipeo_domain import NodeOutput, HandleLabel
+from dipeo_core import get_global_registry
+from dipeo_core.unified_context import UnifiedExecutionContext
+from dipeo_domain import NodeOutput, HandleLabel, NodeType
 from .execution_view import LocalExecutionView
 from .execution_flow_controller import ExecutionFlowController
 
@@ -34,7 +36,12 @@ class ExecutionObserver(Protocol):
 
 @dataclass
 class ExecutionEngine:
-    """Core execution engine with observer pattern."""
+    """Core execution engine with observer pattern.
+    
+    DEPRECATED: This is the legacy two-phase execution engine.
+    For new implementations, please use UnifiedExecutionEngine which provides
+    a simpler, more maintainable execution model.
+    """
 
     service_registry: Any
     observers: list[ExecutionObserver]
@@ -132,12 +139,6 @@ class ExecutionEngine:
     ):
         """Execute single node with observer notifications."""
         async with self._concurrency_semaphore:
-            # Record node start for visualization
-            if hasattr(self, '_flow_controller'):
-                self._flow_controller.record_node_execution(
-                    node_view.id, "started", {"inputs": list(inputs.keys()) if inputs else []}
-                )
-            
             for observer in self.observers:
                 await observer.on_node_start(execution_id, node_view.id)
 
@@ -158,12 +159,12 @@ class ExecutionEngine:
                 node_data = node_view.data.copy() if node_view.data else {}
                 
                 # Ensure required fields have defaults for person_job nodes
-                if node_view.node.type == "person_job":
+                if node_view.node.type == NodeType.person_job.value:
                     node_data.setdefault("first_only_prompt", "")
                 
                 # Check if we should skip execution due to max iterations
                 should_skip = (
-                    node_view.node.type in ["job", "person_job", "loop"] and
+                    node_view.node.type in [NodeType.job.value, NodeType.person_job.value] and
                     node_view.exec_count >= node_view.data.get("max_iteration", 1)
                 )
                 
@@ -183,7 +184,7 @@ class ExecutionEngine:
                 if not should_skip:
                     node_view.exec_count += 1
 
-                if node_view.node.type in ["job", "person_job", "loop"]:
+                if node_view.node.type in [NodeType.job.value, NodeType.person_job.value]:
                     node_view.output_history.append(output)
 
                     max_iter = node_view.data.get("max_iteration", 1)
@@ -203,14 +204,14 @@ class ExecutionEngine:
         """Check if dependency has output available."""
         source = edge.source_view
         
-        if source.node.type == "condition" and source.output is not None:
+        if source.node.type == NodeType.condition.value and source.output is not None:
             branch = edge.source_handle
             return branch in source.output.value and source.output.value[branch] is not None
         
         if source.output is not None:
             return True
             
-        if source.node.type in ["job", "person_job", "loop"]:
+        if source.node.type in [NodeType.job.value, NodeType.person_job.value]:
             return len(source.output_history) > 0
             
         return False
@@ -220,7 +221,7 @@ class ExecutionEngine:
         if node_view.output is not None:
             return False
 
-        if node_view.node.type == "person_job":
+        if node_view.node.type == NodeType.person_job.value:
             if node_view.exec_count == 0:
                 first_edges = [
                     e for e in node_view.incoming_edges if e.target_handle == HandleLabel.first.value
@@ -258,14 +259,14 @@ class ExecutionEngine:
             ):
                 outputs[nv.id] = nv.output_history[-1]
 
-        return RuntimeContext(
+        return UnifiedExecutionContext(
             execution_id=execution_id,
             current_node_id=node_view.id,
             edges=edges,
             nodes=nodes,
             variables=options.get("variables", {}),
-            outputs=outputs,
-            exec_cnt={
+            node_outputs=outputs,
+            exec_counts={
                 nv.id: nv.exec_count for nv in execution_view.node_views.values()
             },
             diagram_id=execution_view.diagram.metadata.id
@@ -276,7 +277,17 @@ class ExecutionEngine:
     async def _execute_iterations_with_controller(
         self, flow_controller, execution_id, options, interactive_handler
     ):
-        """Execute iterative nodes using the flow controller."""
+        """Execute iterative nodes using the flow controller.
+        
+        DEPRECATED: This method is part of the two-phase execution model.
+        Please use UnifiedExecutionEngine for new implementations.
+        """
+        warnings.warn(
+            "_execute_iterations_with_controller is deprecated. "
+            "Use UnifiedExecutionEngine for new implementations.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         max_iterations = options.get("max_iterations", 100)
         execution_view = flow_controller.execution_view
         

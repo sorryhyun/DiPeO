@@ -3,11 +3,32 @@
 from typing import Any, Dict, List, Optional
 
 from dipeo_core import BaseService, SupportsMemory
+from dipeo_core.utils import is_conversation
+
+from .on_every_turn_handler import OnEveryTurnHandler
 
 
 class ConversationMemoryService(BaseService, SupportsMemory):
-    # Minimal conversation memory for person_job nodes.
-    # Supports system, user, assistant, and external message roles.
+    """Conversation memory service with enhanced functionality.
+    
+    This service implements SupportsMemory to maintain protocol compatibility
+    while providing additional conversation-specific methods. Some methods are
+    simple pass-throughs to the underlying memory service to fulfill the protocol
+    requirements, while others add conversation-specific business logic.
+    
+    Pass-through methods (required by SupportsMemory protocol):
+    - get_or_create_person_memory
+    - get_conversation_history  
+    - clear_all_conversations
+    - save_conversation_log
+    
+    Enhanced methods with business logic:
+    - add_message: Simplified message adding
+    - get_messages: Filtered message retrieval
+    - prepare_messages_for_llm: LLM-compatible formatting
+    - get_messages_for_output: Output formatting with forget modes
+    - rebuild_conversation_context: Context reconstruction
+    """
 
     def __init__(self, memory_service: SupportsMemory):
         super().__init__()
@@ -72,7 +93,7 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         
         return messages
 
-    def _clear_messages(
+    def clear_messages(
         self, 
         person_id: str, 
         keep_system: bool = True,
@@ -80,7 +101,7 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         keep_assistant: bool = True,
         keep_external: bool = True
     ) -> None:
-        """Internal method to clear messages with fine-grained control.
+        """Clear messages with fine-grained control over which roles to keep.
         
         By default keeps all messages. Set parameters to False to clear specific roles.
         """
@@ -127,10 +148,6 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         - We need to get messages from OTHER persons (not the current person's own messages)
         - This requires checking the raw conversation history with metadata
         """
-        # Debug logging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"get_messages_for_output: person_id={person_id}, forget_mode={forget_mode}")
         
         if forget_mode == "on_every_turn":
             # Get raw conversation history with metadata
@@ -139,38 +156,13 @@ class ConversationMemoryService(BaseService, SupportsMemory):
                 
             history = self.memory_service.get_conversation_history(person_id)
             
-            # Filter messages from OTHER persons in current execution
-            # Group by sender to get only the last message from each person
-            last_messages_by_person = {}
-            
-            for msg in history:
-                if msg.get("execution_id") != self.current_execution_id:
-                    continue
-                    
-                # Check if this message is FROM another person TO this person
-                from_person = msg.get("from_person_id")
-                to_person = msg.get("to_person_id")
-                
-                # We want messages where someone else sent TO this person
-                if to_person == person_id and from_person != person_id and from_person != "system":
-                    if msg.get("role") == "assistant":
-                        # This is a message from another person - keep only the latest
-                        last_messages_by_person[from_person] = {
-                            "role": msg.get("role"),
-                            "content": msg.get("content", ""),
-                            "from_person_id": from_person
-                        }
-                        logger.debug(f"Found message from {from_person} to {person_id}: {msg.get('content', '')[:50]}...")
-            
-            # Return the last message from each other person
-            result = list(last_messages_by_person.values())
-            logger.debug(f"Returning {len(result)} messages from other persons for {person_id}")
-            return result
+            # Use centralized handler for filtering
+            return OnEveryTurnHandler.filter_messages_for_output(
+                history, person_id, self.current_execution_id
+            )
         
         # For other modes, return all messages (simplified format)
-        messages = self.get_messages(person_id)
-        logger.debug(f"Returning all {len(messages)} messages for {person_id}")
-        return messages
+        return self.get_messages(person_id)
     
     def prepare_messages_for_llm(self, person_id: str, system_prompt: Optional[str] = None) -> List[Dict[str, str]]:
         """Prepare messages for LLM call, handling external role conversion."""
@@ -205,16 +197,7 @@ class ConversationMemoryService(BaseService, SupportsMemory):
     
     def is_conversation(self, value: Any) -> bool:
         """Check if a value is a conversation (list of messages)."""
-        if not isinstance(value, list) or not value:
-            return False
-        
-        # Check if all items look like messages
-        return all(
-            isinstance(item, dict) and 
-            'role' in item and 
-            'content' in item 
-            for item in value
-        )
+        return is_conversation(value)
     
     def rebuild_conversation_context(
         self, 
@@ -238,21 +221,10 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         if clear_existing:
             self.memory_service.forget_for_person(person_id, execution_id=self.current_execution_id)
         
-        # Debug logging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"Rebuilding conversation for person_id={person_id}, messages count={len(conversation_messages)}, forget_mode={forget_mode}")
-        
-        # For on_every_turn mode, we should only process the incoming messages
-        # The sender has already filtered to just their last assistant message
-        if forget_mode == "on_every_turn":
-            logger.debug(f"Using on_every_turn mode for {person_id}")
-            # Filter out messages from the receiving person itself
-            conversation_messages = [
-                msg for msg in conversation_messages 
-                if msg.get("person_id") != person_id
-            ]
-            logger.debug(f"Filtered messages to {len(conversation_messages)} from other persons")
+        # Use centralized handler for filtering if needed
+        conversation_messages = OnEveryTurnHandler.filter_rebuild_messages(
+            conversation_messages, person_id, forget_mode
+        )
         
         # Add messages to conversation history
         for msg in conversation_messages:
@@ -265,7 +237,6 @@ class ConversationMemoryService(BaseService, SupportsMemory):
                 # This is from another person, format with their label
                 sender_id = msg.get("person_id")
                 sender_label = msg.get("person_label", sender_id)  # Use label if available, fallback to ID
-                logger.debug(f"Message from {sender_label} (id={sender_id}) to {person_id}: {content[:100]}...")
                 content = f"[{sender_label}]: {content}"
                 role = "user"
             

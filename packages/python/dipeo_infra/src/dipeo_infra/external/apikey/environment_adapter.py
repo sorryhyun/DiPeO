@@ -23,9 +23,6 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
         "claude": "ANTHROPIC_API_KEY",
         "google": "GOOGLE_API_KEY",
         "gemini": "GOOGLE_API_KEY",
-        "groq": "GROQ_API_KEY",
-        "xai": "XAI_API_KEY",
-        "grok": "XAI_API_KEY",
         "notion": "NOTION_API_KEY",
     }
 
@@ -64,8 +61,6 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
             return "google"
         if "groq" in model_lower or "llama" in model_lower or "mixtral" in model_lower:
             return "groq"
-        if "grok" in model_lower:
-            return "xai"
         # Default to OpenAI for unknown models
         return "openai"
 
@@ -83,7 +78,6 @@ class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
                 "claude",
                 "gemini",
                 "groq",
-                "grok",
                 "llama",
                 "mixtral",
                 "o1",

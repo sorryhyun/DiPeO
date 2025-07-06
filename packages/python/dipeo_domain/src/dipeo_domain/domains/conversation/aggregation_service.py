@@ -4,6 +4,7 @@ import datetime
 from typing import Any, Dict, List, Optional
 
 from dipeo_core import BaseService
+from dipeo_core.utils import is_conversation
 
 
 class ConversationAggregationService(BaseService):
@@ -31,7 +32,7 @@ class ConversationAggregationService(BaseService):
         all_messages = []
         
         for key, value in inputs.items():
-            if self._is_conversation(value):
+            if is_conversation(value):
                 self._extract_messages(value, all_messages)
             elif isinstance(value, dict):
                 # Handle nested structures
@@ -43,18 +44,6 @@ class ConversationAggregationService(BaseService):
         # Format as readable conversation flow
         return self._format_conversation(all_messages, diagram)
     
-    def _is_conversation(self, value: Any) -> bool:
-        """Check if a value is a conversation (list of messages)."""
-        if not isinstance(value, list) or not value:
-            return False
-        
-        # Check if all items look like messages
-        return all(
-            isinstance(item, dict) and 
-            'role' in item and 
-            'content' in item 
-            for item in value
-        )
     
     def _extract_messages(self, messages: List[Dict[str, Any]], all_messages: List[Dict[str, Any]]) -> None:
         """Extract messages from a conversation list."""
@@ -73,12 +62,12 @@ class ConversationAggregationService(BaseService):
         """Extract messages from nested structures."""
         # Handle single-level nesting: {'default': [messages]}
         if 'default' in value and isinstance(value['default'], list):
-            if self._is_conversation(value['default']):
+            if is_conversation(value['default']):
                 self._extract_messages(value['default'], all_messages)
             # Handle double-level nesting: {'default': {'default': [messages]}}
             elif isinstance(value['default'], dict) and 'default' in value['default']:
                 nested = value['default']['default']
-                if isinstance(nested, list) and self._is_conversation(nested):
+                if isinstance(nested, list) and is_conversation(nested):
                     self._extract_messages(nested, all_messages)
     
     def _format_conversation(self, messages: List[Dict[str, Any]], diagram: Optional[Any]) -> str:
@@ -120,17 +109,17 @@ class ConversationAggregationService(BaseService):
         """Detect if inputs contain nested conversation structures."""
         for key, value in inputs.items():
             # Check for direct conversation
-            if self._is_conversation(value):
+            if is_conversation(value):
                 return True
                 
             # Check for nested structures
             if isinstance(value, dict) and 'default' in value:
                 nested = value['default']
-                if self._is_conversation(nested):
+                if is_conversation(nested):
                     return True
                 # Check double nesting
                 if isinstance(nested, dict) and 'default' in nested:
-                    if isinstance(nested['default'], list) and self._is_conversation(nested['default']):
+                    if isinstance(nested['default'], list) and is_conversation(nested['default']):
                         return True
         
         return False

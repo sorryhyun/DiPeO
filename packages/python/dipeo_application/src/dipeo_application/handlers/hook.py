@@ -9,7 +9,8 @@ from typing import Any, Dict, Optional
 import aiohttp
 from pydantic import BaseModel
 
-from dipeo_core import BaseNodeHandler, register_handler, RuntimeContext
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_core.errors import NodeExecutionError, InvalidDiagramError
 from dipeo_core.execution import create_node_output
 from dipeo_domain.models import HookNodeData, HookType, NodeOutput
@@ -34,7 +35,7 @@ class HookNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: HookNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: Dict[str, Any],
         services: Dict[str, Any]
     ) -> NodeOutput:

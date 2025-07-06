@@ -26,7 +26,8 @@ from .constants import (
     VALID_LLM_SERVICES,
     normalize_service_name,
 )
-from .context import ExecutionContext
+# Legacy ExecutionContext removed - use UnifiedExecutionContext instead
+from .unified_context import UnifiedExecutionContext
 from .errors.taxonomy import (
     APIKeyError,
     APIKeyNotFoundError,
@@ -51,8 +52,10 @@ from .execution.types import (
     ExecutionOptions,
     NodeDefinition,
     NodeHandler,
-    RuntimeContext,
+    RuntimeContext as LegacyRuntimeContext,
 )
+
+# Type aliases removed - use UnifiedExecutionContext directly
 from .types import Error, JsonDict, JsonList, JsonValue, Result
 # Import utility functions directly from utils.py
 # We need to use importlib to specifically load the .py file
@@ -94,8 +97,10 @@ __all__ = [
     "BaseExecutor",
     "BaseNodeHandler",
     # Core types
-    "ExecutionContext",
-    "RuntimeContext",
+    "UnifiedExecutionContext",
+    "to_runtime_context",
+    "from_runtime_context",
+    "LegacyRuntimeContext",
     "ExecutionOptions",
     "NodeDefinition",
     "NodeHandler",

@@ -4,7 +4,8 @@ import asyncio
 import json
 from typing import Any, Optional
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_core.execution import create_node_output
 from dipeo_domain.models import NodeOutput, StartNodeData, HookTriggerMode
 from pydantic import BaseModel
@@ -29,7 +30,7 @@ class StartNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: StartNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -69,7 +70,7 @@ class StartNodeHandler(BaseNodeHandler):
     async def _get_hook_event_data(
         self, 
         props: StartNodeData, 
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         services: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
         """Get hook event data if available.

@@ -1,4 +1,4 @@
-from .adapters import ChatGPTAdapter, ClaudeAdapter, GeminiAdapter, GrokAdapter
+from .adapters import ChatGPTAdapter, ClaudeAdapter, GeminiAdapter
 from .base import BaseAdapter
 
 
@@ -27,6 +27,4 @@ def create_adapter(
         return ChatGPTAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
     if provider in ["google", "gemini"]:
         return GeminiAdapter(model_name=model_name, api_key=api_key)
-    if provider in ["xai", "grok"]:
-        return GrokAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
     raise ValueError(f"Unsupported provider: {provider}")

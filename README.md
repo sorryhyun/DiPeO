@@ -51,3 +51,14 @@ Note [docs](docs)
 - tmux (optional, for better parallel execution)
 
 
+## Next Release will be
+- hook node for general event hooks. i.e. youtube subtitle generator
+- gemini supports
+- tool use supports for openai adapter
+- code, api job nodes
+- windows installer deployment
+
+## Near-future objectives
+- Gemini, Claude support (grok will be removed)
+- Custom LLM support
+- various diagram examples

@@ -7,7 +7,8 @@ import sys
 from io import StringIO
 from typing import Any
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_core.execution import create_node_output
 from dipeo_domain.models import CodeJobNodeData, NodeOutput
 from pydantic import BaseModel
@@ -34,7 +35,7 @@ class CodeJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: CodeJobNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:

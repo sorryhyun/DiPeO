@@ -1,17 +1,17 @@
 from dataclasses import dataclass
 from typing import Any
 
-from dipeo_core import ExecutionContext as CoreExecutionContext
-from dipeo_core import RuntimeContext
-from dipeo_domain.handle_utils import parse_handle_id
+from dipeo_core.unified_context import UnifiedExecutionContext
+from dipeo_core.execution.types import RuntimeContext as LegacyRuntimeContext
+from dipeo_domain.handle_utils import parse_handle_id, extract_node_id_from_handle
 
 
 @dataclass
-class ExecutionContext(CoreExecutionContext):
-    """Server-specific execution context extending the core ExecutionContext.
+class ExecutionContext(UnifiedExecutionContext):
+    """Server-specific execution context extending the unified execution context.
 
     This adds server-specific functionality while maintaining compatibility
-    with the core ExecutionContext used throughout the system.
+    with the UnifiedExecutionContext used throughout the system.
     """
 
     def find_edges_from(self, node_id: str) -> list[Any]:
@@ -21,15 +21,9 @@ class ExecutionContext(CoreExecutionContext):
         result = []
         for edge in self.edges:
             if hasattr(edge, 'source') and edge.source:
-                # Split by underscore and reconstruct node ID
-                parts = edge.source.split("_")
-                if len(parts) >= 3:
-                    # Everything except last two parts (handleName and direction)
-                    edge_node_id = "_".join(parts[:-2])
-                    if edge_node_id == node_id:
-                        result.append(edge)
-                elif edge.source == node_id:
-                    # Fallback for simple node IDs
+                # Extract node ID from handle
+                edge_node_id = extract_node_id_from_handle(edge.source)
+                if edge_node_id == node_id:
                     result.append(edge)
         return result
 
@@ -40,19 +34,13 @@ class ExecutionContext(CoreExecutionContext):
         result = []
         for edge in self.edges:
             if hasattr(edge, 'target') and edge.target:
-                # Split by underscore and reconstruct node ID
-                parts = edge.target.split("_")
-                if len(parts) >= 3:
-                    # Everything except last two parts (handleName and direction)
-                    edge_node_id = "_".join(parts[:-2])
-                    if edge_node_id == node_id:
-                        result.append(edge)
-                elif edge.target == node_id:
-                    # Fallback for simple node IDs
+                # Extract node ID from handle
+                edge_node_id = extract_node_id_from_handle(edge.target)
+                if edge_node_id == node_id:
                     result.append(edge)
         return result
 
-    def to_runtime_context(self, current_node_id: str = "", node_view: Any | None = None) -> RuntimeContext:
+    def to_runtime_context(self, current_node_id: str = "", node_view: Any | None = None) -> LegacyRuntimeContext:
         """Convert ExecutionContext to RuntimeContext for BaseNodeHandler compatibility."""
         # Convert edges to dict format
         edges = [
@@ -92,7 +80,7 @@ class ExecutionContext(CoreExecutionContext):
                 else:
                     persons[person.id] = person
 
-        return RuntimeContext(
+        return LegacyRuntimeContext(
             execution_id=self.execution_id,
             current_node_id=current_node_id,
             edges=edges,

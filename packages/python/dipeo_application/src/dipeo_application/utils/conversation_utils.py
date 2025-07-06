@@ -2,7 +2,9 @@
 
 from typing import Optional, Any
 from dipeo_domain.models import DomainDiagram, DomainPerson, ContentType
-from dipeo_core import RuntimeContext
+from dipeo_domain.handle_utils import extract_node_id_from_handle
+from dipeo_core.unified_context import UnifiedExecutionContext
+from dipeo_core.utils import is_conversation as core_is_conversation, has_nested_conversation as core_has_nested_conversation, contains_conversation as core_contains_conversation
 
 
 class ConversationUtils:
@@ -26,7 +28,7 @@ class ConversationUtils:
     
     @staticmethod
     def has_conversation_state_input(
-        context: RuntimeContext, 
+        context: UnifiedExecutionContext, 
         diagram: Optional[DomainDiagram]
     ) -> bool:
         """Check if this node has incoming conversation state."""
@@ -57,20 +59,16 @@ class ConversationUtils:
             
         for arrow in diagram.arrows:
             # Check if arrow source belongs to this node
-            source_parts = arrow.source.split("_")
-            if len(source_parts) >= 3:
-                arrow_source_node_id = "_".join(source_parts[:-2])
-                if arrow_source_node_id == node_id and arrow.content_type == ContentType.conversation_state:
-                    return True
+            arrow_source_node_id = extract_node_id_from_handle(arrow.source)
+            if arrow_source_node_id == node_id and arrow.content_type == ContentType.conversation_state:
+                return True
         return False
     
     @staticmethod
     def _extract_node_id_from_handle(handle: str) -> str:
         """Extract node ID from handle format: nodeId_handleName_direction."""
-        if not handle:
-            return ""
-        parts = handle.split("_")
-        return "_".join(parts[:-2]) if len(parts) >= 3 else handle
+        node_id = extract_node_id_from_handle(handle) if handle else None
+        return node_id or handle or ""
 
 
 class InputDetector:
@@ -79,11 +77,7 @@ class InputDetector:
     @staticmethod
     def is_conversation(value: Any) -> bool:
         """Check if value is a conversation (list of messages)."""
-        return (isinstance(value, list) and 
-                value and 
-                all(isinstance(item, dict) and 
-                    "role" in item and 
-                    "content" in item for item in value))
+        return core_is_conversation(value)
     
     @staticmethod
     def has_nested_conversation(inputs: dict[str, Any]) -> bool:
@@ -110,10 +104,7 @@ class InputDetector:
     @staticmethod
     def contains_conversation(inputs: dict[str, Any]) -> bool:
         """Check if the inputs contain any conversation data."""
-        for key, value in inputs.items():
-            if InputDetector.is_conversation(value):
-                return True
-        return False
+        return core_contains_conversation(inputs)
 
 
 class MessageBuilder:

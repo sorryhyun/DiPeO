@@ -4,9 +4,11 @@ import ast
 import operator
 from typing import Any
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_core.execution import create_node_output
-from dipeo_domain.models import ConditionNodeData, NodeOutput
+from dipeo_domain.models import ConditionNodeData, NodeOutput, NodeType
+from dipeo_domain.handle_utils import extract_node_id_from_handle
 from pydantic import BaseModel
 
 from ..utils.template import substitute_template
@@ -31,7 +33,7 @@ class ConditionNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: ConditionNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -59,7 +61,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         
         return create_node_output(output_value, {"condition_result": result})
 
-    async def _evaluate_max_iterations(self, context: RuntimeContext, services: dict[str, Any]) -> bool:
+    async def _evaluate_max_iterations(self, context: UnifiedExecutionContext, services: dict[str, Any]) -> bool:
         """Evaluate if all upstream person_job nodes reached their max_iterations."""
         # Get diagram to check upstream nodes
         diagram = services.get("diagram")
@@ -72,9 +74,9 @@ class ConditionNodeHandler(BaseNodeHandler):
         
         for edge in context.edges:
             if edge.get("target", "").startswith(context.current_node_id):
-                src_node_id = edge.get("source", "").split("_")[0]
+                src_node_id = extract_node_id_from_handle(edge.get("source", ""))
                 src_node = next((n for n in diagram.nodes if n.id == src_node_id), None)
-                if src_node and src_node.type == "person_job":
+                if src_node and src_node.type == NodeType.person_job.value:
                     found_person_job = True
                     exec_count = context.get_node_execution_count(src_node_id)
                     max_iter = int((src_node.data or {}).get("max_iteration", 1))

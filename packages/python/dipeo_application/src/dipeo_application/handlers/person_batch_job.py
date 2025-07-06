@@ -3,8 +3,12 @@
 import asyncio
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_core.execution import create_node_output
+from dipeo_core.utils import is_conversation
+from dipeo_application.utils.conversation_utils import MessageBuilder
+from dipeo_domain.handle_utils import extract_node_id_from_handle
 from dipeo_domain.models import (
     ChatResult,
     ContentType,
@@ -48,7 +52,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: PersonBatchJobNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -134,7 +138,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         person_id: str,
         prompt: str,
         props: PersonBatchJobNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         diagram: Optional[DomainDiagram],
         conversation_service: "ConversationMemoryService",
@@ -146,6 +150,9 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         if not person:
             raise ValueError(f"Person {person_id} not found")
 
+        # Create message builder
+        message_builder = MessageBuilder(conversation_service, person_id, context.execution_id)
+        
         # Handle forgetting based on memory config
         if props.memory_config and props.memory_config.forget_mode == "on_every_turn":
             if context.get_node_execution_count(context.current_node_id) > 0:
@@ -162,16 +169,9 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                 # Check if this edge has conversation_state content type
                 # Parse handle ID to get node ID (format: nodeId_handleName_direction)
                 source_handle = edge.get("source", "")
-                if source_handle:
-                    # Split by underscore and reconstruct node ID
-                    parts = source_handle.split("_")
-                    if len(parts) >= 3:
-                        # Everything except last two parts (handleName and direction)
-                        source_node_id = "_".join(parts[:-2])
-                    else:
-                        source_node_id = source_handle
-                else:
-                    source_node_id = ""
+                # Extract node ID from handle
+                source_node_id = extract_node_id_from_handle(source_handle) if source_handle else ""
+                source_node_id = source_node_id or ""
                 for arrow in diagram.arrows if diagram else []:
                     if arrow.source.startswith(source_node_id) and arrow.target.startswith(context.current_node_id):
                         if arrow.content_type == ContentType.conversation_state:
@@ -195,15 +195,11 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                                     break
                     elif key == "default":
                         # Handle conversation data nested under 'default' key
-                        if isinstance(value, list) and value:
-                            # Check if this is conversation data
-                            if isinstance(value[0], dict) and "role" in value[0]:
-                                for msg in reversed(value):
-                                    if msg.get("role") == "user":
-                                        combined_content_parts.append(msg.get("content", ""))
-                                        break
-                            else:
-                                combined_content_parts.append(str(value))
+                        if is_conversation(value):
+                            for msg in reversed(value):
+                                if msg.get("role") == "user":
+                                    combined_content_parts.append(msg.get("content", ""))
+                                    break
                         else:
                             combined_content_parts.append(str(value))
                     else:
@@ -216,19 +212,18 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
             # Add as a single user message
             if combined_content_parts:
                 combined_content = "\n".join(combined_content_parts)
-                conversation_service.add_message(person_id, "user", combined_content)
+                message_builder.user(combined_content)
         else:
             # Original behavior for non-conversation-state inputs
             if inputs:
                 for key, value in inputs.items():
                     if value and key != "conversation":
                         # Format the external input with its source
-                        external_content = f"[Input from {key}]: {value}"
-                        conversation_service.add_message(person_id, "external", external_content)
+                        message_builder.external(key, str(value))
 
             # Add prompt to conversation separately only if not conversation state
             if prompt:
-                conversation_service.add_message(person_id, "user", prompt)
+                message_builder.user(prompt)
 
         # Build messages with system prompt
         messages = []
@@ -253,7 +248,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         )
 
         # Store response
-        conversation_service.add_message(person_id, "assistant", result.text)
+        message_builder.assistant(result.text)
 
         return {
             "text": result.text,

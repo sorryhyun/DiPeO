@@ -12,6 +12,7 @@ from dipeo_domain import (
     HandleID,
     HandleLabel,
     NodeID,
+    NodeType,
     Vec2,
     create_handle_id,
 )
@@ -73,7 +74,7 @@ class HandleGenerator:
         node_type: str,
     ) -> None:
         # Start nodes only have output
-        if node_type == "start":
+        if node_type == NodeType.start.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.default, HandleDirection.output),
@@ -81,7 +82,7 @@ class HandleGenerator:
             return
             
         # Endpoint nodes only have input
-        if node_type == "endpoint":
+        if node_type == NodeType.endpoint.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.default, HandleDirection.input),
@@ -89,7 +90,7 @@ class HandleGenerator:
             return
             
         # Condition nodes have one input and two outputs (true/false)
-        if node_type == "condition":
+        if node_type == NodeType.condition.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.default, HandleDirection.input),
@@ -105,7 +106,7 @@ class HandleGenerator:
             return
             
         # Database nodes have input and output
-        if node_type == "db":
+        if node_type == NodeType.db.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.default, HandleDirection.input),
@@ -117,7 +118,7 @@ class HandleGenerator:
             return
 
         # person_job nodes have specific handles: first input, default input, default output
-        if node_type == "person_job":
+        if node_type == NodeType.person_job.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.first, HandleDirection.input),
@@ -133,7 +134,7 @@ class HandleGenerator:
             return
             
         # person_batch_job nodes have default input and output
-        if node_type == "person_batch_job":
+        if node_type == NodeType.person_batch_job.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.default, HandleDirection.input),
@@ -145,7 +146,7 @@ class HandleGenerator:
             return
             
         # user_response nodes have default input and output
-        if node_type == "user_response":
+        if node_type == NodeType.user_response.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.default, HandleDirection.input),

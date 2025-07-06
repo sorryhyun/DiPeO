@@ -1,9 +1,9 @@
 """Simplified person_job handler with direct implementation."""
 
 from typing import Any, Optional, List, Dict
-import logging
 
-from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
+from dipeo_core import BaseNodeHandler, register_handler
+from dipeo_core.unified_context import UnifiedExecutionContext
 from dipeo_domain.models import (
     ChatResult,
     DomainDiagram,
@@ -11,12 +11,11 @@ from dipeo_domain.models import (
     PersonJobNodeData,
     LLMRequestOptions,
 )
+from dipeo_domain.domains.conversation.on_every_turn_handler import OnEveryTurnHandler
 from pydantic import BaseModel
 
 from ..utils.template import substitute_template
 from ..utils.conversation_utils import ConversationUtils, InputDetector, MessageBuilder
-
-logger = logging.getLogger(__name__)
 
 
 @register_handler
@@ -42,7 +41,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: PersonJobNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -108,16 +107,16 @@ class PersonJobNodeHandler(BaseNodeHandler):
             metadata={"error": error_msg}
         )
     
-    def _should_forget_messages(self, props: PersonJobNodeData, context: RuntimeContext) -> bool:
+    def _should_forget_messages(self, props: PersonJobNodeData, context: UnifiedExecutionContext) -> bool:
         """Check if messages should be forgotten based on memory config."""
-        return (props.memory_config and 
-                props.memory_config.forget_mode == "on_every_turn" and
-                context.get_node_execution_count(context.current_node_id) > 0)
+        forget_mode = props.memory_config.forget_mode if props.memory_config else None
+        execution_count = context.get_node_execution_count(context.current_node_id)
+        return OnEveryTurnHandler.should_forget_messages(execution_count, forget_mode)
     
     async def _process_prompt(
         self, 
         props: PersonJobNodeData, 
-        context: RuntimeContext, 
+        context: UnifiedExecutionContext, 
         inputs: Dict[str, Any]
     ) -> tuple[str, set[str], Optional[NodeOutput]]:
         """Process prompt template and return (prompt, used_keys, error)."""
@@ -143,38 +142,21 @@ class PersonJobNodeHandler(BaseNodeHandler):
                     f"Available inputs: {available_keys}. "
                     f"Make sure the edges connecting to this node are labeled with the required keys."
                 )
-                return "", used_template_keys, NodeOutput(
-                    value={"default": error_msg},
-                    metadata={"error": error_msg, "missing_placeholders": missing_keys}
-                )
+                return "", used_template_keys, self._error_output(error_msg)
         
         return prompt, used_template_keys, None
     
     async def _consolidate_on_every_turn_messages(
         self, 
         inputs: Dict[str, Any], 
-        conversation_service: Any, 
-        used_template_keys: set[str]
+        used_template_keys: set[str],
+        diagram: Optional[DomainDiagram] = None
     ) -> Optional[str]:
         """Consolidate messages for on_every_turn mode."""
-        person_messages = {}
-        
-        for key, value in inputs.items():
-            if conversation_service.is_conversation(value) and key not in used_template_keys:
-                logger.debug(f"Processing conversation input, key={key}, messages count={len(value)}")
-                
-                # Find last assistant message from each person
-                for msg in value:
-                    if msg.get("role") == "assistant" and msg.get("person_id"):
-                        person_id = msg.get("person_id")
-                        sender_label = msg.get("person_label", person_id)
-                        person_messages[person_id] = f"[{sender_label}]: {msg.get('content', '')}"
-                        logger.debug(f"Found assistant message from {sender_label} (id={person_id})")
-        
-        if person_messages:
-            # Sort by person_id for consistent ordering
-            return "\n".join(person_messages[pid] for pid in sorted(person_messages.keys()))
-        return None
+        consolidated_content, _ = OnEveryTurnHandler.consolidate_conversation_inputs(
+            inputs, used_template_keys, diagram
+        )
+        return consolidated_content if consolidated_content else None
     
     async def _handle_conversation_inputs(
         self,
@@ -185,7 +167,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
         conversation_service: Any,
         used_template_keys: set[str],
         person_id: str,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         diagram: Optional[DomainDiagram]
     ) -> None:
         """Handle all conversation input scenarios."""
@@ -207,7 +189,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
             
             if forget_mode == "on_every_turn" and prompt:
                 consolidated = await self._consolidate_on_every_turn_messages(
-                    inputs, conversation_service, used_template_keys
+                    inputs, used_template_keys, diagram
                 )
                 if consolidated:
                     message_builder.user(f"{consolidated}\n[developer]: {prompt}")
@@ -254,7 +236,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
         person_id: str,
         person: Any,
         props: PersonJobNodeData,
-        context: RuntimeContext,
+        context: UnifiedExecutionContext,
         conversation_service: Any,
         diagram: Optional[DomainDiagram]
     ) -> NodeOutput:
@@ -265,10 +247,8 @@ class PersonJobNodeHandler(BaseNodeHandler):
         if ConversationUtils.needs_conversation_output(context.current_node_id, diagram):
             forget_mode = props.memory_config.forget_mode if props.memory_config else None
             
-            logger.debug(f"Preparing conversation output for node {context.current_node_id}, person_id={person_id}, forget_mode={forget_mode}")
             
             messages = conversation_service.get_messages_with_person_id(person_id, forget_mode=forget_mode)
-            logger.debug(f"Got {len(messages)} messages for output from {person_id}")
             
             # Add person labels to messages
             person_label = ConversationUtils.get_person_label(person_id, diagram)
