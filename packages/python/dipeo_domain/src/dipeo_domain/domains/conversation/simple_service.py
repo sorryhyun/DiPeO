@@ -121,17 +121,55 @@ class ConversationMemoryService(BaseService, SupportsMemory):
         return await self.memory_service.save_conversation_log(execution_id, log_dir)
     
     def get_messages_for_output(self, person_id: str, forget_mode: Optional[str] = None) -> List[Dict[str, str]]:
-        """Get messages to pass to downstream nodes, respecting forgetting mode."""
-        messages = self.get_messages(person_id)
+        """Get messages to pass to downstream nodes, respecting forgetting mode.
         
-        # For on_every_turn mode, only return the last assistant message
+        For debate-style interactions with on_every_turn mode:
+        - We need to get messages from OTHER persons (not the current person's own messages)
+        - This requires checking the raw conversation history with metadata
+        """
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"get_messages_for_output: person_id={person_id}, forget_mode={forget_mode}")
+        
         if forget_mode == "on_every_turn":
-            for msg in reversed(messages):
-                if msg.get("role") == "assistant":
-                    return [msg]
-            return []  # No assistant message found
+            # Get raw conversation history with metadata
+            if not self.current_execution_id:
+                return []
+                
+            history = self.memory_service.get_conversation_history(person_id)
+            
+            # Filter messages from OTHER persons in current execution
+            # Group by sender to get only the last message from each person
+            last_messages_by_person = {}
+            
+            for msg in history:
+                if msg.get("execution_id") != self.current_execution_id:
+                    continue
+                    
+                # Check if this message is FROM another person TO this person
+                from_person = msg.get("from_person_id")
+                to_person = msg.get("to_person_id")
+                
+                # We want messages where someone else sent TO this person
+                if to_person == person_id and from_person != person_id and from_person != "system":
+                    if msg.get("role") == "assistant":
+                        # This is a message from another person - keep only the latest
+                        last_messages_by_person[from_person] = {
+                            "role": msg.get("role"),
+                            "content": msg.get("content", ""),
+                            "from_person_id": from_person
+                        }
+                        logger.debug(f"Found message from {from_person} to {person_id}: {msg.get('content', '')[:50]}...")
+            
+            # Return the last message from each other person
+            result = list(last_messages_by_person.values())
+            logger.debug(f"Returning {len(result)} messages from other persons for {person_id}")
+            return result
         
-        # For other modes, return all messages
+        # For other modes, return all messages (simplified format)
+        messages = self.get_messages(person_id)
+        logger.debug(f"Returning all {len(messages)} messages for {person_id}")
         return messages
     
     def prepare_messages_for_llm(self, person_id: str, system_prompt: Optional[str] = None) -> List[Dict[str, str]]:

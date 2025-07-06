@@ -26,12 +26,7 @@ class LocalAppContext:
         self.api_key_service: SupportsAPIKey | None = None
         self.llm_service: SupportsLLM | None = None
         self.file_service: SupportsFile | None = None
-        self.memory_service: SupportsMemory | None = (
-            None  # Changed from conversation_service
-        )
-        self.conversation_service: Any | None = (
-            None  # Will be SimpleConversationService
-        )
+        self.memory_service: SupportsMemory | None = None
         self.execution_service: SupportsExecution | None = None
         self.notion_service: SupportsNotion | None = None
         self.diagram_storage_service: SupportsDiagram | None = None
@@ -56,10 +51,6 @@ class LocalAppContext:
 
         self.memory_service = MemoryService()
         self.file_service = ConsolidatedFileService()
-
-        # TODO: Initialize conversation service when it's updated to use correct domain models
-        # For now, we'll use None which means person_job nodes won't work in local mode
-        self.conversation_service = None
 
         # Initialize execution service
         self.execution_service = LocalExecutionService(self)

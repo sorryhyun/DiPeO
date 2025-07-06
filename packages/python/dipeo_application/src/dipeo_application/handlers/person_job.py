@@ -1,21 +1,22 @@
 """Simplified person_job handler with direct implementation."""
 
-from typing import Any, Optional
+from typing import Any, Optional, List, Dict
+import logging
 
 from dipeo_core import BaseNodeHandler, RuntimeContext, register_handler
 from dipeo_domain.models import (
     ChatResult,
-    ContentType,
     DomainDiagram,
-    DomainPerson,
     NodeOutput,
     PersonJobNodeData,
     LLMRequestOptions,
 )
-from dipeo_domain.handle_utils import parse_handle_id
 from pydantic import BaseModel
 
 from ..utils.template import substitute_template
+from ..utils.conversation_utils import ConversationUtils, InputDetector, MessageBuilder
+
+logger = logging.getLogger(__name__)
 
 
 @register_handler
@@ -47,49 +48,82 @@ class PersonJobNodeHandler(BaseNodeHandler):
     ) -> NodeOutput:
         """Execute person_job node."""
         
+        # Initialize services
         conversation_service = services["conversation"]
         llm_service = services["llm"]
         diagram: Optional[DomainDiagram] = services.get("diagram")
         
-        # Set the current execution ID on the conversation service
+        # Set execution context
         if hasattr(conversation_service, 'current_execution_id'):
             conversation_service.current_execution_id = context.execution_id
 
+        # Validate person
         person_id = props.person
         if not person_id:
-            return NodeOutput(
-                value={"default": ""}, metadata={"error": "No person specified"}
-            )
+            return self._error_output("No person specified")
         
-
-        # Find person config
-        person = self._find_person(diagram, person_id) if diagram else None
+        person = ConversationUtils.find_person(diagram, person_id)
         if not person:
-            return NodeOutput(
-                value={"default": ""}, metadata={"error": "Person not found"}
-            )
+            return self._error_output("Person not found")
 
-        # Create a helper to reduce redundant parameters
-        def add_message(role: str, content: str) -> None:
-            """Helper to add messages with consistent parameters."""
-            conversation_service.add_message_to_conversation(
-                person_id=person_id,
-                execution_id=context.execution_id,
-                role=role,
-                content=content,
-                current_person_id=person_id
-            )
+        # Create message builder
+        message_builder = MessageBuilder(conversation_service, person_id, context.execution_id)
         
-        # Handle forgetting based on memory config
-        if props.memory_config and props.memory_config.forget_mode == "on_every_turn":
-            if context.get_node_execution_count(context.current_node_id) > 0:
-                # Use interface method for forgetting only assistant messages
-                conversation_service.forget_own_messages_for_person(person_id)
+        # Handle memory forgetting
+        if self._should_forget_messages(props, context):
+            conversation_service.forget_own_messages_for_person(person_id)
+        
+        # Process prompt
+        prompt, used_keys, error = await self._process_prompt(props, context, inputs)
+        if error:
+            return error
+        
+        # Handle conversation inputs
+        await self._handle_conversation_inputs(
+            inputs, prompt, props, message_builder, 
+            conversation_service, used_keys, person_id, context, diagram
+        )
 
-        # Track which keys are used in template substitution
+        # Prepare and execute LLM call
+        system_prompt = person.llm_config.system_prompt if person.llm_config else None
+        messages = conversation_service.prepare_messages_for_llm(person_id, system_prompt)
+        
+        result = await self._execute_llm_call(
+            llm_service, messages, person, props.tools
+        )
+        
+        # Store response
+        message_builder.assistant(result.text)
+        
+        # Build output
+        return self._build_output(
+            result, person_id, person, props, context, 
+            conversation_service, diagram
+        )
+
+    def _error_output(self, error_msg: str) -> NodeOutput:
+        """Create an error output."""
+        return NodeOutput(
+            value={"default": ""}, 
+            metadata={"error": error_msg}
+        )
+    
+    def _should_forget_messages(self, props: PersonJobNodeData, context: RuntimeContext) -> bool:
+        """Check if messages should be forgotten based on memory config."""
+        return (props.memory_config and 
+                props.memory_config.forget_mode == "on_every_turn" and
+                context.get_node_execution_count(context.current_node_id) > 0)
+    
+    async def _process_prompt(
+        self, 
+        props: PersonJobNodeData, 
+        context: RuntimeContext, 
+        inputs: Dict[str, Any]
+    ) -> tuple[str, set[str], Optional[NodeOutput]]:
+        """Process prompt template and return (prompt, used_keys, error)."""
         used_template_keys = set()
         
-        # Build prompt
+        # Select prompt based on execution count
         exec_count = context.get_node_execution_count(context.current_node_id)
         if exec_count == 0 and props.first_only_prompt:
             prompt_template = props.first_only_prompt
@@ -109,227 +143,158 @@ class PersonJobNodeHandler(BaseNodeHandler):
                     f"Available inputs: {available_keys}. "
                     f"Make sure the edges connecting to this node are labeled with the required keys."
                 )
-                return NodeOutput(
+                return "", used_template_keys, NodeOutput(
                     value={"default": error_msg},
                     metadata={"error": error_msg, "missing_placeholders": missing_keys}
                 )
         
-        # Check if we need to aggregate conversations
-        if self._has_nested_conversation(inputs):
-            # Create aggregation service on demand
+        return prompt, used_template_keys, None
+    
+    async def _consolidate_on_every_turn_messages(
+        self, 
+        inputs: Dict[str, Any], 
+        conversation_service: Any, 
+        used_template_keys: set[str]
+    ) -> Optional[str]:
+        """Consolidate messages for on_every_turn mode."""
+        person_messages = {}
+        
+        for key, value in inputs.items():
+            if conversation_service.is_conversation(value) and key not in used_template_keys:
+                logger.debug(f"Processing conversation input, key={key}, messages count={len(value)}")
+                
+                # Find last assistant message from each person
+                for msg in value:
+                    if msg.get("role") == "assistant" and msg.get("person_id"):
+                        person_id = msg.get("person_id")
+                        sender_label = msg.get("person_label", person_id)
+                        person_messages[person_id] = f"[{sender_label}]: {msg.get('content', '')}"
+                        logger.debug(f"Found assistant message from {sender_label} (id={person_id})")
+        
+        if person_messages:
+            # Sort by person_id for consistent ordering
+            return "\n".join(person_messages[pid] for pid in sorted(person_messages.keys()))
+        return None
+    
+    async def _handle_conversation_inputs(
+        self,
+        inputs: Dict[str, Any],
+        prompt: str,
+        props: PersonJobNodeData,
+        message_builder: MessageBuilder,
+        conversation_service: Any,
+        used_template_keys: set[str],
+        person_id: str,
+        context: RuntimeContext,
+        diagram: Optional[DomainDiagram]
+    ) -> None:
+        """Handle all conversation input scenarios."""
+        
+        # Case 1: Nested conversation
+        if InputDetector.has_nested_conversation(inputs):
             from dipeo_domain.domains.conversation import ConversationAggregationService
             aggregation_service = ConversationAggregationService()
-            
-            # Use aggregation service to handle complex conversation structures
             aggregated = aggregation_service.aggregate_conversations(inputs, diagram)
             if aggregated:
-                add_message("user", aggregated)
-            # Add prompt after aggregated conversation if provided
+                message_builder.user(aggregated)
             if prompt:
-                add_message("user", f"[developer]: {prompt}")
-        elif self._has_conversation_state_input(context, diagram) and self._inputs_contain_conversation(inputs):
-            # Handle conversation state inputs
-            # Get the forget_mode for the current person
+                message_builder.developer(prompt)
+        
+        # Case 2: Conversation state input
+        elif (ConversationUtils.has_conversation_state_input(context, diagram) and 
+              InputDetector.contains_conversation(inputs)):
             forget_mode = props.memory_config.forget_mode if props.memory_config else None
             
-            # For on_every_turn mode, we'll consolidate messages
             if forget_mode == "on_every_turn" and prompt:
-                # Collect all conversation messages first
-                consolidated_messages = []
-                for key, value in inputs.items():
-                    if conversation_service.is_conversation(value) and key not in used_template_keys:
-                        for msg in value:
-                            if msg.get("role") == "assistant" and msg.get("person_id"):
-                                # Format message from other person
-                                sender_label = msg.get("person_label", msg.get("person_id"))
-                                consolidated_messages.append(f"[{sender_label}]: {msg.get('content', '')}")
-                
-                # Add consolidated message with developer prompt
-                if consolidated_messages:
-                    combined_content = "\n".join(consolidated_messages) + f"\n\n[developer]: {prompt}"
-                    add_message("user", combined_content)
+                consolidated = await self._consolidate_on_every_turn_messages(
+                    inputs, conversation_service, used_template_keys
+                )
+                if consolidated:
+                    message_builder.user(f"{consolidated}\n[developer]: {prompt}")
                 else:
-                    add_message("user", f"[developer]: {prompt}")
+                    message_builder.developer(prompt)
             else:
-                # Original behavior for other modes
+                # Rebuild conversation context for other modes
                 for key, value in inputs.items():
                     if conversation_service.is_conversation(value) and key not in used_template_keys:
-                        conversation_service.rebuild_conversation_context(person_id, value, forget_mode=forget_mode)
-                # Add prompt if provided
+                        conversation_service.rebuild_conversation_context(
+                            person_id, value, forget_mode=forget_mode
+                        )
                 if prompt:
-                    add_message("user", f"[developer]: {prompt}")
-        else:
-            # Original behavior for non-conversation inputs
-            if inputs:
-                for key, value in inputs.items():
-                    if value and key not in used_template_keys and key != "conversation":
-                        external_content = f"[Input from {key}]: {value}"
-                        add_message("external", external_content)
-            
-            if prompt:
-                add_message("user", prompt)
-
-        system_prompt = person.llm_config.system_prompt if person.llm_config else None
-        messages = conversation_service.prepare_messages_for_llm(person_id, system_prompt)
-
-        # Prepare LLM request options with tools if configured
-        request_options = None
-        if props.tools:
-            request_options = LLMRequestOptions(tools=props.tools)
+                    message_builder.developer(prompt)
         
-        # Call LLM
-        result: ChatResult = await llm_service.complete(
+        # Case 3: Non-conversation inputs
+        else:
+            for key, value in inputs.items():
+                if value and key not in used_template_keys and key != "conversation":
+                    message_builder.external(key, str(value))
+            if prompt:
+                message_builder.user(prompt)
+    
+    async def _execute_llm_call(
+        self,
+        llm_service: Any,
+        messages: List[Dict[str, str]],
+        person: Any,
+        tools: Optional[List[Any]] = None
+    ) -> ChatResult:
+        """Execute LLM call with proper configuration."""
+        request_options = LLMRequestOptions(tools=tools) if tools else None
+        
+        return await llm_service.complete(
             messages=messages,
             model=person.llm_config.model if person.llm_config else "gpt-4.1-nano",
             api_key_id=person.llm_config.api_key_id if person.llm_config else None,
             options=request_options,
         )
-
-        # Store response
-        add_message("assistant", result.text)
-
-        # Prepare output
+    
+    def _build_output(
+        self,
+        result: ChatResult,
+        person_id: str,
+        person: Any,
+        props: PersonJobNodeData,
+        context: RuntimeContext,
+        conversation_service: Any,
+        diagram: Optional[DomainDiagram]
+    ) -> NodeOutput:
+        """Build the node output with all necessary data."""
         output_value = {"default": result.text}
-
-        # Check if we need conversation output (for downstream nodes)
-        if self._needs_conversation_output(context.current_node_id, diagram):
-            # Get messages with person_id attached
-            # NOTE: We do NOT apply forget_mode here - downstream nodes should receive full conversation
-            messages = conversation_service.get_messages_with_person_id(person_id, forget_mode=None)
+        
+        # Add conversation output if needed
+        if ConversationUtils.needs_conversation_output(context.current_node_id, diagram):
+            forget_mode = props.memory_config.forget_mode if props.memory_config else None
+            
+            logger.debug(f"Preparing conversation output for node {context.current_node_id}, person_id={person_id}, forget_mode={forget_mode}")
+            
+            messages = conversation_service.get_messages_with_person_id(person_id, forget_mode=forget_mode)
+            logger.debug(f"Got {len(messages)} messages for output from {person_id}")
             
             # Add person labels to messages
-            person_label = self._get_person_label(person_id, diagram)
+            person_label = ConversationUtils.get_person_label(person_id, diagram)
             for msg in messages:
                 msg["person_label"] = person_label
             
             output_value["conversation"] = messages
-
+        
         # Build metadata
         metadata = {
-            "model": person.llm_config.model
-            if person.llm_config
-            else "gpt-4.1-nano",
-            "tokens_used": result.token_usage.total
-            if result.token_usage and result.token_usage.total
-            else 0,
+            "model": person.llm_config.model if person.llm_config else "gpt-4.1-nano",
+            "tokens_used": result.token_usage.total if result.token_usage and result.token_usage.total else 0,
             "token_usage": result.token_usage.model_dump() if result.token_usage else None,
         }
         
-        # Add tool outputs to metadata if present
+        # Add tool outputs if present
         if result.tool_outputs:
             metadata["tool_outputs"] = [
                 output.model_dump() for output in result.tool_outputs
             ]
             
-            # Also add tool outputs to the output value for downstream nodes
+            # Add tool outputs to output value for downstream nodes
             for tool_output in result.tool_outputs:
-                # Add web search results as a separate output
                 if tool_output.type.value == "web_search_preview":
                     output_value["web_search_results"] = tool_output.result
-                # Add image generation results  
                 elif tool_output.type.value == "image_generation":
                     output_value["generated_image"] = tool_output.result
-
-        return NodeOutput(
-            value=output_value,
-            metadata=metadata,
-        )
-
-    def _find_person(
-        self, diagram: Optional[DomainDiagram], person_id: str
-    ) -> Optional[DomainPerson]:
-        """Find person in diagram."""
-        if not diagram:
-            return None
-        return next((p for p in diagram.persons if p.id == person_id), None)
-
-    def _get_person_label(self, person_id: str, diagram: Optional[DomainDiagram]) -> str:
-        """Get the label for a person from the diagram."""
-        if not diagram or not person_id:
-            return person_id or "Person"
         
-        person = self._find_person(diagram, person_id)
-        if person:
-            return person.label or person_id
-        
-        return person_id
-
-    def _has_conversation_state_input(
-        self, context: RuntimeContext, diagram: Optional[DomainDiagram]
-    ) -> bool:
-        """Check if this node has incoming conversation state."""
-        if not diagram:
-            return False
-        
-        for edge in context.edges:
-            if edge.get("target") and edge["target"].startswith(context.current_node_id):
-                # Parse handle ID to get node ID (format: nodeId_handleName_direction)
-                source_handle = edge.get("source", "")
-                if source_handle:
-                    # Split by underscore and reconstruct node ID
-                    parts = source_handle.split("_")
-                    if len(parts) >= 3:
-                        # Everything except last two parts (handleName and direction)
-                        source_node_id = "_".join(parts[:-2])
-                    else:
-                        source_node_id = source_handle
-                else:
-                    source_node_id = ""
-                for arrow in diagram.arrows:
-                    if arrow.source.startswith(source_node_id) and arrow.target.startswith(context.current_node_id):
-                        if arrow.content_type == ContentType.conversation_state:
-                            return True
-        return False
-    
-    def _inputs_contain_conversation(self, inputs: dict[str, Any]) -> bool:
-        """Check if the inputs contain conversation data."""
-        for key, value in inputs.items():
-            if isinstance(value, list) and value:
-                # Check if it's a list of conversation messages
-                if all(isinstance(item, dict) and "role" in item and "content" in item for item in value):
-                    return True
-        return False
-    
-    def _needs_conversation_output(
-        self, node_id: str, diagram: Optional[DomainDiagram]
-    ) -> bool:
-        """Check if any outgoing edge needs conversation data."""
-        if not diagram:
-            return False
-        for arrow in diagram.arrows:
-            # Check if arrow source belongs to this node (format: nodeId_handleName_direction)
-            source_parts = arrow.source.split("_")
-            if len(source_parts) >= 3:
-                arrow_source_node_id = "_".join(source_parts[:-2])
-                if arrow_source_node_id == node_id and arrow.content_type == ContentType.conversation_state:
-                    return True
-        return False
-    
-    def _has_nested_conversation(self, inputs: dict[str, Any]) -> bool:
-        """Check if inputs contain nested conversation structures."""
-        for key, value in inputs.items():
-            # Check for direct conversation
-            if isinstance(value, list) and value and all(
-                isinstance(item, dict) and 'role' in item and 'content' in item 
-                for item in value
-            ):
-                return True
-                
-            # Check for nested structures
-            if isinstance(value, dict) and 'default' in value:
-                nested = value['default']
-                if isinstance(nested, list) and nested and all(
-                    isinstance(item, dict) and 'role' in item and 'content' in item 
-                    for item in nested
-                ):
-                    return True
-                # Check double nesting
-                if isinstance(nested, dict) and 'default' in nested:
-                    double_nested = nested['default']
-                    if isinstance(double_nested, list) and double_nested and all(
-                        isinstance(item, dict) and 'role' in item and 'content' in item 
-                        for item in double_nested
-                    ):
-                        return True
-        
-        return False
+        return NodeOutput(value=output_value, metadata=metadata)

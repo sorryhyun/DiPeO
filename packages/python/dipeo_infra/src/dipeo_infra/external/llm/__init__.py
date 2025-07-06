@@ -4,7 +4,6 @@ from dipeo_domain import ForgettingMode, LLMService
 from .base import BaseAdapter, ChatResult
 from .factory import create_adapter
 from .services import LLMInfraService
-from .conversation_adapter import ConversationService
 
 # Supported models mapping
 SUPPORTED_MODELS = {
@@ -27,7 +26,6 @@ __all__ = [
     "SUPPORTED_MODELS",
     "BaseAdapter",
     "ChatResult",
-    "ConversationService",
     "ForgettingMode",
     "LLMInfraService",
     "LLMService",

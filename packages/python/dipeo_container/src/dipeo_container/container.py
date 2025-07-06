@@ -229,7 +229,7 @@ def _validate_protocol_compliance(container: "Container") -> None:
         (container.api_key_service(), SupportsAPIKey, "APIKeyService"),
         (container.llm_service(), SupportsLLM, "LLMInfrastructureService"),
         (container.file_service(), SupportsFile, "FileSystemRepository"),
-        (container.conversation_service(), SupportsMemory, "ConversationService"),
+        (container.conversation_service(), SupportsMemory, "ConversationMemoryService"),
         (container.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
         (container.notion_service(), SupportsNotion, "NotionAPIService"),
         (container.diagram_storage_service(), SupportsDiagram, "DiagramFileRepository"),

@@ -95,6 +95,9 @@ async def run_command(args: list[str]) -> None:
         f"✓ Execution complete - Total token count: {result.get('total_token_count', 0)}"
     )
 
+    # Display conversation logs
+    _display_conversation_logs(result, options)
+
     # Save results
     _save_results(result, options)
 
@@ -152,6 +155,57 @@ async def _run_monitor_mode(diagram: dict[str, Any], options: ExecutionOptions) 
 
     if options.debug:
         print("💡 Tip: Server will remain running after execution for monitoring")
+
+
+def _display_conversation_logs(result: dict[str, Any], options: ExecutionOptions) -> None:
+    """Display conversation logs from execution results."""
+    context = result.get("context", {})
+    
+    # Collect all conversations from node outputs
+    conversations = []
+    for node_id, node_output in context.items():
+        if isinstance(node_output, dict) and "value" in node_output:
+            value = node_output["value"]
+            if isinstance(value, dict) and "conversation" in value:
+                conversation = value["conversation"]
+                if conversation:
+                    conversations.append({
+                        "node_id": node_id,
+                        "conversation": conversation
+                    })
+    
+    # Display conversations if found
+    if conversations:
+        print("\n📝 Conversation Logs:")
+        print("=" * 60)
+        
+        for conv_data in conversations:
+            node_id = conv_data["node_id"]
+            conversation = conv_data["conversation"]
+            
+            # Get person label from first message if available
+            person_label = None
+            if conversation and isinstance(conversation[0], dict):
+                person_label = conversation[0].get("person_label", conversation[0].get("person_id", node_id))
+            
+            print(f"\n🤖 Person: {person_label or node_id}")
+            print("-" * 40)
+            
+            for msg in conversation:
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                
+                # Format role display
+                role_icon = "👤" if role == "user" else "🤖" if role == "assistant" else "📎"
+                role_display = role.capitalize()
+                
+                # Display message
+                print(f"\n{role_icon} {role_display}:")
+                # Indent content for readability
+                for line in content.split('\n'):
+                    print(f"   {line}")
+        
+        print("\n" + "=" * 60)
 
 
 def _save_results(result: dict[str, Any], options: ExecutionOptions) -> None:
