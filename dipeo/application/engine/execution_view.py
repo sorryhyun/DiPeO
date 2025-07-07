@@ -61,13 +61,21 @@ class NodeView:
                     node_outputs[node_id] = node_view.output.model_dump()
                 node_exec_counts[node_id] = node_view.exec_count
             
+            # Extract memory config if available (for person_job nodes)
+            node_memory_config = None
+            if self.node.type == NodeType.person_job and hasattr(self.node, 'data'):
+                node_data = self.node.data
+                if isinstance(node_data, dict) and 'memory_config' in node_data:
+                    node_memory_config = node_data['memory_config']
+            
             # Use domain service to resolve inputs
             return self.input_resolution_service.resolve_inputs_for_node(
                 node_id=self.node.id,
                 node_type=self.node.type.value,
                 diagram=self.execution_view.diagram,
                 node_outputs=node_outputs,
-                node_exec_counts=node_exec_counts
+                node_exec_counts=node_exec_counts,
+                node_memory_config=node_memory_config
             )
         else:
             # Fallback to original implementation
@@ -158,9 +166,7 @@ class LocalExecutionView:
                 self.edge_views.append(edge_view)
                 self.node_views[source_id].outgoing_edges.append(edge_view)
                 self.node_views[target_id].incoming_edges.append(edge_view)
-                
-                # Log edge details for debugging
-                log.debug(f"Created edge: {source_id} ({source_ref.handle_label.value}) -> {target_id} ({target_ref.handle_label.value})")
+
 
     def _compute_execution_order(self) -> List[List[NodeView]]:
         """Compute topological execution order using Kahn's algorithm."""

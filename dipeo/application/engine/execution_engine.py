@@ -73,6 +73,48 @@ class ExecutionEngine:
         # Initialize controller with nodes
         controller.initialize_nodes(execution_view.node_views)
         
+        # Register person configs with conversation service
+        conversation_service = None
+        if hasattr(self.service_registry, 'get'):
+            conversation_service = self.service_registry.get('conversation')
+            if not conversation_service:
+                # Try alternative names
+                conversation_service = self.service_registry.get('conversation_service')
+            if not conversation_service:
+                conversation_service = self.service_registry.get('memory')
+            if not conversation_service:
+                conversation_service = self.service_registry.get('memory_service')
+        
+        if conversation_service:
+            # Extract person configs from diagram
+            person_configs = {}
+            for node in diagram.nodes:
+                if node.type == NodeType.person_job.value:
+                    person_id = node.id
+                    # Extract person config from node data
+                    if hasattr(node, 'data') and node.data:
+                        config = {
+                            'name': node.data.get('name', person_id),
+                            'system_prompt': node.data.get('system_prompt', ''),
+                            'model': node.data.get('model', 'gpt-4.1-nano'),
+                            'temperature': node.data.get('temperature', 0.7),
+                            'max_tokens': node.data.get('max_tokens'),
+                        }
+                        person_configs[person_id] = config
+                        
+                        # Register person if conversation service supports it
+                        if hasattr(conversation_service, 'register_person'):
+                            conversation_service.register_person(person_id, config)
+                        else:
+                            # For services that don't have register_person, 
+                            # we can at least ensure the person memory is created
+                            if hasattr(conversation_service, 'get_or_create_person_memory'):
+                                conversation_service.get_or_create_person_memory(person_id)
+            
+            # Log person registrations
+            if person_configs:
+                log.debug(f"Registered {len(person_configs)} person configs for execution {execution_id}")
+        
         try:
             # Unified execution loop
             while controller.should_continue():

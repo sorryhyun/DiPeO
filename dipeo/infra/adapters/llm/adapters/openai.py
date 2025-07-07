@@ -1,6 +1,7 @@
 # openai_adapter.py
 
 import base64
+import logging
 from typing import Any
 
 from dipeo.models import ChatResult
@@ -8,6 +9,8 @@ from dipeo.models import ToolOutput, ToolType, WebSearchResult, ImageGenerationR
 from openai import OpenAI
 
 from ..base import BaseLLMAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class ChatGPTAdapter(BaseLLMAdapter):
@@ -38,6 +41,10 @@ class ChatGPTAdapter(BaseLLMAdapter):
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
         
+        # Log input messages
+        logger.info(f"OpenAI API Call - Model: {self.model_name}")
+        logger.info(f"Input messages: {input_messages}")
+        
         # Convert tools to API format
         api_tools = []
         for tool in tools:
@@ -45,6 +52,10 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 api_tools.append({"type": "web_search_preview"})
             elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
                 api_tools.append({"type": "image_generation"})
+        
+        # Only log tools in debug mode if needed
+        # if api_tools:
+        #     logger.debug(f"API tools: {api_tools}")
         
         # Use base method to extract allowed parameters
         api_params = self._extract_api_params(kwargs, ["temperature", "max_tokens"])
@@ -58,12 +69,12 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 **api_params
             )
         except Exception as e:
-            import logging
-            logging.error(f"Error calling OpenAI responses API: {type(e).__name__}: {str(e)}")
+            logger.error(f"Error calling OpenAI responses API: {type(e).__name__}: {str(e)}")
             return ChatResult(text='', raw_response=None)
         
         # Extract text output
         text = getattr(response, 'output_text', '')
+        logger.info(f"Output text: {text}")
         
         # Process tool outputs
         tool_outputs = []
@@ -97,16 +108,18 @@ class ChatGPTAdapter(BaseLLMAdapter):
                         raw_response=output.result
                     ))
         
-        # Use base method to create token usage
+        # Create token usage without logging
         token_usage = self._create_token_usage(
             response,
             input_field="input_tokens",
             output_field="output_tokens"
         )
         
-        return ChatResult(
+        result = ChatResult(
             text=text,
             token_usage=token_usage,
             raw_response=response,
             tool_outputs=tool_outputs if tool_outputs else None
         )
+        
+        return result

@@ -38,6 +38,30 @@ class ConversationMemoryService(BaseService, SupportsMemory):
     async def initialize(self) -> None:
         pass
 
+    def register_person(self, person_id: str, config: Dict[str, Any]) -> None:
+        """Register a person's configuration.
+        
+        Args:
+            person_id: The unique identifier for the person
+            config: Configuration dictionary containing person settings
+        """
+        # Delegate to memory service if it supports registration
+        if hasattr(self.memory_service, 'register_person'):
+            self.memory_service.register_person(person_id, config)
+
+    def get_person_config(self, person_id: str) -> Optional[Dict[str, Any]]:
+        """Get a person's configuration.
+        
+        Args:
+            person_id: The unique identifier for the person
+            
+        Returns:
+            The person's configuration if registered, None otherwise
+        """
+        if hasattr(self.memory_service, 'get_person_config'):
+            return self.memory_service.get_person_config(person_id)
+        return None
+
     def add_message_to_conversation(
         self,
         person_id: str,

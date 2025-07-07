@@ -7,8 +7,8 @@ and infrastructure components.
 
 from .adapters import LLMInfraService, create_adapter
 from .persistence import AsyncFileAdapter, ModularFileService, MemoryService
-from .external.apikey import EnvironmentAPIKeyService
-from .external.notion import NotionAPIService
+from .adapters.apikey import EnvironmentAPIKeyService
+from .adapters.notion import NotionAPIService
 from .messaging import MessageRouter
 
 # For backward compatibility

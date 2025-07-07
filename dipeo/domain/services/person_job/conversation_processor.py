@@ -4,8 +4,6 @@ from typing import Any, Dict, List, Optional, Set
 
 from dipeo.models import (
     DomainDiagram,
-    Message,
-    Conversation,
     DomainPerson,
     DomainArrow,
 )
@@ -69,7 +67,9 @@ class ConversationProcessingService:
         """Determine if node needs conversation output based on connections."""
         # Check if any outgoing edge is marked for conversation
         for arrow in diagram.arrows or []:
-            if arrow.from_node == node_id and arrow.to_slot == "conversation":
+            # Check if arrow source starts from this node
+            # TODO: Need to parse source HandleID to extract node_id properly
+            if arrow.source and str(arrow.source).startswith(node_id):
                 return True
         return False
     
@@ -100,27 +100,17 @@ class ConversationProcessingService:
     
     def format_conversation_for_output(
         self,
-        messages: List[Message],
+        messages: List[Dict[str, Any]],
         person_label: str,
-    ) -> Conversation:
+    ) -> Dict[str, Any]:
         """Format messages into a conversation state for output."""
-        formatted_messages: List[Message] = []
-        
-        for msg in messages:
-            formatted_msg = Message(
-                role=msg.role,
-                content=msg.content,
-                tool_calls=msg.tool_calls,
-                tool_call_id=msg.tool_call_id,
-            )
-            formatted_messages.append(formatted_msg)
-        
-        # Store person info in the Conversation's extra fields (allowed by model_config)
-        return Conversation(
-            messages=formatted_messages,
-            metadata=None,  # We don't have the required fields for ConversationMetadata
-            person=person_label,  # Extra field allowed by model_config
-        )
+        # Return a dictionary that represents the conversation state
+        # instead of using the Conversation model which has different requirements
+        return {
+            "messages": messages,  # messages are already in dict format
+            "person": person_label,
+            "metadata": None
+        }
     
     def _is_conversation_state(self, value: Any) -> bool:
         """Check if a value represents a conversation state."""
@@ -145,9 +135,15 @@ class ConversationProcessingService:
         """Find the person label associated with an input key."""
         # Look for connections that might provide context
         for arrow in diagram.arrows or []:
-            if arrow.from_slot == key or arrow.to_slot == key:
-                # Try to find the person from the connected node
-                node = self._find_node_by_id(arrow.from_node, diagram)
+            # Check if arrow involves this key
+            # TODO: Need to parse HandleIDs to check slot names properly
+            if arrow.source == key or arrow.target == key:
+                # Try to find the person from the source node
+                # Extract node_id from source HandleID (format: node_id_slot_type)
+                source_parts = str(arrow.source).split('_')
+                if source_parts:
+                    node_id = source_parts[0]
+                    node = self._find_node_by_id(node_id, diagram)
                 if node and hasattr(node, "person_id"):
                     return self.get_person_label(node.person_id, diagram)
         return None

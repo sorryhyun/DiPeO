@@ -13,7 +13,7 @@ from dipeo.core import (
     SupportsMemory,
     SupportsNotion,
 )
-from dipeo.infra.external.apikey import EnvironmentAPIKeyService
+from dipeo.infra.adapters.apikey import EnvironmentAPIKeyService
 
 logger = logging.getLogger(__name__)
 

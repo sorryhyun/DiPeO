@@ -164,7 +164,7 @@ def _create_template_service():
     return TemplateService()
 
 
-def _create_person_job_services(template_service, conversation_memory_service):
+def _create_person_job_services(template_service, conversation_memory_service, memory_transformer):
     from dipeo.domain.services.person_job import (
         PromptProcessingService,
         ConversationProcessingService,
@@ -183,6 +183,7 @@ def _create_person_job_services(template_service, conversation_memory_service):
         conversation_processor=conversation_processor,
         output_builder=output_builder,
         on_every_turn_handler=on_every_turn_handler,
+        memory_transformer=memory_transformer,
     )
     
     return {
@@ -205,10 +206,22 @@ def _create_execution_flow_service():
     return ExecutionFlowService()
 
 
-def _create_input_resolution_service():
+def _create_arrow_processor():
+    from dipeo.domain.services.arrow import ArrowProcessor
+    
+    return ArrowProcessor()
+
+
+def _create_memory_transformer():
+    from dipeo.domain.services.arrow import MemoryTransformer
+    
+    return MemoryTransformer()
+
+
+def _create_input_resolution_service(arrow_processor):
     from dipeo.domain.services.execution import InputResolutionService
     
-    return InputResolutionService()
+    return InputResolutionService(arrow_processor=arrow_processor)
 
 
 def _create_service_registry(
@@ -459,11 +472,16 @@ class Container(containers.DeclarativeContainer):
     # Template service
     template_service = providers.Singleton(_create_template_service)
     
+    # Arrow processing services (moved before person_job_services)
+    arrow_processor = providers.Singleton(_create_arrow_processor)
+    memory_transformer = providers.Singleton(_create_memory_transformer)
+    
     # Person job services
     person_job_services = providers.Singleton(
         _create_person_job_services,
         template_service=template_service,
         conversation_memory_service=conversation_service,
+        memory_transformer=memory_transformer,
     )
     
     # Condition evaluation service
@@ -474,7 +492,10 @@ class Container(containers.DeclarativeContainer):
     
     # Execution flow services
     execution_flow_service = providers.Singleton(_create_execution_flow_service)
-    input_resolution_service = providers.Singleton(_create_input_resolution_service)
+    input_resolution_service = providers.Singleton(
+        _create_input_resolution_service,
+        arrow_processor=arrow_processor,
+    )
 
     # Service Registry with explicit dependencies
     service_registry = providers.Singleton(

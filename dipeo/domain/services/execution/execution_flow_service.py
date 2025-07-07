@@ -38,7 +38,6 @@ class ExecutionFlowService:
         if node.type == NodeType.person_job:
             exec_count = node_exec_counts.get(node.id, 0) if node_exec_counts else 0
             
-            log.debug(f"Checking person_job node {node.id}, exec_count: {exec_count}")
             
             # Check if this is not the first execution
             if exec_count > 0:
@@ -62,7 +61,6 @@ class ExecutionFlowService:
                         non_first_dependencies.append(dep_id)
                 
                 dependency_nodes = non_first_dependencies
-                log.debug(f"Non-first dependencies for {node.id}: {non_first_dependencies}")
             else:
                 # On first execution, check if node has any "first" handle connections
                 first_handle_arrows = []
@@ -72,14 +70,12 @@ class ExecutionFlowService:
                         first_handle_arrows.append(arrow)
                 
                 if first_handle_arrows:
-                    log.debug(f"Node {node.id} has {len(first_handle_arrows)} first handle connections")
                     # Only check dependencies from first handle arrows
                     first_dependencies = []
                     for arrow in first_handle_arrows:
                         source_node_id, _, _ = parse_handle_id(arrow.source)
                         first_dependencies.append(source_node_id)
                     dependency_nodes = first_dependencies
-                    log.debug(f"First handle dependencies for {node.id}: {first_dependencies}")
         
         # Check if all dependencies have been executed
         for dep_id in dependency_nodes:
@@ -114,12 +110,10 @@ class ExecutionFlowService:
                 for endpoint in endpoint_nodes
             )
             if all_endpoints_executed:
-                log.debug("All endpoints executed, stopping")
                 return False
         
         # Check if we have any nodes that can still execute
         if not ready_nodes:
-            log.debug("No ready nodes, stopping")
             return False
         
         # Check if nodes have reached their max iterations
@@ -130,7 +124,6 @@ class ExecutionFlowService:
                 break
         
         if not can_execute:
-            log.debug("No nodes can execute (max iterations reached), stopping")
             return False
         
         return True
@@ -150,12 +143,10 @@ class ExecutionFlowService:
         """
         ready_nodes = []
         
-        log.debug(f"Getting ready nodes. Executed nodes: {executed_nodes}")
         
         for node in diagram.nodes:
             # Skip if node can't execute anymore
             if not self.can_node_execute(node, node_exec_counts):
-                log.debug(f"Node {node.id} cannot execute (reached max iterations)")
                 continue
             
             # Check dependencies
@@ -163,11 +154,7 @@ class ExecutionFlowService:
                 node, diagram, executed_nodes, node_outputs, node_exec_counts
             ):
                 ready_nodes.append(node)
-                log.debug(f"Node {node.id} is ready to execute")
-            else:
-                log.debug(f"Node {node.id} dependencies not satisfied")
         
-        log.debug(f"Ready nodes: {[n.id for n in ready_nodes]}")
         return ready_nodes
     
     def can_node_execute(

@@ -1,17 +1,18 @@
 """Domain service for executing person jobs."""
 
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any
 
+from dipeo.domain.services.arrow import MemoryTransformer, unwrap_inputs
+from dipeo.domain.services.conversation import OnEveryTurnHandler
 from dipeo.models import (
     DomainDiagram,
-    Message,
     ForgettingMode,
 )
-from dipeo.domain.services.conversation import OnEveryTurnHandler
-from .prompt_service import PromptProcessingService
+
 from .conversation_processor import ConversationProcessingService
 from .output_builder import PersonJobOutputBuilder, PersonJobResult
+from .prompt_service import PromptProcessingService
 
 log = logging.getLogger(__name__)
 
@@ -25,29 +26,31 @@ class PersonJobExecutionService:
         conversation_processor: ConversationProcessingService,
         output_builder: PersonJobOutputBuilder,
         on_every_turn_handler: OnEveryTurnHandler,
+        memory_transformer: MemoryTransformer | None = None,
     ):
         self._prompt_service = prompt_service
         self._conversation_processor = conversation_processor
         self._output_builder = output_builder
         self._on_every_turn_handler = on_every_turn_handler
+        self._memory_transformer = memory_transformer
     
     async def execute_person_job(
         self,
         person_id: str,
         node_id: str,
         prompt: str,
-        first_only_prompt: Optional[str],
+        first_only_prompt: str | None,
         forget_mode: ForgettingMode,
         model: str,
-        api_key_id: Optional[str],
-        system_prompt: Optional[str],
-        inputs: Dict[str, Any],
+        api_key_id: str | None,
+        system_prompt: str | None,
+        inputs: dict[str, Any],
         diagram: DomainDiagram,
         execution_count: int,
         llm_client: Any,  # Will be protocol from core
-        tools: Optional[List[Any]] = None,
-        conversation_service: Optional[Any] = None,
-        execution_id: Optional[str] = None,
+        tools: list[Any] | None = None,
+        conversation_service: Any | None = None,
+        execution_id: str | None = None,
     ) -> PersonJobResult:
         """Execute a person job with all business logic.
         
@@ -59,18 +62,48 @@ class PersonJobExecutionService:
         - Output building
         """
         # Get person label for outputs
-        person_label = self._conversation_processor.get_person_label(person_id, diagram)
+        person_label = person_id  # Default to person_id
+        if conversation_service and hasattr(conversation_service, 'get_person_config'):
+            person_config = conversation_service.get_person_config(person_id)
+            if person_config and 'name' in person_config:
+                person_label = person_config['name']
+        else:
+            # Fallback to using conversation processor with diagram
+            person_label = self._conversation_processor.get_person_label(person_id, diagram)
         
         # Set execution context on conversation service if provided
         if conversation_service and hasattr(conversation_service, 'current_execution_id'):
             conversation_service.current_execution_id = execution_id
         
-        # Handle memory forgetting if conversation service is provided
-        if conversation_service and self.should_forget_messages(execution_count, forget_mode):
-            conversation_service.forget_own_messages_for_person(person_id)
+        # Handle memory transformation if using new arrow processing
+        transformed_inputs = inputs
+        if self._memory_transformer:
+            # Check if inputs are already wrapped from arrow processing
+            has_wrapped_inputs = any(
+                isinstance(v, dict) and "arrow_metadata" in v 
+                for v in inputs.values()
+            )
+            
+            if has_wrapped_inputs:
+                # Apply memory transformation to wrapped inputs
+                memory_config = {"forget_mode": forget_mode.value}
+                transformed_inputs = self._memory_transformer.transform_input(
+                    inputs, "person_job", execution_count, memory_config
+                )
+                # Unwrap for use in the handler
+                transformed_inputs = unwrap_inputs(transformed_inputs)
+            else:
+                # Legacy path - inputs not wrapped, use original logic
+                transformed_inputs = inputs
+        
+        # Handle legacy memory forgetting if conversation service is provided
+        # This is kept for backward compatibility when not using MemoryTransformer
+        if conversation_service and not self._memory_transformer:
+            if self.should_forget_messages(execution_count, forget_mode):
+                conversation_service.forget_own_messages_for_person(person_id)
         
         # Prepare template values
-        template_values = self._prepare_template_values(inputs)
+        template_values = self._prepare_template_values(transformed_inputs)
         
         # Get and process prompt
         processed_prompt = self._prompt_service.get_prompt_for_execution(
@@ -82,7 +115,7 @@ class PersonJobExecutionService:
             prompt=processed_prompt,
             forget_mode=forget_mode,
             system_prompt=system_prompt,
-            inputs=inputs,
+            inputs=transformed_inputs,
             diagram=diagram,
             execution_count=execution_count,
             person_id=person_id,
@@ -118,7 +151,9 @@ class PersonJobExecutionService:
         
         # Store the assistant response in conversation service if provided
         if conversation_service:
-            from dipeo.domain.services.conversation.message_builder_service import MessageBuilderService
+            from dipeo.domain.services.conversation.message_builder_service import (
+                MessageBuilderService,
+            )
             message_builder = MessageBuilderService(conversation_service, person_id, execution_id)
             message_builder.assistant(content)
         
@@ -148,25 +183,35 @@ class PersonJobExecutionService:
         person_id: str,
         node_id: str,
         props: Any,  # PersonJobNodeData
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
         diagram: DomainDiagram,
         execution_count: int,
         llm_client: Any,
-        conversation_service: Optional[Any] = None,
-        execution_id: Optional[str] = None,
+        conversation_service: Any | None = None,
+        execution_id: str | None = None,
     ) -> PersonJobResult:
         """Execute person job with validation."""
-        # Validate person exists
-        person = self._validate_person(person_id, diagram)
+        # Get person configuration from conversation service if available
+        person_config = None
+        if conversation_service and hasattr(conversation_service, 'get_person_config'):
+            person_config = conversation_service.get_person_config(person_id)
         
-        # Extract configuration from props and person
+        # If not available from conversation service, fall back to diagram validation
+        if not person_config:
+            person = self._validate_person(person_id, diagram)
+            model = person.llm_config.model if person.llm_config else "gpt-4.1-nano"
+            api_key_id = person.llm_config.api_key_id if person.llm_config else None
+            system_prompt = person.llm_config.system_prompt if person.llm_config else None
+        else:
+            # Use configuration from conversation service
+            model = person_config.get('model', 'gpt-4.1-nano')
+            api_key_id = person_config.get('api_key_id')
+            system_prompt = person_config.get('system_prompt')
+        
+        # Extract configuration from props
         forget_mode = ForgettingMode.no_forget
         if props.memory_config and props.memory_config.forget_mode:
             forget_mode = ForgettingMode(props.memory_config.forget_mode)
-        
-        model = person.llm_config.model if person.llm_config else "gpt-4.1-nano"
-        api_key_id = person.llm_config.api_key_id if person.llm_config else None
-        system_prompt = person.llm_config.system_prompt if person.llm_config else None
         
         # Execute with all parameters
         result = await self.execute_person_job(
@@ -197,7 +242,7 @@ class PersonJobExecutionService:
     def _validate_person(self, person_id: str, diagram: DomainDiagram) -> Any:
         """Validate person exists in diagram."""
         if not diagram or not diagram.persons:
-            raise ValueError(f"No persons defined in diagram")
+            raise ValueError("No persons defined in diagram")
         
         for person in diagram.persons:
             if person.id == person_id:
@@ -224,54 +269,65 @@ class PersonJobExecutionService:
         self,
         prompt: str,
         forget_mode: ForgettingMode,
-        system_prompt: Optional[str],
-        inputs: Dict[str, Any],
+        system_prompt: str | None,
+        inputs: dict[str, Any],
         diagram: DomainDiagram,
         execution_count: int,
         person_id: str,
-        conversation_service: Optional[Any] = None,
-        execution_id: Optional[str] = None,
-    ) -> List[Message]:
+        conversation_service: Any | None = None,
+        execution_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Prepare messages for LLM execution."""
         messages = []
         
         # Handle system prompt
         if system_prompt:
-            messages.append(Message(role="system", content=system_prompt))
+            messages.append({"role": "system", "content": system_prompt})
         
         # Handle conversation inputs
         if self._conversation_processor.has_conversation_state_input(inputs, diagram):
-            # Process based on forget mode
-            if forget_mode == ForgettingMode.on_every_turn:
-                consolidated = await self._handle_on_every_turn_mode(
-                    inputs, diagram, person_id
-                )
-                if consolidated:
-                    messages.append(Message(role="user", content=consolidated))
+            # Check if memory transformation was already applied
+            memory_already_applied = self._memory_transformer is not None
+            
+            if not memory_already_applied:
+                # Legacy path: Apply forgetting logic here
+                if forget_mode == ForgettingMode.on_every_turn:
+                    consolidated = await self._handle_on_every_turn_mode(
+                        inputs, diagram, person_id
+                    )
+                    if consolidated:
+                        messages.append({"role": "user", "content": consolidated})
+                else:
+                    # Add conversation messages directly
+                    conversation_messages = self._extract_conversation_messages(inputs)
+                    messages.extend(conversation_messages)
             else:
-                # Add conversation messages directly
+                # New path: Memory transformation already applied
+                # Just extract messages normally
                 conversation_messages = self._extract_conversation_messages(inputs)
                 messages.extend(conversation_messages)
         
         # Add current prompt
         if prompt:
-            messages.append(Message(role="user", content=prompt))
+            messages.append({"role": "user", "content": prompt})
             
             # Store in conversation service if provided
             if conversation_service and execution_id:
-                from dipeo.domain.services.conversation.message_builder_service import MessageBuilderService
+                from dipeo.domain.services.conversation.message_builder_service import (
+                    MessageBuilderService,
+                )
                 message_builder = MessageBuilderService(conversation_service, person_id, execution_id)
                 message_builder.user(prompt)
         
-        # Apply forgetting if needed
-        if self.should_forget_messages(execution_count, forget_mode):
+        # Apply forgetting if needed (only in legacy path)
+        if not self._memory_transformer and self.should_forget_messages(execution_count, forget_mode):
             messages = self._apply_forgetting(messages)
         
         return messages
     
     async def _handle_on_every_turn_mode(
         self,
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
         diagram: DomainDiagram,
         person_id: str,
     ) -> str:
@@ -285,8 +341,8 @@ class PersonJobExecutionService:
     
     def _extract_conversation_messages(
         self,
-        inputs: Dict[str, Any],
-    ) -> List[Message]:
+        inputs: dict[str, Any],
+    ) -> list[dict[str, Any]]:
         """Extract conversation messages from inputs."""
         messages = []
         
@@ -294,25 +350,23 @@ class PersonJobExecutionService:
             if isinstance(value, dict) and "messages" in value:
                 for msg in value["messages"]:
                     if isinstance(msg, dict):
-                        messages.append(
-                            Message(
-                                role=msg.get("role", "user"),
-                                content=msg.get("content", ""),
-                                tool_calls=msg.get("tool_calls"),
-                                tool_call_id=msg.get("tool_call_id"),
-                            )
-                        )
+                        messages.append({
+                            "role": msg.get("role", "user"),
+                            "content": msg.get("content", ""),
+                            "tool_calls": msg.get("tool_calls"),
+                            "tool_call_id": msg.get("tool_call_id"),
+                        })
         
         return messages
     
     def _apply_forgetting(
         self,
-        messages: List[Message],
-    ) -> List[Message]:
+        messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """Apply forgetting strategy to messages."""
         # Keep system messages and the last user message
-        system_messages = [m for m in messages if m.role == "system"]
-        user_messages = [m for m in messages if m.role == "user"]
+        system_messages = [m for m in messages if m.get("role") == "system"]
+        user_messages = [m for m in messages if m.get("role") == "user"]
         
         if user_messages:
             return system_messages + [user_messages[-1]]
@@ -320,8 +374,8 @@ class PersonJobExecutionService:
     
     def _prepare_template_values(
         self,
-        inputs: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        inputs: dict[str, Any],
+    ) -> dict[str, Any]:
         """Prepare values for template substitution."""
         # Filter out complex objects that shouldn't be in templates
         template_values = {}
@@ -339,23 +393,15 @@ class PersonJobExecutionService:
     
     async def _execute_llm_call(
         self,
-        messages: List[Message],
+        messages: list[dict[str, Any]],
         model: str,
-        api_key: Optional[str],
+        api_key: str | None,
         llm_client: Any,
-        tools: Optional[List[Any]] = None,
+        tools: list[Any] | None = None,
     ) -> Any:
         """Execute the LLM call."""
-        # Convert Message objects to dict format expected by LLM service
-        message_dicts = [
-            {
-                "role": msg.role,
-                "content": msg.content,
-                "tool_calls": msg.tool_calls,
-                "tool_call_id": msg.tool_call_id,
-            }
-            for msg in messages
-        ]
+        # Messages are already in dict format expected by LLM service
+        message_dicts = messages
         
         # Build options if tools are provided
         options = None

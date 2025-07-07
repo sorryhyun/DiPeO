@@ -251,7 +251,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                     if arrow.source in diagram_dict.handles:
                         continue
                     else:
-                        logger.warning(f"Referenced handle ID not found: {arrow.source}")
                         continue
                 
                 # Otherwise, parse as light format (nodeLabel_handleName)
@@ -341,7 +340,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                     if arrow.target in diagram_dict.handles:
                         continue
                     else:
-                        logger.warning(f"Referenced handle ID not found: {arrow.target}")
                         continue
                 
                 # Otherwise, parse as light format (nodeLabel_handleName)

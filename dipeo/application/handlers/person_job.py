@@ -61,8 +61,9 @@ class PersonJobNodeHandler(BaseNodeHandler):
         execution_count = self._extract_execution_count(context)
         execution_id = getattr(context.execution_state, 'id', None) if hasattr(context, 'execution_state') else None
         
-        logger.debug(f"🚀 Executing person_job node: {node_id}")
-        logger.debug(f"🔍 Node inputs: {list(inputs.keys())}")
+        # Only log in debug mode if explicitly enabled
+        # logger.debug(f"🚀 Executing person_job node: {node_id}")
+        # logger.debug(f"🔍 Node inputs: {list(inputs.keys())}")
         
         # Basic validation
         if not props.person:
@@ -88,11 +89,12 @@ class PersonJobNodeHandler(BaseNodeHandler):
             )
             
             # Transform domain result to handler output
-            return self._transform_result_to_output(result)
+            return self._transform_result_to_output(result, context)
             
         except ValueError as e:
-            # Domain validation errors
-            logger.warning(f"Validation error in person job: {e}")
+            # Domain validation errors - only log if debug enabled
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Validation error in person job: {e}")
             return NodeOutput(
                 value={"default": ""}, 
                 metadata={"error": str(e)},
@@ -119,27 +121,31 @@ class PersonJobNodeHandler(BaseNodeHandler):
     
     def _extract_execution_count(self, context: UnifiedExecutionContext) -> int:
         """Extract execution count from context."""
-        if hasattr(context, 'get_service'):
-            exec_info = context.get_service('execution_info')
-            if exec_info and 'exec_count' in exec_info:
-                return exec_info['exec_count']
+        # Get execution count for current node
+        if hasattr(context, 'get_node_execution_count'):
+            return context.get_node_execution_count(context.current_node_id)
+        # Fallback to exec_counts dictionary
+        elif hasattr(context, 'exec_counts'):
+            return context.exec_counts.get(context.current_node_id, 0)
         return 0
     
-    def _transform_result_to_output(self, result: Any) -> NodeOutput:
+    def _transform_result_to_output(self, result: Any, context: UnifiedExecutionContext) -> NodeOutput:
         """Transform domain result to handler NodeOutput."""
         output_value = {"default": result.content}
         
         # Add conversation if present
         if result.conversation_state:
+            # conversation_state is now a dictionary with 'messages' key
+            messages = result.conversation_state.get("messages", [])
             output_value["conversation"] = [
                 {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "tool_calls": msg.tool_calls,
-                    "tool_call_id": msg.tool_call_id,
+                    "role": msg.get("role"),
+                    "content": msg.get("content"),
+                    "tool_calls": msg.get("tool_calls"),
+                    "tool_call_id": msg.get("tool_call_id"),
                     "person_label": result.metadata.get("person") if result.metadata else None,
                 }
-                for msg in result.conversation_state.messages
+                for msg in messages
             ]
         
         # Build metadata

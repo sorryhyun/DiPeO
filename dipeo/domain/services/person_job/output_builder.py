@@ -5,8 +5,6 @@ from dataclasses import dataclass
 
 from dipeo.models import (
     DomainDiagram,
-    Message,
-    Conversation,
 )
 
 
@@ -14,7 +12,7 @@ from dipeo.models import (
 class PersonJobResult:
     """Result of a person job execution."""
     content: str
-    conversation_state: Optional[Conversation] = None
+    conversation_state: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
     usage: Optional[Dict[str, Any]] = None
     tool_outputs: Optional[List[Dict[str, Any]]] = None
@@ -24,18 +22,7 @@ class PersonJobResult:
         result = {"content": self.content}
         
         if self.conversation_state:
-            result["conversation"] = {
-                "messages": [
-                    {
-                        "role": msg.role,
-                        "content": msg.content,
-                        "tool_calls": msg.tool_calls,
-                        "tool_call_id": msg.tool_call_id,
-                    }
-                    for msg in self.conversation_state.messages
-                ],
-                "metadata": self.conversation_state.metadata,
-            }
+            result["conversation"] = self.conversation_state
         
         if self.metadata:
             result["metadata"] = self.metadata
@@ -55,7 +42,7 @@ class PersonJobOutputBuilder:
     def build_output(
         self,
         content: str,
-        messages: List[Message],
+        messages: List[Dict[str, Any]],
         person_label: str,
         needs_conversation: bool,
         usage: Optional[Dict[str, Any]] = None,
@@ -88,14 +75,13 @@ class PersonJobOutputBuilder:
     
     def _build_conversation_state(
         self,
-        messages: List[Message],
+        messages: List[Dict[str, Any]],
         person_label: str,
-    ) -> Conversation:
+    ) -> Dict[str, Any]:
         """Build a conversation state from messages."""
-        # Messages are already in the correct format
-        # Store person info in the Conversation's extra fields (allowed by model_config)
-        return Conversation(
-            messages=messages,
-            metadata=None,  # We don't have the required fields for ConversationMetadata
-            person=person_label,  # Extra field allowed by model_config
-        )
+        # Return a dictionary representing the conversation state
+        return {
+            "messages": messages,
+            "metadata": None,
+            "person": person_label
+        }

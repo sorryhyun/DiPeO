@@ -1,10 +1,10 @@
 """Simple in-memory implementation of the SupportsMemory protocol."""
 
 import json
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from dipeo.core import SupportsMemory
 
@@ -17,16 +17,35 @@ class MemoryService(SupportsMemory):
     
     Attributes:
         _conversations: Nested dictionary storing conversations by person_id and execution_id
-        _person_memory: Dictionary storing memory objects for each person
     """
 
     def __init__(self):
         # Structure: {person_id: {execution_id: [messages]}}
-        self._conversations: Dict[str, Dict[str, List[Dict[str, Any]]]] = defaultdict(
+        self._conversations: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(
             lambda: defaultdict(list)
         )
-        # Structure: {person_id: memory_object}
-        self._person_memory: Dict[str, Any] = {}
+        # Store person configurations
+        self._person_configs: dict[str, dict[str, Any]] = {}
+
+    def register_person(self, person_id: str, config: dict[str, Any]) -> None:
+        """Register a person's configuration.
+        
+        Args:
+            person_id: The unique identifier for the person
+            config: Configuration dictionary containing person settings like name, model, etc.
+        """
+        self._person_configs[person_id] = config
+
+    def get_person_config(self, person_id: str) -> dict[str, Any] | None:
+        """Get a person's configuration.
+        
+        Args:
+            person_id: The unique identifier for the person
+            
+        Returns:
+            The person's configuration if registered, None otherwise
+        """
+        return self._person_configs.get(person_id)
 
     def get_or_create_person_memory(self, person_id: str) -> Any:
         """Create or retrieve memory for a specific person.
@@ -37,13 +56,22 @@ class MemoryService(SupportsMemory):
         Returns:
             The memory object for the person, containing id, created_at, and conversations
         """
-        if person_id not in self._person_memory:
-            self._person_memory[person_id] = {
-                "id": person_id,
-                "created_at": datetime.now().isoformat(),
-                "conversations": [],
-            }
-        return self._person_memory[person_id]
+        # This method is kept for backward compatibility but simplified
+        # The actual conversation data is stored in _conversations
+        conversations_list = []
+        if person_id in self._conversations:
+            for exec_id, messages in self._conversations[person_id].items():
+                if messages:
+                    conversations_list.append({
+                        "execution_id": exec_id,
+                        "started_at": datetime.fromtimestamp(messages[0]["timestamp"]).isoformat()
+                    })
+        
+        return {
+            "id": person_id,
+            "created_at": datetime.now().isoformat(),
+            "conversations": conversations_list,
+        }
 
     def add_message_to_conversation(
         self,
@@ -52,8 +80,8 @@ class MemoryService(SupportsMemory):
         role: str,
         content: str,
         current_person_id: str,
-        node_id: Optional[str] = None,
-        timestamp: Optional[float] = None,
+        node_id: str | None = None,
+        timestamp: float | None = None,
     ) -> None:
         """Add a message to a person's conversation history.
         
@@ -90,20 +118,8 @@ class MemoryService(SupportsMemory):
 
         self._conversations[person_id][execution_id].append(message)
 
-        # Update person memory
-        memory = self.get_or_create_person_memory(person_id)
-        if execution_id not in [
-            conv["execution_id"] for conv in memory.get("conversations", [])
-        ]:
-            memory["conversations"].append(
-                {
-                    "execution_id": execution_id,
-                    "started_at": datetime.fromtimestamp(timestamp).isoformat(),
-                }
-            )
-
     def forget_for_person(
-        self, person_id: str, execution_id: Optional[str] = None
+        self, person_id: str, execution_id: str | None = None
     ) -> None:
         """Clear memory for a person, optionally for a specific execution.
         
@@ -120,11 +136,9 @@ class MemoryService(SupportsMemory):
         else:
             if person_id in self._conversations:
                 del self._conversations[person_id]
-            if person_id in self._person_memory:
-                del self._person_memory[person_id]
 
     def forget_own_messages_for_person(
-        self, person_id: str, execution_id: Optional[str] = None
+        self, person_id: str, execution_id: str | None = None
     ) -> None:
         """Clear only the person's own messages from memory.
         
@@ -153,7 +167,7 @@ class MemoryService(SupportsMemory):
                     if msg.get("from_person_id") != person_id
                 ]
 
-    def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
+    def get_conversation_history(self, person_id: str) -> list[dict[str, Any]]:
         """Retrieve the conversation history for a person.
         
         Args:
@@ -218,4 +232,4 @@ class MemoryService(SupportsMemory):
         effectively resetting the service to its initial state.
         """
         self._conversations.clear()
-        self._person_memory.clear()
+        self._person_configs.clear()

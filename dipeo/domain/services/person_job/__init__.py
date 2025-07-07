@@ -4,10 +4,13 @@ from .execution_service import PersonJobExecutionService
 from .prompt_service import PromptProcessingService
 from .conversation_processor import ConversationProcessingService
 from .output_builder import PersonJobOutputBuilder
+from .person_config import PersonConfig, NodeConnectionInfo
 
 __all__ = [
     "PersonJobExecutionService",
     "PromptProcessingService",
     "ConversationProcessingService",
     "PersonJobOutputBuilder",
+    "PersonConfig",
+    "NodeConnectionInfo",
 ]
