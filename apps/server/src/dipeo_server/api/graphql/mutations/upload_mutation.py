@@ -8,16 +8,16 @@ from pathlib import Path
 from typing import Any
 
 import strawberry
-from dipeo_diagram import (
+from dipeo.diagram import (
     BackendDiagram,
     backend_to_graphql,
     converter_registry,
 )
-from dipeo_domain import (
+from dipeo.domain import (
     DiagramMetadata,
     DomainDiagram,
 )
-from dipeo_domain.domains.apikey import APIKeyDomainService
+from dipeo.domain.domains.apikey import APIKeyDomainService
 from strawberry.file_uploads import Upload
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION

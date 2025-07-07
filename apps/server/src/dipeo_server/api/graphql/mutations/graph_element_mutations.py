@@ -4,16 +4,16 @@ import logging
 import uuid
 
 import strawberry
-from dipeo_diagram import BackendDiagram, backend_to_graphql
-from dipeo_domain import (
+from dipeo.diagram import BackendDiagram, backend_to_graphql
+from dipeo.domain import (
     ArrowID as DomainArrowID,
 )
-from dipeo_domain import (
+from dipeo.domain import (
     DomainArrow,
     DomainHandle,
     Vec2,
 )
-from dipeo_domain import (
+from dipeo.domain import (
     HandleID as DomainHandleID,
 )
 

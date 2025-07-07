@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 import strawberry
-from dipeo_domain import (
+from dipeo.domain import (
     DiagramMetadata,
     DomainDiagram,
 )
@@ -53,7 +53,7 @@ class DiagramMutations:
             )
 
             # Use new services - convert to storage format
-            from dipeo_diagram import graphql_to_backend
+            from dipeo.diagram import graphql_to_backend
 
             backend_model = graphql_to_backend(diagram_model)
             storage_dict = backend_model.model_dump(by_alias=True)

@@ -3,8 +3,8 @@
 from datetime import datetime
 
 import strawberry
-from dipeo_domain import LLMService, NodeType
-from dipeo_core.constants import FILES_DIR
+from dipeo.domain import LLMService, NodeType
+from dipeo.core.constants import FILES_DIR
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
@@ -264,7 +264,7 @@ class Query:
 
     @strawberry.field
     async def supported_formats(self, info) -> list[DiagramFormatInfo]:
-        from dipeo_diagram import converter_registry
+        from dipeo.diagram import converter_registry
 
         formats = converter_registry.list_formats()
         return [

@@ -2,7 +2,7 @@
 
 from typing import Any, Dict
 
-from dipeo_core.utils import is_conversation
+from dipeo.core.utils import is_conversation
 
 
 def prepare_judge_context(inputs: Dict[str, Any], diagram: Any) -> str:

@@ -4,7 +4,7 @@ import json
 from typing import Any, Dict, List, Union
 from pathlib import Path
 
-from dipeo_core import SupportsFile
+from dipeo.core import SupportsFile
 from ..validation import ValidationDomainService, BusinessRuleViolationError
 
 

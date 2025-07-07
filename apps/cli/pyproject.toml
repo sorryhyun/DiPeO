@@ -23,11 +23,7 @@ dependencies = [
     "gql>=3.4.0",
     "aiohttp>=3.8.0",
     "websockets>=13.0",
-    "dipeo-core",
-    "dipeo-domain",
-    "dipeo-diagram",
-    "dipeo-application",
-    "dipeo-infra",
+    "dipeo",
 ]
 keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]
 

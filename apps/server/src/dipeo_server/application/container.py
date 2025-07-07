@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dependency_injector import providers
 from dipeo.container import Container as BaseContainer
-from dipeo_core import (
+from dipeo.core import (
     SupportsAPIKey,
     SupportsExecution,
     SupportsFile,
@@ -15,7 +15,7 @@ from dipeo_core import (
 from dipeo.domain.domains.apikey import APIKeyDomainService
 from dipeo.domain.domains.conversation.simple_service import ConversationMemoryService
 from dipeo.domain.domains.db import DBOperationsDomainService
-from dipeo.domain.domains.diagram.services import (
+from dipeo.domain.domains.diagram import (
     DiagramFileRepository,
     DiagramStorageAdapter,
 )

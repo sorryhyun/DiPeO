@@ -3,8 +3,8 @@ import json
 import os
 import uuid
 
-from dipeo_core import BaseService, SupportsAPIKey, APIKeyError, ValidationError
-from dipeo_core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.core import BaseService, SupportsAPIKey, APIKeyError, ValidationError
+from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
 
 
 class APIKeyDomainService(BaseService, SupportsAPIKey):

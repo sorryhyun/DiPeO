@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from dipeo_core import FileOperationError, SupportsFile, ValidationError
+from dipeo.core import FileOperationError, SupportsFile, ValidationError
 
 log = logging.getLogger(__name__)
 

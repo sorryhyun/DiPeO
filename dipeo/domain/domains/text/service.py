@@ -4,7 +4,7 @@ import logging
 import re
 from typing import Any
 
-from dipeo_core import ValidationError
+from dipeo.core import ValidationError
 
 log = logging.getLogger(__name__)
 

@@ -33,6 +33,9 @@ from .services import MinimalMessageRouter, MinimalStateStore
 from .utils.conversation_utils import ConversationUtils, InputDetector, MessageBuilder
 from .utils.template import substitute_template
 
+# Execution
+from .execution import LocalExecutionService
+
 __all__ = [
     # Context
     "ApplicationExecutionContext",
@@ -40,6 +43,8 @@ __all__ = [
     "ExecutionEngine",
     "ExecutionController",
     "LocalExecutionView",
+    # Execution
+    "LocalExecutionService",
     # Handlers
     "StartNodeHandler",
     "EndpointNodeHandler",

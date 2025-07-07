@@ -1,6 +1,6 @@
 import logging
 
-from dipeo_core import BaseService
+from dipeo.core import BaseService
 from dipeo.domain.models import DiagramID, DomainDiagram
 
 from .storage_service import DiagramFileRepository

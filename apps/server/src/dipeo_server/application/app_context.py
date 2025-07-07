@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from .container import ServerContainer, init_server_resources, shutdown_server_resources
 
 if TYPE_CHECKING:
-    from dipeo_core import (
+    from dipeo.core import (
         SupportsAPIKey,
         SupportsDiagram,
         SupportsExecution,

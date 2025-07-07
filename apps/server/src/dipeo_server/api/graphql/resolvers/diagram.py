@@ -6,9 +6,9 @@ from collections import defaultdict
 from datetime import UTC, datetime
 
 import yaml
-from dipeo_diagram import converter_registry
-from dipeo_domain import DiagramMetadata, DomainDiagram
-from dipeo_domain.domains.diagram.services import DiagramFileRepository
+from dipeo.diagram import converter_registry
+from dipeo.domain import DiagramMetadata, DomainDiagram
+from dipeo.domain.domains.diagram.services import DiagramFileRepository
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 from ..types import (

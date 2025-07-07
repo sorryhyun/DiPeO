@@ -4,8 +4,8 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from dipeo_core import BaseService, ValidationError
-from dipeo_diagram import (
+from dipeo.core import BaseService, ValidationError
+from dipeo.diagram import (
     BackendDiagram,
     backend_to_graphql,
     graphql_to_backend,

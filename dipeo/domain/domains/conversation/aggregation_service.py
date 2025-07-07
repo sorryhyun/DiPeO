@@ -3,8 +3,8 @@
 import datetime
 from typing import Any, Dict, List, Optional
 
-from dipeo_core import BaseService
-from dipeo_core.utils import is_conversation
+from dipeo.core import BaseService
+from dipeo.core.utils import is_conversation
 
 
 class ConversationAggregationService(BaseService):
