@@ -8,7 +8,7 @@ execution state and services without tight coupling to implementation details.
 from typing import Protocol, Any, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ...models import ExecutionState
+    from dipeo.models import ExecutionState
 
 
 class ExecutionContextPort(Protocol):

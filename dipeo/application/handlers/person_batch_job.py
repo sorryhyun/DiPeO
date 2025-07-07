@@ -4,12 +4,12 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseNodeHandler, register_handler
-from dipeo.core.unified_context import UnifiedExecutionContext
-from dipeo.core.execution import create_node_output
+from dipeo.application import UnifiedExecutionContext
+from dipeo.application.utils import create_node_output
 from dipeo.core.utils import is_conversation
 from dipeo.application.utils.conversation_utils import MessageBuilder
-from dipeo.domain.handle_utils import extract_node_id_from_handle
-from dipeo.domain.models import (
+from dipeo.models import extract_node_id_from_handle
+from dipeo.models import (
     ChatResult,
     ContentType,
     DomainDiagram,

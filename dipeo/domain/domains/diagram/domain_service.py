@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from dipeo.domain.models import DiagramFormat, DomainDiagram
+from dipeo.models import DiagramFormat, DomainDiagram
 
 if TYPE_CHECKING:
     from dipeo.core import SupportsDiagram

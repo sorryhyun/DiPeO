@@ -7,8 +7,9 @@ from datetime import UTC, datetime
 
 import yaml
 from dipeo.diagram import converter_registry
-from dipeo.domain import DiagramMetadata, DomainDiagram
-from dipeo.domain.domains.diagram.services import DiagramFileRepository
+from dipeo.models import DomainDiagram
+from dipeo.models import DiagramMetadata
+from dipeo.domain.domains.diagram import DiagramFileRepository
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 from ..types import (

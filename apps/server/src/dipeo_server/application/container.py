@@ -20,8 +20,8 @@ from dipeo.domain.domains.diagram import (
     DiagramStorageAdapter,
 )
 from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase
-from dipeo.domain.domains.execution.services import ExecuteDiagramUseCase
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from dipeo.application.execution.server_execution_service import ExecuteDiagramUseCase
 from dipeo.domain.domains.file import FileOperationsDomainService
 from dipeo.domain.domains.text import TextProcessingDomainService
 from dipeo.domain.domains.validation import ValidationDomainService

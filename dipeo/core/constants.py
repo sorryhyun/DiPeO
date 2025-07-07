@@ -4,9 +4,9 @@ import os
 from pathlib import Path
 
 # Project Base Directory
-# Go up from dipeo.core/src/dipeo_core to project root
+# Go up from dipeo/core/constants.py to project root
 BASE_DIR: Path = Path(
-    os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[5].as_posix())
+    os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[2].as_posix())
 ).resolve()
 
 # Unified file storage directories (no mkdir here - let apps create as needed)

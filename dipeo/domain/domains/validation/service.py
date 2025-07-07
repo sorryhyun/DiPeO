@@ -4,7 +4,7 @@ import os
 from typing import Any, Dict, List, Optional
 from pathlib import Path
 
-from ...models import DomainDiagram, DomainPerson
+from dipeo.models import DomainDiagram, DomainPerson
 
 from .errors import (
     ResourceNotFoundError,

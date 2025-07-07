@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any, Callable, Dict, List, Optional
 
-from dipeo.domain.models import DomainArrow, DomainDiagram, DomainNode, NodeOutput, HandleLabel, NodeType
-from dipeo.domain.handle_utils import parse_handle_id, HandleReference
+from dipeo.models import DomainDiagram, NodeOutput, NodeType
+from dipeo.models import DomainArrow, DomainNode, HandleLabel
+from dipeo.models import parse_handle_id, HandleReference
 from ..utils.input_resolution import get_active_inputs_simplified
 
 

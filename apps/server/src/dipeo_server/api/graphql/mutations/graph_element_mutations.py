@@ -5,15 +5,15 @@ import uuid
 
 import strawberry
 from dipeo.diagram import BackendDiagram, backend_to_graphql
-from dipeo.domain import (
+from dipeo.models import (
     ArrowID as DomainArrowID,
 )
-from dipeo.domain import (
+from dipeo.models import (
     DomainArrow,
     DomainHandle,
     Vec2,
 )
-from dipeo.domain import (
+from dipeo.models import (
     HandleID as DomainHandleID,
 )
 

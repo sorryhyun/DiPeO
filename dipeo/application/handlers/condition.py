@@ -5,9 +5,9 @@ import operator
 from typing import Any
 
 from dipeo.core import BaseNodeHandler, register_handler
-from dipeo.core.unified_context import UnifiedExecutionContext
-from dipeo.core.execution import create_node_output
-from dipeo.domain.models import ConditionNodeData, NodeOutput, NodeType, NodeExecutionStatus
+from dipeo.application import UnifiedExecutionContext
+from dipeo.application.utils import create_node_output
+from dipeo.models import ConditionNodeData, NodeOutput, NodeType, NodeExecutionStatus
 from pydantic import BaseModel
 
 from ..utils.template import substitute_template

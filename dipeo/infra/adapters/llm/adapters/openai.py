@@ -3,7 +3,8 @@
 import base64
 from typing import Any
 
-from dipeo.domain.models import ChatResult, ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
+from dipeo.models import ChatResult
+from dipeo.models import ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
 from openai import OpenAI
 
 from ..base import BaseLLMAdapter

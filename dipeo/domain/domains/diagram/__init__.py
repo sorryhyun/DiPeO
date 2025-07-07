@@ -1,6 +1,6 @@
 # Barrel exports for diagram domain
 from dipeo.diagram import UnifiedDiagramConverter, converter_registry
-from ...models import (
+from dipeo.models import (
     ContentType,
     DataType,
     DiagramFormat,

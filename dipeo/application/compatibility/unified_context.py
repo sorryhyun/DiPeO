@@ -99,7 +99,7 @@ class UnifiedExecutionContext:
         
         if self._app_context is None:
             # Import here to avoid circular dependency
-            from ..application.context.application_execution_context import ApplicationExecutionContext
+            from ..context.application_execution_context import ApplicationExecutionContext
             
             # Convert current state to ExecutionState
             execution_state = self._to_execution_state()
@@ -119,7 +119,7 @@ class UnifiedExecutionContext:
     def _to_execution_state(self) -> Any:  # Returns ExecutionState
         """Convert current context to ExecutionState."""
         # Lazy import to avoid circular dependency
-        from ..domain.models import ExecutionState, NodeState, NodeOutput
+        from dipeo.models import ExecutionState, NodeState, NodeOutput
         
         # Convert node_states to proper format
         node_states = {}
@@ -139,7 +139,7 @@ class UnifiedExecutionContext:
             else:
                 node_outputs[node_id] = NodeOutput(value=output)
         
-        from ..domain.models import ExecutionStatus
+        from dipeo.models import ExecutionStatus
         
         return ExecutionState(
             id=self.execution_id,
@@ -230,7 +230,7 @@ class UnifiedExecutionContext:
         self._token_accumulator[node_id] = tokens
     
     def get_total_token_usage(self) -> Any:  # Returns TokenUsage
-        from dipeo.domain.models import TokenUsage
+        from dipeo.models import TokenUsage
         
         if not self._token_accumulator:
             return TokenUsage(input=0, output=0, total=0)
@@ -250,7 +250,7 @@ class UnifiedExecutionContext:
         
         DEPRECATED: Use dipeo.diagram.graph_utils.find_edges_from() instead.
         """
-        from ..diagram.graph_utils import find_edges_from
+        from ...diagram.graph_utils import find_edges_from
         return find_edges_from(self.edges, node_id)
     
     def find_edges_to(self, node_id: str) -> List[Any]:
@@ -258,7 +258,7 @@ class UnifiedExecutionContext:
         
         DEPRECATED: Use dipeo.diagram.graph_utils.find_edges_to() instead.
         """
-        from ..diagram.graph_utils import find_edges_to
+        from ...diagram.graph_utils import find_edges_to
         return find_edges_to(self.edges, node_id)
     
     # Backward compatibility methods

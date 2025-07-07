@@ -9,14 +9,14 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from dipeo.core import BaseService, SupportsExecution
-from dipeo.domain.models import DomainDiagram
+from dipeo.models import DomainDiagram
 
 from .engine_factory import EngineFactory
 from dipeo.domain.domains.execution.protocols import ExecutionObserver
 from .unified_service_registry import UnifiedServiceRegistry
 
 if TYPE_CHECKING:
-    from .context import ApplicationContext
+    from .context import ApplicationExecutionContext
 
 log = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class LocalUpdateCollector(ExecutionObserver):
 class LocalExecutionService(BaseService, SupportsExecution):
     """Local execution service for CLI and tests."""
 
-    def __init__(self, app_context: ApplicationContext):
+    def __init__(self, app_context: ApplicationExecutionContext):
         """Initialize with application context."""
         super().__init__()
         self.app_context = app_context

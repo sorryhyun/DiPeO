@@ -238,7 +238,7 @@ class PythonGenerator {
 if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     const schemas = await loadSchemas(path.resolve(__dirname, '../__generated__'));
-    const out = path.resolve(__dirname, '../../domain/models.py');
+    const out = path.resolve(__dirname, '../models.py');
     await new PythonGenerator(schemas, true).generate(out);
     console.log(`Generated models.py → ${out}`);
   })();

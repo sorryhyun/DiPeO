@@ -7,7 +7,8 @@ strategy patterns instead of complex nested conditionals.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol
 
-from dipeo.domain.models import HandleLabel, ContentType, NodeType
+from dipeo.models import NodeType
+from dipeo.models import HandleLabel, ContentType
 
 
 class InputResolver(Protocol):

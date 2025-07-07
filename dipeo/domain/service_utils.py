@@ -5,7 +5,7 @@ These utilities help distinguish between LLM and non-LLM services
 
 from typing import List, Set
 
-from .models import LLMService, APIServiceType
+from dipeo.models import LLMService, APIServiceType
 
 
 # Set of APIServiceType values that are LLM services

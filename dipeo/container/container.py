@@ -139,7 +139,7 @@ def _create_file_operations_service(file_service):
 
 
 def _create_diagram_storage_domain_service(storage_service):
-    from dipeo.domain.domains.diagram.services.domain_service import (
+    from dipeo.domain.domains.diagram.domain_service import (
         DiagramStorageDomainService,
     )
 
@@ -216,7 +216,7 @@ def _create_execute_diagram_use_case(
     service_registry, state_store, message_router, diagram_storage_service
 ):
     """Factory for ExecuteDiagramUseCase with explicit dependencies."""
-    from dipeo.domain.domains.execution.services import ExecuteDiagramUseCase
+    from dipeo.application.execution.server_execution_service import ExecuteDiagramUseCase
 
     return ExecuteDiagramUseCase(
         service_registry=service_registry,

@@ -3,7 +3,7 @@
 import logging
 
 import strawberry
-from dipeo.domain import DomainApiKey
+from dipeo.models import DomainApiKey
 
 from ..context import GraphQLContext
 from ..types import (

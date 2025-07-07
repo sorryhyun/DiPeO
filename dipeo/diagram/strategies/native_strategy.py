@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo.domain import DomainDiagram
+from dipeo.models import DomainDiagram
 from ..shared_components import build_node, coerce_to_dict
 from .base_strategy import BaseConversionStrategy
 from ..conversion_utils import _JsonMixin

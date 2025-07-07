@@ -4,7 +4,7 @@ from typing import NewType
 import strawberry
 
 # Import domain models directly instead of DTOs
-from dipeo.domain import (
+from dipeo.models import (
     DiagramMetadata,
     DomainApiKey,
     DomainArrow,
@@ -21,7 +21,7 @@ from dipeo.domain import (
 )
 
 # Import enums and basic types from domain
-from dipeo.domain import (
+from dipeo.models import (
     APIServiceType,
     DataType,
     DiagramFormat,

@@ -3,7 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo.domain import ChatResult, LLMRequestOptions, ToolConfig, TokenUsage
+from dipeo.models import ChatResult, LLMRequestOptions
+from dipeo.models import ToolConfig, TokenUsage
 
 
 class BaseLLMAdapter(ABC):

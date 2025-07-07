@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from dipeo_core import BaseService, ExecutionError, SupportsNotion
+from dipeo.core import BaseService, ExecutionError, SupportsNotion
 from notion_client import Client
 
 logger = logging.getLogger(__name__)

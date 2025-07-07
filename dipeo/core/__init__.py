@@ -26,8 +26,8 @@ from .constants import (
     VALID_LLM_SERVICES,
     normalize_service_name,
 )
-# Legacy ExecutionContext removed - use UnifiedExecutionContext instead
-from .unified_context import UnifiedExecutionContext
+# Legacy ExecutionContext removed - use ApplicationExecutionContext instead
+# UnifiedExecutionContext moved to application.compatibility for architectural compliance
 from .errors.taxonomy import (
     APIKeyError,
     APIKeyNotFoundError,
@@ -99,8 +99,7 @@ __all__ = [
     "BaseService",
     "BaseExecutor",
     "BaseNodeHandler",
-    # Context
-    "UnifiedExecutionContext",
+    # Context (UnifiedExecutionContext moved to application.compatibility)
     # Constants
     "DEFAULT_PAGE_SIZE",
     "DEFAULT_TIMEOUT",

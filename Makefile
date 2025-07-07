@@ -58,7 +58,7 @@ graphql-schema:
 	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
 
 # Python directories
-PY_DIRS := apps/server apps/cli packages/python/dipeo_*
+PY_DIRS := apps/server apps/cli dipeo
 
 # Linting
 lint-web:

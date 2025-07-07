@@ -1,5 +1,5 @@
 # Barrel exports for execution domain
-from ...models import EventType, ExecutionStatus, NodeExecutionStatus
+from dipeo.models import EventType, ExecutionStatus, NodeExecutionStatus
 
 from .models import ExecutionReadyDiagram
 from .preparation_service import PrepareDiagramForExecutionUseCase

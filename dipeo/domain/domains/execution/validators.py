@@ -3,7 +3,7 @@
 from typing import Any
 
 from dipeo.core import ValidationError
-from ...models import DomainDiagram
+from dipeo.models import DomainDiagram
 
 from ..apikey import APIKeyDomainService
 

@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List, Optional
 
-from dipeo.domain.models import NodeState, NodeType, NodeExecutionStatus, TokenUsage
+from dipeo.models import NodeType, NodeExecutionStatus, NodeState, TokenUsage
 
 from .execution_controller import ExecutionController
 
@@ -230,7 +230,7 @@ class ExecutionEngine:
         self, node_view: Any, execution_id: str, options: Dict[str, Any], execution_view: Any
     ) -> Any:
         """Create runtime context for node execution."""
-        from dipeo.core.unified_context import UnifiedExecutionContext
+        from dipeo.application import UnifiedExecutionContext
         
         # Convert diagram structure to dict format
         edges = [

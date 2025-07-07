@@ -18,9 +18,6 @@ from typing import (
     runtime_checkable,
 )
 
-if TYPE_CHECKING:
-    from dipeo.domain import ChatResult
-
 
 @runtime_checkable
 class SupportsAPIKey(Protocol):
@@ -106,7 +103,7 @@ class SupportsLLM(Protocol):
         model: str,
         api_key_id: str,
         **kwargs,  # Provider-specific options (temperature, max_tokens, etc.)
-    ) -> "ChatResult": ...
+    ) -> Dict[str, Any]: ...
 
     async def get_available_models(self, api_key_id: str) -> List[str]: ...
 

@@ -6,9 +6,9 @@ from typing import Any
 import httpx
 
 from dipeo.core import BaseNodeHandler, register_handler
-from dipeo.core.unified_context import UnifiedExecutionContext
-from dipeo.core.execution import create_node_output
-from dipeo.domain.models import ApiJobNodeData, NodeOutput, HttpMethod
+from dipeo.application import UnifiedExecutionContext
+from dipeo.application.utils import create_node_output
+from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod
 from pydantic import BaseModel
 
 

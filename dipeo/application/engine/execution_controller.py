@@ -7,7 +7,7 @@ and determines which nodes are ready to execute based on dependencies.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
-from dipeo.domain.models import NodeOutput, NodeType
+from dipeo.models import NodeOutput, NodeType
 
 
 @dataclass

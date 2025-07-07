@@ -5,8 +5,8 @@ import logging
 from typing import Any, Optional, List, Dict
 
 from dipeo.core import BaseNodeHandler, register_handler
-from dipeo.core.unified_context import UnifiedExecutionContext
-from dipeo.domain.models import (
+from dipeo.application import UnifiedExecutionContext
+from dipeo.models import (
     ChatResult,
     DomainDiagram,
     NodeOutput,

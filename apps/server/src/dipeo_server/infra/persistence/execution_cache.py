@@ -3,7 +3,8 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from dipeo.domain import ExecutionState, TokenUsage
+from dipeo.models import ExecutionState
+from dipeo.models import TokenUsage
 
 
 class ExecutionCache:

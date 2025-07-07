@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, AsyncIterator, Dict, Optional, Protocol
 
 from .types import ExecutionContext, ExecutionOptions
-from ..unified_context import UnifiedExecutionContext
 
 
 class BaseExecutor(ABC):
@@ -27,7 +26,7 @@ class ExecutorInterface(Protocol):
     async def execute_node(
         self,
         node: Dict[str, Any],
-        context: UnifiedExecutionContext,
+        context: Any,  # ExecutionContext implementation
         inputs: Dict[str, Any],
     ) -> Any:
         ...

@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 from dipeo.diagram import UnifiedDiagramConverter
-from dipeo.domain import DomainDiagram
+from dipeo.models import DomainDiagram
 
 
 

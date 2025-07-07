@@ -1,12 +1,9 @@
 """Core execution types for DiPeO."""
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Protocol, Type, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Protocol, Type
 
 from pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from ..unified_context import UnifiedExecutionContext
 
 
 class NodeHandler(Protocol):
@@ -14,7 +11,7 @@ class NodeHandler(Protocol):
     async def __call__(
         self,
         props: BaseModel,
-        context: "UnifiedExecutionContext",
+        context: Any,  # ExecutionContext implementation
         inputs: Dict[str, Any],
         services: Dict[str, Any],
     ) -> Any:

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Any
 
-from dipeo.core.unified_context import UnifiedExecutionContext
-from dipeo.domain.handle_utils import parse_handle_id, extract_node_id_from_handle
+from dipeo.application import UnifiedExecutionContext
+from dipeo.models import parse_handle_id, extract_node_id_from_handle
 
 
 @dataclass
@@ -15,7 +15,7 @@ class ExecutionContext(UnifiedExecutionContext):
 
     def find_edges_from(self, node_id: str) -> list[Any]:
         """Find edges originating from a node."""
-        from dipeo.domain.models import DomainArrow
+        from dipeo.models import DomainArrow
         # Parse handle IDs to extract node IDs (format: nodeId_handleName_direction)
         result = []
         for edge in self.edges:
@@ -28,7 +28,7 @@ class ExecutionContext(UnifiedExecutionContext):
 
     def find_edges_to(self, node_id: str) -> list[Any]:
         """Find edges targeting a node."""
-        from dipeo.domain.models import DomainArrow
+        from dipeo.models import DomainArrow
         # Parse handle IDs to extract node IDs (format: nodeId_handleName_direction)
         result = []
         for edge in self.edges:

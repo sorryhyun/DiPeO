@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel, Field
-from dipeo.domain import DomainDiagram
-from dipeo.domain.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
+from dipeo.models import DomainDiagram
+from dipeo.models.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
 import json
 import yaml
 from .base import FormatStrategy

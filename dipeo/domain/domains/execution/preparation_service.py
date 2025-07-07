@@ -10,7 +10,7 @@ from dipeo.diagram import (
     backend_to_graphql,
     graphql_to_backend,
 )
-from ...models import DiagramMetadata, DomainDiagram
+from dipeo.models import DiagramMetadata, DomainDiagram
 
 from ..apikey import APIKeyDomainService
 from ..diagram.storage_service import DiagramFileRepository

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo.domain import DomainDiagram, NodeID, HandleDirection, HandleLabel, create_handle_id
-from dipeo.domain.handle_utils import parse_handle_id
+from dipeo.models import DomainDiagram, HandleDirection, create_handle_id
+from dipeo.models import HandleLabel, NodeID, parse_handle_id
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
 from ..conversion_utils import _YamlMixin, _node_id_map

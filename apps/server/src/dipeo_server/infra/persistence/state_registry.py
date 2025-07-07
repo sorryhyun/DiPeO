@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
-from dipeo.domain import (
+from dipeo.models import (
     DiagramID,
     ExecutionID,
     ExecutionState,

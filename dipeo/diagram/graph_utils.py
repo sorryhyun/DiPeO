@@ -5,8 +5,8 @@ better separation of concerns and make graph operations more explicit.
 """
 
 from typing import Any, List, Union, Dict
-from dipeo.domain.models import DomainArrow
-from dipeo.domain.handle_utils import extract_node_id_from_handle
+from dipeo.models import DomainArrow
+from dipeo.models import extract_node_id_from_handle
 
 
 def find_edges_from(edges: List[Union[Dict[str, Any], DomainArrow]], node_id: str) -> List[Union[Dict[str, Any], DomainArrow]]:

@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo.core import BaseService, SupportsExecution
 
-from ..observers import StreamingObserver
+from dipeo.domain.domains.execution.observers import StreamingObserver
 
 if TYPE_CHECKING:
-    from ...ports import MessageRouterPort, StateStorePort
-    from ...diagram.storage_adapter import DiagramStorageAdapter
-    from typing import Any as UnifiedServiceRegistry  # Avoid application dependency
+    from dipeo.domain.domains.ports import MessageRouterPort, StateStorePort
+    from dipeo.domain.domains.diagram.storage_adapter import DiagramStorageAdapter
+    from ..unified_service_registry import UnifiedServiceRegistry
 
 
 class ExecuteDiagramUseCase(BaseService, SupportsExecution):
@@ -44,7 +44,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Execute diagram with streaming updates."""
 
-        from ....models import DomainDiagram
+        from dipeo.models import DomainDiagram
         from dipeo.diagram import BackendDiagram, backend_to_graphql
 
         # Check if diagram is in backend format (dict of dicts) or domain format (lists)
@@ -59,9 +59,8 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)
 
-        # Import EngineFactory locally to avoid domain->application dependency
-        # This is a temporary workaround - ideally this class should be in application layer
-        from dipeo.application import EngineFactory
+        # Import EngineFactory from current package
+        from ..engine_factory import EngineFactory
         
         # Create engine with factory
         engine = EngineFactory.create_engine(

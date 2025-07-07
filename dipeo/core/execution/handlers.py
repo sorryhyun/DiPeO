@@ -6,7 +6,6 @@ from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 from pydantic import BaseModel
 
 from .types import NodeDefinition, NodeHandler
-from ..unified_context import UnifiedExecutionContext
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -35,7 +34,7 @@ class BaseNodeHandler(ABC):
     async def execute(
         self,
         props: BaseModel,
-        context: UnifiedExecutionContext,
+        context: Any,  # ExecutionContext implementation
         inputs: Dict[str, Any],
         services: Dict[str, Any],
     ) -> Any:
@@ -93,15 +92,6 @@ class HandlerRegistry:
 
 # Global registry instance
 _global_registry = HandlerRegistry()
-
-
-def create_node_output(
-    value: Dict[str, Any] | None = None,
-    metadata: Dict[str, Any] | None = None,
-) -> Any:
-    from dipeo.domain import NodeOutput
-
-    return NodeOutput(value=value or {}, metadata=metadata)
 
 
 def register_handler(handler_class: type[BaseNodeHandler]) -> type[BaseNodeHandler]:

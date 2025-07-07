@@ -40,8 +40,6 @@ function parseArgs(): CliOpts {
       resolve(
         __dirname,
         '..',
-        '..',
-        'domain',
         'conversions.py'
       ),
   };

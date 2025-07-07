@@ -6,7 +6,6 @@ from .handlers import (
     HandlerRegistry,
     get_global_registry,
     register_handler,
-    create_node_output,
 )
 from .types import (
     ExecutionContext,
@@ -29,5 +28,4 @@ __all__ = [
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
-    "create_node_output",
 ]

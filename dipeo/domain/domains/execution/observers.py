@@ -3,7 +3,7 @@
 import asyncio
 from datetime import datetime
 
-from ...models import (
+from dipeo.models import (
     ExecutionStatus,
     NodeExecutionStatus,
     NodeOutput,

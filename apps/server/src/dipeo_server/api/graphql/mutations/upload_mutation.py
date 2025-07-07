@@ -13,7 +13,7 @@ from dipeo.diagram import (
     backend_to_graphql,
     converter_registry,
 )
-from dipeo.domain import (
+from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
 )

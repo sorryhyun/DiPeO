@@ -12,7 +12,7 @@ import aiohttp
 import sys
 
 from dipeo.domain.domains.execution.protocols import ExecutionObserver
-from dipeo.domain.models import NodeOutput
+from dipeo.models import NodeOutput
 
 logger = logging.getLogger(__name__)
 

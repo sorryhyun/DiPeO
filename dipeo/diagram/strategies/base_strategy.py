@@ -6,7 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo.domain import DomainDiagram
+from dipeo.models import DomainDiagram
 
 from ..base import FormatStrategy
 from ..shared_components import (

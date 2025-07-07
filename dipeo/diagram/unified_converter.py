@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from dipeo.domain import (
+from dipeo.models import (
     DataType,
     DomainArrow,
     DomainDiagram,
@@ -18,8 +18,8 @@ DomainDiagram.model_rebuild()
 
 from .base import DiagramConverter, FormatStrategy
 from .conversion_utils import backend_to_graphql, BackendDiagram
-from dipeo.domain.conversions import node_kind_to_domain_type
-from dipeo.domain import create_handle_id
+from dipeo.models.conversions import node_kind_to_domain_type
+from dipeo.models import create_handle_id
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,

@@ -39,7 +39,7 @@ Key features:
 **Script**: `dipeo/models/scripts/generate-python.ts`
 - Reads schema JSON
 - Generates Pydantic models with proper type mappings
-- Outputs to `packages/python/dipeo_domain/src/dipeo_domain/models.py`
+- Outputs to `dipeo/models/models.py`
 
 Type mapping examples:
 - `string` → `str`
@@ -53,7 +53,7 @@ Type mapping examples:
 **Script**: `dipeo/models/scripts/generate-conversions.ts`
 - Extracts NODE_TYPE_MAP from conversions.ts
 - Generates Python conversion utilities
-- Outputs to `packages/python/dipeo_domain/src/dipeo_domain/conversions.py`
+- Outputs to `dipeo/models/conversions.py`
 
 ## Backend Integration
 
@@ -61,7 +61,7 @@ Type mapping examples:
 
 The generated Python models are used throughout the backend:
 
-1. **Domain Layer** (`packages/python/dipeo_domain/`)
+1. **Domain Layer** (`dipeo/domain/` and `dipeo/models/`)
    - Provides type-safe domain models
    - Ensures data validation via Pydantic
    - Used by domain services for business logic
@@ -69,7 +69,7 @@ The generated Python models are used throughout the backend:
 2. **GraphQL Layer** (`apps/server/src/dipeo_server/api/graphql/`)
    - Imports domain models directly:
      ```python
-     from dipeo_domain import (
+     from dipeo.models import (
          DomainDiagram,
          DomainNode,
          NodeType,
@@ -83,7 +83,7 @@ The generated Python models are used throughout the backend:
    - Uses domain models for request/response validation
    - Ensures type safety across service boundaries
 
-4. **Domain Services** (`packages/python/dipeo_domain/domains/`)
+4. **Domain Services** (`dipeo/domain/domains/`)
    - Specialized domain services for different node types:
      - api, apikey, conversation, db, diagram, execution, file, text, validation
    - Port interfaces and adapters for clean architecture

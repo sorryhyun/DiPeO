@@ -3,19 +3,10 @@
 from __future__ import annotations
 
 from typing import Any, Mapping, Sequence, TYPE_CHECKING
+from dipeo.models import (DataType, HandleLabel, HandleDirection, NodeType,
+                          create_handle_id, NodeID)
+# Constants to replace domain enums
 
-from dipeo.domain import (
-    DataType,
-    DomainDiagram,
-    DomainHandle,
-    HandleDirection,
-    HandleID,
-    HandleLabel,
-    NodeID,
-    NodeType,
-    Vec2,
-    create_handle_id,
-)
 
 if TYPE_CHECKING:
     from .conversion_utils import BackendDiagram
@@ -33,32 +24,45 @@ __all__ = (
 # internal helpers
 
 
+def _create_handle_id(node_id: str, label: str, direction: str) -> str:
+    """Create a handle ID from components."""
+    return f"{node_id}:{label}:{direction}"
+
+
 def _push_handle(
-    container: DomainDiagram | "BackendDiagram", handle: DomainHandle
+    container: dict[str, Any] | Any, handle: dict[str, Any]
 ) -> None:
     """Add *handle* to *container*, regardless of list / mapping storage."""
-    # Avoid circular import by checking for dict attribute instead of type
-    if hasattr(container, 'handles') and isinstance(container.handles, dict):
-        container.handles[handle.id] = handle  # type: ignore[index]
-    else:
-        container.handles.append(handle)  # type: ignore[union-attr]
+    # Check if container has handles as dict or list
+    if isinstance(container, dict):
+        handles = container.get('handles', [])
+        if isinstance(handles, dict):
+            handles[handle['id']] = handle
+        else:
+            handles.append(handle)
+            container['handles'] = handles
+    elif hasattr(container, 'handles'):
+        if isinstance(container.handles, dict):
+            container.handles[handle['id']] = handle
+        else:
+            container.handles.append(handle)
 
 
 def _make_handle(
     node_id: str,
-    label: HandleLabel,
-    direction: HandleDirection,
-    dtype: DataType = DataType.any,
-) -> DomainHandle:
-    hid = create_handle_id(NodeID(node_id), label, direction)
-    return DomainHandle(
-        id=hid,
-        node_id=NodeID(node_id),
-        label=label,
-        direction=direction,
-        data_type=dtype,
-        position="left" if direction is HandleDirection.input else "right",
-    )
+    label: str,
+    direction: str,
+    dtype: str = DataType.any,
+) -> dict[str, Any]:
+    hid = _create_handle_id(node_id, label, direction)
+    return {
+        'id': hid,
+        'node_id': node_id,
+        'label': label,
+        'direction': direction,
+        'data_type': dtype,
+        'position': "left" if direction == HandleDirection.input else "right",
+    }
 
 
 # public API
@@ -69,12 +73,12 @@ class HandleGenerator:
 
     def generate_for_node(
         self,
-        diagram: DomainDiagram | "BackendDiagram",
+        diagram: dict[str, Any] | Any,
         node_id: str,
         node_type: str,
     ) -> None:
         # Start nodes only have output
-        if node_type == NodeType.start.value:
+        if node_type == NodeType.start:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.default, HandleDirection.output),
@@ -183,22 +187,22 @@ class PositionCalculator:
         self.x_offset, self.y_offset = x_offset, y_offset
 
     # grid
-    def calculate_grid_position(self, index: int) -> Vec2:
+    def calculate_grid_position(self, index: int) -> dict[str, float]:
         row, col = divmod(index, self.columns)
-        return Vec2(
-            x=self.x_offset + col * self.x_spacing,
-            y=self.y_offset + row * self.y_spacing,
-        )
+        return {
+            'x': self.x_offset + col * self.x_spacing,
+            'y': self.y_offset + row * self.y_spacing,
+        }
 
     # vertical / horizontal
-    def calculate_vertical_position(self, index: int, x: int = 300) -> Vec2:
-        return Vec2(x=x, y=self.y_offset + index * self.y_spacing)
+    def calculate_vertical_position(self, index: int, x: int = 300) -> dict[str, float]:
+        return {'x': x, 'y': self.y_offset + index * self.y_spacing}
 
-    def calculate_horizontal_position(self, index: int, y: int = 300) -> Vec2:
-        return Vec2(
-            x=self.x_offset + index * self.x_spacing,
-            y=y,
-        )
+    def calculate_horizontal_position(self, index: int, y: int = 300) -> dict[str, float]:
+        return {
+            'x': self.x_offset + index * self.x_spacing,
+            'y': y,
+        }
 
 
 class ArrowBuilder:

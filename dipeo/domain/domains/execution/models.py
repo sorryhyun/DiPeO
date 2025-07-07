@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from ...models import DomainDiagram
+from dipeo.models import DomainDiagram
 from pydantic import BaseModel, Field
 
 

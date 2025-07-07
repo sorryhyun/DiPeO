@@ -2,7 +2,7 @@
 
 from typing import Any, Protocol, runtime_checkable
 
-from ...models import (
+from dipeo.models import (
     DiagramID,
     ExecutionID,
     ExecutionState,

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
         SupportsMemory,
         SupportsNotion,
     )
-    from dipeo.domain.domains.diagram.services import (
+    from dipeo.domain.domains.diagram import (
         DiagramStorageAdapter,
     )
     from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase

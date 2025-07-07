@@ -3,7 +3,8 @@
 from datetime import datetime
 
 import strawberry
-from dipeo.domain import LLMService, NodeType
+from dipeo.models import NodeType
+from dipeo.models import LLMService
 from dipeo.core.constants import FILES_DIR
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION

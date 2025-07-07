@@ -4,8 +4,9 @@ import logging
 import uuid
 
 import strawberry
-from dipeo.domain import DomainPerson, LLMService, PersonLLMConfig
-from dipeo.domain import PersonID as DomainPersonID
+from dipeo.models import DomainPerson, LLMService
+from dipeo.models import PersonLLMConfig
+from dipeo.models import PersonID as DomainPersonID
 
 from ..context import GraphQLContext
 from ..types import (

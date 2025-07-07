@@ -1,8 +1,9 @@
 """Utility methods for conversation handling."""
 
 from typing import Optional, Any
-from dipeo.domain.models import DomainDiagram, DomainPerson, ContentType
-from dipeo.domain.handle_utils import extract_node_id_from_handle
+from dipeo.models import DomainDiagram
+from dipeo.models import DomainPerson, ContentType
+from dipeo.models import extract_node_id_from_handle
 from dipeo.domain.domains.ports.execution_context import ExecutionContextPort
 from dipeo.core.utils import is_conversation as core_is_conversation, has_nested_conversation as core_has_nested_conversation, contains_conversation as core_contains_conversation
 

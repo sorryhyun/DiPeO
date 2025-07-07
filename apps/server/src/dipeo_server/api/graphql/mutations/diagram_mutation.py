@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 import strawberry
-from dipeo.domain import (
+from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
 )

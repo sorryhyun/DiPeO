@@ -6,6 +6,7 @@ Application orchestration layer providing use cases and node handlers.
 
 # Context
 from .context.application_execution_context import ApplicationExecutionContext
+from .compatibility.unified_context import UnifiedExecutionContext
 
 # Engine components
 from .engine import ExecutionEngine, ExecutionController, LocalExecutionView
@@ -34,17 +35,20 @@ from .utils.conversation_utils import ConversationUtils, InputDetector, MessageB
 from .utils.template import substitute_template
 
 # Execution
-from .execution import LocalExecutionService
+from .local_execution import LocalExecutionService
+from .execution.server_execution_service import ExecuteDiagramUseCase
 
 __all__ = [
     # Context
     "ApplicationExecutionContext",
+    "UnifiedExecutionContext",
     # Engine
     "ExecutionEngine",
     "ExecutionController",
     "LocalExecutionView",
     # Execution
     "LocalExecutionService",
+    "ExecuteDiagramUseCase",
     # Handlers
     "StartNodeHandler",
     "EndpointNodeHandler",
