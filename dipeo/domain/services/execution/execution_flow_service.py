@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional, Set
 import logging
 
 from dipeo.models import DomainDiagram, NodeType, DomainNode
+from dipeo.models import parse_handle_id, extract_node_id_from_handle
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +46,6 @@ class ExecutionFlowService:
                 non_first_dependencies = []
                 for dep_id in dependency_nodes:
                     # Find arrows from dependency to this node
-                    from dipeo.models import parse_handle_id
                     connecting_arrows = []
                     for arrow in diagram.arrows:
                         source_node_id, _, _ = parse_handle_id(arrow.source)
@@ -209,7 +209,6 @@ class ExecutionFlowService:
         dependency_ids = []
         
         # Find all arrows pointing to this node
-        from dipeo.models import extract_node_id_from_handle
         for arrow in diagram.arrows:
             target_node_id = extract_node_id_from_handle(arrow.target)
             if target_node_id == node.id:
