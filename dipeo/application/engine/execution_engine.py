@@ -47,9 +47,18 @@ class ExecutionEngine:
         from .execution_view import LocalExecutionView
         from dipeo.core import get_global_registry
         
-        execution_view = LocalExecutionView(diagram)
+        # Get domain services from service registry if available
+        input_resolution_service = None
+        execution_flow_service = None
+        if hasattr(self.service_registry, 'get'):
+            input_resolution_service = self.service_registry.get('input_resolution_service')
+            execution_flow_service = self.service_registry.get('execution_flow_service')
+        
+        execution_view = LocalExecutionView(diagram, input_resolution_service)
+        
         controller = ExecutionController(
-            max_global_iterations=options.get("max_iterations", 100)
+            max_global_iterations=options.get("max_iterations", 100),
+            execution_flow_service=execution_flow_service
         )
         
         # Initialize handlers

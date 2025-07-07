@@ -1,77 +1,7 @@
 """Utility methods for conversation handling."""
 
-from typing import Optional, Any
-from dipeo.models import DomainDiagram
-from dipeo.models import DomainPerson, ContentType
-from dipeo.models import extract_node_id_from_handle
-from dipeo.domain.domains.ports.execution_context import ExecutionContextPort
+from typing import Any
 from dipeo.core.utils import is_conversation as core_is_conversation, has_nested_conversation as core_has_nested_conversation, contains_conversation as core_contains_conversation
-
-
-class ConversationUtils:
-    """Utility methods for conversation and person handling."""
-    
-    @staticmethod
-    def find_person(diagram: Optional[DomainDiagram], person_id: str) -> Optional[DomainPerson]:
-        """Find person in diagram."""
-        if not diagram:
-            return None
-        return next((p for p in diagram.persons if p.id == person_id), None)
-    
-    @staticmethod
-    def get_person_label(person_id: str, diagram: Optional[DomainDiagram]) -> str:
-        """Get the label for a person from the diagram."""
-        if not diagram or not person_id:
-            return person_id or "Person"
-        
-        person = ConversationUtils.find_person(diagram, person_id)
-        return person.label if person else person_id
-    
-    @staticmethod
-    def has_conversation_state_input(
-        context: ExecutionContextPort, 
-        diagram: Optional[DomainDiagram]
-    ) -> bool:
-        """Check if this node has incoming conversation state."""
-        if not diagram:
-            return False
-        
-        # Use legacy methods if available (through adapter)
-        if hasattr(context, 'edges') and hasattr(context, 'current_node_id'):
-            for edge in context.edges:
-                if edge.get("target", "").startswith(context.current_node_id):
-                    source_node_id = ConversationUtils._extract_node_id_from_handle(
-                        edge.get("source", "")
-                    )
-                    
-                    for arrow in diagram.arrows:
-                        if (arrow.source.startswith(source_node_id) and 
-                            arrow.target.startswith(context.current_node_id) and
-                            arrow.content_type == ContentType.conversation_state):
-                            return True
-        return False
-    
-    @staticmethod
-    def needs_conversation_output(
-        node_id: str, 
-        diagram: Optional[DomainDiagram]
-    ) -> bool:
-        """Check if any outgoing edge needs conversation data."""
-        if not diagram:
-            return False
-            
-        for arrow in diagram.arrows:
-            # Check if arrow source belongs to this node
-            arrow_source_node_id = extract_node_id_from_handle(arrow.source)
-            if arrow_source_node_id == node_id and arrow.content_type == ContentType.conversation_state:
-                return True
-        return False
-    
-    @staticmethod
-    def _extract_node_id_from_handle(handle: str) -> str:
-        """Extract node ID from handle format: nodeId_handleName_direction."""
-        node_id = extract_node_id_from_handle(handle) if handle else None
-        return node_id or handle or ""
 
 
 class InputDetector:

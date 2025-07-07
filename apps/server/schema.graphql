@@ -1,0 +1,489 @@
+enum APIServiceType {
+  openai
+  anthropic
+  google
+  gemini
+  grok
+  bedrock
+  vertex
+  deepseek
+  notion
+  google_search
+  slack
+  github
+  jira
+}
+
+"""Unique identifier for an API key"""
+scalar ApiKeyID
+
+type ApiKeyResult {
+  success: Boolean!
+  message: String
+  error: String
+  api_key: DomainApiKeyType
+}
+
+"""Unique identifier for an arrow"""
+scalar ArrowID
+
+enum ContentType {
+  variable
+  raw_text
+  conversation_state
+}
+
+input CreateApiKeyInput {
+  label: String!
+  service: APIServiceType!
+  key: String!
+}
+
+input CreateArrowInput {
+  source: String!
+  target: String!
+  label: String = null
+}
+
+input CreateDiagramInput {
+  name: String!
+  description: String = null
+  author: String = null
+  tags: [String!]! = []
+}
+
+input CreateHandleInput {
+  node_id: NodeID!
+  label: String!
+  direction: HandleDirection!
+  data_type: DataType!
+  position: Vec2Input!
+}
+
+input CreateNodeInput {
+  type: NodeType!
+  position: Vec2Input!
+  label: String!
+  properties: JSONScalar = null
+}
+
+input CreatePersonInput {
+  label: String!
+  service: LLMService!
+  model: String!
+  api_key_id: ApiKeyID!
+  system_prompt: String = null
+  temperature: Float = null
+  max_tokens: Int = null
+  top_p: Float = null
+}
+
+enum DataType {
+  any
+  string
+  number
+  boolean
+  object
+  array
+}
+
+"""Date with time (isoformat)"""
+scalar DateTime
+
+type DeleteResult {
+  success: Boolean!
+  message: String
+  error: String
+  deleted_count: Int!
+  deleted_id: String
+}
+
+type DiagramConvertResult {
+  success: Boolean!
+  message: String!
+  error: String
+  content: String
+  format: String
+  filename: String
+}
+
+input DiagramFilterInput {
+  name_contains: String = null
+  author: String = null
+  tags: [String!] = null
+  created_after: DateTime = null
+  created_before: DateTime = null
+  modified_after: DateTime = null
+}
+
+enum DiagramFormat {
+  native
+  light
+  readable
+}
+
+type DiagramFormatInfo {
+  id: String!
+  name: String!
+  description: String!
+  extension: String!
+  supports_import: Boolean!
+  supports_export: Boolean!
+}
+
+"""Unique identifier for a diagram"""
+scalar DiagramID
+
+type DiagramMetadataType {
+  id: String
+  name: String
+  description: String
+  version: String!
+  created: String!
+  modified: String!
+  author: String
+  tags: [String!]
+}
+
+type DiagramResult {
+  success: Boolean!
+  message: String
+  error: String
+  diagram: DomainDiagramType
+}
+
+type DiagramValidationResult {
+  is_valid: Boolean!
+  errors: [String!]!
+  node_count: Int
+  arrow_count: Int
+  person_count: Int
+}
+
+type DomainApiKeyType {
+  id: ApiKeyID!
+  masked_key: String!
+  label: String!
+  service: APIServiceType!
+  key: String
+}
+
+type DomainArrowType {
+  id: ArrowID!
+  source: HandleID!
+  target: HandleID!
+  data: JSONScalar
+  content_type: ContentType
+  label: String
+}
+
+type DomainDiagramType {
+  nodeCount: Int!
+  arrowCount: Int!
+  personCount: Int!
+  nodes: [DomainNodeType!]!
+  handles: [DomainHandleType!]!
+  arrows: [DomainArrowType!]!
+  persons: [DomainPersonType!]!
+  metadata: DiagramMetadataType
+}
+
+type DomainHandleType {
+  id: HandleID!
+  node_id: NodeID!
+  label: HandleLabel!
+  direction: HandleDirection!
+  data_type: DataType!
+  position: String
+}
+
+type DomainNodeType {
+  id: NodeID!
+  data: JSONScalar!
+  type: NodeType!
+  position: Vec2Type!
+}
+
+type DomainPersonType {
+  id: PersonID!
+  type: String!
+  masked_api_key: String
+  label: String!
+  llm_config: PersonLLMConfigType!
+}
+
+input ExecuteDiagramInput {
+  diagram_id: DiagramID = null
+  diagram_data: JSONScalar = null
+  variables: JSONScalar = null
+  debug_mode: Boolean! = false
+  max_iterations: Int! = 100
+  timeout_seconds: Int = null
+}
+
+input ExecutionControlInput {
+  execution_id: ExecutionID!
+  action: String!
+  node_id: NodeID = null
+}
+
+input ExecutionFilterInput {
+  diagram_id: DiagramID = null
+  status: ExecutionStatus = null
+  started_after: DateTime = null
+  started_before: DateTime = null
+  active_only: Boolean! = false
+}
+
+"""Unique identifier for an execution"""
+scalar ExecutionID
+
+type ExecutionResult {
+  success: Boolean!
+  message: String
+  error: String
+  execution: ExecutionStateType
+  execution_id: String
+}
+
+type ExecutionStateType {
+  node_states: JSONScalar!
+  node_outputs: JSONScalar!
+  variables: JSONScalar!
+  id: String!
+  status: ExecutionStatus!
+  diagram_id: String
+  started_at: String!
+  ended_at: String
+  token_usage: TokenUsageType!
+  error: String
+  duration_seconds: Float
+  is_active: Boolean
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  ABORTED
+  SKIPPED
+}
+
+type FileUploadResult {
+  success: Boolean!
+  message: String
+  error: String
+  path: String
+  size_bytes: Int
+  content_type: String
+}
+
+enum HandleDirection {
+  input
+  output
+}
+
+"""Unique identifier for a handle"""
+scalar HandleID
+
+enum HandleLabel {
+  default
+  first
+  condtrue
+  condfalse
+}
+
+type HandleResult {
+  success: Boolean!
+  message: String
+  error: String
+  handle: DomainHandleType
+}
+
+type InteractivePrompt {
+  execution_id: ExecutionID!
+  node_id: NodeID!
+  prompt: String!
+  timeout_seconds: Int
+  timestamp: DateTime!
+}
+
+input InteractiveResponseInput {
+  execution_id: ExecutionID!
+  node_id: NodeID!
+  response: String!
+}
+
+"""Arbitrary JSON data"""
+scalar JSONScalar
+
+enum LLMService {
+  openai
+  anthropic
+  google
+  grok
+  bedrock
+  vertex
+  deepseek
+}
+
+type Mutation {
+  create_api_key(input: CreateApiKeyInput!): ApiKeyResult!
+  test_api_key(id: ApiKeyID!): TestApiKeyResult!
+  delete_api_key(id: ApiKeyID!): DeleteResult!
+  create_diagram(input: CreateDiagramInput!): DiagramResult!
+  delete_diagram(id: DiagramID!): DeleteResult!
+  execute_diagram(data: ExecuteDiagramInput!): ExecutionResult!
+  control_execution(data: ExecutionControlInput!): ExecutionResult!
+  submit_interactive_response(data: InteractiveResponseInput!): ExecutionResult!
+  create_arrow(diagram_id: DiagramID!, data: CreateArrowInput!): DiagramResult!
+  delete_arrow(arrow_id: ArrowID!): DeleteResult!
+  create_handle(data: CreateHandleInput!): HandleResult!
+  delete_handle(handle_id: HandleID!): DeleteResult!
+  create_node(diagram_id: DiagramID!, input_data: CreateNodeInput!): NodeResult!
+  update_node(input_data: UpdateNodeInput!): NodeResult!
+  delete_node(node_id: NodeID!): DeleteResult!
+  create_person(diagram_id: DiagramID!, person_input: CreatePersonInput!): PersonResult!
+  update_person(person_input: UpdatePersonInput!): PersonResult!
+  delete_person(person_id: PersonID!): DeleteResult!
+  initialize_model(person_id: PersonID!): PersonResult!
+  clear_conversations: DeleteResult!
+
+  """Upload a file to the server"""
+  upload_file(file: Upload!, category: String! = "general"): FileUploadResult!
+
+  """Validate a diagram structure"""
+  validate_diagram(diagram_content: JSONScalar!): DiagramValidationResult!
+
+  """Convert a diagram to a different format"""
+  convert_diagram(content: JSONScalar!, target_format: DiagramFormat! = native, include_metadata: Boolean! = true): DiagramConvertResult!
+}
+
+type NodeExecution {
+  execution_id: ExecutionID!
+  node_id: NodeID!
+  node_type: NodeType!
+  status: String!
+  progress: String
+  output: JSONScalar
+  error: String
+  tokens_used: Int
+  timestamp: DateTime!
+}
+
+"""Unique identifier for a node"""
+scalar NodeID
+
+type NodeResult {
+  success: Boolean!
+  message: String
+  error: String
+  node: DomainNodeType
+}
+
+enum NodeType {
+  start
+  person_job
+  condition
+  job
+  code_job
+  api_job
+  endpoint
+  db
+  user_response
+  notion
+  person_batch_job
+  hook
+}
+
+"""Unique identifier for a person"""
+scalar PersonID
+
+type PersonLLMConfigType {
+  api_key_id: ApiKeyID
+  service: LLMService!
+  model: String!
+  system_prompt: String
+}
+
+type PersonResult {
+  success: Boolean!
+  message: String
+  error: String
+  person: DomainPersonType
+}
+
+type Query {
+  diagram(id: DiagramID!): DomainDiagramType
+  diagrams(filter: DiagramFilterInput = null, limit: Int! = 100, offset: Int! = 0): [DomainDiagramType!]!
+  execution(id: ExecutionID!): ExecutionStateType
+  executions(filter: ExecutionFilterInput = null, limit: Int! = 100, offset: Int! = 0): [ExecutionStateType!]!
+  person(id: PersonID!): DomainPersonType
+  persons(limit: Int! = 100): [DomainPersonType!]!
+  api_key(id: ApiKeyID!): DomainApiKeyType
+  api_keys(service: String = null): [DomainApiKeyType!]!
+  available_models(service: String!, api_key_id: ApiKeyID!): [String!]!
+  system_info: JSONScalar!
+  execution_capabilities: JSONScalar!
+  health: JSONScalar!
+  conversations(person_id: PersonID = null, execution_id: ExecutionID = null, search: String = null, show_forgotten: Boolean! = false, limit: Int! = 100, offset: Int! = 0, since: DateTime = null): JSONScalar!
+  supported_formats: [DiagramFormatInfo!]!
+  execution_order(execution_id: ExecutionID!): JSONScalar!
+  prompt_files: [JSONScalar!]!
+  prompt_file(filename: String!): JSONScalar!
+}
+
+type Subscription {
+  execution_updates(execution_id: ExecutionID!): ExecutionStateType!
+  execution_events(execution_id: ExecutionID!): ExecutionStatus!
+  node_updates(execution_id: ExecutionID!, node_types: [NodeType!] = null): NodeExecution!
+  diagram_changes(diagram_id: DiagramID!): DomainDiagramType!
+  interactive_prompts(execution_id: ExecutionID!): InteractivePrompt
+}
+
+type TestApiKeyResult {
+  success: Boolean!
+  message: String
+  error: String
+  valid: Boolean
+  available_models: [String!]
+}
+
+type TokenUsageType {
+  input: Int!
+  output: Int!
+  cached: Float
+  total: Float
+}
+
+input UpdateNodeInput {
+  id: NodeID!
+  position: Vec2Input = null
+  label: String = null
+  properties: JSONScalar = null
+}
+
+input UpdatePersonInput {
+  id: PersonID!
+  label: String = null
+  model: String = null
+  api_key_id: ApiKeyID = null
+  system_prompt: String = null
+  temperature: Float = null
+  max_tokens: Int = null
+  top_p: Float = null
+}
+
+scalar Upload
+
+input Vec2Input {
+  x: Float!
+  y: Float!
+}
+
+type Vec2Type {
+  x: Float!
+  y: Float!
+}

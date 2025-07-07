@@ -12,7 +12,7 @@ from dipeo.core import BaseService, SupportsExecution
 from dipeo.models import DomainDiagram
 
 from .engine_factory import EngineFactory
-from dipeo.domain.domains.execution.protocols import ExecutionObserver
+from dipeo.domain.services.execution.protocols import ExecutionObserver
 from .unified_service_registry import UnifiedServiceRegistry
 
 if TYPE_CHECKING:

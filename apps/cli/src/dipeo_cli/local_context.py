@@ -102,10 +102,10 @@ class LocalAppContext:
         # Import necessary services
         from dipeo.application import LocalExecutionService
         from dipeo.infra import ConsolidatedFileService, LLMInfraService, MemoryService
-        from dipeo.domain.domains.db import DBOperationsDomainService
-        from dipeo.domain.domains.validation import ValidationDomainService
-        from dipeo.domain.domains.text import TextProcessingDomainService
-        from dipeo.domain.domains.api import APIIntegrationDomainService
+        from dipeo.domain.services.db import DBOperationsDomainService
+        from dipeo.domain.services.validation import ValidationDomainService
+        from dipeo.domain.services.text import TextProcessingDomainService
+        from dipeo.domain.services.api import APIIntegrationDomainService
 
         # Initialize API key service with environment variables
         self._api_key_service = EnvironmentAPIKeyService()
@@ -119,7 +119,7 @@ class LocalAppContext:
         self._memory_service = MemoryService()
         
         # Initialize conversation memory service
-        from dipeo.domain.domains.conversation import ConversationMemoryService
+        from dipeo.domain.services.conversation import ConversationMemoryService
         self._conversation_service = ConversationMemoryService(memory_service=self._memory_service)
 
         self._file_service = ConsolidatedFileService()

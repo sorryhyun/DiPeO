@@ -31,8 +31,7 @@ from .handlers import (
 from .services import MinimalMessageRouter, MinimalStateStore
 
 # Utilities
-from .utils.conversation_utils import ConversationUtils, InputDetector, MessageBuilder
-from .utils.template import substitute_template
+from .utils.conversation_utils import InputDetector, MessageBuilder
 
 # Execution
 from .local_execution import LocalExecutionService

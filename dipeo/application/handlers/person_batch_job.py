@@ -20,7 +20,7 @@ from dipeo.models import (
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from dipeo.domain.domains.conversation.simple_service import (
+    from dipeo.domain.services.conversation.simple_service import (
         ConversationMemoryService,
     )
 

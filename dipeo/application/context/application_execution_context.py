@@ -8,7 +8,7 @@ and provides access to services via a service registry.
 from typing import Any, Optional
 
 from dipeo.models import ExecutionState
-from dipeo.domain.domains.ports.execution_context import ExecutionContextPort
+from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 
 
 class ApplicationExecutionContext:

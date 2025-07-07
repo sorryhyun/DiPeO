@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo.core import BaseService, SupportsExecution
 
-from dipeo.domain.domains.execution.observers import StreamingObserver
+from dipeo.domain.services.execution.observers import StreamingObserver
 
 if TYPE_CHECKING:
-    from dipeo.domain.domains.ports import MessageRouterPort, StateStorePort
-    from dipeo.domain.domains.diagram.storage_adapter import DiagramStorageAdapter
+    from dipeo.domain.services.ports import MessageRouterPort, StateStorePort
+    from dipeo.domain.services.diagram.storage_adapter import DiagramStorageAdapter
     from ..unified_service_registry import UnifiedServiceRegistry
 
 

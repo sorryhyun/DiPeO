@@ -1,16 +1,12 @@
 """Condition node handler - handles conditional logic in diagram execution."""
 
-import ast
-import operator
-from typing import Any
+from typing import Any, Optional
 
 from dipeo.core import BaseNodeHandler, register_handler
 from dipeo.application import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
-from dipeo.models import ConditionNodeData, NodeOutput, NodeType, NodeExecutionStatus
+from dipeo.models import ConditionNodeData, NodeOutput
 from pydantic import BaseModel
-
-from ..utils.template import substitute_template
 
 
 @register_handler
@@ -26,8 +22,19 @@ class ConditionNodeHandler(BaseNodeHandler):
         return ConditionNodeData
 
     @property
+    def requires_services(self) -> list[str]:
+        return ["condition_evaluation", "diagram"]
+
+    @property
     def description(self) -> str:
         return "Condition node: supports detect_max_iterations and custom expressions"
+    
+    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Optional[Any]:
+        """Helper to resolve service from context or services dict."""
+        service = context.get_service(service_name)
+        if not service:
+            service = services.get(service_name)
+        return service
 
     async def execute(
         self,
@@ -36,158 +43,60 @@ class ConditionNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute condition node."""
+        """Execute condition node by delegating to domain service."""
+        # Resolve services
+        evaluation_service = self._resolve_service(context, services, "condition_evaluation")
+        diagram = self._resolve_service(context, services, "diagram")
         
+        # Evaluate condition based on type
         if props.condition_type == "detect_max_iterations":
-            result = await self._evaluate_max_iterations(context, services)
+            # Prepare execution states and counts for domain service
+            execution_states = self._extract_execution_states(context)
+            node_exec_counts = self._extract_node_exec_counts(context)
+            
+            result = evaluation_service.evaluate_max_iterations(
+                diagram=diagram,
+                execution_states=execution_states,
+                node_exec_counts=node_exec_counts,
+            )
         elif props.condition_type == "custom":
-            result = await self._evaluate_custom_expression(props.expression or "", inputs)
+            result = evaluation_service.evaluate_custom_expression(
+                expression=props.expression or "",
+                context_values=inputs,
+            )
         else:
             # Default to false for unknown condition types
             result = False
 
         # Output data to the appropriate branch based on condition result
-        # The execution engine expects outputs keyed by branch name
-        # We need to pass through all inputs, including conversation data
         # Only create output for the active branch to prevent execution of the inactive branch
         if result:
             # When condition is true, output goes to "true" branch only
-            # Pass through all inputs as a single value
             output_value = {"condtrue": inputs if inputs else {}}
         else:
             # When condition is false, output goes to "false" branch only
-            # Pass through all inputs as a single value
             output_value = {"condfalse": inputs if inputs else {}}
         
         return create_node_output(output_value, {"condition_result": result})
-
-    async def _evaluate_max_iterations(self, context: UnifiedExecutionContext, services: dict[str, Any]) -> bool:
-        """Evaluate if all upstream person_job nodes reached their max_iterations."""
-        # Get diagram to check upstream nodes
-        diagram = context.get_service("diagram")
-        if not diagram:
-            # Fallback to services dict
-            diagram = services.get("diagram")
-        if not diagram:
-            return False
-
-        # Check person_job nodes that have executed at least once
-        # This prevents checking downstream nodes that haven't run yet
-        found_person_job = False
-        all_reached_max = True
+    
+    def _extract_execution_states(self, context: UnifiedExecutionContext) -> dict[str, dict[str, Any]]:
+        """Extract execution states from context."""
+        execution_states = {}
         
-        for node in diagram.nodes:
-            if node.type == NodeType.person_job.value:
-                # Get execution count from execution state
-                exec_count = 0
-                if hasattr(context.execution_state, 'node_states'):
-                    node_state = context.execution_state.node_states.get(node.id)
-                    if node_state:
-                        # Check if node_state has execution info
-                        if hasattr(node_state, 'status') and node_state.status != NodeExecutionStatus.pending:
-                            # Node has been executed at least once
-                            exec_count = 1
-                            # Get execution count from services if available
-                            exec_info_service = context.get_service('node_exec_counts')
-                            if exec_info_service and node.id in exec_info_service:
-                                exec_count = exec_info_service[node.id]
-                
-                # Only check nodes that have executed at least once
-                if exec_count > 0:
-                    found_person_job = True
-                    max_iter = int((node.data or {}).get("max_iteration", 1))
-                    if exec_count < max_iter:
-                        all_reached_max = False
-                        break
+        if hasattr(context.execution_state, 'node_states'):
+            for node_id, node_state in context.execution_state.node_states.items():
+                state_dict = {
+                    'status': getattr(node_state, 'status', 'pending')
+                }
+                if hasattr(node_state, 'status'):
+                    state_dict['status'] = str(node_state.status.value) if hasattr(node_state.status, 'value') else str(node_state.status)
+                execution_states[node_id] = state_dict
         
-        # Return true only if we found at least one person_job AND all have reached max
-        return found_person_job and all_reached_max
-
-    async def _evaluate_custom_expression(self, expression: str, inputs: dict[str, Any]) -> bool:
-        """Evaluate a custom expression with variable substitution."""
-        if not expression:
-            return False
-        
-        try:
-            # Substitute variables in the expression
-            substituted_expr, missing_keys, _ = substitute_template(expression, inputs)
-            
-            # If there are missing keys, the condition fails
-            if missing_keys:
-                return False
-            
-            # Safe evaluation of the expression
-            # This is a simple implementation that supports basic comparisons
-            # For more complex expressions, consider using a proper expression parser
-            result = self._safe_eval(substituted_expr)
-            
-            return bool(result)
-        except Exception:
-            # If evaluation fails, return False
-            return False
-
-    def _safe_eval(self, expression: str) -> Any:
-        """Safely evaluate a boolean expression."""
-        # Define allowed operators
-        allowed_operators = {
-            ast.Eq: operator.eq,
-            ast.NotEq: operator.ne,
-            ast.Lt: operator.lt,
-            ast.LtE: operator.le,
-            ast.Gt: operator.gt,
-            ast.GtE: operator.ge,
-            ast.And: operator.and_,
-            ast.Or: operator.or_,
-            ast.Not: operator.not_,
-            ast.In: lambda x, y: x in y,
-            ast.NotIn: lambda x, y: x not in y,
-        }
-        
-        # Parse the expression
-        try:
-            tree = ast.parse(expression, mode='eval')
-        except SyntaxError:
-            return False
-        
-        # Evaluate the expression tree
-        def eval_node(node):
-            if isinstance(node, ast.Expression):
-                return eval_node(node.body)
-            elif isinstance(node, ast.Constant):
-                return node.value
-            elif isinstance(node, ast.Str):  # For Python < 3.8 compatibility
-                return node.s
-            elif isinstance(node, ast.Num):  # For Python < 3.8 compatibility
-                return node.n
-            elif isinstance(node, ast.Compare):
-                left = eval_node(node.left)
-                for op, comparator in zip(node.ops, node.comparators):
-                    op_func = allowed_operators.get(type(op))
-                    if op_func is None:
-                        raise ValueError(f"Unsupported operator: {type(op).__name__}")
-                    right = eval_node(comparator)
-                    if not op_func(left, right):
-                        return False
-                    left = right
-                return True
-            elif isinstance(node, ast.BoolOp):
-                op_func = allowed_operators.get(type(node.op))
-                if op_func is None:
-                    raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
-                values = [eval_node(v) for v in node.values]
-                if isinstance(node.op, ast.And):
-                    return all(values)
-                else:  # ast.Or
-                    return any(values)
-            elif isinstance(node, ast.UnaryOp):
-                op_func = allowed_operators.get(type(node.op))
-                if op_func is None:
-                    raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
-                return op_func(eval_node(node.operand))
-            else:
-                raise ValueError(f"Unsupported node type: {type(node).__name__}")
-        
-        try:
-            return eval_node(tree)
-        except Exception:
-            return False
+        return execution_states
+    
+    def _extract_node_exec_counts(self, context: UnifiedExecutionContext) -> Optional[dict[str, int]]:
+        """Extract node execution counts from context."""
+        exec_info_service = context.get_service('node_exec_counts')
+        if exec_info_service:
+            return exec_info_service
+        return None

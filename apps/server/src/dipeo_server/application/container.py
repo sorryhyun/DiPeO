@@ -12,26 +12,26 @@ from dipeo.core import (
     SupportsMemory,
     SupportsNotion,
 )
-from dipeo.domain.domains.apikey import APIKeyDomainService
-from dipeo.domain.domains.conversation.simple_service import ConversationMemoryService
-from dipeo.domain.domains.db import DBOperationsDomainService
-from dipeo.domain.domains.diagram import (
+from dipeo.domain.services.apikey import APIKeyDomainService
+from dipeo.domain.services.conversation.simple_service import ConversationMemoryService
+from dipeo.domain.services.db import DBOperationsDomainService
+from dipeo.domain.services.diagram import (
     DiagramFileRepository,
     DiagramStorageAdapter,
 )
-from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase
+from dipeo.domain.services.execution.preparation_service import PrepareDiagramForExecutionUseCase
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 from dipeo.application.execution.server_execution_service import ExecuteDiagramUseCase
-from dipeo.domain.domains.file import FileOperationsDomainService
-from dipeo.domain.domains.text import TextProcessingDomainService
-from dipeo.domain.domains.validation import ValidationDomainService
+from dipeo.domain.services.file import FileOperationsDomainService
+from dipeo.domain.services.text import TextProcessingDomainService
+from dipeo.domain.services.validation import ValidationDomainService
 from dipeo.infra import (
     MessageRouter,
     NotionAPIService,
     LLMInfraService,
     ConsolidatedFileService,
 )
-from dipeo.domain.domains.api import APIIntegrationDomainService
+from dipeo.domain.services.api import APIIntegrationDomainService
 from dipeo_server.infra.persistence.state_registry import state_store
 from dipeo_server.shared.constants import BASE_DIR
 from dipeo.infra.persistence.memory import MemoryService

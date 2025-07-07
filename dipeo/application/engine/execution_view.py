@@ -8,6 +8,7 @@ from dipeo.models import DomainDiagram, NodeOutput, NodeType
 from dipeo.models import DomainArrow, DomainNode, HandleLabel
 from dipeo.models import parse_handle_id, HandleReference
 from ..utils.input_resolution import get_active_inputs_simplified
+from dipeo.domain.services.execution import InputResolutionService
 
 
 @dataclass
@@ -21,6 +22,8 @@ class NodeView:
     output: Optional[NodeOutput] = None
     exec_count: int = 0
     output_history: List[NodeOutput] = field(default_factory=list)
+    input_resolution_service: Optional[InputResolutionService] = None
+    execution_view: Optional["LocalExecutionView"] = None
 
     @property
     def id(self) -> str:
@@ -49,7 +52,26 @@ class NodeView:
         
         Uses the simplified input resolution strategy for cleaner logic.
         """
-        return get_active_inputs_simplified(self)
+        if self.input_resolution_service and self.execution_view:
+            # Collect node outputs from execution view
+            node_outputs = {}
+            node_exec_counts = {}
+            for node_id, node_view in self.execution_view.node_views.items():
+                if node_view.output:
+                    node_outputs[node_id] = node_view.output.model_dump()
+                node_exec_counts[node_id] = node_view.exec_count
+            
+            # Use domain service to resolve inputs
+            return self.input_resolution_service.resolve_inputs_for_node(
+                node_id=self.node.id,
+                node_type=self.node.type.value,
+                diagram=self.execution_view.diagram,
+                node_outputs=node_outputs,
+                node_exec_counts=node_exec_counts
+            )
+        else:
+            # Fallback to original implementation
+            return get_active_inputs_simplified(self)
 
 
 @dataclass
@@ -86,10 +108,11 @@ class EdgeView:
 class LocalExecutionView:
     """Execution view for local execution."""
 
-    def __init__(self, diagram: DomainDiagram):
+    def __init__(self, diagram: DomainDiagram, input_resolution_service: Optional[InputResolutionService] = None):
         self.diagram = diagram
         self.node_views: Dict[str, NodeView] = {}
         self.edge_views: List[EdgeView] = []
+        self.input_resolution_service = input_resolution_service
 
         self._build_views()
         self.execution_order = self._compute_execution_order()
@@ -97,7 +120,11 @@ class LocalExecutionView:
     def _build_views(self) -> None:
         """Build node and edge views from diagram."""
         for node in self.diagram.nodes:
-            node_view = NodeView(node=node)
+            node_view = NodeView(
+                node=node,
+                input_resolution_service=self.input_resolution_service,
+                execution_view=self
+            )
             self.node_views[node.id] = node_view
 
         import logging

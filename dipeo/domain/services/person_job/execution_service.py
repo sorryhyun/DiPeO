@@ -8,7 +8,7 @@ from dipeo.models import (
     Message,
     ForgettingMode,
 )
-from dipeo.domain.domains.conversation import OnEveryTurnHandler
+from dipeo.domain.services.conversation import OnEveryTurnHandler
 from .prompt_service import PromptProcessingService
 from .conversation_processor import ConversationProcessingService
 from .output_builder import PersonJobOutputBuilder, PersonJobResult
@@ -118,7 +118,7 @@ class PersonJobExecutionService:
         
         # Store the assistant response in conversation service if provided
         if conversation_service:
-            from dipeo.domain.domains.conversation.message_builder_service import MessageBuilderService
+            from dipeo.domain.services.conversation.message_builder_service import MessageBuilderService
             message_builder = MessageBuilderService(conversation_service, person_id, execution_id)
             message_builder.assistant(content)
         
@@ -142,6 +142,68 @@ class PersonJobExecutionService:
             usage=usage,
             tool_outputs=tool_outputs,
         )
+    
+    async def execute_person_job_with_validation(
+        self,
+        person_id: str,
+        node_id: str,
+        props: Any,  # PersonJobNodeData
+        inputs: Dict[str, Any],
+        diagram: DomainDiagram,
+        execution_count: int,
+        llm_client: Any,
+        conversation_service: Optional[Any] = None,
+        execution_id: Optional[str] = None,
+    ) -> PersonJobResult:
+        """Execute person job with validation."""
+        # Validate person exists
+        person = self._validate_person(person_id, diagram)
+        
+        # Extract configuration from props and person
+        forget_mode = ForgettingMode.no_forget
+        if props.memory_config and props.memory_config.forget_mode:
+            forget_mode = ForgettingMode(props.memory_config.forget_mode)
+        
+        model = person.llm_config.model if person.llm_config else "gpt-4.1-nano"
+        api_key_id = person.llm_config.api_key_id if person.llm_config else None
+        system_prompt = person.llm_config.system_prompt if person.llm_config else None
+        
+        # Execute with all parameters
+        result = await self.execute_person_job(
+            person_id=person_id,
+            node_id=node_id,
+            prompt=props.default_prompt or "",
+            first_only_prompt=props.first_only_prompt,
+            forget_mode=forget_mode,
+            model=model,
+            api_key_id=api_key_id,
+            system_prompt=system_prompt,
+            inputs=inputs,
+            diagram=diagram,
+            execution_count=execution_count,
+            llm_client=llm_client,
+            tools=props.tools,
+            conversation_service=conversation_service,
+            execution_id=execution_id,
+        )
+        
+        # Add model to metadata
+        if result.metadata is None:
+            result.metadata = {}
+        result.metadata["model"] = model
+        
+        return result
+    
+    def _validate_person(self, person_id: str, diagram: DomainDiagram) -> Any:
+        """Validate person exists in diagram."""
+        if not diagram or not diagram.persons:
+            raise ValueError(f"No persons defined in diagram")
+        
+        for person in diagram.persons:
+            if person.id == person_id:
+                return person
+        
+        raise ValueError(f"Person not found: {person_id}")
     
     def should_forget_messages(
         self,
@@ -197,7 +259,7 @@ class PersonJobExecutionService:
             
             # Store in conversation service if provided
             if conversation_service and execution_id:
-                from dipeo.domain.domains.conversation.message_builder_service import MessageBuilderService
+                from dipeo.domain.services.conversation.message_builder_service import MessageBuilderService
                 message_builder = MessageBuilderService(conversation_service, person_id, execution_id)
                 message_builder.user(prompt)
         

@@ -19,13 +19,13 @@ if TYPE_CHECKING:
         SupportsMemory,
         SupportsNotion,
     )
-    from dipeo.domain.domains.diagram import (
+    from dipeo.domain.services.diagram import (
         DiagramStorageAdapter,
     )
-    from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase
-    from dipeo.domain.domains.api import APIIntegrationDomainService
-    from dipeo.domain.domains.file import FileOperationsDomainService
-    from dipeo.domain.domains.text import TextProcessingDomainService
+    from dipeo.domain.services.execution.preparation_service import PrepareDiagramForExecutionUseCase
+    from dipeo.domain.services.api import APIIntegrationDomainService
+    from dipeo.domain.services.file import FileOperationsDomainService
+    from dipeo.domain.services.text import TextProcessingDomainService
     from dipeo.infra import MessageRouter
 
     from dipeo_server.infra.persistence.state_registry import StateRegistry

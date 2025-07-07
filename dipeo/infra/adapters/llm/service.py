@@ -7,7 +7,7 @@ from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.ports import LLMServicePort
 from dipeo.models import ChatResult
 from dipeo.models import LLMService as LLMServiceEnum
-from dipeo.domain.domains.apikey import APIKeyDomainService
+from dipeo.domain.services.apikey import APIKeyDomainService
 from tenacity import (
     retry,
     retry_if_exception_type,

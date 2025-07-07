@@ -54,7 +54,7 @@ def _import_message_router():
 
 
 def _create_api_key_service():
-    from dipeo.domain.domains.apikey import APIKeyDomainService
+    from dipeo.domain.services.apikey import APIKeyDomainService
 
     return APIKeyDomainService()
 
@@ -72,7 +72,7 @@ def _create_memory_service():
 
 
 def _create_conversation_service(memory_service):
-    from dipeo.domain.domains.conversation.simple_service import (
+    from dipeo.domain.services.conversation.simple_service import (
         ConversationMemoryService,
     )
 
@@ -92,25 +92,25 @@ def _create_notion_service():
 
 
 def _create_diagram_storage_service(base_dir):
-    from dipeo.domain.domains.diagram import DiagramFileRepository
+    from dipeo.domain.services.diagram import DiagramFileRepository
 
     return DiagramFileRepository(base_dir=base_dir)
 
 
 def _create_diagram_storage_adapter(storage_service):
-    from dipeo.domain.domains.diagram import DiagramStorageAdapter
+    from dipeo.domain.services.diagram import DiagramStorageAdapter
 
     return DiagramStorageAdapter(storage_service=storage_service)
 
 
 def _create_diagram_validator(api_key_service):
-    from dipeo.domain.domains.execution.validators import DiagramValidator
+    from dipeo.domain.services.execution.validators import DiagramValidator
 
     return DiagramValidator(api_key_service)
 
 
 def _create_execution_preparation_service(storage_service, validator, api_key_service):
-    from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase
+    from dipeo.domain.services.execution.preparation_service import PrepareDiagramForExecutionUseCase
 
     return PrepareDiagramForExecutionUseCase(
         storage_service=storage_service,
@@ -120,26 +120,26 @@ def _create_execution_preparation_service(storage_service, validator, api_key_se
 
 
 def _create_api_integration_service(file_service):
-    from dipeo.domain.domains.api import APIIntegrationDomainService
+    from dipeo.domain.services.api import APIIntegrationDomainService
 
     return APIIntegrationDomainService(file_service)
 
 
 def _create_text_processing_service():
-    from dipeo.domain.domains.text import TextProcessingDomainService
+    from dipeo.domain.services.text import TextProcessingDomainService
 
     return TextProcessingDomainService()
 
 
 def _create_file_operations_service(file_service):
-    from dipeo.domain.domains.file import FileOperationsDomainService
+    from dipeo.domain.services.file import FileOperationsDomainService
 
     return FileOperationsDomainService(file_service)
 
 
 
 def _create_diagram_storage_domain_service(storage_service):
-    from dipeo.domain.domains.diagram.domain_service import (
+    from dipeo.domain.services.diagram.domain_service import (
         DiagramStorageDomainService,
     )
 
@@ -147,31 +147,31 @@ def _create_diagram_storage_domain_service(storage_service):
 
 
 def _create_validation_service():
-    from dipeo.domain.domains.validation import ValidationDomainService
+    from dipeo.domain.services.validation import ValidationDomainService
 
     return ValidationDomainService()
 
 
 def _create_db_operations_service(file_service, validation_service):
-    from dipeo.domain.domains.db import DBOperationsDomainService
+    from dipeo.domain.services.db import DBOperationsDomainService
 
     return DBOperationsDomainService(file_service, validation_service)
 
 
 def _create_template_service():
-    from dipeo.domain.domains.text.template_service import TemplateService
+    from dipeo.domain.services.text.template_service import TemplateService
     
     return TemplateService()
 
 
 def _create_person_job_services(template_service, conversation_memory_service):
-    from dipeo.domain.domains.person_job import (
+    from dipeo.domain.services.person_job import (
         PromptProcessingService,
         ConversationProcessingService,
         PersonJobOutputBuilder,
         PersonJobExecutionService,
     )
-    from dipeo.domain.domains.conversation import OnEveryTurnHandler
+    from dipeo.domain.services.conversation import OnEveryTurnHandler
     
     prompt_service = PromptProcessingService(template_service)
     conversation_processor = ConversationProcessingService()
@@ -193,6 +193,24 @@ def _create_person_job_services(template_service, conversation_memory_service):
     }
 
 
+def _create_condition_evaluation_service(template_service):
+    from dipeo.domain.services.condition import ConditionEvaluationService
+    
+    return ConditionEvaluationService(template_service)
+
+
+def _create_execution_flow_service():
+    from dipeo.domain.services.execution import ExecutionFlowService
+    
+    return ExecutionFlowService()
+
+
+def _create_input_resolution_service():
+    from dipeo.domain.services.execution import InputResolutionService
+    
+    return InputResolutionService()
+
+
 def _create_service_registry(
     llm_service,
     api_key_service,
@@ -206,6 +224,10 @@ def _create_service_registry(
     validation_service,
     db_operations_service,
     person_job_services,
+    condition_evaluation_service,
+    execution_flow_service,
+    input_resolution_service,
+    template_service,
 ):
     """Factory for UnifiedServiceRegistry with explicit dependencies."""
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
@@ -229,6 +251,7 @@ def _create_service_registry(
     # Domain services
     registry.register("notion", notion_service)
     registry.register("notion_service", notion_service)
+    registry.register("diagram", diagram_storage_domain_service)
     registry.register("diagram_storage", diagram_storage_domain_service)
     registry.register("diagram_storage_service", diagram_storage_domain_service)
     registry.register("storage", diagram_storage_domain_service)
@@ -244,6 +267,8 @@ def _create_service_registry(
     registry.register("validation_service", validation_service)
     registry.register("db_operations", db_operations_service)
     registry.register("db_operations_service", db_operations_service)
+    registry.register("template", template_service)
+    registry.register("template_service", template_service)
     
     # Person job services
     registry.register("person_job_execution", person_job_services["execution_service"])
@@ -252,6 +277,16 @@ def _create_service_registry(
     registry.register("prompt_processing_service", person_job_services["prompt_service"])
     registry.register("conversation_processor", person_job_services["conversation_processor"])
     registry.register("person_job_output_builder", person_job_services["output_builder"])
+    
+    # Condition evaluation service
+    registry.register("condition_evaluation", condition_evaluation_service)
+    registry.register("condition_evaluation_service", condition_evaluation_service)
+    
+    # Execution flow services
+    registry.register("execution_flow", execution_flow_service)
+    registry.register("execution_flow_service", execution_flow_service)
+    registry.register("input_resolution", input_resolution_service)
+    registry.register("input_resolution_service", input_resolution_service)
     
     return registry
 
@@ -430,6 +465,16 @@ class Container(containers.DeclarativeContainer):
         template_service=template_service,
         conversation_memory_service=conversation_service,
     )
+    
+    # Condition evaluation service
+    condition_evaluation_service = providers.Singleton(
+        _create_condition_evaluation_service,
+        template_service=template_service,
+    )
+    
+    # Execution flow services
+    execution_flow_service = providers.Singleton(_create_execution_flow_service)
+    input_resolution_service = providers.Singleton(_create_input_resolution_service)
 
     # Service Registry with explicit dependencies
     service_registry = providers.Singleton(
@@ -446,6 +491,10 @@ class Container(containers.DeclarativeContainer):
         validation_service=validation_service,
         db_operations_service=db_operations_service,
         person_job_services=person_job_services,
+        condition_evaluation_service=condition_evaluation_service,
+        execution_flow_service=execution_flow_service,
+        input_resolution_service=input_resolution_service,
+        template_service=template_service,
     )
 
     # Application Context for backward compatibility

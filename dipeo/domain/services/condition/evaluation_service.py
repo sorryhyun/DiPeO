@@ -5,7 +5,7 @@ import operator
 from typing import Any, Dict, Optional
 
 from dipeo.models import DomainDiagram, NodeType
-from dipeo.domain.domains.text.template_service import TemplateService
+from dipeo.domain.services.text.template_service import TemplateService
 
 
 class ConditionEvaluationService:

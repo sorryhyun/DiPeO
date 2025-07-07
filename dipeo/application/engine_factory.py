@@ -3,7 +3,7 @@
 import warnings
 from typing import Any, Optional
 
-from dipeo.domain.domains.execution.protocols import ExecutionObserver
+from dipeo.domain.services.execution.protocols import ExecutionObserver
 from .engine import ExecutionEngine
 
 
@@ -37,12 +37,12 @@ class EngineFactory:
         
         # Add state store observer if requested and available
         if include_state_observer and state_store is not None:
-            from dipeo.domain.domains.execution.observers import StateStoreObserver
+            from dipeo.domain.services.execution.observers import StateStoreObserver
             observers.append(StateStoreObserver(state_store))
             
         # Add streaming observer if requested and available
         if include_streaming_observer and message_router is not None:
-            from dipeo.domain.domains.execution.observers import StreamingObserver
+            from dipeo.domain.services.execution.observers import StreamingObserver
             observers.append(StreamingObserver(message_router))
             
         # Add any custom observers
