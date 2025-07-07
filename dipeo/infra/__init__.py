@@ -8,6 +8,8 @@ and infrastructure components.
 from .adapters import LLMInfraService, create_adapter
 from .persistence import AsyncFileAdapter, ModularFileService, MemoryService
 from .external.apikey import EnvironmentAPIKeyService
+from .external.notion import NotionAPIService
+from .messaging import MessageRouter
 
 # For backward compatibility
 ConsolidatedFileService = ModularFileService
@@ -24,4 +26,8 @@ __all__ = [
     "MemoryService",
     # API Key management
     "EnvironmentAPIKeyService",
+    # Messaging
+    "MessageRouter",
+    # External services
+    "NotionAPIService",
 ]

@@ -15,12 +15,6 @@ dependency-injector==4.48.1
 dill==0.3.8
 # DiPeO packages
 -e ./dipeo                                  # Umbrella package with migrated modules
--e ./packages/python/dipeo_container        # Dependency injection
--e ./packages/python/dipeo_core            # Core protocols (legacy location)
--e ./packages/python/dipeo_diagram         # Diagram conversion (legacy location)  
--e ./packages/python/dipeo_domain          # Domain models (legacy location)
--e ./packages/python/dipeo_infra           # Infrastructure adapters (legacy location)
--e ./packages/python/dipeo_application     # Application layer
 # DiPeO applications
 -e ./apps/server                            # FastAPI server
 -e ./apps/cli                               # Command-line interface

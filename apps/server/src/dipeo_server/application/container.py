@@ -15,7 +15,7 @@ from dipeo.core import (
 from dipeo.domain.domains.apikey import APIKeyDomainService
 from dipeo.domain.domains.conversation.simple_service import ConversationMemoryService
 from dipeo.domain.domains.db import DBOperationsDomainService
-from dipeo.domain.domains.diagram.services import (
+from dipeo.domain.domains.diagram import (
     DiagramFileRepository,
     DiagramStorageAdapter,
 )

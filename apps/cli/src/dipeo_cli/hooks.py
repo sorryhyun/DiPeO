@@ -11,7 +11,7 @@ from enum import Enum
 import aiohttp
 import sys
 
-from dipeo.application import ExecutionObserver
+from dipeo.domain.domains.execution.protocols import ExecutionObserver
 from dipeo.domain.models import NodeOutput
 
 logger = logging.getLogger(__name__)

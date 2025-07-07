@@ -92,13 +92,13 @@ def _create_notion_service():
 
 
 def _create_diagram_storage_service(base_dir):
-    from dipeo.domain.domains.diagram.services import DiagramFileRepository
+    from dipeo.domain.domains.diagram import DiagramFileRepository
 
     return DiagramFileRepository(base_dir=base_dir)
 
 
 def _create_diagram_storage_adapter(storage_service):
-    from dipeo.domain.domains.diagram.services import DiagramStorageAdapter
+    from dipeo.domain.domains.diagram import DiagramStorageAdapter
 
     return DiagramStorageAdapter(storage_service=storage_service)
 

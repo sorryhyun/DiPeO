@@ -1,9 +1,6 @@
 [importlinter]
 root_packages = 
     dipeo
-    dipeo_application
-    dipeo_infra
-    dipeo_container
 include_external_packages = True
 
 [importlinter:contract:1]
@@ -13,7 +10,6 @@ source_modules =
     dipeo.domain
 forbidden_modules = 
     dipeo.application
-    dipeo_application
 
 [importlinter:contract:2]
 name = Domain should not depend on Infrastructure
@@ -22,7 +18,6 @@ source_modules =
     dipeo.domain
 forbidden_modules = 
     dipeo.infra
-    dipeo_infra
 
 [importlinter:contract:3]
 name = Core should not depend on any other layer
@@ -35,9 +30,6 @@ forbidden_modules =
     dipeo.infra
     dipeo.container
     dipeo.diagram
-    dipeo_application
-    dipeo_infra
-    dipeo_container
 
 [importlinter:contract:4]
 name = Diagram module should not depend on Application or Infrastructure
@@ -47,19 +39,14 @@ source_modules =
 forbidden_modules = 
     dipeo.application
     dipeo.infra
-    dipeo_application
-    dipeo_infra
 
 [importlinter:contract:5]
 name = Enforce layer hierarchy
 type = layers
 layers =
     dipeo.container
-    dipeo_container
     dipeo.application
-    dipeo_application
     dipeo.infra
-    dipeo_infra
     dipeo.domain
     dipeo.diagram
     dipeo.core

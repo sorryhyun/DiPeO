@@ -22,7 +22,7 @@ apps/web/schema.graphql
 dipeo/models/schema.graphql
 dipeo/domain/models.py
 dipeo/domain/conversions.py
-
+.import_linter_cache
 server/diagrams
 docs/deprecated
 TODO.md

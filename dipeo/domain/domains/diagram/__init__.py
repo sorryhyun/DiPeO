@@ -7,6 +7,8 @@ from ...models import (
     HandleDirection,
     NodeType,
 )
+from .storage_adapter import DiagramStorageAdapter
+from .storage_service import DiagramFileRepository
 
 __all__ = [
     "ContentType",
@@ -18,4 +20,7 @@ __all__ = [
     # Services and utilities
     "UnifiedDiagramConverter",
     "converter_registry",
+    # Storage services
+    "DiagramFileRepository",
+    "DiagramStorageAdapter",
 ]
