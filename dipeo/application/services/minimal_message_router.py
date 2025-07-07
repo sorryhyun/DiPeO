@@ -29,3 +29,9 @@ class MinimalMessageRouter:
         self, message: dict[str, Any]
     ) -> None:
         pass
+
+    async def broadcast_to_execution(
+        self, execution_id: str, update: dict[str, Any]
+    ) -> None:
+        """Broadcast update to specific execution."""
+        pass

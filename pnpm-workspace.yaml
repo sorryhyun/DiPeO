@@ -1,6 +1,6 @@
 packages:
   - apps/web
   - apps/desktop
-  - packages/*
+  - dipeo/models
 ignoredBuiltDependencies:
   - esbuild

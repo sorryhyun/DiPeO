@@ -26,9 +26,9 @@ def _get_project_base_dir():
         return BASE_DIR
     except ImportError:
         # Fall back to finding the project root
-        # This file is in packages/python/dipeo_container/src/dipeo_container/
-        # Project root is 5 levels up
-        return Path(__file__).resolve().parents[5]
+        # This file is in dipeo/container
+        # Project root is 2 levels up
+        return Path(__file__).resolve().parents[2]
 
 
 def _import_state_store():
@@ -158,6 +158,41 @@ def _create_db_operations_service(file_service, validation_service):
     return DBOperationsDomainService(file_service, validation_service)
 
 
+def _create_template_service():
+    from dipeo.domain.domains.text.template_service import TemplateService
+    
+    return TemplateService()
+
+
+def _create_person_job_services(template_service, conversation_memory_service):
+    from dipeo.domain.domains.person_job import (
+        PromptProcessingService,
+        ConversationProcessingService,
+        PersonJobOutputBuilder,
+        PersonJobExecutionService,
+    )
+    from dipeo.domain.domains.conversation import OnEveryTurnHandler
+    
+    prompt_service = PromptProcessingService(template_service)
+    conversation_processor = ConversationProcessingService()
+    output_builder = PersonJobOutputBuilder()
+    on_every_turn_handler = OnEveryTurnHandler()
+    
+    execution_service = PersonJobExecutionService(
+        prompt_service=prompt_service,
+        conversation_processor=conversation_processor,
+        output_builder=output_builder,
+        on_every_turn_handler=on_every_turn_handler,
+    )
+    
+    return {
+        "prompt_service": prompt_service,
+        "conversation_processor": conversation_processor,
+        "output_builder": output_builder,
+        "execution_service": execution_service,
+    }
+
+
 def _create_service_registry(
     llm_service,
     api_key_service,
@@ -170,6 +205,7 @@ def _create_service_registry(
     file_operations_service,
     validation_service,
     db_operations_service,
+    person_job_services,
 ):
     """Factory for UnifiedServiceRegistry with explicit dependencies."""
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
@@ -208,6 +244,14 @@ def _create_service_registry(
     registry.register("validation_service", validation_service)
     registry.register("db_operations", db_operations_service)
     registry.register("db_operations_service", db_operations_service)
+    
+    # Person job services
+    registry.register("person_job_execution", person_job_services["execution_service"])
+    registry.register("person_job_execution_service", person_job_services["execution_service"])
+    registry.register("prompt_processing", person_job_services["prompt_service"])
+    registry.register("prompt_processing_service", person_job_services["prompt_service"])
+    registry.register("conversation_processor", person_job_services["conversation_processor"])
+    registry.register("person_job_output_builder", person_job_services["output_builder"])
     
     return registry
 
@@ -377,6 +421,16 @@ class Container(containers.DeclarativeContainer):
         validation_service=validation_service,
     )
 
+    # Template service
+    template_service = providers.Singleton(_create_template_service)
+    
+    # Person job services
+    person_job_services = providers.Singleton(
+        _create_person_job_services,
+        template_service=template_service,
+        conversation_memory_service=conversation_service,
+    )
+
     # Service Registry with explicit dependencies
     service_registry = providers.Singleton(
         _create_service_registry,
@@ -391,6 +445,7 @@ class Container(containers.DeclarativeContainer):
         file_operations_service=file_operations_service,
         validation_service=validation_service,
         db_operations_service=db_operations_service,
+        person_job_services=person_job_services,
     )
 
     # Application Context for backward compatibility

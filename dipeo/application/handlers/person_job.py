@@ -1,31 +1,23 @@
-"""Simplified person_job handler with direct implementation."""
+"""Person job handler using domain services."""
 
-import json
 import logging
-from typing import Any, Optional, List, Dict
+from typing import Any, Dict
 
 from dipeo.core import BaseNodeHandler, register_handler
 from dipeo.application import UnifiedExecutionContext
 from dipeo.models import (
-    ChatResult,
-    DomainDiagram,
     NodeOutput,
     PersonJobNodeData,
-    LLMRequestOptions,
+    ForgettingMode,
 )
-from dipeo.domain.domains.conversation.on_every_turn_handler import OnEveryTurnHandler
 from pydantic import BaseModel
 
-from ..utils.template import substitute_template
-from ..utils.conversation_utils import ConversationUtils, InputDetector, MessageBuilder
-
-# Create a logger for this module
 logger = logging.getLogger(__name__)
 
 
 @register_handler
 class PersonJobNodeHandler(BaseNodeHandler):
-    """Simplified person_job handler."""
+    """Person job handler that delegates to domain services."""
 
     @property
     def node_type(self) -> str:
@@ -37,7 +29,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["conversation", "llm"]
+        return ["person_job_execution", "llm", "diagram", "conversation"]
 
     @property
     def description(self) -> str:
@@ -50,287 +42,122 @@ class PersonJobNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute person_job node."""
+        """Execute person_job node by delegating to domain service."""
+        # Get services
+        execution_service = context.get_service("person_job_execution")
+        if not execution_service:
+            execution_service = services.get("person_job_execution")
+            
+        llm_service = context.get_service("llm")
+        if not llm_service:
+            llm_service = services.get("llm")
+            
+        diagram = context.get_service("diagram")
+        if not diagram:
+            diagram = services.get("diagram")
+            
+        conversation_service = context.get_service("conversation")
+        if not conversation_service:
+            conversation_service = services.get("conversation")
         
-        # Log node execution start
-        # Get node_id from execution state if available
+        # Log execution start
         node_id = 'unknown'
         if hasattr(context.execution_state, 'current_node_id'):
             node_id = context.execution_state.current_node_id
-        elif hasattr(services, 'get') and services.get('current_node_id'):
-            node_id = services['current_node_id']
-        
+        elif hasattr(context, 'current_node_id'):
+            node_id = context.current_node_id
         logger.debug(f"🚀 Executing person_job node: {node_id}")
         logger.debug(f"🔍 Node inputs: {list(inputs.keys())}")
         
-        # Initialize services
-        conversation_service = context.get_service("conversation")
-        llm_service = context.get_service("llm")
-        diagram: Optional[DomainDiagram] = context.get_service("diagram")
-        
-        # For backward compatibility with services dict
-        if not conversation_service:
-            conversation_service = services.get("conversation")
-        if not llm_service:
-            llm_service = services.get("llm")
-        if not diagram:
-            diagram = services.get("diagram")
-        
-        # Set execution context
-        if hasattr(conversation_service, 'current_execution_id'):
-            conversation_service.current_execution_id = context.execution_state.id
-
         # Validate person
         person_id = props.person
         if not person_id:
-            return self._error_output("No person specified")
+            return NodeOutput(
+                value={"default": ""}, 
+                metadata={"error": "No person specified"}
+            )
         
-        person = ConversationUtils.find_person(diagram, person_id)
-        if not person:
-            return self._error_output("Person not found")
-
-        # Create message builder
-        message_builder = MessageBuilder(conversation_service, person_id, context.execution_state.id)
-        
-        # Handle memory forgetting
-        if self._should_forget_messages(props, context):
-            conversation_service.forget_own_messages_for_person(person_id)
-        
-        # Process prompt
-        prompt, used_keys, error = await self._process_prompt(props, context, inputs)
-        if error:
-            return error
-        
-        # Handle conversation inputs
-        await self._handle_conversation_inputs(
-            inputs, prompt, props, message_builder, 
-            conversation_service, used_keys, person_id, context, diagram
-        )
-
-        # Prepare and execute LLM call
-        system_prompt = person.llm_config.system_prompt if person.llm_config else None
-        messages = conversation_service.prepare_messages_for_llm(person_id, system_prompt)
-        
-        result = await self._execute_llm_call(
-            llm_service, messages, person, props.tools
-        )
-        
-        # Store response
-        message_builder.assistant(result.text)
-        
-        # Build output
-        return self._build_output(
-            result, person_id, person, props, context, 
-            conversation_service, diagram
-        )
-
-    def _error_output(self, error_msg: str) -> NodeOutput:
-        """Create an error output."""
-        return NodeOutput(
-            value={"default": ""}, 
-            metadata={"error": error_msg}
-        )
-    
-    def _should_forget_messages(self, props: PersonJobNodeData, context: UnifiedExecutionContext) -> bool:
-        """Check if messages should be forgotten based on memory config."""
-        forget_mode = props.memory_config.forget_mode if props.memory_config else None
-        # Get execution count from services if available
+        # Get execution count
         execution_count = 0
         if hasattr(context, 'get_service'):
             exec_info = context.get_service('execution_info')
             if exec_info and 'exec_count' in exec_info:
                 execution_count = exec_info['exec_count']
-        return OnEveryTurnHandler.should_forget_messages(execution_count, forget_mode)
-    
-    async def _process_prompt(
-        self, 
-        props: PersonJobNodeData, 
-        context: UnifiedExecutionContext, 
-        inputs: Dict[str, Any]
-    ) -> tuple[str, set[str], Optional[NodeOutput]]:
-        """Process prompt template and return (prompt, used_keys, error)."""
-        used_template_keys = set()
         
-        # Select prompt based on execution count
-        exec_count = 0
-        if hasattr(context, 'get_service'):
-            exec_info = context.get_service('execution_info')
-            if exec_info and 'exec_count' in exec_info:
-                exec_count = exec_info['exec_count']
+        # Extract person from diagram
+        person = None
+        if diagram and diagram.persons:
+            for p in diagram.persons:
+                if p.id == person_id:
+                    person = p
+                    break
         
-        if exec_count == 0 and props.first_only_prompt:
-            prompt_template = props.first_only_prompt
-        else:
-            prompt_template = props.default_prompt or ""
+        if not person:
+            return NodeOutput(
+                value={"default": ""}, 
+                metadata={"error": "Person not found"}
+            )
         
-        # Substitute template if needed
-        prompt = prompt_template
-        if prompt_template and "{{" in prompt_template:
-            prompt, missing_keys, used_keys = substitute_template(prompt_template, inputs)
-            used_template_keys.update(used_keys)
+        try:
+            # Execute using domain service
+            result = await execution_service.execute_person_job(
+                person_id=person_id,
+                node_id=node_id,
+                prompt=props.default_prompt or "",
+                first_only_prompt=props.first_only_prompt,
+                forget_mode=ForgettingMode(props.memory_config.forget_mode) if props.memory_config and props.memory_config.forget_mode else ForgettingMode.no_forget,
+                model=person.llm_config.model if person.llm_config else "gpt-4.1-nano",
+                api_key_id=person.llm_config.api_key_id if person.llm_config else None,
+                system_prompt=person.llm_config.system_prompt if person.llm_config else None,
+                inputs=inputs,
+                diagram=diagram,
+                execution_count=execution_count,
+                llm_client=llm_service,
+                tools=props.tools,
+                conversation_service=conversation_service,
+                execution_id=context.execution_state.id if hasattr(context, 'execution_state') else None,
+            )
             
-            if missing_keys:
-                available_keys = list(inputs.keys())
-                error_msg = (
-                    f"Missing placeholder(s) {missing_keys} in prompt. "
-                    f"Available inputs: {available_keys}. "
-                    f"Make sure the edges connecting to this node are labeled with the required keys."
-                )
-                return "", used_template_keys, self._error_output(error_msg)
-        
-        return prompt, used_template_keys, None
-    
-    async def _consolidate_on_every_turn_messages(
-        self, 
-        inputs: Dict[str, Any], 
-        used_template_keys: set[str],
-        diagram: Optional[DomainDiagram] = None
-    ) -> Optional[str]:
-        """Consolidate messages for on_every_turn mode."""
-        consolidated_content, _ = OnEveryTurnHandler.consolidate_conversation_inputs(
-            inputs, used_template_keys, diagram
-        )
-        return consolidated_content if consolidated_content else None
-    
-    async def _handle_conversation_inputs(
-        self,
-        inputs: Dict[str, Any],
-        prompt: str,
-        props: PersonJobNodeData,
-        message_builder: MessageBuilder,
-        conversation_service: Any,
-        used_template_keys: set[str],
-        person_id: str,
-        context: UnifiedExecutionContext,
-        diagram: Optional[DomainDiagram]
-    ) -> None:
-        """Handle all conversation input scenarios."""
-        
-        # Case 1: Nested conversation
-        if InputDetector.has_nested_conversation(inputs):
-            from dipeo.domain.domains.conversation import ConversationAggregationService
-            aggregation_service = ConversationAggregationService()
-            aggregated = aggregation_service.aggregate_conversations(inputs, diagram)
-            if aggregated:
-                message_builder.user(aggregated)
-            if prompt:
-                message_builder.developer(prompt)
-        
-        # Case 2: Conversation state input
-        elif (ConversationUtils.has_conversation_state_input(context, diagram) and 
-              InputDetector.contains_conversation(inputs)):
-            forget_mode = props.memory_config.forget_mode if props.memory_config else None
+            # Convert domain result to NodeOutput
+            output_value = {"default": result.content}
             
-            if forget_mode == "on_every_turn" and prompt:
-                consolidated = await self._consolidate_on_every_turn_messages(
-                    inputs, used_template_keys, diagram
-                )
-                if consolidated:
-                    message_builder.user(f"{consolidated}\n[developer]: {prompt}")
-                else:
-                    message_builder.developer(prompt)
-            else:
-                # Rebuild conversation context for other modes
-                for key, value in inputs.items():
-                    if conversation_service.is_conversation(value) and key not in used_template_keys:
-                        conversation_service.rebuild_conversation_context(
-                            person_id, value, forget_mode=forget_mode
-                        )
-                if prompt:
-                    message_builder.developer(prompt)
-        
-        # Case 3: Non-conversation inputs
-        else:
-            for key, value in inputs.items():
-                if value and key not in used_template_keys and key != "conversation":
-                    message_builder.external(key, str(value))
-            if prompt:
-                message_builder.user(prompt)
-    
-    async def _execute_llm_call(
-        self,
-        llm_service: Any,
-        messages: List[Dict[str, str]],
-        person: Any,
-        tools: Optional[List[Any]] = None
-    ) -> ChatResult:
-        """Execute LLM call with proper configuration."""
-        request_options = LLMRequestOptions(tools=tools) if tools else None
-        
-        model = person.llm_config.model if person.llm_config else "gpt-4.1-nano"
-        api_key_id = person.llm_config.api_key_id if person.llm_config else None
-        
-        # Log LLM input
-        logger.debug(f"🤖 LLM Request - Model: {model}, Person: {person.id}")
-        logger.debug(f"📥 Messages being sent to LLM:\n{json.dumps(messages, indent=2, ensure_ascii=False)}")
-        if tools:
-            logger.debug(f"🔧 Tools enabled: {[tool.name for tool in tools]}")
-        
-        result = await llm_service.complete(
-            messages=messages,
-            model=model,
-            api_key_id=api_key_id,
-            options=request_options,
-        )
-        
-        # Log LLM output
-        if result.token_usage:
-            total_tokens = result.token_usage.input + result.token_usage.output
-            logger.debug(f"📤 LLM Response - Tokens: {total_tokens} (input: {result.token_usage.input}, output: {result.token_usage.output})")
-        else:
-            logger.debug("📤 LLM Response - No token usage data")
-        logger.debug(f"💬 Response text:\n{result.text}")
-        if hasattr(result, 'tool_calls') and result.tool_calls:
-            logger.debug(f"🔧 Tool calls: {[tc.function.name for tc in result.tool_calls]}")
-        
-        return result
-    
-    def _build_output(
-        self,
-        result: ChatResult,
-        person_id: str,
-        person: Any,
-        props: PersonJobNodeData,
-        context: UnifiedExecutionContext,
-        conversation_service: Any,
-        diagram: Optional[DomainDiagram]
-    ) -> NodeOutput:
-        """Build the node output with all necessary data."""
-        output_value = {"default": result.text}
-        
-        # Add conversation output if needed
-        current_node_id = context.current_node_id if hasattr(context, 'current_node_id') else None
-        if current_node_id and ConversationUtils.needs_conversation_output(current_node_id, diagram):
-            forget_mode = props.memory_config.forget_mode if props.memory_config else None
+            # Add conversation if present
+            if result.conversation_state:
+                output_value["conversation"] = [
+                    {
+                        "role": msg.role,
+                        "content": msg.content,
+                        "tool_calls": msg.tool_calls,
+                        "tool_call_id": msg.tool_call_id,
+                        "person_label": result.metadata.get("person") if result.metadata else None,
+                    }
+                    for msg in result.conversation_state.messages
+                ]
             
+            # Build metadata
+            metadata = {}
+            if result.usage:
+                metadata["tokens_used"] = result.usage.get("total", 0)
+                metadata["token_usage"] = result.usage
+                metadata["model"] = person.llm_config.model if person.llm_config else "gpt-4.1-nano"
+            if result.metadata:
+                metadata.update(result.metadata)
+            if result.tool_outputs:
+                metadata["tool_outputs"] = result.tool_outputs
+                
+                # Add tool outputs to output value for downstream nodes
+                for tool_output in result.tool_outputs:
+                    if isinstance(tool_output, dict):
+                        if tool_output.get("type") == "web_search_preview":
+                            output_value["web_search_results"] = tool_output.get("result")
+                        elif tool_output.get("type") == "image_generation":
+                            output_value["generated_image"] = tool_output.get("result")
             
-            messages = conversation_service.get_messages_with_person_id(person_id, forget_mode=forget_mode)
+            return NodeOutput(value=output_value, metadata=metadata)
             
-            # Add person labels to messages
-            person_label = ConversationUtils.get_person_label(person_id, diagram)
-            for msg in messages:
-                msg["person_label"] = person_label
-            
-            output_value["conversation"] = messages
-        
-        # Build metadata
-        metadata = {
-            "model": person.llm_config.model if person.llm_config else "gpt-4.1-nano",
-            "tokens_used": result.token_usage.total if result.token_usage and result.token_usage.total else 0,
-            "token_usage": result.token_usage.model_dump() if result.token_usage else None,
-        }
-        
-        # Add tool outputs if present
-        if result.tool_outputs:
-            metadata["tool_outputs"] = [
-                output.model_dump() for output in result.tool_outputs
-            ]
-            
-            # Add tool outputs to output value for downstream nodes
-            for tool_output in result.tool_outputs:
-                if tool_output.type.value == "web_search_preview":
-                    output_value["web_search_results"] = tool_output.result
-                elif tool_output.type.value == "image_generation":
-                    output_value["generated_image"] = tool_output.result
-        
-        return NodeOutput(value=output_value, metadata=metadata)
+        except Exception as e:
+            logger.error(f"Error executing person job: {e}")
+            return NodeOutput(
+                value={"default": ""}, 
+                metadata={"error": str(e)}
+            )

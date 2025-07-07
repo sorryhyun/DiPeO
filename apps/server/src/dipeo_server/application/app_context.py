@@ -63,7 +63,7 @@ def initialize_container() -> ServerContainer:
                 "dipeo_server.api.graphql.mutations",
                 "dipeo_server.api.graphql.subscriptions",
                 "dipeo_server.api.graphql.resolvers",
-                "dipeo.domain.domains.execution.services",
+                "dipeo.domain.domains.execution",
             ]
         )
 

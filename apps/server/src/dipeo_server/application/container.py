@@ -113,47 +113,11 @@ class ServerContainer(BaseContainer):
 
     notion_api_service = providers.Singleton(NotionAPIService)
 
-    # Service registry for node handlers
-    service_registry = providers.Factory(
-        UnifiedServiceRegistry,
-        llm=llm_service,
-        llm_service=llm_service,
-        api_key=api_key_service,
-        api_key_service=api_key_service,
-        file=file_service,
-        file_service=file_service,
-        conversation_memory=conversation_memory_service,
-        conversation_memory_service=conversation_memory_service,
-        memory=conversation_memory_service,
-        memory_service=conversation_memory_service,
-        conversation=conversation_memory_service,
-        notion=notion_api_service,
-        notion_service=notion_api_service,
-        diagram_storage=diagram_storage_service,
-        diagram_storage_service=diagram_storage_service,
-        storage=diagram_storage_service,
-        api_integration=api_integration_service,
-        api_integration_service=api_integration_service,
-        api=api_integration_service,
-        text_processing=text_processing_service,
-        text_processing_service=text_processing_service,
-        text=text_processing_service,
-        file_operations=file_operations_service,
-        file_operations_service=file_operations_service,
-        validation=validation_service,
-        validation_service=validation_service,
-        db_operations=db_operations_service,
-        db_operations_service=db_operations_service,
-    )
+    # Don't override service_registry - let it inherit from base container
+    # The base container already includes all services including person_job services
 
-    # Execution service
-    execution_service = providers.Singleton(
-        ExecuteDiagramUseCase,
-        service_registry=service_registry,
-        state_store=state_store,
-        message_router=message_router,
-        diagram_storage_service=diagram_storage_service,
-    )
+    # Don't override execution_service - let it use the one from base container
+    # which already has the correct service_registry with person_job services
 
 
 async def init_server_resources(container: ServerContainer) -> None:
