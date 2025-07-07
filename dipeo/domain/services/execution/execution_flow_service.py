@@ -27,15 +27,8 @@ class ExecutionFlowService:
         - All other nodes need all their dependencies executed
         """
         # Start nodes have no dependencies
-        if node.type == NodeType.db:
-            # Check if it's a start node (no incoming arrows)
-            from dipeo.models import extract_node_id_from_handle
-            incoming_arrows = [
-                arrow for arrow in diagram.arrows 
-                if extract_node_id_from_handle(arrow.target) == node.id
-            ]
-            if not incoming_arrows:
-                return True
+        if node.type == NodeType.start:
+            return True
         
         # Get all nodes that this node depends on
         dependency_nodes = self._get_dependency_nodes(node, diagram)
@@ -43,6 +36,8 @@ class ExecutionFlowService:
         # Special handling for person_job nodes with "first" handle
         if node.type == NodeType.person_job:
             exec_count = node_exec_counts.get(node.id, 0) if node_exec_counts else 0
+            
+            log.debug(f"Checking person_job node {node.id}, exec_count: {exec_count}")
             
             # Check if this is not the first execution
             if exec_count > 0:
@@ -53,20 +48,38 @@ class ExecutionFlowService:
                     from dipeo.models import parse_handle_id
                     connecting_arrows = []
                     for arrow in diagram.arrows:
-                        source_node_id, _ = parse_handle_id(arrow.source)
-                        target_node_id, target_handle = parse_handle_id(arrow.target)
+                        source_node_id, _, _ = parse_handle_id(arrow.source)
+                        target_node_id, target_handle, _ = parse_handle_id(arrow.target)
                         if source_node_id == dep_id and target_node_id == node.id:
                             connecting_arrows.append((arrow, target_handle))
                     
                     # Check if any arrow has targetHandle != "first"
                     has_non_first = any(
-                        target_handle != "first" 
+                        target_handle.value != "first" 
                         for arrow, target_handle in connecting_arrows
                     )
                     if has_non_first:
                         non_first_dependencies.append(dep_id)
                 
                 dependency_nodes = non_first_dependencies
+                log.debug(f"Non-first dependencies for {node.id}: {non_first_dependencies}")
+            else:
+                # On first execution, check if node has any "first" handle connections
+                first_handle_arrows = []
+                for arrow in diagram.arrows:
+                    target_node_id, target_handle, _ = parse_handle_id(arrow.target)
+                    if target_node_id == node.id and target_handle.value == "first":
+                        first_handle_arrows.append(arrow)
+                
+                if first_handle_arrows:
+                    log.debug(f"Node {node.id} has {len(first_handle_arrows)} first handle connections")
+                    # Only check dependencies from first handle arrows
+                    first_dependencies = []
+                    for arrow in first_handle_arrows:
+                        source_node_id, _, _ = parse_handle_id(arrow.source)
+                        first_dependencies.append(source_node_id)
+                    dependency_nodes = first_dependencies
+                    log.debug(f"First handle dependencies for {node.id}: {first_dependencies}")
         
         # Check if all dependencies have been executed
         for dep_id in dependency_nodes:
@@ -137,9 +150,12 @@ class ExecutionFlowService:
         """
         ready_nodes = []
         
+        log.debug(f"Getting ready nodes. Executed nodes: {executed_nodes}")
+        
         for node in diagram.nodes:
             # Skip if node can't execute anymore
             if not self.can_node_execute(node, node_exec_counts):
+                log.debug(f"Node {node.id} cannot execute (reached max iterations)")
                 continue
             
             # Check dependencies
@@ -147,7 +163,11 @@ class ExecutionFlowService:
                 node, diagram, executed_nodes, node_outputs, node_exec_counts
             ):
                 ready_nodes.append(node)
+                log.debug(f"Node {node.id} is ready to execute")
+            else:
+                log.debug(f"Node {node.id} dependencies not satisfied")
         
+        log.debug(f"Ready nodes: {[n.id for n in ready_nodes]}")
         return ready_nodes
     
     def can_node_execute(
