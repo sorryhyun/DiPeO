@@ -6,7 +6,6 @@ It re-exports the core functionality from the various sub-packages for easier im
 
 Usage:
     from dipeo import core, domain, diagram, application, infra, container
-    from dipeo.core import BaseService, UnifiedExecutionContext
     from dipeo.models import (Person, Diagram, NodeType)
 """
 
@@ -43,10 +42,9 @@ try:
         ValidationError,
         NodeExecutionError,
     )
-    from .application import UnifiedExecutionContext
     _imported_modules.extend([
         "BaseService", "BaseExecutor", "BaseNodeHandler",
-        "UnifiedExecutionContext", "ExecutionOptions", 
+        "ExecutionOptions",
         "NodeDefinition", "NodeHandler", "Result", "Error",
         "DiPeOError", "ValidationError", "NodeExecutionError"
     ])

@@ -34,8 +34,7 @@ class GraphQLContext(BaseContext):
     @property
     def can_read_api_keys(self) -> bool:
         """Check if the current user can read API keys."""
-        # TODO: Implement proper permission checking
-        # For now, allow all authenticated requests
+        # Allow all requests for local use
         return True
 
 

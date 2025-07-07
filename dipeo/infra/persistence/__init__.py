@@ -1,10 +1,11 @@
 """Infrastructure persistence implementations."""
 
 from .file import AsyncFileAdapter, ModularFileService
-from .memory import MemoryService
+from .memory import InMemoryConversationStore, MemoryService
 
 __all__ = [
     "AsyncFileAdapter",
     "ModularFileService",
-    "MemoryService",
+    "InMemoryConversationStore",
+    "MemoryService",  # Backward compatibility alias
 ]

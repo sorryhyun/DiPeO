@@ -76,14 +76,15 @@ class ExecutionEngine:
         # Register person configs with conversation service
         conversation_service = None
         if hasattr(self.service_registry, 'get'):
-            conversation_service = self.service_registry.get('conversation')
+            # Try the standardized name first
+            conversation_service = self.service_registry.get('conversation_service')
             if not conversation_service:
-                # Try alternative names
-                conversation_service = self.service_registry.get('conversation_service')
-            if not conversation_service:
-                conversation_service = self.service_registry.get('memory')
+                # Fall back to legacy names for backward compatibility
+                conversation_service = self.service_registry.get('conversation')
             if not conversation_service:
                 conversation_service = self.service_registry.get('memory_service')
+            if not conversation_service:
+                conversation_service = self.service_registry.get('memory')
         
         if conversation_service:
             # Extract person configs from diagram
@@ -233,7 +234,7 @@ class ExecutionEngine:
                     node_data.setdefault("first_only_prompt", "")
                     node_data.setdefault("max_iteration", 1)
                 
-                # Execute handler directly with UnifiedExecutionContext
+                # Execute handler directly with
                 output = await node_view.handler(
                     props=node_view._handler_def.node_schema.model_validate(node_data),
                     context=context,
@@ -281,39 +282,34 @@ class ExecutionEngine:
         self, node_view: Any, execution_id: str, options: Dict[str, Any], execution_view: Any, controller: ExecutionController
     ) -> Any:
         """Create runtime context for node execution."""
-        from dipeo.application import UnifiedExecutionContext
-        
-        # Convert diagram structure to dict format
-        edges = [
-            {
-                "source": arrow.source,
-                "target": arrow.target,
-                "data": arrow.data,
-            }
-            for arrow in execution_view.diagram.arrows
-        ]
-        
-        nodes = []
-        for node in execution_view.diagram.nodes:
-            if hasattr(node, "model_dump"):
-                nodes.append(node.model_dump())
-            else:
-                nodes.append(node)
+        from dipeo.application.context.application_execution_context import ApplicationExecutionContext
+        from dipeo.models import ExecutionState, ExecutionStatus, NodeOutput
+        from datetime import datetime
         
         # Collect outputs
-        outputs = {}
+        node_outputs = {}
         for nv in execution_view.node_views.values():
             if nv.output is not None:
-                outputs[nv.id] = nv.output
+                node_outputs[nv.id] = nv.output
         
-        return UnifiedExecutionContext(
-            execution_id=execution_id,
-            current_node_id=node_view.id,
-            edges=edges,
-            nodes=nodes,
-            variables=options.get("variables", {}),
-            node_outputs=outputs,
-            exec_counts={nv.id: nv.exec_count for nv in execution_view.node_views.values()},
+        # Create execution state
+        execution_state = ExecutionState(
+            id=execution_id,
+            status=ExecutionStatus.RUNNING,
             diagram_id=execution_view.diagram.metadata.id if execution_view.diagram.metadata else None,
+            started_at=datetime.now().isoformat(),
+            node_states={},  # We can populate this if needed
+            node_outputs=node_outputs,
+            variables=options.get("variables", {}),
+            is_active=True,
+            token_usage=TokenUsage(input=0, output=0),  # Initialize with zero usage
+        )
+        
+        # Create ApplicationExecutionContext
+        return ApplicationExecutionContext(
+            execution_state=execution_state,
+            service_registry=self.service_registry,
+            current_node_id=node_view.id,
             executed_nodes=list(controller.executed_nodes),
+            exec_counts={nv.id: nv.exec_count for nv in execution_view.node_views.values()},
         )

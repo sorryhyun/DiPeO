@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from dipeo.core import BaseNodeHandler, register_handler
-from dipeo.application import UnifiedExecutionContext
+from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 from dipeo.application.utils import create_node_output
 from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod
 from pydantic import BaseModel
@@ -31,7 +31,7 @@ class ApiJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: ApiJobNodeData,
-        context: UnifiedExecutionContext,
+        context: ExecutionContextPort,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:

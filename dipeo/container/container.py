@@ -31,26 +31,49 @@ def _get_project_base_dir():
         return Path(__file__).resolve().parents[2]
 
 
-def _import_state_store():
-    # TODO: This is server-specific. For now, return None for non-server contexts
-    try:
-        from dipeo_server.infra.persistence import state_store
-        return state_store
-    except ImportError:
-        # Return a minimal implementation for CLI usage
-        from dipeo.application.services.minimal_state_store import MinimalStateStore
-        return MinimalStateStore()
+def _create_state_store_for_context():
+    """Create appropriate state store based on execution context.
+    
+    This factory method determines whether we're running in a server
+    or CLI context and returns the appropriate state store implementation.
+    """
+    # Check if we're in a server context by looking for server-specific env vars
+    # or by attempting to import server modules
+    is_server_context = os.environ.get("DIPEO_CONTEXT") == "server"
+    
+    if is_server_context:
+        try:
+            from dipeo_server.infra.persistence import state_store
+            return state_store
+        except ImportError:
+            # Fallback if server modules aren't available
+            pass
+    
+    # Return minimal implementation for CLI/local usage
+    from dipeo.application.services.minimal_state_store import MinimalStateStore
+    return MinimalStateStore()
 
 
-def _import_message_router():
-    # TODO: This is server-specific. For now, return None for non-server contexts
-    try:
-        from dipeo_server.infra.messaging import message_router
-        return message_router
-    except ImportError:
-        # Return a minimal implementation for CLI usage
-        from dipeo.application.services.minimal_message_router import MinimalMessageRouter
-        return MinimalMessageRouter()
+def _create_message_router_for_context():
+    """Create appropriate message router based on execution context.
+    
+    This factory method determines whether we're running in a server
+    or CLI context and returns the appropriate message router implementation.
+    """
+    # Check if we're in a server context
+    is_server_context = os.environ.get("DIPEO_CONTEXT") == "server"
+    
+    if is_server_context:
+        try:
+            from dipeo_server.infra.messaging import message_router
+            return message_router
+        except ImportError:
+            # Fallback if server modules aren't available
+            pass
+    
+    # Return minimal implementation for CLI/local usage
+    from dipeo.application.services.minimal_message_router import MinimalMessageRouter
+    return MinimalMessageRouter()
 
 
 def _create_api_key_service():
@@ -66,9 +89,9 @@ def _create_file_service(base_dir):
 
 
 def _create_memory_service():
-    from dipeo.infra.persistence.memory import MemoryService
+    from dipeo.infra.persistence.memory import InMemoryConversationStore
     
-    return MemoryService()
+    return InMemoryConversationStore()
 
 
 def _create_conversation_service(memory_service):
@@ -248,58 +271,40 @@ def _create_service_registry(
     # Create registry and register all services dynamically
     registry = UnifiedServiceRegistry()
     
-    # Core services
-    registry.register("llm", llm_service)
+    # Core services - Primary registration with _service suffix
     registry.register("llm_service", llm_service)
-    registry.register("api_key", api_key_service)
     registry.register("api_key_service", api_key_service)
-    registry.register("file", file_service)
     registry.register("file_service", file_service)
-    registry.register("conversation_memory", conversation_memory_service)
     registry.register("conversation_memory_service", conversation_memory_service)
-    registry.register("memory", conversation_memory_service)
-    registry.register("memory_service", conversation_memory_service)
-    registry.register("conversation", conversation_memory_service)
-    
-    # Domain services
-    registry.register("notion", notion_service)
     registry.register("notion_service", notion_service)
-    registry.register("diagram", diagram_storage_domain_service)
-    registry.register("diagram_storage", diagram_storage_domain_service)
+    
+    # Domain services - Primary registration with _service suffix
     registry.register("diagram_storage_service", diagram_storage_domain_service)
-    registry.register("storage", diagram_storage_domain_service)
-    registry.register("api_integration", api_integration_service)
     registry.register("api_integration_service", api_integration_service)
-    registry.register("api", api_integration_service)
-    registry.register("text_processing", text_processing_service)
     registry.register("text_processing_service", text_processing_service)
-    registry.register("text", text_processing_service)
-    registry.register("file_operations", file_operations_service)
     registry.register("file_operations_service", file_operations_service)
-    registry.register("validation", validation_service)
     registry.register("validation_service", validation_service)
-    registry.register("db_operations", db_operations_service)
     registry.register("db_operations_service", db_operations_service)
-    registry.register("template", template_service)
     registry.register("template_service", template_service)
     
-    # Person job services
-    registry.register("person_job_execution", person_job_services["execution_service"])
+    # Person job services - Already follow the pattern
     registry.register("person_job_execution_service", person_job_services["execution_service"])
-    registry.register("prompt_processing", person_job_services["prompt_service"])
     registry.register("prompt_processing_service", person_job_services["prompt_service"])
     registry.register("conversation_processor", person_job_services["conversation_processor"])
     registry.register("person_job_output_builder", person_job_services["output_builder"])
     
-    # Condition evaluation service
-    registry.register("condition_evaluation", condition_evaluation_service)
+    # Execution services - Primary registration with _service suffix
     registry.register("condition_evaluation_service", condition_evaluation_service)
-    
-    # Execution flow services
-    registry.register("execution_flow", execution_flow_service)
     registry.register("execution_flow_service", execution_flow_service)
-    registry.register("input_resolution", input_resolution_service)
     registry.register("input_resolution_service", input_resolution_service)
+    
+    # Legacy aliases for backward compatibility
+    # These are kept to avoid breaking existing code that uses the old names
+    registry.register("llm", llm_service)  # Used in execution_engine.py
+    registry.register("api_key", api_key_service)
+    registry.register("conversation", conversation_memory_service)  # Used in execution_engine.py
+    registry.register("conversation_service", conversation_memory_service)  # Used by handlers
+    registry.register("memory", conversation_memory_service)  # Alternative name for conversation
     
     return registry
 
@@ -391,8 +396,8 @@ class Container(containers.DeclarativeContainer):
     )
 
     # Infrastructure Services (Singletons)
-    state_store = providers.Singleton(_import_state_store)
-    message_router = providers.Singleton(_import_message_router)
+    state_store = providers.Singleton(_create_state_store_for_context)
+    message_router = providers.Singleton(_create_message_router_for_context)
 
     # Core Domain Services
     api_key_service = providers.Singleton(_create_api_key_service)

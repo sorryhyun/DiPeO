@@ -154,8 +154,44 @@ class ConversationMemoryService(BaseService, SupportsMemory):
     def forget_own_messages_for_person(
         self, person_id: str, execution_id: Optional[str] = None
     ) -> None:
-        # Interface method - delegate to memory service
-        self.memory_service.forget_own_messages_for_person(person_id, execution_id or self.current_execution_id)
+        """[DOMAIN LOGIC] Remove messages sent by the person, keeping received messages.
+        
+        This implements the business rule for "on_every_turn" forgetting mode where
+        a person should not see their own previous responses in debates/conversations.
+        """
+        execution_id = execution_id or self.current_execution_id
+        if not execution_id:
+            return
+        
+        # Get all messages for the person
+        history = self.memory_service.get_conversation_history(person_id)
+        
+        # Filter out messages sent by the person (from_person_id == person_id)
+        messages_to_keep = []
+        messages_to_remove = []
+        
+        for msg in history:
+            if msg.get("execution_id") == execution_id:
+                if msg.get("from_person_id") != person_id:
+                    messages_to_keep.append(msg)
+                else:
+                    messages_to_remove.append(msg)
+        
+        # Clear and rebuild with only received messages
+        if messages_to_remove:  # Only rebuild if there were messages to remove
+            self.memory_service.forget_for_person(person_id, execution_id)
+            
+            # Re-add only the messages we want to keep
+            for msg in messages_to_keep:
+                self.memory_service.add_message_to_conversation(
+                    person_id=person_id,
+                    execution_id=execution_id,
+                    role=msg.get("role", ""),
+                    content=msg.get("content", ""),
+                    current_person_id=msg.get("from_person_id", ""),
+                    node_id=msg.get("node_id"),
+                    timestamp=msg.get("timestamp")
+                )
 
     def clear_all_conversations(self) -> None:
         # Delegate to memory service

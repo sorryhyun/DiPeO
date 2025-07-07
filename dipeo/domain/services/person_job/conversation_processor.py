@@ -7,6 +7,10 @@ from dipeo.models import (
     DomainPerson,
     DomainArrow,
 )
+from dipeo.models.handle_utils import (
+    parse_handle_id_safe,
+    extract_node_id_from_handle,
+)
 
 
 class ConversationProcessingService:
@@ -68,9 +72,10 @@ class ConversationProcessingService:
         # Check if any outgoing edge is marked for conversation
         for arrow in diagram.arrows or []:
             # Check if arrow source starts from this node
-            # TODO: Need to parse source HandleID to extract node_id properly
-            if arrow.source and str(arrow.source).startswith(node_id):
-                return True
+            if arrow.source:
+                source_node_id = extract_node_id_from_handle(arrow.source)
+                if source_node_id and source_node_id == node_id:
+                    return True
         return False
     
     def find_person(
@@ -135,17 +140,18 @@ class ConversationProcessingService:
         """Find the person label associated with an input key."""
         # Look for connections that might provide context
         for arrow in diagram.arrows or []:
-            # Check if arrow involves this key
-            # TODO: Need to parse HandleIDs to check slot names properly
-            if arrow.source == key or arrow.target == key:
+            # Check if arrow involves this key by parsing handle IDs
+            source_parsed = parse_handle_id_safe(arrow.source) if arrow.source else None
+            target_parsed = parse_handle_id_safe(arrow.target) if arrow.target else None
+            
+            # Check if the key matches a handle label in the arrow connections
+            if (source_parsed and source_parsed.handle_label.value == key) or \
+               (target_parsed and target_parsed.handle_label.value == key):
                 # Try to find the person from the source node
-                # Extract node_id from source HandleID (format: node_id_slot_type)
-                source_parts = str(arrow.source).split('_')
-                if source_parts:
-                    node_id = source_parts[0]
-                    node = self._find_node_by_id(node_id, diagram)
-                if node and hasattr(node, "person_id"):
-                    return self.get_person_label(node.person_id, diagram)
+                if source_parsed:
+                    node = self._find_node_by_id(source_parsed.node_id, diagram)
+                    if node and hasattr(node, "person_id"):
+                        return self.get_person_label(node.person_id, diagram)
         return None
     
     def _find_node_by_id(self, node_id: str, diagram: DomainDiagram) -> Optional[Any]:

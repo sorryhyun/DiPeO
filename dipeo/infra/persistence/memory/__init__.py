@@ -1,5 +1,8 @@
 """Memory persistence adapters."""
 
-from .memory_service import MemoryService
+from .conversation_store import InMemoryConversationStore
 
-__all__ = ["MemoryService"]
+# Keep MemoryService as an alias for backward compatibility
+MemoryService = InMemoryConversationStore
+
+__all__ = ["InMemoryConversationStore", "MemoryService"]

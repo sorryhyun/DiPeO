@@ -5,11 +5,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .app_context import AppContext, get_app_context, lifespan
-    from .execution_context import ExecutionContext
 
 __all__ = [
     "AppContext",
-    "ExecutionContext",
     "get_app_context",
     "lifespan",
 ]
@@ -21,10 +19,6 @@ def __getattr__(name):
         from .app_context import AppContext
 
         return AppContext
-    if name == "ExecutionContext":
-        from .execution_context import ExecutionContext
-
-        return ExecutionContext
     if name == "get_app_context":
         from .app_context import get_app_context
 

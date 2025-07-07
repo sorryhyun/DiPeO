@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from dipeo.core import BaseNodeHandler, register_handler
-from dipeo.application import UnifiedExecutionContext
+from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 from dipeo.models import (
     NodeOutput,
     PersonJobNodeData,
@@ -29,13 +29,13 @@ class PersonJobNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["person_job_execution", "llm", "diagram", "conversation"]
+        return ["person_job_execution_service", "llm_service", "diagram", "conversation_service"]
 
     @property
     def description(self) -> str:
         return "Execute person job with conversation memory"
     
-    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Optional[Any]:
+    def _resolve_service(self, context: ExecutionContextPort, services: dict[str, Any], service_name: str) -> Optional[Any]:
         """Helper to resolve service from context or services dict."""
         service = context.get_service(service_name)
         if not service:
@@ -45,16 +45,16 @@ class PersonJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: PersonJobNodeData,
-        context: UnifiedExecutionContext,
+        context: ExecutionContextPort,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute person_job node by delegating to domain service."""
         # Resolve services
-        execution_service = self._resolve_service(context, services, "person_job_execution")
-        llm_service = self._resolve_service(context, services, "llm")
+        execution_service = self._resolve_service(context, services, "person_job_execution_service")
+        llm_service = self._resolve_service(context, services, "llm_service")
         diagram = self._resolve_service(context, services, "diagram")
-        conversation_service = self._resolve_service(context, services, "conversation")
+        conversation_service = self._resolve_service(context, services, "conversation_service")
         
         # Get current node ID and execution info
         node_id = self._extract_node_id(context)
@@ -111,25 +111,15 @@ class PersonJobNodeHandler(BaseNodeHandler):
                 executed_nodes=context.executed_nodes
             )
     
-    def _extract_node_id(self, context: UnifiedExecutionContext) -> str:
+    def _extract_node_id(self, context: ExecutionContextPort) -> str:
         """Extract node ID from context."""
-        if hasattr(context.execution_state, 'current_node_id'):
-            return context.execution_state.current_node_id
-        elif hasattr(context, 'current_node_id'):
-            return context.current_node_id
-        return 'unknown'
+        return context.current_node_id
     
-    def _extract_execution_count(self, context: UnifiedExecutionContext) -> int:
+    def _extract_execution_count(self, context: ExecutionContextPort) -> int:
         """Extract execution count from context."""
-        # Get execution count for current node
-        if hasattr(context, 'get_node_execution_count'):
-            return context.get_node_execution_count(context.current_node_id)
-        # Fallback to exec_counts dictionary
-        elif hasattr(context, 'exec_counts'):
-            return context.exec_counts.get(context.current_node_id, 0)
-        return 0
+        return context.get_node_execution_count(context.current_node_id)
     
-    def _transform_result_to_output(self, result: Any, context: UnifiedExecutionContext) -> NodeOutput:
+    def _transform_result_to_output(self, result: Any, context: ExecutionContextPort) -> NodeOutput:
         """Transform domain result to handler NodeOutput."""
         output_value = {"default": result.content}
         

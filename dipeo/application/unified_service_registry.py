@@ -57,26 +57,29 @@ class UnifiedServiceRegistry(DynamicRegistry):
         registry = cls()
         
         # Map of service names to context attributes
+        # Primary mappings use _service suffix consistently
         service_mapping = {
-            "file": "file_service",
-            "llm": "llm_service",  # Fixed: LLM should map to llm_service
-            "memory": "memory_service",
-            "api_key": "api_key_service",
-            "notion": "notion_service",
-            "diagram": "diagram_storage_service",
-            "conversation": "conversation_service",  # Fixed: conversation maps to conversation_service
-            "memory_service": "memory_service",  # Alias
-            "api_integration": "api_integration_service",
-            "code_execution": "code_execution_service",
-            # Additional mappings from LocalServiceRegistry
-            "llm_service": "llm_service",  # Some contexts use llm_service instead
-            "diagram_storage": "diagram_storage_service",  # Alias
-            "storage": "diagram_storage_service",  # Alias
-            "api": "api_integration_service",  # Alias
-            "text": "text_processing_service",
-            "text_processing": "text_processing_service",
-            "db_operations": "db_operations_service",
+            # Core services
+            "llm_service": "llm_service",
+            "api_key_service": "api_key_service",
+            "file_service": "file_service",
+            "memory_service": "memory_service",
+            "conversation_service": "conversation_service",
+            "notion_service": "notion_service",
+            
+            # Domain services
+            "diagram_storage_service": "diagram_storage_service",
+            "api_integration_service": "api_integration_service",
+            "text_processing_service": "text_processing_service",
             "db_operations_service": "db_operations_service",
+            "code_execution_service": "code_execution_service",
+            
+            # Legacy aliases for backward compatibility
+            "llm": "llm_service",  # Used in execution_engine.py
+            "conversation": "conversation_service",  # Used in execution_engine.py
+            "memory": "memory_service",  # Alternative name for conversation
+            "api_key": "api_key_service",  # Legacy usage
+            "conversation_memory_service": "conversation_service",  # Alternative name
         }
         
         # Register services from context
@@ -85,6 +88,13 @@ class UnifiedServiceRegistry(DynamicRegistry):
                 service = getattr(context, context_attr)
                 if service is not None:
                     registry.register(service_name, service)
+                    # Debug logging
+                    import logging
+                    logging.debug(f"Registered service: {service_name} -> {type(service).__name__}")
+            else:
+                # Debug logging for missing attributes
+                import logging
+                logging.debug(f"Context missing attribute: {context_attr}")
         
         
         # Add context itself for handlers that need it
@@ -110,6 +120,9 @@ class UnifiedServiceRegistry(DynamicRegistry):
         for service_name in required_services:
             service = self.get(service_name)
             if service is None:
+                # Special case: "diagram" is injected at runtime by execution engine
+                if service_name == "diagram":
+                    continue
                 raise ValueError(f"Required service '{service_name}' not found in registry")
             services[service_name] = service
         

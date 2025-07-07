@@ -18,9 +18,7 @@ class NodeHandler(Protocol):
         ...
 
 
-# RuntimeContext has been removed - use UnifiedExecutionContext instead
-# ExecutionContext type alias for migration
-ExecutionContext = Any  # Will be replaced with UnifiedExecutionContext during migration
+ExecutionContext = Any
 
 
 @dataclass

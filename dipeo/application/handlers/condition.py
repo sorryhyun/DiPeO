@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from dipeo.application import UnifiedExecutionContext
+from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 from dipeo.application.utils import create_node_output
 from dipeo.core import BaseNodeHandler, register_handler
 from dipeo.models import ConditionNodeData, NodeOutput
@@ -24,13 +24,13 @@ class ConditionNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["condition_evaluation", "diagram"]
+        return ["condition_evaluation_service", "diagram"]
 
     @property
     def description(self) -> str:
         return "Condition node: supports detect_max_iterations and custom expressions"
     
-    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Any | None:
+    def _resolve_service(self, context: ExecutionContextPort, services: dict[str, Any], service_name: str) -> Any | None:
         """Helper to resolve service from context or services dict."""
         service = context.get_service(service_name)
         if not service:
@@ -40,13 +40,13 @@ class ConditionNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: ConditionNodeData,
-        context: UnifiedExecutionContext,
+        context: ExecutionContextPort,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute condition node by delegating to domain service."""
         # Resolve services
-        evaluation_service = self._resolve_service(context, services, "condition_evaluation")
+        evaluation_service = self._resolve_service(context, services, "condition_evaluation_service")
         diagram = self._resolve_service(context, services, "diagram")
         
         # Evaluate condition based on type
@@ -99,7 +99,7 @@ class ConditionNodeHandler(BaseNodeHandler):
             executed_nodes=context.executed_nodes
         )
     
-    def _extract_execution_states(self, context: UnifiedExecutionContext) -> dict[str, dict[str, Any]]:
+    def _extract_execution_states(self, context: ExecutionContextPort) -> dict[str, dict[str, Any]]:
         """Extract execution states from context."""
         execution_states = {}
         
@@ -114,7 +114,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         
         return execution_states
     
-    def _extract_node_exec_counts(self, context: UnifiedExecutionContext) -> dict[str, int] | None:
+    def _extract_node_exec_counts(self, context: ExecutionContextPort) -> dict[str, int] | None:
         """Extract node execution counts from context."""
         exec_info_service = context.get_service('node_exec_counts')
         if exec_info_service:
@@ -125,7 +125,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         self, 
         evaluation_service: Any, 
         diagram: Any, 
-        context: UnifiedExecutionContext,
+        context: ExecutionContextPort,
         props: ConditionNodeData
     ) -> bool:
         """Evaluate max iterations using the new NodeOutput data.
@@ -134,9 +134,6 @@ class ConditionNodeHandler(BaseNodeHandler):
         to track execution state more efficiently.
         """
         from dipeo.models import NodeType
-        
-        # Get execution counts from context
-        exec_counts = context.exec_counts if hasattr(context, 'exec_counts') else {}
         
         # Get executed nodes list
         executed_nodes = set(context.executed_nodes) if context.executed_nodes else set()
@@ -158,7 +155,7 @@ class ConditionNodeHandler(BaseNodeHandler):
             # Check if this node has been executed
             if node.id in executed_nodes:
                 found_executed = True
-                exec_count = exec_counts.get(node.id, 0)
+                exec_count = context.get_node_execution_count(node.id)
                 max_iter = int(node.data.get("max_iteration", 1))
                 
                 if exec_count < max_iter:

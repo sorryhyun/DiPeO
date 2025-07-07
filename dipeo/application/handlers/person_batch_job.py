@@ -4,7 +4,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseNodeHandler, register_handler
-from dipeo.application import UnifiedExecutionContext
+from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 from dipeo.application.utils import create_node_output
 from dipeo.core.utils import is_conversation
 from dipeo.application.utils.conversation_utils import MessageBuilder
@@ -43,7 +43,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["conversation", "llm"]
+        return ["conversation_service", "llm_service"]
 
     @property
     def description(self) -> str:
@@ -52,14 +52,14 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: PersonBatchJobNodeData,
-        context: UnifiedExecutionContext,
+        context: ExecutionContextPort,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute person_batch_job node."""
         # Get services from context with fallback to services dict
-        conversation_service: "ConversationMemoryService" = context.get_service("conversation") or services.get("conversation")
-        llm_service = context.get_service("llm") or services.get("llm")
+        conversation_service: "ConversationMemoryService" = context.get_service("conversation_service") or services.get("conversation_service")
+        llm_service = context.get_service("llm_service") or services.get("llm_service")
         diagram: Optional[DomainDiagram] = context.get_service("diagram") or services.get("diagram")
         
         if not conversation_service or not llm_service:
@@ -146,7 +146,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         person_id: str,
         prompt: str,
         props: PersonBatchJobNodeData,
-        context: UnifiedExecutionContext,
+        context: ExecutionContextPort,
         inputs: dict[str, Any],
         diagram: Optional[DomainDiagram],
         conversation_service: "ConversationMemoryService",

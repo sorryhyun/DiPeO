@@ -34,7 +34,7 @@ from dipeo.infra import (
 from dipeo.domain.services.api import APIIntegrationDomainService
 from dipeo_server.infra.persistence.state_registry import state_store
 from dipeo_server.shared.constants import BASE_DIR
-from dipeo.infra.persistence.memory import MemoryService
+from dipeo.infra.persistence.memory import InMemoryConversationStore
 
 
 class ServerContainer(BaseContainer):
@@ -64,7 +64,7 @@ class ServerContainer(BaseContainer):
     )
 
     memory_service = providers.Singleton(
-        MemoryService,
+        InMemoryConversationStore,
     )
     
     conversation_memory_service = providers.Singleton(

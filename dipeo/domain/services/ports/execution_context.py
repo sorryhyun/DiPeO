@@ -26,6 +26,10 @@ class ExecutionContextPort(Protocol):
         """Get a service by name from the service registry."""
         ...
     
+    def get_node_execution_count(self, node_id: str) -> int:
+        """Get the execution count for a specific node."""
+        ...
+    
     @property
     def diagram_id(self) -> str:
         """Get the current diagram ID."""
@@ -34,4 +38,14 @@ class ExecutionContextPort(Protocol):
     @property
     def execution_state(self) -> "ExecutionState":
         """Get the underlying execution state (read-only)."""
+        ...
+    
+    @property
+    def current_node_id(self) -> str:
+        """Get the ID of the currently executing node."""
+        ...
+    
+    @property
+    def executed_nodes(self) -> list[str]:
+        """Get the list of node IDs that have been executed."""
         ...

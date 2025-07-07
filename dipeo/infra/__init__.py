@@ -6,7 +6,9 @@ and infrastructure components.
 """
 
 from .adapters import LLMInfraService, create_adapter
-from .persistence import AsyncFileAdapter, ModularFileService, MemoryService
+from .persistence import AsyncFileAdapter, ModularFileService, InMemoryConversationStore
+# Import MemoryService alias for backward compatibility
+from .persistence.memory import MemoryService
 from .adapters.apikey import EnvironmentAPIKeyService
 from .adapters.notion import NotionAPIService
 from .messaging import MessageRouter
@@ -23,7 +25,8 @@ __all__ = [
     "ModularFileService",
     "ConsolidatedFileService",  # Backward compatibility alias
     # Memory persistence
-    "MemoryService",
+    "InMemoryConversationStore",
+    "MemoryService",  # Backward compatibility alias
     # API Key management
     "EnvironmentAPIKeyService",
     # Messaging

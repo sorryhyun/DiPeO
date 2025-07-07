@@ -10,6 +10,11 @@ class MinimalStateStore:
     suitable for CLI or local execution where persistence is not required.
     """
 
+    async def create_execution(
+        self, execution_id: str, diagram_id: str | None = None
+    ) -> None:
+        pass
+
     async def create_execution_in_cache(
         self, execution_id: str, diagram_id: str | None, variables: dict[str, Any]
     ) -> None:
@@ -17,6 +22,25 @@ class MinimalStateStore:
 
     async def update_node_state(
         self, execution_id: str, node_id: str, state: str
+    ) -> None:
+        pass
+
+    async def update_node_status(
+        self, execution_id: str, node_id: str, status: Any, error: str | None = None
+    ) -> None:
+        pass
+
+    async def update_node_output(
+        self,
+        execution_id: str,
+        node_id: str,
+        output: Any,
+        token_usage: Any | None = None,
+    ) -> None:
+        pass
+
+    async def update_status(
+        self, execution_id: str, status: Any, error: str | None = None
     ) -> None:
         pass
 

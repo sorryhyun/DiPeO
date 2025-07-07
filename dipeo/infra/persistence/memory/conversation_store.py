@@ -1,4 +1,9 @@
-"""Simple in-memory implementation of the SupportsMemory protocol."""
+"""In-memory storage implementation for conversation data.
+
+This module provides the infrastructure layer implementation for conversation storage,
+following the SupportsMemory protocol. It handles low-level storage operations without
+business logic, which should be implemented in the domain layer instead.
+"""
 
 import json
 from collections import defaultdict
@@ -9,14 +14,26 @@ from typing import Any
 from dipeo.core import SupportsMemory
 
 
-class MemoryService(SupportsMemory):
-    """In-memory conversation storage for local execution.
+class InMemoryConversationStore(SupportsMemory):
+    """In-memory storage for conversation data (infrastructure layer).
     
-    This service provides a simple in-memory implementation of the SupportsMemory protocol
-    for storing and managing conversation histories during diagram execution.
+    This class provides pure storage operations for conversation messages without
+    business logic. It implements the SupportsMemory protocol to store and retrieve
+    conversation data during diagram execution.
+    
+    Responsibilities (infrastructure layer):
+    - Store and retrieve messages
+    - Clear stored data
+    - Save conversation logs to disk
+    
+    NOT responsible for (domain layer concerns):
+    - Forgetting strategies
+    - Message filtering logic
+    - Conversation context rebuilding
     
     Attributes:
         _conversations: Nested dictionary storing conversations by person_id and execution_id
+        _person_configs: Dictionary storing person configurations
     """
 
     def __init__(self):
@@ -121,11 +138,14 @@ class MemoryService(SupportsMemory):
     def forget_for_person(
         self, person_id: str, execution_id: str | None = None
     ) -> None:
-        """Clear memory for a person, optionally for a specific execution.
+        """Clear all stored messages for a person (infrastructure operation).
+        
+        This is a pure storage operation that removes data. It does not contain
+        business logic about when or why to forget - that belongs in the domain layer.
         
         Args:
-            person_id: The ID of the person whose memory to clear
-            execution_id: Optional execution ID to clear memory for specific execution only
+            person_id: The ID of the person whose messages to clear
+            execution_id: Optional execution ID to clear messages for specific execution only
         """
         if execution_id:
             if (
@@ -140,32 +160,19 @@ class MemoryService(SupportsMemory):
     def forget_own_messages_for_person(
         self, person_id: str, execution_id: str | None = None
     ) -> None:
-        """Clear only the person's own messages from memory.
+        """[DEPRECATED] This method is kept for protocol compatibility only.
         
-        This method removes messages sent by the person while keeping messages
-        they received from others.
+        The filtering logic has been moved to the domain layer where it belongs.
+        This infrastructure method now does nothing - the domain layer handles
+        the business logic of filtering messages.
         
         Args:
-            person_id: The ID of the person whose sent messages to clear
-            execution_id: Optional execution ID to clear messages for specific execution only
+            person_id: The ID of the person (ignored)
+            execution_id: Optional execution ID (ignored)
         """
-        if person_id not in self._conversations:
-            return
-
-        if execution_id:
-            if execution_id in self._conversations[person_id]:
-                self._conversations[person_id][execution_id] = [
-                    msg
-                    for msg in self._conversations[person_id][execution_id]
-                    if msg.get("from_person_id") != person_id
-                ]
-        else:
-            for exec_id in self._conversations[person_id]:
-                self._conversations[person_id][exec_id] = [
-                    msg
-                    for msg in self._conversations[person_id][exec_id]
-                    if msg.get("from_person_id") != person_id
-                ]
+        # No-op: Business logic moved to domain layer
+        # Domain services now handle message filtering based on business rules
+        pass
 
     def get_conversation_history(self, person_id: str) -> list[dict[str, Any]]:
         """Retrieve the conversation history for a person.

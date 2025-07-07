@@ -1,6 +1,5 @@
 """Graph utility functions for diagram traversal and analysis.
 
-These functions were migrated from UnifiedExecutionContext to promote
 better separation of concerns and make graph operations more explicit.
 """
 
