@@ -44,8 +44,7 @@ export const createPersonSlice: StateCreator<
           model,
           system_prompt: ''
         },
-        type: 'person',
-        masked_api_key: null
+        type: 'person'
       };
       
       set(state => {

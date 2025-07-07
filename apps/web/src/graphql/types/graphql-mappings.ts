@@ -1,9 +1,11 @@
-import type React from 'react';
-import {
-  NodeID, HandleID
-} from '@dipeo/domain-models';
+/**
+ * GraphQL-specific type mappings and utilities
+ * Domain types and utilities should be imported from '@/core/types/domain'
+ */
 
-// Re-export GraphQL types directly
+import type React from 'react';
+
+// GraphQL-specific type exports
 export type {
   DomainNodeType,
   DomainArrowType,
@@ -14,41 +16,31 @@ export type {
   Vec2Input
 } from '@/__generated__/graphql';
 
-
-// Re-export type only
-export type { StoreDiagram } from '@dipeo/domain-models';
-
-// Re-export conversion functions directly from domain models
+// All domain utilities are now centralized in @/core/types/domain
+// Re-export them here for backward compatibility only
+// TODO: Update consumers to import from '@/core/types/domain' directly
 export {
+  // Types
+  type StoreDiagram,
+  type NodeID,
+  type HandleID,
+  // Conversion functions
   diagramToStoreMaps,
   storeMapsToArrays,
   convertGraphQLDiagramToDomain,
-  convertGraphQLPersonToDomain
-} from '@dipeo/domain-models';
-
-
-// Re-export node type conversions directly
-export {
+  convertGraphQLPersonToDomain,
   nodeKindToDomainType as nodeKindToGraphQLType,
-  domainTypeToNodeKind as graphQLTypeToNodeKind
-} from '@dipeo/domain-models';
-
-
-// Re-export type guards
-export { isDomainNode, isDomainDiagram } from '@dipeo/domain-models';
-
-// Re-export utility functions
-export { createEmptyDiagram } from '@dipeo/domain-models';
-
-// Re-export handle utility functions directly
-export {
+  domainTypeToNodeKind as graphQLTypeToNodeKind,
+  // Type guards
+  isDomainNode,
+  isDomainDiagram,
+  // Utility functions
+  createEmptyDiagram,
   getNodeHandles,
   getHandleById,
-  parseHandleId
-} from '@dipeo/domain-models';
-
-// Re-export handle compatibility check
-export { areHandlesCompatible } from '@dipeo/domain-models';
+  parseHandleId,
+  areHandlesCompatible
+} from '@/core/types/domain';
 
 // Arrow data interface
 export interface ArrowData {

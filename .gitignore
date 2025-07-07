@@ -25,7 +25,7 @@ dipeo/domain/conversions.py
 .import_linter_cache
 server/diagrams
 docs/deprecated
-TODO.md
+plan.md
 *.tsbuildinfo
 .ruff_cache/
 **/.ruff_cache/
@@ -33,11 +33,11 @@ TODO.md
 apps/server/.import_linter_cache
 dipeo/models/models.py
 dipeo/models/conversions.py
-
 part1.md
 part2.md
 part3.md
 part4.md
+TODO.md
 
 dipeo/models/__generated__
 # Generated models now in dipeo/domain/models.py (tracked)

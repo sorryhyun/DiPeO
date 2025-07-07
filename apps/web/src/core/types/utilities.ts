@@ -71,6 +71,3 @@ export type Dict<V = unknown> = Record<string, V>;
 
 // Import base DataType from domain models and extend with UI-specific types
 export type ExtendedDataType = DomainDataType | 'text' | 'integer' | 'float' | 'json';
-
-// Keep DataType as alias for backward compatibility
-export type DataType = ExtendedDataType;

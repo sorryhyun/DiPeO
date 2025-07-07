@@ -11,7 +11,7 @@ import { useUIState, usePersonsData } from '@/shared/hooks/selectors';
 import { MessageList } from '../MessageList';
 import { ExecutionOrderView } from '@/features/execution-monitor/components';
 import { useExecution } from '@/features/execution-monitor/hooks';
-import { ConversationFilters, ConversationMessage } from '@/core/types/conversation';
+import { ConversationFilters, UIConversationMessage } from '@/core/types/conversation';
 import { PersonID, executionId, personId } from '@/core/types';
 import { debounce, throttle } from '@/shared/utils/math';
 import { stringify } from 'yaml';
@@ -159,12 +159,12 @@ const ConversationDashboard: React.FC = () => {
       return { allMessages: [], totalTokens: 0 };
     }
 
-    const messages: ConversationMessage[] = [];
+    const messages: UIConversationMessage[] = [];
     Object.entries(conversationData).forEach(([key, personData]) => {
       const messagesWithPersonId = personData.messages.map((msg) => ({
         ...msg,
         personId: personId(key)
-      } as ConversationMessage));
+      } as UIConversationMessage));
       messages.push(...messagesWithPersonId);
     });
     

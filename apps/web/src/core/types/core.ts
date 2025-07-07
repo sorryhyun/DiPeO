@@ -1,46 +1,29 @@
-// Re-export node data types from type factories
+// Re-export domain types from centralized location
+export * from './domain';
+
+// Re-export type factory utilities
 export {
   type NodeTypeRegistry,
   type NodeTypeKey,
-  type WithUI,
   type NodeDataTypes,
   type NodeData,
-  isNodeTypeKey,
-  // Individual node data types for backward compatibility
-  type StartNodeData,
-  type ConditionNodeData,
-  type PersonJobNodeData,
-  type EndpointNodeData,
-  type DBNodeData,
-  type JobNodeData,
-  type CodeJobNodeData,
-  type ApiJobNodeData,
-  type UserResponseNodeData,
-  type NotionNodeData,
-  type PersonBatchJobNodeData,
-  type HookNodeData
+  type NodeFormData,
+  type NodeFormDataTypes,
+  type PanelFormData,
+  isNodeTypeKey
 } from './type-factories';
 
-// Re-export GraphQL types for use in core domain
-import type {
-  Node as DomainNode,
-  Arrow as DomainArrow,
-  Handle as DomainHandle,
-  Person as DomainPerson,
-  ApiKey as DomainApiKey,
-  DomainDiagramType,
-  ArrowData
-} from '@/graphql/types';
+// Re-export GraphQL-specific types that are not in domain models
+// TODO: These should eventually be moved to GraphQL layer
+export type { ArrowData } from '@/graphql/types';
 
+// Temporary compatibility exports
+// TODO: Update consumers to import directly from './domain'
 export type {
   DomainNode,
   DomainArrow,
   DomainHandle,
   DomainPerson,
   DomainApiKey,
-  DomainDiagramType,
-  ArrowData
-};
-
-// Type guards are now imported from graphql-mappings
-export { isDomainNode, isDomainDiagram } from '@/graphql/types/graphql-mappings';
+  DomainDiagram as DomainDiagramType
+} from './domain';

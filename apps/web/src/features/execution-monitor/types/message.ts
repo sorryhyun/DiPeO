@@ -2,5 +2,5 @@
 export type { 
   InteractivePromptData,
   ConversationFilters,
-  ConversationMessage 
+  UIConversationMessage 
 } from '@/core/types/conversation';

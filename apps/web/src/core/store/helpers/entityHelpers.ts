@@ -44,7 +44,7 @@ export function updateMap<K, V>(
 }
 
 // Generic entity update helper
-export function updateEntity<T extends { id: string; data?: Record<string, unknown> }>(
+export function updateEntity<T extends { id: string; data?: Record<string, unknown> | null }>(
   map: Map<string, T>,
   id: string,
   updates: Partial<T>
@@ -55,7 +55,7 @@ export function updateEntity<T extends { id: string; data?: Record<string, unkno
   const updatedEntity = { ...entity };
   
   // Handle nested data updates
-  if ('data' in updates && 'data' in entity && entity.data && updates.data) {
+  if ('data' in updates && 'data' in entity && entity.data && updates.data && updates.data !== null) {
     updatedEntity.data = { ...entity.data, ...updates.data };
     const { data: _data, ...otherUpdates } = updates;
     Object.assign(updatedEntity, otherUpdates);

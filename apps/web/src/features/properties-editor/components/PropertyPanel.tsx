@@ -156,7 +156,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   const entityType = getEntityType(data.type);
 
   // Flatten the data for form fields if it's a person
-  const flattenedData = entityType === 'person' ? ensurePersonFields(flattenObject(data)) : data;
+  const flattenedData = entityType === 'person' ? ensurePersonFields(flattenObject(data as Record<string, unknown>)) : data;
 
   const {
     formData,

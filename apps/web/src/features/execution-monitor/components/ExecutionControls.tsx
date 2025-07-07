@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui/buttons';
 import { useExecution, useMonitorMode } from '../hooks';
 import { useDiagramData } from '@/shared/hooks/selectors';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { nodeId, DomainDiagramType } from '@/core/types';
+import { nodeId, diagramId, DomainDiagramType } from '@/core/types';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 
@@ -85,7 +85,7 @@ const ExecutionControls = () => {
               // Create a DomainDiagramType for in-memory execution
               const diagramForExecution: DomainDiagramType = {
                 metadata: {
-                  id: `temp-execution-${Date.now()}`,
+                  id: diagramId(`temp-execution-${Date.now()}`),
                   created: new Date().toISOString(),
                   modified: new Date().toISOString(),
                   version: '1.0',
@@ -97,10 +97,7 @@ const ExecutionControls = () => {
                 nodes: Array.from(nodes.values()),
                 arrows: Array.from(arrows.values()),
                 persons: Array.from(persons.values()),
-                handles: Array.from(handles.values()),
-                nodeCount: nodes.size,
-                arrowCount: arrows.size,
-                personCount: persons.size
+                handles: Array.from(handles.values())
               };
               
               // Execute using the diagram data directly (no file save)

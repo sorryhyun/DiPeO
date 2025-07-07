@@ -1,34 +1,36 @@
+// Import all domain types from centralized location
 import {
-  StartNodeData as DomainStartNodeData,
-  ConditionNodeData as DomainConditionNodeData,
-  PersonJobNodeData as DomainPersonJobNodeData,
-  EndpointNodeData as DomainEndpointNodeData,
-  DBNodeData as DomainDBNodeData,
-  JobNodeData as DomainJobNodeData,
-  CodeJobNodeData as DomainCodeJobNodeData,
-  ApiJobNodeData as DomainApiJobNodeData,
-  UserResponseNodeData as DomainUserResponseNodeData,
-  NotionNodeData as DomainNotionNodeData,
-  PersonBatchJobNodeData as DomainPersonBatchJobNodeData,
-  HookNodeData as DomainHookNodeData
-} from "@dipeo/domain-models";
+  StartNodeData,
+  ConditionNodeData,
+  PersonJobNodeData,
+  EndpointNodeData,
+  DBNodeData,
+  JobNodeData,
+  CodeJobNodeData,
+  ApiJobNodeData,
+  UserResponseNodeData,
+  NotionNodeData,
+  PersonBatchJobNodeData,
+  HookNodeData,
+  WithUI
+} from './domain';
 
 /**
  * Node type registry mapping node type strings to their domain types
  */
 export interface NodeTypeRegistry {
-  start: DomainStartNodeData;
-  condition: DomainConditionNodeData;
-  person_job: DomainPersonJobNodeData;
-  endpoint: DomainEndpointNodeData;
-  db: DomainDBNodeData;
-  job: DomainJobNodeData;
-  code_job: DomainCodeJobNodeData;
-  api_job: DomainApiJobNodeData;
-  user_response: DomainUserResponseNodeData;
-  notion: DomainNotionNodeData;
-  person_batch_job: DomainPersonBatchJobNodeData;
-  hook: DomainHookNodeData;
+  start: StartNodeData;
+  condition: ConditionNodeData;
+  person_job: PersonJobNodeData;
+  endpoint: EndpointNodeData;
+  db: DBNodeData;
+  job: JobNodeData;
+  code_job: CodeJobNodeData;
+  api_job: ApiJobNodeData;
+  user_response: UserResponseNodeData;
+  notion: NotionNodeData;
+  person_batch_job: PersonBatchJobNodeData;
+  hook: HookNodeData;
 }
 
 /**
@@ -37,22 +39,16 @@ export interface NodeTypeRegistry {
 export type NodeTypeKey = keyof NodeTypeRegistry;
 
 /**
- * Generic UI extension wrapper for domain models
- */
-export type WithUI<T> = T & { 
-  flipped?: boolean; 
-  [key: string]: unknown;
-};
-
-/**
  * Generic panel form data wrapper
+ * Used for partial form data during editing
  */
 export type PanelFormData<T extends Record<string, unknown>> = Partial<T> & {
   [key: string]: unknown;
 };
 
 /**
- * Type factory that generates WithUI types for all node types
+ * Type factory that generates UI-augmented types for all node types
+ * Uses the WithUI type from domain.ts
  */
 export type NodeDataTypes = {
   [K in NodeTypeKey]: WithUI<NodeTypeRegistry[K]>;
@@ -86,21 +82,11 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
   return validKeys.includes(key as NodeTypeKey);
 }
 
-/**
- * Type alias for backward compatibility
- */
-export type StartNodeData = NodeData<'start'>;
-export type ConditionNodeData = NodeData<'condition'>;
-export type PersonJobNodeData = NodeData<'person_job'>;
-export type EndpointNodeData = NodeData<'endpoint'>;
-export type DBNodeData = NodeData<'db'>;
-export type JobNodeData = NodeData<'job'>;
-export type CodeJobNodeData = NodeData<'code_job'>;
-export type ApiJobNodeData = NodeData<'api_job'>;
-export type UserResponseNodeData = NodeData<'user_response'>;
-export type NotionNodeData = NodeData<'notion'>;
-export type PersonBatchJobNodeData = NodeData<'person_batch_job'>;
-export type HookNodeData = NodeData<'hook'>;
+// Re-export UI-augmented node data types for backward compatibility
+// These now include UI properties like 'flipped'
+export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeData,
+  DBNodeData, JobNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
+  NotionNodeData, PersonBatchJobNodeData, HookNodeData } from './domain';
 
 /**
  * Form data type aliases for backward compatibility

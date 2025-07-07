@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { GetConversationsDocument } from '@/__generated__/graphql';
 import { createEntityQuery } from '@/graphql/hooks';
-import type { ConversationFilters, ConversationMessage, PersonMemoryState } from '@/core/types/conversation';
+import type { ConversationFilters, UIConversationMessage, UIPersonMemoryState } from '@/core/types/conversation';
 import { type PersonID, type ExecutionID, type NodeID, ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
 
 const MESSAGES_PER_PAGE = 50;
@@ -19,7 +19,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   const { filters, personId = null, enableRealtimeUpdates = true, executionStatus = null } = 
     'filters' in options ? options : { filters: options, personId: null, enableRealtimeUpdates: true, executionStatus: null };
   
-  const [conversationData, setConversationData] = useState<Record<string, PersonMemoryState>>({});
+  const [conversationData, setConversationData] = useState<Record<string, UIPersonMemoryState>>({});
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const lastUpdateTime = useRef<string | null>(null);
   const messageCounts = useRef<Record<string, number>>({});
@@ -73,7 +73,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
     }>;
     has_more?: boolean;
   }) => {
-    const transformed: Record<string, PersonMemoryState> = {};
+    const transformed: Record<string, UIPersonMemoryState> = {};
     
     // Group conversations by personId
     const groupedByPerson: Record<string, typeof conversationsData.conversations> = {};
@@ -85,7 +85,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       groupedByPerson[pid].push(conv);
     });
     
-    // Transform to PersonMemoryState format
+    // Transform to UIPersonMemoryState format
     Object.entries(groupedByPerson).forEach(([pid, convs]) => {
       if (!convs) return;
       transformed[pid as PersonID] = {
@@ -131,7 +131,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   }, [data, transformConversationsData]);
 
   // Add new message to conversation data
-  const addMessage = useCallback((personId: PersonID, message: ConversationMessage) => {
+  const addMessage = useCallback((personId: PersonID, message: UIConversationMessage) => {
     setConversationData(prev => {
       const personData = prev[personId];
       if (!personData) return prev;
@@ -247,7 +247,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       if (type === 'message_added' && data.personId) {
         // Add new message to the current view if it matches the selected person
         if (personId === data.personId || !personId) {
-          const message = data.message as ConversationMessage;
+          const message = data.message as UIConversationMessage;
           addMessage(data.personId, message);
         }
       }
