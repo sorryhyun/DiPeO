@@ -41,7 +41,9 @@ class StartNodeHandler(BaseNodeHandler):
             output_data = props.custom_data or {}
             return create_node_output(
                 {"default": output_data}, 
-                {"message": "Manual execution started"}
+                {"message": "Manual execution started"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
         
         elif trigger_mode == HookTriggerMode.hook:
@@ -55,14 +57,18 @@ class StartNodeHandler(BaseNodeHandler):
                 output_data = {**props.custom_data, **hook_data}
                 return create_node_output(
                     {"default": output_data},
-                    {"message": f"Triggered by hook event: {props.hook_event}"}
+                    {"message": f"Triggered by hook event: {props.hook_event}"},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
             else:
                 # No hook data available, start with custom data only
                 output_data = props.custom_data or {}
                 return create_node_output(
                     {"default": output_data},
-                    {"message": "Hook trigger mode but no event data available"}
+                    {"message": "Hook trigger mode but no event data available"},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
     
     async def _get_hook_event_data(

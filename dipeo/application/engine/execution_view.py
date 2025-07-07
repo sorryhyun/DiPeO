@@ -158,7 +158,9 @@ class LocalExecutionView:
                 self.edge_views.append(edge_view)
                 self.node_views[source_id].outgoing_edges.append(edge_view)
                 self.node_views[target_id].incoming_edges.append(edge_view)
-                pass
+                
+                # Log edge details for debugging
+                log.debug(f"Created edge: {source_id} ({source_ref.handle_label.value}) -> {target_id} ({target_ref.handle_label.value})")
 
     def _compute_execution_order(self) -> List[List[NodeView]]:
         """Compute topological execution order using Kahn's algorithm."""

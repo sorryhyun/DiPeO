@@ -123,11 +123,15 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                 [f"Person {pid}: {result}" for pid, result in results.items()]
             )
             output = create_node_output(
-                {"default": aggregated, "results": results}, metadata
+                {"default": aggregated, "results": results}, metadata,
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
         else:
             output = create_node_output(
-                {"default": results, "results": results}, metadata
+                {"default": results, "results": results}, metadata,
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
         # Add token usage if any

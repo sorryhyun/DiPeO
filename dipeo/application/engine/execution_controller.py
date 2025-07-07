@@ -4,11 +4,14 @@ This module provides the controller that tracks node execution states
 and determines which nodes are ready to execute based on dependencies.
 """
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
 from dipeo.models import NodeOutput, NodeType
 from dipeo.domain.services.execution import ExecutionFlowService
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -82,8 +85,11 @@ class ExecutionController:
             # Fallback to original implementation
             ready = []
             
+            log.debug(f"Getting ready nodes. Executed nodes: {self.executed_nodes}")
+            
             for node_id, state in self.node_states.items():
                 if not state.can_execute():
+                    log.debug(f"Node {node_id} cannot execute (exec_count: {state.exec_count}, max_iterations: {state.max_iterations})")
                     continue
                     
                 node_view = execution_view.node_views[node_id]
@@ -91,7 +97,9 @@ class ExecutionController:
                 # Check dependencies
                 if self._dependencies_satisfied(node_view, execution_view):
                     ready.append(node_id)
+                    log.debug(f"Node {node_id} is ready to execute")
             
+            log.debug(f"Ready nodes: {ready}")
             return ready
     
     def _dependencies_satisfied(self, node_view: Any, execution_view: Any) -> bool:
@@ -110,6 +118,8 @@ class ExecutionController:
             )
         else:
             # Fallback to original implementation
+            log.debug(f"Checking dependencies for node {node_view.id} (type: {node_view.node.type})")
+            
             # Start nodes have no dependencies
             if node_view.node.type == NodeType.start.value:
                 return True
@@ -122,6 +132,9 @@ class ExecutionController:
                 # Check if this node has any "first" handle connections
                 has_first_handle = any(edge.target_handle == "first" for edge in node_view.incoming_edges)
                 
+                log.debug(f"Person job node {node_view.id} on first execution. Has first handle: {has_first_handle}")
+                log.debug(f"Incoming edges: {[(e.source_view.id, e.target_handle) for e in node_view.incoming_edges]}")
+                
                 if has_first_handle:
                     # If it has first handles, require at least one to be satisfied
                     first_handle_satisfied = False
@@ -131,6 +144,7 @@ class ExecutionController:
                             continue
                             
                         if edge.target_handle == "first" and source_state.output is not None:
+                            log.debug(f"First handle satisfied from {edge.source_view.id}")
                             first_handle_satisfied = True
                         elif edge.target_handle != "first":
                             # Ignore non-first handles on first execution
@@ -139,6 +153,7 @@ class ExecutionController:
                     if first_handle_satisfied:
                         return True
                     else:
+                        log.debug(f"First handle not satisfied for {node_view.id}")
                         return False
                 else:
                     # If no first handles exist, fall through to normal dependency checking
@@ -158,6 +173,7 @@ class ExecutionController:
                 
                 # Source must have produced output
                 if source_state.output is None:
+                    log.debug(f"Dependency not satisfied: {edge.source_view.id} has no output")
                     return False
             
             return True
@@ -167,6 +183,8 @@ class ExecutionController:
         state = self.node_states[node_id]
         state.exec_count += 1
         state.output = output
+        
+        log.debug(f"Marked node {node_id} as executed (exec_count: {state.exec_count}, has_output: {output is not None})")
         
         # Check if node is completed
         if state.exec_count >= state.max_iterations:

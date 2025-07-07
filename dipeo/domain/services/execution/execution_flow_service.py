@@ -28,12 +28,13 @@ class ExecutionFlowService:
         """
         # Start nodes have no dependencies
         if node.type == NodeType.db:
-            # Check if it's a start node (no incoming edges)
-            incoming_edges = [
-                edge for edge in diagram.edges 
-                if edge.target == node.id
+            # Check if it's a start node (no incoming arrows)
+            from dipeo.models import extract_node_id_from_handle
+            incoming_arrows = [
+                arrow for arrow in diagram.arrows 
+                if extract_node_id_from_handle(arrow.target) == node.id
             ]
-            if not incoming_edges:
+            if not incoming_arrows:
                 return True
         
         # Get all nodes that this node depends on
@@ -48,19 +49,19 @@ class ExecutionFlowService:
                 # For subsequent executions, only check non-"first" dependencies
                 non_first_dependencies = []
                 for dep_id in dependency_nodes:
-                    # Find edges from dependency to this node
+                    # Find arrows from dependency to this node
                     from dipeo.models import parse_handle_id
-                    connecting_edges = []
-                    for edge in diagram.arrows:
-                        source_node_id, _ = parse_handle_id(edge.source)
-                        target_node_id, target_handle = parse_handle_id(edge.target)
+                    connecting_arrows = []
+                    for arrow in diagram.arrows:
+                        source_node_id, _ = parse_handle_id(arrow.source)
+                        target_node_id, target_handle = parse_handle_id(arrow.target)
                         if source_node_id == dep_id and target_node_id == node.id:
-                            connecting_edges.append((edge, target_handle))
+                            connecting_arrows.append((arrow, target_handle))
                     
-                    # Check if any edge has targetHandle != "first"
+                    # Check if any arrow has targetHandle != "first"
                     has_non_first = any(
                         target_handle != "first" 
-                        for edge, target_handle in connecting_edges
+                        for arrow, target_handle in connecting_arrows
                     )
                     if has_non_first:
                         non_first_dependencies.append(dep_id)
@@ -187,12 +188,12 @@ class ExecutionFlowService:
         """Get all nodes that this node depends on."""
         dependency_ids = []
         
-        # Find all edges pointing to this node
-        from dipeo.models import parse_handle_id
-        for edge in diagram.arrows:
-            target_node_id, _ = parse_handle_id(edge.target)
+        # Find all arrows pointing to this node
+        from dipeo.models import extract_node_id_from_handle
+        for arrow in diagram.arrows:
+            target_node_id = extract_node_id_from_handle(arrow.target)
             if target_node_id == node.id:
-                source_node_id, _ = parse_handle_id(edge.source)
+                source_node_id = extract_node_id_from_handle(arrow.source)
                 dependency_ids.append(source_node_id)
         
         return dependency_ids

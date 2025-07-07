@@ -70,6 +70,8 @@ export interface NodeState {
 export interface NodeOutput {
   value: any;  // The actual output
   metadata?: Record<string, any>;  // Flexible metadata
+  node_id?: NodeID | null;  // ID of the node that produced this output
+  executed_nodes?: NodeID[] | null;  // List of node IDs executed up to this point (treated as set)
 }
 
 // Simplified execution state

@@ -57,7 +57,9 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 tools=api_tools if api_tools else None,
                 **api_params
             )
-        except AttributeError:
+        except Exception as e:
+            import logging
+            logging.error(f"Error calling OpenAI responses API: {type(e).__name__}: {str(e)}")
             return ChatResult(text='', raw_response=None)
         
         # Extract text output

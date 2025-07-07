@@ -4,7 +4,7 @@ import os
 import uuid
 
 from dipeo.core import BaseService, SupportsAPIKey, APIKeyError, ValidationError
-from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name, BASE_DIR
 
 
 class APIKeyDomainService(BaseService, SupportsAPIKey):
@@ -13,8 +13,8 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
 
     def __init__(self, store_file: str | None = None):
         super().__init__()
-        # Default to a relative path if not provided
-        default_path = os.path.join(os.getcwd(), "files", "apikeys.json")
+        # Default to project root files directory
+        default_path = str(BASE_DIR / "files" / "apikeys.json")
         self.store_file = store_file or os.getenv("API_KEY_STORE_FILE", default_path)
         self._store: dict[str, dict] = {}
         self._load_store()

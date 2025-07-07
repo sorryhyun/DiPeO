@@ -42,7 +42,11 @@ class HookNodeHandler(BaseNodeHandler):
         """Execute the hook based on its type."""
         try:
             result = await self._execute_hook(props, inputs)
-            return create_node_output({"default": result})
+            return create_node_output(
+                {"default": result},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
         except Exception as e:
             raise NodeExecutionError(f"Hook execution failed: {str(e)}") from e
     

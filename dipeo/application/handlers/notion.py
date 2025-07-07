@@ -94,4 +94,8 @@ class NotionNodeHandler(BaseNodeHandler):
         else:
             raise ValueError(f"Unsupported Notion operation: {props.operation}")
             
-        return create_node_output({"default": result})
+        return create_node_output(
+            {"default": result},
+            node_id=context.current_node_id,
+            executed_nodes=context.executed_nodes
+        )

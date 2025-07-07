@@ -56,9 +56,15 @@ class UserResponseNodeHandler(BaseNodeHandler):
                 }
             )
 
-            return create_node_output({"default": response, "user_response": response})
+            return create_node_output(
+                {"default": response, "user_response": response},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
         # If no interactive handler, return empty response
         return create_node_output(
             {"default": "", "user_response": ""},
             {"warning": "No interactive handler available"},
+            node_id=context.current_node_id,
+            executed_nodes=context.executed_nodes
         )

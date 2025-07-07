@@ -170,7 +170,7 @@ class ExecutionEngine:
             try:
                 # Create runtime context
                 context = self._create_runtime_context(
-                    node_view, execution_id, options, execution_view
+                    node_view, execution_id, options, execution_view, controller
                 )
                 
                 # Get inputs
@@ -236,7 +236,7 @@ class ExecutionEngine:
                 raise
     
     def _create_runtime_context(
-        self, node_view: Any, execution_id: str, options: Dict[str, Any], execution_view: Any
+        self, node_view: Any, execution_id: str, options: Dict[str, Any], execution_view: Any, controller: ExecutionController
     ) -> Any:
         """Create runtime context for node execution."""
         from dipeo.application import UnifiedExecutionContext
@@ -273,4 +273,5 @@ class ExecutionEngine:
             node_outputs=outputs,
             exec_counts={nv.id: nv.exec_count for nv in execution_view.node_views.values()},
             diagram_id=execution_view.diagram.metadata.id if execution_view.diagram.metadata else None,
+            executed_nodes=list(controller.executed_nodes),
         )

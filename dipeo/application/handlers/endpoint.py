@@ -55,11 +55,19 @@ class EndpointNodeHandler(BaseNodeHandler):
                 await file_service.write(props.file_name, None, None, content)
 
                 return create_node_output(
-                    {"default": result_data}, {"saved_to": props.file_name}
+                    {"default": result_data}, {"saved_to": props.file_name},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
             except Exception as exc:
                 return create_node_output(
-                    {"default": result_data}, {"save_error": str(exc)}
+                    {"default": result_data}, {"save_error": str(exc)},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
 
-        return create_node_output({"default": result_data})
+        return create_node_output(
+            {"default": result_data},
+            node_id=context.current_node_id,
+            executed_nodes=context.executed_nodes
+        )

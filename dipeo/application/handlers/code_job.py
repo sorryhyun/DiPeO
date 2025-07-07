@@ -55,7 +55,9 @@ class CodeJobNodeHandler(BaseNodeHandler):
         if not code:
             return create_node_output(
                 {"default": ""}, 
-                {"error": "No code provided"}
+                {"error": "No code provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
         try:
@@ -68,7 +70,9 @@ class CodeJobNodeHandler(BaseNodeHandler):
             else:
                 return create_node_output(
                     {"default": ""}, 
-                    {"error": f"Unsupported language: {language}"}
+                    {"error": f"Unsupported language: {language}"},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
 
             # Convert result to string if needed
@@ -79,18 +83,24 @@ class CodeJobNodeHandler(BaseNodeHandler):
 
             return create_node_output(
                 {"default": output},
-                {"language": language, "success": True}
+                {"language": language, "success": True},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
         except asyncio.TimeoutError:
             return create_node_output(
                 {"default": ""}, 
-                {"error": f"Code execution timed out after {timeout} seconds", "language": language, "success": False}
+                {"error": f"Code execution timed out after {timeout} seconds", "language": language, "success": False},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
         except Exception as e:
             return create_node_output(
                 {"default": ""}, 
-                {"error": str(e), "language": language, "success": False}
+                {"error": str(e), "language": language, "success": False},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int, template_service: Any) -> Any:

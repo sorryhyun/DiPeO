@@ -11,31 +11,30 @@ log = logging.getLogger(__name__)
 class InputResolutionService:
     """Service for managing input resolution business logic."""
     
-    def should_process_edge(
+    def should_process_arrow(
         self,
-        edge: DomainArrow,
+        arrow: DomainArrow,
         target_node_type: str,
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> bool:
-        """Determine if an edge should be processed for input resolution.
+        """Determine if an arrow should be processed for input resolution.
         
         Business rules:
         - Person job nodes with "first" handle only process on first execution
-        - All other edges are always processed
+        - All other arrows are always processed
         """
         # Special handling for person_job nodes
         if target_node_type == NodeType.person_job:
             # Parse handle from target HandleID
             from dipeo.models import parse_handle_id
-            _, target_handle = parse_handle_id(edge.target)
-            target_node_id, _ = parse_handle_id(edge.target)
+            target_node_id, target_handle, _ = parse_handle_id(arrow.target)
             
             target_exec_count = node_exec_counts.get(target_node_id, 0) if node_exec_counts else 0
             
             # If this is a "first" handle and not the first execution, skip it
             if target_handle == "first" and target_exec_count > 0:
                 log.debug(
-                    f"Skipping 'first' handle edge {edge.id} for person_job "
+                    f"Skipping 'first' handle arrow {arrow.id} for person_job "
                     f"(execution count: {target_exec_count})"
                 )
                 return False
@@ -44,7 +43,7 @@ class InputResolutionService:
     
     def should_skip_condition_branch(
         self,
-        edge: DomainArrow,
+        arrow: DomainArrow,
         source_node_type: str,
         condition_result: Optional[bool],
     ) -> bool:
@@ -53,25 +52,25 @@ class InputResolutionService:
         Business rules:
         - Skip "true" branch if condition is false
         - Skip "false" branch if condition is true
-        - Process all edges if condition result is unknown
+        - Process all arrows if condition result is unknown
         """
         if source_node_type != NodeType.condition:
             return False
         
         if condition_result is None:
-            # If we don't know the condition result, process all edges
+            # If we don't know the condition result, process all arrows
             return False
         
-        # Determine which branch this edge represents
+        # Determine which branch this arrow represents
         # Parse handle from source HandleID
         from dipeo.models import parse_handle_id
-        _, source_handle = parse_handle_id(edge.source)
+        _, source_handle, _ = parse_handle_id(arrow.source)
         
         if source_handle == "condtrue" and not condition_result:
-            log.debug(f"Skipping true branch edge {edge.id} (condition was false)")
+            log.debug(f"Skipping true branch arrow {arrow.id} (condition was false)")
             return True
         elif source_handle == "condfalse" and condition_result:
-            log.debug(f"Skipping false branch edge {edge.id} (condition was true)")
+            log.debug(f"Skipping false branch arrow {arrow.id} (condition was true)")
             return True
         
         return False
@@ -86,27 +85,27 @@ class InputResolutionService:
     ) -> Dict[str, Any]:
         """Resolve all inputs for a given node.
         
-        This combines outputs from all upstream nodes based on edges,
-        respecting the business rules for edge processing.
+        This combines outputs from all upstream nodes based on arrows,
+        respecting the business rules for arrow processing.
         """
         inputs = {}
         
-        # Find all edges pointing to this node
+        # Find all arrows pointing to this node
         # Parse handle IDs to get node IDs
-        from dipeo.models import parse_handle_id
-        incoming_edges = []
-        for edge in diagram.arrows:
-            target_node_id, _ = parse_handle_id(edge.target)
+        from dipeo.models import parse_handle_id, extract_node_id_from_handle
+        incoming_arrows = []
+        for arrow in diagram.arrows:
+            target_node_id = extract_node_id_from_handle(arrow.target)
             if target_node_id == node_id:
-                incoming_edges.append(edge)
+                incoming_arrows.append(arrow)
         
-        for edge in incoming_edges:
-            # Check if we should process this edge
-            if not self.should_process_edge(edge, node_type, node_exec_counts):
+        for arrow in incoming_arrows:
+            # Check if we should process this arrow
+            if not self.should_process_arrow(arrow, node_type, node_exec_counts):
                 continue
             
             # Parse source node ID from HandleID
-            source_node_id, source_handle = parse_handle_id(edge.source)
+            source_node_id, source_handle, _ = parse_handle_id(arrow.source)
             
             # Get source node output
             source_output = node_outputs.get(source_node_id, {})
@@ -131,16 +130,16 @@ class InputResolutionService:
                         condition_result = metadata.get("condition_result")
                 
                 if self.should_skip_condition_branch(
-                    edge, source_node.type.value, condition_result
+                    arrow, source_node.type.value, condition_result
                 ):
                     continue
             
             # Parse target handle for input key
-            _, target_handle = parse_handle_id(edge.target)
+            _, target_handle, _ = parse_handle_id(arrow.target)
             
             # Add the output to inputs
             # Use label as the input key, or target handle as fallback
-            input_key = edge.label or target_handle or edge.id
+            input_key = arrow.label or target_handle or arrow.id
             
             # Extract the appropriate value from source output
             if isinstance(source_output, dict) and "value" in source_output:

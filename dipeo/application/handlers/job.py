@@ -44,7 +44,9 @@ class JobNodeHandler(BaseNodeHandler):
         if not code:
             return create_node_output(
                 {"default": ""}, 
-                {"error": "No code provided"}
+                {"error": "No code provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
         try:
@@ -57,7 +59,9 @@ class JobNodeHandler(BaseNodeHandler):
             else:
                 return create_node_output(
                     {"default": ""}, 
-                    {"error": f"Unsupported code type: {code_type}"}
+                    {"error": f"Unsupported code type: {code_type}"},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
 
             # Convert result to string if needed
@@ -68,13 +72,17 @@ class JobNodeHandler(BaseNodeHandler):
 
             return create_node_output(
                 {"default": output},
-                {"code_type": code_type, "success": True}
+                {"code_type": code_type, "success": True},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
         except Exception as e:
             return create_node_output(
                 {"default": ""}, 
-                {"error": str(e), "code_type": code_type, "success": False}
+                {"error": str(e), "code_type": code_type, "success": False},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any]) -> Any:

@@ -69,7 +69,11 @@ class DBNodeHandler(BaseNodeHandler):
 
             log = logging.getLogger(__name__)
             log.debug(f"DB node output_value: {repr(output_value)}")
-            return create_node_output({"default": output_value})
+            return create_node_output(
+                {"default": output_value},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
 
         except Exception as exc:
             # Domain service throws specific validation errors
@@ -77,4 +81,6 @@ class DBNodeHandler(BaseNodeHandler):
             return create_node_output(
                 {"default": error_msg},
                 metadata={"error": str(exc), "status": "failed"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )

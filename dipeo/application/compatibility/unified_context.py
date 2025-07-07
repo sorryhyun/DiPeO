@@ -58,6 +58,7 @@ class UnifiedExecutionContext:
     node_outputs: Dict[str, Any] = field(default_factory=dict)
     node_states: Dict[str, Any] = field(default_factory=dict)
     exec_counts: Dict[str, int] = field(default_factory=dict)
+    executed_nodes: List[str] = field(default_factory=list)  # List of executed node IDs
     
     # Configuration
     variables: Dict[str, Any] = field(default_factory=dict)

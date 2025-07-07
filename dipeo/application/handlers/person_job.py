@@ -68,7 +68,9 @@ class PersonJobNodeHandler(BaseNodeHandler):
         if not props.person:
             return NodeOutput(
                 value={"default": ""}, 
-                metadata={"error": "No person specified"}
+                metadata={"error": "No person specified"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
         
         try:
@@ -93,14 +95,18 @@ class PersonJobNodeHandler(BaseNodeHandler):
             logger.warning(f"Validation error in person job: {e}")
             return NodeOutput(
                 value={"default": ""}, 
-                metadata={"error": str(e)}
+                metadata={"error": str(e)},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
         except Exception as e:
             # Unexpected errors
             logger.error(f"Error executing person job: {e}")
             return NodeOutput(
                 value={"default": ""}, 
-                metadata={"error": str(e)}
+                metadata={"error": str(e)},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
     
     def _extract_node_id(self, context: UnifiedExecutionContext) -> str:
@@ -155,4 +161,9 @@ class PersonJobNodeHandler(BaseNodeHandler):
                     elif tool_output.get("type") == "image_generation":
                         output_value["generated_image"] = tool_output.get("result")
         
-        return NodeOutput(value=output_value, metadata=metadata)
+        return NodeOutput(
+            value=output_value, 
+            metadata=metadata,
+            node_id=context.current_node_id,
+            executed_nodes=context.executed_nodes
+        )

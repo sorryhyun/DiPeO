@@ -48,7 +48,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
         if not url:
             return create_node_output(
                 {"default": ""}, 
-                {"error": "No URL provided"}
+                {"error": "No URL provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
         try:
@@ -59,7 +61,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
                 except json.JSONDecodeError:
                     return create_node_output(
                         {"default": ""}, 
-                        {"error": "Invalid headers JSON format"}
+                        {"error": "Invalid headers JSON format"},
+                        node_id=context.current_node_id,
+                        executed_nodes=context.executed_nodes
                     )
 
             # Parse params if provided as JSON string
@@ -69,7 +73,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
                 except json.JSONDecodeError:
                     return create_node_output(
                         {"default": ""}, 
-                        {"error": "Invalid params JSON format"}
+                        {"error": "Invalid params JSON format"},
+                        node_id=context.current_node_id,
+                        executed_nodes=context.executed_nodes
                     )
 
             # Parse body if provided as JSON string
@@ -87,7 +93,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
                 except json.JSONDecodeError:
                     return create_node_output(
                         {"default": ""}, 
-                        {"error": "Invalid auth_config JSON format"}
+                        {"error": "Invalid auth_config JSON format"},
+                        node_id=context.current_node_id,
+                        executed_nodes=context.executed_nodes
                     )
 
             # Apply authentication
@@ -120,7 +128,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
                         "success": True,
                         "url": url,
                         "method": method.value
-                    }
+                    },
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
             else:
                 return create_node_output(
@@ -131,7 +141,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
                         "success": False,
                         "url": url,
                         "method": method.value
-                    }
+                    },
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
                 )
 
         except asyncio.TimeoutError:
@@ -142,7 +154,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
                     "success": False,
                     "url": url,
                     "method": method.value
-                }
+                },
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
         except Exception as e:
             return create_node_output(
@@ -152,7 +166,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
                     "success": False,
                     "url": url,
                     "method": method.value
-                }
+                },
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
             )
 
     def _apply_auth(self, headers: dict, auth_type: str, auth_config: dict) -> dict:

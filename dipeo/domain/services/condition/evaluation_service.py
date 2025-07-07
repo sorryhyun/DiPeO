@@ -2,10 +2,10 @@
 
 import ast
 import operator
-from typing import Any, Dict, Optional
+from typing import Any
 
-from dipeo.models import DomainDiagram, NodeType
 from dipeo.domain.services.text.template_service import TemplateService
+from dipeo.models import DomainDiagram, NodeType
 
 
 class ConditionEvaluationService:
@@ -17,8 +17,8 @@ class ConditionEvaluationService:
     def evaluate_max_iterations(
         self,
         diagram: DomainDiagram,
-        execution_states: Dict[str, Dict[str, Any]],
-        node_exec_counts: Optional[Dict[str, int]] = None,
+        execution_states: dict[str, dict[str, Any]],
+        node_exec_counts: dict[str, int] | None = None,
     ) -> bool:
         """Evaluate if all upstream person_job nodes reached their max_iterations.
         
@@ -60,10 +60,84 @@ class ConditionEvaluationService:
         # Return true only if we found at least one person_job AND all have reached max
         return found_person_job and all_reached_max
     
+    def check_nodes_executed(
+        self,
+        target_node_ids: list[str],
+        node_outputs: dict[str, Any],
+    ) -> bool:
+        """Check if specific nodes have been executed using NodeOutput data.
+        
+        This method demonstrates how the new executed_nodes field in NodeOutput
+        can be used for simpler execution tracking.
+        
+        Args:
+            target_node_ids: List of node IDs to check
+            node_outputs: Dict of node outputs containing executed_nodes info
+            
+        Returns:
+            True if all target nodes have been executed
+        """
+        if not target_node_ids or not node_outputs:
+            return False
+            
+        # Get the most recent output with executed_nodes info
+        all_executed = set()
+        for output in node_outputs.values():
+            if hasattr(output, 'executed_nodes') and output.executed_nodes:
+                all_executed.update(output.executed_nodes)
+        
+        # Check if all target nodes have been executed
+        return all(node_id in all_executed for node_id in target_node_ids)
+    
+    def evaluate_max_iterations_from_outputs(
+        self,
+        diagram: DomainDiagram,
+        node_outputs: dict[str, Any],
+        exec_counts: dict[str, int],
+    ) -> bool:
+        """Evaluate max iterations using NodeOutput data directly.
+        
+        This is a more efficient approach that leverages the executed_nodes
+        field in NodeOutput to track execution state.
+        
+        Args:
+            diagram: The diagram containing node definitions
+            node_outputs: Dict of node outputs with executed_nodes info
+            exec_counts: Dict of execution counts per node
+            
+        Returns:
+            True if all executed person_job nodes have reached their max iterations
+        """
+        if not diagram or not node_outputs:
+            return False
+        
+        # Collect all executed nodes from outputs
+        all_executed = set()
+        for output in node_outputs.values():
+            if hasattr(output, 'executed_nodes') and output.executed_nodes:
+                all_executed.update(output.executed_nodes)
+        
+        # Find person_job nodes and check their status
+        found_person_job = False
+        all_reached_max = True
+        
+        for node in diagram.nodes:
+            if node.type == NodeType.person_job.value and node.id in all_executed:
+                # Only check nodes that have been executed
+                found_person_job = True
+                exec_count = exec_counts.get(node.id, 0)
+                max_iter = int((node.data or {}).get("max_iteration", 1))
+                
+                if exec_count < max_iter:
+                    all_reached_max = False
+                    break
+        
+        return found_person_job and all_reached_max
+    
     def evaluate_custom_expression(
         self,
         expression: str,
-        context_values: Dict[str, Any],
+        context_values: dict[str, Any],
     ) -> bool:
         """Evaluate a custom boolean expression with variable substitution.
         
@@ -125,7 +199,7 @@ class ConditionEvaluationService:
                 return node.n
             elif isinstance(node, ast.Compare):
                 left = eval_node(node.left)
-                for op, comparator in zip(node.ops, node.comparators):
+                for op, comparator in zip(node.ops, node.comparators, strict=False):
                     op_func = allowed_operators.get(type(op))
                     if op_func is None:
                         raise ValueError(f"Unsupported operator: {type(op).__name__}")
