@@ -1,5 +1,5 @@
 import { HandleLabel, type NodeType } from '@dipeo/domain-models';
-import { createUnifiedConfig, type UnifiedNodeConfig } from '../unifiedConfig';
+import type { NodeTypeKey } from '@/core/types/type-factories';
 import type { TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import type {
   StartNodeData,
@@ -14,6 +14,8 @@ import type {
   PersonBatchJobNodeData,
   HookNodeData
 } from '@/core/types';
+import type { UnifiedNodeConfig } from './unifiedConfig';
+import { NODE_META } from './nodeMeta';
 
 // Map node types to their data types
 type NodeDataTypeMap = {
@@ -31,53 +33,35 @@ type NodeDataTypeMap = {
   hook: HookNodeData;
 };
 
-// Base interface for node type definitions
-interface NodeTypeDefinition<T extends Record<string, unknown> = Record<string, unknown>> {
-  label: string;
-  icon: string;
-  color: string;
+/**
+ * Node configuration without visual metadata (which comes from NODE_META)
+ */
+export interface NodeRegistryEntry<T extends Record<string, unknown> = Record<string, unknown>> {
+  // Node configuration
   handles?: UnifiedNodeConfig['handles'];
-  fields?: UnifiedNodeConfig['fields'];
   defaults?: Record<string, unknown>;
+  
   // Panel configuration
   panelLayout?: 'single' | 'twoColumn';
   panelFieldOrder?: string[];
   panelFieldOverrides?: Partial<Record<keyof T, Partial<TypedPanelFieldConfig<T>>>>;
-  panelCustomFields?: Array<TypedPanelFieldConfig<T>>;
+  panelCustomFields?: Array<TypedPanelFieldConfig<T>>; // Most fields now in field-registry.ts
 }
 
-// Centralized node definitions
-export const NODE_DEFINITIONS: {
-  [K in NodeType]: NodeTypeDefinition<NodeDataTypeMap[K]>
+/**
+ * Complete node registry with all configuration
+ */
+export const NODE_REGISTRY: {
+  [K in NodeType]: NodeRegistryEntry<NodeDataTypeMap[K]>
 } = {
   start: {
-    label: 'Start',
-    icon: '🚀',
-    color: 'green',
     handles: {
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'enable_hook', type: 'boolean', label: 'Enable Hook', required: false },
-      { name: 'hook_type', type: 'select', label: 'Hook Type', required: false, options: [
-        { value: 'webhook', label: 'Webhook' },
-        { value: 'file', label: 'File' },
-        { value: 'shell', label: 'Shell' }
-      ]},
-      { name: 'hook_config', type: 'textarea', label: 'Hook Configuration', required: false, placeholder: 'Hook configuration (e.g., URL, file path, or command)' }
-    ],
     defaults: { label: 'Start', enable_hook: false, hook_type: 'webhook', hook_config: '' },
     panelLayout: 'twoColumn',
     panelFieldOrder: ['label', 'enable_hook', 'hook_type', 'hook_config'],
-    panelCustomFields: [
-      {
-        type: 'text',
-        name: 'label',
-        label: 'Block Label',
-        placeholder: 'Start',
-        column: 1
-      }
-    ],
+    // Field definitions moved to field-registry.ts
     panelFieldOverrides: {
       enable_hook: { column: 1 },
       hook_type: { 
@@ -106,9 +90,6 @@ export const NODE_DEFINITIONS: {
   },
   
   condition: {
-    label: 'Condition',
-    icon: '🔀',
-    color: 'orange',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [
@@ -116,25 +97,10 @@ export const NODE_DEFINITIONS: {
         { id: HandleLabel.CONDITION_FALSE, position: 'right', label: 'false', offset: { x: 0, y: -30 } }
       ]
     },
-    fields: [
-      { name: 'condition_type', type: 'select', label: 'Condition Type', required: true, options: [
-        { value: 'detect_max_iterations', label: 'Detect Max Iterations' },
-        { value: 'custom', label: 'Custom Expression' }
-      ]},
-      { name: 'expression', type: 'textarea', label: 'Expression', required: true, placeholder: 'e.g., {{variable}} == "value"' }
-    ],
     defaults: { label: 'Condition', condition_type: 'custom', expression: '' },
     panelLayout: 'twoColumn',
     panelFieldOrder: ['label', 'condition_type', 'expression'],
-    panelCustomFields: [
-      {
-        type: 'text',
-        name: 'label',
-        label: 'Block Label',
-        placeholder: 'Condition',
-        column: 1
-      }
-    ],
+    // Field definitions moved to field-registry.ts
     panelFieldOverrides: {
       condition_type: { column: 1 },
       expression: { 
@@ -147,7 +113,6 @@ export const NODE_DEFINITIONS: {
           operator: 'equals'
         },
         validate: (value: unknown, formData: ConditionNodeData) => {
-          // Only validate expression for custom type
           if (formData?.condition_type === 'custom' && (!value || typeof value !== 'string' || value.trim().length === 0)) {
             return { isValid: false, error: 'Expression is required for custom conditions' };
           }
@@ -158,42 +123,22 @@ export const NODE_DEFINITIONS: {
   },
   
   job: {
-    label: 'Job (Deprecated)',
-    icon: '⚙️',
-    color: 'gray',
-    handles: {},
-    fields: [],
-    defaults: {}
-  },
-  
-  code_job: {
-    label: 'Code Job',
-    icon: '💻',
-    color: 'purple',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'language', type: 'select', label: 'Language', required: true, options: [
-        { value: 'python', label: 'Python' },
-        { value: 'javascript', label: 'JavaScript' },
-        { value: 'bash', label: 'Bash' }
-      ]},
-      { name: 'code', type: 'textarea', label: 'Code', required: true, placeholder: 'Enter your code here' }
-    ],
+    defaults: { label: 'Job' }
+  },
+  
+  code_job: {
+    handles: {
+      input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
+      output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
+    },
     defaults: { label: 'Code Job', language: 'python', code: '' },
     panelLayout: 'twoColumn',
     panelFieldOrder: ['label', 'language', 'code'],
-    panelCustomFields: [
-      {
-        type: 'text',
-        name: 'label',
-        label: 'Block Label',
-        placeholder: 'Code Job',
-        column: 1
-      }
-    ],
+    // Field definitions moved to field-registry.ts
     panelFieldOverrides: {
       language: { column: 1 },
       code: { 
@@ -210,36 +155,14 @@ export const NODE_DEFINITIONS: {
   },
   
   api_job: {
-    label: 'API Job',
-    icon: '🌐',
-    color: 'teal',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'url', type: 'string', label: 'URL', required: true, placeholder: 'https://api.example.com/endpoint' },
-      { name: 'method', type: 'select', label: 'Method', required: true, options: [
-        { value: 'GET', label: 'GET' },
-        { value: 'POST', label: 'POST' },
-        { value: 'PUT', label: 'PUT' },
-        { value: 'DELETE', label: 'DELETE' }
-      ]},
-      { name: 'headers', type: 'textarea', label: 'Headers', required: false, placeholder: 'JSON format headers' },
-      { name: 'body', type: 'textarea', label: 'Body', required: false, placeholder: 'Request body' }
-    ],
     defaults: { label: 'API Job', url: '', method: 'GET', headers: '', body: '' },
     panelLayout: 'twoColumn',
     panelFieldOrder: ['label', 'url', 'method', 'headers', 'body'],
-    panelCustomFields: [
-      {
-        type: 'text',
-        name: 'label',
-        label: 'Block Label',
-        placeholder: 'API Job',
-        column: 1
-      }
-    ],
+    // Field definitions moved to field-registry.ts
     panelFieldOverrides: {
       url: { column: 1 },
       method: { column: 1 },
@@ -249,35 +172,13 @@ export const NODE_DEFINITIONS: {
   },
   
   endpoint: {
-    label: 'Endpoint',
-    icon: '🎯',
-    color: 'red',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'output_variable', type: 'string', label: 'Output Variable', required: false, placeholder: 'Variable name to output' },
-      { name: 'save_to_file', type: 'boolean', label: 'Save to File', required: false },
-      { name: 'file_format', type: 'select', label: 'File Format', required: false, options: [
-        { value: 'json', label: 'JSON' },
-        { value: 'yaml', label: 'YAML' },
-        { value: 'txt', label: 'Text' },
-        { value: 'md', label: 'Markdown' }
-      ]},
-      { name: 'file_name', type: 'string', label: 'File Name', required: false, placeholder: 'output.json' }
-    ],
-    defaults: { label: 'End', output_variable: '', save_to_file: false, file_format: 'json', file_name: '' },
+    defaults: { label: 'Endpoint', output_variable: '', save_to_file: false, file_format: 'json', file_name: '' },
     panelLayout: 'twoColumn',
     panelFieldOrder: ['label', 'output_variable', 'save_to_file', 'file_format', 'file_name'],
-    panelCustomFields: [
-      {
-        type: 'text',
-        name: 'label',
-        label: 'Block Label',
-        placeholder: 'End',
-        column: 1
-      }
-    ],
+    // Field definitions moved to field-registry.ts
     panelFieldOverrides: {
       output_variable: { column: 1 },
       save_to_file: { column: 2 },
@@ -305,9 +206,6 @@ export const NODE_DEFINITIONS: {
   },
   
   person_job: {
-    label: 'Person Job',
-    icon: '🤖',
-    color: 'indigo',
     handles: {
       input: [
         { id: HandleLabel.FIRST, position: 'left', label: 'first', offset: { x: 0, y: -60 }, color: '#f59e0b' },
@@ -315,12 +213,6 @@ export const NODE_DEFINITIONS: {
       ],
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'max_iteration', type: 'number', label: 'Max Iterations', required: true, min: 1, max: 100 },
-      { name: 'first_only_prompt', type: 'textarea', label: 'First Iteration Prompt', required: true, placeholder: 'Prompt for first iteration (uses "first" input)' },
-      { name: 'default_prompt', type: 'textarea', label: 'Default Prompt', required: true, placeholder: 'Prompt for subsequent iterations (uses "default" input)' },
-      { name: 'tools', type: 'string', label: 'Tools', required: false, placeholder: 'Enter tool names separated by commas (e.g., web_search, image_generation)' }
-    ],
     defaults: { 
       person: '', 
       max_iteration: 1, 
@@ -363,37 +255,20 @@ export const NODE_DEFINITIONS: {
         }
       }
     },
+    // Keep only special field type that's not in field-registry
     panelCustomFields: [
       {
         type: 'labelPersonRow',
         labelPlaceholder: 'Person Job'
-      },
-      {
-        type: 'select',
-        name: 'memory_config.forget_mode',
-        label: 'Forget Mode',
-        column: 1,
-        options: [
-          { value: 'no_forget', label: 'No Forget (Keep all history)' },
-          { value: 'on_every_turn', label: 'On Every Turn' },
-          { value: 'upon_request', label: 'Upon Request' }
-        ]
       }
     ]
   },
   
   person_batch_job: {
-    label: 'Person Batch Job',
-    icon: '📋',
-    color: 'purple',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'batch_key', type: 'string', label: 'Batch Key', required: true, placeholder: 'Variable containing array to iterate over' },
-      { name: 'prompt', type: 'textarea', label: 'Prompt', required: true, placeholder: 'Prompt to execute for each item. Use {{item}} for current item.' }
-    ],
     defaults: { 
       person: '', 
       batch_key: '', 
@@ -416,6 +291,7 @@ export const NODE_DEFINITIONS: {
         }
       }
     },
+    // Keep special field type
     panelCustomFields: [
       {
         type: 'labelPersonRow',
@@ -425,55 +301,21 @@ export const NODE_DEFINITIONS: {
   },
   
   db: {
-    label: 'Database',
-    icon: '💾',
-    color: 'yellow',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'bottom', offset: { x: -30, y: 0 } }],
       output: [{ id: HandleLabel.DEFAULT, position: 'bottom', offset: { x: 30, y: 0 } }]
     },
-    fields: [],
-    defaults: { label: '', sub_type: 'fixed_prompt', source_details: '', operation: 'read' },
+    defaults: { label: 'Database', sub_type: 'fixed_prompt', source_details: '', operation: 'read' },
     panelLayout: 'twoColumn',
     panelFieldOrder: ['label', 'sub_type', 'operation', 'source_details'],
-    panelCustomFields: [
-      {
-        type: 'text',
-        name: 'label',
-        label: 'Block Label',
-        placeholder: 'Database',
-        column: 1
-      },
-      {
-        type: 'select',
-        name: 'sub_type',
-        label: 'Source Type',
-        options: [
-          { value: 'fixed_prompt', label: 'Fixed Prompt' },
-          { value: 'file', label: 'File' }
-        ],
-        column: 1
-      },
-      {
-        type: 'select',
-        name: 'operation',
-        label: 'Operation',
-        options: [
-          { value: 'prompt', label: 'Prompt' },
-          { value: 'read', label: 'Read' },
-          { value: 'write', label: 'Write' },
-          { value: 'update', label: 'Update' },
-          { value: 'delete', label: 'Delete' }
-        ],
-        column: 1
-      },
-      {
-        type: 'variableTextArea',
-        name: 'source_details',
-        label: 'Source Details',
-        rows: 6,
-        placeholder: 'Enter content or file path...',
+    // Field definitions moved to field-registry.ts
+    panelFieldOverrides: {
+      label: { column: 1 },
+      sub_type: { column: 1 },
+      operation: { column: 1 },
+      source_details: {
         column: 2,
+        rows: 6,
         showPromptFileButton: true,
         validate: (value: unknown, formData: DBNodeData) => {
           if (!value || typeof value !== 'string' || value.trim().length === 0) {
@@ -485,29 +327,16 @@ export const NODE_DEFINITIONS: {
           return { isValid: true };
         }
       }
-    ]
+    }
   },
   
   user_response: {
-    label: 'User Response',
-    icon: '👤',
-    color: 'cyan',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'prompt', type: 'textarea', label: 'Prompt', required: true, placeholder: 'Question to ask the user' }
-    ],
     defaults: { label: 'User Response', prompt: '' },
-    panelCustomFields: [
-      {
-        type: 'text',
-        name: 'label',
-        label: 'Block Label',
-        placeholder: 'User Response'
-      }
-    ],
+    // Field definitions moved to field-registry.ts
     panelFieldOverrides: {
       prompt: {
         rows: 4,
@@ -524,68 +353,47 @@ export const NODE_DEFINITIONS: {
   },
   
   notion: {
-    label: 'Notion',
-    icon: '📝',
-    color: 'gray',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'page_id', type: 'string', label: 'Page ID', required: true, placeholder: 'Notion page ID' },
-      { name: 'operation', type: 'select', label: 'Operation', required: true, options: [
-        { value: 'read', label: 'Read' },
-        { value: 'write', label: 'Write' }
-      ]}
-    ],
     defaults: { label: 'Notion', page_id: '', operation: 'read' }
   },
   
   hook: {
-    label: 'Hook',
-    icon: '🪝',
-    color: 'pink',
     handles: {
       input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
       output: [{ id: HandleLabel.DEFAULT, position: 'right' }]
     },
-    fields: [
-      { name: 'hook_type', type: 'select', label: 'Hook Type', required: true, options: [
-        { value: 'webhook', label: 'Webhook' },
-        { value: 'file', label: 'File' },
-        { value: 'shell', label: 'Shell' }
-      ]},
-      { name: 'command', type: 'string', label: 'Command', required: true, placeholder: 'Command to execute' }
-    ],
     defaults: { label: 'Hook', hook_type: 'webhook', command: '' }
   }
 };
 
-// Factory function to create node configs
-export function createNodeConfigs(definitions: typeof NODE_DEFINITIONS = NODE_DEFINITIONS): {
-  [K in NodeType]: UnifiedNodeConfig<NodeDataTypeMap[K]>
-} {
-  const configs: Record<string, UnifiedNodeConfig<any>> = {};
-  
-  for (const [nodeType, definition] of Object.entries(definitions)) {
-    configs[nodeType] = createUnifiedConfig({
-      label: definition.label,
-      icon: definition.icon,
-      color: definition.color,
-      handles: definition.handles || {},
-      fields: definition.fields || [],
-      defaults: definition.defaults || {},
-      panelLayout: definition.panelLayout,
-      panelFieldOrder: definition.panelFieldOrder,
-      panelFieldOverrides: definition.panelFieldOverrides,
-      panelCustomFields: definition.panelCustomFields
-    } as any);
-  }
-  
-  return configs as {
-    [K in NodeType]: UnifiedNodeConfig<NodeDataTypeMap[K]>
-  };
+/**
+ * Get node configuration for a specific type
+ */
+export function getNodeRegistryEntry(nodeType: NodeType): NodeRegistryEntry<any> {
+  return NODE_REGISTRY[nodeType] as NodeRegistryEntry<any>;
 }
 
-// Export the node configs using the factory
-export const nodeConfigs = createNodeConfigs();
+/**
+ * Create a unified node config from registry entry and NODE_META
+ */
+export function createNodeConfigFromRegistry(
+  nodeType: NodeTypeKey,
+  entry: NodeRegistryEntry<any>
+): UnifiedNodeConfig<any> {
+  const meta = NODE_META[nodeType as NodeType];
+  return {
+    label: meta.label,
+    icon: meta.icon,
+    color: meta.color,
+    nodeType,
+    handles: entry.handles || {},
+    defaults: entry.defaults || {},
+    panelLayout: entry.panelLayout,
+    panelFieldOrder: entry.panelFieldOrder,
+    panelFieldOverrides: entry.panelFieldOverrides,
+    panelCustomFields: entry.panelCustomFields
+  };
+}

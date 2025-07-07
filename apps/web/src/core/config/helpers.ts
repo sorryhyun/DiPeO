@@ -1,50 +1,41 @@
-import type { NodeType } from '@dipeo/domain-models';
-import { PANEL_CONFIGS } from './panelConfigs';
+import { NodeType } from '@dipeo/domain-models';
 import { derivePanelConfig } from './unifiedConfig';
-import { UNIFIED_NODE_CONFIGS } from './nodeConfigs';
+import type { NodeTypeKey } from '@/core/types/type-factories';
+import { NODE_REGISTRY, createNodeConfigFromRegistry } from './node-registry';
+import { PANEL_CONFIGS } from './panelConfigs/index';
+
+// Create unified configs on demand to avoid circular dependency
+function getUnifiedNodeConfig(type: NodeType) {
+  const entry = NODE_REGISTRY[type];
+  if (!entry) return null;
+  return createNodeConfigFromRegistry(type as NodeTypeKey, entry);
+}
 
 export function getNodeConfig(type: NodeType) {
   // Check if unified config exists
-  const unifiedConfig = UNIFIED_NODE_CONFIGS[type];
+  const unifiedConfig = getUnifiedNodeConfig(type);
   if (unifiedConfig) {
     // Extract node config properties from unified config
     const { panelLayout: _panelLayout, panelFieldOverrides: _panelFieldOverrides, panelFieldOrder: _panelFieldOrder, panelCustomFields: _panelCustomFields, ...nodeConfig } = unifiedConfig;
     return nodeConfig;
   }
   
-  return UNIFIED_NODE_CONFIGS[type] || UNIFIED_NODE_CONFIGS.start;
+  // Fallback to start node config
+  const startConfig = getUnifiedNodeConfig(NodeType.START);
+  const { panelLayout: _panelLayout, panelFieldOverrides: _panelFieldOverrides, panelFieldOrder: _panelFieldOrder, panelCustomFields: _panelCustomFields, ...startNodeConfig } = startConfig!;
+  return startNodeConfig;
 }
 
-export function validateNodeData(type: NodeType, data: Record<string, unknown>) {
-  const config = getNodeConfig(type);
-  const errors: string[] = [];
-  
-  config.fields.forEach(field => {
-    if (field.required && !data[field.name]) {
-      errors.push(`${field.label} is required`);
-    }
-  });
-  
-  return { valid: errors.length === 0, errors };
-}
 
 export function getNodeDefaults(type: NodeType) {
   return { ...getNodeConfig(type).defaults };
 }
 
-export function getNodeColorClasses(type: NodeType) {
-  const color = getNodeConfig(type).color;
-  return {
-    border: `border-${color}-500`,
-    bg: `bg-${color}-50`,
-    hover: `hover:bg-${color}-100`
-  };
-}
 
 export function getPanelConfig(type: NodeType | 'arrow' | 'person') {
   // Check if unified config exists for node types
   if (type !== 'arrow' && type !== 'person') {
-    const unifiedConfig = UNIFIED_NODE_CONFIGS[type as NodeType];
+    const unifiedConfig = getUnifiedNodeConfig(type as NodeType);
     if (unifiedConfig) {
       return derivePanelConfig(unifiedConfig);
     }

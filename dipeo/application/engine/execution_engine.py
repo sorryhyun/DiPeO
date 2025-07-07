@@ -79,12 +79,8 @@ class ExecutionEngine:
             # Try the standardized name first
             conversation_service = self.service_registry.get('conversation_service')
             if not conversation_service:
-                # Fall back to legacy names for backward compatibility
+                # Fall back to legacy name for backward compatibility
                 conversation_service = self.service_registry.get('conversation')
-            if not conversation_service:
-                conversation_service = self.service_registry.get('memory_service')
-            if not conversation_service:
-                conversation_service = self.service_registry.get('memory')
         
         if conversation_service:
             # Extract person configs from diagram

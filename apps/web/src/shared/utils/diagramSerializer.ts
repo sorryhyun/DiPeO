@@ -8,6 +8,7 @@ import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/type
 import { UNIFIED_NODE_CONFIGS } from '@/core/config';
 import { storeMapsToArrays } from '@/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { ConversionService } from '@/core/services/ConversionService';
 
 // The serialized diagram should match the GraphQL schema format
 export interface SerializedDiagram {
@@ -73,23 +74,8 @@ function cleanNodeData(node: DomainNode): DomainNode {
         ? nodeData.max_iteration 
         : (Number(nodeData.max_iteration) || 1);
       // Convert tools from comma-separated string to array format
-      if (typeof nodeData.tools === 'string' && nodeData.tools) {
-        const toolNames = nodeData.tools.split(',').map((t: string) => t.trim()).filter((t: string) => t);
-        nodeData.tools = toolNames.map((toolName: string) => {
-          // Map common tool names to their enum values
-          const toolTypeMap: Record<string, string> = {
-            'web_search': 'web_search',
-            'web_search_preview': 'web_search_preview',
-            'image_generation': 'image_generation'
-          };
-          return {
-            type: toolTypeMap[toolName] || toolName,
-            enabled: true
-          };
-        });
-      } else if (typeof nodeData.tools === 'string' && !nodeData.tools) {
-        // Empty string means no tools
-        nodeData.tools = null;
+      if (typeof nodeData.tools === 'string') {
+        nodeData.tools = nodeData.tools ? ConversionService.stringToToolsArray(nodeData.tools) : null;
       }
       break;
     case 'person_batch_job':
@@ -99,23 +85,8 @@ function cleanNodeData(node: DomainNode): DomainNode {
         ? nodeData.max_iteration 
         : (Number(nodeData.max_iteration) || 1);
       // Convert tools from comma-separated string to array format
-      if (typeof nodeData.tools === 'string' && nodeData.tools) {
-        const toolNames = nodeData.tools.split(',').map((t: string) => t.trim()).filter((t: string) => t);
-        nodeData.tools = toolNames.map((toolName: string) => {
-          // Map common tool names to their enum values
-          const toolTypeMap: Record<string, string> = {
-            'web_search': 'web_search',
-            'web_search_preview': 'web_search_preview',
-            'image_generation': 'image_generation'
-          };
-          return {
-            type: toolTypeMap[toolName] || toolName,
-            enabled: true
-          };
-        });
-      } else if (typeof nodeData.tools === 'string' && !nodeData.tools) {
-        // Empty string means no tools
-        nodeData.tools = null;
+      if (typeof nodeData.tools === 'string') {
+        nodeData.tools = nodeData.tools ? ConversionService.stringToToolsArray(nodeData.tools) : null;
       }
       break;
     case 'endpoint':
@@ -160,7 +131,7 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   if (config.handles.input) {
     config.handles.input.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
       const handleLabel = handleConfig.id as HandleLabel;
-      const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.INPUT);
+      const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.INPUT);
       handles.push({
         id: handleId,
         node_id: node.id,
@@ -176,7 +147,7 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   if (config.handles.output) {
     config.handles.output.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
       const handleLabel = handleConfig.id as HandleLabel;
-      const handleId = createHandleId(node.id as NodeID, handleLabel, HandleDirection.OUTPUT);
+      const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.OUTPUT);
       handles.push({
         id: handleId,
         node_id: node.id,
@@ -252,10 +223,7 @@ export function serializeDiagram(): SerializedDiagram {
   const existingHandles = diagramArrays.handles || [];
   
   // Create a map of existing handles by their handle ID
-  const existingHandleMap = new Map<string, DomainHandle>();
-  existingHandles.forEach(handle => {
-    existingHandleMap.set(handle.id, handle);
-  });
+  const existingHandleMap = ConversionService.arrayToMap(existingHandles, handle => handle.id);
   
   // Generate handles only for nodes that are missing required handles
   const generatedHandles: DomainHandle[] = [];
@@ -276,7 +244,7 @@ export function serializeDiagram(): SerializedDiagram {
   const allHandles = Array.from(existingHandleMap.values());
   
   // Filter out orphaned handles (handles for nodes that don't exist)
-  const nodeIds = new Set(cleanNodes.map(node => node.id));
+  const nodeIds = ConversionService.arrayToUniqueSet(cleanNodes, node => node.id);
   const validHandles = allHandles.filter(handle => {
     if (!nodeIds.has(handle.node_id)) {
       console.warn(`Removing orphaned handle ${handle.id} for non-existent node ${handle.node_id}`);
@@ -286,7 +254,7 @@ export function serializeDiagram(): SerializedDiagram {
   });
   
   // Create a set of valid handle IDs for arrow validation (use allHandles first to validate arrows)
-  const allHandleIds = new Set(allHandles.map(handle => handle.id));
+  const allHandleIds = ConversionService.arrayToUniqueSet(allHandles, handle => handle.id);
   
   
   // Filter out arrows that reference invalid handles

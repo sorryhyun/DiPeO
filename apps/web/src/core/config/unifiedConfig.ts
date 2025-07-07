@@ -1,7 +1,8 @@
-import type { NodeConfigItem, FieldConfig } from '@/features/diagram-editor/types';
+import type { NodeConfigItem } from '@/features/diagram-editor/types';
 import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import { FIELD_TYPES } from '@/core/types/panel';
-import { normalizeFieldType } from '@/core/types/fieldTypeRegistry';
+import { getNodeFields, FieldConverter, type UnifiedFieldDefinition } from './field-registry';
+import type { NodeTypeKey } from '@/core/types/type-factories';
 
 
 export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<string, unknown>> {
@@ -9,7 +10,7 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   icon: string;
   color: string;
   handles: NodeConfigItem['handles'];
-  fields: FieldConfig[];
+  nodeType: NodeTypeKey;
   defaults: Record<string, unknown>;
   
   // Panel configuration properties (optional overrides)
@@ -17,43 +18,30 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   panelFieldOverrides?: Partial<Record<keyof T, Partial<TypedPanelFieldConfig<T>>>>;
   panelFieldOrder?: Array<keyof T | 'labelPersonRow'>;
   panelCustomFields?: Array<TypedPanelFieldConfig<T>>;
+  
+  // Allow custom field definitions to override registry
+  customFields?: UnifiedFieldDefinition<T>[];
 }
 
 
 export function derivePanelConfig<T extends Record<string, unknown>>(
   config: UnifiedNodeConfig<T>
 ): PanelLayoutConfig<T> {
-
+  // Get fields from registry or use custom fields
+  const fields = config.customFields || getNodeFields(config.nodeType);
+  
   const panelFields: Array<TypedPanelFieldConfig<T>> = [];
   const customFieldsMap = new Map(
     (config.panelCustomFields || []).map(field => [field.type === FIELD_TYPES.LABEL_PERSON_ROW ? FIELD_TYPES.LABEL_PERSON_ROW : field.name || field.type, field])
   );
 
-
-  for (const field of config.fields) {
-    const panelFieldType = normalizeFieldType(field.type);
+  // Convert unified field definitions to panel field configs
+  for (const field of fields) {
+    const panelField = FieldConverter.toPanelFieldConfig<T>(field);
     
-    const panelField: TypedPanelFieldConfig<T> = {
-      type: panelFieldType,
-      name: field.name as keyof T & string,
-      label: field.label,
-      placeholder: field.placeholder,
-      required: field.required,
-      ...(config.panelFieldOverrides?.[field.name as keyof T] || {})
-    };
-    
-    // Special handling for specific field types
-    if (field.type === 'select' && field.options) {
-      panelField.options = field.options;
-    }
-    
-    if (field.type === 'textarea') {
-      panelField.rows = (field as FieldConfig & { rows?: number }).rows || 4;
-    }
-    
-    if (field.type === 'number') {
-      if (field.min !== undefined) panelField.min = field.min;
-      if (field.max !== undefined) panelField.max = field.max;
+    // Apply any field-specific overrides
+    if (config.panelFieldOverrides?.[field.name as keyof T]) {
+      Object.assign(panelField, config.panelFieldOverrides[field.name as keyof T]);
     }
     
     panelFields.push(panelField);

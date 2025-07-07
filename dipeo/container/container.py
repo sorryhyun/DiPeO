@@ -298,13 +298,17 @@ def _create_service_registry(
     registry.register("execution_flow_service", execution_flow_service)
     registry.register("input_resolution_service", input_resolution_service)
     
+    # Aliases for common service names
+    registry.register("conversation_service", conversation_memory_service)  # Primary alias used by handlers
+    registry.register("conversation", conversation_memory_service)  # Legacy alias for execution_engine.py
+    
     # Legacy aliases for backward compatibility
-    # These are kept to avoid breaking existing code that uses the old names
     registry.register("llm", llm_service)  # Used in execution_engine.py
     registry.register("api_key", api_key_service)
-    registry.register("conversation", conversation_memory_service)  # Used in execution_engine.py
-    registry.register("conversation_service", conversation_memory_service)  # Used by handlers
-    registry.register("memory", conversation_memory_service)  # Alternative name for conversation
+    
+    # Aliases for handlers that use short names
+    registry.register("file", file_service)  # Used by endpoint.py
+    registry.register("template", template_service)  # Used by code_job.py
     
     return registry
 

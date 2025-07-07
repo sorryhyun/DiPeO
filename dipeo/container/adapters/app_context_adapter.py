@@ -30,7 +30,6 @@ class AppContextAdapter:
             "llm_service": "llm_service",
             "file_service": "file_service",
             "conversation_service": "conversation_service",
-            "memory_service": "memory_service",
             "execution_service": "execution_service",
             "notion_service": "notion_service",
             "diagram_storage_service": "diagram_storage_service",

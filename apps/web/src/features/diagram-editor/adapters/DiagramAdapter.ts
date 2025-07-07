@@ -29,6 +29,7 @@ import { generateId } from '@/core/types/utilities';
 import { HandleDirection, HandleLabel, createHandleId, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
+import { ConversionService } from '@/core/services/ConversionService';
 
 /**
  * React Flow specific diagram representation
@@ -166,9 +167,7 @@ export class DiagramAdapter {
     
     // Convert tools array to comma-separated string for person_job nodes
     if (node.type === 'person_job' && Array.isArray(nodeData.tools)) {
-      nodeData.tools = nodeData.tools
-        .map((tool: any) => tool.type || tool)
-        .join(', ');
+      nodeData.tools = ConversionService.toolsArrayToString(nodeData.tools);
     }
 
     return {
@@ -196,8 +195,8 @@ export class DiagramAdapter {
    * Convert domain arrow to React Flow edge
    */
   static arrowToReactFlow(arrow: DomainArrow): DiPeoEdge {
-    const sourceParsed = parseHandleId(arrow.source as HandleID);
-    const targetParsed = parseHandleId(arrow.target as HandleID);
+    const sourceParsed = ConversionService.parseHandleId(arrow.source);
+    const targetParsed = ConversionService.parseHandleId(arrow.target);
     const sourceNode = sourceParsed.node_id;
     const targetNode = targetParsed.node_id;
     
@@ -236,7 +235,7 @@ export class DiagramAdapter {
     const { _handles, ...nodeData } = rfNode.data || {};
     
     return {
-      id: rfNode.id as NodeID,
+      id: ConversionService.toNodeId(rfNode.id),
       type: nodeKindToGraphQLType(rfNode.type || 'start'),
       position: { ...rfNode.position },
       data: {
@@ -254,13 +253,13 @@ export class DiagramAdapter {
     const sourceHandleLabel = (rfEdge.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (rfEdge.targetHandle || 'default') as HandleLabel;
     
-    const sourceHandle = createHandleId(
-      rfEdge.source as NodeID, 
+    const sourceHandle = ConversionService.createHandleId(
+      ConversionService.toNodeId(rfEdge.source), 
       sourceHandleLabel,
       HandleDirection.OUTPUT
     );
-    const targetHandle = createHandleId(
-      rfEdge.target as NodeID,
+    const targetHandle = ConversionService.createHandleId(
+      ConversionService.toNodeId(rfEdge.target),
       targetHandleLabel,
       HandleDirection.INPUT
     );
@@ -269,7 +268,7 @@ export class DiagramAdapter {
     const { content_type, label, ...restData } = rfEdge.data || {};
     
     const domainArrow: DomainArrow = {
-      id: rfEdge.id as ArrowID,
+      id: ConversionService.toArrowId(rfEdge.id),
       source: sourceHandle,
       target: targetHandle,
       data: Object.keys(restData).length > 0 ? restData : null
@@ -297,19 +296,19 @@ export class DiagramAdapter {
     const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
     
-    const sourceHandle = createHandleId(
-      connection.source as NodeID,
+    const sourceHandle = ConversionService.createHandleId(
+      ConversionService.toNodeId(connection.source),
       sourceHandleLabel,
       HandleDirection.OUTPUT
     );
-    const targetHandle = createHandleId(
-      connection.target as NodeID,
+    const targetHandle = ConversionService.createHandleId(
+      ConversionService.toNodeId(connection.target),
       targetHandleLabel,
       HandleDirection.INPUT
     );
 
     return {
-      id: generateId() as ArrowID,
+      id: ConversionService.toArrowId(generateId()),
       source: sourceHandle,
       target: targetHandle,
       data: {}
@@ -341,13 +340,13 @@ export class DiagramAdapter {
     const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
     
-    const sourceHandleId = createHandleId(
-      connection.source as NodeID,
+    const sourceHandleId = ConversionService.createHandleId(
+      ConversionService.toNodeId(connection.source),
       sourceHandleLabel,
       HandleDirection.OUTPUT
     );
-    const targetHandleId = createHandleId(
-      connection.target as NodeID,
+    const targetHandleId = ConversionService.createHandleId(
+      ConversionService.toNodeId(connection.target),
       targetHandleLabel,
       HandleDirection.INPUT
     );
@@ -367,12 +366,12 @@ export class DiagramAdapter {
     
     const sourceHandle = findHandleByLabel(
       handleIndex,
-      connection.source as NodeID,
+      ConversionService.toNodeId(connection.source),
       connection.sourceHandle || 'default'
     );
     const targetHandle = findHandleByLabel(
       handleIndex,
-      connection.target as NodeID,
+      ConversionService.toNodeId(connection.target),
       connection.targetHandle || 'default'
     );
 
@@ -419,24 +418,16 @@ export class DiagramAdapter {
    * Convert array of React Flow nodes to domain nodes
    */
   static reactNodesToDomain(rfNodes: RFNode[]): Map<NodeID, DomainNode> {
-    const nodes = new Map<NodeID, DomainNode>();
-    rfNodes.forEach(rfNode => {
-      const domainNode = this.reactToNode(rfNode);
-      nodes.set(nodeId(domainNode.id), domainNode);
-    });
-    return nodes;
+    const domainNodes = rfNodes.map(rfNode => this.reactToNode(rfNode));
+    return ConversionService.arrayToMap(domainNodes, node => node.id);
   }
 
   /**
    * Convert array of React Flow edges to domain arrows
    */
   static reactEdgesToDomain(rfEdges: RFEdge[]): Map<ArrowID, DomainArrow> {
-    const arrows = new Map<ArrowID, DomainArrow>();
-    rfEdges.forEach(rfEdge => {
-      const domainArrow = this.reactToArrow(rfEdge);
-      arrows.set(arrowId(domainArrow.id), domainArrow);
-    });
-    return arrows;
+    const domainArrows = rfEdges.map(rfEdge => this.reactToArrow(rfEdge));
+    return ConversionService.arrayToMap(domainArrows, arrow => arrow.id);
   }
 }
 

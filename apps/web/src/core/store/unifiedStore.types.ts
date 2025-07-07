@@ -37,6 +37,11 @@ export interface UnifiedStore extends
   handles: Map<HandleID, DomainHandle>;
   handleIndex: Map<NodeID, DomainHandle[]>;  // Performance optimization: O(1) handle lookups by node
   
+  // === Computed Arrays (memoized getters) ===
+  readonly nodesArray: DomainNode[];
+  readonly arrowsArray: DomainArrow[];
+  readonly personsArray: DomainPerson[];
+  
   // === History ===
   history: {
     undoStack: Snapshot[];

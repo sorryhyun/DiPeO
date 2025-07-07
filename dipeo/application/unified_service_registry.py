@@ -18,7 +18,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
         registry = UnifiedServiceRegistry(
             llm=llm_service,
             file=file_service,
-            memory=memory_service
+            conversation_service=conversation_service
         )
         
         # Local mode
@@ -77,9 +77,8 @@ class UnifiedServiceRegistry(DynamicRegistry):
             # Legacy aliases for backward compatibility
             "llm": "llm_service",  # Used in execution_engine.py
             "conversation": "conversation_service",  # Used in execution_engine.py
-            "memory": "memory_service",  # Alternative name for conversation
             "api_key": "api_key_service",  # Legacy usage
-            "conversation_memory_service": "conversation_service",  # Alternative name
+            "conversation_memory_service": "conversation_service",  # Direct mapping
         }
         
         # Register services from context

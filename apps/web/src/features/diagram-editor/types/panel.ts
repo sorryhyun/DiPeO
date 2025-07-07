@@ -1,17 +1,20 @@
+// Import node form data types from type factories
 import type {
-  StartNodeData,
-  ConditionNodeData,
-  PersonJobNodeData,
-  EndpointNodeData,
+  StartFormData,
+  PersonJobFormData,
+  ConditionFormData,
+  EndpointFormData,
+  JobFormData,
+  CodeJobFormData,
+  ApiJobFormData,
+  UserResponseFormData,
+  NotionFormData,
+  PersonBatchJobFormData,
+  HookFormData,
+  DBFormData as BaseDBFormData,
   DBNodeData,
-  JobNodeData,
-  CodeJobNodeData,
-  ApiJobNodeData,
-  UserResponseNodeData,
-  NotionNodeData,
-  PersonBatchJobNodeData,
   HookNodeData
-} from '@/core/types';
+} from '@/core/types/type-factories';
 
 // Import shared panel types
 import type {
@@ -21,32 +24,31 @@ import type {
   OptionsConfig
 } from '@/core/types/panel';
 
+// Re-export types
 export type {
   FieldType as PanelFieldType,
   PanelFormData,
   ConditionalConfig,
   OptionsConfig,
-  HookNodeData
+  HookNodeData,
+  // Re-export all form data types
+  StartFormData,
+  PersonJobFormData,
+  ConditionFormData,
+  EndpointFormData,
+  JobFormData,
+  CodeJobFormData,
+  ApiJobFormData,
+  UserResponseFormData,
+  NotionFormData,
+  PersonBatchJobFormData,
+  HookFormData
 };
-
-
-// Node form data types - directly map to domain node data
-export type StartFormData = PanelFormData<StartNodeData>;
-export type PersonJobFormData = PanelFormData<PersonJobNodeData>;
-export type ConditionFormData = PanelFormData<ConditionNodeData>;
-export type EndpointFormData = PanelFormData<EndpointNodeData>;
-export type JobFormData = PanelFormData<JobNodeData>;
-export type CodeJobFormData = PanelFormData<CodeJobNodeData>;
-export type ApiJobFormData = PanelFormData<ApiJobNodeData>;
-export type UserResponseFormData = PanelFormData<UserResponseNodeData>;
-export type NotionFormData = PanelFormData<NotionNodeData>;
-export type PersonBatchJobFormData = PanelFormData<PersonBatchJobNodeData>;
-export type HookFormData = PanelFormData<HookNodeData>;
 
 /**
  * DB form data with UI-specific field mapping
  */
-export type DBFormData = PanelFormData<DBNodeData> & {
+export type DBFormData = BaseDBFormData & {
   source_details?: string; // Maps to different fields based on sub_type
 };
 /**

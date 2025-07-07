@@ -7,7 +7,6 @@ import { UnifiedStore } from '@/core/store/unifiedStore.types';
 export interface PersonSlice {
   // Core data
   persons: Map<PersonID, DomainPerson>;
-  personsArray: DomainPerson[];
   
   // Person operations
   addPerson: (label: string, service: string, model: string) => PersonID;
@@ -19,15 +18,10 @@ export interface PersonSlice {
   importPersons: (persons: DomainPerson[]) => void;
 }
 
-// Helper function to sync array with map
-const syncPersonsArray = (state: UnifiedStore) => {
-  state.personsArray = Array.from(state.persons.values());
-};
 
 // Helper to handle post-change operations
 const afterChange = (state: UnifiedStore) => {
   state.dataVersion += 1;
-  syncPersonsArray(state);
 };
 
 export const createPersonSlice: StateCreator<
@@ -38,9 +32,6 @@ export const createPersonSlice: StateCreator<
 > = (set, _get) => ({
     // Initialize data
     persons: new Map(),
-    
-    // Array property - synced with Map for React components
-    personsArray: [],
   
     // Person operations
     addPerson: (label, service, model) => {

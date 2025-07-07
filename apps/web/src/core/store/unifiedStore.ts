@@ -19,6 +19,7 @@ import {
   recordHistory 
 } from "./helpers/entityHelpers";
 import { rebuildHandleIndex } from "./helpers/handleIndexHelper";
+import { createComputedGetters } from "./helpers/computedGetters";
 
 // Custom serializer for Redux DevTools to handle Maps
 const devtoolsOptions = {
@@ -53,6 +54,9 @@ export const useUnifiedStore = create<UnifiedStore>()(
         ...createExecutionSlice(set, get, api),
         ...createPersonSlice(set, get, api),
         ...createUISlice(set, get, api),
+        
+        // Add computed getters
+        ...createComputedGetters(),
         
         // Additional data not in slices
         handles: new Map(),
@@ -92,10 +96,8 @@ export const useUnifiedStore = create<UnifiedStore>()(
             // Rebuild handle index for O(1) lookups
             state.handleIndex = rebuildHandleIndex(state.handles);
             
-            // Update arrays after restoring maps
-            state.nodesArray = Array.from(state.nodes.values());
-            state.arrowsArray = Array.from(state.arrows.values());
-            state.personsArray = Array.from(state.persons.values());
+            // Increment dataVersion to invalidate memoized arrays
+            state.dataVersion += 1;
           }
         }),
 
@@ -116,10 +118,8 @@ export const useUnifiedStore = create<UnifiedStore>()(
             // Rebuild handle index for O(1) lookups
             state.handleIndex = rebuildHandleIndex(state.handles);
             
-            // Update arrays after restoring maps
-            state.nodesArray = Array.from(state.nodes.values());
-            state.arrowsArray = Array.from(state.arrows.values());
-            state.personsArray = Array.from(state.persons.values());
+            // Increment dataVersion to invalidate memoized arrays
+            state.dataVersion += 1;
           }
         }),
 
@@ -161,11 +161,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
           
           // Rebuild handle index for O(1) lookups
           state.handleIndex = rebuildHandleIndex(state.handles);
-          
-          // Update arrays after restoring maps
-          state.nodesArray = Array.from(state.nodes.values());
-          state.arrowsArray = Array.from(state.arrows.values());
-          state.personsArray = Array.from(state.persons.values());
         }),
 
         clearAll: () => set(state => {
@@ -174,9 +169,6 @@ export const useUnifiedStore = create<UnifiedStore>()(
           state.persons = new Map();
           state.handles = new Map();
           state.handleIndex = new Map();
-          state.nodesArray = [];
-          state.arrowsArray = [];
-          state.personsArray = [];
           state.dataVersion = 0;
         }),
 

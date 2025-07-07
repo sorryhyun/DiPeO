@@ -134,9 +134,6 @@ export function useDiagramLoader() {
               handleIndex: rebuildHandleIndex(handles),  // Rebuild index for O(1) lookups
               arrows,
               persons,
-              nodesArray: diagramWithCounts.nodes || [],
-              arrowsArray: diagramWithCounts.arrows || [],
-              personsArray: diagramWithCounts.persons || [],
               dataVersion: state.dataVersion + 1  // Single increment
             }));
           });
