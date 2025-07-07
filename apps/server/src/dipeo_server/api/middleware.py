@@ -1,6 +1,6 @@
 import os
 
-from dipeo_core.base.exceptions import (  # noqa: F401
+from dipeo.core.base.exceptions import (  # noqa: F401
     ConfigurationError,
     DiPeOError,
     ExecutionError,

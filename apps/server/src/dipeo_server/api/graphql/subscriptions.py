@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 
 import strawberry
-from dipeo_domain import ExecutionStatus, NodeExecutionStatus, NodeType
+from dipeo.domain import ExecutionStatus, NodeExecutionStatus, NodeType
 
 from .context import GraphQLContext
 from .types import (

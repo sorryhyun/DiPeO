@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dependency_injector import providers
 from dipeo.container import Container as BaseContainer
-from dipeo_core import (
+from dipeo.core import (
     SupportsAPIKey,
     SupportsExecution,
     SupportsFile,

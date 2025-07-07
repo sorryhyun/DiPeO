@@ -8,8 +8,8 @@ from typing import Any
 
 import yaml
 from pydantic import BaseModel
-from dipeo_core.constants import BASE_DIR
-from dipeo_core import BaseService, SupportsDiagram
+from dipeo.core.constants import BASE_DIR
+from dipeo.core import BaseService, SupportsDiagram
 
 logger = logging.getLogger(__name__)
 

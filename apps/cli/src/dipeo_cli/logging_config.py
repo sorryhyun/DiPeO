@@ -75,7 +75,7 @@ def configure_logging(debug: bool = False) -> None:
         # Show which loggers are at DEBUG level
         debug_loggers = []
         for name in ["dipeo", "dipeo.core", "dipeo.domain", "dipeo.diagram", 
-                     "dipeo.application", "dipeo.infra", "dipeo_container", "openai"]:
+                     "dipeo.application", "dipeo.infra", "dipeo.container", "openai"]:
             if logging.getLogger(name).getEffectiveLevel() <= logging.DEBUG:
                 debug_loggers.append(name)
         if debug_loggers:

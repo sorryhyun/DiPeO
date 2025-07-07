@@ -1,5 +1,5 @@
 import anthropic
-from dipeo_domain import ChatResult, TokenUsage
+from dipeo.domain import ChatResult, TokenUsage
 
 from ..base import BaseLLMAdapter
 

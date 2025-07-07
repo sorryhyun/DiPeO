@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
-from dipeo_core import BaseService, SupportsExecution
+from dipeo.core import BaseService, SupportsExecution
 
 from ..observers import StreamingObserver
 
@@ -45,7 +45,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         """Execute diagram with streaming updates."""
 
         from ....models import DomainDiagram
-        from dipeo_diagram import BackendDiagram, backend_to_graphql
+        from dipeo.diagram import BackendDiagram, backend_to_graphql
 
         # Check if diagram is in backend format (dict of dicts) or domain format (lists)
         if isinstance(diagram.get("nodes"), dict):
@@ -61,7 +61,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
 
         # Import EngineFactory locally to avoid domain->application dependency
         # This is a temporary workaround - ideally this class should be in application layer
-        from dipeo_application import EngineFactory
+        from dipeo.application import EngineFactory
         
         # Create engine with factory
         engine = EngineFactory.create_engine(

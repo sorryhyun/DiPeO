@@ -13,8 +13,8 @@ from dipeo.core import (
     SupportsMemory,
     SupportsNotion,
 )
-from dipeo_application import ApplicationContext  # Not migrated yet
-from dipeo_infra.external.apikey import EnvironmentAPIKeyService  # Not migrated yet
+from dipeo.application import ApplicationContext
+from dipeo.infra.external.apikey import EnvironmentAPIKeyService
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +101,8 @@ class LocalAppContext:
     async def initialize_for_local(self):
         """Initialize minimal services for local execution."""
         # Import necessary services
-        from dipeo_application import LocalExecutionService  # Not migrated yet
-        from dipeo_infra import ConsolidatedFileService, LLMInfraService, MemoryService  # Not migrated yet
+        from dipeo.application import LocalExecutionService
+        from dipeo.infra import ConsolidatedFileService, LLMInfraService, MemoryService
         from dipeo.domain.domains.db import DBOperationsDomainService
         from dipeo.domain.domains.validation import ValidationDomainService
         from dipeo.domain.domains.text import TextProcessingDomainService

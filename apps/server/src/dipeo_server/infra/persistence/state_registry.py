@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
-from dipeo_domain import (
+from dipeo.domain import (
     DiagramID,
     ExecutionID,
     ExecutionState,
@@ -23,7 +23,7 @@ from dipeo_domain import (
 from .execution_cache import ExecutionCache
 from .message_store import MessageStore
 
-from dipeo_core.constants import STATE_DB_PATH
+from dipeo.core.constants import STATE_DB_PATH
 
 logger = logging.getLogger(__name__)
 

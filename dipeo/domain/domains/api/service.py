@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Any
 
-from dipeo_core import ServiceError, SupportsFile
+from dipeo.core import ServiceError, SupportsFile
 
 log = logging.getLogger(__name__)
 

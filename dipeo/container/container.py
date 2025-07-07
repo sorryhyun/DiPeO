@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from dependency_injector import containers, providers
-from dipeo_core import (
+from dipeo.core import (
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
@@ -32,15 +32,25 @@ def _get_project_base_dir():
 
 
 def _import_state_store():
-    from dipeo_server.infra.persistence import state_store
-
-    return state_store
+    # TODO: This is server-specific. For now, return None for non-server contexts
+    try:
+        from dipeo_server.infra.persistence import state_store
+        return state_store
+    except ImportError:
+        # Return a minimal implementation for CLI usage
+        from dipeo.application.services.minimal_state_store import MinimalStateStore
+        return MinimalStateStore()
 
 
 def _import_message_router():
-    from dipeo.infra import message_router
-
-    return message_router
+    # TODO: This is server-specific. For now, return None for non-server contexts
+    try:
+        from dipeo_server.infra.messaging import message_router
+        return message_router
+    except ImportError:
+        # Return a minimal implementation for CLI usage
+        from dipeo.application.services.minimal_message_router import MinimalMessageRouter
+        return MinimalMessageRouter()
 
 
 def _create_api_key_service():
@@ -70,15 +80,15 @@ def _create_conversation_service(memory_service):
 
 
 def _create_llm_service(api_key_service):
-    from dipeo.infra.external.llm import LLMInfraService
+    from dipeo.infra.adapters.llm import LLMInfraService
 
     return LLMInfraService(api_key_service)
 
 
 def _create_notion_service():
-    from dipeo.infra.external import NotionAPIService
-
-    return NotionAPIService()
+    # TODO: NotionAPIService not yet implemented in new structure
+    # Return None for now as it's optional
+    return None
 
 
 def _create_diagram_storage_service(base_dir):
@@ -219,17 +229,26 @@ def _create_execute_diagram_use_case(
 async def init_resources(container: "Container") -> None:
     """Initialize all resources that require async setup."""
     # Initialize infrastructure
-    await container.state_store().initialize()
-    await container.message_router().initialize()
+    state_store = container.state_store()
+    if hasattr(state_store, 'initialize'):
+        await state_store.initialize()
+    
+    message_router = container.message_router()
+    if hasattr(message_router, 'initialize'):
+        await message_router.initialize()
 
     # Initialize services
     await container.llm_service().initialize()
     await container.diagram_storage_service().initialize()
-    await container.notion_service().initialize()
+    
+    notion_service = container.notion_service()
+    if notion_service is not None and hasattr(notion_service, 'initialize'):
+        await notion_service.initialize()
 
     # Initialize execution service
     execution_service = container.execution_service()
-    await execution_service.initialize()
+    if execution_service is not None:
+        await execution_service.initialize()
 
     # Validate protocol compliance
     _validate_protocol_compliance(container)
@@ -237,8 +256,13 @@ async def init_resources(container: "Container") -> None:
 
 async def shutdown_resources(container: "Container") -> None:
     """Cleanup all resources."""
-    await container.message_router().cleanup()
-    await container.state_store().cleanup()
+    message_router = container.message_router()
+    if hasattr(message_router, 'cleanup'):
+        await message_router.cleanup()
+    
+    state_store = container.state_store()
+    if hasattr(state_store, 'cleanup'):
+        await state_store.cleanup()
 
 
 def _validate_protocol_compliance(container: "Container") -> None:

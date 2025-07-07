@@ -1,13 +1,13 @@
 """Server exception module.
 
-This module re-exports exceptions from dipeo_core.errors for backward compatibility
+This module re-exports exceptions from dipeo.core.errors for backward compatibility
 and defines server-specific exceptions that extend the core taxonomy.
 """
 
 from typing import Any
 
 # Re-export base exceptions
-from dipeo_core.base.exceptions import (  # noqa: F401
+from dipeo.core.base.exceptions import (  # noqa: F401
     ConfigurationError,
     DiPeOError,
     ExecutionError,
@@ -16,7 +16,7 @@ from dipeo_core.base.exceptions import (  # noqa: F401
 )
 
 # Re-export core exceptions for backward compatibility
-from dipeo_core.errors import (  # noqa: F401
+from dipeo.core.errors import (  # noqa: F401
     APIKeyError,
     DependencyError,
     FileOperationError,

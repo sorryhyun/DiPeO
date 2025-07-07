@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 
 import strawberry
-from dipeo_domain import (
+from dipeo.domain import (
     ExecutionStatus,
 )
 

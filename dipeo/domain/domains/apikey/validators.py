@@ -1,6 +1,6 @@
 """API Key validation rules."""
 
-from dipeo_core import ValidationError
+from dipeo.core import ValidationError
 
 
 def validate_service_name(service: str, valid_services: set[str]) -> str:

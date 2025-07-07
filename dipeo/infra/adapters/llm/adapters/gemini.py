@@ -7,7 +7,7 @@ from io import BytesIO
 from typing import Any, AsyncIterator
 
 from google import genai
-from dipeo_domain import (
+from dipeo.domain import (
     ChatResult,
     ImageGenerationResult,
     ToolOutput,
