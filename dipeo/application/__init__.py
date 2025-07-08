@@ -10,6 +10,20 @@ from .context.application_execution_context import ApplicationExecutionContext
 # Engine components
 from .engine import ExecutionEngine, ExecutionController, LocalExecutionView
 
+# Execution framework (moved from core)
+from .execution import (
+    BaseNodeHandler,
+    HandlerRegistry,
+    register_handler,
+    get_global_registry,
+    ExecutionContext,
+    ExecutionOptions,
+    NodeDefinition,
+    NodeHandler,
+    BaseExecutor,
+    ExecutorInterface,
+)
+
 # Handlers
 from .handlers import (
     StartNodeHandler,
@@ -46,6 +60,17 @@ __all__ = [
     # Execution
     "LocalExecutionService",
     "ExecuteDiagramUseCase",
+    # Execution framework (moved from core)
+    "BaseNodeHandler",
+    "HandlerRegistry",
+    "register_handler",
+    "get_global_registry",
+    "ExecutionContext",
+    "ExecutionOptions",
+    "NodeDefinition",
+    "NodeHandler",
+    "BaseExecutor",
+    "ExecutorInterface",
     # Handlers
     "StartNodeHandler",
     "EndpointNodeHandler",
@@ -65,5 +90,4 @@ __all__ = [
     # Utilities
     "InputDetector",
     "MessageBuilder",
-    "substitute_template",
 ]

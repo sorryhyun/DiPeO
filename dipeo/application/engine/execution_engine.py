@@ -45,7 +45,7 @@ class ExecutionEngine:
         
         # Create execution view and controller
         from .execution_view import LocalExecutionView
-        from dipeo.core import get_global_registry
+        from dipeo.application import get_global_registry
         
         # Get domain services from service registry if available
         input_resolution_service = None

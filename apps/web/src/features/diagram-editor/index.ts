@@ -5,10 +5,8 @@
  * including node creation, connection management, and diagram serialization.
  */
 
-// ============================================
-// Main Components
-// ============================================
 
+// Main Components
 /**
  * DiagramCanvas - The main canvas component for diagram editing
  * Use this as the primary entry point for embedding the diagram editor
@@ -27,10 +25,8 @@ export { DiagramFileManager } from './components/DiagramFileManager';
  */
 export { DiagramSidebar } from './components/sidebar/DiagramSidebar';
 
-// ============================================
-// Node Components
-// ============================================
 
+// Node Components
 /**
  * Node-related exports for customization and extension
  */
@@ -39,10 +35,8 @@ export { default as ConfigurableNode } from './components/nodes/ConfigurableNode
 export { default as PersonNode } from './components/nodes/PersonNode';
 export { default as nodeTypes } from './components/nodes/nodeTypes';
 
-// ============================================
-// Hooks
-// ============================================
 
+// Hooks
 /**
  * useDiagramManager - Main hook for diagram management operations
  * Provides methods for loading, saving, and manipulating diagrams
@@ -71,10 +65,8 @@ export { useCanvas, useCanvasInteractions } from './hooks/ui';
  */
 export { useNodeOperations, useArrowOperations, usePersonOperations } from './hooks/operations';
 
-// ============================================
-// Types and Interfaces
-// ============================================
 
+// Types and Interfaces
 /**
  * Core types for diagram structure and configuration
  */
@@ -98,10 +90,8 @@ export type {
   ArrowID
 } from '@/core/types/domain';
 
-// ============================================
-// Utilities
-// ============================================
 
+// Utilities
 /**
  * Diagram serialization utilities
  * Use these for converting between diagram formats
@@ -119,20 +109,15 @@ export {
   getHandlesForNode 
 } from './utils/handleIndex';
 
-// ============================================
-// Store Exports
-// ============================================
 
+// Store Exports
 /**
  * Zustand store slices for diagram state management
  * Only use these if you need direct store access
  */
 export type { DiagramSlice } from './store';
 
-// ============================================
 // Context Re-exports
-// ============================================
-
 /**
  * Canvas context exports (moved to shared contexts)
  * These provide access to the canvas state and operations

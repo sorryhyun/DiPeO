@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 import logging
 
 from dipeo.models import DomainDiagram, DomainArrow, NodeType, NodeOutput
-from dipeo.domain.services.arrow import ArrowProcessor
+from .interfaces import ArrowProcessorProtocol
 
 log = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 class InputResolutionService:
     """Service for managing input resolution business logic."""
     
-    def __init__(self, arrow_processor: Optional[ArrowProcessor] = None):
+    def __init__(self, arrow_processor: Optional[ArrowProcessorProtocol] = None):
         """Initialize with optional arrow processor.
         
         Args:

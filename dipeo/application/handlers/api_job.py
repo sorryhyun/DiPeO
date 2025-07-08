@@ -5,7 +5,7 @@ import json
 from typing import Any
 import httpx
 
-from dipeo.core import BaseNodeHandler, register_handler
+from dipeo.application import BaseNodeHandler, register_handler
 from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 from dipeo.application.utils import create_node_output
 from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod

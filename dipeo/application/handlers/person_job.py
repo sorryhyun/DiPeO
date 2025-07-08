@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, Optional
 
-from dipeo.core import BaseNodeHandler, register_handler
+from dipeo.application import BaseNodeHandler, register_handler
 from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 from dipeo.models import (
     NodeOutput,

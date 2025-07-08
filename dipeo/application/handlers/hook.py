@@ -9,7 +9,7 @@ from typing import Any, Dict
 import aiohttp
 from pydantic import BaseModel
 
-from dipeo.core import BaseNodeHandler, register_handler
+from dipeo.application import BaseNodeHandler, register_handler
 from dipeo.domain.services.ports.execution_context import ExecutionContextPort
 from dipeo.core.errors import NodeExecutionError, InvalidDiagramError
 from dipeo.application.utils import create_node_output

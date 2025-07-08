@@ -116,7 +116,6 @@ def _create_notion_service():
 
 def _create_diagram_storage_service(base_dir):
     from dipeo.domain.services.diagram import DiagramFileRepository
-
     return DiagramFileRepository(base_dir=base_dir)
 
 
@@ -142,10 +141,28 @@ def _create_execution_preparation_service(storage_service, validator, api_key_se
     )
 
 
-def _create_api_integration_service(file_service):
-    from dipeo.domain.services.api import APIIntegrationDomainService
+def _create_api_domain_service():
+    """Create pure API domain service."""
+    from dipeo.domain.services.api.api_domain_service import APIDomainService
+    return APIDomainService()
 
-    return APIIntegrationDomainService(file_service)
+
+def _create_api_service(api_domain_service, file_service):
+    """Create infrastructure API service."""
+    from dipeo.infra.services.api import APIService
+    return APIService(
+        domain_service=api_domain_service,
+        file_service=file_service
+    )
+
+
+def _create_api_integration_service(api_service):
+    """Create legacy API integration service (for backward compatibility).
+    
+    TODO: Migrate all usages to the new api_service directly.
+    """
+    # For now, return the new API service for backward compatibility
+    return api_service
 
 
 def _create_text_processing_service():
@@ -154,10 +171,25 @@ def _create_text_processing_service():
     return TextProcessingDomainService()
 
 
-def _create_file_operations_service(file_service):
-    from dipeo.domain.services.file import FileOperationsDomainService
+def _create_file_domain_service():
+    """Create pure file domain service."""
+    from dipeo.domain.services.file.file_domain_service import FileDomainService
+    return FileDomainService()
 
-    return FileOperationsDomainService(file_service)
+
+def _create_file_operations_infra_service(file_domain_service):
+    """Create infrastructure file operations service."""
+    from dipeo.infra.services.file import FileOperationsService
+    return FileOperationsService(domain_service=file_domain_service)
+
+
+def _create_file_operations_service(file_operations_infra_service):
+    """Create legacy file operations service (for backward compatibility).
+    
+    TODO: Migrate all usages to the new file_operations_infra_service directly.
+    """
+    # For now, return the new infrastructure service for backward compatibility
+    return file_operations_infra_service
 
 
 
@@ -196,11 +228,37 @@ def _create_person_job_services(template_service, conversation_memory_service, m
     )
     from dipeo.domain.services.conversation import OnEveryTurnHandler
     
+    # Import new focused services
+    from dipeo.domain.services.prompt.builder import PromptBuilder
+    from dipeo.domain.services.conversation.state_manager import ConversationStateManager
+    from dipeo.domain.services.conversation.message_preparator import MessagePreparator
+    from dipeo.domain.services.llm.executor import LLMExecutor
+    from dipeo.domain.services.person_job.orchestrator import PersonJobOrchestrator
+    
+    # Create legacy services (for backward compatibility)
     prompt_service = PromptProcessingService(template_service)
     conversation_processor = ConversationProcessingService()
     output_builder = PersonJobOutputBuilder()
     on_every_turn_handler = OnEveryTurnHandler()
     
+    # Create new focused services
+    prompt_builder = PromptBuilder()
+    conversation_state_manager = ConversationStateManager()
+    message_preparator = MessagePreparator()
+    llm_executor = LLMExecutor()
+    
+    # Create orchestrator with new services
+    person_job_orchestrator = PersonJobOrchestrator(
+        prompt_builder=prompt_builder,
+        conversation_state_manager=conversation_state_manager,
+        message_preparator=message_preparator,
+        llm_executor=llm_executor,
+        output_builder=output_builder,
+        conversation_processor=conversation_processor,
+        memory_transformer=memory_transformer,
+    )
+    
+    # Create legacy execution service (for backward compatibility)
     execution_service = PersonJobExecutionService(
         prompt_service=prompt_service,
         conversation_processor=conversation_processor,
@@ -214,6 +272,12 @@ def _create_person_job_services(template_service, conversation_memory_service, m
         "conversation_processor": conversation_processor,
         "output_builder": output_builder,
         "execution_service": execution_service,
+        # New focused services
+        "prompt_builder": prompt_builder,
+        "conversation_state_manager": conversation_state_manager,
+        "message_preparator": message_preparator,
+        "llm_executor": llm_executor,
+        "person_job_orchestrator": person_job_orchestrator,
     }
 
 
@@ -264,6 +328,12 @@ def _create_service_registry(
     execution_flow_service,
     input_resolution_service,
     template_service,
+    # New infrastructure services
+    api_service,
+    file_operations_infra_service,
+    # Pure domain services
+    api_domain_service,
+    file_domain_service,
 ):
     """Factory for UnifiedServiceRegistry with explicit dependencies."""
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
@@ -293,10 +363,25 @@ def _create_service_registry(
     registry.register("conversation_processor", person_job_services["conversation_processor"])
     registry.register("person_job_output_builder", person_job_services["output_builder"])
     
+    # New focused services
+    registry.register("prompt_builder", person_job_services["prompt_builder"])
+    registry.register("conversation_state_manager", person_job_services["conversation_state_manager"])
+    registry.register("message_preparator", person_job_services["message_preparator"])
+    registry.register("llm_executor", person_job_services["llm_executor"])
+    registry.register("person_job_orchestrator", person_job_services["person_job_orchestrator"])
+    
     # Execution services - Primary registration with _service suffix
     registry.register("condition_evaluation_service", condition_evaluation_service)
     registry.register("execution_flow_service", execution_flow_service)
     registry.register("input_resolution_service", input_resolution_service)
+    
+    # New infrastructure services
+    registry.register("api_service", api_service)
+    registry.register("file_operations_infra_service", file_operations_infra_service)
+    
+    # Pure domain services
+    registry.register("api_domain_service", api_domain_service)
+    registry.register("file_domain_service", file_domain_service)
     
     # Aliases for common service names
     registry.register("conversation_service", conversation_memory_service)  # Primary alias used by handlers
@@ -449,17 +534,32 @@ class Container(containers.DeclarativeContainer):
         api_key_service=api_key_service,
     )
 
-    # Domain Services
-    api_integration_service = providers.Singleton(
-        _create_api_integration_service,
+    # Pure Domain Services
+    api_domain_service = providers.Singleton(_create_api_domain_service)
+    file_domain_service = providers.Singleton(_create_file_domain_service)
+    text_processing_service = providers.Singleton(_create_text_processing_service)
+
+    # Infrastructure Services (combining I/O with domain logic)
+    api_service = providers.Singleton(
+        _create_api_service,
+        api_domain_service=api_domain_service,
         file_service=file_service,
     )
 
-    text_processing_service = providers.Singleton(_create_text_processing_service)
+    file_operations_infra_service = providers.Singleton(
+        _create_file_operations_infra_service,
+        file_domain_service=file_domain_service,
+    )
+
+    # Legacy services for backward compatibility
+    api_integration_service = providers.Singleton(
+        _create_api_integration_service,
+        api_service=api_service,
+    )
 
     file_operations_service = providers.Singleton(
         _create_file_operations_service,
-        file_service=file_service,
+        file_operations_infra_service=file_operations_infra_service,
     )
 
 
@@ -525,6 +625,11 @@ class Container(containers.DeclarativeContainer):
         execution_flow_service=execution_flow_service,
         input_resolution_service=input_resolution_service,
         template_service=template_service,
+        # New services
+        api_service=api_service,
+        file_operations_infra_service=file_operations_infra_service,
+        api_domain_service=api_domain_service,
+        file_domain_service=file_domain_service,
     )
 
     # Application Context for backward compatibility

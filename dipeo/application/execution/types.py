@@ -41,4 +41,3 @@ class ExecutionOptions:
     interactive: bool = False
     variables: Dict[str, Any] = field(default_factory=dict)
 
-
