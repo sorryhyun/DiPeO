@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/shared/components/ui/buttons/Button';
-import { Select } from '@/shared/components/ui/inputs/Select';
+import { Button } from '@/shared/components/forms/buttons/Button';
+import { Select } from '@/shared/components/forms/Select';
 import { 
   useConvertDiagramMutation,
   useUploadFileMutation
@@ -178,14 +178,14 @@ export const FileOperations: React.FC = () => {
         <input
           type="text"
           value={diagramName}
-          onChange={(e) => setDiagramName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDiagramName(e.target.value)}
           placeholder="Diagram name"
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         
         <Select
           value={selectedFormat}
-          onChange={(e) => setSelectedFormat(e.target.value as DiagramFormat)}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedFormat(e.target.value as DiagramFormat)}
           className="w-full text-sm"
         >
           {exportFormats.map(format => (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
-import { Button } from '@/shared/components/ui/buttons';
+import { Button } from '@/shared/components/forms/buttons';
 import { useUIState } from '@/shared/hooks/selectors';
 import { useDiagramManager } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/shared/hooks';

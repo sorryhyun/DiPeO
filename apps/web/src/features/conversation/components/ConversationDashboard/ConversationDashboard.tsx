@@ -3,7 +3,8 @@ import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign, List
 } from 'lucide-react';
-import { Button, Input, Select } from '@/shared/components/ui';
+import { Button } from '@/shared/components/forms/buttons';
+import { Input, Select } from '@/shared/components/forms';
 import { downloadFile } from '@/lib/utils/file';
 import { toast } from 'sonner';
 import { useConversationData } from '../../hooks';
@@ -257,13 +258,13 @@ const ConversationDashboard: React.FC = () => {
           type="text"
           placeholder="Search messages..."
           value={filters.searchTerm}
-          onChange={(e) => debouncedSetSearchTerm(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => debouncedSetSearchTerm(e.target.value)}
           className="flex-1 h-8"
         />
       </div>
       <Select
         value={filters.executionId}
-        onValueChange={(value) => setFilters(prev => ({ ...prev, executionId: executionId(value) }))}
+        onValueChange={(value: string) => setFilters(prev => ({ ...prev, executionId: executionId(value) }))}
       >
         <option value="">All Executions</option>
       </Select>

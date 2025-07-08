@@ -1,7 +1,7 @@
 // Lazy loaded modal components with fallbacks
 import React, { Suspense } from 'react';
 
-const ApiKeysModal = React.lazy(() => import('@/shared/components/modals/ApiKeysModal'));
+const ApiKeysModal = React.lazy(() => import('@/shared/components/feedback/ApiKeysModal/ApiKeysModal'));
 const DiagramFileModal = React.lazy(() => import('@/features/diagram-editor/components/DiagramFileModal').then(module => ({ default: module.DiagramFileModal })));
 
 interface LazyApiKeysModalProps {

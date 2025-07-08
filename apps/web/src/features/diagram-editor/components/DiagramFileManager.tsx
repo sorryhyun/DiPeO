@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Upload, Download, FileUp, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/shared/components/ui/buttons/Button';
-import { Select } from '@/shared/components/ui/inputs/Select';
+import { Button } from '@/shared/components/forms/buttons';
+import { Select } from '@/shared/components/forms';
 import { useFileOperations } from '@/features/diagram-editor/hooks';
 import { 
   useGetSupportedFormatsQuery
@@ -156,7 +156,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
             </label>
             <Select
               value={selectedFormat}
-              onChange={(e) => setSelectedFormat(e.target.value as DiagramFormat)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedFormat(e.target.value as DiagramFormat)}
               className="w-full"
               disabled={formatsLoading}
             >

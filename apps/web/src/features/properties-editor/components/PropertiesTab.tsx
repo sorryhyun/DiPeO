@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback } from 'react';
 import { useCanvas } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { LoadingFallback } from '@/shared/components/ui/feedback';
+import { LoadingFallback } from '@/shared/components/feedback';
 
 // Lazy load the property panel
 const PropertyPanel = React.lazy(() => import('./PropertyPanel').then(module => ({ default: module.PropertyPanel })));

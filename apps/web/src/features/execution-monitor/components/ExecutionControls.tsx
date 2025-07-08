@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/shared/components/ui/buttons';
+import { Button } from '@/shared/components/forms/buttons';
 import { useExecution, useMonitorMode } from '../hooks';
 import { useDiagramData } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/core/store/unifiedStore';

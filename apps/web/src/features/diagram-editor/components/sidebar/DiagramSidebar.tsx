@@ -1,12 +1,12 @@
 // Diagram-specific sidebar component
 import React, { useState } from 'react';
-import { Button } from '@/shared/components/ui/buttons';
+import { Button } from '@/shared/components/forms/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { NodeType } from '@dipeo/domain-models';
 import { useCanvas, useCanvasInteractions, usePersonOperations } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { LazyApiKeysModal } from '@/shared/components/modals/LazyModals';
+import { LazyApiKeysModal } from '@/shared/components/feedback/LazyModals';
 import { FileOperations } from '@/features/diagram-editor/components/file-operations/FileOperations';
 import { PersonID, DomainPerson, personId } from '@/core/types';
 import { SidebarLayout } from '@/shared/components/layout/SidebarLayout';

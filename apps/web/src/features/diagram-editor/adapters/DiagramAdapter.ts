@@ -12,7 +12,7 @@
  * - Cache conversions for performance optimization
  * 
  * NOT RESPONSIBLE FOR:
- * - GraphQL type conversions (see @/graphql/types)
+ * - GraphQL type conversions (see @/lib/graphql/types)
  * - Data structure conversions (Arrays <-> Maps)
  * - Domain model definitions
  * 

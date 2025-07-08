@@ -3,7 +3,7 @@ import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, Refres
 import { useExecution, useExecutionOrder } from '../../hooks';
 import { NodeExecutionStatus } from '../../types';
 import { ExecutionID, executionId } from '@/core/types';
-import { Button } from '@/shared/components/ui';
+import { Button } from '@/shared/components/forms/buttons';
 
 interface ExecutionOrderViewProps {
   executionId?: ExecutionID;

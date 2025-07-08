@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
-import { Button } from '@/shared/components/ui/buttons';
+import { Button } from '@/shared/components/forms/buttons';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useNodeOperations } from '../../hooks';

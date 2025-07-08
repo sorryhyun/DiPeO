@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Modal } from '@/shared/components/ui';
+import { Button } from '@/shared/components/forms/buttons';
+import { Input } from '@/shared/components/forms';
+import { Modal } from '@/shared/components/feedback';
 import { createErrorHandlerFactory, DomainApiKey } from '@/core/types';
 import { useApiKeyOperations } from '@/shared/hooks';
 import { Trash2, Plus, Eye, EyeOff } from 'lucide-react';
@@ -181,7 +183,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               <Input
                 placeholder="e.g., Production Claude Key"
                 value={newKeyForm.label || ''}
-                onChange={(e) => setNewKeyForm({ ...newKeyForm, label: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKeyForm({ ...newKeyForm, label: e.target.value })}
                 className={errors.name ? 'border-red-500' : ''}
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
@@ -194,7 +196,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               <Input
                 placeholder="e.g., openai, anthropic, notion, google_search"
                 value={newKeyForm.service || ''}
-                onChange={(e) => setNewKeyForm({ ...newKeyForm, service: e.target.value.toLowerCase() })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKeyForm({ ...newKeyForm, service: e.target.value.toLowerCase() })}
                 className={errors.service ? 'border-red-500' : ''}
               />
               {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
@@ -211,7 +213,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                 type="password"
                 placeholder="sk-..."
                 value={newKeyForm.key || ''}
-                onChange={(e) => setNewKeyForm({ ...newKeyForm, key: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKeyForm({ ...newKeyForm, key: e.target.value })}
                 className={errors.key ? 'border-red-500' : ''}
               />
               {errors.key && <p className="text-red-500 text-sm mt-1">{errors.key}</p>}
