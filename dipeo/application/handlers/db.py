@@ -12,6 +12,11 @@ from pydantic import BaseModel
 @register_handler
 class DBNodeHandler(BaseNodeHandler):
     """Handler for db nodes - delegates business logic to domain service."""
+    
+    def __init__(self, db_operations_service=None):
+        """Initialize with injected services."""
+        self.db_operations_service = db_operations_service
+
 
     @property
     def node_type(self) -> str:

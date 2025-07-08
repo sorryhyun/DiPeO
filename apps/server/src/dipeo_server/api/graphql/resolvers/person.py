@@ -3,7 +3,7 @@
 import logging
 
 from dipeo.models import LLMService, DomainPerson
-from dipeo.models import (APIServiceType, DomainApiKey)
+from dipeo.models import APIServiceType, DomainApiKey
 
 from ..context import GraphQLContext
 from ..types import (

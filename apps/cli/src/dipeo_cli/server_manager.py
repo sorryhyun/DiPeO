@@ -17,14 +17,11 @@ def _kill_process_on_port(port: int) -> None:
     try:
         # Find process using the port
         result = subprocess.run(
-            ["lsof", "-ti", f":{port}"],
-            capture_output=True,
-            text=True,
-            check=False
+            ["lsof", "-ti", f":{port}"], capture_output=True, text=True, check=False
         )
-        
+
         if result.stdout.strip():
-            pids = result.stdout.strip().split('\n')
+            pids = result.stdout.strip().split("\n")
             for pid in pids:
                 try:
                     os.kill(int(pid), signal.SIGKILL)
@@ -38,7 +35,7 @@ def _kill_process_on_port(port: int) -> None:
 async def restart_backend_server(debug_mode: bool = True) -> None:
     """Restart the backend server to ensure latest code is loaded"""
     global _server_process
-    
+
     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
     print(f"[🕰️ {timestamp}] 🐛 Debug: Restarting backend server with DEBUG logging...")
 
@@ -57,7 +54,7 @@ async def restart_backend_server(debug_mode: bool = True) -> None:
                 except ProcessLookupError:
                     pass
             _server_process = None
-        
+
         # Also kill any other processes that might be running
         subprocess.run(
             ["pkill", "-f", "python main.py"],
@@ -70,7 +67,7 @@ async def restart_backend_server(debug_mode: bool = True) -> None:
         subprocess.run(
             ["pkill", "-f", "hypercorn"], check=False, capture_output=True, text=True
         )
-        
+
         # Ensure port 8000 is free
         _kill_process_on_port(8000)
 
@@ -89,18 +86,22 @@ async def restart_backend_server(debug_mode: bool = True) -> None:
     start_cmd = ["python", "main.py"]
 
     try:
-        # Start server in background 
+        # Start server in background
         # In debug mode or with verbose flag, show all output
         # Otherwise, capture output to reduce noise
         verbose_debug = env.get("VERBOSE_DEBUG", "false").lower() == "true"
         show_output = debug_mode or verbose_debug
-        
+
         _server_process = subprocess.Popen(
             start_cmd,
             cwd=server_path,
             env=env,
-            stdout=None if show_output else subprocess.DEVNULL,  # Show output in debug mode
-            stderr=None if show_output else subprocess.DEVNULL,  # Show errors in debug mode
+            stdout=None
+            if show_output
+            else subprocess.DEVNULL,  # Show output in debug mode
+            stderr=None
+            if show_output
+            else subprocess.DEVNULL,  # Show errors in debug mode
             start_new_session=True,
         )
 
@@ -158,11 +159,11 @@ async def restart_backend_server(debug_mode: bool = True) -> None:
 async def stop_backend_server(show_message: bool = True) -> None:
     """Stop the backend server"""
     global _server_process
-    
+
     if show_message:
         print("\n🐛 Debug: Stopping backend server to display final logs...")
     await asyncio.sleep(0.5)  # Brief pause to ensure all logs are flushed
-    
+
     try:
         # First try to stop the tracked process
         if _server_process and _server_process.poll() is None:
@@ -179,15 +180,13 @@ async def stop_backend_server(show_message: bool = True) -> None:
                 except (ProcessLookupError, subprocess.TimeoutExpired):
                     pass
             _server_process = None
-        
+
         # Also clean up any lingering processes
         subprocess.run(
             ["pkill", "-f", "python main.py"], check=False, capture_output=True
         )
-        subprocess.run(
-            ["pkill", "-f", "hypercorn"], check=False, capture_output=True
-        )
-        
+        subprocess.run(["pkill", "-f", "hypercorn"], check=False, capture_output=True)
+
         # Ensure port 8000 is free
         _kill_process_on_port(8000)
     except Exception as e:

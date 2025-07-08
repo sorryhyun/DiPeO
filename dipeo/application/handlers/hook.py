@@ -20,6 +20,11 @@ from dipeo.models import HookNodeData, HookType, NodeOutput
 class HookNodeHandler(BaseNodeHandler):
     """Executes external hooks (shell, webhook, python, file) as part of diagram flow."""
     
+    def __init__(self):
+        """Initialize handler."""
+        pass
+
+    
     @property
     def node_type(self) -> str:
         return "hook"

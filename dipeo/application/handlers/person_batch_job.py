@@ -32,6 +32,14 @@ PersonBatchJobNodeData = PersonJobNodeData
 @register_handler
 class PersonBatchJobNodeHandler(BaseNodeHandler):
     """Handler for person_batch_job nodes."""
+    
+    def __init__(self, person_job_execution_service=None, llm_service=None, diagram_storage_service=None, conversation_service=None):
+        """Initialize with injected services."""
+        self.person_job_execution_service = person_job_execution_service
+        self.llm_service = llm_service
+        self.diagram_storage_service = diagram_storage_service
+        self.conversation_service = conversation_service
+
 
     @property
     def node_type(self) -> str:
@@ -59,7 +67,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         """Execute person_batch_job node."""
         # Get services from context with fallback to services dict
         conversation_service: "ConversationMemoryService" = context.get_service("conversation_service") or services.get("conversation_service")
-        llm_service = context.get_service("llm_service") or services.get("llm_service")
+        llm_service = self.llm_service or services.get("llm_service")
         diagram: Optional[DomainDiagram] = context.get_service("diagram") or services.get("diagram")
         
         if not conversation_service or not llm_service:

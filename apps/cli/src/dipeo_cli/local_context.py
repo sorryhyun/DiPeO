@@ -25,7 +25,7 @@ class LocalAppContext:
         # Create container and adapter
         self._container = Container()
         self._adapter = AppContextAdapter(self._container)
-    
+
     def __getattr__(self, name: str) -> Any:
         """Delegate all attribute access to the adapter."""
         return getattr(self._adapter, name)
@@ -34,11 +34,9 @@ class LocalAppContext:
         """Initialize container services for local execution."""
         # Initialize all container resources
         await init_resources(self._container)
-        
+
         # Initialize execution service specifically for local mode
         # Local execution will use the LocalExecutionService which creates
         # its own service registry from this context
-        
-        logger.info(
-            "Local context initialized using DI container"
-        )
+
+        logger.info("Local context initialized using DI container")

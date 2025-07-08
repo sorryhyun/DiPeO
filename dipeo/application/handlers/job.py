@@ -17,6 +17,11 @@ from pydantic import BaseModel
 @register_handler
 class JobNodeHandler(BaseNodeHandler):
     """Handler for job nodes - executes code in various languages."""
+    
+    def __init__(self):
+        """Initialize handler."""
+        pass
+
 
     @property
     def node_type(self) -> str:

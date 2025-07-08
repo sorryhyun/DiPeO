@@ -43,7 +43,9 @@ def parse_run_options(args: list[str]) -> ExecutionOptions:
             if format_value in ["native", "light", "readable"]:
                 options.format = format_value
             else:
-                print(f"Error: Invalid format '{format_value}'. Supported formats: native, light, readable")
+                print(
+                    f"Error: Invalid format '{format_value}'. Supported formats: native, light, readable"
+                )
         elif arg.startswith("--timeout="):
             try:
                 options.timeout = int(arg.split("=")[1])

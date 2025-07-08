@@ -34,7 +34,9 @@ class ServerDiagramRunner:
                     for node in diagram["nodes"]:
                         node_id = node.get("id", "")
                         node_data = node.get("data", {})
-                        label = node_data.get("label", node_id)  # Fallback to ID if no label
+                        label = node_data.get(
+                            "label", node_id
+                        )  # Fallback to ID if no label
                         self.node_labels[node_id] = label
 
                 # For CLI, we can execute diagrams directly without saving
@@ -88,26 +90,28 @@ class ServerDiagramRunner:
         try:
             # Run all tasks concurrently but wait for exec_task to complete
             exec_result = await exec_task
-            
+
             # Once execution is done, cancel other tasks
             node_task.cancel()
             prompt_task.cancel()
-            
+
             # Wait for cancellation to complete
             await asyncio.gather(node_task, prompt_task, return_exceptions=True)
-            
+
             # Update result with execution data
             if exec_result and "error" in exec_result:
                 result["error"] = exec_result["error"]
             else:
                 result.update(exec_result or {})
-                
+
         except Exception as e:
             # Cancel all tasks on error
             node_task.cancel()
             prompt_task.cancel()
             exec_task.cancel()
-            await asyncio.gather(node_task, prompt_task, exec_task, return_exceptions=True)
+            await asyncio.gather(
+                node_task, prompt_task, exec_task, return_exceptions=True
+            )
             raise
 
     async def _handle_node_stream(
@@ -120,7 +124,7 @@ class ServerDiagramRunner:
 
                 node_id = update.get("node_id", "unknown")
                 status = update.get("status", "")
-                
+
                 # Get node label, fallback to ID if not found
                 node_label = self.node_labels.get(node_id, node_id)
 
@@ -169,10 +173,10 @@ class ServerDiagramRunner:
 
                 node_id = prompt.get("node_id")
                 prompt_text = prompt.get("prompt", "Input required:")
-                
+
                 # Get node label for display
                 node_label = self.node_labels.get(node_id, node_id)
-                
+
                 print(f"\n💬 [{node_label}] {prompt_text}")
                 user_input = input("Your response: ")
 

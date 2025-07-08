@@ -22,7 +22,9 @@ if TYPE_CHECKING:
     from dipeo.domain.services.diagram import (
         DiagramStorageAdapter,
     )
-    from dipeo.domain.services.execution.preparation_service import PrepareDiagramForExecutionUseCase
+    from dipeo.domain.services.execution.preparation_service import (
+        PrepareDiagramForExecutionUseCase,
+    )
     from dipeo.domain.services.text import TextProcessingDomainService
     from dipeo.infra import MessageRouter
 

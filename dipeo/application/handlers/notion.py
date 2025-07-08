@@ -12,6 +12,12 @@ from pydantic import BaseModel
 @register_handler
 class NotionNodeHandler(BaseNodeHandler):
     """Handler for notion nodes."""
+    
+    def __init__(self, notion_service=None, api_key_service=None):
+        """Initialize with injected services."""
+        self.notion_service = notion_service
+        self.api_key_service = api_key_service
+
 
     @property
     def node_type(self) -> str:
@@ -37,8 +43,8 @@ class NotionNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute notion node based on operation type."""
-        notion_service = services["notion_service"]
-        api_key_service = services["api_key_service"]
+        notion_service = self.notion_service or services["notion_service"]
+        api_key_service = self.api_key_service or services["api_key_service"]
         
         # Get the Notion API key
         api_keys = api_key_service.list_api_keys()

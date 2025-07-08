@@ -73,12 +73,6 @@ class UnifiedServiceRegistry(DynamicRegistry):
             "text_processing_service": "text_processing_service",
             "db_operations_service": "db_operations_service",
             "code_execution_service": "code_execution_service",
-            
-            # Legacy aliases for backward compatibility
-            "llm": "llm_service",  # Used in execution_engine.py
-            "conversation": "conversation_service",  # Used in execution_engine.py
-            "api_key": "api_key_service",  # Legacy usage
-            "conversation_memory_service": "conversation_service",  # Direct mapping
         }
         
         # Register services from context

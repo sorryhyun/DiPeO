@@ -8,11 +8,9 @@ from dipeo.diagram import UnifiedDiagramConverter
 from dipeo.models import DomainDiagram
 
 
-
-
 def ensure_diagram_defaults(diagram: dict[str, Any]) -> dict[str, Any]:
     """Ensure diagram has all required fields with defaults.
-    
+
     This function prepares a raw diagram dict for use by ensuring
     all required fields exist with appropriate defaults.
     """
@@ -22,7 +20,7 @@ def ensure_diagram_defaults(diagram: dict[str, Any]) -> dict[str, Any]:
     diagram.setdefault("handles", [])
     diagram.setdefault("persons", [])
     diagram.setdefault("api_keys", [])
-    
+
     # Add metadata if missing
     if "metadata" not in diagram:
         diagram["metadata"] = {
@@ -31,7 +29,7 @@ def ensure_diagram_defaults(diagram: dict[str, Any]) -> dict[str, Any]:
             "modified": datetime.now().isoformat(),
             "version": "2.0.0",
         }
-    
+
     return diagram
 
 
@@ -41,7 +39,7 @@ class DiagramLoader:
     @staticmethod
     def load(file_path: str, format_id: str | None = None) -> dict[str, Any]:
         """Load diagram from JSON or YAML file using UnifiedDiagramConverter
-        
+
         Args:
             file_path: Path to the diagram file
             format_id: Optional format specification ('native', 'light', 'readable')
@@ -56,12 +54,12 @@ class DiagramLoader:
         converter = UnifiedDiagramConverter()
         with open(file_path) as f:
             content = f.read()
-        
+
         # Deserialize with optional format hint
         domain_diagram = converter.deserialize(content, format_id)
-        
+
         # Convert domain model to dict using model_dump
-        diagram = domain_diagram.model_dump(mode='json', by_alias=True)
+        diagram = domain_diagram.model_dump(mode="json", by_alias=True)
 
         return ensure_diagram_defaults(diagram)
 
@@ -78,7 +76,3 @@ class DiagramLoader:
                 yaml.dump(diagram, f, default_flow_style=False, sort_keys=False)
             else:
                 json.dump(diagram, f, indent=2)
-
-
-
-

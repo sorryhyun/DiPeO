@@ -12,11 +12,11 @@ from .subscriptions import Subscription
 # Create unified schema with direct streaming subscriptions
 # Disable auto camelCase conversion to keep snake_case field names
 unified_schema = strawberry.Schema(
-    query=Query, 
-    mutation=Mutation, 
-    subscription=Subscription, 
+    query=Query,
+    mutation=Mutation,
+    subscription=Subscription,
     extensions=[],
-    config=StrawberryConfig(auto_camel_case=False)
+    config=StrawberryConfig(auto_camel_case=False),
 )
 
 

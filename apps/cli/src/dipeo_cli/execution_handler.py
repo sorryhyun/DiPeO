@@ -15,41 +15,41 @@ from .utils import DiagramLoader
 
 def _resolve_diagram_path(path: str, format_id: str | None) -> str:
     """Resolve short diagram names to full paths based on format.
-    
+
     If the path is a short name (no path separators and no extension),
     resolve it to the appropriate directory based on the format.
-    
+
     Examples:
         quicksave --format=light -> files/diagrams/light/quicksave.yaml
         quicksave --format=native -> files/diagrams/native/quicksave.json
         quicksave --format=readable -> files/diagrams/readable/quicksave.yaml
     """
     path_obj = Path(path)
-    
+
     # Check if it's a short name (no path separators and no extension)
     if "/" not in path and "\\" not in path and not path_obj.suffix:
         # Determine format from options or default to native
         if format_id is None:
             format_id = "native"
-            
+
         # Map format to directory and extension
         format_mapping = {
             "native": ("native", ".json"),
             "light": ("light", ".yaml"),
-            "readable": ("readable", ".yaml")
+            "readable": ("readable", ".yaml"),
         }
-        
+
         if format_id in format_mapping:
             dir_name, extension = format_mapping[format_id]
             resolved_path = f"files/diagrams/{dir_name}/{path}{extension}"
-            
+
             # Check if the file exists
             if Path(resolved_path).exists():
                 return resolved_path
             else:
                 print(f"⚠️  Warning: Resolved path '{resolved_path}' does not exist")
                 # Fall back to original path
-    
+
     return path
 
 
@@ -61,14 +61,14 @@ async def run_command(args: list[str]) -> None:
 
     file_path = args[0]
     options = parse_run_options(args[1:])
-    
+
     # Configure logging if debug mode is enabled
     if options.debug:
         configure_logging(debug=True)
-    
+
     # Resolve short diagram names based on format
     file_path = _resolve_diagram_path(file_path, options.format)
-    
+
     options.diagram_file = file_path  # Store the file path for later use
 
     # Load diagram
@@ -150,10 +150,12 @@ async def _run_monitor_mode(diagram: dict[str, Any], options: ExecutionOptions) 
         print("💡 Tip: Server will remain running after execution for monitoring")
 
 
-def _display_conversation_logs(result: dict[str, Any], options: ExecutionOptions) -> None:
+def _display_conversation_logs(
+    result: dict[str, Any], options: ExecutionOptions
+) -> None:
     """Display conversation logs from execution results."""
     context = result.get("context", {})
-    
+
     # Collect all conversations from node outputs
     conversations = []
     for node_id, node_output in context.items():
@@ -162,42 +164,45 @@ def _display_conversation_logs(result: dict[str, Any], options: ExecutionOptions
             if isinstance(value, dict) and "conversation" in value:
                 conversation = value["conversation"]
                 if conversation:
-                    conversations.append({
-                        "node_id": node_id,
-                        "conversation": conversation
-                    })
-    
+                    conversations.append(
+                        {"node_id": node_id, "conversation": conversation}
+                    )
+
     # Display conversations if found
     if conversations:
         print("\n📝 Conversation Logs:")
         print("=" * 60)
-        
+
         for conv_data in conversations:
             node_id = conv_data["node_id"]
             conversation = conv_data["conversation"]
-            
+
             # Get person label from first message if available
             person_label = None
             if conversation and isinstance(conversation[0], dict):
-                person_label = conversation[0].get("person_label", conversation[0].get("person_id", node_id))
-            
+                person_label = conversation[0].get(
+                    "person_label", conversation[0].get("person_id", node_id)
+                )
+
             print(f"\n🤖 Person: {person_label or node_id}")
             print("-" * 40)
-            
+
             for msg in conversation:
                 role = msg.get("role", "unknown")
                 content = msg.get("content", "")
-                
+
                 # Format role display
-                role_icon = "👤" if role == "user" else "🤖" if role == "assistant" else "📎"
+                role_icon = (
+                    "👤" if role == "user" else "🤖" if role == "assistant" else "📎"
+                )
                 role_display = role.capitalize()
-                
+
                 # Display message
                 print(f"\n{role_icon} {role_display}:")
                 # Indent content for readability
-                for line in content.split('\n'):
+                for line in content.split("\n"):
                     print(f"   {line}")
-        
+
         print("\n" + "=" * 60)
 
 

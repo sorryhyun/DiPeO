@@ -14,6 +14,10 @@ from pydantic import BaseModel
 @register_handler
 class ApiJobNodeHandler(BaseNodeHandler):
     """Handler for api_job nodes - makes HTTP requests."""
+    
+    def __init__(self, api_service=None):
+        """Initialize with injected services."""
+        self.api_service = api_service
 
     @property
     def node_type(self) -> str:
@@ -39,10 +43,12 @@ class ApiJobNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute API job node using the infrastructure API service."""
-        # Get API service from context or services
-        api_service = context.get_service("api_service")
+        # Use injected service or fall back to old pattern for backward compatibility
+        api_service = self.api_service
         if not api_service:
-            api_service = services.get("api_service")
+            api_service = context.get_service("api_service")
+            if not api_service:
+                api_service = services.get("api_service")
             
         if not api_service:
             return create_node_output(

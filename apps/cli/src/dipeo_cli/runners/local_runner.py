@@ -23,7 +23,7 @@ class LocalDiagramRunner:
             "messages": [],
             "execution_id": None,
         }
-        
+
         # Initialize custom_observers early to avoid UnboundLocalError
         custom_observers = []
 
@@ -51,11 +51,13 @@ class LocalDiagramRunner:
                         print(f"🪝 Loaded {len(hook_registry.hooks)} hooks")
 
             # Execute diagram using local execution service
-            updates: AsyncIterator[dict[str, Any]] = context.execution_service.execute_diagram(  # type: ignore
-                diagram=diagram,
-                options={"variables": {}},
-                execution_id=execution_id,
-                custom_observers=custom_observers,
+            updates: AsyncIterator[dict[str, Any]] = (
+                context.execution_service.execute_diagram(  # type: ignore
+                    diagram=diagram,
+                    options={"variables": {}},
+                    execution_id=execution_id,
+                    custom_observers=custom_observers,
+                )
             )
             async for update in updates:
                 # Handle updates
@@ -83,6 +85,7 @@ class LocalDiagramRunner:
             print(f"\n❌ Error during local execution: {e!s}")
             if self.options.debug:
                 import traceback
+
                 traceback.print_exc()
         finally:
             # Cleanup hook observer if used

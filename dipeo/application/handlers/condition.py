@@ -13,6 +13,12 @@ from dipeo.models import ConditionNodeData, NodeOutput
 @register_handler
 class ConditionNodeHandler(BaseNodeHandler):
     """Handler for condition nodes."""
+    
+    def __init__(self, condition_evaluation_service=None, diagram_storage_service=None):
+        """Initialize with injected services."""
+        self.condition_evaluation_service = condition_evaluation_service
+        self.diagram_storage_service = diagram_storage_service
+
 
     @property
     def node_type(self) -> str:

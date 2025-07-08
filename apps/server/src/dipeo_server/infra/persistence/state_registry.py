@@ -141,7 +141,7 @@ class StateRegistry:
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
             node_states_dict = {
-                node_id: node_state.model_dump() 
+                node_id: node_state.model_dump()
                 for node_id, node_state in state.node_states.items()
             }
 
@@ -165,7 +165,9 @@ class StateRegistry:
                     state.ended_at,
                     json.dumps(node_states_dict),
                     json.dumps(node_outputs_dict),
-                    json.dumps(state.token_usage.model_dump() if state.token_usage else {}),
+                    json.dumps(
+                        state.token_usage.model_dump() if state.token_usage else {}
+                    ),
                     state.error,
                     json.dumps(state.variables),
                 ),

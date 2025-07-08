@@ -297,7 +297,9 @@ class UploadMutations:
                 )
 
             # Use the converter registry's serialize method, not the strategy directly
-            content_str = converter_registry.serialize(domain_diagram, target_format.value)
+            content_str = converter_registry.serialize(
+                domain_diagram, target_format.value
+            )
 
             diagram_name = content.get("metadata", {}).get("name", "diagram")
             extension = format_info.get("extension", ".yaml")

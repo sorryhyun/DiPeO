@@ -18,6 +18,10 @@ from pydantic import BaseModel
 @register_handler
 class CodeJobNodeHandler(BaseNodeHandler):
     """Handler for code_job nodes - executes code in various languages."""
+    
+    def __init__(self, template_service=None):
+        """Initialize with injected services."""
+        self.template_service = template_service
 
     @property
     def node_type(self) -> str:
@@ -43,10 +47,12 @@ class CodeJobNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute code_job node with code."""
-        # Get template service
-        template_service = context.get_service("template")
+        # Use injected service or fall back to old pattern for backward compatibility
+        template_service = self.template_service
         if not template_service:
-            template_service = services.get("template")
+            template_service = context.get_service("template")
+            if not template_service:
+                template_service = services.get("template")
             
         language = props.language
         code = props.code

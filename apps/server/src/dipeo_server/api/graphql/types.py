@@ -129,13 +129,15 @@ class NodeOutputType:
     pass
 
 
-@strawberry.experimental.pydantic.type(DomainHandle, fields=["label", "direction", "data_type", "position"])
+@strawberry.experimental.pydantic.type(
+    DomainHandle, fields=["label", "direction", "data_type", "position"]
+)
 class DomainHandleType:
     @strawberry.field
     def id(self) -> HandleID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return HandleID(str(obj.id))
-    
+
     @strawberry.field
     def node_id(self) -> NodeID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
@@ -154,7 +156,7 @@ class DomainNodeType:
     def id(self) -> NodeID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return NodeID(str(obj.id))
-    
+
     @strawberry.field
     def data(self) -> JSONScalar:
         # Direct access to domain model fields
@@ -169,17 +171,17 @@ class DomainArrowType:
     def id(self) -> ArrowID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return ArrowID(str(obj.id))
-    
+
     @strawberry.field
     def source(self) -> HandleID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return HandleID(str(obj.source))
-    
+
     @strawberry.field
     def target(self) -> HandleID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return HandleID(str(obj.target))
-    
+
     @strawberry.field
     def data(self) -> JSONScalar | None:
         # Direct access to domain model fields
@@ -210,7 +212,7 @@ class DomainPersonType:
     def id(self) -> PersonID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return PersonID(str(obj.id))
-    
+
     @strawberry.field
     def type(self) -> str:
         return "person"
@@ -234,7 +236,7 @@ class DomainApiKeyType:
     def id(self) -> ApiKeyID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return ApiKeyID(str(obj.id))
-    
+
     @strawberry.field
     def masked_key(self) -> str:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self

@@ -12,6 +12,11 @@ from pydantic import BaseModel
 @register_handler
 class StartNodeHandler(BaseNodeHandler):
     """Handler for start nodes."""
+    
+    def __init__(self):
+        """Initialize handler."""
+        pass
+
 
     @property
     def node_type(self) -> str:

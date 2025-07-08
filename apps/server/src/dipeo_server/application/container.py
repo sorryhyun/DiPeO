@@ -19,7 +19,9 @@ from dipeo.domain.services.diagram import (
     DiagramFileRepository,
     DiagramStorageAdapter,
 )
-from dipeo.domain.services.execution.preparation_service import PrepareDiagramForExecutionUseCase
+from dipeo.domain.services.execution.preparation_service import (
+    PrepareDiagramForExecutionUseCase,
+)
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 from dipeo.application.execution.server_execution_service import ExecuteDiagramUseCase
 from dipeo.domain.services.text import TextProcessingDomainService
@@ -37,7 +39,7 @@ from dipeo.infra.persistence.memory import InMemoryConversationStore
 
 class ServerInfrastructureContainer(BaseContainer.infra.__class__):
     """Server-specific infrastructure overrides."""
-    
+
     # Override specific providers
     state_store = providers.Singleton(lambda: state_store)
     message_router = providers.Singleton(MessageRouter)
@@ -51,7 +53,7 @@ class ServerInfrastructureContainer(BaseContainer.infra.__class__):
 
 class ServerDomainContainer(BaseContainer.domain.__class__):
     """Server-specific domain overrides."""
-    
+
     # Override specific providers
     api_key_service = providers.Singleton(
         APIKeyDomainService,
@@ -69,7 +71,7 @@ class ServerDomainContainer(BaseContainer.domain.__class__):
 
 class ServerApplicationContainer(BaseContainer.application.__class__):
     """Server-specific application overrides."""
-    
+
     # Override specific providers
     execution_preparation_service = providers.Singleton(
         PrepareDiagramForExecutionUseCase,
@@ -81,14 +83,14 @@ class ServerApplicationContainer(BaseContainer.application.__class__):
 
 class ServerContainer(BaseContainer):
     """Server-specific dependency injection container."""
-    
+
     # Override layer containers with server-specific implementations
     domain = providers.Container(
         ServerDomainContainer,
         config=BaseContainer.config,
         base_dir=BaseContainer.base_dir,
     )
-    
+
     infra = providers.Container(
         ServerInfrastructureContainer,
         config=BaseContainer.config,
@@ -97,10 +99,10 @@ class ServerContainer(BaseContainer):
         api_domain_service=domain.api_domain_service,
         file_domain_service=domain.file_domain_service,
     )
-    
+
     # Wire domain's infrastructure dependencies
     domain.override_providers(infra=infra)
-    
+
     application = providers.Container(
         ServerApplicationContainer,
         config=BaseContainer.config,
@@ -146,7 +148,11 @@ def _validate_protocol_compliance(container: ServerContainer) -> None:
             SupportsMemory,
             "ConversationMemoryService",
         ),
-        (container.application.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
+        (
+            container.application.execution_service(),
+            SupportsExecution,
+            "ExecuteDiagramUseCase",
+        ),
         (container.infra.notion_service(), SupportsNotion, "NotionAPIService"),
     ]
 
