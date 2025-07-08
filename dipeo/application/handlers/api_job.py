@@ -3,7 +3,6 @@
 import asyncio
 import json
 from typing import Any
-import httpx
 
 from dipeo.application import BaseNodeHandler, register_handler
 from dipeo.domain.services.ports.execution_context import ExecutionContextPort
@@ -25,6 +24,10 @@ class ApiJobNodeHandler(BaseNodeHandler):
         return ApiJobNodeData
 
     @property
+    def requires_services(self) -> list[str]:
+        return ["api_service"]
+
+    @property
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
@@ -35,7 +38,20 @@ class ApiJobNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute API job node."""
+        """Execute API job node using the infrastructure API service."""
+        # Get API service from context or services
+        api_service = context.get_service("api_service")
+        if not api_service:
+            api_service = services.get("api_service")
+            
+        if not api_service:
+            return create_node_output(
+                {"default": ""}, 
+                {"error": "API service not available"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
         url = props.url
         method = props.method
         headers = props.headers or {}
@@ -54,111 +70,60 @@ class ApiJobNodeHandler(BaseNodeHandler):
             )
 
         try:
-            # Parse headers if provided as JSON string
-            if isinstance(headers, str):
-                try:
-                    headers = json.loads(headers)
-                except json.JSONDecodeError:
-                    return create_node_output(
-                        {"default": ""}, 
-                        {"error": "Invalid headers JSON format"},
-                        node_id=context.current_node_id,
-                        executed_nodes=context.executed_nodes
-                    )
-
-            # Parse params if provided as JSON string
-            if isinstance(params, str):
-                try:
-                    params = json.loads(params)
-                except json.JSONDecodeError:
-                    return create_node_output(
-                        {"default": ""}, 
-                        {"error": "Invalid params JSON format"},
-                        node_id=context.current_node_id,
-                        executed_nodes=context.executed_nodes
-                    )
-
-            # Parse body if provided as JSON string
-            if isinstance(body, str) and body.strip():
-                try:
-                    body = json.loads(body)
-                except json.JSONDecodeError:
-                    # Keep as string if not JSON
-                    pass
-
-            # Parse auth config if provided as JSON string
-            if isinstance(auth_config, str) and auth_config.strip():
-                try:
-                    auth_config = json.loads(auth_config)
-                except json.JSONDecodeError:
-                    return create_node_output(
-                        {"default": ""}, 
-                        {"error": "Invalid auth_config JSON format"},
-                        node_id=context.current_node_id,
-                        executed_nodes=context.executed_nodes
-                    )
-
-            # Apply authentication
-            headers = self._apply_auth(headers, auth_type, auth_config)
-
-            # Make the HTTP request
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await self._make_request(
-                    client, method, url, headers, params, body
-                )
-
-            # Process response
-            result = {
-                "status_code": response.status_code,
-                "headers": dict(response.headers),
-            }
-
-            # Try to parse response as JSON
-            try:
-                result["data"] = response.json()
-            except:
-                result["data"] = response.text
-
-            # Return success if status code is 2xx
-            if 200 <= response.status_code < 300:
+            # Parse JSON strings for headers, params, body, and auth_config
+            parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
+            if "error" in parsed_data:
                 return create_node_output(
-                    {"default": json.dumps(result["data"]) if isinstance(result["data"], dict) else result["data"]},
-                    {
-                        "status_code": response.status_code,
-                        "success": True,
-                        "url": url,
-                        "method": method.value
-                    },
+                    {"default": ""}, 
+                    {"error": parsed_data["error"]},
                     node_id=context.current_node_id,
                     executed_nodes=context.executed_nodes
                 )
-            else:
-                return create_node_output(
-                    {"default": ""},
-                    {
-                        "error": f"HTTP {response.status_code}: {result.get('data', 'Unknown error')}",
-                        "status_code": response.status_code,
-                        "success": False,
-                        "url": url,
-                        "method": method.value
-                    },
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
-                )
+            
+            headers = parsed_data["headers"]
+            params = parsed_data["params"]
+            body = parsed_data["body"]
+            auth_config = parsed_data["auth_config"]
 
-        except asyncio.TimeoutError:
+            # Prepare authentication
+            auth = self._prepare_auth(auth_type, auth_config)
+            
+            # Apply bearer token or API key to headers if needed
+            headers = self._apply_auth_headers(headers, auth_type, auth_config)
+            
+            # Prepare request data based on method and params
+            request_data = self._prepare_request_data(method, params, body)
+            
+            # Execute request using API service with retry logic
+            response_data = await api_service.execute_with_retry(
+                url=url,
+                method=method.value,
+                data=request_data,
+                headers=headers,
+                max_retries=props.max_retries if hasattr(props, "max_retries") else 3,
+                retry_delay=1.0,
+                timeout=timeout,
+                auth=auth,
+                expected_status_codes=list(range(200, 300))  # 2xx status codes
+            )
+            
+            # Format output
+            output_value = json.dumps(response_data) if isinstance(response_data, dict) else str(response_data)
+            
             return create_node_output(
-                {"default": ""}, 
+                {"default": output_value},
                 {
-                    "error": f"Request timed out after {timeout} seconds",
-                    "success": False,
+                    "success": True,
                     "url": url,
                     "method": method.value
                 },
                 node_id=context.current_node_id,
                 executed_nodes=context.executed_nodes
             )
+
         except Exception as e:
+            # API service handles retries and specific errors
+            # This catches any remaining errors
             return create_node_output(
                 {"default": ""}, 
                 {
@@ -171,62 +136,96 @@ class ApiJobNodeHandler(BaseNodeHandler):
                 executed_nodes=context.executed_nodes
             )
 
-    def _apply_auth(self, headers: dict, auth_type: str, auth_config: dict) -> dict:
-        """Apply authentication to headers based on auth type."""
+    def _parse_json_inputs(
+        self, headers: Any, params: Any, body: Any, auth_config: Any
+    ) -> dict[str, Any]:
+        """Parse JSON string inputs into Python objects."""
+        result = {
+            "headers": headers or {},
+            "params": params or {},
+            "body": body,
+            "auth_config": auth_config or {}
+        }
+        
+        # Parse headers if provided as JSON string
+        if isinstance(headers, str):
+            try:
+                result["headers"] = json.loads(headers)
+            except json.JSONDecodeError:
+                return {"error": "Invalid headers JSON format"}
+        
+        # Parse params if provided as JSON string
+        if isinstance(params, str):
+            try:
+                result["params"] = json.loads(params)
+            except json.JSONDecodeError:
+                return {"error": "Invalid params JSON format"}
+        
+        # Parse body if provided as JSON string
+        if isinstance(body, str) and body.strip():
+            try:
+                result["body"] = json.loads(body)
+            except json.JSONDecodeError:
+                # Keep as string if not JSON
+                pass
+        
+        # Parse auth config if provided as JSON string
+        if isinstance(auth_config, str) and auth_config.strip():
+            try:
+                result["auth_config"] = json.loads(auth_config)
+            except json.JSONDecodeError:
+                return {"error": "Invalid auth_config JSON format"}
+        
+        return result
+    
+    def _prepare_auth(self, auth_type: str, auth_config: dict) -> dict[str, str] | None:
+        """Prepare authentication dictionary for API service.
+        
+        Note: For bearer and API key auth, we'll apply them directly to headers
+        since the API service expects basic auth format for the auth parameter.
+        """
+        if auth_type == "none":
+            return None
+            
+        if auth_type == "basic":
+            username = auth_config.get("username", "")
+            password = auth_config.get("password", "")
+            if username and password:
+                return {"username": username, "password": password}
+                
+        # For bearer and API key, we'll handle them in headers instead
+        return None
+    
+    def _prepare_request_data(
+        self, method: HttpMethod, params: dict, body: Any
+    ) -> dict[str, Any] | None:
+        """Prepare request data based on method."""
+        # For GET requests, params are query parameters (handled separately)
+        if method == HttpMethod.GET:
+            return None
+            
+        # For other methods, return body data
+        if body is not None:
+            return body
+            
+        # If no body but params exist for POST/PUT/PATCH, use params as body
+        if method in [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH] and params:
+            return params
+            
+        return None
+    
+    def _apply_auth_headers(self, headers: dict, auth_type: str, auth_config: dict) -> dict:
+        """Apply authentication to headers for bearer token and API key."""
         headers = headers.copy()  # Don't modify original
-
+        
         if auth_type == "bearer":
             token = auth_config.get("token", "")
             if token:
                 headers["Authorization"] = f"Bearer {token}"
-        elif auth_type == "basic":
-            username = auth_config.get("username", "")
-            password = auth_config.get("password", "")
-            if username and password:
-                import base64
-                credentials = base64.b64encode(f"{username}:{password}".encode()).decode()
-                headers["Authorization"] = f"Basic {credentials}"
         elif auth_type == "api_key":
             key_name = auth_config.get("key_name", "X-API-Key")
             key_value = auth_config.get("key_value", "")
             if key_value:
                 headers[key_name] = key_value
-
+                
         return headers
-
-    async def _make_request(
-        self,
-        client: httpx.AsyncClient,
-        method: HttpMethod,
-        url: str,
-        headers: dict,
-        params: dict,
-        body: Any
-    ) -> httpx.Response:
-        """Make the actual HTTP request."""
-        kwargs = {
-            "url": url,
-            "headers": headers,
-            "params": params,
-        }
-
-        # Add body for methods that support it
-        if method in [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH]:
-            if isinstance(body, dict):
-                kwargs["json"] = body
-            elif body is not None:
-                kwargs["data"] = body
-
-        # Make the request based on method
-        if method == HttpMethod.GET:
-            return await client.get(**kwargs)
-        elif method == HttpMethod.POST:
-            return await client.post(**kwargs)
-        elif method == HttpMethod.PUT:
-            return await client.put(**kwargs)
-        elif method == HttpMethod.DELETE:
-            return await client.delete(**kwargs)
-        elif method == HttpMethod.PATCH:
-            return await client.patch(**kwargs)
-        else:
-            raise ValueError(f"Unsupported HTTP method: {method}")

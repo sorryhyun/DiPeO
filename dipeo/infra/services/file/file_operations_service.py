@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import aiofiles
-from dipeo.core import ServiceError
+from dipeo.core import ServiceError, ValidationError
 from dipeo.domain.services.file.file_domain_service import FileDomainService
 
 log = logging.getLogger(__name__)

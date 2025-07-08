@@ -156,13 +156,6 @@ def _create_api_service(api_domain_service, file_service):
     )
 
 
-def _create_api_integration_service(api_service):
-    """Create legacy API integration service (for backward compatibility).
-    
-    TODO: Migrate all usages to the new api_service directly.
-    """
-    # For now, return the new API service for backward compatibility
-    return api_service
 
 
 def _create_text_processing_service():
@@ -183,13 +176,6 @@ def _create_file_operations_infra_service(file_domain_service):
     return FileOperationsService(domain_service=file_domain_service)
 
 
-def _create_file_operations_service(file_operations_infra_service):
-    """Create legacy file operations service (for backward compatibility).
-    
-    TODO: Migrate all usages to the new file_operations_infra_service directly.
-    """
-    # For now, return the new infrastructure service for backward compatibility
-    return file_operations_infra_service
 
 
 
@@ -318,9 +304,7 @@ def _create_service_registry(
     conversation_memory_service,
     notion_service,
     diagram_storage_domain_service,
-    api_integration_service,
     text_processing_service,
-    file_operations_service,
     validation_service,
     db_operations_service,
     person_job_services,
@@ -350,9 +334,7 @@ def _create_service_registry(
     
     # Domain services - Primary registration with _service suffix
     registry.register("diagram_storage_service", diagram_storage_domain_service)
-    registry.register("api_integration_service", api_integration_service)
     registry.register("text_processing_service", text_processing_service)
-    registry.register("file_operations_service", file_operations_service)
     registry.register("validation_service", validation_service)
     registry.register("db_operations_service", db_operations_service)
     registry.register("template_service", template_service)
@@ -415,24 +397,24 @@ def _create_execute_diagram_use_case(
 async def init_resources(container: "Container") -> None:
     """Initialize all resources that require async setup."""
     # Initialize infrastructure
-    state_store = container.state_store()
+    state_store = container.infra.state_store()
     if hasattr(state_store, 'initialize'):
         await state_store.initialize()
     
-    message_router = container.message_router()
+    message_router = container.infra.message_router()
     if hasattr(message_router, 'initialize'):
         await message_router.initialize()
 
     # Initialize services
-    await container.llm_service().initialize()
-    await container.diagram_storage_service().initialize()
+    await container.infra.llm_service().initialize()
+    await container.domain.diagram_storage_service().initialize()
     
-    notion_service = container.notion_service()
+    notion_service = container.infra.notion_service()
     if notion_service is not None and hasattr(notion_service, 'initialize'):
         await notion_service.initialize()
 
     # Initialize execution service
-    execution_service = container.execution_service()
+    execution_service = container.application.execution_service()
     if execution_service is not None:
         await execution_service.initialize()
 
@@ -442,11 +424,11 @@ async def init_resources(container: "Container") -> None:
 
 async def shutdown_resources(container: "Container") -> None:
     """Cleanup all resources."""
-    message_router = container.message_router()
+    message_router = container.infra.message_router()
     if hasattr(message_router, 'cleanup'):
         await message_router.cleanup()
     
-    state_store = container.state_store()
+    state_store = container.infra.state_store()
     if hasattr(state_store, 'cleanup'):
         await state_store.cleanup()
 
@@ -454,13 +436,13 @@ async def shutdown_resources(container: "Container") -> None:
 def _validate_protocol_compliance(container: "Container") -> None:
     """Validate that all services implement their required protocols."""
     validations = [
-        (container.api_key_service(), SupportsAPIKey, "APIKeyService"),
-        (container.llm_service(), SupportsLLM, "LLMInfrastructureService"),
-        (container.file_service(), SupportsFile, "FileSystemRepository"),
-        (container.conversation_service(), SupportsMemory, "ConversationMemoryService"),
-        (container.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
-        (container.notion_service(), SupportsNotion, "NotionAPIService"),
-        (container.diagram_storage_service(), SupportsDiagram, "DiagramFileRepository"),
+        (container.domain.api_key_service(), SupportsAPIKey, "APIKeyService"),
+        (container.infra.llm_service(), SupportsLLM, "LLMInfrastructureService"),
+        (container.infra.file_service(), SupportsFile, "FileSystemRepository"),
+        (container.domain.conversation_service(), SupportsMemory, "ConversationMemoryService"),
+        (container.application.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
+        (container.infra.notion_service(), SupportsNotion, "NotionAPIService"),
+        (container.domain.diagram_storage_service(), SupportsDiagram, "DiagramFileRepository"),
     ]
 
     for service, protocol, name in validations:
@@ -468,6 +450,163 @@ def _validate_protocol_compliance(container: "Container") -> None:
             raise TypeError(
                 f"{name} does not implement required protocol {protocol.__name__}"
             )
+
+
+class InfrastructureContainer(containers.DeclarativeContainer):
+    """Infrastructure layer container - External systems and I/O."""
+    
+    config = providers.Configuration()
+    base_dir = providers.Configuration()
+    
+    # Dependencies from other layers
+    api_key_service = providers.Dependency()
+    api_domain_service = providers.Dependency()
+    file_domain_service = providers.Dependency()
+    
+    # Core infrastructure
+    state_store = providers.Singleton(_create_state_store_for_context)
+    message_router = providers.Singleton(_create_message_router_for_context)
+    file_service = providers.Singleton(
+        _create_file_service,
+        base_dir=base_dir,
+    )
+    memory_service = providers.Singleton(_create_memory_service)
+    notion_service = providers.Singleton(_create_notion_service)
+    
+    # Infrastructure services that depend on domain services
+    llm_service = providers.Singleton(
+        _create_llm_service,
+        api_key_service=api_key_service,
+    )
+    api_service = providers.Singleton(
+        _create_api_service,
+        api_domain_service=api_domain_service,
+        file_service=file_service,
+    )
+    file_operations_service = providers.Singleton(
+        _create_file_operations_infra_service,
+        file_domain_service=file_domain_service,
+    )
+
+
+class DomainContainer(containers.DeclarativeContainer):
+    """Domain layer container - Business logic and rules."""
+    
+    config = providers.Configuration()
+    base_dir = providers.Configuration()
+    infra = providers.DependenciesContainer()
+    
+    # Core domain services
+    api_key_service = providers.Singleton(_create_api_key_service)
+    api_domain_service = providers.Singleton(_create_api_domain_service)
+    file_domain_service = providers.Singleton(_create_file_domain_service)
+    text_processing_service = providers.Singleton(_create_text_processing_service)
+    template_service = providers.Singleton(_create_template_service)
+    validation_service = providers.Singleton(_create_validation_service)
+    arrow_processor = providers.Singleton(_create_arrow_processor)
+    memory_transformer = providers.Singleton(_create_memory_transformer)
+    execution_flow_service = providers.Singleton(_create_execution_flow_service)
+    
+    # Conversation service (depends on infra memory)
+    conversation_service = providers.Singleton(
+        _create_conversation_service,
+        memory_service=infra.memory_service,
+    )
+    
+    # Diagram services
+    diagram_storage_service = providers.Singleton(
+        _create_diagram_storage_service,
+        base_dir=base_dir,
+    )
+    diagram_storage_adapter = providers.Singleton(
+        _create_diagram_storage_adapter,
+        storage_service=diagram_storage_service,
+    )
+    diagram_storage_domain_service = providers.Singleton(
+        _create_diagram_storage_domain_service,
+        storage_service=diagram_storage_service,
+    )
+    diagram_validator = providers.Factory(
+        _create_diagram_validator,
+        api_key_service=api_key_service,
+    )
+    
+    # DB operations (depends on infra file service)
+    db_operations_service = providers.Singleton(
+        _create_db_operations_service,
+        file_service=infra.file_service,
+        validation_service=validation_service,
+    )
+    
+    # Condition evaluation
+    condition_evaluation_service = providers.Singleton(
+        _create_condition_evaluation_service,
+        template_service=template_service,
+    )
+    
+    # Input resolution
+    input_resolution_service = providers.Singleton(
+        _create_input_resolution_service,
+        arrow_processor=arrow_processor,
+    )
+    
+    # Person job services
+    person_job_services = providers.Singleton(
+        _create_person_job_services,
+        template_service=template_service,
+        conversation_memory_service=conversation_service,
+        memory_transformer=memory_transformer,
+    )
+
+
+class ApplicationContainer(containers.DeclarativeContainer):
+    """Application layer container - Use cases and orchestration."""
+    
+    config = providers.Configuration()
+    infra = providers.DependenciesContainer()
+    domain = providers.DependenciesContainer()
+    
+    # Execution preparation
+    execution_preparation_service = providers.Singleton(
+        _create_execution_preparation_service,
+        storage_service=domain.diagram_storage_service,
+        validator=domain.diagram_validator,
+        api_key_service=domain.api_key_service,
+    )
+    
+    # Service Registry with explicit dependencies from all layers
+    service_registry = providers.Singleton(
+        _create_service_registry,
+        # Infrastructure services
+        llm_service=infra.llm_service,
+        file_service=infra.file_service,
+        notion_service=infra.notion_service,
+        api_service=infra.api_service,
+        file_operations_infra_service=infra.file_operations_service,
+        # Domain services
+        api_key_service=domain.api_key_service,
+        conversation_memory_service=domain.conversation_service,
+        diagram_storage_domain_service=domain.diagram_storage_domain_service,
+        text_processing_service=domain.text_processing_service,
+        validation_service=domain.validation_service,
+        db_operations_service=domain.db_operations_service,
+        person_job_services=domain.person_job_services,
+        condition_evaluation_service=domain.condition_evaluation_service,
+        execution_flow_service=domain.execution_flow_service,
+        input_resolution_service=domain.input_resolution_service,
+        template_service=domain.template_service,
+        api_domain_service=domain.api_domain_service,
+        file_domain_service=domain.file_domain_service,
+    )
+    
+    # Execute Diagram Use Case
+    execution_service = providers.Singleton(
+        _create_execute_diagram_use_case,
+        service_registry=service_registry,
+        state_store=infra.state_store,
+        message_router=infra.message_router,
+        diagram_storage_service=domain.diagram_storage_service,
+    )
 
 
 class Container(containers.DeclarativeContainer):
@@ -484,165 +623,36 @@ class Container(containers.DeclarativeContainer):
         lambda: Path(os.environ.get("DIPEO_BASE_DIR", _get_project_base_dir()))
     )
 
-    # Infrastructure Services (Singletons)
-    state_store = providers.Singleton(_create_state_store_for_context)
-    message_router = providers.Singleton(_create_message_router_for_context)
-
-    # Core Domain Services
-    api_key_service = providers.Singleton(_create_api_key_service)
-
-    file_service = providers.Singleton(
-        _create_file_service,
+    # Domain layer first (no dependencies on other layers)
+    domain = providers.Container(
+        DomainContainer,
+        config=config,
         base_dir=base_dir,
     )
-
-    memory_service = providers.Singleton(_create_memory_service)
-
-    conversation_service = providers.Singleton(
-        _create_conversation_service,
-        memory_service=memory_service,
-    )
-
-    llm_service = providers.Singleton(
-        _create_llm_service,
-        api_key_service=api_key_service,
-    )
-
-    notion_service = providers.Singleton(_create_notion_service)
-
-    # Diagram Services
-    diagram_storage_service = providers.Singleton(
-        _create_diagram_storage_service,
+    
+    # Infrastructure layer (depends on domain services)
+    infra = providers.Container(
+        InfrastructureContainer,
+        config=config,
         base_dir=base_dir,
-    )
-
-    diagram_storage_adapter = providers.Singleton(
-        _create_diagram_storage_adapter,
-        storage_service=diagram_storage_service,
-    )
-
-    # Execution Services
-    diagram_validator = providers.Factory(
-        _create_diagram_validator,
-        api_key_service=api_key_service,
-    )
-
-    execution_preparation_service = providers.Singleton(
-        _create_execution_preparation_service,
-        storage_service=diagram_storage_service,
-        validator=diagram_validator,
-        api_key_service=api_key_service,
-    )
-
-    # Pure Domain Services
-    api_domain_service = providers.Singleton(_create_api_domain_service)
-    file_domain_service = providers.Singleton(_create_file_domain_service)
-    text_processing_service = providers.Singleton(_create_text_processing_service)
-
-    # Infrastructure Services (combining I/O with domain logic)
-    api_service = providers.Singleton(
-        _create_api_service,
-        api_domain_service=api_domain_service,
-        file_service=file_service,
-    )
-
-    file_operations_infra_service = providers.Singleton(
-        _create_file_operations_infra_service,
-        file_domain_service=file_domain_service,
-    )
-
-    # Legacy services for backward compatibility
-    api_integration_service = providers.Singleton(
-        _create_api_integration_service,
-        api_service=api_service,
-    )
-
-    file_operations_service = providers.Singleton(
-        _create_file_operations_service,
-        file_operations_infra_service=file_operations_infra_service,
-    )
-
-
-    # Additional Domain Services
-
-    diagram_storage_domain_service = providers.Singleton(
-        _create_diagram_storage_domain_service,
-        storage_service=diagram_storage_service,
-    )
-
-    # Validation Services
-    validation_service = providers.Singleton(_create_validation_service)
-    db_operations_service = providers.Singleton(
-        _create_db_operations_service,
-        file_service=file_service,
-        validation_service=validation_service,
-    )
-
-    # Template service
-    template_service = providers.Singleton(_create_template_service)
-    
-    # Arrow processing services (moved before person_job_services)
-    arrow_processor = providers.Singleton(_create_arrow_processor)
-    memory_transformer = providers.Singleton(_create_memory_transformer)
-    
-    # Person job services
-    person_job_services = providers.Singleton(
-        _create_person_job_services,
-        template_service=template_service,
-        conversation_memory_service=conversation_service,
-        memory_transformer=memory_transformer,
+        api_key_service=domain.api_key_service,
+        api_domain_service=domain.api_domain_service,
+        file_domain_service=domain.file_domain_service,
     )
     
-    # Condition evaluation service
-    condition_evaluation_service = providers.Singleton(
-        _create_condition_evaluation_service,
-        template_service=template_service,
-    )
+    # Wire domain's infrastructure dependencies
+    domain.override_providers(infra=infra)
     
-    # Execution flow services
-    execution_flow_service = providers.Singleton(_create_execution_flow_service)
-    input_resolution_service = providers.Singleton(
-        _create_input_resolution_service,
-        arrow_processor=arrow_processor,
+    # Application layer (depends on both infra and domain)
+    application = providers.Container(
+        ApplicationContainer,
+        config=config,
+        infra=infra,
+        domain=domain,
     )
 
-    # Service Registry with explicit dependencies
-    service_registry = providers.Singleton(
-        _create_service_registry,
-        llm_service=llm_service,
-        api_key_service=api_key_service,
-        file_service=file_service,
-        conversation_memory_service=conversation_service,
-        notion_service=notion_service,
-        diagram_storage_domain_service=diagram_storage_domain_service,
-        api_integration_service=api_integration_service,
-        text_processing_service=text_processing_service,
-        file_operations_service=file_operations_service,
-        validation_service=validation_service,
-        db_operations_service=db_operations_service,
-        person_job_services=person_job_services,
-        condition_evaluation_service=condition_evaluation_service,
-        execution_flow_service=execution_flow_service,
-        input_resolution_service=input_resolution_service,
-        template_service=template_service,
-        # New services
-        api_service=api_service,
-        file_operations_infra_service=file_operations_infra_service,
-        api_domain_service=api_domain_service,
-        file_domain_service=file_domain_service,
-    )
-
-    # Application Context for backward compatibility
+    # Application Context adapter
     app_context = providers.Singleton(
         AppContextAdapter,
         container=__self__,
-    )
-
-    # Execute Diagram Use Case with explicit dependencies
-    execution_service = providers.Singleton(
-        _create_execute_diagram_use_case,
-        service_registry=service_registry,
-        state_store=state_store,
-        message_router=message_router,
-        diagram_storage_service=diagram_storage_service,
     )

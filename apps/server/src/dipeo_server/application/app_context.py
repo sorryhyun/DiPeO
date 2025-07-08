@@ -23,8 +23,6 @@ if TYPE_CHECKING:
         DiagramStorageAdapter,
     )
     from dipeo.domain.services.execution.preparation_service import PrepareDiagramForExecutionUseCase
-    from dipeo.domain.services.api import APIIntegrationDomainService
-    from dipeo.domain.services.file import FileOperationsDomainService
     from dipeo.domain.services.text import TextProcessingDomainService
     from dipeo.infra import MessageRouter
 
@@ -135,16 +133,8 @@ class AppContext:
         return self._adapter.execution_preparation_service
 
     @property
-    def api_integration_service(self) -> "APIIntegrationDomainService":
-        return self._adapter.api_integration_service
-
-    @property
     def text_processing_service(self) -> "TextProcessingDomainService":
         return self._adapter.text_processing_service
-
-    @property
-    def file_operations_service(self) -> "FileOperationsDomainService":
-        return self._adapter.file_operations_service
 
     @property
     def state_store(self) -> "StateRegistry":

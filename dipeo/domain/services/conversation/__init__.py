@@ -19,7 +19,7 @@ try:
     from .message_builder_service import MessageBuilderService
     from .message_preparator import MessagePreparator
     from .on_every_turn_handler import OnEveryTurnHandler
-    from .simple_service import SimpleConversationService
+    from .simple_service import ConversationMemoryService
     from .state_manager import ConversationStateManager
     _legacy_exports = [
         'ConversationAggregationService',
@@ -27,7 +27,7 @@ try:
         'MessageBuilderService',
         'MessagePreparator',
         'OnEveryTurnHandler',
-        'SimpleConversationService',
+        'ConversationMemoryService',
         'ConversationStateManager',
     ]
 except ImportError:

@@ -59,7 +59,14 @@ class FileDomainService:
         
         Pure string manipulation - no I/O.
         """
-        return f"{original_path}{suffix}"
+        from datetime import timezone
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        path = Path(original_path)
+        extension = path.suffix
+        
+        # Format: original_path.backup.timestamp.extension
+        # Test expects: /path/to/file.txt.backup.timestamp.txt
+        return f"{original_path}.backup.{timestamp}{extension}"
 
     def format_log_entry(
         self,

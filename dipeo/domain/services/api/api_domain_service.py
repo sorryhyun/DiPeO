@@ -47,7 +47,7 @@ class APIDomainService:
         
         Pure business logic for retry decision.
         """
-        if attempt >= max_retries:
+        if attempt >= max_retries - 1:
             return False
             
         if retryable_status_codes is None:
