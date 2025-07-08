@@ -11,10 +11,7 @@ from .protocols import (
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
-    SupportsFile,
-    SupportsLLM,
     SupportsMemory,
-    SupportsNotion,
 )
 from .service import BaseService
 from .file_protocol import FileServiceProtocol
@@ -32,10 +29,7 @@ __all__ = [
     "SupportsAPIKey",
     "SupportsDiagram",
     "SupportsExecution",
-    "SupportsFile",
-    "SupportsLLM",
     "SupportsMemory",
-    "SupportsNotion",
     # New unified protocol
     "FileServiceProtocol",
 ]

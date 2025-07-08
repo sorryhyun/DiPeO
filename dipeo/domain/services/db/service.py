@@ -4,7 +4,7 @@ import json
 from typing import Any, Dict, List, Union
 from pathlib import Path
 
-from dipeo.core import SupportsFile
+from dipeo.core.ports import FileServicePort
 from ..validation import ValidationDomainService, BusinessRuleViolationError
 
 
@@ -16,7 +16,7 @@ class DBOperationsDomainService:
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
     def __init__(
-        self, file_service: SupportsFile, validation_service: ValidationDomainService
+        self, file_service: FileServicePort, validation_service: ValidationDomainService
     ):
         self.file_service = file_service
         self.validation_service = validation_service

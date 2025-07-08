@@ -13,7 +13,7 @@ from dipeo.diagram import (
 from dipeo.models import DiagramMetadata, DomainDiagram
 
 from ..apikey import APIKeyDomainService
-from ..diagram.storage_service import DiagramFileRepository
+from dipeo.infra.persistence.diagram import DiagramFileRepository
 
 from .models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
 from .validators import DiagramValidator

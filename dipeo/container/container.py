@@ -8,10 +8,12 @@ from dipeo.core import (
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
-    SupportsFile,
-    SupportsLLM,
     SupportsMemory,
-    SupportsNotion,
+)
+from dipeo.core.ports import (
+    FileServicePort,
+    LLMServicePort,
+    NotionServicePort,
 )
 
 from .adapters.app_context_adapter import AppContextAdapter
@@ -83,9 +85,9 @@ def _create_api_key_service():
 
 
 def _create_file_service(base_dir):
-    from dipeo.infra import ConsolidatedFileService
+    from dipeo.infra.persistence.file import ModularFileService
 
-    return ConsolidatedFileService(base_dir=base_dir)
+    return ModularFileService(base_dir=base_dir)
 
 
 def _create_memory_service():
@@ -114,15 +116,26 @@ def _create_notion_service():
     return None
 
 
-def _create_diagram_storage_service(base_dir):
-    from dipeo.domain.services.diagram import DiagramFileRepository
-    return DiagramFileRepository(base_dir=base_dir)
+def _create_diagram_domain_service():
+    from dipeo.domain.services.diagram import DiagramDomainService
+    return DiagramDomainService()
 
 
-def _create_diagram_storage_adapter(storage_service):
-    from dipeo.domain.services.diagram import DiagramStorageAdapter
+def _create_diagram_storage_service(base_dir, diagram_domain_service):
+    from dipeo.infra.persistence.diagram import DiagramFileRepository
+    return DiagramFileRepository(
+        domain_service=diagram_domain_service,
+        base_dir=base_dir
+    )
 
-    return DiagramStorageAdapter(storage_service=storage_service)
+
+def _create_diagram_storage_adapter(storage_service, diagram_domain_service):
+    from dipeo.infra.persistence.diagram import DiagramStorageAdapter
+
+    return DiagramStorageAdapter(
+        file_repository=storage_service,
+        domain_service=diagram_domain_service
+    )
 
 
 def _create_diagram_validator(api_key_service):
@@ -210,9 +223,7 @@ def _create_person_job_services(template_service, conversation_memory_service, m
         PromptProcessingService,
         ConversationProcessingService,
         PersonJobOutputBuilder,
-        PersonJobExecutionService,
     )
-    from dipeo.domain.services.conversation import OnEveryTurnHandler
     
     # Import new focused services
     from dipeo.domain.services.prompt.builder import PromptBuilder
@@ -221,11 +232,10 @@ def _create_person_job_services(template_service, conversation_memory_service, m
     from dipeo.domain.services.llm.executor import LLMExecutor
     from dipeo.domain.services.person_job.orchestrator import PersonJobOrchestrator
     
-    # Create legacy services (for backward compatibility)
+    # Create services needed by the orchestrator
     prompt_service = PromptProcessingService(template_service)
     conversation_processor = ConversationProcessingService()
     output_builder = PersonJobOutputBuilder()
-    on_every_turn_handler = OnEveryTurnHandler()
     
     # Create new focused services
     prompt_builder = PromptBuilder()
@@ -244,20 +254,10 @@ def _create_person_job_services(template_service, conversation_memory_service, m
         memory_transformer=memory_transformer,
     )
     
-    # Create legacy execution service (for backward compatibility)
-    execution_service = PersonJobExecutionService(
-        prompt_service=prompt_service,
-        conversation_processor=conversation_processor,
-        output_builder=output_builder,
-        on_every_turn_handler=on_every_turn_handler,
-        memory_transformer=memory_transformer,
-    )
-    
     return {
         "prompt_service": prompt_service,
         "conversation_processor": conversation_processor,
         "output_builder": output_builder,
-        "execution_service": execution_service,
         # New focused services
         "prompt_builder": prompt_builder,
         "conversation_state_manager": conversation_state_manager,
@@ -339,8 +339,8 @@ def _create_service_registry(
     registry.register("db_operations_service", db_operations_service)
     registry.register("template_service", template_service)
     
-    # Person job services - Already follow the pattern
-    registry.register("person_job_execution_service", person_job_services["execution_service"])
+    # Person job services - Register orchestrator as the main service
+    registry.register("person_job_execution_service", person_job_services["person_job_orchestrator"])
     registry.register("prompt_processing_service", person_job_services["prompt_service"])
     registry.register("conversation_processor", person_job_services["conversation_processor"])
     registry.register("person_job_output_builder", person_job_services["output_builder"])
@@ -437,11 +437,11 @@ def _validate_protocol_compliance(container: "Container") -> None:
     """Validate that all services implement their required protocols."""
     validations = [
         (container.domain.api_key_service(), SupportsAPIKey, "APIKeyService"),
-        (container.infra.llm_service(), SupportsLLM, "LLMInfrastructureService"),
-        (container.infra.file_service(), SupportsFile, "FileSystemRepository"),
+        (container.infra.llm_service(), LLMServicePort, "LLMInfrastructureService"),
+        (container.infra.file_service(), FileServicePort, "FileSystemRepository"),
         (container.domain.conversation_service(), SupportsMemory, "ConversationMemoryService"),
         (container.application.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
-        (container.infra.notion_service(), SupportsNotion, "NotionAPIService"),
+        (container.infra.notion_service(), NotionServicePort, "NotionAPIService"),
         (container.domain.diagram_storage_service(), SupportsDiagram, "DiagramFileRepository"),
     ]
 
@@ -514,13 +514,16 @@ class DomainContainer(containers.DeclarativeContainer):
     )
     
     # Diagram services
+    diagram_domain_service = providers.Singleton(_create_diagram_domain_service)
     diagram_storage_service = providers.Singleton(
         _create_diagram_storage_service,
         base_dir=base_dir,
+        diagram_domain_service=diagram_domain_service,
     )
     diagram_storage_adapter = providers.Singleton(
         _create_diagram_storage_adapter,
         storage_service=diagram_storage_service,
+        diagram_domain_service=diagram_domain_service,
     )
     diagram_storage_domain_service = providers.Singleton(
         _create_diagram_storage_domain_service,

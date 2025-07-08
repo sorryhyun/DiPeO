@@ -9,10 +9,7 @@ from dipeo.core import (
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
-    SupportsFile,
-    SupportsLLM,
     SupportsMemory,
-    SupportsNotion,
 )
 
 logger = logging.getLogger(__name__)

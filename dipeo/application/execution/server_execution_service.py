@@ -10,7 +10,7 @@ from dipeo.domain.services.execution.observers import StreamingObserver
 
 if TYPE_CHECKING:
     from dipeo.domain.services.ports import MessageRouterPort, StateStorePort
-    from dipeo.domain.services.diagram.storage_adapter import DiagramStorageAdapter
+    from dipeo.infra.persistence.diagram import DiagramStorageAdapter
     from ..unified_service_registry import UnifiedServiceRegistry
 
 

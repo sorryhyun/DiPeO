@@ -8,16 +8,16 @@ from strawberry.fastapi import BaseContext
 if TYPE_CHECKING:
     from dipeo.application.services.minimal_state_store import MinimalStateStore
     from dipeo.application.services.minimal_message_router import MinimalMessageRouter
-    from dipeo.infra import ConsolidatedFileService
-    from dipeo.infra.llm.service import LLMInfrastructureService
-    from dipeo.infra.services.notion import NotionAPIService
+    from dipeo.infra.persistence.file import ModularFileService
+    from dipeo.infra.adapters.llm import LLMInfraService
+    from dipeo.infra.adapters.notion import NotionAPIService
     from dipeo.infra.services.api import APIService
     from dipeo.infra.services.file import FileOperationsService
     from dipeo.domain.services.apikey import APIKeyDomainService
     from dipeo.domain.services.conversation.simple_service import (
         ConversationMemoryService,
     )
-    from dipeo.domain.services.diagram.storage import DiagramFileRepository
+    from dipeo.infra.persistence.diagram import DiagramFileRepository
     from dipeo.domain.services.diagram.domain_service import DiagramStorageDomainService
     from dipeo.domain.services.db import DBOperationsDomainService
     from dipeo.domain.services.execution import ExecutionFlowService
@@ -36,8 +36,8 @@ class GraphQLContext(BaseContext):
     # Infrastructure services
     state_store: "MinimalStateStore"
     message_router: "MinimalMessageRouter"
-    file_service: "ConsolidatedFileService"
-    llm_service: "LLMInfrastructureService"
+    file_service: "ModularFileService"
+    llm_service: "LLMInfraService"
     notion_service: "NotionAPIService"
     api_service: "APIService"
     file_operations_service: "FileOperationsService"
@@ -59,8 +59,8 @@ class GraphQLContext(BaseContext):
         request: Request,
         state_store: "MinimalStateStore",
         message_router: "MinimalMessageRouter",
-        file_service: "ConsolidatedFileService",
-        llm_service: "LLMInfrastructureService",
+        file_service: "ModularFileService",
+        llm_service: "LLMInfraService",
         notion_service: "NotionAPIService",
         api_service: "APIService",
         file_operations_service: "FileOperationsService",

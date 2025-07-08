@@ -11,9 +11,16 @@ class MinimalStateStore:
     """
 
     async def create_execution(
-        self, execution_id: str, diagram_id: str | None = None
-    ) -> None:
-        pass
+        self, execution_id: str, diagram_id: str | None = None, variables: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Create a minimal execution record."""
+        return {
+            "id": execution_id,
+            "diagram_id": diagram_id,
+            "status": "pending",
+            "created_at": None,
+            "updated_at": None,
+        }
 
     async def create_execution_in_cache(
         self, execution_id: str, diagram_id: str | None, variables: dict[str, Any]

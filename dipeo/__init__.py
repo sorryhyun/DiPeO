@@ -114,14 +114,10 @@ try:
         LLMInfraService,
         ModularFileService,
         AsyncFileAdapter,
-        MemoryService,
     )
-    # Create alias for backward compatibility
-    ConsolidatedFileService = ModularFileService
     
     _imported_modules.extend([
-        "LLMInfraService", "ModularFileService", "AsyncFileAdapter",
-        "MemoryService", "ConsolidatedFileService"
+        "LLMInfraService", "ModularFileService", "AsyncFileAdapter"
     ])
 except ImportError as e:
     warnings.warn(f"Could not import some infra items: {e}", ImportWarning)

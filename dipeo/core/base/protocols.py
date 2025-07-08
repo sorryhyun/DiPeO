@@ -72,47 +72,6 @@ class SupportsExecution(Protocol):
 
 
 @runtime_checkable
-class SupportsFile(Protocol):
-    """Protocol for file operations."""
-
-    def read(
-        self,
-        file_id: str,
-        person_id: Optional[str] = None,
-        directory: Optional[str] = None,
-    ) -> Dict[str, Any]: ...
-    async def write(
-        self,
-        file_id: str,
-        person_id: Optional[str] = None,
-        directory: Optional[str] = None,
-        content: Optional[str] = None,
-    ) -> Dict[str, Any]: ...
-    async def save_file(
-        self, content: bytes, filename: str, target_path: Optional[str] = None
-    ) -> Dict[str, Any]: ...
-
-
-@runtime_checkable
-class SupportsLLM(Protocol):
-    """Protocol for raw LLM operations - provider adapter interface."""
-
-    async def complete(
-        self,
-        messages: List[Dict[str, str]],  # Standard format
-        model: str,
-        api_key_id: str,
-        **kwargs,  # Provider-specific options (temperature, max_tokens, etc.)
-    ) -> Dict[str, Any]: ...
-
-    async def get_available_models(self, api_key_id: str) -> List[str]: ...
-
-    def get_token_counts(
-        self, client_name: str, usage: Any
-    ) -> Any: ...  # Returns TokenUsage
-
-
-@runtime_checkable
 class SupportsMemory(Protocol):
     """Protocol for memory management operations.
     
@@ -152,33 +111,3 @@ class SupportsMemory(Protocol):
     def clear_all_conversations(self) -> None: ...
 
 
-@runtime_checkable
-class SupportsNotion(Protocol):
-    """Protocol for Notion API operations."""
-
-    async def retrieve_page(self, page_id: str, api_key: str) -> Dict[str, Any]: ...
-    async def list_blocks(self, page_id: str, api_key: str) -> List[Dict[str, Any]]: ...
-    async def append_blocks(
-        self, page_id: str, blocks: List[Dict[str, Any]], api_key: str
-    ) -> Dict[str, Any]: ...
-    async def update_block(
-        self, block_id: str, block_data: Dict[str, Any], api_key: str
-    ) -> Dict[str, Any]: ...
-    async def query_database(
-        self,
-        database_id: str,
-        filter: Optional[Dict] = None,
-        sorts: Optional[List[Dict]] = None,
-        api_key: str = None,
-    ) -> Dict[str, Any]: ...
-    async def create_page(
-        self,
-        parent: Dict[str, Any],
-        properties: Dict[str, Any],
-        children: Optional[List[Dict]] = None,
-        api_key: str = None,
-    ) -> Dict[str, Any]: ...
-    def extract_text_from_blocks(self, blocks: List[Dict[str, Any]]) -> str: ...
-    def create_text_block(
-        self, text: str, block_type: str = "paragraph"
-    ) -> Dict[str, Any]: ...

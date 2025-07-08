@@ -14,10 +14,12 @@ if TYPE_CHECKING:
         SupportsAPIKey,
         SupportsDiagram,
         SupportsExecution,
-        SupportsFile,
-        SupportsLLM,
         SupportsMemory,
-        SupportsNotion,
+    )
+    from dipeo.core.ports import (
+        FileServicePort,
+        LLMServicePort,
+        NotionServicePort,
     )
     from dipeo.domain.services.diagram import (
         DiagramStorageAdapter,
@@ -103,11 +105,11 @@ class AppContext:
         return self._adapter.api_key_service
 
     @property
-    def llm_service(self) -> "SupportsLLM":
+    def llm_service(self) -> "LLMServicePort":
         return self._adapter.llm_service
 
     @property
-    def file_service(self) -> "SupportsFile":
+    def file_service(self) -> "FileServicePort":
         return self._adapter.file_service
 
     @property
@@ -119,7 +121,7 @@ class AppContext:
         return self._adapter.execution_service
 
     @property
-    def notion_service(self) -> "SupportsNotion":
+    def notion_service(self) -> "NotionServicePort":
         return self._adapter.notion_service
 
     @property
@@ -163,13 +165,13 @@ def get_api_key_service() -> "SupportsAPIKey":
     return app_context.api_key_service
 
 
-def get_llm_service() -> "SupportsLLM":
+def get_llm_service() -> "LLMServicePort":
     if app_context.llm_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.llm_service
 
 
-def get_file_service() -> "SupportsFile":
+def get_file_service() -> "FileServicePort":
     if app_context.file_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.file_service
@@ -187,7 +189,7 @@ def get_execution_service() -> "SupportsExecution":
     return app_context.execution_service
 
 
-def get_notion_service() -> "SupportsNotion":
+def get_notion_service() -> "NotionServicePort":
     if app_context.notion_service is None:
         raise RuntimeError("Application context not initialized")
     return app_context.notion_service

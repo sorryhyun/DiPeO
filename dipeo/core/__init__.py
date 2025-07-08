@@ -11,10 +11,7 @@ from .base.protocols import (
     SupportsAPIKey,
     SupportsDiagram,
     SupportsExecution,
-    SupportsFile,
-    SupportsLLM,
     SupportsMemory,
-    SupportsNotion,
 )
 from .base.service import BaseService
 from .constants import (
@@ -80,10 +77,7 @@ __all__ = [
     "SupportsAPIKey",
     "SupportsDiagram",
     "SupportsExecution",
-    "SupportsFile",
-    "SupportsLLM",
     "SupportsMemory",
-    "SupportsNotion",
     # Base classes
     "BaseService",
     # Constants

@@ -5,13 +5,14 @@ import os
 from pathlib import Path
 from typing import Any
 
-from dipeo.core import FileOperationError, SupportsFile
+from dipeo.core import FileOperationError
+from dipeo.core.ports import FileServicePort
 from dipeo.domain.services.file.file_domain_service import FileDomainService
 
 log = logging.getLogger(__name__)
 
 
-class FileRepository(SupportsFile):
+class FileRepository(FileServicePort):
     """Infrastructure service for file I/O operations.
     
     This service handles all file system interactions.

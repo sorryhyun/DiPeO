@@ -9,7 +9,7 @@ import yaml
 from dipeo.diagram import converter_registry
 from dipeo.models import DomainDiagram
 from dipeo.models import DiagramMetadata
-from dipeo.domain.services.diagram import DiagramFileRepository
+from dipeo.infra.persistence.diagram import DiagramFileRepository
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 from ..types import (

@@ -7,8 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from dipeo.core import (
     BaseService,
-    FileOperationError, 
-    SupportsFile,
+    FileOperationError,
     handle_file_operation,
 )
 from dipeo.core.base.file_protocol import FileServiceProtocol
@@ -22,7 +21,7 @@ from .file_info import FileInfo
 logger = logging.getLogger(__name__)
 
 
-class ModularFileService(BaseService, SupportsFile, FileServiceProtocol, FileServicePort):
+class ModularFileService(BaseService, FileServiceProtocol, FileServicePort):
     """Modular file service that composes focused components.
     
     This service uses:
@@ -30,7 +29,7 @@ class ModularFileService(BaseService, SupportsFile, FileServiceProtocol, FileSer
     - FileValidator for validation logic
     - AsyncFileAdapter for async/sync bridging
     
-    Implements SupportsFile, FileServiceProtocol, and FileServicePort for compatibility.
+    Implements FileServiceProtocol and FileServicePort for compatibility.
     """
     
     def __init__(

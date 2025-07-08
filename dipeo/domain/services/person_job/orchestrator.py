@@ -324,3 +324,84 @@ class PersonJobOrchestrator:
         
         # Fall back to diagram
         return self._conversation_processor.get_person_label(person_id, diagram)
+    
+    async def execute_person_job_with_validation(
+        self,
+        person_id: str,
+        node_id: str,
+        props: Any,  # PersonJobNodeData
+        inputs: Dict[str, Any],
+        diagram: DomainDiagram,
+        execution_count: int,
+        llm_client: Any,
+        conversation_service: Optional[Any] = None,
+        execution_id: Optional[str] = None,
+    ) -> PersonJobResult:
+        """Execute person job with validation.
+        
+        This method provides backward compatibility with PersonJobExecutionService.
+        It extracts configuration from props and calls the core execute method.
+        """
+        # Get person configuration from conversation service if available
+        person_config = None
+        if conversation_service and hasattr(conversation_service, 'get_person_config'):
+            person_config = conversation_service.get_person_config(person_id)
+        
+        # If not available from conversation service, fall back to diagram validation
+        if not person_config:
+            person = self._validate_person(person_id, diagram)
+            model = person.llm_config.model if person.llm_config else "gpt-4.1-nano"
+            api_key_id = person.llm_config.api_key_id if person.llm_config else None
+            system_prompt = person.llm_config.system_prompt if person.llm_config else None
+        else:
+            # Use configuration from conversation service
+            model = person_config.get('model', 'gpt-4.1-nano')
+            api_key_id = person_config.get('api_key_id')
+            system_prompt = person_config.get('system_prompt')
+        
+        # Extract configuration from props
+        forget_mode = ForgettingMode.no_forget
+        if props.memory_config and props.memory_config.forget_mode:
+            forget_mode = ForgettingMode(props.memory_config.forget_mode)
+        
+        # Create template service that simply returns the prompt as-is
+        # (PersonJobOrchestrator expects a template_service parameter)
+        class SimpleTemplateService:
+            def substitute_template(self, template: str, variables: Dict[str, Any]) -> str:
+                return template
+        
+        template_service = SimpleTemplateService()
+        
+        # Execute with all parameters
+        result = await self.execute(
+            person_id=person_id,
+            node_id=node_id,
+            prompt=props.default_prompt or "",
+            first_only_prompt=props.first_only_prompt,
+            forget_mode=forget_mode,
+            model=model,
+            api_key_id=api_key_id,
+            system_prompt=system_prompt,
+            inputs=inputs,
+            diagram=diagram,
+            execution_count=execution_count,
+            llm_client=llm_client,
+            template_service=template_service,
+            tools=props.tools,
+            conversation_service=conversation_service,
+            execution_id=execution_id,
+        )
+        
+        # Model is already added to metadata in execute method
+        return result
+    
+    def _validate_person(self, person_id: str, diagram: DomainDiagram) -> Any:
+        """Validate person exists in diagram."""
+        if not diagram or not diagram.persons:
+            raise ValueError("No persons defined in diagram")
+        
+        for person in diagram.persons:
+            if person.id == person_id:
+                return person
+        
+        raise ValueError(f"Person not found: {person_id}")
