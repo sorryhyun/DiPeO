@@ -10,7 +10,6 @@ export {
 
 // Operations hooks
 export * from './useApiKeyOperations';
-export * from './useFileOperations';
 
 export * from './selectors';
 

@@ -2,6 +2,8 @@
 
 // Data hooks
 export * from './useDiagramLoader';
+export * from './useDiagramData';
+export * from './useFileOperations';
 
 // Feature hooks
 export * from './useDiagramManager';

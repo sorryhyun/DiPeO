@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvas } from './ui/useCanvas';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
-import { useFileOperations } from '@/shared/hooks/useFileOperations';
+import { useFileOperations } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import { useDebouncedSave } from '@/shared/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';

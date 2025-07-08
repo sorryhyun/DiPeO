@@ -3,7 +3,6 @@ enum APIServiceType {
   anthropic
   google
   gemini
-  grok
   bedrock
   vertex
   deepseek
@@ -323,7 +322,6 @@ enum LLMService {
   openai
   anthropic
   google
-  grok
   bedrock
   vertex
   deepseek
@@ -348,7 +346,7 @@ type Mutation {
   create_person(diagram_id: DiagramID!, person_input: CreatePersonInput!): PersonResult!
   update_person(person_input: UpdatePersonInput!): PersonResult!
   delete_person(person_id: PersonID!): DeleteResult!
-  initialize_model(person_id: PersonID!): PersonResult!
+  initialize_model(person_id: PersonID!, api_key_id: ApiKeyID!, model: String!, label: String! = ""): PersonResult!
   clear_conversations: DeleteResult!
 
   """Upload a file to the server"""

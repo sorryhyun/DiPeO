@@ -14,7 +14,6 @@ LLM_SERVICE_TYPES: Set[APIServiceType] = {
     APIServiceType.anthropic,
     APIServiceType.google,
     APIServiceType.gemini,
-    APIServiceType.grok,
     APIServiceType.bedrock,
     APIServiceType.vertex,
     APIServiceType.deepseek,

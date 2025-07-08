@@ -9,7 +9,6 @@ export enum LLMService {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
   GOOGLE = 'google',
-  GROK = 'grok',
   BEDROCK = 'bedrock',
   VERTEX = 'vertex',
   DEEPSEEK = 'deepseek'
@@ -22,7 +21,6 @@ export enum APIServiceType {
   ANTHROPIC = 'anthropic',
   GOOGLE = 'google',
   GEMINI = 'gemini',  // Google Gemini specifically
-  GROK = 'grok',
   BEDROCK = 'bedrock',
   VERTEX = 'vertex',
   DEEPSEEK = 'deepseek',

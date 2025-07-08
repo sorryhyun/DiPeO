@@ -10,6 +10,7 @@ from dipeo.models import PersonID as DomainPersonID
 
 from ..context import GraphQLContext
 from ..types import (
+    ApiKeyID,
     CreatePersonInput,
     DeleteResult,
     DiagramID,
@@ -266,50 +267,26 @@ class PersonMutations:
 
     @strawberry.mutation
     async def initialize_model(
-        self, info: strawberry.Info[GraphQLContext], person_id: PersonID
+        self, 
+        info: strawberry.Info[GraphQLContext], 
+        person_id: PersonID,
+        api_key_id: ApiKeyID,
+        model: str,
+        label: str = ""
     ) -> PersonResult:
         """Warms up model for faster first execution."""
         try:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
-            diagram_service = context.diagram_storage_service
 
-            person_data = None
-
-            diagrams = await diagram_service.list_files()
-            for diagram_meta in diagrams:
-                diagram = await diagram_service.read_file(diagram_meta.path)
-                if person_id in diagram.get("persons", {}):
-                    person_data = diagram["persons"][person_id]
-                    break
-
-            if not person_data:
+            # Validate API key exists
+            try:
+                api_key_data = context.api_key_service.get_api_key(api_key_id)
+                service_str = api_key_data["service"]
+            except Exception:
                 return PersonResult(
-                    success=False, error=f"Person {person_id} not found"
+                    success=False, error=f"API key {api_key_id} not found"
                 )
-
-            # Check for API key in multiple possible locations
-            api_key_id = (
-                person_data.get("api_key_id") or 
-                person_data.get("apiKeyId") or
-                person_data.get("llm_config", {}).get("api_key_id") or
-                person_data.get("llm_config", {}).get("apiKeyId") or
-                person_data.get("llmConfig", {}).get("api_key_id") or
-                person_data.get("llmConfig", {}).get("apiKeyId")
-            )
-            if not api_key_id:
-                return PersonResult(
-                    success=False, error=f"Person {person_id} has no API key configured"
-                )
-
-            service_str = context.api_key_service.get_api_key(api_key_id)["service"]
-            model = (
-                person_data.get("model") or 
-                person_data.get("modelName") or
-                person_data.get("llm_config", {}).get("model") or
-                person_data.get("llmConfig", {}).get("model") or
-                "gpt-4o-mini"
-            )
 
             # Initialize the model by making a simple call
             messages = [{"role": "user", "content": "Say 'initialized'"}]
@@ -326,20 +303,14 @@ class PersonMutations:
 
             person = DomainPerson(
                 id=person_id,
-                label=person_data.get("label", ""),
-                llm_config=PersonLLMConfig(  # Use snake_case for field name
+                label=label,
+                llm_config=PersonLLMConfig(
                     service=service,
                     model=model,
-                    api_key_id=api_key_id,  # Use snake_case
-                    system_prompt=(
-                        person_data.get("system_prompt") or
-                        person_data.get("systemPrompt") or
-                        person_data.get("llm_config", {}).get("system_prompt") or
-                        person_data.get("llmConfig", {}).get("systemPrompt") or
-                        ""
-                    ),
+                    api_key_id=api_key_id,
+                    system_prompt=""
                 ),
-                type=person_data.get("type", "person"),
+                type="person",
             )
 
             return PersonResult(

@@ -16,11 +16,17 @@ export interface PersonSlice {
   // Batch operations
   batchUpdatePersons: (updates: Array<{id: PersonID, updates: Partial<DomainPerson>}>) => void;
   importPersons: (persons: DomainPerson[]) => void;
+  
+  // Clear and restore operations
+  clearPersons: () => void;
+  restorePersons: (persons: Map<PersonID, DomainPerson>) => void;
+  restorePersonsSilently: (persons: Map<PersonID, DomainPerson>) => void;
 }
 
 
-// Helper to handle post-change operations
-const afterChange = (state: UnifiedStore) => {
+// Helper to track person changes
+const markPersonsChanged = (state: UnifiedStore) => {
+  // Increment dataVersion to trigger array sync via middleware
   state.dataVersion += 1;
 };
 
@@ -49,7 +55,7 @@ export const createPersonSlice: StateCreator<
       
       set(state => {
         state.persons.set(person.id as PersonID, person);
-        afterChange(state);
+        markPersonsChanged(state);
       });
       
       return person.id as PersonID;
@@ -86,37 +92,46 @@ export const createPersonSlice: StateCreator<
         }
         
         state.persons.set(id, updatedPerson);
-        afterChange(state);
+        markPersonsChanged(state);
       }
     }),
     
     deletePerson: (id) => set(state => {
-      const deleted = state.persons.delete(id);
-      if (deleted) {
-        afterChange(state);
-      }
+      state.persons.delete(id);
+      markPersonsChanged(state);
     }),
   
     // Batch operations
     batchUpdatePersons: (updates) => set(state => {
-      let hasChanges = false;
       updates.forEach(({ id, updates: personUpdates }) => {
         const person = state.persons.get(id);
         if (person) {
           state.persons.set(id, { ...person, ...personUpdates });
-          hasChanges = true;
         }
       });
-      
-      if (hasChanges) {
-        afterChange(state);
-      }
+      markPersonsChanged(state);
     }),
     
     importPersons: (persons) => set(state => {
       persons.forEach(person => {
         state.persons.set(person.id as PersonID, person);
       });
-      afterChange(state);
+      markPersonsChanged(state);
+    }),
+    
+    // Clear and restore operations
+    clearPersons: () => set(state => {
+      state.persons.clear();
+      markPersonsChanged(state);
+    }),
+    
+    restorePersons: (persons) => set(state => {
+      state.persons = new Map(persons);
+      markPersonsChanged(state);
+    }),
+    
+    restorePersonsSilently: (persons) => set(state => {
+      state.persons = new Map(persons);
+      // No markPersonsChanged call - dataVersion not incremented
     })
 });

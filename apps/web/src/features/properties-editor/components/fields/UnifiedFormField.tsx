@@ -5,7 +5,7 @@ import {
   ERROR_TEXT, ERROR_TEXT_MT, HELPER_TEXT, HELPER_TEXT_MT, 
   REQUIRED_ASTERISK, FLEX_CENTER_GAP 
 } from '../styles.constants';
-import { readFileAsText } from '@/shared/utils/file';
+import { readFileAsText } from '@/lib/utils/file';
 import { FIELD_TYPES } from '@/core/types/panel';
 import { LEGACY_TYPE_MAP } from '@/core/types/fieldTypeRegistry';
 import { PromptFileButton } from '../PromptFileButton';

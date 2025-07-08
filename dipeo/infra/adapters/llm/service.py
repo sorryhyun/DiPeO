@@ -117,9 +117,6 @@ class LLMInfraService(BaseService, LLMServicePort):
         # Gemini models
         elif any(x in model_lower for x in ["gemini", "bison", "palm"]):
             return "google"
-        # Grok models
-        elif "grok" in model_lower:
-            return "xai"
         else:
             # Default to OpenAI for unknown models
             return "openai"
@@ -130,16 +127,80 @@ class LLMInfraService(BaseService, LLMServicePort):
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             service = api_key_data["service"]
             
-            # Return a static list of models based on the service
-            # In a real implementation, this could query the provider's API
             if service == "openai":
-                return ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-4.1-nano"]
+                # Dynamically fetch models from OpenAI API
+                try:
+                    from openai import OpenAI
+                    raw_key = self._get_api_key(api_key_id)
+                    client = OpenAI(api_key=raw_key)
+                    models_response = client.models.list()
+                    
+                    # Filter for chat models and known good models
+                    chat_models = []
+                    for model in models_response.data:
+                        model_id = model.id
+                        # Include GPT, o1, o3, and other chat-capable models
+                        if any(prefix in model_id for prefix in ["gpt-", "o1", "o3", "chatgpt"]):
+                            chat_models.append(model_id)
+                    
+                    # Always include gpt-4.1-nano as it's a special model
+                    if "gpt-4.1-nano" not in chat_models:
+                        chat_models.append("gpt-4.1-nano")
+                    
+                    # Sort models for consistent ordering
+                    chat_models.sort(reverse=True)  # Newer models first
+                    return chat_models
+                    
+                except Exception as e:
+                    # If API call fails, return empty list
+                    self.logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
+                    return []
             elif service == "anthropic":
-                return ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku", "claude-2.1"]
+                # Dynamically fetch models from Anthropic API
+                try:
+                    import anthropic
+                    raw_key = self._get_api_key(api_key_id)
+                    client = anthropic.Anthropic(api_key=raw_key)
+                    models_response = client.models.list(limit=50)
+                    
+                    # Extract model IDs from the response
+                    model_ids = []
+                    for model in models_response.data:
+                        model_ids.append(model.id)
+                    
+                    # Sort models for consistent ordering
+                    model_ids.sort(reverse=True)  # Newer models first
+                    return model_ids
+                    
+                except Exception as e:
+                    # If API call fails, return empty list
+                    self.logger.warning(f"Failed to fetch Anthropic models dynamically: {e}")
+                    return []
             elif service == "google":
-                return ["gemini-pro", "gemini-pro-vision"]
-            elif service == "xai":
-                return ["grok-1", "grok-2"]
+                # Dynamically fetch models from Google Gemini API
+                try:
+                    from google import genai
+                    raw_key = self._get_api_key(api_key_id)
+                    client = genai.Client(api_key=raw_key)
+                    
+                    # Get models that support generateContent (chat models)
+                    chat_models = []
+                    for model in client.models.list():
+                        if "generateContent" in model.supported_actions:
+                            # Extract model name (remove "models/" prefix if present)
+                            model_name = model.name
+                            if model_name.startswith("models/"):
+                                model_name = model_name[7:]  # Remove "models/" prefix
+                            chat_models.append(model_name)
+                    
+                    # Sort models for consistent ordering
+                    chat_models.sort(reverse=True)  # Newer models first
+                    return chat_models
+                    
+                except Exception as e:
+                    # If API call fails, return empty list
+                    self.logger.warning(f"Failed to fetch Google models dynamically: {e}")
+                    return []
             else:
                 return []
         except Exception as e:

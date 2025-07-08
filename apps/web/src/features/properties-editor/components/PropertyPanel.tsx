@@ -1,17 +1,19 @@
 import React, { useCallback } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowData, Dict, DomainPerson, nodeId, arrowId, personId, apiKeyId } from '@/core/types';
+import { ArrowData, Dict, DomainPerson, nodeId, arrowId, personId } from '@/core/types';
 import { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
-import { NodeType, LLMService } from '@dipeo/domain-models';
-import { UNIFIED_NODE_CONFIGS, getPanelConfig } from '@/core/config';
+import { LLMService } from '@dipeo/domain-models';
+import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
+import { derivePanelConfig } from '@/core/config/unifiedConfig';
+import { ENTITY_PANEL_CONFIGS } from '../config';
 import { FIELD_TYPES } from '@/core/types/panel';
 import { useCanvasOperationsContext, useCanvasPersons } from '@/features/diagram-editor';
 import { usePropertyManager } from '../hooks';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from './fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from './fields/FormComponents';
-import { apolloClient } from '@/graphql/client';
-import { GetApiKeysDocument, InitializeModelDocument, UpdatePersonDocument, type GetApiKeysQuery, APIServiceType } from '@/__generated__/graphql';
+import { apolloClient } from '@/lib/graphql/client';
+import { GetApiKeysDocument, InitializeModelDocument, type GetApiKeysQuery, APIServiceType } from '@/__generated__/graphql';
 
 // Local conversion function for GraphQL APIServiceType to domain LLMService
 function convertApiServiceToLLM(service: APIServiceType): LLMService {
@@ -20,7 +22,6 @@ function convertApiServiceToLLM(service: APIServiceType): LLMService {
     case APIServiceType.anthropic: return LLMService.ANTHROPIC;
     case APIServiceType.google: return LLMService.GOOGLE;
     case APIServiceType.gemini: return LLMService.GOOGLE; // Gemini maps to Google
-    case APIServiceType.grok: return LLMService.GROK;
     case APIServiceType.bedrock: return LLMService.BEDROCK;
     case APIServiceType.vertex: return LLMService.VERTEX;
     case APIServiceType.deepseek: return LLMService.DEEPSEEK;
@@ -106,44 +107,23 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
   return ensuredData;
 }
 
-// Helper function to unflatten nested object properties (reverse of flattenObject)
-function unflattenObject(flattened: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  
-  Object.keys(flattened).forEach(key => {
-    const value = flattened[key];
-    const parts = key.split('.');
-    
-    let current = result;
-    for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i];
-      if (!part) continue; // Skip empty parts
-      
-      if (!(part in current)) {
-        current[part] = {};
-      }
-      current = current[part] as Record<string, unknown>;
-    }
-    
-    const lastPart = parts[parts.length - 1];
-    if (lastPart) {
-      current[lastPart] = value;
-    }
-  });
-  
-  return result;
-}
 
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
-  const nodeConfig = nodeType in UNIFIED_NODE_CONFIGS ? UNIFIED_NODE_CONFIGS[nodeType as keyof typeof UNIFIED_NODE_CONFIGS] : undefined;
+  const nodeConfig = nodeType in NODE_CONFIGS_MAP ? NODE_CONFIGS_MAP[nodeType as keyof typeof NODE_CONFIGS_MAP] : undefined;
   const queryClient = useQueryClient();
   
   // Use context instead of individual hooks
   const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperationsContext();
   const personsArray = useCanvasPersons();
   
-  const panelConfig = getPanelConfig(nodeType as NodeType | 'arrow' | 'person');
+  // Get panel config from the new unified configuration
+  let panelConfig = null;
+  if (nodeType === 'arrow' || nodeType === 'person') {
+    panelConfig = ENTITY_PANEL_CONFIGS[nodeType];
+  } else if (nodeConfig) {
+    panelConfig = derivePanelConfig(nodeConfig);
+  }
   
   const personsForSelect = personsArray.map(person => ({ id: person.id, label: person.label }));
   
@@ -217,19 +197,23 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         return;
       }
       
-      // Initialize the model after it's selected
+      // Initialize the model directly without requiring saved diagram
       try {
-        // Wait for auto-save to complete
-        await new Promise(resolve => setTimeout(resolve, 600));
-        
-        // Then initialize the model
+        const personData = data as DomainPerson;
         const { data: initResult } = await apolloClient.mutate({
           mutation: InitializeModelDocument,
-          variables: { personId: entityId }
+          variables: { 
+            personId: entityId,
+            apiKeyId: apiKeyIdStr,
+            model: value as string,
+            label: personData.label || ''
+          }
         });
         
         if (!initResult?.initialize_model?.success) {
           console.error('Failed to initialize model:', initResult?.initialize_model?.error);
+        } else {
+          console.log('Model initialized successfully:', value);
         }
       } catch (error) {
         console.error('Error initializing model:', error);

@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { gql } from '@apollo/client';
 import { ExecutionID, NodeID } from '@/core/types';
 import { ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
-import { createEntityQuery } from '@/graphql/hooks';
+import { createEntityQuery } from '@/lib/graphql/hooks';
 
 const EXECUTION_ORDER_QUERY = gql`
   query ExecutionOrder($executionId: ExecutionID!) {
-    executionOrder(executionId: $executionId)
+    execution_order(execution_id: $executionId)
   }
 `;
 

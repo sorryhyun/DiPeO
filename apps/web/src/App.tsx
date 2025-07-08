@@ -6,6 +6,7 @@ import { GlobalKeyboardHandler } from './shared/components/GlobalKeyboardHandler
 import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './shared/contexts/CanvasContext';
 import { useDiagramLoader } from './features/diagram-editor/hooks/useDiagramLoader';
 import { useUnifiedStore } from './core/store/unifiedStore';
+import { setupExecutionUISync } from './core/store/middleware/executionUISync';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/DiagramCanvas'));
@@ -21,7 +22,11 @@ function AppContent() {
   // Load diagram from URL parameter
   const { isLoading: isDiagramLoading } = useDiagramLoader();
   
-  // Don't create another connection - use the existing execution instance from context
+  // Set up execution UI synchronization
+  useEffect(() => {
+    const unsubscribe = setupExecutionUISync();
+    return unsubscribe;
+  }, []);
   
   useEffect(() => {
     const checkMonitorMode = () => {

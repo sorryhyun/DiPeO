@@ -13,7 +13,6 @@ const LLM_SERVICE_TYPES = new Set<APIServiceType>([
   APIServiceType.ANTHROPIC,
   APIServiceType.GOOGLE,
   APIServiceType.GEMINI,
-  APIServiceType.GROK,
   APIServiceType.BEDROCK,
   APIServiceType.VERTEX,
   APIServiceType.DEEPSEEK,

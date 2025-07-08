@@ -1,9 +1,49 @@
 import type { NodeConfigItem } from '@/features/diagram-editor/types';
-import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
-import { FIELD_TYPES } from '@/core/types/panel';
-import { getNodeFields, FieldConverter, type UnifiedFieldDefinition } from './field-registry';
+import type { PanelLayoutConfig, TypedPanelFieldConfig, PanelFieldType, ConditionalConfig, OptionsConfig } from '@/features/diagram-editor/types/panel';
+import { FIELD_TYPES, type FieldType, type FieldValidator } from '@/core/types/panel';
 import type { NodeTypeKey } from '@/core/types/type-factories';
 
+
+/**
+ * Unified field definition that can be used across all contexts
+ */
+export interface UnifiedFieldDefinition<T = any> {
+  // Core properties
+  name: string;
+  type: FieldType;
+  label: string;
+  
+  // Common properties
+  required?: boolean;
+  placeholder?: string;
+  defaultValue?: unknown;
+  description?: string;
+  
+  // UI properties
+  rows?: number;
+  min?: number;
+  max?: number;
+  disabled?: boolean | ((formData: T) => boolean);
+  column?: 1 | 2;
+  className?: string;
+  
+  // Behavior
+  options?: OptionsConfig<T>;
+  dependsOn?: string[];
+  conditional?: ConditionalConfig<T>;
+  
+  // Validation
+  validate?: FieldValidator<T>;
+  
+  // Special properties for specific field types
+  labelPlaceholder?: string; // for labelPersonRow
+  personPlaceholder?: string; // for labelPersonRow
+  multiline?: boolean; // for textarea
+  showPromptFileButton?: boolean; // for variableTextArea
+  
+  // Nested fields for composite types
+  fields?: UnifiedFieldDefinition<T>[];
+}
 
 export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<string, unknown>> {
   label: string;
@@ -24,28 +64,54 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
 }
 
 
+/**
+ * Convert unified field definition to panel field config format
+ */
+function convertToPanelFieldConfig<T>(field: UnifiedFieldDefinition<T>): TypedPanelFieldConfig<T> {
+  return {
+    type: field.type,
+    name: field.name as keyof T & string,
+    label: field.label,
+    placeholder: field.placeholder,
+    required: field.required,
+    className: field.className,
+    rows: field.rows,
+    min: field.min,
+    max: field.max,
+    labelPlaceholder: field.labelPlaceholder,
+    personPlaceholder: field.personPlaceholder,
+    disabled: field.disabled,
+    options: field.options,
+    dependsOn: field.dependsOn as Array<keyof T & string> | undefined,
+    conditional: field.conditional,
+    fields: field.fields?.map(f => convertToPanelFieldConfig(f)),
+    validate: field.validate,
+    column: field.column
+  };
+}
+
 export function derivePanelConfig<T extends Record<string, unknown>>(
   config: UnifiedNodeConfig<T>
 ): PanelLayoutConfig<T> {
-  // Get fields from registry or use custom fields
-  const fields = config.customFields || getNodeFields(config.nodeType);
-  
+  // Convert custom fields to panel field configs
   const panelFields: Array<TypedPanelFieldConfig<T>> = [];
+  
+  if (config.customFields) {
+    for (const field of config.customFields) {
+      const panelField = convertToPanelFieldConfig<T>(field);
+      
+      // Apply any field-specific overrides
+      if (config.panelFieldOverrides?.[field.name as keyof T]) {
+        Object.assign(panelField, config.panelFieldOverrides[field.name as keyof T]);
+      }
+      
+      panelFields.push(panelField);
+    }
+  }
+  
   const customFieldsMap = new Map(
     (config.panelCustomFields || []).map(field => [field.type === FIELD_TYPES.LABEL_PERSON_ROW ? FIELD_TYPES.LABEL_PERSON_ROW : field.name || field.type, field])
   );
-
-  // Convert unified field definitions to panel field configs
-  for (const field of fields) {
-    const panelField = FieldConverter.toPanelFieldConfig<T>(field);
-    
-    // Apply any field-specific overrides
-    if (config.panelFieldOverrides?.[field.name as keyof T]) {
-      Object.assign(panelField, config.panelFieldOverrides[field.name as keyof T]);
-    }
-    
-    panelFields.push(panelField);
-  }
 
   
   const orderedFields = config.panelFieldOrder 

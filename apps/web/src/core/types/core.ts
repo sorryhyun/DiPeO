@@ -15,7 +15,7 @@ export {
 
 // Re-export GraphQL-specific types that are not in domain models
 // TODO: These should eventually be moved to GraphQL layer
-export type { ArrowData } from '@/graphql/types';
+export type { ArrowData } from '@/lib/graphql/types';
 
 // Temporary compatibility exports
 // TODO: Update consumers to import directly from './domain'

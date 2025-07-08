@@ -12,7 +12,6 @@ def validate_service_name(service: str, valid_services: set[str]) -> str:
         "chatgpt": "openai",
         "claude": "anthropic",
         "gemini": "google",
-        "xai": "grok",
     }
 
     normalized = aliases.get(normalized, normalized)

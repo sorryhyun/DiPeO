@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/shared/components/ui/buttons';
 import { useExecution, useMonitorMode } from '../hooks';
-import { useDiagramData } from '@/shared/hooks/selectors';
+import { useDiagramData } from '@/features/diagram-editor/hooks';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { nodeId, diagramId, DomainDiagramType } from '@/core/types';
 import { useShallow } from 'zustand/react/shallow';

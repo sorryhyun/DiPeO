@@ -4,16 +4,17 @@ import {
   Search, Filter, Download, DollarSign, List
 } from 'lucide-react';
 import { Button, Input, Select } from '@/shared/components/ui';
-import { downloadFile } from '@/shared/utils/file';
+import { downloadFile } from '@/lib/utils/file';
 import { toast } from 'sonner';
 import { useConversationData } from '../../hooks';
-import { useUIState, usePersonsData } from '@/shared/hooks/selectors';
+import { useUIState } from '@/shared/hooks/selectors';
+import { usePersonsData } from '@/features/person-management/hooks';
 import { MessageList } from '../MessageList';
 import { ExecutionOrderView } from '@/features/execution-monitor/components';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import { ConversationFilters, UIConversationMessage } from '@/core/types/conversation';
 import { PersonID, executionId, personId } from '@/core/types';
-import { debounce, throttle } from '@/shared/utils/math';
+import { debounce, throttle } from '@/lib/utils/math';
 import { stringify } from 'yaml';
 
 const ConversationDashboard: React.FC = () => {

@@ -1,13 +1,13 @@
 import {  DomainApiKey, DomainArrow, DomainHandle, DomainNode, DomainPerson,  apiKeyId } from '@/core/types';
 import { type ApiKeyID, type NodeID, type ArrowID, type PersonID, type HandleID, NodeType, Vec2, LLMService } from '@dipeo/domain-models';
 import { generateNodeId, generateArrowId, generatePersonId, entityIdGenerators } from '@/core/types/utilities';
-import { generateNodeLabel } from '@/core/config/nodeMeta';
-import { getNodeDefaults } from '@/core/config';
+import { NODE_CONFIGS_MAP, generateNodeLabel } from '@/features/diagram-editor/config/nodes';
 
 // Helper to create a node
 export function createNode(type: NodeType, position: Vec2, initialData?: Record<string, unknown>): DomainNode {
   const id = generateNodeId();
-  const configDefaults = getNodeDefaults(type);
+  const nodeConfig = NODE_CONFIGS_MAP[type];
+  const configDefaults = nodeConfig ? { ...nodeConfig.defaults } : {};
   
   const label = String(initialData?.label || configDefaults.label || generateNodeLabel(type, id));
   
@@ -42,7 +42,11 @@ export function createImportState() {
     apiKeys,
     
     // Minimal set of methods needed for import
-    addNode: (type: NodeType, position: Vec2, initialData?: Record<string, unknown>) => {
+    addNode: (
+      type: NodeType, 
+      position: Vec2, 
+      initialData?: Record<string, unknown>
+    ) => {
       const node = createNode(type, position, initialData);
       nodes.set(node.id as NodeID, node);
       

@@ -3,7 +3,7 @@ import { Upload, Download, FileUp, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/buttons/Button';
 import { Select } from '@/shared/components/ui/inputs/Select';
-import { useFileOperations } from '@/shared/hooks/useFileOperations';
+import { useFileOperations } from '@/features/diagram-editor/hooks';
 import { 
   useGetSupportedFormatsQuery
 } from '@/__generated__/graphql';

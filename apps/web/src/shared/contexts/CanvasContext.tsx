@@ -6,12 +6,9 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { useCanvas, useCanvasInteractions, useNodeOperations, useArrowOperations, usePersonOperations } from '@/features/diagram-editor/hooks';
-import { useExecution } from '@/features/execution-monitor/hooks';
-import { useDiagramData } from '@/shared/hooks/selectors/useDiagramData';
-import { useUIState } from '@/shared/hooks/selectors/useUIState';
-import { useExecutionData } from '@/shared/hooks/selectors/useExecutionData';
-import { usePersonsData } from '@/shared/hooks/selectors/usePersonsData';
+import { useCanvas, useCanvasInteractions, useNodeOperations, useArrowOperations, usePersonOperations, useDiagramData } from '@/features/diagram-editor/hooks';
+import { useExecution, useExecutionData } from '@/features/execution-monitor/hooks';
+import { usePersonsData } from '@/features/person-management/hooks';
 import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/domain-models';
 import type { DomainPersonType } from '@/__generated__/graphql';
 
@@ -32,10 +29,8 @@ interface CanvasUIState {
   zoom: number;
   position: Vec2;
   
-  // UI flags
-  showGrid: boolean;
-  showMinimap: boolean;
-  showDebugInfo: boolean;
+  // NOTE: UI flags (showGrid, showMinimap, showDebugInfo) have been moved
+  // to local component state to reduce global store complexity
   
   // Additional UI state from useUIState
   activeModal: string | null;
@@ -129,10 +124,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       isPaused: state.execution.isPaused,
       zoom: state.zoom,
       position: state.position,
-      showGrid: state.showGrid,
-      showMinimap: state.showMinimap,
-      showDebugInfo: state.showDebugInfo,
-      activeModal: state.activeModal,
+      activeModal: null, // Modal state now managed locally in components
       activePanel: state.dashboardTab === 'properties' ? 'properties' as const : null,
       canvasMode: state.canvasMode
     }))
@@ -347,9 +339,6 @@ export function useCanvasUIState(): CanvasUIState {
     isPaused: context.isPaused,
     zoom: context.zoom,
     position: context.position,
-    showGrid: context.showGrid,
-    showMinimap: context.showMinimap,
-    showDebugInfo: context.showDebugInfo,
     activeModal: context.activeModal,
     activePanel: context.activePanel,
     canvasMode: context.canvasMode,

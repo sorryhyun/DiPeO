@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/buttons';
-import { getNodeConfig } from '@/core/config/helpers';
+import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useNodeOperations } from '../../hooks';
 import { useCanvasOperationsContext } from '@/shared/contexts/CanvasContext';
@@ -49,6 +49,8 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
   const config = getNodeConfig(nodeType as NodeType);
   
   return useMemo(() => {
+    if (!config) return [];
+    
     const allHandles = [
       ...(config.handles.output || []).map(handle => ({ ...handle, type: 'output' as const })),
       ...(config.handles.input || []).map(handle => ({ ...handle, type: 'input' as const }))
@@ -315,9 +317,9 @@ export function BaseNode({
     'data-completed': status.isCompleted,
     'data-skipped': status.isSkipped,
     'data-selected': selected,
-    'data-color': config.color,
+    'data-color': config?.color,
     'data-execution': isExecutionMode,
-  }), [status, selected, config.color, isExecutionMode]);
+  }), [status, selected, config?.color, isExecutionMode]);
   
   // Get node display data
   const displayData = useMemo(() => {
@@ -349,7 +351,7 @@ export function BaseNode({
   return (
     <div
       className={nodeClassNames}
-      title={status.progress || `${config.label} Node`}
+      title={status.progress || `${config?.label || 'Unknown'} Node`}
       {...dataAttributes}
     >
       {/* Status indicators */}
@@ -379,9 +381,9 @@ export function BaseNode({
       <div className={status.isRunning ? 'relative z-10' : ''}>
         {/* Header */}
         <NodeHeader 
-          icon={config.icon}
+          icon={config?.icon || '📦'}
           label={String(data.label || data.name || '')}
-          configLabel={config.label}
+          configLabel={config?.label || 'Node'}
           _isExecutionMode={isExecutionMode}
         />
         

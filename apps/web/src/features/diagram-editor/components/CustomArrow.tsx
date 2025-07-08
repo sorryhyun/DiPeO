@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
 import { useCanvasOperationsContext, useCanvasUIState } from '@/shared/contexts/CanvasContext';
-import { useArrowData } from '@/shared/hooks/selectors/useDiagramData';
+import { useArrowData } from '@/features/diagram-editor/hooks';
 import { arrowId, ArrowData } from '@/core/types';
-import { getQuadraticPoint } from '@/shared/utils/geometry';
+import { getQuadraticPoint } from '@/lib/utils/geometry';
 
 export type CustomArrowProps = EdgeProps & {
   sourceHandle?: string | null;

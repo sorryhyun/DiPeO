@@ -6,6 +6,11 @@ import type { SelectableID } from './uiSlice';
 import type { NodeState } from '@/features/execution-monitor/store/executionSlice';
 
 export interface ComputedSlice {
+  // Array versions of Maps (maintained for React components)
+  nodesArray: DomainNode[];
+  arrowsArray: DomainArrow[];
+  personsArray: DomainPerson[];
+  
   // Node-related computed getters
   getNodeWithHandles: (nodeId: NodeID) => (DomainNode & { handles?: DomainHandle[] }) | undefined;
   getNodesByType: (type: string) => DomainNode[];
@@ -68,6 +73,11 @@ export const createComputedSlice: StateCreator<
   [],
   ComputedSlice
 > = (set, get) => ({
+  // Array versions of Maps (initialized as empty)
+  nodesArray: [],
+  arrowsArray: [],
+  personsArray: [],
+  
   // Node-related computed getters
   getNodeWithHandles: (nodeId) => {
     const state = get();

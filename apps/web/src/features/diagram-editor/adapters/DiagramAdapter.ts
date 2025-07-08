@@ -18,13 +18,13 @@
  * 
  * USAGE:
  * Import this adapter when working with React Flow components.
- * For data conversions, import from '@/graphql/types' instead.
+ * For data conversions, import from '@/lib/graphql/types' instead.
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
 import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagramType, arrowId, nodeId } from '@/core/types';
 
-import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/graphql/types';
+import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, HandleLabel, createHandleId, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
@@ -200,7 +200,9 @@ export class DiagramAdapter {
     const sourceNode = sourceParsed.node_id;
     const targetNode = targetParsed.node_id;
     
-    // Use the full handle IDs as they are, since that's what our FlowHandle component generates
+    // React Flow needs handle IDs to match what FlowHandle component generates
+    // FlowHandle generates: nodeId_handleId_direction
+    // Our stored format is already: nodeId_label_direction  
     const sourceHandle = arrow.source;
     const targetHandle = arrow.target;
     
@@ -431,5 +433,5 @@ export class DiagramAdapter {
   }
 }
 
-// Note: Import data conversion functions directly from '@/graphql/types' when needed
+// Note: Import data conversion functions directly from '@/lib/graphql/types' when needed
 // This adapter focuses solely on React Flow conversions

@@ -45,7 +45,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
     }
     
     // Validate service is a valid LLM service
-    const validServices = ['openai', 'anthropic', 'claude', 'google', 'gemini', 'groq', 'grok', 'deepseek', 'bedrock', 'vertex'];
+    const validServices = ['openai', 'anthropic', 'claude', 'google', 'gemini', 'groq', 'deepseek', 'bedrock', 'vertex'];
     if (!validServices.includes(service)) {
       errors.push(`Invalid service: ${service}`);
     }
@@ -64,7 +64,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
     }
     
     if (updates.llm_config?.service !== undefined) {
-      const validServices = ['openai', 'anthropic', 'claude', 'google', 'gemini', 'groq', 'grok', 'deepseek', 'bedrock', 'vertex'];
+      const validServices = ['openai', 'anthropic', 'claude', 'google', 'gemini', 'groq', 'deepseek', 'bedrock', 'vertex'];
       if (!validServices.includes(updates.llm_config.service)) {
         errors.push(`Invalid service: ${updates.llm_config.service}`);
       }

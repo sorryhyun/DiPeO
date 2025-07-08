@@ -1,9 +1,8 @@
 import React, { useMemo, useCallback } from 'react';
 import { DomainNode } from '@/core/types';
 import {ArrowID, NodeID} from '@dipeo/domain-models';
-import { UNIFIED_NODE_CONFIGS } from '@/core/config';
+import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
 import { useCanvasOperationsContext, useCanvasSelection } from '@/shared/contexts/CanvasContext';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
@@ -13,10 +12,11 @@ export interface ContextMenuProps {
   projectPosition: (x: number, y: number) => { x: number; y: number };
   nodeTypes?: Record<string, string>;
   nodeLabels?: Record<string, string>;
+  onAddPerson?: () => void;
 }
 
 // Pre-compute default node types and labels at module level
-const DEFAULT_NODE_TYPES = Object.keys(UNIFIED_NODE_CONFIGS);
+const DEFAULT_NODE_TYPES = Object.keys(NODE_CONFIGS_MAP);
 const DEFAULT_NODE_LABELS = Object.fromEntries(
   DEFAULT_NODE_TYPES.map(key => [
     key, 
@@ -32,9 +32,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   projectPosition,
   nodeTypes: nodeTypesProp,
   nodeLabels: nodeLabelsProp,
+  onAddPerson,
 }) => {
   // Get operations and selection from context
-  const { nodeOps, arrowOps } = useCanvasOperationsContext();
+  const { nodeOps, arrowOps, personOps } = useCanvasOperationsContext();
   const { selectedNodeId, selectedArrowId } = useCanvasSelection();
   // Use props if provided, otherwise use pre-computed defaults
   const nodeTypes = nodeTypesProp || DEFAULT_NODE_TYPES;
@@ -63,11 +64,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   }, [target, selectedNodeId, selectedArrowId, nodeOps, arrowOps, onClose]);
 
   const handleAddPerson = useCallback(() => {
-    // Open modal instead of directly adding - let the modal handle the details
-    const openPersonModal = useUnifiedStore.getState().openModal;
-    openPersonModal('person');
+    if (onAddPerson) {
+      onAddPerson();
+    } else {
+      // Fallback: directly add a person with default values
+      personOps.addPerson('New Person', 'openai', 'gpt-4.1-nano');
+    }
     onClose();
-  }, [onClose]);
+  }, [onAddPerson, onClose, personOps]);
 
   // Memoize menu style calculation
   const menuStyle = useMemo(() => {

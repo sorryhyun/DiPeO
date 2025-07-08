@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useUnifiedStore } from '../useUnifiedStore';
+import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
 import type { SelectableID, SelectableType, ActiveView, DashboardTab } from '@/core/store/slices/uiSlice';
 
 interface UIState {
@@ -18,11 +18,9 @@ interface UIState {
   // Mode state
   readOnly: boolean;
   executionReadOnly: boolean;
-  isDragging: boolean;
-  isConnecting: boolean;
   
-  // Modal state
-  activeModal: 'apikeys' | 'execution' | 'settings' | 'person' | null;
+  // NOTE: isDragging, isConnecting, and modal states have been moved
+  // to local component state to reduce global store complexity
 }
 
 /**
@@ -37,12 +35,7 @@ interface UIState {
 export const useUIState = (): UIState => {
   return useUnifiedStore(
     useShallow(state => {
-      // Determine active modal
-      let activeModal: UIState['activeModal'] = null;
-      if (state.showApiKeysModal) activeModal = 'apikeys';
-      else if (state.showExecutionModal) activeModal = 'execution';
-      else if (state.showSettingsModal) activeModal = 'settings';
-      else if (state.showPersonModal) activeModal = 'person';
+      // NOTE: Modal state now managed locally in components
       
       return {
         selectedId: state.selectedId,
@@ -55,9 +48,6 @@ export const useUIState = (): UIState => {
         dashboardTab: state.dashboardTab,
         readOnly: state.readOnly,
         executionReadOnly: state.executionReadOnly,
-        isDragging: state.isDragging || false,
-        isConnecting: state.isConnecting || false,
-        activeModal
       };
     })
   );
@@ -106,18 +96,15 @@ export const useReadOnlyState = () => {
 
 /**
  * Hook to get modal states
+ * @deprecated Modal states have been moved to local component state
  */
 export const useModalStates = () => {
-  return useUnifiedStore(
-    useShallow(state => ({
-      showApiKeysModal: state.showApiKeysModal,
-      showExecutionModal: state.showExecutionModal,
-      showSettingsModal: state.showSettingsModal || false,
-      showPersonModal: state.showPersonModal || false,
-      hasOpenModal: state.showApiKeysModal || 
-        state.showExecutionModal || 
-        state.showSettingsModal || 
-        state.showPersonModal
-    }))
-  );
+  console.warn('useModalStates is deprecated. Modal states should be managed locally in components.');
+  return {
+    showApiKeysModal: false,
+    showExecutionModal: false,
+    showSettingsModal: false,
+    showPersonModal: false,
+    hasOpenModal: false
+  };
 };

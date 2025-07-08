@@ -8,74 +8,82 @@ interface ArrayCache {
   persons: { version: number; array: DomainPerson[] };
 }
 
-// Create a weakmap to store cache per store instance
-const cacheMap = new WeakMap<UnifiedStore, ArrayCache>();
-
-// Helper to get or create cache for a store instance
-const getCache = (store: UnifiedStore): ArrayCache => {
-  let cache = cacheMap.get(store);
-  if (!cache) {
-    cache = {
-      nodes: { version: -1, array: [] },
-      arrows: { version: -1, array: [] },
-      persons: { version: -1, array: [] },
-    };
-    cacheMap.set(store, cache);
-  }
-  return cache;
+// Use a simple cache object instead of WeakMap to avoid initialization issues
+const cache: ArrayCache = {
+  nodes: { version: -1, array: [] },
+  arrows: { version: -1, array: [] },
+  persons: { version: -1, array: [] },
 };
 
 // Memoized getter for nodes array
 export const getNodesArray = (store: UnifiedStore): DomainNode[] => {
-  const cache = getCache(store);
-  // Check if nodes Map exists before trying to use it
-  if (!store.nodes) {
+  // Check if store and nodes Map exist before trying to use them
+  if (!store || !store.nodes || !(store.nodes instanceof Map)) {
     return [];
   }
-  if (cache.nodes.version !== store.dataVersion) {
+  const version = store.dataVersion ?? 0;
+  if (cache.nodes.version !== version) {
     cache.nodes.array = Array.from(store.nodes.values());
-    cache.nodes.version = store.dataVersion;
+    cache.nodes.version = version;
   }
   return cache.nodes.array;
 };
 
 // Memoized getter for arrows array
 export const getArrowsArray = (store: UnifiedStore): DomainArrow[] => {
-  const cache = getCache(store);
-  // Check if arrows Map exists before trying to use it
-  if (!store.arrows) {
+  // Check if store and arrows Map exist before trying to use them
+  if (!store || !store.arrows || !(store.arrows instanceof Map)) {
     return [];
   }
-  if (cache.arrows.version !== store.dataVersion) {
+  const version = store.dataVersion ?? 0;
+  if (cache.arrows.version !== version) {
     cache.arrows.array = Array.from(store.arrows.values());
-    cache.arrows.version = store.dataVersion;
+    cache.arrows.version = version;
   }
   return cache.arrows.array;
 };
 
 // Memoized getter for persons array
 export const getPersonsArray = (store: UnifiedStore): DomainPerson[] => {
-  const cache = getCache(store);
-  // Check if persons Map exists before trying to use it
-  if (!store.persons) {
+  // Check if store and persons Map exist before trying to use them
+  if (!store || !store.persons || !(store.persons instanceof Map)) {
     return [];
   }
-  if (cache.persons.version !== store.dataVersion) {
+  const version = store.dataVersion ?? 0;
+  if (cache.persons.version !== version) {
     cache.persons.array = Array.from(store.persons.values());
-    cache.persons.version = store.dataVersion;
+    cache.persons.version = version;
   }
   return cache.persons.array;
 };
 
 // Computed getter creators for zustand store
-export const createComputedGetters = () => ({
+export const createComputedGetters = (get: () => UnifiedStore) => ({
   get nodesArray() {
-    return getNodesArray(this as unknown as UnifiedStore);
+    try {
+      const state = get();
+      return getNodesArray(state);
+    } catch (e) {
+      console.error('[computedGetters] Error getting nodesArray:', e);
+      return [];
+    }
   },
   get arrowsArray() {
-    return getArrowsArray(this as unknown as UnifiedStore);
+    try {
+      const state = get();
+      return getArrowsArray(state);
+    } catch (e) {
+      console.error('[computedGetters] Error getting arrowsArray:', e);
+      return [];
+    }
   },
   get personsArray() {
-    return getPersonsArray(this as unknown as UnifiedStore);
+    try {
+      const state = get();
+      return getPersonsArray(state);
+    } catch (e) {
+      console.error('[computedGetters] Error getting personsArray:', e);
+      return [];
+    }
   },
 });
