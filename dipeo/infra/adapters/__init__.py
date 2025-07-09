@@ -1,6 +1,6 @@
 """Infrastructure adapters for external services."""
 
-from .llm import LLMInfraService, create_adapter
+from ..llm import LLMInfraService, create_adapter
 
 __all__ = [
     "LLMInfraService",

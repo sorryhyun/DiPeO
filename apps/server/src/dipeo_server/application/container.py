@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dependency_injector import providers, containers
 from dipeo.container import Container as BaseContainer
+from dipeo.container.infrastructure_container import _create_api_key_storage
 from dipeo.core import (
     SupportsAPIKey,
     SupportsExecution,
@@ -62,14 +63,18 @@ class ServerContainer(BaseContainer):
             notion_service=providers.Singleton(NotionAPIService),
         )
 
-        # Override domain providers
-        self.domain.override_providers(
-            api_key_service=providers.Singleton(
-                APIKeyDomainService,
+        # Override infra providers to set api key storage path
+        self.infra.override_providers(
+            api_key_storage=providers.Singleton(
+                _create_api_key_storage,
                 store_file=providers.Factory(
                     lambda: str(Path(BASE_DIR) / "files" / "apikeys.json")
                 ),
             ),
+        )
+
+        # Override domain providers
+        self.domain.override_providers(
             diagram_domain_service=providers.Singleton(DiagramDomainService),
             diagram_storage_service=providers.Singleton(
                 DiagramFileRepository,

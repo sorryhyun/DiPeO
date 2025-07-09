@@ -1,15 +1,23 @@
-"""Data transformation for integrations."""
+"""Data transformation for integrations.
+
+This module provides backward compatibility by delegating to the utils library.
+All pure data transformation functions have been moved to dipeo.utils.transform.
+"""
 
 from typing import Dict, Any, List, Optional, Union
-import json
-import yaml
-import xml.etree.ElementTree as ET
-from datetime import datetime, date
-import base64
+from dipeo.utils.transform import (
+    transform_to_format as _transform_to_format,
+    transform_from_format as _transform_from_format,
+    apply_transformation_chain as _apply_transformation_chain,
+)
 
 
 class DataTransformer:
-    """Transforms data between different formats for integrations."""
+    """Transforms data between different formats for integrations.
+    
+    This class now delegates to pure functions in dipeo.utils.transform
+    for better separation of concerns and testability.
+    """
     
     @staticmethod
     def transform_to_format(
@@ -17,23 +25,11 @@ class DataTransformer:
         format: str,
         options: Optional[Dict[str, Any]] = None
     ) -> Union[str, bytes, Dict[str, Any]]:
-        """Transform data to specified format."""
-        options = options or {}
+        """Transform data to specified format.
         
-        if format == 'json':
-            return DataTransformer._to_json(data, options)
-        elif format == 'yaml':
-            return DataTransformer._to_yaml(data, options)
-        elif format == 'xml':
-            return DataTransformer._to_xml(data, options)
-        elif format == 'form':
-            return DataTransformer._to_form_data(data, options)
-        elif format == 'csv':
-            return DataTransformer._to_csv(data, options)
-        elif format == 'base64':
-            return DataTransformer._to_base64(data, options)
-        else:
-            raise ValueError(f"Unsupported format: {format}")
+        Delegates to dipeo.utils.transform.transform_to_format
+        """
+        return _transform_to_format(data, format, options)
     
     @staticmethod
     def transform_from_format(
@@ -41,307 +37,19 @@ class DataTransformer:
         format: str,
         options: Optional[Dict[str, Any]] = None
     ) -> Any:
-        """Transform data from specified format."""
-        options = options or {}
+        """Transform data from specified format.
         
-        if format == 'json':
-            return DataTransformer._from_json(data, options)
-        elif format == 'yaml':
-            return DataTransformer._from_yaml(data, options)
-        elif format == 'xml':
-            return DataTransformer._from_xml(data, options)
-        elif format == 'form':
-            return DataTransformer._from_form_data(data, options)
-        elif format == 'csv':
-            return DataTransformer._from_csv(data, options)
-        elif format == 'base64':
-            return DataTransformer._from_base64(data, options)
-        else:
-            raise ValueError(f"Unsupported format: {format}")
-    
-    @staticmethod
-    def _to_json(data: Any, options: Dict[str, Any]) -> str:
-        """Convert data to JSON."""
-        indent = options.get('indent', 2) if options.get('pretty', True) else None
-        
-        # Custom JSON encoder for special types
-        class CustomEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, (datetime, date)):
-                    return obj.isoformat()
-                elif isinstance(obj, bytes):
-                    return base64.b64encode(obj).decode('utf-8')
-                elif hasattr(obj, '__dict__'):
-                    return obj.__dict__
-                return super().default(obj)
-        
-        return json.dumps(data, indent=indent, cls=CustomEncoder)
-    
-    @staticmethod
-    def _from_json(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
-        """Parse JSON data."""
-        if isinstance(data, bytes):
-            data = data.decode('utf-8')
-        return json.loads(data)
-    
-    @staticmethod
-    def _to_yaml(data: Any, options: Dict[str, Any]) -> str:
-        """Convert data to YAML."""
-        # Simple YAML serialization
-        def serialize_value(value, indent=0):
-            spaces = '  ' * indent
-            
-            if isinstance(value, dict):
-                lines = []
-                for k, v in value.items():
-                    if isinstance(v, (dict, list)):
-                        lines.append(f"{spaces}{k}:")
-                        lines.append(serialize_value(v, indent + 1))
-                    else:
-                        lines.append(f"{spaces}{k}: {serialize_value(v)}")
-                return '\n'.join(lines)
-            elif isinstance(value, list):
-                lines = []
-                for item in value:
-                    if isinstance(item, (dict, list)):
-                        lines.append(f"{spaces}- ")
-                        lines.append(serialize_value(item, indent + 1))
-                    else:
-                        lines.append(f"{spaces}- {serialize_value(item)}")
-                return '\n'.join(lines)
-            elif isinstance(value, str):
-                if '\n' in value or '"' in value or "'" in value:
-                    return f'"{value.replace('"', '\\"')}"'
-                return value
-            elif isinstance(value, bool):
-                return 'true' if value else 'false'
-            elif value is None:
-                return 'null'
-            else:
-                return str(value)
-        
-        return serialize_value(data)
-    
-    @staticmethod
-    def _from_yaml(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
-        """Parse YAML data."""
-        if isinstance(data, bytes):
-            data = data.decode('utf-8')
-        # For full YAML support, would use PyYAML
-        # This is a simplified version
-        return yaml.safe_load(data) if yaml else json.loads(data)
-    
-    @staticmethod
-    def _to_xml(data: Any, options: Dict[str, Any]) -> str:
-        """Convert data to XML."""
-        root_tag = options.get('root_tag', 'root')
-        
-        def build_element(parent, key, value):
-            if isinstance(value, dict):
-                elem = ET.SubElement(parent, key)
-                for k, v in value.items():
-                    build_element(elem, k, v)
-            elif isinstance(value, list):
-                for item in value:
-                    build_element(parent, key, item)
-            else:
-                elem = ET.SubElement(parent, key)
-                elem.text = str(value)
-        
-        root = ET.Element(root_tag)
-        
-        if isinstance(data, dict):
-            for key, value in data.items():
-                build_element(root, key, value)
-        else:
-            root.text = str(data)
-        
-        return ET.tostring(root, encoding='unicode')
-    
-    @staticmethod
-    def _from_xml(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse XML data."""
-        if isinstance(data, bytes):
-            data = data.decode('utf-8')
-        
-        root = ET.fromstring(data)
-        
-        def parse_element(element):
-            result = {}
-            
-            # Handle attributes
-            if element.attrib:
-                result['@attributes'] = element.attrib
-            
-            # Handle text content
-            if element.text and element.text.strip():
-                if len(element) == 0:  # No children
-                    return element.text.strip()
-                else:
-                    result['#text'] = element.text.strip()
-            
-            # Handle children
-            for child in element:
-                child_data = parse_element(child)
-                if child.tag in result:
-                    # Convert to list if multiple elements with same tag
-                    if not isinstance(result[child.tag], list):
-                        result[child.tag] = [result[child.tag]]
-                    result[child.tag].append(child_data)
-                else:
-                    result[child.tag] = child_data
-            
-            return result if result else None
-        
-        return {root.tag: parse_element(root)}
-    
-    @staticmethod
-    def _to_form_data(data: Dict[str, Any], options: Dict[str, Any]) -> str:
-        """Convert data to form-encoded format."""
-        from urllib.parse import urlencode
-        
-        # Flatten nested structures
-        flat_data = {}
-        
-        def flatten(obj, prefix=''):
-            if isinstance(obj, dict):
-                for key, value in obj.items():
-                    new_key = f"{prefix}[{key}]" if prefix else key
-                    flatten(value, new_key)
-            elif isinstance(obj, list):
-                for i, value in enumerate(obj):
-                    new_key = f"{prefix}[{i}]"
-                    flatten(value, new_key)
-            else:
-                flat_data[prefix] = str(obj)
-        
-        flatten(data)
-        return urlencode(flat_data)
-    
-    @staticmethod
-    def _from_form_data(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any]:
-        """Parse form-encoded data."""
-        from urllib.parse import parse_qs
-        
-        if isinstance(data, bytes):
-            data = data.decode('utf-8')
-        
-        parsed = parse_qs(data)
-        # parse_qs returns lists for all values, simplify when single value
-        result = {}
-        for key, values in parsed.items():
-            result[key] = values[0] if len(values) == 1 else values
-        
-        return result
-    
-    @staticmethod
-    def _to_csv(data: List[Dict[str, Any]], options: Dict[str, Any]) -> str:
-        """Convert data to CSV."""
-        if not isinstance(data, list):
-            raise ValueError("CSV format requires a list of dictionaries")
-        
-        if not data:
-            return ""
-        
-        # Get headers from first item
-        headers = list(data[0].keys())
-        delimiter = options.get('delimiter', ',')
-        
-        lines = []
-        # Add header row
-        lines.append(delimiter.join(headers))
-        
-        # Add data rows
-        for row in data:
-            values = []
-            for header in headers:
-                value = str(row.get(header, ''))
-                # Quote values containing delimiter or quotes
-                if delimiter in value or '"' in value or '\n' in value:
-                    value = f'"{value.replace('"', '""')}"'
-                values.append(value)
-            lines.append(delimiter.join(values))
-        
-        return '\n'.join(lines)
-    
-    @staticmethod
-    def _from_csv(data: Union[str, bytes], options: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Parse CSV data."""
-        if isinstance(data, bytes):
-            data = data.decode('utf-8')
-        
-        delimiter = options.get('delimiter', ',')
-        lines = data.strip().split('\n')
-        
-        if not lines:
-            return []
-        
-        # Parse header
-        headers = [h.strip() for h in lines[0].split(delimiter)]
-        
-        # Parse rows
-        result = []
-        for line in lines[1:]:
-            if not line.strip():
-                continue
-            
-            # Simple CSV parsing (for full support, use csv module)
-            values = line.split(delimiter)
-            row = {}
-            for i, header in enumerate(headers):
-                if i < len(values):
-                    value = values[i].strip()
-                    # Remove quotes if present
-                    if value.startswith('"') and value.endswith('"'):
-                        value = value[1:-1].replace('""', '"')
-                    row[header] = value
-                else:
-                    row[header] = ''
-            result.append(row)
-        
-        return result
-    
-    @staticmethod
-    def _to_base64(data: Union[str, bytes], options: Dict[str, Any]) -> str:
-        """Convert data to base64."""
-        if isinstance(data, str):
-            data = data.encode('utf-8')
-        return base64.b64encode(data).decode('ascii')
-    
-    @staticmethod
-    def _from_base64(data: Union[str, bytes], options: Dict[str, Any]) -> bytes:
-        """Decode base64 data."""
-        if isinstance(data, bytes):
-            data = data.decode('ascii')
-        return base64.b64decode(data)
+        Delegates to dipeo.utils.transform.transform_from_format
+        """
+        return _transform_from_format(data, format, options)
     
     @staticmethod
     def apply_transformation_chain(
         data: Any,
         transformations: List[Dict[str, Any]]
     ) -> Any:
-        """Apply a chain of transformations to data."""
-        result = data
+        """Apply a chain of transformations to data.
         
-        for transform in transformations:
-            transform_type = transform.get('type')
-            options = transform.get('options', {})
-            
-            if transform_type == 'format':
-                from_format = transform.get('from')
-                to_format = transform.get('to')
-                
-                if from_format:
-                    result = DataTransformer.transform_from_format(result, from_format, options)
-                if to_format:
-                    result = DataTransformer.transform_to_format(result, to_format, options)
-            
-            elif transform_type == 'jq':
-                # Would use jq-like transformations
-                pass
-            
-            elif transform_type == 'custom':
-                # Custom transformation function
-                pass
-        
-        return result
+        Delegates to dipeo.utils.transform.apply_transformation_chain
+        """
+        return _apply_transformation_chain(data, transformations)

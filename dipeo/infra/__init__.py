@@ -7,7 +7,7 @@ and infrastructure components.
 
 from .adapters import LLMInfraService, create_adapter
 from .persistence import AsyncFileAdapter, ModularFileService, InMemoryConversationStore
-from .adapters.apikey import EnvironmentAPIKeyService
+from .persistence.keys import EnvironmentAPIKeyService
 from .adapters.notion import NotionAPIService
 from .messaging import MessageRouter
 
@@ -19,7 +19,7 @@ __all__ = [
     "AsyncFileAdapter",
     "ModularFileService",
     # Memory persistence
-    "InMemoryConversationStore"
+    "InMemoryConversationStore",
     # API Key management
     "EnvironmentAPIKeyService",
     # Messaging

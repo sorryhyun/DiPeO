@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from dipeo.application.services.minimal_state_store import MinimalStateStore
     from dipeo.application.services.minimal_message_router import MinimalMessageRouter
     from dipeo.infra.persistence.file import ModularFileService
-    from dipeo.infra.adapters.llm import LLMInfraService
+    from dipeo.infra.llm import LLMInfraService
     from dipeo.infra.adapters.notion import NotionAPIService
     from dipeo.infra.services.api import APIService
     from dipeo.infra.services.file import FileOperationsService

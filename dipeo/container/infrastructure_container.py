@@ -3,6 +3,7 @@
 import os
 from dependency_injector import containers, providers
 from dipeo.core.ports import (
+    APIKeyStoragePort,
     DiagramLoaderPort,
     FileServicePort,
     LLMServicePort,
@@ -68,7 +69,7 @@ def _create_memory_service():
 
 
 def _create_llm_service(api_key_service):
-    from dipeo.infra.adapters.llm import LLMInfraService
+    from dipeo.infra.llm import LLMInfraService
 
     return LLMInfraService(api_key_service)
 
@@ -100,6 +101,12 @@ def _create_diagram_loader(file_service):
     return DiagramLoaderAdapter(file_service=file_service)
 
 
+def _create_api_key_storage(store_file=None):
+    """Create API key storage implementation."""
+    from dipeo.infra.storage.apikey_storage import FileAPIKeyStorage
+    return FileAPIKeyStorage(store_file=store_file)
+
+
 class InfrastructureContainer(containers.DeclarativeContainer):
     """Infrastructure layer container - External systems and I/O."""
     
@@ -120,6 +127,10 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
     memory_service = providers.Singleton(_create_memory_service)
     notion_service = providers.Singleton(_create_notion_service)
+    api_key_storage = providers.Singleton(
+        _create_api_key_storage,
+        store_file=config.api_key_store_file.optional(None),
+    )
     
     # Infrastructure services that depend on domain services
     llm_service = providers.Singleton(

@@ -1,46 +1,28 @@
 
-import json
-import os
 import uuid
 
 from dipeo.core import BaseService, SupportsAPIKey, APIKeyError, ValidationError
-from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name, BASE_DIR
+from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.core.ports import APIKeyStoragePort
 
 
 class APIKeyDomainService(BaseService, SupportsAPIKey):
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 
-    def __init__(self, store_file: str | None = None):
+    def __init__(self, storage: APIKeyStoragePort):
         super().__init__()
-        # Default to project root files directory
-        default_path = str(BASE_DIR / "files" / "apikeys.json")
-        self.store_file = store_file or os.getenv("API_KEY_STORE_FILE", default_path)
+        self.storage = storage
         self._store: dict[str, dict] = {}
-        self._load_store()
 
     async def initialize(self) -> None:
-        pass
+        """Initialize the service by loading API keys from storage."""
+        self._store = await self.storage.load_all()
+        print(f"[APIKeyDomainService] Loaded {len(self._store)} keys")
 
-    def _load_store(self) -> None:
-        if os.path.exists(self.store_file):
-            try:
-                with open(self.store_file) as f:
-                    self._store.update(json.load(f))
-                print(
-                    f"[APIKeyDomainService] Loaded {len(self._store)} keys from {self.store_file}"
-                )
-            except (OSError, json.JSONDecodeError) as e:
-                raise APIKeyError(f"Failed to load API key store: {e}")
-        else:
-            print(f"[APIKeyDomainService] No store file found at {self.store_file}")
-
-    def _save_store(self) -> None:
-        try:
-            with open(self.store_file, "w") as f:
-                json.dump(self._store, f, indent=2)
-        except OSError as e:
-            raise APIKeyError(f"Failed to save API key store: {e}")
+    async def _save_store(self) -> None:
+        """Save the current store state to storage."""
+        await self.storage.save_all(self._store)
 
     def _validate_service(self, service: str) -> None:
         normalized_service = normalize_service_name(service)
@@ -79,7 +61,7 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
                 )
         return result
 
-    def create_api_key(self, label: str, service: str, key: str) -> dict:
+    async def create_api_key(self, label: str, service: str, key: str) -> dict:
         self.validate_required_fields(
             {"label": label, "service": service, "key": key},
             ["label", "service", "key"],
@@ -96,18 +78,18 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
             "key": key,
         }
 
-        self._save_store()
+        await self._save_store()
 
         return {"id": key_id, "label": label, "service": normalized_service}
 
-    def delete_api_key(self, key_id: str) -> None:
+    async def delete_api_key(self, key_id: str) -> None:
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
 
         del self._store[key_id]
-        self._save_store()
+        await self._save_store()
 
-    def update_api_key(
+    async def update_api_key(
         self,
         key_id: str,
         label: str | None = None,
@@ -128,7 +110,7 @@ class APIKeyDomainService(BaseService, SupportsAPIKey):
             api_key_data["key"] = key
 
         self._store[key_id] = api_key_data
-        self._save_store()
+        await self._save_store()
 
         return {
             "id": key_id,

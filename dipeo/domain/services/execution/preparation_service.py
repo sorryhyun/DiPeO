@@ -13,7 +13,7 @@ from dipeo.diagram import (
 from dipeo.models import DiagramMetadata, DomainDiagram
 
 from ..apikey import APIKeyDomainService
-from dipeo.infra.persistence.diagram import DiagramFileRepository
+from ..diagram import DiagramStorageDomainService
 
 from .models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
 from .validators import DiagramValidator
@@ -26,7 +26,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
 
     def __init__(
         self,
-        storage_service: DiagramFileRepository,
+        storage_service: DiagramStorageDomainService,
         validator: DiagramValidator,
         api_key_service: APIKeyDomainService,
     ):

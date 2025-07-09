@@ -3,10 +3,10 @@
 from dependency_injector import containers, providers
 
 
-def _create_api_key_service():
+def _create_api_key_service(storage):
     from dipeo.domain.services.apikey import APIKeyDomainService
 
-    return APIKeyDomainService()
+    return APIKeyDomainService(storage=storage)
 
 
 def _create_api_domain_service():
@@ -177,7 +177,10 @@ class DomainContainer(containers.DeclarativeContainer):
     infra = providers.DependenciesContainer()
     
     # Core domain services
-    api_key_service = providers.Singleton(_create_api_key_service)
+    api_key_service = providers.Singleton(
+        _create_api_key_service,
+        storage=infra.api_key_storage,
+    )
     api_domain_service = providers.Singleton(_create_api_domain_service)
     file_domain_service = providers.Singleton(_create_file_domain_service)
     text_processing_service = providers.Singleton(_create_text_processing_service)
