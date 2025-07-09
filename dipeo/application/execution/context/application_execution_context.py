@@ -141,7 +141,7 @@ class ApplicationExecutionContext:
                 self.code_execution_service = container.infra.code_execution_service()
                 
                 # Execution domain services
-                self.execution_flow_service = container.domain.execution_flow_service()
+                self.execution_flow_service = container.domain.flow_control_service()
                 self.input_resolution_service = container.domain.input_resolution_service()
                 
                 # Support method for service registry

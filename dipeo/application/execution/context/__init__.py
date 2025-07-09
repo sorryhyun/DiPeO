@@ -1,6 +1,4 @@
-"""
-Application execution context implementations.
-"""
+"""Execution context implementations."""
 
 from .application_execution_context import ApplicationExecutionContext
 

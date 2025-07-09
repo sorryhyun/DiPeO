@@ -26,7 +26,7 @@ from dipeo.domain.services.execution.preparation_service import (
     PrepareDiagramForExecutionUseCase,
 )
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-from dipeo.application.execution.server_execution_service import ExecuteDiagramUseCase
+from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
 from dipeo.domain.services.text import TextProcessingDomainService
 from dipeo.domain.services.validation import ValidationDomainService
 from dipeo.infra import (
@@ -43,17 +43,13 @@ from dipeo.infra.persistence.memory import InMemoryConversationStore
 # We don't need separate container classes - we'll override directly in ServerContainer
 
 
-
-
-
-
 class ServerContainer(BaseContainer):
     """Server-specific dependency injection container."""
-    
+
     # Override providers in init method to ensure proper initialization
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         # Override infrastructure providers
         self.infra.override_providers(
             state_store=providers.Singleton(lambda: state_store),
@@ -65,7 +61,7 @@ class ServerContainer(BaseContainer):
             memory_service=providers.Singleton(InMemoryConversationStore),
             notion_service=providers.Singleton(NotionAPIService),
         )
-        
+
         # Override domain providers
         self.domain.override_providers(
             api_key_service=providers.Singleton(
@@ -92,7 +88,7 @@ class ServerContainer(BaseContainer):
                 memory_service=self.infra.memory_service,
             ),
         )
-        
+
         # Override application providers
         self.application.override_providers(
             execution_preparation_service=providers.Singleton(
@@ -108,33 +104,33 @@ async def init_server_resources(container: ServerContainer) -> None:
     """Initialize all server resources that require async setup."""
     # Initialize infrastructure
     state_store = container.infra.state_store()
-    if hasattr(state_store, 'initialize'):
+    if hasattr(state_store, "initialize"):
         await state_store.initialize()
-    
+
     message_router = container.infra.message_router()
-    if hasattr(message_router, 'initialize'):
+    if hasattr(message_router, "initialize"):
         await message_router.initialize()
 
     # Initialize services
     api_key_service = container.domain.api_key_service()
-    if hasattr(api_key_service, 'initialize'):
+    if hasattr(api_key_service, "initialize"):
         await api_key_service.initialize()
-    
+
     llm_service = container.infra.llm_service()
-    if hasattr(llm_service, 'initialize'):
+    if hasattr(llm_service, "initialize"):
         await llm_service.initialize()
-    
+
     diagram_storage_service = container.domain.diagram_storage_service()
-    if hasattr(diagram_storage_service, 'initialize'):
+    if hasattr(diagram_storage_service, "initialize"):
         await diagram_storage_service.initialize()
-    
+
     notion_service = container.infra.notion_service()
-    if notion_service is not None and hasattr(notion_service, 'initialize'):
+    if notion_service is not None and hasattr(notion_service, "initialize"):
         await notion_service.initialize()
 
     # Initialize execution service
     execution_service = container.application.execution_service()
-    if execution_service is not None and hasattr(execution_service, 'initialize'):
+    if execution_service is not None and hasattr(execution_service, "initialize"):
         await execution_service.initialize()
 
     # Validate protocol compliance
@@ -144,11 +140,11 @@ async def init_server_resources(container: ServerContainer) -> None:
 async def shutdown_server_resources(container: ServerContainer) -> None:
     """Cleanup all server resources."""
     message_router = container.infra.message_router()
-    if hasattr(message_router, 'cleanup'):
+    if hasattr(message_router, "cleanup"):
         await message_router.cleanup()
-    
+
     state_store = container.infra.state_store()
-    if hasattr(state_store, 'cleanup'):
+    if hasattr(state_store, "cleanup"):
         await state_store.cleanup()
 
 

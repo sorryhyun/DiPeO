@@ -37,5 +37,3 @@ def initialize_container() -> ServerContainer:
         )
 
     return _container
-
-

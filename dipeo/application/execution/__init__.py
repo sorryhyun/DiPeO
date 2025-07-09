@@ -1,13 +1,16 @@
 """Application execution services."""
 
 from .executor import BaseExecutor, ExecutorInterface
-from .handlers import (
+from .handler_factory import (
     BaseNodeHandler,
     HandlerRegistry,
     get_global_registry,
     register_handler,
 )
-from .server_execution_service import ExecuteDiagramUseCase
+from .use_cases import ExecuteDiagramUseCase
+from .services import ExecutionService
+from .adapters import ApplicationExecutionState
+from .context import ApplicationExecutionContext
 from .types import (
     ExecutionContext,
     ExecutionOptions,
@@ -16,8 +19,14 @@ from .types import (
 )
 
 __all__ = [
-    # Server execution
+    # Use cases
     "ExecuteDiagramUseCase",
+    # Services
+    "ExecutionService",
+    # Adapters
+    "ApplicationExecutionState",
+    # Context
+    "ApplicationExecutionContext",
     # Types
     "ExecutionContext",
     "ExecutionOptions",

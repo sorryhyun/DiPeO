@@ -1,63 +1,45 @@
-"""Unified execution controller for managing execution flow and state.
+"""Unified execution controller for managing execution flow.
 
-This module provides the controller that tracks node execution states
-and determines which nodes are ready to execute based on dependencies.
+This module provides the controller that determines which nodes are ready
+to execute based on dependencies, delegating state management to the
+ApplicationExecutionState adapter.
 """
 
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from dipeo.domain.services.execution import ExecutionFlowService
+from dipeo.domain.services.execution import FlowControlService
 from dipeo.models import NodeOutput, NodeType
 
 if TYPE_CHECKING:
     from .execution_view import LocalExecutionView, NodeView
+    from ..execution.adapters.state_adapter import ApplicationExecutionState
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class NodeExecutionState:
-    """Tracks execution state for a single node."""
-    node_id: str
-    node_type: str
-    exec_count: int = 0
-    max_iterations: int = 1
-    completed: bool = False
-    output: NodeOutput | None = None
-    
-    def can_execute(self) -> bool:
-        """Check if node can execute."""
-        if self.completed:
-            return False
-        return self.exec_count < self.max_iterations
-    
-    def should_continue_iterating(self) -> bool:
-        """Check if node should continue iterating."""
-        return not self.completed and self.exec_count < self.max_iterations
 
 
 @dataclass
 class ExecutionController:
     """Unified controller for execution flow."""
     
-    execution_flow_service: ExecutionFlowService
-    node_states: dict[str, NodeExecutionState] = field(default_factory=dict)
-    ready_queue: list[str] = field(default_factory=list)
-    executed_nodes: set[str] = field(default_factory=set)
-    endpoint_executed: bool = False
+    flow_control_service: FlowControlService
+    state_adapter: Optional["ApplicationExecutionState"] = None
     iteration_count: int = 0
     max_global_iterations: int = 100
     
-    def initialize_nodes(self, node_views: dict[str, "NodeView"]) -> None:
+    async def initialize_nodes(self, node_views: dict[str, "NodeView"]) -> None:
         """Initialize node states from views."""
+        if not self.state_adapter:
+            raise ValueError("State adapter not set")
+            
         for node_id, node_view in node_views.items():
             max_iter = 1
             if node_view.node.type in [NodeType.person_job.value, NodeType.job.value]:
                 max_iter = node_view.data.get("max_iteration", 1)
             
-            self.node_states[node_id] = NodeExecutionState(
+            # Initialize node state through adapter
+            await self.state_adapter.update_node_state(
                 node_id=node_id,
                 node_type=node_view.node.type,
                 max_iterations=max_iter
@@ -65,53 +47,69 @@ class ExecutionController:
     
     def get_ready_nodes(self, execution_view: "LocalExecutionView") -> list[str]:
         """Get all nodes ready for execution."""
-        # Delegate to domain service
-        node_outputs = {state.node_id: state.output for state in self.node_states.values() if state.output}
-        node_exec_counts = {state.node_id: state.exec_count for state in self.node_states.values()}
+        if not self.state_adapter:
+            raise ValueError("State adapter not set")
+            
+        # Get state from adapter
+        node_outputs = self.state_adapter.get_all_node_outputs()
+        node_exec_counts = self.state_adapter.get_all_node_exec_counts()
+        executed_nodes = self.state_adapter.get_executed_nodes()
         
-        ready_nodes = self.execution_flow_service.get_ready_nodes(
+        ready_nodes = self.flow_control_service.get_ready_nodes(
             diagram=execution_view.diagram,
-            executed_nodes=self.executed_nodes,
+            executed_nodes=executed_nodes,
             node_outputs=node_outputs,
             node_exec_counts=node_exec_counts
         )
         
-        # Filter by nodes that can still execute based on local state
+        # Filter by nodes that can still execute
         ready = []
         for node in ready_nodes:
-            state = self.node_states.get(node.id)
-            if state and state.can_execute():
+            if self.state_adapter.can_node_execute(node.id):
                 ready.append(node.id)
         
         log.debug(f"Ready nodes: {ready}")
         return ready
     
     
-    def mark_executed(self, node_id: str, output: NodeOutput) -> None:
+    async def mark_executed(self, node_id: str, output: NodeOutput, node_type: str) -> None:
         """Mark node as executed with output."""
-        state = self.node_states[node_id]
-        state.exec_count += 1
-        state.output = output
+        if not self.state_adapter:
+            raise ValueError("State adapter not set")
+            
+        # Get max iterations for the node
+        max_iterations = self.state_adapter.get_node_max_iterations(node_id)
         
-        log.debug(f"Marked node {node_id} as executed (exec_count: {state.exec_count}, has_output: {output is not None})")
+        # Update state through adapter
+        await self.state_adapter.update_node_state(
+            node_id=node_id,
+            node_type=node_type,
+            output=output,
+            max_iterations=max_iterations,
+            increment_exec_count=True
+        )
         
-        # Check if node is completed
-        if state.exec_count >= state.max_iterations:
-            state.completed = True
-        
-        # Track endpoint execution
-        if state.node_type == NodeType.endpoint.value:
-            self.endpoint_executed = True
-        
-        self.executed_nodes.add(node_id)
+        exec_count = self.state_adapter.get_node_exec_count(node_id)
+        log.debug(f"Marked node {node_id} as executed (exec_count: {exec_count}, has_output: {output is not None})")
     
     def should_continue(self) -> bool:
         """Check if execution should continue."""
+        if not self.state_adapter:
+            return False
+            
         if self.iteration_count >= self.max_global_iterations:
             return False
             
-        # Check endpoint execution status
-        return any(state.can_execute() for state in self.node_states.values()) and not self.endpoint_executed
+        # Check if any endpoint has been executed
+        if self.state_adapter.is_endpoint_executed():
+            return False
+            
+        # Check if any nodes can still execute
+        for node_id in self.state_adapter.execution_state.node_states:
+            if self.state_adapter.can_node_execute(node_id):
+                return True
+                
+        return False
     
     def increment_iteration(self) -> None:
         """Increment global iteration counter."""

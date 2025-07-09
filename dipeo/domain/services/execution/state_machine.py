@@ -1,153 +1,144 @@
-"""Execution state machine logic."""
+"""Domain state machine for execution state transitions.
 
-from typing import List, Dict, Any, Optional, Set
-from enum import Enum
-import logging
+This module provides a domain service that encapsulates all state transitions
+and modifications, ensuring proper validation and consistency.
+"""
 
-from dipeo.models import DomainDiagram, NodeType, DomainNode
+from datetime import datetime
+from typing import Optional
 
-log = logging.getLogger(__name__)
-
-
-class ExecutionState(Enum):
-    """States for execution flow."""
-    IDLE = "idle"
-    RUNNING = "running"
-    PAUSED = "paused"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+from dipeo.models import (
+    ExecutionState,
+    ExecutionStatus,
+    NodeExecutionStatus,
+    NodeOutput,
+    NodeState,
+)
 
 
 class ExecutionStateMachine:
-    """Manages execution state transitions and flow control."""
+    """Domain service for managing execution state transitions."""
     
-    def __init__(self):
-        self.state = ExecutionState.IDLE
-        self.executed_nodes: Set[str] = set()
-        self.node_outputs: Dict[str, Any] = {}
-        self.node_exec_counts: Dict[str, int] = {}
-        self.error: Optional[str] = None
+    @staticmethod
+    def transition_to_running(state: ExecutionState) -> None:
+        """Transition execution to running status."""
+        if state.status != ExecutionStatus.PENDING:
+            raise ValueError(f"Cannot transition to RUNNING from {state.status}")
+        state.status = ExecutionStatus.RUNNING
+        state.started_at = datetime.utcnow().isoformat()
+        state.is_active = True
     
-    def start_execution(self) -> bool:
-        """Transition to running state."""
-        if self.state not in [ExecutionState.IDLE, ExecutionState.PAUSED]:
-            return False
-        
-        self.state = ExecutionState.RUNNING
-        self.error = None
-        return True
+    @staticmethod
+    def transition_to_completed(state: ExecutionState) -> None:
+        """Transition execution to completed status."""
+        if state.status != ExecutionStatus.RUNNING:
+            raise ValueError(f"Cannot transition to COMPLETED from {state.status}")
+        state.status = ExecutionStatus.COMPLETED
+        state.ended_at = datetime.utcnow().isoformat()
+        state.is_active = False
     
-    def pause_execution(self) -> bool:
-        """Transition to paused state."""
-        if self.state != ExecutionState.RUNNING:
-            return False
-        
-        self.state = ExecutionState.PAUSED
-        return True
+    @staticmethod
+    def transition_to_failed(state: ExecutionState, error: str) -> None:
+        """Transition execution to failed status."""
+        if state.status not in [ExecutionStatus.PENDING, ExecutionStatus.RUNNING]:
+            raise ValueError(f"Cannot transition to FAILED from {state.status}")
+        state.status = ExecutionStatus.FAILED
+        state.ended_at = datetime.utcnow().isoformat()
+        state.is_active = False
+        state.error = error
     
-    def complete_execution(self) -> bool:
-        """Transition to completed state."""
-        if self.state not in [ExecutionState.RUNNING, ExecutionState.PAUSED]:
-            return False
-        
-        self.state = ExecutionState.COMPLETED
-        return True
-    
-    def fail_execution(self, error: str) -> bool:
-        """Transition to failed state."""
-        if self.state not in [ExecutionState.RUNNING, ExecutionState.PAUSED]:
-            return False
-        
-        self.state = ExecutionState.FAILED
-        self.error = error
-        return True
-    
-    def cancel_execution(self) -> bool:
-        """Transition to cancelled state."""
-        if self.state not in [ExecutionState.RUNNING, ExecutionState.PAUSED]:
-            return False
-        
-        self.state = ExecutionState.CANCELLED
-        return True
-    
-    def record_node_execution(self, node_id: str, output: Any) -> None:
-        """Record that a node has been executed."""
-        self.executed_nodes.add(node_id)
-        self.node_outputs[node_id] = output
-        self.node_exec_counts[node_id] = self.node_exec_counts.get(node_id, 0) + 1
-    
-    def get_node_execution_count(self, node_id: str) -> int:
-        """Get the number of times a node has been executed."""
-        return self.node_exec_counts.get(node_id, 0)
-    
-    def is_node_executed(self, node_id: str) -> bool:
-        """Check if a node has been executed at least once."""
-        return node_id in self.executed_nodes
-    
-    def get_execution_summary(self) -> Dict[str, Any]:
-        """Get a summary of the execution state."""
-        return {
-            "state": self.state.value,
-            "executed_nodes": list(self.executed_nodes),
-            "total_executions": sum(self.node_exec_counts.values()),
-            "node_exec_counts": self.node_exec_counts.copy(),
-            "error": self.error
-        }
-    
-    def reset(self) -> None:
-        """Reset the state machine to initial state."""
-        self.state = ExecutionState.IDLE
-        self.executed_nodes.clear()
-        self.node_outputs.clear()
-        self.node_exec_counts.clear()
-        self.error = None
-    
-    def can_execute_node(self, node: DomainNode) -> bool:
-        """Check if a node can be executed based on state and limits."""
-        if self.state != ExecutionState.RUNNING:
-            return False
-        
-        exec_count = self.get_node_execution_count(node.id)
-        
-        # Check max iterations for person_job nodes
-        if node.type == NodeType.person_job and node.data:
-            max_iter = node.data.get("max_iteration", 1)
-            if exec_count >= max_iter:
-                return False
-        
-        # Check max iterations for person_batch_job nodes
-        if node.type == NodeType.person_batch_job and node.data:
-            max_iter = node.data.get("max_iteration", 1)
-            if exec_count >= max_iter:
-                return False
-        
-        return True
-    
-    def should_continue_execution(self, diagram: DomainDiagram) -> bool:
-        """Determine if execution should continue."""
-        if self.state != ExecutionState.RUNNING:
-            return False
-        
-        # Check if all endpoints have been executed
-        endpoint_nodes = [
-            node for node in diagram.nodes 
-            if node.type == NodeType.endpoint
-        ]
-        
-        if endpoint_nodes:
-            all_endpoints_executed = all(
-                self.is_node_executed(endpoint.id)
-                for endpoint in endpoint_nodes
-            )
-            if all_endpoints_executed:
-                return False
-        
-        # Check if any nodes can still execute
-        can_execute_any = any(
-            self.can_execute_node(node)
-            for node in diagram.nodes
-            if not self.is_node_executed(node.id) or self.can_execute_node(node)
+    @staticmethod
+    def initialize_node_state(
+        execution_state: ExecutionState,
+        node_id: str,
+        node_type: str,
+        max_iterations: int = 1
+    ) -> NodeState:
+        """Initialize a new node state."""
+        node_state = NodeState(
+            status=NodeExecutionStatus.PENDING,
+            started_at=datetime.utcnow().isoformat(),
+            metadata={
+                "exec_count": 0,
+                "max_iterations": max_iterations,
+                "node_type": node_type
+            }
         )
+        execution_state.node_states[node_id] = node_state
+        return node_state
+    
+    @staticmethod
+    def execute_node(
+        execution_state: ExecutionState,
+        node_id: str,
+        output: Optional[NodeOutput] = None
+    ) -> None:
+        """Mark a node as executed and update its state."""
+        node_state = execution_state.node_states.get(node_id)
+        if not node_state:
+            raise ValueError(f"Node {node_id} not found in execution state")
         
-        return can_execute_any
+        if not node_state.metadata:
+            raise ValueError(f"Node {node_id} has no metadata")
+        
+        # Increment execution count
+        exec_count = node_state.metadata.get("exec_count", 0)
+        node_state.metadata["exec_count"] = exec_count + 1
+        
+        # Update status based on iterations
+        max_iterations = node_state.metadata.get("max_iterations", 1)
+        if node_state.metadata["exec_count"] >= max_iterations:
+            node_state.status = NodeExecutionStatus.COMPLETED
+            node_state.ended_at = datetime.utcnow().isoformat()
+        else:
+            node_state.status = NodeExecutionStatus.RUNNING
+        
+        # Update output
+        if output:
+            execution_state.node_outputs[node_id] = output
+            node_state.output = output
+    
+    @staticmethod
+    def can_node_execute(execution_state: ExecutionState, node_id: str) -> bool:
+        """Check if a node can execute."""
+        node_state = execution_state.node_states.get(node_id)
+        if not node_state:
+            return True  # New nodes can execute
+        
+        # Check if completed or failed
+        if node_state.status in [NodeExecutionStatus.COMPLETED, NodeExecutionStatus.FAILED]:
+            return False
+        
+        # Check iteration count
+        if node_state.metadata:
+            exec_count = node_state.metadata.get("exec_count", 0)
+            max_iterations = node_state.metadata.get("max_iterations", 1)
+            return exec_count < max_iterations
+        
+        return True
+    
+    @staticmethod
+    def get_node_exec_count(execution_state: ExecutionState, node_id: str) -> int:
+        """Get execution count for a node."""
+        node_state = execution_state.node_states.get(node_id)
+        if not node_state or not node_state.metadata:
+            return 0
+        return node_state.metadata.get("exec_count", 0)
+    
+    @staticmethod
+    def get_executed_nodes(execution_state: ExecutionState) -> set[str]:
+        """Get set of executed node IDs."""
+        executed = set()
+        for node_id, node_state in execution_state.node_states.items():
+            if node_state.metadata and node_state.metadata.get("exec_count", 0) > 0:
+                executed.add(node_id)
+        return executed
+    
+    @staticmethod
+    def is_endpoint_executed(execution_state: ExecutionState) -> bool:
+        """Check if any endpoint node has been executed."""
+        for node_id, node_state in execution_state.node_states.items():
+            if node_state.metadata and node_state.metadata.get("node_type") == "endpoint":
+                if node_state.metadata.get("exec_count", 0) > 0:
+                    return True
+        return False

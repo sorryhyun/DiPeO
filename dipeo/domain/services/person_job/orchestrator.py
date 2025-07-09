@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from dipeo.models import ForgettingMode, DomainDiagram
 from dipeo.domain.services.prompt.builder import PromptBuilder
 from dipeo.domain.services.conversation.state_manager import ConversationStateManager
-from dipeo.domain.services.conversation.message_preparator import MessagePreparator
+from dipeo.domain.services.conversation.message_builder import MessageBuilder
 from dipeo.domain.services.llm.executor import LLMExecutor, LLMExecutionResult
 from dipeo.domain.services.arrow import MemoryTransformer, unwrap_inputs
 
@@ -23,7 +23,7 @@ class PersonJobOrchestrator:
         self,
         prompt_builder: PromptBuilder,
         conversation_state_manager: ConversationStateManager,
-        message_preparator: MessagePreparator,
+        message_builder: MessageBuilder,
         llm_executor: LLMExecutor,
         output_builder: PersonJobOutputBuilder,
         conversation_processor: ConversationProcessingService,
@@ -31,7 +31,7 @@ class PersonJobOrchestrator:
     ):
         self._prompt_builder = prompt_builder
         self._conversation_state_manager = conversation_state_manager
-        self._message_preparator = message_preparator
+        self._message_builder = message_builder
         self._llm_executor = llm_executor
         self._output_builder = output_builder
         self._conversation_processor = conversation_processor
@@ -211,7 +211,7 @@ class PersonJobOrchestrator:
             )
         
         # Prepare final messages
-        return self._message_preparator.prepare_messages(
+        return MessageBuilder.prepare_messages(
             system_prompt=system_prompt,
             conversation_messages=conversation_messages,
             current_prompt=built_prompt,
@@ -240,13 +240,12 @@ class PersonJobOrchestrator:
         content: str,
     ) -> None:
         """Store user message in conversation service."""
-        from dipeo.domain.services.conversation.message_builder_service import (
-            MessageBuilderService,
+        # Store user message directly
+        conversation_service.add_message(
+            person_id=person_id,
+            execution_id=execution_id,
+            message=MessageBuilder.create_user_message(content)
         )
-        message_builder = MessageBuilderService(
-            conversation_service, person_id, execution_id
-        )
-        message_builder.user(content)
     
     def _store_assistant_response(
         self,
@@ -255,14 +254,13 @@ class PersonJobOrchestrator:
         execution_id: Optional[str],
         content: str,
     ) -> None:
-        """Store assistant response in conversation service."""
-        from dipeo.domain.services.conversation.message_builder_service import (
-            MessageBuilderService,
+        """Store user message in conversation service."""
+        # Store user message directly
+        conversation_service.add_message(
+            person_id=person_id,
+            execution_id=execution_id,
+            message=MessageBuilder.create_assistant_message(content)
         )
-        message_builder = MessageBuilderService(
-            conversation_service, person_id, execution_id
-        )
-        message_builder.assistant(content)
     
     def _build_final_output(
         self,

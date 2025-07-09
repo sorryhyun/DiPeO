@@ -5,7 +5,7 @@ Application orchestration layer providing use cases and node handlers.
 """
 
 # Context
-from .context.application_execution_context import ApplicationExecutionContext
+from .execution.context import ApplicationExecutionContext
 
 # Engine components
 from .engine import ExecutionEngine, ExecutionController, LocalExecutionView
@@ -25,7 +25,7 @@ from .execution import (
 )
 
 # Handlers
-from .handlers import (
+from dipeo.application.execution.handlers import (
     StartNodeHandler,
     EndpointNodeHandler,
     ConditionNodeHandler,
@@ -47,7 +47,7 @@ from .services import MinimalMessageRouter, MinimalStateStore
 from .utils.conversation_utils import InputDetector, MessageBuilder
 
 # Execution
-from .execution.server_execution_service import ExecuteDiagramUseCase
+from .execution.use_cases import ExecuteDiagramUseCase
 
 __all__ = [
     # Context

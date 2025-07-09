@@ -13,9 +13,10 @@ from typing import TYPE_CHECKING, Any
 from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
 
 from .execution_controller import ExecutionController
+from .node_executor import NodeExecutor
 
 if TYPE_CHECKING:
-    from dipeo.application.context.application_execution_context import ApplicationExecutionContext
+    from dipeo.application.execution.context import ApplicationExecutionContext
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
     from dipeo.domain.services.execution.protocols import ExecutionObserver
     from dipeo.models import DomainDiagram
@@ -26,12 +27,20 @@ log = logging.getLogger(__name__)
 
 
 class ExecutionEngine:
-    """Simplified execution engine with unified execution loop."""
+    """Execution engine focused on coordination and concurrency management.
+    
+    This engine delegates node-level execution to NodeExecutor while managing:
+    - Execution loop coordination
+    - Concurrency control
+    - Batch execution
+    - Event dispatching
+    """
     
     def __init__(self, service_registry: "UnifiedServiceRegistry", observers: list["ExecutionObserver"] | None = None):
         self.service_registry = service_registry
         self.observers = observers or []
         self._concurrency_semaphore: asyncio.Semaphore | None = None
+        self.node_executor = NodeExecutor(service_registry, observers)
     
     async def execute(
         self,
@@ -40,90 +49,44 @@ class ExecutionEngine:
         options: dict[str, Any],
         interactive_handler: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        """Execute diagram with unified execution loop."""
+        """Execute diagram - DEPRECATED.
         
-        # Initialize
+        This method is deprecated and only kept for backward compatibility.
+        All diagram preparation and setup should be done in the service layer
+        (ExecuteDiagramUseCase) before calling execute_prepared.
+        
+        Since local execution is not supported, this method should not be used.
+        """
+        raise NotImplementedError(
+            "Direct execution via ExecutionEngine.execute() is deprecated. "
+            "Use ExecuteDiagramUseCase for server execution with proper setup and persistence."
+        )
+    
+    async def execute_prepared(
+        self,
+        execution_view: "LocalExecutionView",
+        controller: ExecutionController,
+        execution_id: str,
+        options: dict[str, Any],
+        interactive_handler: Any | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Execute with pre-prepared execution context.
+        
+        This method focuses purely on execution flow without any setup or preparation.
+        All diagram preparation, handler initialization, and service configuration
+        should be done by the calling service layer.
+        """
+        
+        # Initialize concurrency control
         max_concurrent = options.get("max_parallel_nodes", 10)
         self._concurrency_semaphore = asyncio.Semaphore(max_concurrent)
         
         # Notify observers
         for observer in self.observers:
-            await observer.on_execution_start(
-                execution_id, diagram.metadata.id if diagram.metadata else None
-            )
-        
-        # Create execution view and controller
-        from dipeo.application import get_global_registry
-
-        from .execution_view import LocalExecutionView
-        
-        # Get required domain services from service registry
-        if not hasattr(self.service_registry, 'get'):
-            raise ValueError("Service registry must support 'get' method")
-            
-        input_resolution_service = self.service_registry.get('input_resolution_service')
-        execution_flow_service = self.service_registry.get('execution_flow_service')
-        
-        if not execution_flow_service:
-            raise ValueError("ExecutionFlowService is required but not found in service registry")
-        
-        execution_view = LocalExecutionView(diagram, input_resolution_service)
-        
-        controller = ExecutionController(
-            execution_flow_service=execution_flow_service,
-            max_global_iterations=options.get("max_iterations", 100)
-        )
-        
-        # Initialize handlers
-        registry = get_global_registry()
-        for _node_id, node_view in execution_view.node_views.items():
-            node_def = registry.get(node_view.node.type)
-            if not node_def:
-                raise ValueError(f"No handler for node type: {node_view.node.type}")
-            node_view.handler = node_def.handler
-            node_view._handler_def = node_def
-        
-        # Initialize controller with nodes
-        controller.initialize_nodes(execution_view.node_views)
-        
-        # Register person configs with conversation service
-        conversation_service = None
-        if hasattr(self.service_registry, 'get'):
-            # Try the standardized name first
-            conversation_service = self.service_registry.get('conversation_service')
-            if not conversation_service:
-                # Fall back to legacy name for backward compatibility
-                conversation_service = self.service_registry.get('conversation')
-        
-        if conversation_service:
-            # Extract person configs from diagram
-            person_configs = {}
-            for node in diagram.nodes:
-                if node.type == NodeType.person_job.value:
-                    person_id = node.id
-                    # Extract person config from node data
-                    if hasattr(node, 'data') and node.data:
-                        config = {
-                            'name': node.data.get('name', person_id),
-                            'system_prompt': node.data.get('system_prompt', ''),
-                            'model': node.data.get('model', 'gpt-4.1-nano'),
-                            'temperature': node.data.get('temperature', 0.7),
-                            'max_tokens': node.data.get('max_tokens'),
-                        }
-                        person_configs[person_id] = config
-                        
-                        # Register person if conversation service supports it
-                        if hasattr(conversation_service, 'register_person'):
-                            conversation_service.register_person(person_id, config)
-                        else:
-                            # For services that don't have register_person, 
-                            # we can at least ensure the person memory is created
-                            if hasattr(conversation_service, 'get_or_create_person_memory'):
-                                conversation_service.get_or_create_person_memory(person_id)
-            
-            # Log person registrations
-            if person_configs:
-                log.debug(f"Registered {len(person_configs)} person configs for execution {execution_id}")
+            diagram_id = None
+            if hasattr(execution_view, 'diagram') and execution_view.diagram.metadata:
+                diagram_id = execution_view.diagram.metadata.id
+            await observer.on_execution_start(execution_id, diagram_id)
         
         try:
             # Unified execution loop
@@ -135,7 +98,7 @@ class ExecutionEngine:
                 
                 if not ready_nodes:
                     # No nodes ready, check for deadlock
-                    if not controller.executed_nodes:
+                    if controller.state_adapter and not controller.state_adapter.get_executed_nodes():
                         raise RuntimeError("No nodes ready for execution - possible deadlock")
                     break
                 
@@ -156,8 +119,8 @@ class ExecutionEngine:
                 yield {
                     "type": "iteration_complete",
                     "iteration": controller.iteration_count,
-                    "executed_nodes": len(controller.executed_nodes),
-                    "endpoint_executed": controller.endpoint_executed
+                    "executed_nodes": len(controller.state_adapter.get_executed_nodes()),
+                    "endpoint_executed": controller.state_adapter.is_endpoint_executed()
                 }
             
             # Notify completion
@@ -179,12 +142,16 @@ class ExecutionEngine:
         options: dict[str, Any],
         interactive_handler: Any | None
     ) -> None:
-        """Execute a batch of nodes concurrently."""
+        """Execute a batch of nodes concurrently.
+        
+        Manages concurrency control and parallel execution of multiple nodes.
+        """
         tasks = []
         
         for node_id in node_ids:
             node_view = execution_view.node_views[node_id]
-            task = self._execute_node(
+            # Create task with semaphore control
+            task = self._execute_node_with_semaphore(
                 node_view,
                 execution_view,
                 controller,
@@ -201,7 +168,7 @@ class ExecutionEngine:
                     log.error(f"Node execution failed: {result}")
                     raise result
     
-    async def _execute_node(
+    async def _execute_node_with_semaphore(
         self,
         node_view: "NodeView",
         execution_view: "LocalExecutionView",
@@ -210,118 +177,14 @@ class ExecutionEngine:
         options: dict[str, Any],
         interactive_handler: Any | None
     ) -> None:
-        """Execute a single node."""
+        """Execute a node with concurrency control."""
         async with self._concurrency_semaphore:
-            # Track start time
-            start_time = datetime.utcnow()
-            
-            # Notify observers
-            for observer in self.observers:
-                await observer.on_node_start(execution_id, node_view.id)
-            
-            try:
-                # Create runtime context
-                context = self._create_runtime_context(
-                    node_view, execution_id, options, execution_view, controller
-                )
-                
-                # Get inputs
-                inputs = node_view.get_active_inputs()
-                
-                # Get services
-                services = self.service_registry.get_handler_services(
-                    node_view._handler_def.requires_services
-                )
-                services["diagram"] = execution_view.diagram
-                services["execution_context"] = {
-                    "interactive_handler": interactive_handler
-                }
-                
-                # Prepare node data
-                node_data = node_view.data.copy() if node_view.data else {}
-                if node_view.node.type == NodeType.person_job.value:
-                    node_data.setdefault("first_only_prompt", "")
-                    node_data.setdefault("max_iteration", 1)
-                
-                # Execute handler directly with
-                output = await node_view.handler(
-                    props=node_view._handler_def.node_schema.model_validate(node_data),
-                    context=context,
-                    inputs=inputs,
-                    services=services,
-                )
-                
-                # Update state
-                node_view.output = output
-                node_view.exec_count += 1
-                controller.mark_executed(node_view.id, output)
-                
-                # Create NodeState with output and timing information
-                end_time = datetime.utcnow()
-                
-                # Extract token usage from output metadata if available
-                token_usage = None
-                if output and output.metadata and "token_usage" in output.metadata:
-                    token_usage_data = output.metadata["token_usage"]
-                    if token_usage_data:
-                        token_usage = TokenUsage(**token_usage_data)
-                
-                node_state = NodeState(
-                    status=NodeExecutionStatus.COMPLETED,
-                    started_at=start_time.isoformat(),
-                    ended_at=end_time.isoformat(),
-                    error=None,
-                    token_usage=token_usage,
-                    output=output
-                )
-                
-                # Notify observers
-                for observer in self.observers:
-                    await observer.on_node_complete(
-                        execution_id, node_view.id, node_state
-                    )
-                    
-            except Exception as e:
-                # Notify observers
-                for observer in self.observers:
-                    await observer.on_node_error(execution_id, node_view.id, str(e))
-                raise
+            await self.node_executor.execute_node(
+                node_view,
+                execution_view,
+                controller,
+                execution_id,
+                options,
+                interactive_handler
+            )
     
-    def _create_runtime_context(
-        self, node_view: "NodeView", execution_id: str, options: dict[str, Any], execution_view: "LocalExecutionView", controller: ExecutionController
-    ) -> "ApplicationExecutionContext":
-        """Create runtime context for node execution."""
-        from datetime import datetime
-
-        from dipeo.application.context.application_execution_context import (
-            ApplicationExecutionContext,
-        )
-        from dipeo.models import ExecutionState, ExecutionStatus
-        
-        # Collect outputs
-        node_outputs = {}
-        for nv in execution_view.node_views.values():
-            if nv.output is not None:
-                node_outputs[nv.id] = nv.output
-        
-        # Create execution state
-        execution_state = ExecutionState(
-            id=execution_id,
-            status=ExecutionStatus.RUNNING,
-            diagram_id=execution_view.diagram.metadata.id if execution_view.diagram.metadata else None,
-            started_at=datetime.now().isoformat(),
-            node_states={},  # We can populate this if needed
-            node_outputs=node_outputs,
-            variables=options.get("variables", {}),
-            is_active=True,
-            token_usage=TokenUsage(input=0, output=0),  # Initialize with zero usage
-        )
-        
-        # Create ApplicationExecutionContext
-        return ApplicationExecutionContext(
-            execution_state=execution_state,
-            service_registry=self.service_registry,
-            current_node_id=node_view.id,
-            executed_nodes=list(controller.executed_nodes),
-            exec_counts={nv.id: nv.exec_count for nv in execution_view.node_views.values()},
-        )

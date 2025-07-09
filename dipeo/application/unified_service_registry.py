@@ -67,6 +67,9 @@ class UnifiedServiceRegistry(DynamicRegistry):
             "conversation_service": "conversation_service",
             "notion_service": "notion_service",
             
+            # Infrastructure services
+            "diagram_loader": "diagram_loader",
+            
             # Domain services
             "diagram_storage_service": "diagram_storage_service",
             "api_integration_service": "api_integration_service",

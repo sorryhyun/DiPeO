@@ -1,4 +1,8 @@
-"""Execution flow control logic."""
+"""Unified flow control service for execution management.
+
+This service combines the responsibilities of ExecutionFlowService and ExecutionFlowController,
+providing a single source of truth for flow control logic.
+"""
 
 from typing import List, Dict, Any, Optional, Set
 import logging
@@ -9,27 +13,16 @@ from dipeo.models import parse_handle_id, extract_node_id_from_handle
 log = logging.getLogger(__name__)
 
 
-class ExecutionFlowController:
-    """Controls the flow of execution through a diagram."""
+class FlowControlService:
+    """Unified service for managing execution flow control.
     
-    def get_ready_nodes(
-        self,
-        diagram: DomainDiagram,
-        executed_nodes: Set[str],
-        node_outputs: Dict[str, Any],
-        node_exec_counts: Optional[Dict[str, int]] = None,
-    ) -> List[DomainNode]:
-        """Get all nodes that are ready to execute.
-        
-        A node is ready if all its dependencies are satisfied.
-        """
-        ready_nodes = []
-        
-        for node in diagram.nodes:
-            if self.is_node_ready(node, diagram, executed_nodes, node_outputs, node_exec_counts):
-                ready_nodes.append(node)
-        
-        return ready_nodes
+    Responsibilities:
+    - Determine node readiness (pure business logic)
+    - Calculate dependencies
+    - Evaluate flow decisions
+    - Navigate execution paths
+    - Control execution lifecycle
+    """
     
     def is_node_ready(
         self,
@@ -39,17 +32,104 @@ class ExecutionFlowController:
         node_outputs: Dict[str, Any],
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> bool:
-        """Check if a specific node is ready to execute."""
-        # Start nodes are always ready
-        if node.type == NodeType.start:
+        """Determine if a node is ready to execute.
+        
+        A node is ready if:
+        - It hasn't exceeded its max iterations
+        - All its dependencies are satisfied
+        """
+        # Check if node can still execute
+        if not self.can_node_execute(node, node_exec_counts):
+            return False
+        
+        # Check dependencies
+        return self._are_dependencies_satisfied(
+            node, diagram, executed_nodes, node_outputs, node_exec_counts
+        )
+    
+    def get_ready_nodes(
+        self,
+        diagram: DomainDiagram,
+        executed_nodes: Set[str],
+        node_outputs: Dict[str, Any],
+        node_exec_counts: Optional[Dict[str, int]] = None,
+    ) -> List[DomainNode]:
+        """Get all nodes that are ready to execute."""
+        ready_nodes = []
+        
+        for node in diagram.nodes:
+            if self.is_node_ready(node, diagram, executed_nodes, node_outputs, node_exec_counts):
+                ready_nodes.append(node)
+        
+        return ready_nodes
+    
+    def should_execution_continue(
+        self,
+        ready_nodes: List[DomainNode],
+        executed_nodes: Set[str],
+        diagram: DomainDiagram,
+        node_exec_counts: Optional[Dict[str, int]] = None,
+    ) -> bool:
+        """Determine if execution should continue.
+        
+        Business rules:
+        - Stop if all endpoints have been executed
+        - Stop if only unexecutable nodes remain
+        - Stop if nodes have reached max iterations
+        """
+        # Check if all endpoints have been executed
+        endpoint_nodes = [
+            node for node in diagram.nodes 
+            if node.type == NodeType.endpoint
+        ]
+        
+        if endpoint_nodes:
+            all_endpoints_executed = all(
+                endpoint.id in executed_nodes 
+                for endpoint in endpoint_nodes
+            )
+            if all_endpoints_executed:
+                return False
+        
+        # Check if we have any nodes that can still execute
+        if not ready_nodes:
+            return False
+        
+        # Check if nodes have reached their max iterations
+        can_execute = False
+        for node in ready_nodes:
+            if self.can_node_execute(node, node_exec_counts):
+                can_execute = True
+                break
+        
+        return can_execute
+    
+    def can_node_execute(
+        self,
+        node: DomainNode,
+        node_exec_counts: Optional[Dict[str, int]] = None,
+    ) -> bool:
+        """Check if a node can execute based on its max iterations.
+        
+        Business rules:
+        - Nodes without max_iteration can always execute
+        - Nodes with max_iteration stop after reaching the limit
+        """
+        if not node_exec_counts:
             return True
         
-        # Get dependencies
-        dependencies = self.get_node_dependencies(node, diagram, node_exec_counts)
+        exec_count = node_exec_counts.get(node.id, 0)
         
-        # Check if all dependencies have been executed
-        for dep_id in dependencies:
-            if dep_id not in executed_nodes:
+        # Check max iterations for person_job nodes
+        if node.type == NodeType.person_job and node.data:
+            max_iter = node.data.get("max_iteration", 1)
+            if exec_count >= max_iter:
+                return False
+        
+        # Check max iterations for person_batch_job nodes
+        if node.type == NodeType.person_batch_job and node.data:
+            max_iter = node.data.get("max_iteration", 1)
+            if exec_count >= max_iter:
                 return False
         
         return True
@@ -60,7 +140,10 @@ class ExecutionFlowController:
         diagram: DomainDiagram,
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> List[str]:
-        """Get all nodes that this node depends on."""
+        """Get all nodes that this node depends on.
+        
+        Handles special cases like person_job nodes with "first" handles.
+        """
         dependency_ids = []
         
         # Find all arrows pointing to this node
@@ -112,7 +195,10 @@ class ExecutionFlowController:
         diagram: DomainDiagram,
         condition_result: Optional[bool] = None
     ) -> List[str]:
-        """Get the next nodes to execute after a given node."""
+        """Get the next nodes to execute after a given node.
+        
+        Handles condition branches based on the result.
+        """
         next_nodes = []
         
         # Find all arrows from this node
@@ -206,3 +292,32 @@ class ExecutionFlowController:
                 return True
         
         return False
+    
+    def _are_dependencies_satisfied(
+        self,
+        node: DomainNode,
+        diagram: DomainDiagram,
+        executed_nodes: Set[str],
+        node_outputs: Dict[str, Any],
+        node_exec_counts: Optional[Dict[str, int]] = None,
+    ) -> bool:
+        """Check if all node dependencies are satisfied.
+        
+        Business rules:
+        - Start nodes have no dependencies
+        - Person job nodes with "first" handle only need inputs on first execution
+        - All other nodes need all their dependencies executed
+        """
+        # Start nodes have no dependencies
+        if node.type == NodeType.start:
+            return True
+        
+        # Get dependencies for this node
+        dependency_nodes = self.get_node_dependencies(node, diagram, node_exec_counts)
+        
+        # Check if all dependencies have been executed
+        for dep_id in dependency_nodes:
+            if dep_id not in executed_nodes:
+                return False
+        
+        return True

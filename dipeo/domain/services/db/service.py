@@ -2,7 +2,6 @@
 
 import json
 from typing import Any, Dict, List, Union
-from pathlib import Path
 
 from dipeo.core.ports import FileServicePort
 from ..validation import ValidationDomainService, BusinessRuleViolationError
@@ -101,14 +100,16 @@ class DBOperationsDomainService:
                             "metadata": {"empty": True, "file_path": file_path},
                         }
             except (AttributeError, TypeError):
-                if not Path(file_path).exists():
+                # Try to read the file first
+                try:
+                    content = await self.file_service.read(file_path)
+                    data = json.loads(content) if content else {}
+                except Exception:
+                    # File doesn't exist or can't be read
                     return {
                         "value": {},
                         "metadata": {"empty": True, "file_path": file_path},
                     }
-
-                content = await self.file_service.read(file_path)
-                data = json.loads(content) if content else {}
 
                 return {
                     "value": data,
@@ -133,7 +134,7 @@ class DBOperationsDomainService:
 
     async def _write_db(self, file_path: str, value: Any) -> Dict[str, Any]:
         try:
-            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            # The file service should handle directory creation
             json_data = self._ensure_json_serializable(value)
             content = json.dumps(json_data, indent=2)
 

@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from dipeo.infra.persistence.diagram import DiagramFileRepository
     from dipeo.domain.services.diagram.domain_service import DiagramStorageDomainService
     from dipeo.domain.services.db import DBOperationsDomainService
-    from dipeo.domain.services.execution import ExecutionFlowService
-    from dipeo.application.execution.server_execution_service import (
+    from dipeo.domain.services.execution import FlowControlService
+    from dipeo.application.execution.use_cases import (
         ExecuteDiagramUseCase,
     )
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
@@ -95,8 +95,8 @@ class GraphQLContext(BaseContext):
         return self.container.domain.db_operations_service()
 
     @property
-    def execution_flow_service(self) -> "ExecutionFlowService":
-        return self.container.domain.execution_flow_service()
+    def flow_control_service(self) -> "FlowControlService":
+        return self.container.domain.flow_control_service()
 
     @property
     def execution_service(self) -> "ExecuteDiagramUseCase":

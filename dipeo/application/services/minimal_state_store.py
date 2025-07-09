@@ -17,16 +17,19 @@ from dipeo.models import (
 class MinimalStateStore:
     """Minimal state store for local execution.
     
-    This implementation provides no-op methods for state management,
+    This implementation provides in-memory storage for state management,
     suitable for CLI or local execution where persistence is not required.
     """
+    
+    def __init__(self):
+        self._states: dict[str, ExecutionState] = {}
 
     async def create_execution(
         self, execution_id: str, diagram_id: str | None = None, variables: dict[str, Any] | None = None
     ) -> ExecutionState:
         """Create a minimal execution record."""
         now = datetime.now().isoformat()
-        return ExecutionState(
+        state = ExecutionState(
             id=ExecutionID(execution_id),
             status=ExecutionStatus.PENDING,
             diagram_id=DiagramID(diagram_id) if diagram_id else None,
@@ -39,6 +42,8 @@ class MinimalStateStore:
             variables=variables or {},
             is_active=True,
         )
+        self._states[execution_id] = state
+        return state
 
     async def create_execution_in_cache(
         self, execution_id: str, diagram_id: str | None, variables: dict[str, Any]
@@ -47,12 +52,16 @@ class MinimalStateStore:
         return await self.create_execution(execution_id, diagram_id, variables)
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
-        """Get execution state by ID (always returns None for minimal store)."""
-        return None
+        """Get execution state by ID from in-memory storage."""
+        return self._states.get(execution_id)
 
     async def save_state(self, state: ExecutionState) -> None:
-        """Save execution state (no-op for minimal store)."""
-        pass
+        """Save execution state to in-memory storage."""
+        self._states[str(state.id)] = state
+
+    async def save_execution_state(self, state: ExecutionState) -> None:
+        """Save execution state - alias for save_state."""
+        await self.save_state(state)
 
     async def update_node_state(
         self, execution_id: str, node_id: str, state: str
@@ -79,9 +88,9 @@ class MinimalStateStore:
     ) -> None:
         pass
 
-    async def get_execution_state(self, execution_id: str) -> dict[str, Any] | None:
-        """Deprecated method - use get_state instead."""
-        return None
+    async def get_execution_state(self, execution_id: str) -> ExecutionState | None:
+        """Get execution state by ID - alias for get_state."""
+        return await self.get_state(execution_id)
 
     async def save_execution_result(
         self, execution_id: str, result: dict[str, Any]

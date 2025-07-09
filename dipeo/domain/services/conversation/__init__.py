@@ -14,18 +14,10 @@ from .template_processor import TemplateProcessor
 
 # Keep existing services for backward compatibility
 try:
-    from .aggregation_service import ConversationAggregationService
-    from .conversation_analysis_service import ConversationAnalysisService
-    from .message_builder_service import MessageBuilderService
-    from .message_preparator import MessagePreparator
     from .on_every_turn_handler import OnEveryTurnHandler
     from .simple_service import ConversationMemoryService
     from .state_manager import ConversationStateManager
     _legacy_exports = [
-        'ConversationAggregationService',
-        'ConversationAnalysisService',
-        'MessageBuilderService',
-        'MessagePreparator',
         'OnEveryTurnHandler',
         'ConversationMemoryService',
         'ConversationStateManager',
