@@ -5,10 +5,12 @@ This provides a lightweight execution context that wraps ExecutionState
 and provides access to services via a service registry.
 """
 
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from dipeo.models import ExecutionState
-from dipeo.domain.services.ports.execution_context import ExecutionContextPort
+
+if TYPE_CHECKING:
+    from dipeo.container import Container
 
 
 class ApplicationExecutionContext:
@@ -19,8 +21,8 @@ class ApplicationExecutionContext:
         execution_state: ExecutionState, 
         service_registry: Any,
         current_node_id: str = "",
-        executed_nodes: Optional[list[str]] = None,
-        exec_counts: Optional[dict[str, int]] = None,
+        executed_nodes: list[str] | None = None,
+        exec_counts: dict[str, int] | None = None,
     ):
         """Initialize with execution state and service registry.
         
@@ -37,7 +39,7 @@ class ApplicationExecutionContext:
         self._executed_nodes = executed_nodes or []
         self._exec_counts = exec_counts or {}
     
-    def get_node_output(self, node_id: str) -> Optional[Any]:
+    def get_node_output(self, node_id: str) -> Any | None:
         """Get the output of a specific node."""
         if not self._state.node_outputs:
             return None
@@ -49,13 +51,13 @@ class ApplicationExecutionContext:
             return output.value
         return output
     
-    def get_variable(self, key: str) -> Optional[Any]:
+    def get_variable(self, key: str) -> Any | None:
         """Get a variable from the execution context."""
         if not self._state.variables:
             return None
         return self._state.variables.get(key)
     
-    def get_service(self, service_name: str) -> Optional[Any]:
+    def get_service(self, service_name: str) -> Any | None:
         """Get a service by name from the service registry."""
         return getattr(self._service_registry, service_name, None)
     
@@ -94,4 +96,66 @@ class ApplicationExecutionContext:
             current_node_id=node_id,
             executed_nodes=self._executed_nodes,
             exec_counts=self._exec_counts,
+        )
+    
+    @classmethod
+    def create_with_services(
+        cls,
+        execution_state: ExecutionState,
+        container: "Container",
+        current_node_id: str = "",
+        executed_nodes: list[str] | None = None,
+        exec_counts: dict[str, int] | None = None,
+    ) -> "ApplicationExecutionContext":
+        """Create an ApplicationExecutionContext with services from container.
+        
+        This factory method creates a context object that has all required services
+        as attributes, which is necessary for UnifiedServiceRegistry.from_context().
+        
+        Args:
+            execution_state: The execution state
+            container: The DI container with all services
+            current_node_id: Current node ID
+            executed_nodes: List of executed node IDs
+            exec_counts: Node execution counts
+            
+        Returns:
+            ApplicationExecutionContext with all services attached
+        """
+        # Create a service wrapper that provides services as attributes
+        class ServiceWrapper:
+            def __init__(self, container):
+                # Core services
+                self.llm_service = container.infra.llm_service()
+                self.api_key_service = container.domain.api_key_service()
+                self.file_service = container.infra.file_service()
+                self.memory_service = container.infra.memory_service()
+                self.conversation_service = container.domain.conversation_service()
+                self.notion_service = container.infra.notion_service()
+                
+                # Domain services
+                self.diagram_storage_service = container.domain.diagram_storage_domain_service()
+                self.api_integration_service = container.infra.api_service()
+                self.text_processing_service = container.domain.text_processing_service()
+                self.db_operations_service = container.domain.db_operations_service()
+                self.code_execution_service = container.infra.code_execution_service()
+                
+                # Execution domain services
+                self.execution_flow_service = container.domain.execution_flow_service()
+                self.input_resolution_service = container.domain.input_resolution_service()
+                
+                # Support method for service registry
+                def get(self, service_name: str):
+                    return getattr(self, service_name, None)
+                    
+                self.get = get
+        
+        service_wrapper = ServiceWrapper(container)
+        
+        return cls(
+            execution_state=execution_state,
+            service_registry=service_wrapper,
+            current_node_id=current_node_id,
+            executed_nodes=executed_nodes,
+            exec_counts=exec_counts,
         )

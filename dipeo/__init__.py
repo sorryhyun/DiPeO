@@ -98,12 +98,11 @@ try:
     from .application import (
         ApplicationContext,
         ExecutionEngine,
-        LocalExecutionService,
         UnifiedServiceRegistry,
     )
     _imported_modules.extend([
         "ApplicationContext", "ExecutionEngine",
-        "LocalExecutionService", "UnifiedServiceRegistry"
+        "UnifiedServiceRegistry"
     ])
 except ImportError as e:
     warnings.warn(f"Could not import some application items: {e}", ImportWarning)

@@ -1,16 +1,17 @@
 """State storage port for domain layer."""
 
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from dipeo.models import (
-    DiagramID,
-    ExecutionID,
-    ExecutionState,
-    ExecutionStatus,
-    NodeExecutionStatus,
-    NodeOutput,
-    TokenUsage,
-)
+if TYPE_CHECKING:
+    from dipeo.models import (
+        DiagramID,
+        ExecutionID,
+        ExecutionState,
+        ExecutionStatus,
+        NodeExecutionStatus,
+        NodeOutput,
+        TokenUsage,
+    )
 
 
 @runtime_checkable
@@ -27,30 +28,30 @@ class StateStorePort(Protocol):
 
     async def create_execution(
         self,
-        execution_id: ExecutionID,
-        diagram_id: DiagramID | None = None,
+        execution_id: "ExecutionID",
+        diagram_id: "DiagramID | None" = None,
         variables: dict[str, Any] | None = None,
-    ) -> ExecutionState:
+    ) -> "ExecutionState":
         """Create a new execution state."""
         ...
 
-    async def save_state(self, state: ExecutionState) -> None:
+    async def save_state(self, state: "ExecutionState") -> None:
         """Save or update the complete execution state."""
         ...
 
-    async def get_state(self, execution_id: str) -> ExecutionState | None:
+    async def get_state(self, execution_id: str) -> "ExecutionState | None":
         """Get execution state by ID."""
         ...
 
     async def update_status(
-        self, execution_id: str, status: ExecutionStatus, error: str | None = None
+        self, execution_id: str, status: "ExecutionStatus", error: str | None = None
     ) -> None:
         """Update execution status."""
         ...
 
     async def get_node_output(
         self, execution_id: str, node_id: str
-    ) -> NodeOutput | None:
+    ) -> "NodeOutput | None":
         """Get output for a specific node."""
         ...
 
@@ -60,7 +61,7 @@ class StateStorePort(Protocol):
         node_id: str,
         output: Any,
         is_exception: bool = False,
-        token_usage: TokenUsage | None = None,
+        token_usage: "TokenUsage | None" = None,
     ) -> None:
         """Update output for a specific node."""
         ...
@@ -69,7 +70,7 @@ class StateStorePort(Protocol):
         self,
         execution_id: str,
         node_id: str,
-        status: NodeExecutionStatus,
+        status: "NodeExecutionStatus",
         error: str | None = None,
     ) -> None:
         """Update status for a specific node."""
@@ -81,21 +82,21 @@ class StateStorePort(Protocol):
         """Update execution variables."""
         ...
 
-    async def update_token_usage(self, execution_id: str, tokens: TokenUsage) -> None:
+    async def update_token_usage(self, execution_id: str, tokens: "TokenUsage") -> None:
         """Update token usage (replaces existing)."""
         ...
 
-    async def add_token_usage(self, execution_id: str, tokens: TokenUsage) -> None:
+    async def add_token_usage(self, execution_id: str, tokens: "TokenUsage") -> None:
         """Add to token usage (increments existing)."""
         ...
 
     async def list_executions(
         self,
-        diagram_id: DiagramID | None = None,
-        status: ExecutionStatus | None = None,
+        diagram_id: "DiagramID | None" = None,
+        status: "ExecutionStatus | None" = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[ExecutionState]:
+    ) -> list["ExecutionState"]:
         """List executions with optional filtering."""
         ...
 
@@ -103,19 +104,19 @@ class StateStorePort(Protocol):
         """Clean up old execution states."""
         ...
 
-    async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
+    async def get_state_from_cache(self, execution_id: str) -> "ExecutionState | None":
         """Get state from cache only (no DB lookup)."""
         ...
 
     async def create_execution_in_cache(
         self,
-        execution_id: ExecutionID,
-        diagram_id: DiagramID | None = None,
+        execution_id: "ExecutionID",
+        diagram_id: "DiagramID | None" = None,
         variables: dict[str, Any] | None = None,
-    ) -> ExecutionState:
+    ) -> "ExecutionState":
         """Create execution in cache only."""
         ...
 
-    async def persist_final_state(self, state: ExecutionState) -> None:
+    async def persist_final_state(self, state: "ExecutionState") -> None:
         """Persist final state from cache to database."""
         ...

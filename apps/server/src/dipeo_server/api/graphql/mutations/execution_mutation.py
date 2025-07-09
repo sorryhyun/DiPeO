@@ -55,6 +55,7 @@ class ExecutionMutations:
                 "debugMode": data.debug_mode,
                 "maxIterations": data.max_iterations,
                 "timeout": data.timeout_seconds,
+                "variables": data.variables or {},
             }
 
             diagram_id = data.diagram_id if data.diagram_id else None

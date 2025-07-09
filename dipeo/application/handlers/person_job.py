@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.domain.services.ports.execution_context import ExecutionContextPort
+from dipeo.core.ports.execution_context import ExecutionContextPort
 from dipeo.models import (
     NodeOutput,
     PersonJobNodeData,

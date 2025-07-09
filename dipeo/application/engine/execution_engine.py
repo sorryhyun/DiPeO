@@ -6,12 +6,21 @@ topological execution and iterative execution in a unified manner.
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
-from dipeo.models import NodeType, NodeExecutionStatus, NodeState, TokenUsage
+from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
 
 from .execution_controller import ExecutionController
+
+if TYPE_CHECKING:
+    from dipeo.application.context.application_execution_context import ApplicationExecutionContext
+    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.domain.services.execution.protocols import ExecutionObserver
+    from dipeo.models import DomainDiagram
+
+    from .execution_view import LocalExecutionView, NodeView
 
 log = logging.getLogger(__name__)
 
@@ -19,18 +28,18 @@ log = logging.getLogger(__name__)
 class ExecutionEngine:
     """Simplified execution engine with unified execution loop."""
     
-    def __init__(self, service_registry: Any, observers: Optional[List[Any]] = None):
+    def __init__(self, service_registry: "UnifiedServiceRegistry", observers: list["ExecutionObserver"] | None = None):
         self.service_registry = service_registry
         self.observers = observers or []
-        self._concurrency_semaphore: Optional[asyncio.Semaphore] = None
+        self._concurrency_semaphore: asyncio.Semaphore | None = None
     
     async def execute(
         self,
-        diagram: Any,
+        diagram: "DomainDiagram",
         execution_id: str,
-        options: Dict[str, Any],
-        interactive_handler: Optional[Any] = None,
-    ) -> AsyncIterator[Dict[str, Any]]:
+        options: dict[str, Any],
+        interactive_handler: Any | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
         """Execute diagram with unified execution loop."""
         
         # Initialize
@@ -44,26 +53,30 @@ class ExecutionEngine:
             )
         
         # Create execution view and controller
-        from .execution_view import LocalExecutionView
         from dipeo.application import get_global_registry
+
+        from .execution_view import LocalExecutionView
         
-        # Get domain services from service registry if available
-        input_resolution_service = None
-        execution_flow_service = None
-        if hasattr(self.service_registry, 'get'):
-            input_resolution_service = self.service_registry.get('input_resolution_service')
-            execution_flow_service = self.service_registry.get('execution_flow_service')
+        # Get required domain services from service registry
+        if not hasattr(self.service_registry, 'get'):
+            raise ValueError("Service registry must support 'get' method")
+            
+        input_resolution_service = self.service_registry.get('input_resolution_service')
+        execution_flow_service = self.service_registry.get('execution_flow_service')
+        
+        if not execution_flow_service:
+            raise ValueError("ExecutionFlowService is required but not found in service registry")
         
         execution_view = LocalExecutionView(diagram, input_resolution_service)
         
         controller = ExecutionController(
-            max_global_iterations=options.get("max_iterations", 100),
-            execution_flow_service=execution_flow_service
+            execution_flow_service=execution_flow_service,
+            max_global_iterations=options.get("max_iterations", 100)
         )
         
         # Initialize handlers
         registry = get_global_registry()
-        for node_id, node_view in execution_view.node_views.items():
+        for _node_id, node_view in execution_view.node_views.items():
             node_def = registry.get(node_view.node.type)
             if not node_def:
                 raise ValueError(f"No handler for node type: {node_view.node.type}")
@@ -159,12 +172,12 @@ class ExecutionEngine:
     
     async def _execute_batch(
         self,
-        node_ids: List[str],
+        node_ids: list[str],
         execution_view: Any,
         controller: ExecutionController,
         execution_id: str,
-        options: Dict[str, Any],
-        interactive_handler: Optional[Any]
+        options: dict[str, Any],
+        interactive_handler: Any | None
     ) -> None:
         """Execute a batch of nodes concurrently."""
         tasks = []
@@ -183,19 +196,19 @@ class ExecutionEngine:
         
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for i, result in enumerate(results):
+            for _i, result in enumerate(results):
                 if isinstance(result, Exception):
                     log.error(f"Node execution failed: {result}")
                     raise result
     
     async def _execute_node(
         self,
-        node_view: Any,
-        execution_view: Any,
+        node_view: "NodeView",
+        execution_view: "LocalExecutionView",
         controller: ExecutionController,
         execution_id: str,
-        options: Dict[str, Any],
-        interactive_handler: Optional[Any]
+        options: dict[str, Any],
+        interactive_handler: Any | None
     ) -> None:
         """Execute a single node."""
         async with self._concurrency_semaphore:
@@ -275,12 +288,15 @@ class ExecutionEngine:
                 raise
     
     def _create_runtime_context(
-        self, node_view: Any, execution_id: str, options: Dict[str, Any], execution_view: Any, controller: ExecutionController
-    ) -> Any:
+        self, node_view: "NodeView", execution_id: str, options: dict[str, Any], execution_view: "LocalExecutionView", controller: ExecutionController
+    ) -> "ApplicationExecutionContext":
         """Create runtime context for node execution."""
-        from dipeo.application.context.application_execution_context import ApplicationExecutionContext
-        from dipeo.models import ExecutionState, ExecutionStatus, NodeOutput
         from datetime import datetime
+
+        from dipeo.application.context.application_execution_context import (
+            ApplicationExecutionContext,
+        )
+        from dipeo.models import ExecutionState, ExecutionStatus
         
         # Collect outputs
         node_outputs = {}

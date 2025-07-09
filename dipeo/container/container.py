@@ -16,8 +16,6 @@ from dipeo.core.ports import (
     NotionServicePort,
 )
 
-from .adapters.app_context_adapter import AppContextAdapter
-
 
 def _get_project_base_dir():
     """Get the project base directory."""
@@ -652,10 +650,4 @@ class Container(containers.DeclarativeContainer):
         config=config,
         infra=infra,
         domain=domain,
-    )
-
-    # Application Context adapter
-    app_context = providers.Singleton(
-        AppContextAdapter,
-        container=__self__,
     )

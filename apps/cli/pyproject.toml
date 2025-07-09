@@ -3,10 +3,10 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dipeo-cli"
-version = "2.0.0"
+name = "dipeo"
+version = "3.0.0"
 authors = [{name = "sorryhyun"}]
-description = "Command-line interface for DiPeO diagram operations"
+description = "Simplified DiPeO CLI - thin orchestration layer"
 readme = "README.md"
 requires-python = ">=3.13"
 license = {text = "Apache-2.0"}
@@ -18,12 +18,10 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "pyyaml>=6.0",
-    "requests>=2.28.0",
-    "gql>=3.4.0",
-    "aiohttp>=3.8.0",
-    "websockets>=13.0",
-    "dipeo",
+    "pyyaml>=6.0",      # For YAML parsing
+    "requests>=2.28.0", # Simple HTTP for GraphQL
+    # Note: dipeo dependency removed - only needed for convert command
+    # If convert is critical, we can add it back with minimal imports
 ]
 keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]
 
@@ -37,12 +35,14 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21.0",
     "black>=23.0",
-    "flake8>=6.0",
     "mypy>=1.0",
     "ruff>=0.8.0",
 ]
 
 [project.scripts]
+# New simplified command
+dipeo = "dipeo_cli.minimal_cli:main"
+# Keep old command during transition
 dipeo-cli = "dipeo_cli.__main__:main"
 
 [tool.setuptools.packages.find]
@@ -53,37 +53,16 @@ line-length = 88
 target-version = ['py313']
 include = '\.pyi?$'
 
-[tool.isort]
-profile = "black"
-known_first_party = ["dipeo_cli"]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-line_length = 88
-
 [tool.mypy]
 python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 no_implicit_optional = true
-# Allow using lowercase generics from Python 3.9+
 disable_error_code = ["misc"]
-plugins = ["pydantic.mypy"]
-[[tool.mypy.overrides]]
-module = [
-    "gql.*",
-    "websockets.*",
-]
-ignore_missing_imports = true
 
 [tool.ruff]
-# Same as Black.
 line-length = 88
 target-version = "py313"
-
-# Exclude generated files
 exclude = [
     "__generated__",
     "generated",
@@ -96,7 +75,6 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# Enable rules
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -106,52 +84,16 @@ select = [
     "UP", # pyupgrade
     "B",  # flake8-bugbear
     "C4", # flake8-comprehensions
-    "DTZ", # flake8-datetimez
-    "T10", # flake8-debugger
-    "ISC", # flake8-implicit-str-concat
     "RET", # flake8-return
     "SIM", # flake8-simplify
-    "TID", # flake8-tidy-imports
     "PTH", # flake8-use-pathlib
-    "ERA", # eradicate
-    "PLC", # pylint convention
-    "PLE", # pylint error
-    "PLW", # pylint warning
     "RUF", # ruff-specific rules
 ]
 
 ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # do not perform function calls in argument defaults
-    "N818",  # exception names should end with Error (we have custom exceptions)
-    "SIM108", # Use ternary operator (sometimes less readable)
-    "SIM102", # Nested if statements can be more readable
-    "SIM105", # try-except-pass can be clearer than contextlib.suppress
-    "TID252", # Relative imports are used throughout the codebase
-    "DTZ005", # datetime.now() without timezone is common in codebase
-    "DTZ003", # datetime.utcnow() is used in several places
-    "PLC0415", # imports not at top level - used for lazy loading
-    "RUF012", # mutable class attributes - common pattern
-    "B904",  # raise from - stylistic choice
-    "RUF006", # asyncio.create_task without storing reference
-    "N815",  # mixedCase variables - used in API schema
-    "N802",  # function names should be lowercase - GraphQL API
-    "E722",  # bare except - used for system capability checks
-    "PTH110", # os.path.exists - os.path is used throughout
-    "PTH123", # open() should use Path.open()
-    "PTH118", # os.path.join - os.path is used throughout
-    "ERA001", # commented out code - development artifacts
-    "PLW2901", # loop variable overwritten - intentional pattern
-    "RUF001", # ambiguous unicode characters in strings
-    "RUF002", # ambiguous unicode characters in docstrings
-    "F841",  # unused variables - sometimes intentional
-    "B007",  # unused loop variables - sometimes clearer to include
-    "W293",  # blank line with whitespace
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["dipeo_cli", "src"]
-
-[tool.ruff.lint.per-file-ignores]
-# Tests can use assertions and relative imports
-"tests/*" = ["S101", "TID252"]

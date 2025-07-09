@@ -9,7 +9,8 @@ from dipeo.core import BaseService, SupportsExecution
 from dipeo.domain.services.execution.observers import StreamingObserver
 
 if TYPE_CHECKING:
-    from dipeo.domain.services.ports import MessageRouterPort, StateStorePort
+    from dipeo.core.ports.state_store import StateStorePort
+    from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.infra.persistence.diagram import DiagramStorageAdapter
     from ..unified_service_registry import UnifiedServiceRegistry
 
@@ -46,15 +47,31 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
 
         from dipeo.models import DomainDiagram
         from dipeo.diagram import BackendDiagram, backend_to_graphql
+        from dipeo.diagram.unified_converter import UnifiedDiagramConverter
+        import json
+        import yaml
 
-        # Check if diagram is in backend format (dict of dicts) or domain format (lists)
+        # Check if diagram is in backend format (dict of dicts) or needs conversion
         if isinstance(diagram.get("nodes"), dict):
             # Convert from backend format to domain format
             backend_diagram = BackendDiagram(**diagram)
             diagram_obj = backend_to_graphql(backend_diagram)
         else:
-            # Already in domain format, validate directly
-            diagram_obj = DomainDiagram.model_validate(diagram)
+            # Could be light format or other format that needs conversion
+            # Try to detect the format
+            converter = UnifiedDiagramConverter()
+            
+            # Check if this is light format
+            if (diagram.get("version") == "light" or 
+                (isinstance(diagram.get("nodes"), list) and 
+                 "connections" in diagram and 
+                 "persons" in diagram)):
+                # This is light format - convert to YAML string then deserialize
+                content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
+                diagram_obj = converter.deserialize(content, format_id="light")
+            else:
+                # Assume it's already in domain format, validate directly
+                diagram_obj = DomainDiagram.model_validate(diagram)
 
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)

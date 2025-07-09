@@ -1,11 +1,12 @@
 """GraphQL context for providing access to services."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from fastapi import Request
 from strawberry.fastapi import BaseContext
 
 if TYPE_CHECKING:
+    from dipeo_server.application.container import ServerContainer
     from dipeo.application.services.minimal_state_store import MinimalStateStore
     from dipeo.application.services.minimal_message_router import MinimalMessageRouter
     from dipeo.infra.persistence.file import ModularFileService
@@ -28,75 +29,82 @@ if TYPE_CHECKING:
 
 
 class GraphQLContext(BaseContext):
-    """Context object that provides direct access to injected services."""
+    """Context object that provides direct access to the DI container."""
 
     request: Request
     user_data: dict[str, Any]
-
-    # Infrastructure services
-    state_store: "MinimalStateStore"
-    message_router: "MinimalMessageRouter"
-    file_service: "ModularFileService"
-    llm_service: "LLMInfraService"
-    notion_service: "NotionAPIService"
-    api_service: "APIService"
-    file_operations_service: "FileOperationsService"
-
-    # Domain services
-    api_key_service: "APIKeyDomainService"
-    conversation_service: "ConversationMemoryService"
-    diagram_storage_service: "DiagramFileRepository"
-    diagram_storage_domain_service: "DiagramStorageDomainService"
-    db_operations_service: "DBOperationsDomainService"
-    execution_flow_service: "ExecutionFlowService"
-
-    # Application services
-    execution_service: "ExecuteDiagramUseCase"
-    service_registry: "UnifiedServiceRegistry"
+    container: "ServerContainer"
 
     def __init__(
         self,
         request: Request,
-        state_store: "MinimalStateStore",
-        message_router: "MinimalMessageRouter",
-        file_service: "ModularFileService",
-        llm_service: "LLMInfraService",
-        notion_service: "NotionAPIService",
-        api_service: "APIService",
-        file_operations_service: "FileOperationsService",
-        api_key_service: "APIKeyDomainService",
-        conversation_service: "ConversationMemoryService",
-        diagram_storage_service: "DiagramFileRepository",
-        diagram_storage_domain_service: "DiagramStorageDomainService",
-        db_operations_service: "DBOperationsDomainService",
-        execution_flow_service: "ExecutionFlowService",
-        execution_service: "ExecuteDiagramUseCase",
-        service_registry: "UnifiedServiceRegistry",
+        container: "ServerContainer",
     ):
         super().__init__()
         self.request = request
         self.user_data = {}
+        self.container = container
 
-        # Infrastructure services
-        self.state_store = state_store
-        self.message_router = message_router
-        self.file_service = file_service
-        self.llm_service = llm_service
-        self.notion_service = notion_service
-        self.api_service = api_service
-        self.file_operations_service = file_operations_service
+    # Properties for backward compatibility - access services through container
+    @property
+    def state_store(self) -> "MinimalStateStore":
+        return self.container.infra.state_store()
 
-        # Domain services
-        self.api_key_service = api_key_service
-        self.conversation_service = conversation_service
-        self.diagram_storage_service = diagram_storage_service
-        self.diagram_storage_domain_service = diagram_storage_domain_service
-        self.db_operations_service = db_operations_service
-        self.execution_flow_service = execution_flow_service
+    @property
+    def message_router(self) -> "MinimalMessageRouter":
+        return self.container.infra.message_router()
 
-        # Application services
-        self.execution_service = execution_service
-        self.service_registry = service_registry
+    @property
+    def file_service(self) -> "ModularFileService":
+        return self.container.infra.file_service()
+
+    @property
+    def llm_service(self) -> "LLMInfraService":
+        return self.container.infra.llm_service()
+
+    @property
+    def notion_service(self) -> "NotionAPIService":
+        return self.container.infra.notion_service()
+
+    @property
+    def api_service(self) -> "APIService":
+        return self.container.infra.api_service()
+
+    @property
+    def file_operations_service(self) -> "FileOperationsService":
+        return self.container.infra.file_operations_service()
+
+    @property
+    def api_key_service(self) -> "APIKeyDomainService":
+        return self.container.domain.api_key_service()
+
+    @property
+    def conversation_service(self) -> "ConversationMemoryService":
+        return self.container.domain.conversation_service()
+
+    @property
+    def diagram_storage_service(self) -> "DiagramFileRepository":
+        return self.container.domain.diagram_storage_service()
+
+    @property
+    def diagram_storage_domain_service(self) -> "DiagramStorageDomainService":
+        return self.container.domain.diagram_storage_domain_service()
+
+    @property
+    def db_operations_service(self) -> "DBOperationsDomainService":
+        return self.container.domain.db_operations_service()
+
+    @property
+    def execution_flow_service(self) -> "ExecutionFlowService":
+        return self.container.domain.execution_flow_service()
+
+    @property
+    def execution_service(self) -> "ExecuteDiagramUseCase":
+        return self.container.application.execution_service()
+
+    @property
+    def service_registry(self) -> "UnifiedServiceRegistry":
+        return self.container.application.service_registry()
 
     @property
     def can_read_api_keys(self) -> bool:
@@ -105,37 +113,18 @@ class GraphQLContext(BaseContext):
         return True
 
 
-async def get_graphql_context(request: Request = None) -> GraphQLContext:
+async def get_graphql_context(request: Request) -> GraphQLContext:
     """
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     """
-    # Get the global container instance
-    # This assumes the container is initialized and stored globally during app startup
-    from dipeo_server.application.app_context import get_app_context
+    # Get the global container instance directly
+    from dipeo_server.application.app_context import get_container
 
-    app_context = get_app_context()
-    container = app_context.container
+    container = get_container()
 
-    # Create context with all required services
+    # Create context with container
     return GraphQLContext(
         request=request,
-        # Infrastructure services
-        state_store=container.infra.state_store(),
-        message_router=container.infra.message_router(),
-        file_service=container.infra.file_service(),
-        llm_service=container.infra.llm_service(),
-        notion_service=container.infra.notion_service(),
-        api_service=container.infra.api_service(),
-        file_operations_service=container.infra.file_operations_service(),
-        # Domain services
-        api_key_service=container.domain.api_key_service(),
-        conversation_service=container.domain.conversation_service(),
-        diagram_storage_service=container.domain.diagram_storage_service(),
-        diagram_storage_domain_service=container.domain.diagram_storage_domain_service(),
-        db_operations_service=container.domain.db_operations_service(),
-        execution_flow_service=container.domain.execution_flow_service(),
-        # Application services
-        execution_service=container.application.execution_service(),
-        service_registry=container.application.service_registry(),
+        container=container,
     )

@@ -1,6 +1,6 @@
 """Unified service registry that works for both server and local execution."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dipeo.core.utils.dynamic_registry import DynamicRegistry
 
@@ -73,6 +73,10 @@ class UnifiedServiceRegistry(DynamicRegistry):
             "text_processing_service": "text_processing_service",
             "db_operations_service": "db_operations_service",
             "code_execution_service": "code_execution_service",
+            
+            # Execution domain services
+            "execution_flow_service": "execution_flow_service",
+            "input_resolution_service": "input_resolution_service",
         }
         
         # Register services from context
@@ -96,7 +100,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
         
         return registry
     
-    def get_handler_services(self, required_services: List[str]) -> Dict[str, Any]:
+    def get_handler_services(self, required_services: list[str]) -> dict[str, Any]:
         """Get services required by a handler.
         
         Args:

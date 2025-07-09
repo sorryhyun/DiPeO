@@ -1,43 +1,10 @@
 """Application context and dependency injection configuration."""
 
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
-
-from dipeo.container.adapters import AppContextAdapter
-from fastapi import FastAPI
-
-from .container import ServerContainer, init_server_resources, shutdown_server_resources
-
-if TYPE_CHECKING:
-    from dipeo.core import (
-        SupportsAPIKey,
-        SupportsDiagram,
-        SupportsExecution,
-        SupportsMemory,
-    )
-    from dipeo.core.ports import (
-        FileServicePort,
-        LLMServicePort,
-        NotionServicePort,
-    )
-    from dipeo.domain.services.diagram import (
-        DiagramStorageAdapter,
-    )
-    from dipeo.domain.services.execution.preparation_service import (
-        PrepareDiagramForExecutionUseCase,
-    )
-    from dipeo.domain.services.text import TextProcessingDomainService
-    from dipeo.infra import MessageRouter
-
-    from dipeo_server.infra.persistence.state_registry import StateRegistry
+from .container import ServerContainer
 
 
 # Global container instance
 _container: ServerContainer | None = None
-
-# Global app context adapter for backward compatibility
-_app_context: AppContextAdapter | None = None
 
 
 def get_container() -> ServerContainer:
@@ -51,7 +18,7 @@ def get_container() -> ServerContainer:
 
 def initialize_container() -> ServerContainer:
     """Initialize the global DI container."""
-    global _container, _app_context
+    global _container
 
     if _container is None:
         _container = ServerContainer()
@@ -69,149 +36,6 @@ def initialize_container() -> ServerContainer:
             ]
         )
 
-        # Create app context adapter
-        _app_context = AppContextAdapter(_container)
-
     return _container
 
 
-class AppContext:
-    """
-    Legacy AppContext class that now delegates to the DI container.
-    Maintained for backward compatibility.
-    """
-
-    def __init__(self):
-        # Initialize container if not already done
-        self._container = initialize_container()
-        # Get the adapter from the global variable
-        self._adapter = _app_context
-
-    def __getattr__(self, name: str):
-        """Delegate all attribute access to the adapter."""
-        return getattr(self._adapter, name)
-
-    async def startup(self):
-        """Initialize all resources."""
-        await init_server_resources(self._container)
-
-    async def shutdown(self):
-        """Cleanup all resources."""
-        await shutdown_server_resources(self._container)
-
-    # Properties to maintain type hints for IDE support
-    @property
-    def api_key_service(self) -> "SupportsAPIKey":
-        return self._adapter.api_key_service
-
-    @property
-    def llm_service(self) -> "LLMServicePort":
-        return self._adapter.llm_service
-
-    @property
-    def file_service(self) -> "FileServicePort":
-        return self._adapter.file_service
-
-    @property
-    def conversation_service(self) -> "SupportsMemory":
-        return self._adapter.conversation_service
-
-    @property
-    def execution_service(self) -> "SupportsExecution":
-        return self._adapter.execution_service
-
-    @property
-    def notion_service(self) -> "NotionServicePort":
-        return self._adapter.notion_service
-
-    @property
-    def diagram_storage_service(self) -> "SupportsDiagram":
-        return self._adapter.diagram_storage_service
-
-    @property
-    def diagram_storage_adapter(self) -> "DiagramStorageAdapter":
-        return self._adapter.diagram_storage_adapter
-
-    @property
-    def execution_preparation_service(self) -> "PrepareDiagramForExecutionUseCase":
-        return self._adapter.execution_preparation_service
-
-    @property
-    def text_processing_service(self) -> "TextProcessingDomainService":
-        return self._adapter.text_processing_service
-
-    @property
-    def state_store(self) -> "StateRegistry":
-        return self._adapter.state_store
-
-    @property
-    def message_router(self) -> "MessageRouter":
-        return self._adapter.message_router
-
-
-app_context = AppContext()
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator:
-    await app_context.startup()
-    yield
-    await app_context.shutdown()
-
-
-def get_api_key_service() -> "SupportsAPIKey":
-    if app_context.api_key_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.api_key_service
-
-
-def get_llm_service() -> "LLMServicePort":
-    if app_context.llm_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.llm_service
-
-
-def get_file_service() -> "FileServicePort":
-    if app_context.file_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.file_service
-
-
-def get_conversation_service() -> "SupportsMemory":
-    if app_context.conversation_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.conversation_service
-
-
-def get_execution_service() -> "SupportsExecution":
-    if app_context.execution_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.execution_service
-
-
-def get_notion_service() -> "NotionServicePort":
-    if app_context.notion_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.notion_service
-
-
-def get_app_context() -> AppContext:
-    return app_context
-
-
-def get_diagram_storage_service() -> "SupportsDiagram":
-    if app_context.diagram_storage_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.diagram_storage_service
-
-
-def get_diagram_storage_adapter() -> "DiagramStorageAdapter":
-    if app_context.diagram_storage_adapter is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.diagram_storage_adapter
-
-
-def get_execution_preparation_service() -> "PrepareDiagramForExecutionUseCase":
-    if app_context.execution_preparation_service is None:
-        raise RuntimeError("Application context not initialized")
-    return app_context.execution_preparation_service

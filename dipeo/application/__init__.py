@@ -47,7 +47,6 @@ from .services import MinimalMessageRouter, MinimalStateStore
 from .utils.conversation_utils import InputDetector, MessageBuilder
 
 # Execution
-from .local_execution import LocalExecutionService
 from .execution.server_execution_service import ExecuteDiagramUseCase
 
 __all__ = [
@@ -58,7 +57,6 @@ __all__ = [
     "ExecutionController",
     "LocalExecutionView",
     # Execution
-    "LocalExecutionService",
     "ExecuteDiagramUseCase",
     # Execution framework (moved from core)
     "BaseNodeHandler",

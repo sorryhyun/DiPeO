@@ -20,7 +20,16 @@ class StateStoreObserver(ExecutionObserver):
         self.state_store = state_store
 
     async def on_execution_start(self, execution_id: str, diagram_id: str | None):
-        await self.state_store.create_execution(execution_id, diagram_id)
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Check if execution already exists
+        existing = await self.state_store.get_state(execution_id)
+        if not existing:
+            logger.debug(f"StateStoreObserver: Creating new execution {execution_id}")
+            await self.state_store.create_execution(execution_id, diagram_id)
+        else:
+            logger.debug(f"StateStoreObserver: Execution {execution_id} already exists, skipping creation")
 
     async def on_node_start(self, execution_id: str, node_id: str):
         await self.state_store.update_node_status(
@@ -47,11 +56,22 @@ class StateStoreObserver(ExecutionObserver):
         )
 
     async def on_execution_complete(self, execution_id: str):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"StateStoreObserver: Updating execution {execution_id} to COMPLETED")
+        
         await self.state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
         # Small delay to ensure state is fully persisted
         import asyncio
 
         await asyncio.sleep(0.1)
+        
+        # Verify the state was saved
+        state = await self.state_store.get_state(execution_id)
+        if state:
+            logger.debug(f"StateStoreObserver: Verified execution {execution_id} status is {state.status}")
+        else:
+            logger.error(f"StateStoreObserver: Failed to verify execution {execution_id} after completion")
 
     async def on_execution_error(self, execution_id: str, error: str):
         await self.state_store.update_status(

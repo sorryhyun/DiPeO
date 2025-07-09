@@ -1,12 +1,7 @@
 """
-DiPeO CLI Commands
+DiPeO CLI - Simplified Interface
 
-Modular command implementations for the DiPeO CLI.
+Minimal command-line interface for DiPeO diagram operations.
 """
 
-from .convert import convert_command as convert
-from .execution_handler import run_command as run
-from .monitor import monitor_command as monitor
-from .stats import stats_command as stats
-
-__all__ = ["convert", "monitor", "run", "stats"]
+__version__ = "3.0.0"
