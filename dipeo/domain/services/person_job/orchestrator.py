@@ -28,6 +28,7 @@ class PersonJobOrchestrator:
         output_builder: PersonJobOutputBuilder,
         conversation_processor: ConversationProcessingService,
         memory_transformer: Optional[MemoryTransformer] = None,
+        template_service: Optional[Any] = None,
     ):
         self._prompt_builder = prompt_builder
         self._conversation_state_manager = conversation_state_manager
@@ -36,6 +37,7 @@ class PersonJobOrchestrator:
         self._output_builder = output_builder
         self._conversation_processor = conversation_processor
         self._memory_transformer = memory_transformer
+        self._template_service = template_service
     
     async def execute(
         self,
@@ -70,6 +72,15 @@ class PersonJobOrchestrator:
         transformed_inputs = self._apply_memory_transformation(
             inputs, forget_mode, execution_count
         )
+        
+        # Debug logging for inputs
+        import logging
+        logger = logging.getLogger(__name__)
+        if execution_count > 0:
+            logger.debug(f"Person {person_id} execution #{execution_count} inputs: {list(transformed_inputs.keys())}")
+            for key, value in transformed_inputs.items():
+                if isinstance(value, dict) and "messages" in value:
+                    logger.debug(f"  Input '{key}' has {len(value['messages'])} messages")
         
         # Step 2: Apply legacy forgetting if needed
         if conversation_service and not self._memory_transformer:
@@ -139,24 +150,24 @@ class PersonJobOrchestrator:
         forget_mode: ForgettingMode,
         execution_count: int,
     ) -> Dict[str, Any]:
-        """Apply memory transformation if configured."""
-        if not self._memory_transformer:
-            return inputs
+        """Apply memory transformation if configured.
         
-        # Check if inputs are already wrapped from arrow processing
+        IMPORTANT: Memory transformation (forgetting) should NOT be applied to
+        inputs from other nodes. It should only apply to the person's own
+        conversation history loaded from storage. Inputs from other panels
+        should be preserved as-is to maintain inter-panel communication.
+        """
+        # Check if inputs are wrapped from arrow processing
         has_wrapped_inputs = any(
             isinstance(v, dict) and "arrow_metadata" in v 
             for v in inputs.values()
         )
         
         if has_wrapped_inputs:
-            # Apply memory transformation to wrapped inputs
-            memory_config = {"forget_mode": forget_mode.value}
-            transformed = self._memory_transformer.transform_input(
-                inputs, "person_job", execution_count, memory_config
-            )
-            # Unwrap for use
-            return unwrap_inputs(transformed)
+            # Just unwrap the inputs without applying memory transformation
+            # The forgetting logic is already handled in the conversation service
+            # when loading the person's own history (via forget_own_messages_for_person)
+            return unwrap_inputs(inputs)
         
         return inputs
     
@@ -179,19 +190,13 @@ class PersonJobOrchestrator:
         if self._conversation_state_manager.has_conversation_input(inputs):
             memory_already_applied = self._memory_transformer is not None
             
-            if not memory_already_applied and forget_mode == ForgettingMode.on_every_turn:
-                # Handle on_every_turn consolidation
-                person_labels = self._get_person_labels_for_inputs(inputs, diagram)
-                consolidated = self._conversation_state_manager.consolidate_conversation_messages(
-                    inputs, person_labels
-                )
-                if consolidated:
-                    conversation_messages = [{"role": "user", "content": consolidated}]
-            else:
-                # Extract messages normally
-                conversation_messages = self._conversation_state_manager.extract_conversation_messages(
-                    inputs
-                )
+            # Always extract messages normally to preserve conversation structure
+            conversation_messages = self._conversation_state_manager.extract_conversation_messages(
+                inputs
+            )
+            
+            # If memory not already applied and we're in on_every_turn mode,
+            # the forgetting will be applied later in this method (lines 207-214)
         
         # Store user prompt in conversation if needed
         if built_prompt and conversation_service and execution_id:
@@ -203,12 +208,10 @@ class PersonJobOrchestrator:
             )
         
         # Apply forgetting if needed (legacy path)
-        if not self._memory_transformer and self._conversation_state_manager.should_forget_messages(
-            execution_count, forget_mode
-        ):
-            conversation_messages = self._conversation_state_manager.apply_forgetting_strategy(
-                conversation_messages, forget_mode
-            )
+        # IMPORTANT: Do NOT apply forgetting to messages from inputs (other panels).
+        # Forgetting should only apply to the person's own conversation history.
+        # The conversation_messages at this point come from inputs, so we should
+        # NOT apply forgetting strategy here.
         
         # Prepare final messages
         return MessageBuilder.prepare_messages(
@@ -240,11 +243,15 @@ class PersonJobOrchestrator:
         content: str,
     ) -> None:
         """Store user message in conversation service."""
+        # Set execution_id first if the service supports it
+        if hasattr(conversation_service, 'current_execution_id'):
+            conversation_service.current_execution_id = execution_id
+        
         # Store user message directly
         conversation_service.add_message(
             person_id=person_id,
-            execution_id=execution_id,
-            message=MessageBuilder.create_user_message(content)
+            role="user",
+            content=content
         )
     
     def _store_assistant_response(
@@ -254,12 +261,16 @@ class PersonJobOrchestrator:
         execution_id: Optional[str],
         content: str,
     ) -> None:
-        """Store user message in conversation service."""
-        # Store user message directly
+        """Store assistant message in conversation service."""
+        # Set execution_id first if the service supports it
+        if execution_id and hasattr(conversation_service, 'current_execution_id'):
+            conversation_service.current_execution_id = execution_id
+        
+        # Store assistant message directly
         conversation_service.add_message(
             person_id=person_id,
-            execution_id=execution_id,
-            message=MessageBuilder.create_assistant_message(content)
+            role="assistant",
+            content=content
         )
     
     def _build_final_output(
@@ -362,13 +373,16 @@ class PersonJobOrchestrator:
         if props.memory_config and props.memory_config.forget_mode:
             forget_mode = ForgettingMode(props.memory_config.forget_mode)
         
-        # Create template service that simply returns the prompt as-is
-        # (PersonJobOrchestrator expects a template_service parameter)
-        class SimpleTemplateService:
-            def substitute_template(self, template: str, variables: Dict[str, Any]) -> str:
-                return template
-        
-        template_service = SimpleTemplateService()
+        # Use the injected template service if available, otherwise use a simple passthrough
+        if self._template_service:
+            template_service = self._template_service
+        else:
+            # Fallback to simple passthrough if no template service injected
+            class SimpleTemplateService:
+                def substitute_template(self, template: str, variables: Dict[str, Any]) -> str:
+                    return template
+            
+            template_service = SimpleTemplateService()
         
         # Execute with all parameters
         result = await self.execute(

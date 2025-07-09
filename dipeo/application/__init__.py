@@ -8,7 +8,7 @@ Application orchestration layer providing use cases and node handlers.
 from .execution.context import ApplicationExecutionContext
 
 # Engine components
-from .engine import ExecutionEngine, ExecutionController, LocalExecutionView
+from .engine import ExecutionEngine, ExecutionController
 
 # Execution framework (moved from core)
 from .execution import (
@@ -55,7 +55,6 @@ __all__ = [
     # Engine
     "ExecutionEngine",
     "ExecutionController",
-    "LocalExecutionView",
     # Execution
     "ExecuteDiagramUseCase",
     # Execution framework (moved from core)

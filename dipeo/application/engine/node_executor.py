@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
+from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage, DomainDiagram
 
 if TYPE_CHECKING:
     from dipeo.application.execution.context import ApplicationExecutionContext
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from dipeo.models import ExecutionState
 
     from .execution_controller import ExecutionController
-    from .execution_view import LocalExecutionView, NodeView
 
 log = logging.getLogger(__name__)
 
@@ -43,8 +42,8 @@ class NodeExecutor:
     
     async def execute_node(
         self,
-        node_view: "NodeView",
-        execution_view: "LocalExecutionView",
+        node_id: str,
+        diagram: "DomainDiagram",
         controller: "ExecutionController",
         execution_id: str,
         options: dict[str, Any],
@@ -64,46 +63,72 @@ class NodeExecutor:
         # Track start time
         start_time = datetime.utcnow()
         
+        # Find the node in the diagram
+        node = next((n for n in diagram.nodes if n.id == node_id), None)
+        if not node:
+            raise ValueError(f"Node {node_id} not found in diagram")
+        
         # Notify observers
         for observer in self.observers:
-            await observer.on_node_start(execution_id, node_view.id)
+            await observer.on_node_start(execution_id, node_id)
         
         try:
             # Create runtime context
             context = self._create_runtime_context(
-                node_view, execution_id, options, execution_view, controller
+                node_id, execution_id, options, controller
             )
             
-            # Get inputs
-            inputs = node_view.get_active_inputs()
+            # Get inputs using input resolution service
+            input_resolution_service = self.service_registry.get('input_resolution_service')
+            if not input_resolution_service:
+                raise ValueError("InputResolutionService is required but not found")
+            
+            # Get current state for input resolution
+            node_outputs = controller.state_adapter.get_all_node_outputs()
+            node_exec_counts = controller.state_adapter.get_all_node_exec_counts()
+            
+            # Resolve inputs for this node
+            inputs = input_resolution_service.resolve_inputs_for_node(
+                node_id=node_id,
+                node_type=node.type,
+                diagram=diagram,
+                node_outputs=node_outputs,
+                node_exec_counts=node_exec_counts,
+                node_memory_config=(node.data or {}).get('memory_config')
+            )
+            
+            # Get handler from registry
+            from dipeo.application import get_global_registry
+            registry = get_global_registry()
+            handler_def = registry.get(node.type)
+            if not handler_def:
+                raise ValueError(f"No handler for node type: {node.type}")
             
             # Get services
             services = self.service_registry.get_handler_services(
-                node_view._handler_def.requires_services
+                handler_def.requires_services
             )
-            services["diagram"] = execution_view.diagram
+            services["diagram"] = diagram
             services["execution_context"] = {
                 "interactive_handler": interactive_handler
             }
             
             # Prepare node data
-            node_data = node_view.data.copy() if node_view.data else {}
-            if node_view.node.type == NodeType.person_job.value:
+            node_data = (node.data or {}).copy()
+            if node.type == NodeType.person_job.value:
                 node_data.setdefault("first_only_prompt", "")
                 node_data.setdefault("max_iteration", 1)
             
             # Execute handler
-            output = await node_view.handler(
-                props=node_view._handler_def.node_schema.model_validate(node_data),
+            output = await handler_def.handler(
+                props=handler_def.node_schema.model_validate(node_data),
                 context=context,
                 inputs=inputs,
                 services=services,
             )
             
             # Update state
-            node_view.output = output
-            node_view.exec_count += 1
-            await controller.mark_executed(node_view.id, output, node_view.node.type)
+            await controller.mark_executed(node_id, output, node.type)
             
             # Create NodeState with output and timing information
             end_time = datetime.utcnow()
@@ -127,21 +152,20 @@ class NodeExecutor:
             # Notify observers
             for observer in self.observers:
                 await observer.on_node_complete(
-                    execution_id, node_view.id, node_state
+                    execution_id, node_id, node_state
                 )
                 
         except Exception as e:
             # Notify observers
             for observer in self.observers:
-                await observer.on_node_error(execution_id, node_view.id, str(e))
+                await observer.on_node_error(execution_id, node_id, str(e))
             raise
     
     def _create_runtime_context(
         self,
-        node_view: "NodeView",
+        node_id: str,
         execution_id: str,
         options: dict[str, Any],
-        execution_view: "LocalExecutionView",
         controller: "ExecutionController"
     ) -> "ApplicationExecutionContext":
         """Create runtime context for node execution.
@@ -166,7 +190,7 @@ class NodeExecutor:
         return ApplicationExecutionContext(
             execution_state=execution_state,
             service_registry=self.service_registry,
-            current_node_id=node_view.id,
+            current_node_id=node_id,
             executed_nodes=list(controller.state_adapter.get_executed_nodes()),
             exec_counts=controller.state_adapter.get_all_node_exec_counts(),
         )

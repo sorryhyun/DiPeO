@@ -49,22 +49,21 @@ def _create_service_registry(
     registry.register("notion_service", notion_service)
     
     # Domain services - Primary registration with _service suffix
-    registry.register("diagram_storage_service", diagram_storage_domain_service)
+    registry.register("diagram_storage_domain_service", diagram_storage_domain_service)
     registry.register("text_processing_service", text_processing_service)
     registry.register("validation_service", validation_service)
     registry.register("db_operations_service", db_operations_service)
     registry.register("template_service", template_service)
     
     # Person job services - Register orchestrator as the main service
-    registry.register("person_job_execution_service", person_job_services["person_job_orchestrator"])
-    registry.register("prompt_processing_service", person_job_services["prompt_service"])
+    registry.register("prompt_service", person_job_services["prompt_service"])
     registry.register("conversation_processor", person_job_services["conversation_processor"])
-    registry.register("person_job_output_builder", person_job_services["output_builder"])
+    registry.register("output_builder", person_job_services["output_builder"])
     
     # New focused services
     registry.register("prompt_builder", person_job_services["prompt_builder"])
     registry.register("conversation_state_manager", person_job_services["conversation_state_manager"])
-    registry.register("message_preparator", person_job_services["message_builder"])
+    registry.register("message_builder", person_job_services["message_builder"])
     registry.register("llm_executor", person_job_services["llm_executor"])
     registry.register("person_job_orchestrator", person_job_services["person_job_orchestrator"])
     
@@ -81,14 +80,7 @@ def _create_service_registry(
     # Pure domain services
     registry.register("api_domain_service", api_domain_service)
     registry.register("file_domain_service", file_domain_service)
-    
-    # Aliases for common service names
-    registry.register("conversation_service", conversation_memory_service)  # Primary alias used by handlers
-    registry.register("conversation", conversation_memory_service)  # Legacy alias for execution_engine.py
-    
-    # Legacy aliases for backward compatibility
-    registry.register("llm", llm_service)  # Used in execution_engine.py
-    registry.register("api_key", api_key_service)
+
     
     # Aliases for handlers that use short names
     registry.register("file", file_service)  # Used by endpoint.py

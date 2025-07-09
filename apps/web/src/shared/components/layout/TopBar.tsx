@@ -3,7 +3,7 @@ import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
 import { useUIState } from '@/shared/hooks/selectors';
 import { useDiagramManager } from '@/features/diagram-editor/hooks';
-import { useUnifiedStore } from '@/shared/hooks';
+import { useUIOperations, useExecutionOperations } from '@/core/store/hooks';
 import { toast } from 'sonner';
 
 
@@ -13,7 +13,8 @@ const TopBar = () => {
   
   // Use UI state for mode control
   const { activeCanvas } = useUIState();
-  const { setReadOnly, setActiveCanvas } = useUnifiedStore();
+  const { setReadOnly, setActiveCanvas } = useUIOperations();
+  const { stopExecution } = useExecutionOperations();
 
   // NOTE: This is the ONLY place where auto-save should be enabled to avoid duplicate saves
   const diagramManager = useDiagramManager({
@@ -119,7 +120,6 @@ const TopBar = () => {
               if (activeCanvas === 'execution') {
                 setActiveCanvas('main');
                 // Clear execution state when leaving execution mode
-                const { stopExecution } = useUnifiedStore.getState();
                 stopExecution();
                 // When leaving execution mode, readOnly remains controlled by monitor mode
               } else {

@@ -105,28 +105,52 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Parse source label and handle
             src_label = src_raw
             src_handle_from_split = None
-            if "_" in src_raw:
+            
+            # First check if the entire string is a valid node label
+            if src_raw not in label2id and "_" in src_raw:
                 # Try to find the node label by checking all possible splits
                 # This handles cases where node labels contain spaces or underscores
                 # We need to find the longest matching label in label2id
                 parts = src_raw.split("_")
+                
+                # Also check for labels with spaces by replacing underscores
                 for i in range(len(parts) - 1, 0, -1):
+                    # Try with underscores
                     potential_label = "_".join(parts[:i])
                     if potential_label in label2id:
                         src_label = potential_label
+                        src_handle_from_split = "_".join(parts[i:])
+                        break
+                    
+                    # Try with spaces instead of underscores
+                    potential_label_with_spaces = " ".join(parts[:i])
+                    if potential_label_with_spaces in label2id:
+                        src_label = potential_label_with_spaces
                         src_handle_from_split = "_".join(parts[i:])
                         break
             
             # Parse destination label and handle
             dst_label = dst_raw
             dst_handle_from_split = None
-            if "_" in dst_raw:
+            
+            # First check if the entire string is a valid node label
+            if dst_raw not in label2id and "_" in dst_raw:
                 # Try to find the node label by checking all possible splits
                 parts = dst_raw.split("_")
+                
+                # Also check for labels with spaces by replacing underscores
                 for i in range(len(parts) - 1, 0, -1):
+                    # Try with underscores
                     potential_label = "_".join(parts[:i])
                     if potential_label in label2id:
                         dst_label = potential_label
+                        dst_handle_from_split = "_".join(parts[i:])
+                        break
+                    
+                    # Try with spaces instead of underscores
+                    potential_label_with_spaces = " ".join(parts[:i])
+                    if potential_label_with_spaces in label2id:
+                        dst_label = potential_label_with_spaces
                         dst_handle_from_split = "_".join(parts[i:])
                         break
                     

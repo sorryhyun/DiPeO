@@ -1,14 +1,15 @@
 import React, { useCallback } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowData, Dict, DomainPerson, nodeId, arrowId, personId } from '@/core/types';
+import { Dict, DomainPerson, nodeId, arrowId, personId } from '@/core/types';
+import type { ArrowData } from '@/lib/graphql/types';
 import { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
 import { LLMService } from '@dipeo/domain-models';
 import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
 import { derivePanelConfig } from '@/core/config/unifiedConfig';
 import { ENTITY_PANEL_CONFIGS } from '../config';
 import { FIELD_TYPES } from '@/core/types/panel';
-import { useCanvasOperationsContext, useCanvasPersons } from '@/features/diagram-editor';
+import { useCanvasOperations, useCanvasState } from '@/shared/contexts/CanvasContext';
 import { usePropertyManager } from '../hooks';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from './fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from './fields/FormComponents';
@@ -114,8 +115,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   const queryClient = useQueryClient();
   
   // Use context instead of individual hooks
-  const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperationsContext();
-  const personsArray = useCanvasPersons();
+  const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperations();
+  const { personsWithUsage } = useCanvasState();
   
   // Get panel config from the new unified configuration
   let panelConfig = null;
@@ -125,7 +126,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
     panelConfig = derivePanelConfig(nodeConfig);
   }
   
-  const personsForSelect = personsArray.map(person => ({ id: person.id, label: person.label }));
+  const personsForSelect = personsWithUsage.map(person => ({ id: person.id, label: person.label }));
   
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
     if (dataType === 'arrow') return 'arrow';
@@ -316,13 +317,13 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
     return fields.map((field, index) => renderField(field, index));
   }, [renderField]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (data.type === 'person') {
-      personOps.deletePerson(personId(entityId));
+      await personOps.deletePerson(personId(entityId));
     } else if (data.type === 'arrow') {
-      arrowOps.deleteArrow(arrowId(entityId));
+      await arrowOps.deleteArrow(arrowId(entityId));
     } else {
-      nodeOps.deleteNode(nodeId(entityId));
+      await nodeOps.deleteNode(nodeId(entityId));
     }
     clearSelection();
   };

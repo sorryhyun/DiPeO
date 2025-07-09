@@ -37,10 +37,26 @@ class FlowControlService:
         A node is ready if:
         - It hasn't exceeded its max iterations
         - All its dependencies are satisfied
+        - For nodes that have already executed: they have new inputs
         """
         # Check if node can still execute
         if not self.can_node_execute(node, node_exec_counts):
             return False
+        
+        # Check if node has already executed
+        exec_count = node_exec_counts.get(node.id, 0) if node_exec_counts else 0
+        if exec_count > 0:
+            # Only apply the new input check to nodes that support multiple iterations
+            # This prevents single-execution nodes from being blocked
+            if node.type == NodeType.person_job and node.data:
+                max_iter = node.data.get("max_iteration", 1)
+                if max_iter > 1:
+                    # For nodes that have executed and support multiple iterations,
+                    # check if they have new inputs
+                    if not self._has_new_inputs_since_last_execution(
+                        node, diagram, executed_nodes, node_outputs, exec_count
+                    ):
+                        return False
         
         # Check dependencies
         return self._are_dependencies_satisfied(
@@ -61,7 +77,9 @@ class FlowControlService:
             if self.is_node_ready(node, diagram, executed_nodes, node_outputs, node_exec_counts):
                 ready_nodes.append(node)
         
-        return ready_nodes
+        # Sort ready nodes to ensure deterministic execution order
+        # Nodes that other ready nodes depend on should execute first
+        return self._order_ready_nodes(ready_nodes, diagram)
     
     def should_execution_continue(
         self,
@@ -268,6 +286,73 @@ class FlowControlService:
         
         return find_path(start_node_id, end_node_id, set(), []) or []
     
+    def _has_new_inputs_since_last_execution(
+        self,
+        node: DomainNode,
+        diagram: DomainDiagram,
+        executed_nodes: Set[str],
+        node_outputs: Dict[str, Any],
+        last_exec_count: int
+    ) -> bool:
+        """Check if a node has received new inputs since its last execution.
+        
+        For nodes with multiple iterations (like person_job with max_iteration > 1),
+        they should only execute again if there's a feedback loop from downstream nodes.
+        
+        This prevents nodes from executing all their iterations immediately,
+        and ensures proper flow through the diagram.
+        """
+        # For nodes that support multiple iterations, check if there's a feedback path
+        # A feedback path exists if:
+        # 1. There's a path from this node to another node and back, OR
+        # 2. The node has a self-loop
+        
+        # First, check for self-loops
+        for arrow in diagram.arrows:
+            source_node_id = extract_node_id_from_handle(arrow.source)
+            target_node_id = extract_node_id_from_handle(arrow.target)
+            if source_node_id == node.id and target_node_id == node.id:
+                return True
+        
+        # For person_job nodes, check if there's a feedback loop through downstream nodes
+        if node.type == NodeType.person_job:
+            # Check if any downstream nodes have executed and have paths back to this node
+            downstream_nodes = self.get_next_nodes(node.id, diagram)
+            
+            for downstream_id in downstream_nodes:
+                if downstream_id in executed_nodes:
+                    # Check if this downstream node has a path back to our node
+                    # This would indicate a feedback loop
+                    if self._has_path_from_to(diagram, downstream_id, node.id):
+                        return True
+        
+        # No feedback loop found - node should not execute again
+        return False
+    
+    def _has_path_from_to(self, diagram: DomainDiagram, from_id: str, to_id: str) -> bool:
+        """Check if there's a path from one node to another."""
+        visited = set()
+        
+        def dfs(current_id: str) -> bool:
+            if current_id == to_id:
+                return True
+            if current_id in visited:
+                return False
+            
+            visited.add(current_id)
+            
+            # Find all outgoing arrows from current node
+            for arrow in diagram.arrows:
+                source_node_id = extract_node_id_from_handle(arrow.source)
+                if source_node_id == current_id:
+                    target_node_id = extract_node_id_from_handle(arrow.target)
+                    if dfs(target_node_id):
+                        return True
+            
+            return False
+        
+        return dfs(from_id)
+    
     def should_skip_arrow(
         self,
         arrow_id: str,
@@ -321,3 +406,57 @@ class FlowControlService:
                 return False
         
         return True
+    
+    def _order_ready_nodes(
+        self,
+        ready_nodes: List[DomainNode],
+        diagram: DomainDiagram
+    ) -> List[DomainNode]:
+        """Order ready nodes to ensure deterministic execution.
+        
+        Nodes that provide inputs to other ready nodes should execute first.
+        This prevents race conditions where dependent nodes might execute
+        before their dependencies when both are ready.
+        """
+        if len(ready_nodes) <= 1:
+            return ready_nodes
+        
+        # Build a dependency graph among ready nodes
+        ready_node_ids = {node.id for node in ready_nodes}
+        dependencies = {}  # node_id -> set of ready nodes it depends on
+        
+        for node in ready_nodes:
+            dependencies[node.id] = set()
+            
+            # Find all arrows pointing to this node from other ready nodes
+            for arrow in diagram.arrows:
+                target_node_id = extract_node_id_from_handle(arrow.target)
+                if target_node_id == node.id:
+                    source_node_id = extract_node_id_from_handle(arrow.source)
+                    if source_node_id in ready_node_ids:
+                        dependencies[node.id].add(source_node_id)
+        
+        # Topological sort to determine execution order
+        ordered = []
+        visited = set()
+        
+        def visit(node_id: str):
+            if node_id in visited:
+                return
+            visited.add(node_id)
+            
+            # Visit dependencies first
+            for dep_id in dependencies.get(node_id, set()):
+                visit(dep_id)
+            
+            # Find the node object
+            for node in ready_nodes:
+                if node.id == node_id:
+                    ordered.append(node)
+                    break
+        
+        # Visit all nodes
+        for node in ready_nodes:
+            visit(node.id)
+        
+        return ordered

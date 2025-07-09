@@ -7,13 +7,11 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node } from '@xyflow/react';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { useNodeData } from '@/features/diagram-editor/hooks';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useNodeData } from '@/core/store/hooks';
 import { NodeID, PersonID, ArrowID, nodeId, personId } from '@/core/types';
 import { Vec2, NodeType } from '@dipeo/domain-models';
-import { useNodeOperations } from '../operations/useNodeOperations';
-import { useArrowOperations } from '../operations/useArrowOperations';
-import { usePersonOperations } from '../operations/usePersonOperations';
+import { useNodeOperations, useArrowOperations, usePersonOperations } from '@/core/store/hooks';
 
 // Types
 export interface ContextMenuState {
@@ -133,21 +131,21 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   }, []);
   
   // Common Actions
-  const handleDeleteSelected = useCallback(() => {
+  const handleDeleteSelected = useCallback(async () => {
     if (!enabled || isMonitorMode) return;
     
     if (selectedType === 'node' && selectedId) {
-      nodeOps.deleteNode(selectedId as NodeID);
+      await nodeOps.deleteNode(selectedId as NodeID);
     } else if (selectedType === 'arrow' && selectedId) {
-      arrowOps.deleteArrow(selectedId as ArrowID);
+      await arrowOps.deleteArrow(selectedId as ArrowID);
     } else if (selectedType === 'person' && selectedId) {
-      personOps.deletePerson(selectedId as PersonID);
+      await personOps.deletePerson(selectedId as PersonID);
     }
     store.getState().clearSelection();
     closeContextMenu();
   }, [enabled, isMonitorMode, selectedId, selectedType, nodeOps, arrowOps, personOps, store, closeContextMenu]);
   
-  const handleDuplicateSelected = useCallback(() => {
+  const handleDuplicateSelected = useCallback(async () => {
     if (!enabled || isMonitorMode) return;
     
     if (selectedType === 'node' && selectedId && selectedNode) {
@@ -156,13 +154,15 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
         y: (selectedNode.position?.y || 0) + 50
       };
       
-      const newNodeId = nodeOps.addNode(
+      const newNodeId = await nodeOps.addNode(
         selectedNode.type,
         newPosition,
         { ...selectedNode.data }
       );
       
-      store.getState().select(newNodeId, 'node');
+      if (newNodeId) {
+        store.getState().select(newNodeId as NodeID, 'node');
+      }
     }
     closeContextMenu();
   }, [enabled, isMonitorMode, selectedId, selectedType, selectedNode, nodeOps, store, closeContextMenu]);
@@ -227,7 +227,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     event.dataTransfer.dropEffect = 'move';
   }, []);
   
-  const onNodeDrop = useCallback((
+  const onNodeDrop = useCallback(async (
     event: React.DragEvent, 
     projectPosition: (x: number, y: number) => Vec2
   ) => {
@@ -242,7 +242,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
       event.clientY - dragOffset.current.y
     );
     
-    nodeOps.addNode(type as NodeType, dropPosition);
+    await nodeOps.addNode(type as NodeType, dropPosition);
     
     setDragState({
       isDragging: false,
@@ -250,7 +250,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     });
   }, [enabled, isMonitorMode, nodeOps]);
   
-  const onPersonDrop = useCallback((
+  const onPersonDrop = useCallback(async (
     event: React.DragEvent,
     nodeId: NodeID
   ) => {
@@ -259,7 +259,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     event.preventDefault();
     const personIdStr = event.dataTransfer.getData('application/person');
     if (personIdStr) {
-      nodeOps.updateNode(nodeId, { data: { person: personId(personIdStr) } });
+      await nodeOps.updateNode(nodeId, { data: { person: personId(personIdStr) } });
     }
     
     setDragState({

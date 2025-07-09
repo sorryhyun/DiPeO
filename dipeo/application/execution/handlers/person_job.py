@@ -37,7 +37,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["person_job_execution_service", "llm_service", "diagram", "conversation_service"]
+        return ["person_job_orchestrator", "llm_service", "diagram", "conversation_service"]
 
     @property
     def description(self) -> str:
@@ -59,7 +59,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
     ) -> NodeOutput:
         """Execute person_job node by delegating to domain service."""
         # Resolve services
-        execution_service = self._resolve_service(context, services, "person_job_execution_service")
+        person_job_orchestrator = self._resolve_service(context, services, "person_job_orchestrator")
         llm_service = self._resolve_service(context, services, "llm_service")
         diagram = self._resolve_service(context, services, "diagram")
         conversation_service = self._resolve_service(context, services, "conversation_service")
@@ -84,7 +84,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
         
         try:
             # Execute using domain service - all business logic is in the service
-            result = await execution_service.execute_person_job_with_validation(
+            result = await person_job_orchestrator.execute_person_job_with_validation(
                 person_id=props.person,
                 node_id=node_id,
                 props=props,

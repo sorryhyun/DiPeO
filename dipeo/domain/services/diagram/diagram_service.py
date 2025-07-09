@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
+from dipeo.models import HandleLabel
 from dipeo.core import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -26,36 +26,101 @@ class DiagramDomainService:
         if not isinstance(data, dict):
             raise ValidationError("Diagram data must be a dictionary")
             
-        # Check required fields
-        required_fields = ["nodes", "edges"]
+        # Detect format and validate accordingly
+        is_light_format = (
+            data.get("version") == "light" or
+            (isinstance(data.get("nodes"), list) and 
+             "connections" in data and 
+             "persons" in data)
+        )
+        
+        # Check required fields based on format
+        if is_light_format:
+            required_fields = ["nodes", "connections"]
+        else:
+            required_fields = ["nodes", "arrows"]
+            
         for field in required_fields:
             if field not in data:
                 raise ValidationError(f"Diagram must contain '{field}' field")
                 
         # Validate nodes
-        if not isinstance(data["nodes"], list):
-            raise ValidationError("Nodes must be a list")
-            
-        for node in data["nodes"]:
-            if not isinstance(node, dict):
-                raise ValidationError("Each node must be a dictionary")
-            if "id" not in node:
-                raise ValidationError("Each node must have an 'id' field")
+        nodes = data["nodes"]
+        if is_light_format:
+            if not isinstance(nodes, list):
+                raise ValidationError("Nodes must be a list in light format")
+            # Light format nodes don't require 'id' field (it's generated)
+        else:
+            if not isinstance(nodes, list):
+                raise ValidationError("Nodes must be a list")
+            for node in nodes:
+                if not isinstance(node, dict):
+                    raise ValidationError("Each node must be a dictionary")
+                if "id" not in node:
+                    raise ValidationError("Each node must have an 'id' field")
                 
-        # Validate edges
-        if not isinstance(data["edges"], list):
-            raise ValidationError("Edges must be a list")
+        # Validate arrows/connections
+        if is_light_format:
+            connections = data["connections"]
+            if not isinstance(connections, list):
+                raise ValidationError("Connections must be a list")
             
-        node_ids = {node["id"] for node in data["nodes"]}
-        for edge in data["edges"]:
-            if not isinstance(edge, dict):
-                raise ValidationError("Each edge must be a dictionary")
-            if "source" not in edge or "target" not in edge:
-                raise ValidationError("Each edge must have 'source' and 'target' fields")
-            if edge["source"] not in node_ids:
-                raise ValidationError(f"Edge source '{edge['source']}' not found in nodes")
-            if edge["target"] not in node_ids:
-                raise ValidationError(f"Edge target '{edge['target']}' not found in nodes")
+            # For light format, connections use labels instead of IDs
+            # We'll skip detailed validation here since the conversion process handles it
+            for conn in connections:
+                if not isinstance(conn, dict):
+                    raise ValidationError("Each connection must be a dictionary")
+                if "from" not in conn or "to" not in conn:
+                    raise ValidationError("Each connection must have 'from' and 'to' fields")
+        else:
+            arrows = data["arrows"]
+            if not isinstance(arrows, list):
+                raise ValidationError("Arrows must be a list")
+                
+            # Arrows connect handles, not nodes directly
+            # Handle IDs have format: {node_id}_{handle_label} or {node_id}_{handle_label}
+            node_ids = {node["id"] for node in data["nodes"]}
+            for arrow in arrows:
+                if not isinstance(arrow, dict):
+                    raise ValidationError("Each arrow must be a dictionary")
+                if "source" not in arrow or "target" not in arrow:
+                    raise ValidationError("Each arrow must have 'source' and 'target' fields")
+                
+                # Extract node ID from handle ID
+                # Handle format: {nodeId}_{handleLabel} where nodeId contains underscore (e.g., node_ABC)
+                # So we need to find the last underscore that separates nodeId from handle label
+                source_handle = arrow["source"]
+                target_handle = arrow["target"]
+                
+                # Find the last occurrence of underscore followed by a handle label pattern
+                # Common handle labels: default_input, default_output, first_input, etc.
+                # Split on the last underscore that precedes these patterns
+                source_parts = source_handle.rsplit("_", 2)  # Split from right, max 2 splits
+                target_parts = target_handle.rsplit("_", 2)  # Split from right, max 2 splits
+                
+                # If we have at least 3 parts, the node ID is everything except the last 2 parts
+                # e.g., "node_ABC_default_output" -> ["node", "ABC", "default", "output"]
+                # rsplit with 2 gives ["node_ABC", "default", "output"]
+                if len(source_parts) >= 3 and source_parts[-2] in [x for x in HandleLabel]:
+                    source_node_id = source_parts[0]
+                elif len(source_parts) >= 2:
+                    # Fallback: assume everything before last underscore is node ID
+                    source_node_id = "_".join(source_parts[:-1])
+                else:
+                    source_node_id = arrow["source"]
+                    
+                if len(target_parts) >= 3 and target_parts[-2] in [x for x in HandleLabel]:
+                    target_node_id = target_parts[0]
+                elif len(target_parts) >= 2:
+                    # Fallback: assume everything before last underscore is node ID
+                    target_node_id = "_".join(target_parts[:-1])
+                else:
+                    target_node_id = arrow["target"]
+                
+                if source_node_id not in node_ids:
+                    raise ValidationError(f"Arrow source node '{source_node_id}' not found in nodes")
+                if target_node_id not in node_ids:
+                    raise ValidationError(f"Arrow target node '{target_node_id}' not found in nodes")
 
     def clean_enum_values(self, data: Any) -> Any:
         """Recursively convert enum values to strings in the data structure.

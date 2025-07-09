@@ -1,9 +1,8 @@
 // Properties-specific sidebar component
 import React, { Suspense } from 'react';
-import { useCanvas } from '@/features/diagram-editor/hooks';
+import { useCanvas } from '@/shared/contexts/CanvasContext';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { PersonID, DomainArrow } from '@/core/types';
-import type { Node } from '@xyflow/react';
 import { SidebarLayout } from '@/shared/components/layout/SidebarLayout';
 
 // Lazy load PropertyPanel as it's only used in right sidebar
@@ -11,8 +10,9 @@ const PropertiesPanelComponent = React.lazy(() => import('@/features/properties-
 import type { UniversalData } from '@/features/properties-editor/components/PropertyPanel';
 
 export const PropertiesSidebar = React.memo(() => {
-  const { nodes, arrows } = useCanvas();
-  const { selectedId, selectedType, persons: personsMap } = useUnifiedStore();
+  const { state } = useCanvas();
+  const { nodes, arrows, persons: personsMap } = state;
+  const { selectedId, selectedType } = useUnifiedStore();
   
   // Helper to get person by ID
   const getPersonById = (id: PersonID) => personsMap.get(id) || null;
@@ -27,19 +27,19 @@ export const PropertiesSidebar = React.memo(() => {
   let selectedData: UniversalData | null = null;
   
   if (selectedNodeId) {
-    const node = nodes.find((n: Node) => n.id === selectedNodeId);
+    const node = nodes.get(selectedNodeId as string);
     if (node) {
       selectedIdToShow = node.id;
       selectedData = { ...node.data, type: node.type || 'unknown' };
     }
   } else if (selectedArrowId) {
-    // Get arrow data from the arrows array
-    const arrow = arrows.find((a: DomainArrow) => a.id === selectedArrowId);
+    // Get arrow data from the arrows Map
+    const arrow = arrows.get(selectedArrowId as string);
     if (arrow) {
       selectedIdToShow = selectedArrowId;
       // Parse handle ID to get source node ID
       const [sourceNodeId] = arrow.source.split(':');
-      const sourceNode = nodes.find((n: Node) => n.id === sourceNodeId);
+      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as string) : undefined;
       
       selectedData = { 
         ...arrow.data,

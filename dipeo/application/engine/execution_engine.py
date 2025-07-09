@@ -21,8 +21,6 @@ if TYPE_CHECKING:
     from dipeo.domain.services.execution.protocols import ExecutionObserver
     from dipeo.models import DomainDiagram
 
-    from .execution_view import LocalExecutionView, NodeView
-
 log = logging.getLogger(__name__)
 
 
@@ -64,7 +62,7 @@ class ExecutionEngine:
     
     async def execute_prepared(
         self,
-        execution_view: "LocalExecutionView",
+        diagram: "DomainDiagram",
         controller: ExecutionController,
         execution_id: str,
         options: dict[str, Any],
@@ -83,16 +81,14 @@ class ExecutionEngine:
         
         # Notify observers
         for observer in self.observers:
-            diagram_id = None
-            if hasattr(execution_view, 'diagram') and execution_view.diagram.metadata:
-                diagram_id = execution_view.diagram.metadata.id
+            diagram_id = diagram.metadata.id if diagram.metadata else None
             await observer.on_execution_start(execution_id, diagram_id)
         
         try:
             # Unified execution loop
             while controller.should_continue():
                 # Get all ready nodes
-                ready_nodes = controller.get_ready_nodes(execution_view)
+                ready_nodes = controller.get_ready_nodes(diagram)
                 
                 # Execute ready nodes
                 
@@ -105,7 +101,7 @@ class ExecutionEngine:
                 # Execute ready nodes concurrently
                 await self._execute_batch(
                     ready_nodes,
-                    execution_view,
+                    diagram,
                     controller,
                     execution_id,
                     options,
@@ -136,7 +132,7 @@ class ExecutionEngine:
     async def _execute_batch(
         self,
         node_ids: list[str],
-        execution_view: Any,
+        diagram: "DomainDiagram",
         controller: ExecutionController,
         execution_id: str,
         options: dict[str, Any],
@@ -149,11 +145,10 @@ class ExecutionEngine:
         tasks = []
         
         for node_id in node_ids:
-            node_view = execution_view.node_views[node_id]
             # Create task with semaphore control
             task = self._execute_node_with_semaphore(
-                node_view,
-                execution_view,
+                node_id,
+                diagram,
                 controller,
                 execution_id,
                 options,
@@ -170,8 +165,8 @@ class ExecutionEngine:
     
     async def _execute_node_with_semaphore(
         self,
-        node_view: "NodeView",
-        execution_view: "LocalExecutionView",
+        node_id: str,
+        diagram: "DomainDiagram",
         controller: ExecutionController,
         execution_id: str,
         options: dict[str, Any],
@@ -180,8 +175,8 @@ class ExecutionEngine:
         """Execute a node with concurrency control."""
         async with self._concurrency_semaphore:
             await self.node_executor.execute_node(
-                node_view,
-                execution_view,
+                node_id,
+                diagram,
                 controller,
                 execution_id,
                 options,

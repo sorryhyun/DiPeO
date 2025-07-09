@@ -1,23 +1,14 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useQueries } from '@tanstack/react-query';
-import { useCanvasContext } from '@/features/diagram-editor';
+import { useMemo, useCallback, useRef, useEffect } from 'react';
+import { useCanvasState, useCanvasOperations } from '@/features/diagram-editor';
 import { arrowId, nodeId, personId } from '@/core/types';
 import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
-
-/**
- * Returns a stable callback that always calls the latest version of the provided function.
- * This prevents unnecessary re-renders when passing callbacks to child components.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useEvent<T extends (...args: any[]) => any>(fn: T): T {
-  const ref = useRef(fn);
-  ref.current = fn;
-
-  return useCallback((...args: Parameters<T>) => {
-    return ref.current(...args);
-  }, []) as T;
-}
-
+import { 
+  useFormManager, 
+  type FormConfig, 
+  type FormAutoSaveConfig,
+  type FieldValidator,
+  type AsyncFieldOptions
+} from '@/core/forms';
 
 interface ValidationRule<T extends Record<string, unknown> = Record<string, unknown>> {
   field: keyof T;
@@ -51,286 +42,96 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     autoSave = true,
     autoSaveDelay = 1000,
     onSave,
-    onError
+    onError,
+    panelConfig
   } = options;
 
   // Get operations from context
-  const { nodeOps, arrowOps, personOps, canvas } = useCanvasContext();
+  const { readOnly } = useCanvasState();
+  const { nodeOps, arrowOps, personOps } = useCanvasOperations();
   const { updateNode } = nodeOps;
   const { updateArrow } = arrowOps;
   const { updatePerson } = personOps;
-  const { isMonitorMode } = canvas;
+  const isMonitorMode = readOnly;
 
-  // Form state
-  const [formData, setFormData] = useState<T>(initialData);
-  const [isDirty, setIsDirty] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-
-  const autoSaveTimeoutRef = useRef<number | undefined>(undefined);
-  const initialDataRef = useRef(initialData);
-
-  // Track the entity ID separately to detect entity changes
+  // Track entity ID changes
   const entityIdRef = useRef(entityId);
-  
-  // Combined effect for initialization and cleanup
-  useEffect(() => {
-    // Only reset form data if the entity ID changes
-    // This prevents the form from resetting when the data is updated via auto-save
-    const hasEntityChanged = entityId !== entityIdRef.current;
+  const hasEntityChanged = entityId !== entityIdRef.current;
+
+  // Convert validation rules to field validators
+  const validators = useMemo(() => {
+    const fieldValidators: Record<string, FieldValidator> = {};
     
-    if (hasEntityChanged) {
-      setFormData(initialData);
-      setIsDirty(false);
-      setErrors({});
-      initialDataRef.current = initialData;
-      entityIdRef.current = entityId;
-    }
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, [entityId]); // Only depend on entityId changes
-
-  // Separate effect for handling external data updates
-  useEffect(() => {
-    // Skip if this is the initial mount or entity changed
-    if (entityId !== entityIdRef.current) {
-      return;
-    }
-
-    // Only update if initialData has actually changed
-    const hasDataChanged = JSON.stringify(initialData) !== JSON.stringify(initialDataRef.current);
-    if (!hasDataChanged) {
-      return;
-    }
-
-    // Update form data for fields that haven't been locally modified
-    setFormData(prevData => {
-      // Use a ref to track dirty state to avoid closure issues
-      if (!isDirty) {
-        // If form isn't dirty, take all new data
-        initialDataRef.current = initialData;
-        return initialData;
-      }
-      
-      // If form is dirty, preserve local changes but update unchanged fields
-      const updatedData = { ...initialData };
-      // Preserve fields that have been locally modified
-      Object.keys(prevData).forEach(key => {
-        const typedKey = key as keyof T;
-        if (prevData[typedKey] !== initialDataRef.current[typedKey]) {
-          // This field was modified locally, preserve the local change
-          updatedData[typedKey] = prevData[typedKey];
-        }
-      });
-      
-      initialDataRef.current = initialData;
-      return updatedData;
+    validationRules.forEach(rule => {
+      fieldValidators[String(rule.field)] = (value, formData) => {
+        const error = rule.validator(value, formData as T);
+        return {
+          valid: !error,
+          errors: error ? [{ field: String(rule.field), message: error }] : []
+        };
+      };
     });
-  }, [entityId, initialData, isDirty]); // Include isDirty in dependencies
-
-  // Validation function - no need for useCallback since validationRules is stable
-  const validateField = (field: keyof T, value: unknown, currentFormData: T): string | null => {
-    const rule = validationRules.find(r => r.field === field);
-    if (!rule) return null;
-    return rule.validator(value, currentFormData);
-  };
-
-  // Validate all fields
-  const validateForm = (data: T): Record<string, string> => {
-    const newErrors: Record<string, string> = {};
     
-    for (const rule of validationRules) {
-      const error = rule.validator(data[rule.field], data);
-      if (error) {
-        newErrors[rule.field as string] = error;
-      }
-    }
-    
-    return newErrors;
-  };
+    return fieldValidators;
+  }, [validationRules]);
 
-  // Auto-save function - using useEvent for stable reference
-  const autoSaveToStore = useEvent((data: T) => {
-    if (isMonitorMode) return; // Don't auto-save in monitor mode
+  // Auto-save handler
+  const handleAutoSave = useCallback(async (data: T) => {
+    if (isMonitorMode) return;
     
     try {
-      if (entityType === 'node') {
-        // updateNode expects Partial<DomainNode>, so we need to wrap the data
-        updateNode(nodeId(entityId), { data: data as Record<string, unknown> });
-      } else if (entityType === 'arrow') {
-        // Extract content_type and label from data and set as direct fields
-        const { content_type, label, ...restData } = data as any;
-        const updates: any = { data: restData };
-        if (content_type !== undefined) {
-          updates.content_type = content_type;
-        }
-        if (label !== undefined) {
-          updates.label = label;
-        }
-        updateArrow(arrowId(entityId), updates);
+      if (onSave) {
+        await onSave(data);
       } else {
-        // For person entities, we need to unflatten the data structure
-        // Convert flat keys like 'llm_config.api_key_id' back to nested structure
-        const unflattenedData: any = {};
-        const llmConfig: any = {};
-        
-        Object.entries(data).forEach(([key, value]) => {
-          if (key.startsWith('llm_config.')) {
-            const fieldName = key.substring('llm_config.'.length);
-            llmConfig[fieldName] = value;
-          } else {
-            unflattenedData[key] = value;
+        // Store update logic
+        if (entityType === 'node') {
+          updateNode(nodeId(entityId), { data: data as Record<string, unknown> });
+        } else if (entityType === 'arrow') {
+          const { content_type, label, ...restData } = data as any;
+          const updates: any = { data: restData };
+          if (content_type !== undefined) updates.content_type = content_type;
+          if (label !== undefined) updates.label = label;
+          updateArrow(arrowId(entityId), updates);
+        } else {
+          // Person entity flattening logic
+          const unflattenedData: any = {};
+          const llmConfig: any = {};
+          
+          Object.entries(data).forEach(([key, value]) => {
+            if (key.startsWith('llm_config.')) {
+              const fieldName = key.substring('llm_config.'.length);
+              llmConfig[fieldName] = value;
+            } else {
+              unflattenedData[key] = value;
+            }
+          });
+          
+          if (Object.keys(llmConfig).length > 0) {
+            unflattenedData.llm_config = llmConfig;
           }
-        });
-        
-        if (Object.keys(llmConfig).length > 0) {
-          unflattenedData.llm_config = llmConfig;
+          
+          updatePerson(personId(entityId), unflattenedData);
         }
-        
-        updatePerson(personId(entityId), unflattenedData);
       }
-      setLastSaved(new Date());
     } catch (error) {
       if (onError) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to auto-save';
         onError(errorMessage);
       }
+      throw error;
     }
-  });
+  }, [entityId, entityType, isMonitorMode, onSave, updateNode, updateArrow, updatePerson, onError]);
 
-  // Handle field changes with batched state updates - using useEvent for stable reference
-  const updateField = useEvent(<K extends keyof T>(field: K, value: T[K]) => {
-    // Batch all state updates together
-    const newData = { ...formData, [field]: value };
-    const fieldError = validateField(field, value, newData);
-    
-    // Update all state at once
-    setFormData(newData);
-    setErrors(prevErrors => {
-      if (fieldError) {
-        return { ...prevErrors, [field as string]: fieldError };
-      } else {
-        const { [field as string]: _, ...rest } = prevErrors;
-        return rest;
-      }
-    });
-    setIsDirty(true);
-    
-    // Auto-save logic
-    if (autoSave && !fieldError) {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-      
-      autoSaveTimeoutRef.current = window.setTimeout(() => {
-        if (onSave) {
-          handleSave(newData);
-        } else {
-          autoSaveToStore(newData);
-        }
-      }, autoSaveDelay);
-    }
-  });
+  // Auto-save configuration
+  const autoSaveConfig: FormAutoSaveConfig | undefined = autoSave ? {
+    enabled: autoSave && !isMonitorMode,
+    delay: autoSaveDelay,
+    onSave: handleAutoSave
+  } : undefined;
 
-  // Handle bulk updates
-  const updateFormData = useCallback((updates: Partial<T>) => {
-    setFormData(prev => {
-      const newData = { ...prev, ...updates };
-      
-      // Validate all updated fields
-      const newErrors = { ...errors };
-      let hasNewErrors = false;
-      
-      for (const [field, value] of Object.entries(updates)) {
-        const fieldError = validateField(field as keyof T, value, newData);
-        if (fieldError) {
-          newErrors[field] = fieldError;
-          hasNewErrors = true;
-        } else {
-          delete newErrors[field];
-        }
-      }
-      
-      setErrors(newErrors);
-      setIsDirty(true);
-      
-      // Auto-save if no errors
-      if (autoSave && !hasNewErrors) {
-        if (autoSaveTimeoutRef.current) {
-          clearTimeout(autoSaveTimeoutRef.current);
-        }
-        
-        autoSaveTimeoutRef.current = window.setTimeout(() => {
-          if (onSave) {
-            handleSave(newData);
-          } else {
-            autoSaveToStore(newData);
-          }
-        }, autoSaveDelay);
-      }
-      
-      return newData;
-    });
-  }, [errors, validateField, autoSave, autoSaveDelay, onSave, autoSaveToStore]);
-
-  // Handle manual save - using useEvent for stable reference
-  const handleSave = useEvent(async (dataToSave?: T) => {
-    const saveData = dataToSave || formData;
-    const formErrors = validateForm(saveData);
-    
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
-      if (onError) {
-        onError('Please fix validation errors before saving');
-      }
-      return false;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      if (onSave) {
-        await onSave(saveData);
-      } else {
-        autoSaveToStore(saveData);
-      }
-      setIsDirty(false);
-      setLastSaved(new Date());
-      setErrors({});
-      return true;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save';
-      if (onError) {
-        onError(errorMessage);
-      }
-      return false;
-    } finally {
-      setIsSubmitting(false);
-    }
-  });
-
-  // Handle form reset
-  const reset = useCallback(() => {
-    setFormData(initialDataRef.current);
-    setIsDirty(false);
-    setErrors({});
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-  }, []);
-
-  // API key options removed - now handled via GraphQL in components
-
-  // Panel schema functionality
+  // Process panel fields
   const fields = useMemo(() => {
-    if (!options.panelConfig) return [];
-    const config = options.panelConfig;
+    if (!panelConfig) return [];
     
     const flattenFields = (fields: TypedPanelFieldConfig<T>[]): TypedPanelFieldConfig<T>[] => {
       const result: TypedPanelFieldConfig<T>[] = [];
@@ -348,94 +149,90 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     
     let allFields: TypedPanelFieldConfig<T>[] = [];
     
-    if (config.fields) {
-      allFields = allFields.concat(flattenFields(config.fields));
+    if (panelConfig.fields) {
+      allFields = allFields.concat(flattenFields(panelConfig.fields));
     }
-    if (config.leftColumn) {
-      allFields = allFields.concat(flattenFields(config.leftColumn));
+    if (panelConfig.leftColumn) {
+      allFields = allFields.concat(flattenFields(panelConfig.leftColumn));
     }
-    if (config.rightColumn) {
-      allFields = allFields.concat(flattenFields(config.rightColumn));
+    if (panelConfig.rightColumn) {
+      allFields = allFields.concat(flattenFields(panelConfig.rightColumn));
     }
     
     return allFields;
-  }, [options.panelConfig]);
-
-  // Filter fields that need async options
-  const asyncFields = useMemo(() => {
-    return fields.filter(
-      field => field.type === 'select' && typeof field.options === 'function'
-    ) as Array<TypedPanelFieldConfig & { type: 'select'; options: (formData?: T) => Promise<Array<{ value: string; label: string }>> }>;
-  }, [fields]);
-
-  // Create queries for async fields
-  const queries = useQueries({
-    queries: asyncFields.map(field => {
-      const getDependencyValues = () => {
-        if (!field.dependsOn) return [];
-        
-        const dependencies = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
-        return dependencies.map((dep: string) => formData[dep as keyof T]);
-      };
-
-      const checkDependencies = () => {
-        if (!field.dependsOn) return true;
-        
-        const dependencies = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
-        return dependencies.every((dep: string) => {
-          const value = formData[dep as keyof T];
-          return value !== undefined && value !== null && value !== '';
-        });
-      };
-
-      return {
-        queryKey: ['field-options', field.name, ...getDependencyValues()],
-        queryFn: async () => {
-          const optionsFn = field.options as (formData?: T) => Promise<Array<{ value: string; label: string }>>;
-          
-          if (field.dependsOn) {
-            return await optionsFn(formData);
-          }
-          
-          return await optionsFn();
-        },
-        enabled: checkDependencies(),
-        // Reduce cache times for API key related fields to prevent stale data
-        staleTime: field.name === 'llm_config.model' ? 0 : 5 * 60 * 1000,  // No stale time for model field
-        cacheTime: field.name === 'llm_config.model' ? 30 * 1000 : 10 * 60 * 1000,  // 30s cache for model field
-        retry: 1,
-      };
-    })
-  });
-
-  // Create a map of field names to their query results
-  const optionsMap = useMemo(() => {
-    const map = new Map<string, ProcessedField['options']>();
-    const loadingMap = new Map<string, boolean>();
-    const errorMap = new Map<string, Error | null>();
+  }, [panelConfig]);
+  
+  // Store a ref to current form data for async field options
+  const formDataRef = useRef<T>(initialData);
+  
+  // Extract async fields configuration
+  const asyncFieldsConfig = useMemo(() => {
+    const config: Record<string, AsyncFieldOptions> = {};
     
-    asyncFields.forEach((field, index) => {
-      const query = queries[index];
-      if (field.name && query) {
-        map.set(field.name, query.data || []);
-        loadingMap.set(field.name, query.isLoading);
-        errorMap.set(field.name, query.error);
+    fields.forEach(field => {
+      if (field.type === 'select' && typeof field.options === 'function' && field.name) {
+        const dependencies = field.dependsOn 
+          ? (Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn])
+          : [];
+          
+        config[field.name] = {
+          queryKey: ['field-options', field.name],
+          queryFn: async () => {
+            const optionsFn = field.options as (formData?: T) => Promise<Array<{ value: string; label: string }>>;
+            return field.dependsOn ? await optionsFn(formDataRef.current) : await optionsFn();
+          },
+          dependencies: dependencies as string[],
+          enabled: true
+        };
       }
     });
     
-    return { options: map, loading: loadingMap, errors: errorMap };
-  }, [asyncFields, queries]);
+    return config;
+  }, [fields]);
 
-  // Process all fields with their options
+  // Form configuration
+  const formConfig: FormConfig<T> = {
+    initialValues: initialData,
+    validators,
+    validateOnChange: true,
+    validateOnBlur: true,
+    enableReinitialize: true
+  };
+
+  // Use the form manager
+  const form = useFormManager({
+    config: formConfig,
+    autoSave: autoSaveConfig,
+    asyncFields: asyncFieldsConfig,
+    onSubmit: onSave
+  });
+  
+  // Keep formDataRef updated
+  useEffect(() => {
+    formDataRef.current = form.formState.data;
+  }, [form.formState.data]);
+
+  // Handle entity changes
+  useEffect(() => {
+    if (hasEntityChanged) {
+      entityIdRef.current = entityId;
+      form.operations.reset(initialData);
+    }
+  }, [entityId, hasEntityChanged, form.operations, initialData]);
+
+  // Process fields with their async options
   const processedFields = useMemo(() => {
     return fields.map(field => {
       const processed: ProcessedField<T> = { field };
       
       if (field.type === 'select' && field.name) {
         if (typeof field.options === 'function') {
-          processed.options = optionsMap.options.get(field.name) || [];
-          processed.isLoading = optionsMap.loading.get(field.name) || false;
-          processed.error = optionsMap.errors.get(field.name) || null;
+          const query = form.asyncFields.queries[field.name];
+          if (query) {
+            processed.options = (query.data as Array<{ value: string; label: string }>) || [];
+            processed.isLoading = query.isLoading;
+            processed.error = query.error;
+          }
         } else if (Array.isArray(field.options)) {
           processed.options = field.options;
         }
@@ -443,24 +240,45 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
       
       return processed;
     });
-  }, [fields, optionsMap]);
+  }, [fields, form.asyncFields.queries]);
+
+  // Handle form submission
+  const save = useCallback(async () => {
+    try {
+      await form.handlers.handleSubmit();
+      return true;
+    } catch (error) {
+      if (onError) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to save';
+        onError(errorMessage);
+      }
+      return false;
+    }
+  }, [form.handlers, onError]);
 
   return {
     // Form data
-    formData,
-    isDirty,
-    errors,
-    isSubmitting,
-    lastSaved,
-    hasErrors: Object.keys(errors).length > 0,
+    formData: form.formState.data,
+    isDirty: form.computed.isDirty,
+    errors: Object.fromEntries(
+      Object.entries(form.formState.errors).map(([field, errors]) => [
+        field,
+        errors[0]?.message || ''
+      ])
+    ),
+    isSubmitting: form.formState.isSubmitting,
+    lastSaved: form.autoSave?.lastSaved || null,
+    hasErrors: form.computed.hasErrors,
     isReadOnly: isMonitorMode,
     
     // Actions
-    updateField,
-    updateFormData,
-    save: () => handleSave(formData),
-    reset,
-    validateForm: () => validateForm(formData),
+    updateField: <K extends keyof T>(field: K, value: T[K]) => {
+      form.operations.updateField({ field: String(field), value });
+    },
+    updateFormData: form.operations.updateFields,
+    save,
+    reset: form.operations.reset,
+    validateForm: form.operations.validateForm,
     
     // Panel schema
     processedFields,

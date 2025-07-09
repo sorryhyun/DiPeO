@@ -153,6 +153,7 @@ def _create_person_job_services(template_service, conversation_memory_service, m
         output_builder=output_builder,
         conversation_processor=conversation_processor,
         memory_transformer=memory_transformer,
+        template_service=template_service,
     )
     
     return {

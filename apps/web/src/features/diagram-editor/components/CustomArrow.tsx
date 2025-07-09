@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer, BaseEdge, useReactFlow } from '@xyflow/react';
-import { useCanvasOperationsContext, useCanvasUIState } from '@/shared/contexts/CanvasContext';
-import { useArrowData } from '@/features/diagram-editor/hooks';
-import { arrowId, ArrowData } from '@/core/types';
+import { useCanvasState, useCanvasOperations } from '@/shared/contexts/CanvasContext';
+import { useArrowData } from '@/core/store/hooks';
+import { arrowId } from '@/core/types';
+import type { ArrowData } from '@/lib/graphql/types';
 import { getQuadraticPoint } from '@/lib/utils/geometry';
 
 export type CustomArrowProps = EdgeProps & {
@@ -30,9 +31,8 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const { screenToFlowPosition } = useReactFlow();
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; controlX: number; controlY: number } | null>(null);
-  const { activeCanvas } = useCanvasUIState();
-  const { arrowOps } = useCanvasOperationsContext();
-  const { updateArrow } = arrowOps;
+  const { activeCanvas } = useCanvasState();
+  const { arrowOps } = useCanvasOperations();
   const currentArrow = useArrowData(arrowId(id));
   const isExecutionMode = activeCanvas === 'execution';
   
@@ -82,17 +82,17 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
 
 
   // Create a type-safe wrapper that updates arrow data in the store
-  const handleUpdateData = useCallback((edgeId: string, newData: Partial<ArrowData>) => {
+  const handleUpdateData = useCallback(async (edgeId: string, newData: Partial<ArrowData>) => {
     if (!newData) return;
     
     // Use the current arrow data to preserve existing data
     const currentData = (currentArrow?.data || {}) as ArrowData;
     
     // Merge the new data with existing data
-    updateArrow(arrowId(edgeId), {
+    await arrowOps.updateArrow(arrowId(edgeId), {
       data: { ...currentData, ...newData } as Record<string, unknown>
     });
-  }, [updateArrow, currentArrow]);
+  }, [arrowOps, currentArrow]);
 
   // Memoize path and label position calculations
   const { edgePath, labelX, labelY } = useMemo(() => {

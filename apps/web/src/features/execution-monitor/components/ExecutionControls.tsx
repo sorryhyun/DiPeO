@@ -1,22 +1,18 @@
 import React from 'react';
 import { Button } from '@/shared/components/forms/buttons';
 import { useExecution, useMonitorMode } from '../hooks';
-import { useDiagramData } from '@/features/diagram-editor/hooks';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { nodeId, diagramId, DomainDiagramType } from '@/core/types';
-import { useShallow } from 'zustand/react/shallow';
+import { useNodesData, useArrowsData } from '@/core/store/hooks';
+import { nodeId, diagramId, DomainDiagram } from '@/core/types';
+import { usePersonsData, useDiagramData as useStoreDiagramData } from '@/core/store/hooks';
 import { toast } from 'sonner';
 
 const ExecutionControls = () => {
   const { isMonitorMode, diagramName } = useMonitorMode({ autoStart: true });
   const execution = useExecution({ showToasts: false });
-  const { nodes, arrows } = useDiagramData();
-  const { persons, handles } = useUnifiedStore(
-    useShallow(state => ({
-      persons: state.persons,
-      handles: state.handles
-    }))
-  );
+  const nodes = useNodesData();
+  const arrows = useArrowsData();
+  const persons = usePersonsData();
+  const { handles } = useStoreDiagramData();
   
   // Map execution state to old runStatus format
   const runStatus = execution.isRunning ? 'running' : 
@@ -82,8 +78,8 @@ const ExecutionControls = () => {
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
           onClick={async () => {
             try {
-              // Create a DomainDiagramType for in-memory execution
-              const diagramForExecution: DomainDiagramType = {
+              // Create a DomainDiagram for in-memory execution
+              const diagramForExecution: DomainDiagram = {
                 metadata: {
                   id: diagramId(`temp-execution-${Date.now()}`),
                   created: new Date().toISOString(),
@@ -94,10 +90,10 @@ const ExecutionControls = () => {
                   author: null,
                   tags: []
                 },
-                nodes: Array.from(nodes.values()),
-                arrows: Array.from(arrows.values()),
-                persons: Array.from(persons.values()),
-                handles: Array.from(handles.values())
+                nodes,
+                arrows,
+                persons,
+                handles
               };
               
               // Execute using the diagram data directly (no file save)

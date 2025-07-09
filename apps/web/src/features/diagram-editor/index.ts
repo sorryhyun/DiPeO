@@ -58,12 +58,9 @@ export { useFileOperations } from './hooks/useFileOperations';
 /**
  * Canvas interaction hooks for fine-grained control
  */
-export { useCanvas, useCanvasInteractions } from './hooks/ui';
+export { useCanvasInteractions } from './hooks/ui';
 
-/**
- * Operation hooks for specific node types
- */
-export { useNodeOperations, useArrowOperations, usePersonOperations } from './hooks/operations';
+// Operation hooks have been moved to @/core/store/hooks
 
 
 // Types and Interfaces
@@ -75,7 +72,7 @@ export type {
   NodeConfigs,
   FieldConfig,
   HandleConfig
-} from './types';
+} from './types/config';
 
 /**
  * Re-export core domain types that are commonly used
@@ -124,13 +121,8 @@ export type { DiagramSlice } from './store';
  */
 export {
   CanvasProvider,
-  useCanvasContext,
-  useCanvasUIState,
-  useCanvasOperationsContext,
-  useCanvasSelection,
-  useCanvasReadOnly,
-  useCanvasDiagramData,
-  useCanvasExecutionState,
-  useCanvasStore,
-  useCanvasPersons
+  useCanvas,
+  useCanvasState,
+  useCanvasOperations,
+  useIsCanvasReadOnly
 } from '@/shared/contexts/CanvasContext';

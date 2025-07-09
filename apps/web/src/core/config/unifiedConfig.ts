@@ -1,4 +1,4 @@
-import type { NodeConfigItem } from '@/features/diagram-editor/types';
+import type { NodeConfigItem } from '@/features/diagram-editor/types/config';
 import type { PanelLayoutConfig, TypedPanelFieldConfig, PanelFieldType, ConditionalConfig, OptionsConfig } from '@/features/diagram-editor/types/panel';
 import { FIELD_TYPES, type FieldType, type FieldValidator } from '@/core/types/panel';
 import type { NodeTypeKey } from '@/core/types/type-factories';

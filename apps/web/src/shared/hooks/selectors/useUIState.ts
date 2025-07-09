@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import type { SelectableID, SelectableType, ActiveView, DashboardTab } from '@/core/store/slices/uiSlice';
 
 interface UIState {

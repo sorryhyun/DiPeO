@@ -4,8 +4,8 @@ import { Button } from '@/shared/components/forms/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { NodeType } from '@dipeo/domain-models';
-import { useCanvas, useCanvasInteractions, usePersonOperations } from '@/features/diagram-editor/hooks';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useCanvas, useCanvasInteractions } from '@/features/diagram-editor/hooks';
+import { useSelectionData, useSelectionOperations, usePersonsData, usePersonOperations } from '@/core/store/hooks';
 import { LazyApiKeysModal } from '@/shared/components/feedback/LazyModals';
 import { FileOperations } from '@/features/diagram-editor/components/file-operations/FileOperations';
 import { PersonID, DomainPerson, personId } from '@/core/types';
@@ -65,11 +65,13 @@ PersonItem.displayName = 'PersonItem';
 
 export const DiagramSidebar = React.memo(() => {
   const { personsArray } = useCanvas();
-  const { addPerson } = usePersonOperations();
-  const { selectedId, selectedType, select, clearSelection, persons: personsMap, highlightedPersonId } = useUnifiedStore();
+  const { selectedId, selectedType, highlightedPersonId } = useSelectionData();
+  const { select, clearSelection } = useSelectionOperations();
+  const personsMap = usePersonsData();
+  const personOps = usePersonOperations();
   
   // Helper to get person by ID
-  const getPersonById = (id: PersonID) => personsMap.get(id) || null;
+  const getPersonById = (id: PersonID) => personsArray.find(p => p.id === id) || null;
   
   // Convert persons array to PersonID array like the old hook did
   const persons = React.useMemo(
@@ -174,11 +176,13 @@ export const DiagramSidebar = React.memo(() => {
               variant="outline"
               className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               size="sm"
-              onClick={() => addPerson(
-                `Person ${persons.length + 1}`,
-                'openai',
-                'gpt-4.1-nano'
-              )}
+              onClick={async () => {
+                await personOps.addPerson(
+                  `Person ${persons.length + 1}`,
+                  'openai',
+                  'gpt-4.1-nano'
+                );
+              }}
             >
               <span className="mr-1">➕</span> Add Person
             </Button>

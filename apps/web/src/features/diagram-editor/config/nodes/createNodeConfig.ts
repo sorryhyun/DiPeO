@@ -1,6 +1,6 @@
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import type { NodeTypeKey } from '@/core/types/type-factories';
-import type { NodeConfigItem } from '@/features/diagram-editor/types';
+import type { NodeConfigItem } from '@/features/diagram-editor/types/config';
 import { mergeFieldConfigs } from './fieldOverrides';
 
 export interface NodeConfigOptions<T extends Record<string, unknown>> {

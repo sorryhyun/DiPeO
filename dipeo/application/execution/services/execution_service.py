@@ -104,12 +104,12 @@ class ExecutionService(BaseService):
             from dipeo.models import ExecutionStatus
             from dipeo.domain.services.execution.state_machine import ExecutionStateMachine
             
-            ExecutionStateMachine.transition_to_cancelled(state)
+            ExecutionStateMachine.transition_to_failed(state)
             await self.state_store.save_state(state)
             
             # Send cancellation message
-            await self.message_router.publish_message(
-                channel=f"execution/{execution_id}",
+            await self.message_router.broadcast_to_execution(
+                execution_id=execution_id,
                 message={
                     "type": "execution_cancelled",
                     "execution_id": execution_id,

@@ -22,7 +22,7 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagramType, arrowId, nodeId } from '@/core/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagram, arrowId, nodeId } from '@/core/types';
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
@@ -102,7 +102,7 @@ export class DiagramAdapter {
   /**
    * Convert full domain diagram to React Flow format
    */
-  static toReactFlow(diagram: DomainDiagramType): {
+  static toReactFlow(diagram: DomainDiagram): {
     nodes: DiPeoNode[];
     edges: DiPeoEdge[];
   } {
@@ -322,7 +322,7 @@ export class DiagramAdapter {
    */
   static validateConnection(
     connection: Connection,
-    diagram: DomainDiagramType
+    diagram: DomainDiagram
   ): ValidatedConnection {
     const validated: ValidatedConnection = { ...connection };
 
@@ -391,7 +391,7 @@ export class DiagramAdapter {
     }
 
     // Check for duplicate connections
-    const existingArrow = Object.values(diagram.arrows).find((arrow: DomainArrow) =>
+    const existingArrow = diagram.arrows.find((arrow: DomainArrow) =>
       arrow.source === sourceHandleId && arrow.target === targetHandleId
     );
     

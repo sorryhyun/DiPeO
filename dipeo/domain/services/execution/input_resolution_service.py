@@ -31,6 +31,7 @@ class InputResolutionService:
         
         Business rules:
         - Person job nodes with "first" handle only process on first execution
+        - Person job nodes with non-first handles skip on first execution
         - All other arrows are always processed
         """
         # Special handling for person_job nodes
@@ -40,12 +41,21 @@ class InputResolutionService:
             target_node_id, target_handle, _ = parse_handle_id(arrow.target)
             
             target_exec_count = node_exec_counts.get(target_node_id, 0) if node_exec_counts else 0
+            is_first_execution = target_exec_count == 0
             
             # If this is a "first" handle and not the first execution, skip it
-            if target_handle == "first" and target_exec_count > 0:
+            if target_handle == "first" and not is_first_execution:
                 log.debug(
                     f"Skipping 'first' handle arrow {arrow.id} for person_job "
                     f"(execution count: {target_exec_count})"
+                )
+                return False
+            
+            # If this is NOT a "first" handle and IS the first execution, skip it
+            if target_handle != "first" and is_first_execution:
+                log.debug(
+                    f"Skipping non-first handle arrow {arrow.id} for person_job "
+                    f"on first execution (handle: {target_handle})"
                 )
                 return False
         
@@ -107,18 +117,11 @@ class InputResolutionService:
             node_exec_counts: Execution counts for nodes
             node_memory_config: Memory configuration for the target node
         """
-        # Use arrow processor if available
-        if self.arrow_processor:
-            log.debug(f"Using ArrowProcessor for input resolution of {node_type} node {node_id}")
-            return self._resolve_with_arrow_processor(
-                node_id, node_type, diagram, node_outputs, 
-                node_exec_counts, node_memory_config
-            )
-        
-        # Fall back to legacy resolution
-        return self._legacy_resolve_inputs(
-            node_id, node_type, diagram, node_outputs, node_exec_counts
+        return self._resolve_with_arrow_processor(
+            node_id, node_type, diagram, node_outputs,
+            node_exec_counts, node_memory_config
         )
+
     
     def _resolve_with_arrow_processor(
         self,
@@ -197,86 +200,3 @@ class InputResolutionService:
         
         return inputs
     
-    def _legacy_resolve_inputs(
-        self,
-        node_id: str,
-        node_type: str,
-        diagram: DomainDiagram,
-        node_outputs: Dict[str, Any],
-        node_exec_counts: Optional[Dict[str, int]] = None,
-    ) -> Dict[str, Any]:
-        """Legacy input resolution logic for backward compatibility."""
-        inputs = {}
-        
-        # Find all arrows pointing to this node
-        # Parse handle IDs to get node IDs
-        from dipeo.models import parse_handle_id, extract_node_id_from_handle
-        incoming_arrows = []
-        for arrow in diagram.arrows:
-            target_node_id = extract_node_id_from_handle(arrow.target)
-            if target_node_id == node_id:
-                incoming_arrows.append(arrow)
-        
-        for arrow in incoming_arrows:
-            # Check if we should process this arrow
-            if not self.should_process_arrow(arrow, node_type, node_exec_counts):
-                continue
-            
-            # Parse source node ID from HandleID
-            source_node_id, source_handle, _ = parse_handle_id(arrow.source)
-            
-            # Get source node output
-            source_output = node_outputs.get(source_node_id, {})
-            if not source_output:
-                continue
-            
-            # Get source node to check its type
-            source_node = next(
-                (node for node in diagram.nodes if node.id == source_node_id),
-                None
-            )
-            if not source_node:
-                continue
-            
-            # Check if this is a condition branch we should skip
-            if source_node.type == NodeType.condition:
-                # Extract condition result from output
-                condition_result = None
-                if isinstance(source_output, dict):
-                    metadata = source_output.get("metadata", {})
-                    if isinstance(metadata, dict):
-                        condition_result = metadata.get("condition_result")
-                
-                if self.should_skip_condition_branch(
-                    arrow, source_node.type.value, condition_result
-                ):
-                    continue
-            
-            # Parse target handle for input key
-            _, target_handle, _ = parse_handle_id(arrow.target)
-            
-            # Add the output to inputs
-            # Use label as the input key, or target handle as fallback
-            input_key = arrow.label or target_handle or arrow.id
-            
-            # Extract the appropriate value from source output
-            if isinstance(source_output, dict) and "value" in source_output:
-                # This is a NodeOutput structure
-                value_dict = source_output["value"]
-                
-                # For condition nodes, get the branch-specific output
-                if source_node.type == NodeType.condition:
-                    if source_handle in value_dict:
-                        inputs[input_key] = value_dict[source_handle]
-                else:
-                    # For other nodes, use source handle or default
-                    handle_key = source_handle or "default"
-                    if handle_key in value_dict:
-                        inputs[input_key] = value_dict[handle_key]
-                    elif "default" in value_dict:
-                        inputs[input_key] = value_dict["default"]
-            else:
-                # Direct value
-                inputs[input_key] = source_output
-        
-        return inputs

@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.infra.persistence.diagram import DiagramStorageAdapter
     from ...unified_service_registry import UnifiedServiceRegistry
-    from dipeo.models import DomainDiagram
-
+    from dipeo.models import DomainDiagram, ExecutionStatus
+    from ... import ExecutionController
 
 class ExecuteDiagramUseCase(BaseService, SupportsExecution):
     """High-level orchestration for diagram execution."""
@@ -53,7 +53,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         await self._initialize_execution_state(execution_id, diagram_obj, options)
         
         # Setup execution context (which needs the state to exist)
-        execution_view, controller = await self._setup_execution_context(diagram_obj, options, execution_id)
+        controller = await self._setup_execution_context(diagram_obj, options, execution_id)
 
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)
@@ -76,7 +76,6 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         async def run_execution():
             try:
                 import logging
-                from dipeo.models import ExecutionStatus
 
                 logger = logging.getLogger(__name__)
                 logger.debug("Starting engine execution")
@@ -88,7 +87,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
                     await self.state_store.save_state(state)
                 
                 async for _ in engine.execute_prepared(
-                    execution_view,
+                    diagram_obj,
                     controller,
                     execution_id,
                     options,
@@ -147,17 +146,14 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         diagram: "DomainDiagram", 
         options: Dict[str, Any],
         execution_id: str
-    ) -> tuple["LocalExecutionView", "ExecutionController"]:
-        """Setup execution context including view, controller, and handlers."""
-        from dipeo.application import get_global_registry
-        from ...engine.execution_view import LocalExecutionView
+    ) -> "ExecutionController":
+        """Setup execution context including controller and state."""
         from ...engine.execution_controller import ExecutionController
         
         # Get required domain services
         if not hasattr(self.service_registry, 'get'):
             raise ValueError("Service registry must support 'get' method")
             
-        input_resolution_service = self.service_registry.get('input_resolution_service')
         flow_control_service = self.service_registry.get('flow_control_service')
         if not flow_control_service:
             # Try legacy name for backward compatibility
@@ -166,11 +162,8 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         if not flow_control_service:
             raise ValueError("FlowControlService is required but not found in service registry")
         
-        # Create execution view
-        execution_view = LocalExecutionView(diagram, input_resolution_service)
-        
         # Get current execution state from store
-        execution_state = await self.state_store.get_execution_state(execution_id)
+        execution_state = await self.state_store.get_state(execution_id)
         if not execution_state:
             # Should have been initialized by _initialize_execution_state
             raise ValueError(f"Execution state not found for {execution_id}")
@@ -189,30 +182,21 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
             max_global_iterations=options.get("max_iterations", 100)
         )
         
-        # Initialize handlers
-        registry = get_global_registry()
-        for _node_id, node_view in execution_view.node_views.items():
-            node_def = registry.get(node_view.node.type)
-            if not node_def:
-                raise ValueError(f"No handler for node type: {node_view.node.type}")
-            node_view.handler = node_def.handler
-            node_view._handler_def = node_def
-        
-        # Initialize controller with nodes
-        await controller.initialize_nodes(execution_view.node_views)
+        # Initialize controller with nodes from diagram
+        await controller.initialize_nodes(diagram)
         
         # Register person configs with conversation service
         await self._register_person_configs(diagram)
         
-        return execution_view, controller
+        return controller
     
     async def _register_person_configs(self, diagram: "DomainDiagram") -> None:
-        """Register person configurations with conversation service."""
+        """Register person configurations with conversation service and create minimal context."""
         from dipeo.models import NodeType
         import logging
         
         log = logging.getLogger(__name__)
-        
+
         conversation_service = None
         if hasattr(self.service_registry, 'get'):
             # Try the standardized name first

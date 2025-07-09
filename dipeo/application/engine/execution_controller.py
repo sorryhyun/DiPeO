@@ -10,10 +10,9 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from dipeo.domain.services.execution import FlowControlService
-from dipeo.models import NodeOutput, NodeType
+from dipeo.models import NodeOutput, NodeType, DomainDiagram
 
 if TYPE_CHECKING:
-    from .execution_view import LocalExecutionView, NodeView
     from ..execution.adapters.state_adapter import ApplicationExecutionState
 
 log = logging.getLogger(__name__)
@@ -28,24 +27,24 @@ class ExecutionController:
     iteration_count: int = 0
     max_global_iterations: int = 100
     
-    async def initialize_nodes(self, node_views: dict[str, "NodeView"]) -> None:
-        """Initialize node states from views."""
+    async def initialize_nodes(self, diagram: "DomainDiagram") -> None:
+        """Initialize node states from diagram."""
         if not self.state_adapter:
             raise ValueError("State adapter not set")
             
-        for node_id, node_view in node_views.items():
+        for node in diagram.nodes:
             max_iter = 1
-            if node_view.node.type in [NodeType.person_job.value, NodeType.job.value]:
-                max_iter = node_view.data.get("max_iteration", 1)
+            if node.type in [NodeType.person_job.value, NodeType.job.value]:
+                max_iter = (node.data or {}).get("max_iteration", 1)
             
             # Initialize node state through adapter
             await self.state_adapter.update_node_state(
-                node_id=node_id,
-                node_type=node_view.node.type,
+                node_id=node.id,
+                node_type=node.type,
                 max_iterations=max_iter
             )
     
-    def get_ready_nodes(self, execution_view: "LocalExecutionView") -> list[str]:
+    def get_ready_nodes(self, diagram: "DomainDiagram") -> list[str]:
         """Get all nodes ready for execution."""
         if not self.state_adapter:
             raise ValueError("State adapter not set")
@@ -56,17 +55,28 @@ class ExecutionController:
         executed_nodes = self.state_adapter.get_executed_nodes()
         
         ready_nodes = self.flow_control_service.get_ready_nodes(
-            diagram=execution_view.diagram,
+            diagram=diagram,
             executed_nodes=executed_nodes,
             node_outputs=node_outputs,
             node_exec_counts=node_exec_counts
         )
         
+        # Log initial ready nodes
+        initial_ready = [node.id for node in ready_nodes]
+        if initial_ready:
+            log.debug(f"Flow control ready nodes: {initial_ready}")
+        
         # Filter by nodes that can still execute
         ready = []
+        filtered_out = []
         for node in ready_nodes:
             if self.state_adapter.can_node_execute(node.id):
                 ready.append(node.id)
+            else:
+                filtered_out.append(node.id)
+        
+        if filtered_out:
+            log.debug(f"Nodes filtered out by state adapter: {filtered_out}")
         
         log.debug(f"Ready nodes: {ready}")
         return ready
@@ -90,8 +100,7 @@ class ExecutionController:
         )
         
         exec_count = self.state_adapter.get_node_exec_count(node_id)
-        log.debug(f"Marked node {node_id} as executed (exec_count: {exec_count}, has_output: {output is not None})")
-    
+
     def should_continue(self) -> bool:
         """Check if execution should continue."""
         if not self.state_adapter:

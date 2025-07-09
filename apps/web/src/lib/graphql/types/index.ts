@@ -1,14 +1,14 @@
 
-// Re-export generated GraphQL types directly
+// Re-export generated GraphQL types with semantic aliases
 export type {
-  DomainNodeType as Node,
-  DomainArrowType as Arrow,
-  DomainHandleType as Handle,
-  DomainPersonType as Person,
-  DomainApiKeyType as ApiKey,
+  DomainNodeType as DomainNode,
+  DomainArrowType as DomainArrow,
+  DomainHandleType as DomainHandle,
+  DomainPersonType as DomainPerson,
+  DomainApiKeyType as DomainApiKey,
+  DomainDiagramType as DomainDiagram,
   DomainDiagramType,
-  Vec2Input,
-  // Any other types needed from GraphQL
+  Vec2Input
 } from '@/__generated__/graphql';
 
 // Re-export utilities and conversions from mappings
@@ -28,14 +28,4 @@ export {
   createEmptyDiagram,
   type StoreDiagram,
   type ArrowData
-} from './graphql-mappings';
-
-// Re-export GraphQL types directly (semantic aliases)
-export type {
-  DomainNodeType as DomainNode,
-  DomainArrowType as DomainArrow,
-  DomainHandleType as DomainHandle,
-  DomainPersonType as DomainPerson,
-  DomainApiKeyType as DomainApiKey,
-  DomainDiagramType as DomainDiagram
 } from './graphql-mappings';

@@ -9,7 +9,7 @@ import React, { useRef, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
 import { isWithinTolerance } from '@/lib/utils/math';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useUIState } from '@/shared/hooks/selectors';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
 import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';

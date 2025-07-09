@@ -82,8 +82,7 @@ class ArrowProcessor:
             value = self._transformation_strategies[content_type].transform(
                 value, arrow, source_output, target_node_type
             )
-            log.debug(f"Applied {content_type.value} transformation via arrow {arrow.id}")
-        
+
         # Prepare wrapped output with arrow metadata
         wrapped_output = {
             "value": value,

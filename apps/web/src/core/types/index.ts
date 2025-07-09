@@ -54,9 +54,6 @@ export {
   type UIPersonMemoryState
 } from './conversation';
 
-// Legacy compatibility exports
-export * from './core';
-
 // Store-specific types
 // TODO: Consider moving these to the store module
 export type { SelectableID, SelectableType } from '@/core/store/slices/uiSlice';

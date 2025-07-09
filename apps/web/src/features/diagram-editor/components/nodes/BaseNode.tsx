@@ -4,10 +4,9 @@ import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
-import { useNodeOperations } from '../../hooks';
-import { useCanvasOperationsContext } from '@/shared/contexts/CanvasContext';
+import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/shared/hooks/selectors';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/core/store/hooks';
 import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
 import { nodeId, personId } from '@/core/types';
 import './BaseNode.css';
@@ -25,14 +24,12 @@ interface BaseNodeProps {
 // Custom hook for node execution status
 function useNodeStatus(nodeIdStr: string) {
   // Get execution state directly from the store for real-time updates
-  const nodeExecutionState = useUnifiedStore(state => {
-    const nId = nodeId(nodeIdStr);
-    return state.execution.nodeStates.get(nId);
-  });
+  const nId = nodeId(nodeIdStr);
+  const nodeExecutionState = useNodeExecutionData(nId);
   
   // Also get from executionOps for hook state (progress, etc)
-  const { executionOps } = useCanvasOperationsContext();
-  const hookNodeState = executionOps.getNodeExecutionState(nodeId(nodeIdStr));
+  const operations = useCanvasOperations();
+  const hookNodeState = operations.executionOps.getNodeExecutionState(nodeId(nodeIdStr));
   
   return useMemo(() => ({
     isRunning: nodeExecutionState?.status === NodeExecutionStatus.RUNNING || hookNodeState?.status === 'running',
@@ -258,24 +255,19 @@ export function BaseNode({
   className 
 }: BaseNodeProps) {
   // Store selectors
-  const { updateNode } = useNodeOperations();
+  const nodeOps = useNodeOperations();
   const updateNodeInternals = useUpdateNodeInternals();
   const { activeCanvas } = useUIState();
   const isExecutionMode = activeCanvas === 'execution';
   
   // Get selected person from store to highlight person_job nodes
-  const selectedPersonId = useUnifiedStore(state => 
-    state.selectedType === 'person' ? state.selectedId : null
-  );
+  const { selectedId, selectedType } = useSelectionData();
+  const selectedPersonId = selectedType === 'person' ? selectedId : null;
   
   // Get person label for person_job nodes
-  const personLabel = useUnifiedStore(state => {
-    if (type === 'person_job' && data?.person) {
-      const person = state.persons.get(personId(String(data.person)));
-      return person?.label || '';
-    }
-    return '';
-  });
+  const assignedPersonId = type === 'person_job' && data?.person ? personId(String(data.person)) : null;
+  const assignedPerson = usePersonData(assignedPersonId);
+  const personLabel = assignedPerson?.label || '';
   
   // Use custom hooks
   const nId = nodeId(id);
@@ -285,10 +277,10 @@ export function BaseNode({
   const handles = useHandles(id, type, isFlipped);
   
   // Handle flip
-  const handleFlip = useCallback(() => {
-    updateNode(nId, { data: { ...data, flipped: !isFlipped } });
+  const handleFlip = useCallback(async () => {
+    await nodeOps.updateNode(nId, { data: { ...data, flipped: !isFlipped } });
     updateNodeInternals(id);
-  }, [nId, id, data, isFlipped, updateNode, updateNodeInternals]);
+  }, [nId, id, data, isFlipped, nodeOps, updateNodeInternals]);
   
   // Check if this person_job node is assigned to the selected person
   const isAssignedToSelectedPerson = useMemo(() => {

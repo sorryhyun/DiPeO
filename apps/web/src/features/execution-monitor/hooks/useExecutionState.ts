@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import type { InteractivePromptData } from '@/features/execution-monitor/types';
+import type { InteractivePromptData } from '@/features/execution-monitor/types/execution';
 
 export interface HookExecutionState {
   isRunning: boolean;

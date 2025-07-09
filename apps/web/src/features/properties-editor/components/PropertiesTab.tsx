@@ -1,6 +1,6 @@
 import React, { Suspense, useCallback } from 'react';
 import { useCanvas } from '@/features/diagram-editor/hooks';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useSelectionData } from '@/core/store/hooks';
 import { LoadingFallback } from '@/shared/components/feedback';
 
 // Lazy load the property panel
@@ -8,7 +8,7 @@ const PropertyPanel = React.lazy(() => import('./PropertyPanel').then(module => 
 
 export const PropertiesTab: React.FC = () => {
   const { nodes, arrows, personsArray } = useCanvas();
-  const { selectedId, selectedType } = useUnifiedStore();
+  const { selectedId, selectedType } = useSelectionData();
   
   // Find person data
   const personData = selectedType === 'person' && selectedId && personsArray 

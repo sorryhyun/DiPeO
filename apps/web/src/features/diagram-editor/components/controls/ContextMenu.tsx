@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { DomainNode } from '@/core/types';
 import {ArrowID, NodeID} from '@dipeo/domain-models';
 import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
-import { useCanvasOperationsContext, useCanvasSelection } from '@/shared/contexts/CanvasContext';
+import { useCanvasOperations, useCanvasState } from '@/shared/contexts/CanvasContext';
 
 export interface ContextMenuProps {
   position: { x: number; y: number };
@@ -35,8 +35,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onAddPerson,
 }) => {
   // Get operations and selection from context
-  const { nodeOps, arrowOps, personOps } = useCanvasOperationsContext();
-  const { selectedNodeId, selectedArrowId } = useCanvasSelection();
+  const { nodeOps, arrowOps, personOps } = useCanvasOperations();
+  const { selectedNodeId, selectedArrowId } = useCanvasState();
   // Use props if provided, otherwise use pre-computed defaults
   const nodeTypes = nodeTypesProp || DEFAULT_NODE_TYPES;
   const nodeLabels = nodeLabelsProp || DEFAULT_NODE_LABELS;
@@ -48,27 +48,27 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       : Object.entries(nodeTypes);
   }, [nodeTypes]);
   
-  const handleAddNode = useCallback((nodeType: string) => {
+  const handleAddNode = useCallback(async (nodeType: string) => {
     const pos = projectPosition(position.x, position.y);
-    nodeOps.addNode(nodeType as DomainNode['type'], pos);
+    await nodeOps.addNode(nodeType as DomainNode['type'], pos);
     onClose();
   }, [position.x, position.y, projectPosition, nodeOps, onClose]);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = useCallback(async () => {
     if (target === 'node' && selectedNodeId) {
-      nodeOps.deleteNode(selectedNodeId);
+      await nodeOps.deleteNode(selectedNodeId);
     } else if (target === 'edge' && selectedArrowId) {
-      arrowOps.deleteArrow(selectedArrowId);
+      await arrowOps.deleteArrow(selectedArrowId);
     }
     onClose();
   }, [target, selectedNodeId, selectedArrowId, nodeOps, arrowOps, onClose]);
 
-  const handleAddPerson = useCallback(() => {
+  const handleAddPerson = useCallback(async () => {
     if (onAddPerson) {
       onAddPerson();
     } else {
       // Fallback: directly add a person with default values
-      personOps.addPerson('New Person', 'openai', 'gpt-4.1-nano');
+      await personOps.addPerson('New Person', 'openai', 'gpt-4.1-nano');
     }
     onClose();
   }, [onAddPerson, onClose, personOps]);

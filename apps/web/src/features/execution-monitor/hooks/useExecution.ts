@@ -9,9 +9,9 @@ import React, { useCallback, useEffect } from 'react';
 import { ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import {type DomainDiagramType, diagramId, executionId } from '@/core/types';
-import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
+import {type DomainDiagram, diagramId, executionId } from '@/core/types';
+import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types/execution';
 import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/domain-models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { useExecutionGraphQL } from './useExecutionGraphQL';
@@ -41,7 +41,7 @@ export interface UseExecutionReturn {
   duration: string;
   
   // Execution Actions
-  execute: (diagram?: DomainDiagramType, options?: ExecutionOptions) => Promise<void>;
+  execute: (diagram?: DomainDiagram, options?: ExecutionOptions) => Promise<void>;
   abort: () => void;
   
   // Node Actions
@@ -118,7 +118,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   });
 
   // Main Actions
-  const execute = useCallback(async (diagram?: DomainDiagramType, options?: ExecutionOptions) => {
+  const execute = useCallback(async (diagram?: DomainDiagram, options?: ExecutionOptions) => {
     resetState();
     
     try {

@@ -24,7 +24,7 @@ import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
-import { useCanvasContext } from "@/shared/contexts/CanvasContext";
+import { useCanvasState, useCanvasOperations } from "@/shared/contexts/CanvasContext";
 import { useUnifiedStore } from "@/core/store/unifiedStore";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
@@ -216,10 +216,11 @@ function useCommonFlowProps({
 
 const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) => {
    // Stores & Hooks
-  const context = useCanvasContext();
+  const state = useCanvasState();
+  const operations = useCanvasOperations();
   
   // Extract from canvas hook
-  const { nodes, arrows, onNodesChange, onArrowsChange, onConnect } = context.canvas;
+  const { nodes, arrows, onNodesChange, onArrowsChange, onConnect } = operations.canvasHandlers;
   
   // Extract from interactions hook
   const {
@@ -233,21 +234,23 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     closeContextMenu: _closeContextMenu,
     onNodeDragStartCanvas,
     onNodeDragStopCanvas,
-  } = context.interactions;
+  } = operations.interactions;
   
   // Extract from operation hooks
-  const { addNode: _addNode, deleteNode: _deleteNode } = context.nodeOps;
-  const { deleteArrow: _deleteArrow } = context.arrowOps;
-  const { addPerson } = context.personOps;
+  const { addNode: _addNode, deleteNode: _deleteNode } = operations.nodeOps;
+  const { deleteArrow: _deleteArrow } = operations.arrowOps;
+  const { addPerson } = operations.personOps;
   
   const {
     selectedNodeId,
     selectedArrowId,
     selectedPersonId,
+  } = state;
+  const {
     selectNode,
     selectArrow,
     clearSelection,
-  } = context;
+  } = operations;
   
   // Get store methods directly (not inside useMemo) to avoid cross-slice issues
   const highlightPerson = useUnifiedStore(state => state.highlightPerson);

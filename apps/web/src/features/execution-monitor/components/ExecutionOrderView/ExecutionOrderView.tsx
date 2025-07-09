@@ -1,7 +1,7 @@
 import React from 'react';
 import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, RefreshCw } from 'lucide-react';
 import { useExecution, useExecutionOrder } from '../../hooks';
-import { NodeExecutionStatus } from '../../types';
+import { NodeExecutionStatus } from '../../types/execution';
 import { ExecutionID, executionId } from '@/core/types';
 import { Button } from '@/shared/components/forms/buttons';
 

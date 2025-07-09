@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import type { NodeState } from '@/features/execution-monitor/store/executionSlice';
 import { NodeExecutionStatus, NodeID } from '@dipeo/domain-models';
 
