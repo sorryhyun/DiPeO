@@ -61,11 +61,7 @@ class ExecutionController:
             node_exec_counts=node_exec_counts
         )
         
-        # Log initial ready nodes
-        initial_ready = [node.id for node in ready_nodes]
-        if initial_ready:
-            log.debug(f"Flow control ready nodes: {initial_ready}")
-        
+
         # Filter by nodes that can still execute
         ready = []
         filtered_out = []
@@ -74,9 +70,7 @@ class ExecutionController:
                 ready.append(node.id)
             else:
                 filtered_out.append(node.id)
-        
-        if filtered_out:
-            log.debug(f"Nodes filtered out by state adapter: {filtered_out}")
+
         
         log.debug(f"Ready nodes: {ready}")
         return ready

@@ -198,6 +198,9 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
     
     def _transition_to_completed(self, state: ExecutionState) -> None:
         """Transition execution to completed status."""
+        # If already completed, just return without error
+        if state.status == ExecutionStatus.COMPLETED:
+            return
         if state.status != ExecutionStatus.RUNNING:
             raise ValueError(f"Cannot transition to COMPLETED from {state.status}")
         state.status = ExecutionStatus.COMPLETED
@@ -212,6 +215,9 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
     
     def _transition_to_failed(self, state: ExecutionState, error: str) -> None:
         """Transition execution to failed status."""
+        # If already in a terminal state, don't try to transition
+        if state.status in [ExecutionStatus.FAILED, ExecutionStatus.COMPLETED, ExecutionStatus.ABORTED]:
+            return
         if state.status not in [ExecutionStatus.PENDING, ExecutionStatus.RUNNING]:
             raise ValueError(f"Cannot transition to FAILED from {state.status}")
         state.status = ExecutionStatus.FAILED
@@ -291,6 +297,13 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
     def can_node_execute(self, execution_state: ExecutionState, node_id: str) -> bool:
         """Check if a node can execute."""
         return self._can_node_execute(execution_state, node_id)
+    
+    def get_node_exec_count(self, execution_state: ExecutionState, node_id: str) -> int:
+        """Get execution count for a node."""
+        node_state = execution_state.node_states.get(node_id)
+        if not node_state or not node_state.metadata:
+            return 0
+        return node_state.metadata.get("exec_count", 0)
     
     def get_executed_nodes(self, execution_state: ExecutionState) -> Set[str]:
         """Get set of executed node IDs."""
@@ -462,9 +475,8 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
         
         return node_state.metadata.get("exec_count", 0)
     
-    def get_executed_nodes(self, execution_id: str) -> Set[str]:
+    def get_executed_nodes(self, execution_state: ExecutionState) -> Set[str]:
         """Get set of executed node IDs for an execution."""
-        execution_state = self._execution_states.get(execution_id)
         if not execution_state:
             return set()
         
@@ -474,9 +486,8 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
                 executed.add(node_id)
         return executed
     
-    def is_endpoint_executed(self, execution_id: str) -> bool:
+    def is_endpoint_executed(self, execution_state: ExecutionState) -> bool:
         """Check if any endpoint node has been executed."""
-        execution_state = self._execution_states.get(execution_id)
         if not execution_state:
             return False
         

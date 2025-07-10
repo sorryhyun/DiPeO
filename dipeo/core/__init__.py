@@ -7,11 +7,6 @@ from .base.exceptions import (
     ServiceError,
     ValidationError,
 )
-from .base.protocols import (
-    SupportsAPIKey,
-    SupportsExecution,
-    SupportsMemory,
-)
 from .base.service import BaseService
 from .constants import (
     DEFAULT_PAGE_SIZE,
@@ -72,10 +67,6 @@ __all__ = [
     "ExecutionError",
     "ValidationError",
     "ConfigurationError",
-    # Protocols
-    "SupportsAPIKey",
-    "SupportsExecution",
-    "SupportsMemory",
     # Base classes
     "BaseService",
     # Constants

@@ -4,7 +4,21 @@ from typing import Dict, Any, Optional
 import logging
 
 from dipeo.models import DomainDiagram, DomainArrow, NodeType, NodeOutput
-from ..protocols.interfaces import ArrowProcessorProtocol
+from typing import Protocol
+
+# Define protocol locally to avoid circular imports
+class ArrowProcessorProtocol(Protocol):
+    """Protocol for arrow processing to avoid circular imports."""
+    
+    def process_arrow_delivery(
+        self,
+        arrow: DomainArrow,
+        source_output: NodeOutput,
+        target_node_type: str,
+        memory_config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Process arrow delivery with transformations."""
+        ...
 
 log = logging.getLogger(__name__)
 
@@ -156,8 +170,12 @@ class InputResolutionService:
             if not source_output:
                 continue
             
-            # Convert to NodeOutput if it's a dict with proper structure
-            if isinstance(source_output, dict) and "value" in source_output:
+            # Handle different source_output formats
+            if isinstance(source_output, NodeOutput):
+                # Already a NodeOutput instance
+                node_output = source_output
+            elif isinstance(source_output, dict) and "value" in source_output:
+                # Dict with proper structure - convert to NodeOutput
                 node_output = NodeOutput(
                     value=source_output["value"],
                     metadata=source_output.get("metadata"),

@@ -1,10 +1,11 @@
 """Factory for creating execution engines with standard observer configurations."""
 
 import warnings
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from dipeo.application.execution.protocols import ExecutionObserver
 from .engine import ExecutionEngine
+from .engine.stateful_execution_engine import StatefulExecutionEngine
 
 
 class EngineFactory:
@@ -19,7 +20,8 @@ class EngineFactory:
         include_state_observer: bool = True,
         include_streaming_observer: bool = True,
         custom_observers: Optional[list[ExecutionObserver]] = None,
-    ) -> ExecutionEngine:
+        use_stateful: bool = False,
+    ) -> Union[ExecutionEngine, StatefulExecutionEngine]:
         """Create a UnifiedExecutionEngine with standard observers.
         
         Args:
@@ -29,9 +31,10 @@ class EngineFactory:
             include_state_observer: Whether to include StateStoreObserver
             include_streaming_observer: Whether to include StreamingObserver
             custom_observers: Additional custom observers to include
+            use_stateful: Whether to use the new StatefulExecutionEngine
             
         Returns:
-            UnifiedExecutionEngine configured with appropriate observers
+            ExecutionEngine or StatefulExecutionEngine configured with appropriate observers
         """
         observers = []
         
@@ -48,8 +51,15 @@ class EngineFactory:
         # Add any custom observers
         if custom_observers:
             observers.extend(custom_observers)
-            
-        return ExecutionEngine(
-            service_registry=service_registry,
-            observers=observers,
-        )
+        
+        # Create the appropriate engine type
+        if use_stateful:
+            return StatefulExecutionEngine(
+                service_registry=service_registry,
+                observers=observers,
+            )
+        else:
+            return ExecutionEngine(
+                service_registry=service_registry,
+                observers=observers,
+            )

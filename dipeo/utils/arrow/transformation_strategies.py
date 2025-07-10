@@ -3,8 +3,10 @@
 from typing import Any, List, Dict
 import json
 import logging
+import warnings
 
 from dipeo.models import DomainArrow, NodeOutput
+from dipeo.utils.template import TemplateProcessor
 
 log = logging.getLogger(__name__)
 
@@ -45,6 +47,10 @@ class JsonTransformationStrategy:
 class TemplateTransformationStrategy:
     """Strategy for template-based transformations."""
     
+    def __init__(self):
+        """Initialize with new TemplateProcessor."""
+        self._processor = TemplateProcessor()
+    
     def transform(
         self,
         value: Any,
@@ -67,11 +73,14 @@ class TemplateTransformationStrategy:
             "metadata": source_output.metadata or {},
         }
         
-        # Simple template replacement
+        # Use new processor with single brace support for arrow transformations
         try:
-            result = template
-            for key, val in context.items():
-                result = result.replace(f"{{{key}}}", str(val))
+            # First try with double brace syntax
+            if "{{" in template:
+                result = self._processor.process_simple(template, context)
+            else:
+                # Use single brace support for backward compatibility
+                result = self._processor._process_single_brace_variables(template, context)
             return result
         except Exception as e:
             log.warning(f"Template transformation failed for arrow {arrow.id}: {e}")

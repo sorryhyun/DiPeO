@@ -87,7 +87,7 @@ class ApplicationExecutionState:
         
         # Persist if state store is available
         if self.state_store:
-            await self.state_store.save_execution_state(self.execution_state)
+            await self.state_store.save_state(self.execution_state)
     
     def get_executed_nodes(self) -> set[str]:
         """Get set of executed node IDs."""

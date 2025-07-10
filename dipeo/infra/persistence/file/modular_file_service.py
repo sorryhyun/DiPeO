@@ -10,7 +10,6 @@ from dipeo.core import (
     FileOperationError,
     handle_file_operation,
 )
-from dipeo.core.base.file_protocol import FileServiceProtocol
 from dipeo.core.ports.file_service import FileServicePort
 
 from .handlers.registry import FormatHandlerRegistry
@@ -21,7 +20,7 @@ from .file_info import FileInfo
 logger = logging.getLogger(__name__)
 
 
-class ModularFileService(BaseService, FileServiceProtocol, FileServicePort):
+class ModularFileService(BaseService, FileServicePort):
     """Modular file service that composes focused components.
     
     This service uses:
@@ -29,7 +28,7 @@ class ModularFileService(BaseService, FileServiceProtocol, FileServicePort):
     - FileValidator for validation logic
     - AsyncFileAdapter for async/sync bridging
     
-    Implements FileServiceProtocol and FileServicePort for compatibility.
+    Implements FileServicePort for file operations compatibility.
     """
     
     def __init__(
@@ -194,7 +193,7 @@ class ModularFileService(BaseService, FileServiceProtocol, FileServicePort):
         except Exception as e:
             return {"success": False, "error": str(e), "filename": filename}
     
-    # === Enhanced Operations (FileServiceProtocol) ===
+    # === Enhanced Operations ===
     
     async def read_with_validation(
         self,

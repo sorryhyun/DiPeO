@@ -40,11 +40,12 @@ class DiagramResolver:
         self.order_calculator = ExecutionOrderCalculator()
         self._validation_issues: List[ValidationIssue] = []
     
-    async def resolve(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
+    async def resolve(self, domain_diagram: DomainDiagram, api_keys: Optional[Dict[str, str]] = None) -> ExecutableDiagram:
         """Transform DomainDiagram into ExecutableDiagram.
         
         Args:
             domain_diagram: Raw diagram data structure
+            api_keys: Optional API keys needed for execution
             
         Returns:
             Fully resolved executable diagram
@@ -90,6 +91,15 @@ class DiagramResolver:
             )
             errors.extend(order_errors)
             
+            # Get warnings from order calculator
+            order_warnings = self.order_calculator.get_warnings()
+            for warning in order_warnings:
+                self._validation_issues.append(ValidationIssue(
+                    severity=ValidationSeverity.WARNING,
+                    category="topology",
+                    message=warning
+                ))
+            
             # 7. Validate execution groups
             self._validate_execution_groups(execution_groups)
             
@@ -106,7 +116,8 @@ class DiagramResolver:
                         {"level": g.level, "nodes": g.nodes} 
                         for g in execution_groups
                     ]
-                }
+                },
+                api_keys=api_keys
             )
             
             # 9. Final validation of the executable diagram

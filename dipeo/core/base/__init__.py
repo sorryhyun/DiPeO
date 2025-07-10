@@ -7,13 +7,7 @@ from .exceptions import (
     ServiceError,
     ValidationError,
 )
-from .protocols import (
-    SupportsAPIKey,
-    SupportsExecution,
-    SupportsMemory,
-)
 from .service import BaseService
-from .file_protocol import FileServiceProtocol
 
 __all__ = [
     # Base classes
@@ -24,10 +18,4 @@ __all__ = [
     "ConfigurationError",
     "ServiceError",
     "ExecutionError",
-    # Protocols
-    "SupportsAPIKey",
-    "SupportsExecution",
-    "SupportsMemory",
-    # New unified protocol
-    "FileServiceProtocol",
 ]

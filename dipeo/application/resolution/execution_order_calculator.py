@@ -33,6 +33,7 @@ class ExecutionOrderCalculator:
     def __init__(self):
         """Initialize the ExecutionOrderCalculator."""
         self._errors: List[str] = []
+        self._warnings: List[str] = []
     
     def calculate_order(
         self,
@@ -49,6 +50,7 @@ class ExecutionOrderCalculator:
             Tuple of (execution order, parallel groups, errors)
         """
         self._errors = []
+        self._warnings = []
         
         # Build adjacency lists
         graph, in_degree = self._build_graph(nodes, edges)
@@ -57,9 +59,8 @@ class ExecutionOrderCalculator:
         try:
             self._detect_cycles(graph, {node.id for node in nodes})
         except CycleDetectedError as e:
-            # For now, treat cycles as warnings for iterative diagrams
-            # In the future, we might want to handle iterative nodes specially
-            self._errors.append(f"Warning: {str(e)} - Using best-effort topological ordering")
+            # For iterative diagrams, cycles are expected - treat as warning
+            self._warnings.append(f"{str(e)} - Using best-effort topological ordering")
             # Continue with best-effort ordering instead of failing
         
         # Perform topological sort with level tracking
@@ -72,6 +73,14 @@ class ExecutionOrderCalculator:
                 self._errors.append(f"Unreachable nodes detected: {unreachable}")
         
         return order, groups, self._errors
+    
+    def get_warnings(self) -> List[str]:
+        """Get any warnings generated during order calculation.
+        
+        Returns:
+            List of warning messages
+        """
+        return self._warnings
     
     def _build_graph(
         self,
@@ -155,6 +164,9 @@ class ExecutionOrderCalculator:
     ) -> Tuple[List[NodeID], List[ExecutionGroup]]:
         """Perform topological sort tracking execution levels.
         
+        For diagrams with cycles (e.g., iterative debates), this uses a modified
+        algorithm that includes all nodes in the execution order.
+        
         Args:
             nodes: List of nodes
             graph: Adjacency list
@@ -163,15 +175,19 @@ class ExecutionOrderCalculator:
         Returns:
             Tuple of (execution order, parallel groups)
         """
+        # Make a copy of in_degree to avoid modifying the original
+        in_degree_copy = in_degree.copy()
+        
         # Find all nodes with no dependencies (including start nodes)
         queue = deque()
         for node in nodes:
-            if in_degree[node.id] == 0:
+            if in_degree_copy[node.id] == 0:
                 queue.append(node.id)
         
         order: List[NodeID] = []
         groups: List[ExecutionGroup] = []
         level = 0
+        processed_nodes = set()
         
         while queue:
             # Process all nodes at current level
@@ -180,20 +196,53 @@ class ExecutionOrderCalculator:
             
             for _ in range(level_size):
                 node_id = queue.popleft()
-                order.append(node_id)
-                level_nodes.append(node_id)
+                if node_id not in processed_nodes:
+                    order.append(node_id)
+                    level_nodes.append(node_id)
+                    processed_nodes.add(node_id)
                 
                 # Update neighbors
                 for neighbor in graph.get(node_id, []):
-                    if neighbor in in_degree:
-                        in_degree[neighbor] -= 1
-                        if in_degree[neighbor] == 0:
+                    if neighbor in in_degree_copy:
+                        in_degree_copy[neighbor] -= 1
+                        if in_degree_copy[neighbor] == 0:
                             queue.append(neighbor)
             
             # Add this level as a parallel execution group
             if level_nodes:
                 groups.append(ExecutionGroup(level=level, nodes=level_nodes))
                 level += 1
+        
+        # Handle nodes that are part of cycles (not reached by standard topological sort)
+        remaining_nodes = set(node.id for node in nodes) - processed_nodes
+        if remaining_nodes:
+            # For cyclic nodes, add them in a reasonable order
+            # Start with nodes that have the fewest remaining dependencies
+            while remaining_nodes:
+                # Find node with minimum remaining in-degree
+                min_node = None
+                min_degree = float('inf')
+                
+                for node_id in remaining_nodes:
+                    # Count actual remaining dependencies
+                    remaining_deps = sum(1 for dep_node in graph.keys()
+                                       if node_id in graph.get(dep_node, [])
+                                       and dep_node in remaining_nodes)
+                    if remaining_deps < min_degree:
+                        min_degree = remaining_deps
+                        min_node = node_id
+                
+                if min_node:
+                    order.append(min_node)
+                    remaining_nodes.remove(min_node)
+                    groups.append(ExecutionGroup(level=level, nodes=[min_node]))
+                    level += 1
+                else:
+                    # If we can't find a minimum, just add remaining nodes
+                    remaining_list = list(remaining_nodes)
+                    order.extend(remaining_list)
+                    groups.append(ExecutionGroup(level=level, nodes=remaining_list))
+                    break
         
         return order, groups
     

@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from dipeo.core import BaseService, SupportsMemory
+from dipeo.core import BaseService
+from dipeo.application.protocols import SupportsMemory
 from dipeo.core.utils import is_conversation
 from dipeo.utils.conversation import OnEveryTurnHandler
 

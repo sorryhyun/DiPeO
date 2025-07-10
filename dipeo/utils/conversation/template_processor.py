@@ -2,8 +2,11 @@
 
 This module provides backward compatibility by delegating to the utils library.
 All pure template processing functions have been moved to dipeo.utils.template.
+
+DEPRECATED: Use dipeo.utils.template.TemplateProcessor directly.
 """
 
+import warnings
 from typing import Dict, Any, List, Optional
 from dipeo.utils.template import (
     process_template as _process_template,
@@ -12,6 +15,20 @@ from dipeo.utils.template import (
     validate_template as _validate_template,
     create_template_context as _create_template_context,
 )
+
+_deprecation_warned = False
+
+
+def _warn_deprecation():
+    global _deprecation_warned
+    if not _deprecation_warned:
+        warnings.warn(
+            "dipeo.utils.conversation.template_processor is deprecated. "
+            "Use dipeo.utils.template.TemplateProcessor instead.",
+            DeprecationWarning,
+            stacklevel=3
+        )
+        _deprecation_warned = True
 
 
 class TemplateProcessor:
@@ -31,6 +48,7 @@ class TemplateProcessor:
         
         Delegates to dipeo.utils.template.process_template
         """
+        _warn_deprecation()
         return _process_template(template, context, safe)
     
     @staticmethod

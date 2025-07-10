@@ -46,6 +46,7 @@ def _create_service_registry(
     registry.register("api_key_service", api_key_service)
     registry.register("file_service", file_service)
     registry.register("conversation_memory_service", conversation_memory_service)
+    registry.register("conversation_service", conversation_memory_service)  # Alias for handlers
     registry.register("notion_service", notion_service)
     
     # Domain services - Primary registration with _service suffix

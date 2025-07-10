@@ -57,10 +57,16 @@ def _create_flow_control_service():
     return FlowControlService()
 
 
-def _create_conversation_service(memory_service):
-    from dipeo.application.services.conversation import ConversationMemoryService
+def _create_conversation_manager(memory_service):
+    from dipeo.application.services.conversation.conversation_manager_impl import ConversationManagerImpl
+    
+    return ConversationManagerImpl(memory_service)
 
-    return ConversationMemoryService(memory_service)
+
+def _create_conversation_service(memory_service, conversation_manager=None):
+    from dipeo.application.services.conversation.memory_service_v2 import ConversationMemoryServiceV2
+
+    return ConversationMemoryServiceV2(memory_service, conversation_manager)
 
 
 def _create_diagram_business_logic():
@@ -115,7 +121,7 @@ def _create_input_resolution_service(arrow_processor):
     return InputResolutionService(arrow_processor=arrow_processor)
 
 
-def _create_person_job_services(template_service, conversation_memory_service, memory_transformer):
+def _create_person_job_services(template_service, conversation_memory_service, memory_transformer, conversation_manager=None):
     from dipeo.application.execution.person_job import (
         PromptProcessingService,
         ConversationProcessingService,
@@ -124,9 +130,9 @@ def _create_person_job_services(template_service, conversation_memory_service, m
     
     # Import new focused services
     from dipeo.utils.prompt import PromptBuilder
-    from dipeo.application.state.conversation_state_manager import ConversationStateManager
+    from dipeo.utils.conversation.state_utils import ConversationStateManager
     from dipeo.application.services.llm import LLMExecutor
-    from dipeo.application.execution.person_job.orchestrator import PersonJobOrchestrator
+    from dipeo.application.execution.person_job.orchestrator_v2 import PersonJobOrchestratorV2
     
     # Create services needed by the orchestrator
     prompt_service = PromptProcessingService(template_service)
@@ -138,8 +144,8 @@ def _create_person_job_services(template_service, conversation_memory_service, m
     conversation_state_manager = ConversationStateManager()
     llm_executor = LLMExecutor()
     
-    # Create orchestrator with new services
-    person_job_orchestrator = PersonJobOrchestrator(
+    # Create enhanced orchestrator with conversation manager
+    person_job_orchestrator = PersonJobOrchestratorV2(
         prompt_builder=prompt_builder,
         conversation_state_manager=conversation_state_manager,
         llm_executor=llm_executor,
@@ -147,6 +153,7 @@ def _create_person_job_services(template_service, conversation_memory_service, m
         conversation_processor=conversation_processor,
         memory_transformer=memory_transformer,
         template_service=template_service,
+        conversation_manager=conversation_manager,
     )
     
     return {
@@ -182,10 +189,17 @@ class DomainContainer(containers.DeclarativeContainer):
     memory_transformer = providers.Singleton(_create_memory_transformer)
     flow_control_service = providers.Singleton(_create_flow_control_service)
     
-    # Conversation service (depends on infra memory)
+    # Conversation manager (new protocol implementation)
+    conversation_manager = providers.Singleton(
+        _create_conversation_manager,
+        memory_service=infra.memory_service,
+    )
+    
+    # Conversation service (depends on infra memory and conversation manager)
     conversation_service = providers.Singleton(
         _create_conversation_service,
         memory_service=infra.memory_service,
+        conversation_manager=conversation_manager,
     )
     
     # Diagram services
@@ -234,4 +248,5 @@ class DomainContainer(containers.DeclarativeContainer):
         template_service=template_service,
         conversation_memory_service=conversation_service,
         memory_transformer=memory_transformer,
+        conversation_manager=conversation_manager,
     )

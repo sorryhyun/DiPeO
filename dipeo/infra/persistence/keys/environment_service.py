@@ -2,7 +2,8 @@
 
 import os
 
-from dipeo.core import APIKeyError, BaseService, SupportsAPIKey, ValidationError
+from dipeo.core import APIKeyError, BaseService, ValidationError
+from dipeo.application.protocols import SupportsAPIKey
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
 
 

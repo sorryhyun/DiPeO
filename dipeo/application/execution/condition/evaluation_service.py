@@ -3,16 +3,29 @@
 import ast
 import operator
 from typing import Any
+import warnings
 
-from dipeo.utils.text.template_service import TemplateService
+from dipeo.utils.template import TemplateProcessor
 from dipeo.models import DomainDiagram, NodeType
 
 
 class ConditionEvaluationService:
     """Service for evaluating conditions in diagram execution."""
     
-    def __init__(self, template_service: TemplateService):
-        self._template_service = template_service
+    def __init__(self, template_service: Any = None):
+        """Initialize with TemplateProcessor.
+        
+        Args:
+            template_service: Legacy template service (deprecated)
+        """
+        if template_service is not None:
+            warnings.warn(
+                "Passing template_service to ConditionEvaluationService is deprecated. "
+                "It now uses the unified TemplateProcessor internally.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+        self._processor = TemplateProcessor()
     
     def evaluate_max_iterations(
         self,
@@ -149,10 +162,8 @@ class ConditionEvaluationService:
         if not expression:
             return False
         
-        # Substitute variables in the expression
-        substituted_expr = self._template_service.substitute_template(
-            expression, context_values
-        )
+        # Substitute variables in the expression using new processor
+        substituted_expr = self._processor.process_simple(expression, context_values)
         
         # Evaluate the expression
         return self.safe_evaluate_expression(substituted_expr)

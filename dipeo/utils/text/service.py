@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from dipeo.core import ValidationError
+from dipeo.utils.template import TemplateProcessor
 
 log = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ class TextProcessingDomainService:
     """Text manipulation and processing operations."""
 
     def __init__(self):
-        pass
+        self._template_processor = TemplateProcessor()
 
     async def process_template(
         self,
@@ -22,30 +23,38 @@ class TextProcessingDomainService:
         safe_mode: bool = True,
     ) -> str:
         """Process a template with variable substitution."""
-        if safe_mode:
-            return self._safe_template_processing(template, variables)
-        return self._advanced_template_processing(template, variables)
+        # Delegate to unified template processor
+        result = self._template_processor.process(template, variables, safe=safe_mode)
+        
+        # Log warnings for missing variables
+        for missing_key in result.missing_keys:
+            log.warning(f"Variable '{missing_key}' not found in context")
+        
+        return result.content
 
     def _safe_template_processing(
         self, template: str, variables: dict[str, Any]
     ) -> str:
-        """Safe template processing with simple variable substitution."""
-        pattern = r"\{\{\s*(\w+)\s*\}\}"
-
-        def replacer(match):
-            var_name = match.group(1)
-            if var_name in variables:
-                return str(variables[var_name])
-            log.warning(f"Variable '{var_name}' not found in context")
-            return match.group(0)
-
-        return re.sub(pattern, replacer, template)
+        """Safe template processing with simple variable substitution.
+        
+        DEPRECATED: This method is kept for backward compatibility.
+        Use process_template instead.
+        """
+        result = self._template_processor.process(template, variables, safe=True)
+        for missing_key in result.missing_keys:
+            log.warning(f"Variable '{missing_key}' not found in context")
+        return result.content
 
     def _advanced_template_processing(
         self, template: str, variables: dict[str, Any]
     ) -> str:
-        """Advanced template processing with conditionals and loops."""
-        return self._safe_template_processing(template, variables)
+        """Advanced template processing with conditionals and loops.
+        
+        DEPRECATED: This method is kept for backward compatibility.
+        Use process_template with safe_mode=False instead.
+        """
+        result = self._template_processor.process(template, variables, safe=False)
+        return result.content
 
     async def extract_structured_data(
         self,

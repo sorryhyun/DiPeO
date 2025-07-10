@@ -5,7 +5,7 @@ from pathlib import Path
 from dependency_injector import providers, containers
 from dipeo.container import Container as BaseContainer
 from dipeo.container.infrastructure_container import _create_api_key_storage
-from dipeo.core import (
+from dipeo.application.protocols import (
     SupportsAPIKey,
     SupportsExecution,
     SupportsMemory,

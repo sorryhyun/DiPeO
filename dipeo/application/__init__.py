@@ -5,7 +5,7 @@ Application orchestration layer providing use cases and node handlers.
 """
 
 # Context
-from .execution.context import ApplicationExecutionContext, UnifiedExecutionContext
+from .execution.context import UnifiedExecutionContext
 
 # Engine components
 from .engine import ExecutionEngine, ExecutionController
@@ -20,8 +20,6 @@ from .execution import (
     ExecutionOptions,
     NodeDefinition,
     NodeHandler,
-    BaseExecutor,
-    ExecutorInterface,
 )
 
 # Handlers
@@ -49,9 +47,11 @@ from .utils.conversation_utils import InputDetector, MessageBuilder
 # Execution
 from .execution.use_cases import ExecuteDiagramUseCase
 
+# Protocols
+from .protocols import SupportsAPIKey, SupportsExecution, SupportsMemory
+
 __all__ = [
     # Context
-    "ApplicationExecutionContext",
     "UnifiedExecutionContext",
     # Engine
     "ExecutionEngine",
@@ -67,8 +67,6 @@ __all__ = [
     "ExecutionOptions",
     "NodeDefinition",
     "NodeHandler",
-    "BaseExecutor",
-    "ExecutorInterface",
     # Handlers
     "StartNodeHandler",
     "EndpointNodeHandler",
@@ -87,4 +85,8 @@ __all__ = [
     # Utilities
     "InputDetector",
     "MessageBuilder",
+    # Protocols
+    "SupportsAPIKey",
+    "SupportsExecution",
+    "SupportsMemory",
 ]

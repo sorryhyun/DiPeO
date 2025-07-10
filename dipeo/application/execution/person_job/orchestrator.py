@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from dipeo.models import ForgettingMode, DomainDiagram
 from dipeo.utils.prompt import PromptBuilder
-from dipeo.application.state.conversation_state_manager import ConversationStateManager
+from dipeo.utils.conversation.state_utils import ConversationStateManager
 from dipeo.utils.conversation.message_formatter import MessageFormatter
 from dipeo.application.services.llm import LLMExecutor, LLMExecutionResult
 from dipeo.utils.arrow import MemoryTransformer, unwrap_inputs
@@ -155,19 +155,9 @@ class PersonJobOrchestrator:
         conversation history loaded from storage. Inputs from other panels
         should be preserved as-is to maintain inter-panel communication.
         """
-        # Check if inputs are wrapped from arrow processing
-        has_wrapped_inputs = any(
-            isinstance(v, dict) and "arrow_metadata" in v 
-            for v in inputs.values()
-        )
-        
-        if has_wrapped_inputs:
-            # Just unwrap the inputs without applying memory transformation
-            # The forgetting logic is already handled in the conversation service
-            # when loading the person's own history (via forget_own_messages_for_person)
-            return unwrap_inputs(inputs)
-        
-        return inputs
+        # Always unwrap inputs to handle arrow-processed values
+        # The unwrap_inputs function safely handles both wrapped and unwrapped inputs
+        return unwrap_inputs(inputs)
     
     async def _prepare_messages_for_execution(
         self,

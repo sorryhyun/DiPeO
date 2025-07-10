@@ -1,11 +1,30 @@
-"""Domain service for template substitution."""
+"""Domain service for template substitution - backward compatibility wrapper."""
 
-import re
+import warnings
 from typing import Any, Dict, List, Tuple
+from dipeo.utils.template import TemplateProcessor
 
 
 class TemplateService:
-    """Service for handling template substitution with {{placeholders}}."""
+    """Service for handling template substitution with {{placeholders}}.
+    
+    DEPRECATED: This is a backward compatibility wrapper. 
+    Use dipeo.utils.template.TemplateProcessor directly.
+    """
+    
+    def __init__(self):
+        self._processor = TemplateProcessor()
+        self._deprecation_warned = False
+    
+    def _warn_deprecation(self):
+        if not self._deprecation_warned:
+            warnings.warn(
+                "dipeo.utils.text.template_service.TemplateService is deprecated. "
+                "Use dipeo.utils.template.TemplateProcessor instead.",
+                DeprecationWarning,
+                stacklevel=3
+            )
+            self._deprecation_warned = True
     
     def substitute_template(
         self, 
@@ -21,8 +40,9 @@ class TemplateService:
         Returns:
             Substituted string
         """
-        result, missing_keys, _ = self.substitute_template_with_tracking(template, values)
-        return result
+        self._warn_deprecation()
+        result = self._processor.process(template, values, track_usage=False)
+        return result.content
     
     def substitute_template_with_tracking(
         self, 
@@ -38,20 +58,6 @@ class TemplateService:
         Returns:
             tuple: (substituted_string, list_of_missing_keys, list_of_used_keys)
         """
-        missing_keys = []
-        used_keys = []
-        
-        def replacer(match):
-            key = match.group(1)
-            if key in values:
-                used_keys.append(key)
-                return str(values[key])
-            else:
-                missing_keys.append(key)
-                return match.group(0)  # Keep original placeholder
-        
-        # Match {{key}} pattern
-        pattern = r'\{\{(\w+)\}\}'
-        result = re.sub(pattern, replacer, template)
-        
-        return result, missing_keys, used_keys
+        self._warn_deprecation()
+        result = self._processor.process(template, values, track_usage=True)
+        return result.content, result.missing_keys, result.used_keys

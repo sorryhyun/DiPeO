@@ -1,8 +1,7 @@
-"""Service type protocols for duck typing and type checking.
+"""Application-level service protocols.
 
-This module defines Protocol classes that describe the interfaces for various services
-in the DiPeO system. These are used with TYPE_CHECKING to avoid circular imports
-while maintaining type safety.
+These protocols define the interfaces for application services that orchestrate
+domain logic and infrastructure. They are distinct from infrastructure ports.
 """
 
 from pathlib import Path
@@ -87,5 +86,3 @@ class SupportsMemory(Protocol):
     def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]: ...
     async def save_conversation_log(self, execution_id: str, log_dir: Path) -> str: ...
     def clear_all_conversations(self) -> None: ...
-
-

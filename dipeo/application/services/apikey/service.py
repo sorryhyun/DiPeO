@@ -1,6 +1,7 @@
 """API Key orchestration service in the application layer."""
 
-from dipeo.core import BaseService, SupportsAPIKey, APIKeyError
+from dipeo.core import BaseService, APIKeyError
+from dipeo.application.protocols import SupportsAPIKey
 from dipeo.core.ports import APIKeyPort
 from dipeo.utils.apikey import (
     validate_service_name,

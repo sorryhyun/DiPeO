@@ -6,12 +6,14 @@ import os
 import sys
 from io import StringIO
 from typing import Any
+import warnings
 
 from dipeo.application import BaseNodeHandler, register_handler
 from dipeo.core.application.context.execution_context import ExecutionContextPort
 from dipeo.application.utils import create_node_output
 from dipeo.models import CodeJobNodeData, NodeOutput
 from pydantic import BaseModel
+from dipeo.utils.template import TemplateProcessor
 
 
 
@@ -21,7 +23,14 @@ class CodeJobNodeHandler(BaseNodeHandler):
     
     def __init__(self, template_service=None):
         """Initialize with injected services."""
-        self.template_service = template_service
+        if template_service is not None:
+            warnings.warn(
+                "Passing template_service to CodeJobNodeHandler is deprecated. "
+                "It now uses the unified TemplateProcessor internally.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+        self._processor = TemplateProcessor()
 
     @property
     def node_type(self) -> str:
@@ -47,13 +56,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute code_job node with code."""
-        # Use injected service or fall back to old pattern for backward compatibility
-        template_service = self.template_service
-        if not template_service:
-            template_service = context.get_service("template")
-            if not template_service:
-                template_service = services.get("template")
-            
         language = props.language
         code = props.code
         timeout = props.timeout or 30  # Default 30 seconds
@@ -68,11 +70,11 @@ class CodeJobNodeHandler(BaseNodeHandler):
 
         try:
             if language == "python":
-                result = await self._execute_python(code, inputs, timeout, template_service)
+                result = await self._execute_python(code, inputs, timeout)
             elif language == "javascript":
-                result = await self._execute_javascript(code, inputs, timeout, template_service)
+                result = await self._execute_javascript(code, inputs, timeout)
             elif language == "bash":
-                result = await self._execute_bash(code, inputs, timeout, template_service)
+                result = await self._execute_bash(code, inputs, timeout)
             else:
                 return create_node_output(
                     {"default": ""}, 
@@ -109,7 +111,7 @@ class CodeJobNodeHandler(BaseNodeHandler):
                 executed_nodes=context.executed_nodes
             )
 
-    async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int, template_service: Any) -> Any:
+    async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
         """Execute Python code safely with timeout."""
         # Replace template variables using the standard utility
         if "{{" in code and inputs:
@@ -125,20 +127,13 @@ class CodeJobNodeHandler(BaseNodeHandler):
                 else:
                     template_vars[key] = value
             
-            # Substitute all template variables
-            if template_service:
-                substituted_code = template_service.substitute_template(code, template_vars)
-                # Check if substitution failed (original code returned means missing vars)
-                if substituted_code == code and "{{" in code:
-                    # Extract missing keys manually
-                    import re
-                    pattern = r'\{\{(\w+)\}\}'
-                    missing_keys = [m.group(1) for m in re.finditer(pattern, code) if m.group(1) not in template_vars]
-                    if missing_keys:
-                        raise ValueError(f"Missing template variables: {', '.join(missing_keys)}")
-                code = substituted_code
-            else:
-                raise ValueError("Template service not available")
+            # Substitute all template variables using new processor
+            result = self._processor.process(code, template_vars, safe=False)
+            if result.errors:
+                raise ValueError(f"Template errors: {'; '.join(result.errors)}")
+            if result.missing_keys:
+                raise ValueError(f"Missing template variables: {', '.join(result.missing_keys)}")
+            code = result.content
         
         # Create a more complete namespace with inputs
         namespace = {
@@ -225,7 +220,7 @@ class CodeJobNodeHandler(BaseNodeHandler):
         finally:
             sys.stdout = old_stdout
 
-    async def _execute_javascript(self, code: str, inputs: dict[str, Any], timeout: int, template_service: Any = None) -> Any:
+    async def _execute_javascript(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
         """Execute JavaScript code using Node.js with timeout."""
 
         # Replace template variables
@@ -240,19 +235,13 @@ class CodeJobNodeHandler(BaseNodeHandler):
                 else:
                     template_vars[key] = value
             
-            if template_service:
-                substituted_code = template_service.substitute_template(code, template_vars)
-                # Check if substitution failed (original code returned means missing vars)
-                if substituted_code == code and "{{" in code:
-                    # Extract missing keys manually
-                    import re
-                    pattern = r'\{\{(\w+)\}\}'
-                    missing_keys = [m.group(1) for m in re.finditer(pattern, code) if m.group(1) not in template_vars]
-                    if missing_keys:
-                        raise ValueError(f"Missing template variables: {', '.join(missing_keys)}")
-                code = substituted_code
-            else:
-                raise ValueError("Template service not available")
+            # Substitute all template variables using new processor
+            result = self._processor.process(code, template_vars, safe=False)
+            if result.errors:
+                raise ValueError(f"Template errors: {'; '.join(result.errors)}")
+            if result.missing_keys:
+                raise ValueError(f"Missing template variables: {', '.join(result.missing_keys)}")
+            code = result.content
         
         # Prepare the code with all inputs available as variables
         # Check if code has a return statement
@@ -298,7 +287,7 @@ class CodeJobNodeHandler(BaseNodeHandler):
         
         return stdout.decode().strip()
 
-    async def _execute_bash(self, code: str, inputs: dict[str, Any], timeout: int, template_service: Any = None) -> Any:
+    async def _execute_bash(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
         """Execute Bash code with timeout."""
         # Replace template variables
         if "{{" in code and inputs:
@@ -306,19 +295,13 @@ class CodeJobNodeHandler(BaseNodeHandler):
             for key, value in inputs.items():
                 template_vars[key] = str(value)
             
-            if template_service:
-                substituted_code = template_service.substitute_template(code, template_vars)
-                # Check if substitution failed (original code returned means missing vars)
-                if substituted_code == code and "{{" in code:
-                    # Extract missing keys manually
-                    import re
-                    pattern = r'\{\{(\w+)\}\}'
-                    missing_keys = [m.group(1) for m in re.finditer(pattern, code) if m.group(1) not in template_vars]
-                    if missing_keys:
-                        raise ValueError(f"Missing template variables: {', '.join(missing_keys)}")
-                code = substituted_code
-            else:
-                raise ValueError("Template service not available")
+            # Substitute all template variables using new processor
+            result = self._processor.process(code, template_vars, safe=False)
+            if result.errors:
+                raise ValueError(f"Template errors: {'; '.join(result.errors)}")
+            if result.missing_keys:
+                raise ValueError(f"Missing template variables: {', '.join(result.missing_keys)}")
+            code = result.content
         
         # Set up environment variables from inputs
         env = dict(os.environ)

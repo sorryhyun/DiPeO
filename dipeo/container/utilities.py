@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from dipeo.core import (
+from dipeo.application.protocols import (
     SupportsAPIKey,
     SupportsExecution,
     SupportsMemory,

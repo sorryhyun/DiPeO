@@ -15,8 +15,9 @@ from dipeo.models import DiagramMetadata, DomainDiagram
 from dipeo.application.services.apikey import APIKeyService as APIKeyDomainService
 from dipeo.application.services.diagram import DiagramService as DiagramStorageDomainService
 
-from ..models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
 from ..validators import DiagramValidator
+from ...resolution import DiagramResolver
+from dipeo.core.static import ExecutableDiagram
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         diagram: str | dict[str, Any] | DomainDiagram,
         diagram_id: str | None = None,
         validate: bool = True,
-    ) -> ExecutionReadyDiagram:
+    ) -> ExecutableDiagram:
         """Prepare any diagram input for execution.
 
         Args:
@@ -55,33 +56,39 @@ class PrepareDiagramForExecutionUseCase(BaseService):
             validate: Whether to validate the diagram
 
         Returns:
-            ExecutionReadyDiagram ready for the engine
+            ExecutableDiagram ready for the engine
         """
-        # Step 1: Get the diagram data
+        # Step 1: Get the domain diagram
         if isinstance(diagram, str):
             # Load from storage
             diagram_id = diagram
             backend_data = await self._load_from_storage(diagram_id)
-            domain_diagram = None
+            # Convert to domain model
+            if self._is_backend_format(backend_data):
+                backend_diagram = BackendDiagram.model_validate(backend_data)
+                domain_diagram = backend_to_graphql(backend_diagram)
+            else:
+                domain_diagram = DomainDiagram.model_validate(backend_data)
         elif isinstance(diagram, DomainDiagram):
             # Already have domain model
             domain_diagram = diagram
-            backend_model = graphql_to_backend(domain_diagram)
-            backend_data = backend_model.model_dump(by_alias=True)
         elif isinstance(diagram, dict):
             # Raw dict - could be backend or domain format
             if self._is_backend_format(diagram):
-                backend_data = diagram
-                domain_diagram = None
+                backend_diagram = BackendDiagram.model_validate(diagram)
+                domain_diagram = backend_to_graphql(backend_diagram)
             else:
                 # Domain format dict
                 domain_diagram = DomainDiagram.model_validate(diagram)
-                backend_data = graphql_to_backend(domain_diagram)
         else:
             raise ValueError(f"Unsupported diagram type: {type(diagram)}")
 
         # Step 2: Validate if requested
         if validate:
+            # Convert to backend format for validation
+            backend_model = graphql_to_backend(domain_diagram)
+            backend_data = backend_model.model_dump(by_alias=True)
+            
             errors = self.validator._validate_backend_format(
                 backend_data, context="execution"
             )
@@ -89,24 +96,17 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                 raise ValidationError(f"Diagram validation failed: {'; '.join(errors)}")
 
         # Step 3: Fix API keys and extract them
+        # Work with backend format for API key handling
+        backend_model = graphql_to_backend(domain_diagram)
+        backend_data = backend_model.model_dump(by_alias=True)
         backend_data = self._fix_api_key_references(backend_data)
         api_keys = self._extract_api_keys(backend_data)
+        
+        # Convert back to domain model with fixed API keys
+        backend_diagram = BackendDiagram.model_validate(backend_data)
+        domain_diagram = backend_to_graphql(backend_diagram)
 
-        # Step 4: Convert to domain model if we don't have it
-        if domain_diagram is None:
-            # Ensure metadata is a plain dict for BackendDiagram validation
-            if "metadata" in backend_data and backend_data["metadata"] is not None:
-                if hasattr(backend_data["metadata"], "model_dump"):
-                    # It's a Pydantic model, convert to dict
-                    backend_data["metadata"] = backend_data["metadata"].model_dump()
-                elif not isinstance(backend_data["metadata"], dict):
-                    # It's some other type, convert to dict if possible
-                    backend_data["metadata"] = dict(backend_data["metadata"])
-
-            backend_diagram = BackendDiagram.model_validate(backend_data)
-            domain_diagram = backend_to_graphql(backend_diagram)
-
-        # Step 5: Update metadata if needed
+        # Step 4: Update metadata if needed
         if diagram_id and (
             not domain_diagram.metadata or not domain_diagram.metadata.id
         ):
@@ -124,23 +124,15 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                 metadata_dict["id"] = diagram_id
                 domain_diagram.metadata = DiagramMetadata(**metadata_dict)
 
-        # Step 6: Build execution format with hints
-        execution_dict = self._build_execution_format(domain_diagram, api_keys)
-
-        # Step 7: Determine final diagram ID
-        final_id = (
-            diagram_id
-            or (domain_diagram.metadata.id if domain_diagram.metadata else None)
-            or "unknown"
-        )
-
-        return ExecutionReadyDiagram.from_dict(
-            diagram_id=final_id,
-            backend_format=execution_dict,
-            api_keys=api_keys,
-            execution_hints=execution_dict.get("_execution_hints", {}),
-            domain_model=domain_diagram,
-        )
+        # Step 5: Resolve diagram to ExecutableDiagram
+        resolver = DiagramResolver()
+        executable_diagram = await resolver.resolve(domain_diagram, api_keys)
+        
+        # Store the diagram ID in metadata for tracking
+        if diagram_id:
+            executable_diagram.metadata["diagram_id"] = diagram_id
+        
+        return executable_diagram
 
     async def _load_from_storage(self, diagram_id: str) -> dict[str, Any]:
         """Load diagram from storage."""
@@ -216,63 +208,3 @@ class PrepareDiagramForExecutionUseCase(BaseService):
 
         return keys
 
-    def _build_execution_format(
-        self, diagram: DomainDiagram, api_keys: dict[str, str]
-    ) -> dict[str, Any]:
-        """Build execution format with hints."""
-        try:
-            backend_dict = graphql_to_backend(diagram)
-
-            # Create BackendDiagram from dict
-            backend_model = BackendDiagram.model_validate(backend_dict)
-
-            # Build execution hints
-            hints = ExecutionHints()
-
-            # Find start nodes and person nodes
-            for node_id, node in backend_model.nodes.items():
-                if node.get("type") == "start":
-                    hints.start_nodes.append(node_id)
-
-                if node.get("type") in ["personJobNode", "person_job"]:
-                    person_id = node.get("data", {}).get(
-                        "personId", node.get("data", {}).get("person_id")
-                    )
-                    if person_id:
-                        hints.person_nodes[node_id] = person_id
-
-            # Build node dependencies from arrows
-            for arrow in backend_model.arrows.values():
-                target_node_id = self._extract_node_id(arrow.get("target", ""))
-                source_node_id = self._extract_node_id(arrow.get("source", ""))
-
-                if target_node_id not in hints.node_dependencies:
-                    hints.node_dependencies[target_node_id] = []
-
-                arrow_label = (
-                    arrow.get("data", {}).get("label") if arrow.get("data") else None
-                )
-                hint = ExecutionHint(
-                    source=source_node_id,
-                    variable=arrow_label if arrow_label else "flow",
-                )
-                hints.node_dependencies[target_node_id].append(hint)
-
-            # Return as dict including execution hints
-            result = backend_model.model_dump(by_alias=True)
-            result["_execution_hints"] = hints.model_dump()
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Failed to build execution format: {e}")
-            raise ValidationError(
-                f"Failed to prepare diagram for execution: {e}"
-            ) from e
-
-    @staticmethod
-    def _extract_node_id(connection: str) -> str:
-        """Extract node ID from connection string."""
-        if ":" in connection:
-            return connection.split(":", 1)[0]
-        return connection

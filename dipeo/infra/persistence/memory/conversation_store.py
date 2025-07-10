@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from dipeo.core import SupportsMemory
+from dipeo.application.protocols import SupportsMemory
 
 
 class InMemoryConversationStore(SupportsMemory):

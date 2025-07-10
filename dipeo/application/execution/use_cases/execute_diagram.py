@@ -4,7 +4,9 @@ import asyncio
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
-from dipeo.core import BaseService, SupportsExecution
+from dipeo.core import BaseService
+from dipeo.application.protocols import SupportsExecution
+from dipeo.models import ExecutionStatus
 
 from dipeo.application.execution.observers import StreamingObserver
 from dipeo.application.execution.state import UnifiedExecutionCoordinator
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.infra.persistence.diagram import DiagramStorageAdapter
     from ...unified_service_registry import UnifiedServiceRegistry
-    from dipeo.models import DomainDiagram, ExecutionStatus
+    from dipeo.models import DomainDiagram
     from ... import ExecutionController
 
 class ExecuteDiagramUseCase(BaseService, SupportsExecution):
@@ -148,10 +150,16 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         from ...resolution import DiagramResolver
         resolver = DiagramResolver()
         
-        # Note: The resolver returns an ExecutableDiagram, but for backward
-        # compatibility, we'll store it in the domain_diagram metadata
-        # and use it in the execution engine
-        executable_diagram = await resolver.resolve(domain_diagram)
+        # Get API keys if available
+        api_keys = None
+        if hasattr(self.service_registry, 'get'):
+            api_key_service = self.service_registry.get('api_key_service')
+            if api_key_service:
+                # Extract API keys needed by the diagram
+                api_keys = self._extract_api_keys_for_diagram(domain_diagram, api_key_service)
+        
+        # Note: The resolver returns an ExecutableDiagram with execution hints
+        executable_diagram = await resolver.resolve(domain_diagram, api_keys)
         
         # Store the executable diagram in metadata for use by the engine
         if not hasattr(domain_diagram, '_executable_diagram'):
@@ -186,10 +194,17 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
             # Should have been initialized by _initialize_execution_state
             raise ValueError(f"Execution state not found for {execution_id}")
         
-        # Create state adapter
+        # Create state adapter with coordinator
         from ..adapters.state_adapter import ApplicationExecutionState
+        from ..state import UnifiedExecutionCoordinator
+        
+        coordinator = UnifiedExecutionCoordinator(
+            service_registry=self.service_registry
+        )
+        
         state_adapter = ApplicationExecutionState(
             execution_state=execution_state,
+            coordinator=coordinator,
             state_store=self.state_store
         )
         
@@ -298,3 +313,35 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
             
             # Save final state
             await self.state_store.save_state(state)
+    
+    def _extract_api_keys_for_diagram(self, diagram: "DomainDiagram", api_key_service) -> Dict[str, str]:
+        """Extract API keys needed by the diagram.
+        
+        Args:
+            diagram: The domain diagram
+            api_key_service: The API key service
+            
+        Returns:
+            Dictionary mapping API key IDs to actual keys
+        """
+        api_keys = {}
+        
+        # Get all available API keys
+        all_keys = {
+            info["id"]: api_key_service.get_api_key(info["id"])["key"]
+            for info in api_key_service.list_api_keys()
+        }
+        
+        # Extract API key references from persons
+        if hasattr(diagram, 'persons'):
+            for person in diagram.persons:
+                api_key_id = None
+                if hasattr(person, 'api_key_id'):
+                    api_key_id = person.api_key_id
+                elif hasattr(person, 'apiKeyId'):
+                    api_key_id = person.apiKeyId
+                    
+                if api_key_id and api_key_id in all_keys:
+                    api_keys[api_key_id] = all_keys[api_key_id]
+        
+        return api_keys

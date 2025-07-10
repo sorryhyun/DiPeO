@@ -1,9 +1,6 @@
 """Execution models for diagram execution."""
 
-from .models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
+# This module is now empty as execution models have been migrated
+# to the core ExecutableDiagram structure
 
-__all__ = [
-    "ExecutionHint",
-    "ExecutionHints", 
-    "ExecutionReadyDiagram",
-]
+__all__ = []

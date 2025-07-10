@@ -46,12 +46,7 @@ class GraphQLContext(BaseContext):
     # Properties for backward compatibility - access services through container
     @property
     def state_store(self) -> "StateRegistry":
-        import logging
-        logger = logging.getLogger(__name__)
-        result = self.container.infra.state_store()
-        logger.info(f"Getting state_store from container: {result}")
-        logger.info(f"Container infra type: {type(self.container.infra)}")
-        return result
+        return self.container.infra.state_store()
 
     @property
     def message_router(self) -> "MessageRouter":
