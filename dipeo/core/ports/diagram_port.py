@@ -7,10 +7,43 @@ from typing import Any
 
 import yaml
 from dipeo.core.constants import BASE_DIR
-from dipeo.core import BaseService, SupportsDiagram
-from dipeo.domain.services.diagram.diagram_service import DiagramDomainService
+from dipeo.utils.diagram import DiagramBusinessLogic as DiagramDomainService
 
 logger = logging.getLogger(__name__)
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AsyncIterator,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    runtime_checkable,
+)
+
+
+@runtime_checkable
+class SupportsDiagram(Protocol):
+    """Protocol for diagram operations."""
+
+    def convert_from_yaml(self, yaml_text: str) -> dict: ...
+    def convert_to_llm_yaml(self, diagram: dict) -> str: ...
+    def list_diagram_files(
+        self, directory: Optional[str] = None
+    ) -> List[Dict[str, Any]]: ...
+    def load_diagram(self, path: str) -> Dict[str, Any]: ...
+    def save_diagram(self, path: str, diagram: Dict[str, Any]) -> None: ...
+    def create_diagram(
+        self, name: str, diagram: Dict[str, Any], format: str = "json"
+    ) -> str: ...
+    def update_diagram(self, path: str, diagram: Dict[str, Any]) -> None: ...
+    def delete_diagram(self, path: str) -> None: ...
+    async def save_diagram_with_id(
+        self, diagram_dict: Dict[str, Any], filename: str
+    ) -> str: ...
+    async def get_diagram(self, diagram_id: str) -> Optional[Dict[str, Any]]: ...
 
 
 class DiagramFileRepository(BaseService, SupportsDiagram):
