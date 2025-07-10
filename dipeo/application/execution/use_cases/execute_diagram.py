@@ -139,7 +139,22 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
             raise ValueError("DiagramLoaderPort not found in service registry")
         
         # Use the infrastructure adapter to prepare the diagram
-        return diagram_loader.prepare_diagram(diagram)
+        domain_diagram = diagram_loader.prepare_diagram(diagram)
+        
+        # Apply diagram resolution pipeline
+        from ...resolution import DiagramResolver
+        resolver = DiagramResolver()
+        
+        # Note: The resolver returns an ExecutableDiagram, but for backward
+        # compatibility, we'll store it in the domain_diagram metadata
+        # and use it in the execution engine
+        executable_diagram = await resolver.resolve(domain_diagram)
+        
+        # Store the executable diagram in metadata for use by the engine
+        if not hasattr(domain_diagram, '_executable_diagram'):
+            domain_diagram._executable_diagram = executable_diagram
+        
+        return domain_diagram
     
     async def _setup_execution_context(
         self, 

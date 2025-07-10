@@ -11,7 +11,7 @@ from typing import Any
 import aiohttp
 from dipeo.core import ServiceError
 from dipeo.core.ports import FileServicePort
-from dipeo.domain.services.api.api_domain_service import APIDomainService
+from dipeo.utils.api import APIBusinessLogic
 
 log = logging.getLogger(__name__)
 
@@ -21,25 +21,25 @@ class APIService:
     
     This service combines:
     - HTTP client for I/O operations
-    - APIDomainService for business logic
+    - APIBusinessLogic for business logic
     - File service for saving responses
     
     It implements the adapter pattern, providing concrete HTTP implementation
-    while using domain logic for decisions like retry strategies and validation.
+    while using business logic utilities for decisions like retry strategies and validation.
     """
 
     def __init__(
         self, 
-        domain_service: APIDomainService,
+        business_logic: APIBusinessLogic,
         file_service: FileServicePort | None = None
     ):
         """Initialize API service.
         
         Args:
-            domain_service: Domain service for business logic
+            business_logic: Business logic utilities
             file_service: Optional file service for saving responses
         """
-        self.domain_service = domain_service
+        self.business_logic = business_logic
         self.file_service = file_service
         self._session: aiohttp.ClientSession | None = None
 
@@ -84,7 +84,7 @@ class APIService:
         session = await self._ensure_session()
         
         # Build request configuration using domain service
-        config = self.domain_service.build_request_config(
+        config = self.business_logic.build_request_config(
             method=method,
             url=url,
             data=data,
@@ -171,7 +171,7 @@ class APIService:
                 
                 # Validate response using domain service
                 try:
-                    self.domain_service.validate_api_response(
+                    self.business_logic.validate_api_response(
                         status_code=status,
                         response_data=response_data,
                         expected_status_codes=expected_status_codes
@@ -179,12 +179,12 @@ class APIService:
                     return response_data
                 except ServiceError:
                     # Response validation failed, check if should retry
-                    if not self.domain_service.should_retry(status, attempt, max_retries):
+                    if not self.business_logic.should_retry(status, attempt, max_retries):
                         raise
                     
                 # Calculate retry delay
-                rate_limit_info = self.domain_service.extract_rate_limit_info(response_headers)
-                delay = self.domain_service.calculate_retry_delay(
+                rate_limit_info = self.business_logic.extract_rate_limit_info(response_headers)
+                delay = self.business_logic.calculate_retry_delay(
                     attempt=attempt,
                     base_delay=retry_delay,
                     retry_after=rate_limit_info.get("retry_after")
@@ -202,7 +202,7 @@ class APIService:
             except Exception as e:
                 # Handle other errors
                 if attempt < max_retries - 1:
-                    delay = self.domain_service.calculate_retry_delay(attempt, retry_delay)
+                    delay = self.business_logic.calculate_retry_delay(attempt, retry_delay)
                     log.warning(
                         f"Request error: {e}, retrying in {delay}s "
                         f"(attempt {attempt + 1}/{max_retries})"
@@ -238,16 +238,16 @@ class APIService:
         
         for step in workflow.get("steps", []):
             # Validate step using domain service
-            self.domain_service.validate_workflow_step(step)
+            self.business_logic.validate_workflow_step(step)
             
             step_name = step["name"]
             
             try:
                 # Substitute variables in step config
-                url = self.domain_service.substitute_variables(step["url"], context)
+                url = self.business_logic.substitute_variables(step["url"], context)
                 step_data = None
                 if step.get("data"):
-                    step_data = self.domain_service.substitute_variables(step["data"], context)
+                    step_data = self.business_logic.substitute_variables(step["data"], context)
                     
                 # Execute request
                 result = await self.execute_with_retry(
@@ -262,13 +262,13 @@ class APIService:
                 
                 # Check success condition if provided
                 if success_condition := step.get("success_condition"):
-                    if not self.domain_service.evaluate_condition(success_condition, result):
+                    if not self.business_logic.evaluate_condition(success_condition, result):
                         raise ServiceError(
                             f"Step '{step_name}' failed success condition: {success_condition}"
                         )
                         
                 # Update results and context
-                results = self.domain_service.merge_workflow_results(
+                results = self.business_logic.merge_workflow_results(
                     results, step_name, result
                 )
                 context[step_name] = result
@@ -276,7 +276,7 @@ class APIService:
             except Exception as e:
                 if step.get("continue_on_error", False):
                     log.error(f"Step '{step_name}' failed but continuing: {e}")
-                    results = self.domain_service.merge_workflow_results(
+                    results = self.business_logic.merge_workflow_results(
                         results, step_name, e, include_errors=True
                     )
                 else:
@@ -308,7 +308,7 @@ class APIService:
             raise ServiceError("File service required for saving responses")
             
         # Format response using domain service
-        formatted_content = self.domain_service.format_api_response(
+        formatted_content = self.business_logic.format_api_response(
             response_data=response_data,
             format=format,
             include_metadata=include_metadata,

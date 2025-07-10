@@ -8,7 +8,7 @@ from io import StringIO
 from typing import Any
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.ports.execution_context import ExecutionContextPort
+from dipeo.core.application.context.execution_context import ExecutionContextPort
 from dipeo.application.utils import create_node_output
 from dipeo.models import JobNodeData, NodeOutput
 from pydantic import BaseModel

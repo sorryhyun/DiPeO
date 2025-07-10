@@ -1,21 +1,24 @@
 """Diagram domain services."""
 
-from .validation import DiagramValidator
-from .transformation import DiagramTransformer
-from .analysis import DiagramAnalyzer
+# Import from utils layer
+from dipeo.utils.diagram import (
+    DiagramValidator,
+    DiagramTransformer,
+    DiagramAnalyzer,
+    DiagramBusinessLogic as DiagramDomainService,  # Backward compatibility alias
+)
 
-# Keep existing services for backward compatibility
-from .diagram_service import DiagramDomainService
+# Keep domain service that depends on infrastructure
 from .domain_service import DiagramStorageDomainService
 
 
 __all__ = [
-    # New pure domain services
+    # Re-exported from utils layer
     'DiagramValidator',
     'DiagramTransformer',
     'DiagramAnalyzer',
+    'DiagramDomainService',  # Aliased from DiagramBusinessLogic
     
-    # Existing services
-    'DiagramDomainService',
+    # Domain service with infrastructure dependencies
     'DiagramStorageDomainService',
 ]

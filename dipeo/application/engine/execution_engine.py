@@ -75,6 +75,12 @@ class ExecutionEngine:
         should be done by the calling service layer.
         """
         
+        # Check if we have an ExecutableDiagram from the resolution pipeline
+        executable_diagram = getattr(diagram, '_executable_diagram', None)
+        if executable_diagram:
+            log.info(f"Using resolved ExecutableDiagram with pre-calculated execution order")
+            # The ExecutableDiagram contains optimized execution order and validated structure
+        
         # Initialize concurrency control
         max_concurrent = options.get("max_parallel_nodes", 10)
         self._concurrency_semaphore = asyncio.Semaphore(max_concurrent)

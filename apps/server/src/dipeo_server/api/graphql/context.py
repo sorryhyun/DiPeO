@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     )
     from dipeo.infra.persistence.diagram import DiagramFileRepository
     from dipeo.domain.services.diagram.domain_service import DiagramStorageDomainService
-    from dipeo.domain.services.db import DBOperationsDomainService
-    from dipeo.domain.services.execution import FlowControlService
+    from dipeo.infra.database import DBOperationsDomainService
+    from dipeo.application.execution.flow_control_service import FlowControlService
     from dipeo.application.execution.use_cases import (
         ExecuteDiagramUseCase,
     )

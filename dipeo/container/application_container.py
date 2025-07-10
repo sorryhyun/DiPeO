@@ -5,7 +5,7 @@ from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 
 
 def _create_execution_preparation_service(storage_service, validator, api_key_service):
-    from dipeo.domain.services.execution.preparation_service import PrepareDiagramForExecutionUseCase
+    from dipeo.application.execution.preparation import PrepareDiagramForExecutionUseCase
 
     return PrepareDiagramForExecutionUseCase(
         storage_service=storage_service,
@@ -33,8 +33,8 @@ def _create_service_registry(
     api_service,
     file_operations_infra_service,
     diagram_loader,
-    # Pure domain services
-    api_domain_service,
+    # Pure business logic utilities
+    api_business_logic,
     file_domain_service,
 ):
     """Factory for UnifiedServiceRegistry with explicit dependencies."""
@@ -77,8 +77,8 @@ def _create_service_registry(
     registry.register("file_operations_infra_service", file_operations_infra_service)
     registry.register("diagram_loader", diagram_loader)
     
-    # Pure domain services
-    registry.register("api_domain_service", api_domain_service)
+    # Pure business logic utilities
+    registry.register("api_business_logic", api_business_logic)
     registry.register("file_domain_service", file_domain_service)
 
     
@@ -140,8 +140,8 @@ class ApplicationContainer(containers.DeclarativeContainer):
         flow_control_service=domain.flow_control_service,
         input_resolution_service=domain.input_resolution_service,
         template_service=domain.template_service,
-        api_domain_service=domain.api_domain_service,
-        file_domain_service=domain.file_domain_service,
+        api_business_logic=domain.api_business_logic,
+        file_domain_service=domain.file_business_logic,
     )
     
     # Execute Diagram Use Case

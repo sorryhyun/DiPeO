@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, Optional, Union
 
-from dipeo.core.ports import DiagramLoaderPort, FileServicePort
+from dipeo.core.ports import FileServicePort
+from dipeo.core.application.services.diagram_loader import DiagramLoaderPort
 from dipeo.diagram import BackendDiagram, backend_to_graphql
 from dipeo.diagram.unified_converter import UnifiedDiagramConverter
 from dipeo.models import DiagramFormat, DomainDiagram

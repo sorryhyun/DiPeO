@@ -5,32 +5,32 @@ This file contains basic tests to verify the refactored services work correctly.
 
 import pytest
 from unittest.mock import AsyncMock
-from dipeo.domain.services.api.api_domain_service import APIDomainService
+from dipeo.utils.api import APIBusinessLogic
 from dipeo.domain.services.file.file_domain_service import FileDomainService
 from dipeo.infra.services.api import APIService
 from dipeo.infra.services.file import FileOperationsService
 from dipeo.core import ServiceError, ValidationError
 
 
-class TestAPIDomainService:
-    """Basic tests for APIDomainService (pure domain logic)."""
+class TestAPIBusinessLogic:
+    """Basic tests for APIBusinessLogic (pure business logic)."""
     
     def test_validate_response_success(self):
         """Test successful response validation."""
-        service = APIDomainService()
+        service = APIBusinessLogic()
         # Should not raise for 2xx status
         service.validate_api_response(200, {"data": "test"})
         service.validate_api_response(201, {"created": True})
     
     def test_validate_response_failure(self):
         """Test response validation fails for errors."""
-        service = APIDomainService()
+        service = APIBusinessLogic()
         with pytest.raises(ServiceError):
             service.validate_api_response(500, {"error": "Server error"})
     
     def test_should_retry_logic(self):
         """Test retry decision logic."""
-        service = APIDomainService()
+        service = APIBusinessLogic()
         # Should retry on 5xx
         assert service.should_retry(500, attempt=0, max_retries=3) is True
         # Should not retry on 4xx (except 429)
@@ -75,9 +75,9 @@ class TestAPIServiceIntegration:
     
     @pytest.mark.asyncio
     async def test_execute_with_retry(self):
-        """Test that API service integrates domain logic for retries."""
-        domain_service = APIDomainService()
-        api_service = APIService(domain_service)
+        """Test that API service integrates business logic for retries."""
+        business_logic = APIBusinessLogic()
+        api_service = APIService(business_logic)
         
         # Mock the execute_request method
         call_count = 0
@@ -122,8 +122,8 @@ class TestFileOperationsServiceIntegration:
 async def test_handler_compatibility():
     """Test that services work with handler expectations."""
     # Create services as they would be in the container
-    api_domain = APIDomainService()
-    api_service = APIService(api_domain)
+    api_business_logic = APIBusinessLogic()
+    api_service = APIService(api_business_logic)
     
     file_domain = FileDomainService()
     file_service = FileOperationsService(file_domain)

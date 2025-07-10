@@ -42,8 +42,8 @@ class Container(containers.DeclarativeContainer):
         config=config,
         base_dir=base_dir,
         api_key_service=domain.api_key_service,
-        api_domain_service=domain.api_domain_service,
-        file_domain_service=domain.file_domain_service,
+        api_business_logic=domain.api_business_logic,
+        file_domain_service=domain.file_business_logic,
     )
     
     # Wire domain's infrastructure dependencies

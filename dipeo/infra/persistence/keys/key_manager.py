@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from pathlib import Path
 
 from dipeo.core.errors import APIKeyError
-from dipeo.infra.storage.apikey_storage import FileAPIKeyStorage
+from .file_apikey_storage import FileAPIKeyStorage
 
 
 class KeyManager:

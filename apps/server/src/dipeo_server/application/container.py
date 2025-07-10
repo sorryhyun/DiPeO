@@ -17,7 +17,7 @@ from dipeo.core.ports import (
 )
 from dipeo.domain.services.apikey import APIKeyDomainService
 from dipeo.domain.services.conversation.simple_service import ConversationMemoryService
-from dipeo.domain.services.db import DBOperationsDomainService
+from dipeo.infra.database import DBOperationsDomainService
 from dipeo.domain.services.diagram import DiagramDomainService
 from dipeo.infra.persistence.diagram import (
     DiagramFileRepository,
@@ -28,8 +28,8 @@ from dipeo.domain.services.execution.preparation_service import (
 )
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
-from dipeo.domain.services.text import TextProcessingDomainService
-from dipeo.domain.services.validation import ValidationDomainService
+from dipeo.utils.text import TextProcessingDomainService
+from dipeo.utils.validation import ValidationDomainService
 from dipeo.infra import (
     MessageRouter,
     NotionAPIService,

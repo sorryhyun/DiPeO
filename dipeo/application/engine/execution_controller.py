@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
-from dipeo.domain.services.execution import FlowControlService
+from dipeo.application.execution.flow_control_service import FlowControlService
 from dipeo.models import NodeOutput, NodeType, DomainDiagram
 
 if TYPE_CHECKING:

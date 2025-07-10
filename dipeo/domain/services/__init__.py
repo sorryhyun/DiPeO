@@ -1,7 +1,9 @@
 """Domain modules."""
 
 # Re-export domain modules as they're moved
-from .execution import FlowControlService, InputResolutionService
+from .execution import InputResolutionService
+# FlowControlService moved to application layer
+FlowControlService = None
 
 # Import new services with try/except for backward compatibility
 try:
@@ -21,15 +23,16 @@ except ImportError:
     ConversationStateManager = None
     MessageBuilder = None
 
-try:
-    from .person_job import PersonJobOrchestrator
-except ImportError:
-    PersonJobOrchestrator = None
+# PersonJobOrchestrator moved to application layer
+PersonJobOrchestrator = None
 
 # Build exports list dynamically
 __all__ = [
     "InputResolutionService",
 ]
+
+if FlowControlService is not None:
+    __all__.append("FlowControlService")
 
 if PromptBuilder is not None:
     __all__.append("PromptBuilder")

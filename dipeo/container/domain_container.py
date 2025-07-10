@@ -9,50 +9,50 @@ def _create_api_key_service(storage):
     return APIKeyDomainService(storage=storage)
 
 
-def _create_api_domain_service():
-    """Create pure API domain service."""
-    from dipeo.domain.services.api.api_domain_service import APIDomainService
-    return APIDomainService()
+def _create_api_business_logic():
+    """Create pure API business logic utilities."""
+    from dipeo.utils.api import APIBusinessLogic
+    return APIBusinessLogic()
 
 
-def _create_file_domain_service():
-    """Create pure file domain service."""
-    from dipeo.domain.services.file.file_domain_service import FileDomainService
-    return FileDomainService()
+def _create_file_business_logic():
+    """Create pure file business logic utilities."""
+    from dipeo.utils.file import FileBusinessLogic
+    return FileBusinessLogic()
 
 
 def _create_text_processing_service():
-    from dipeo.domain.services.text import TextProcessingDomainService
+    from dipeo.utils.text import TextProcessingDomainService
 
     return TextProcessingDomainService()
 
 
 def _create_template_service():
-    from dipeo.domain.services.text.template_service import TemplateService
+    from dipeo.utils.text.template_service import TemplateService
     
     return TemplateService()
 
 
 def _create_validation_service():
-    from dipeo.domain.services.validation import ValidationDomainService
+    from dipeo.utils.validation import ValidationDomainService
 
     return ValidationDomainService()
 
 
 def _create_arrow_processor():
-    from dipeo.domain.services.arrow import ArrowProcessor
+    from dipeo.utils.arrow import ArrowProcessor
     
     return ArrowProcessor()
 
 
 def _create_memory_transformer():
-    from dipeo.domain.services.arrow import MemoryTransformer
+    from dipeo.utils.arrow import MemoryTransformer
     
     return MemoryTransformer()
 
 
 def _create_flow_control_service():
-    from dipeo.domain.services.execution import FlowControlService
+    from dipeo.application.execution.flow_control_service import FlowControlService
     
     return FlowControlService()
 
@@ -65,9 +65,9 @@ def _create_conversation_service(memory_service):
     return ConversationMemoryService(memory_service)
 
 
-def _create_diagram_domain_service():
-    from dipeo.domain.services.diagram import DiagramDomainService
-    return DiagramDomainService()
+def _create_diagram_business_logic():
+    from dipeo.utils.diagram import DiagramBusinessLogic
+    return DiagramBusinessLogic()
 
 
 def _create_diagram_storage_service(base_dir, diagram_domain_service):
@@ -96,42 +96,42 @@ def _create_diagram_storage_domain_service(storage_service):
 
 
 def _create_diagram_validator(api_key_service):
-    from dipeo.domain.services.execution.validators import DiagramValidator
+    from dipeo.application.execution.validators import DiagramValidator
 
     return DiagramValidator(api_key_service)
 
 
 def _create_db_operations_service(file_service, validation_service):
-    from dipeo.domain.services.db import DBOperationsDomainService
+    from dipeo.infra.database import DBOperationsDomainService
 
     return DBOperationsDomainService(file_service, validation_service)
 
 
 def _create_condition_evaluation_service(template_service):
-    from dipeo.domain.services.condition import ConditionEvaluationService
+    from dipeo.application.execution.condition import ConditionEvaluationService
     
     return ConditionEvaluationService(template_service)
 
 
 def _create_input_resolution_service(arrow_processor):
-    from dipeo.domain.services.execution import InputResolutionService
+    from dipeo.application.execution.input import InputResolutionService
     
     return InputResolutionService(arrow_processor=arrow_processor)
 
 
 def _create_person_job_services(template_service, conversation_memory_service, memory_transformer):
-    from dipeo.domain.services.person_job import (
+    from dipeo.application.execution.person_job import (
         PromptProcessingService,
         ConversationProcessingService,
         PersonJobOutputBuilder,
     )
     
     # Import new focused services
-    from dipeo.domain.services.prompt.builder import PromptBuilder
-    from dipeo.domain.services.conversation.state_manager import ConversationStateManager
-    from dipeo.domain.services.conversation.message_builder import MessageBuilder
+    from dipeo.utils.prompt import PromptBuilder
+    from dipeo.application.state.conversation_state_manager import ConversationStateManager
+    from dipeo.application.utils.conversation_utils import MessageBuilder
     from dipeo.domain.services.llm.executor import LLMExecutor
-    from dipeo.domain.services.person_job.orchestrator import PersonJobOrchestrator
+    from dipeo.application.execution.person_job.orchestrator import PersonJobOrchestrator
     
     # Create services needed by the orchestrator
     prompt_service = PromptProcessingService(template_service)
@@ -181,8 +181,8 @@ class DomainContainer(containers.DeclarativeContainer):
         _create_api_key_service,
         storage=infra.api_key_storage,
     )
-    api_domain_service = providers.Singleton(_create_api_domain_service)
-    file_domain_service = providers.Singleton(_create_file_domain_service)
+    api_business_logic = providers.Singleton(_create_api_business_logic)
+    file_business_logic = providers.Singleton(_create_file_business_logic)
     text_processing_service = providers.Singleton(_create_text_processing_service)
     template_service = providers.Singleton(_create_template_service)
     validation_service = providers.Singleton(_create_validation_service)
@@ -197,16 +197,16 @@ class DomainContainer(containers.DeclarativeContainer):
     )
     
     # Diagram services
-    diagram_domain_service = providers.Singleton(_create_diagram_domain_service)
+    diagram_business_logic = providers.Singleton(_create_diagram_business_logic)
     diagram_storage_service = providers.Singleton(
         _create_diagram_storage_service,
         base_dir=base_dir,
-        diagram_domain_service=diagram_domain_service,
+        diagram_domain_service=diagram_business_logic,
     )
     diagram_storage_adapter = providers.Singleton(
         _create_diagram_storage_adapter,
         storage_service=diagram_storage_service,
-        diagram_domain_service=diagram_domain_service,
+        diagram_domain_service=diagram_business_logic,
     )
     diagram_storage_domain_service = providers.Singleton(
         _create_diagram_storage_domain_service,

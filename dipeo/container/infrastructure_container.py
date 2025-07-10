@@ -4,11 +4,11 @@ import os
 from dependency_injector import containers, providers
 from dipeo.core.ports import (
     APIKeyStoragePort,
-    DiagramLoaderPort,
     FileServicePort,
     LLMServicePort,
     NotionServicePort,
 )
+from dipeo.core.application.services.diagram_loader import DiagramLoaderPort
 
 
 def _create_state_store_for_context():
@@ -80,19 +80,19 @@ def _create_notion_service():
     return None
 
 
-def _create_api_service(api_domain_service, file_service):
+def _create_api_service(api_business_logic, file_service):
     """Create infrastructure API service."""
     from dipeo.infra.services.api import APIService
     return APIService(
-        domain_service=api_domain_service,
+        business_logic=api_business_logic,
         file_service=file_service
     )
 
 
-def _create_file_operations_infra_service(file_domain_service):
+def _create_file_operations_infra_service(file_business_logic):
     """Create infrastructure file operations service."""
     from dipeo.infra.services.file import FileOperationsService
-    return FileOperationsService(domain_service=file_domain_service)
+    return FileOperationsService(domain_service=file_business_logic)
 
 
 def _create_diagram_loader(file_service):
@@ -103,8 +103,14 @@ def _create_diagram_loader(file_service):
 
 def _create_api_key_storage(store_file=None):
     """Create API key storage implementation."""
-    from dipeo.infra.storage.apikey_storage import FileAPIKeyStorage
-    return FileAPIKeyStorage(store_file=store_file)
+    from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
+    from pathlib import Path
+    
+    # Use provided file or default location
+    if store_file is None:
+        store_file = Path.home() / ".dipeo" / "apikeys.json"
+    
+    return FileAPIKeyStorage(file_path=Path(store_file))
 
 
 class InfrastructureContainer(containers.DeclarativeContainer):
@@ -115,7 +121,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     
     # Dependencies from other layers
     api_key_service = providers.Dependency()
-    api_domain_service = providers.Dependency()
+    api_business_logic = providers.Dependency()
     file_domain_service = providers.Dependency()
     
     # Core infrastructure
@@ -139,7 +145,7 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
     api_service = providers.Singleton(
         _create_api_service,
-        api_domain_service=api_domain_service,
+        api_business_logic=api_business_logic,
         file_service=file_service,
     )
     file_operations_service = providers.Singleton(

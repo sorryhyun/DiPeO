@@ -1,16 +1,16 @@
 """Conversation domain services."""
 
-# New pure domain services
-from .memory_strategies import (
+# Import from utils layer
+from dipeo.utils.conversation import (
     MemoryStrategy,
     FullMemoryStrategy,
     WindowMemoryStrategy,
     SummaryMemoryStrategy,
     TokenLimitMemoryStrategy,
-    MemoryStrategyFactory
+    MemoryStrategyFactory,
+    MessageFormatter,
+    TemplateProcessor
 )
-from .message_builder import MessageBuilder
-from .template_processor import TemplateProcessor
 
 # Keep existing services for backward compatibility
 try:
@@ -26,13 +26,13 @@ except ImportError:
     _legacy_exports = []
 
 __all__ = [
-    # New pure domain services
+    # Re-exported from utils layer
     'MemoryStrategy',
     'FullMemoryStrategy',
     'WindowMemoryStrategy',
     'SummaryMemoryStrategy',
     'TokenLimitMemoryStrategy',
     'MemoryStrategyFactory',
-    'MessageBuilder',
+    'MessageFormatter',
     'TemplateProcessor',
 ] + _legacy_exports

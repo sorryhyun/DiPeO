@@ -13,7 +13,7 @@ from typing import Any
 
 import aiofiles
 from dipeo.core import ServiceError, ValidationError
-from dipeo.domain.services.file.file_domain_service import FileDomainService
+from dipeo.utils.file import FileBusinessLogic
 
 log = logging.getLogger(__name__)
 
@@ -23,13 +23,13 @@ class FileOperationsService:
     
     This service combines:
     - Actual file I/O operations (reading, writing, copying, etc.)
-    - FileDomainService for business logic and validation
+    - FileBusinessLogic for business logic and validation
     
     It implements the adapter pattern, providing concrete file system operations
     while using domain logic for validation and transformations.
     """
 
-    def __init__(self, domain_service: FileDomainService):
+    def __init__(self, domain_service: FileBusinessLogic):
         """Initialize file operations service.
         
         Args:

@@ -3,7 +3,7 @@ from typing import Any
 
 from dipeo.core import BaseService
 from dipeo.models import DiagramID, DomainDiagram
-from dipeo.domain.services.diagram import DiagramDomainService
+from dipeo.utils.diagram import DiagramBusinessLogic
 
 from .file_repository import DiagramFileRepository
 
@@ -20,7 +20,7 @@ class DiagramStorageAdapter(BaseService):
     def __init__(
         self, 
         file_repository: DiagramFileRepository,
-        domain_service: DiagramDomainService
+        domain_service: DiagramBusinessLogic
     ):
         super().__init__()
         self.repository = file_repository
