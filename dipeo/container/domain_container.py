@@ -28,9 +28,9 @@ def _create_text_processing_service():
 
 
 def _create_template_service():
-    from dipeo.utils.text.template_service import TemplateService
+    from dipeo.utils.template import TemplateProcessor
     
-    return TemplateService()
+    return TemplateProcessor()
 
 
 def _create_validation_service():
@@ -109,10 +109,10 @@ def _create_db_operations_service(file_service, validation_service):
     return DBOperationsDomainService(file_service, validation_service)
 
 
-def _create_condition_evaluation_service(template_service):
-    from dipeo.application.execution.condition import ConditionEvaluationService
+def _create_condition_evaluation_service():
+    from dipeo.application.utils.template import ConditionEvaluator
     
-    return ConditionEvaluationService(template_service)
+    return ConditionEvaluator()
 
 
 def _create_input_resolution_service(arrow_processor):
@@ -121,21 +121,19 @@ def _create_input_resolution_service(arrow_processor):
     return InputResolutionService(arrow_processor=arrow_processor)
 
 
-def _create_person_job_services(template_service, conversation_memory_service, memory_transformer, conversation_manager=None):
+def _create_person_job_services(conversation_memory_service, memory_transformer, conversation_manager=None):
     from dipeo.application.execution.person_job import (
-        PromptProcessingService,
         ConversationProcessingService,
         PersonJobOutputBuilder,
     )
     
     # Import new focused services
-    from dipeo.utils.prompt import PromptBuilder
+    from dipeo.application.utils.template import PromptBuilder
     from dipeo.utils.conversation.state_utils import ConversationStateManager
     from dipeo.application.services.llm import LLMExecutor
     from dipeo.application.execution.person_job.orchestrator_v2 import PersonJobOrchestratorV2
     
     # Create services needed by the orchestrator
-    prompt_service = PromptProcessingService(template_service)
     conversation_processor = ConversationProcessingService()
     output_builder = PersonJobOutputBuilder()
     
@@ -152,12 +150,10 @@ def _create_person_job_services(template_service, conversation_memory_service, m
         output_builder=output_builder,
         conversation_processor=conversation_processor,
         memory_transformer=memory_transformer,
-        template_service=template_service,
         conversation_manager=conversation_manager,
     )
     
     return {
-        "prompt_service": prompt_service,
         "conversation_processor": conversation_processor,
         "output_builder": output_builder,
         # New focused services
@@ -233,7 +229,6 @@ class DomainContainer(containers.DeclarativeContainer):
     # Condition evaluation
     condition_evaluation_service = providers.Singleton(
         _create_condition_evaluation_service,
-        template_service=template_service,
     )
     
     # Input resolution
@@ -245,7 +240,6 @@ class DomainContainer(containers.DeclarativeContainer):
     # Person job services
     person_job_services = providers.Singleton(
         _create_person_job_services,
-        template_service=template_service,
         conversation_memory_service=conversation_service,
         memory_transformer=memory_transformer,
         conversation_manager=conversation_manager,

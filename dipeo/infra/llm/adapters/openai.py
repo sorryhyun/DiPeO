@@ -28,8 +28,18 @@ class ChatGPTAdapter(BaseLLMAdapter):
 
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
         tools = kwargs.pop('tools', [])
+        system_prompt_kwarg = kwargs.pop('system_prompt', None)
+
+        # Guard against None or empty messages
+        if not messages:
+            logger.warning("No messages provided to OpenAI API call")
+            return ChatResult(text='', raw_response=None)
 
         system_prompt, processed_messages = self._extract_system_and_messages(messages)
+        
+        # Use system_prompt from kwargs if provided, otherwise use extracted one
+        if system_prompt_kwarg:
+            system_prompt = system_prompt_kwarg
         
         # Build input messages with response API format
         input_messages = []
@@ -47,18 +57,20 @@ class ChatGPTAdapter(BaseLLMAdapter):
         
         # Convert tools to API format
         api_tools = []
-        for tool in tools:
-            if tool.type == "web_search_preview" or (hasattr(tool.type, 'value') and tool.type.value == "web_search_preview"):
-                api_tools.append({"type": "web_search_preview"})
-            elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
-                api_tools.append({"type": "image_generation"})
+        if tools:
+            for tool in tools:
+                if tool.type == "web_search_preview" or (hasattr(tool.type, 'value') and tool.type.value == "web_search_preview"):
+                    api_tools.append({"type": "web_search_preview"})
+                elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
+                    api_tools.append({"type": "image_generation"})
         
         # Only log tools in debug mode if needed
         # if api_tools:
         #     logger.debug(f"API tools: {api_tools}")
         
         # Use base method to extract allowed parameters
-        api_params = self._extract_api_params(kwargs, ["temperature", "max_tokens"])
+        # Note: responses API doesn't support max_tokens parameter
+        api_params = self._extract_api_params(kwargs, ["temperature"])
         
         # Make response API call
         try:

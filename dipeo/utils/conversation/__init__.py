@@ -9,7 +9,6 @@ from .memory_strategies import (
     MemoryStrategyFactory
 )
 from .message_formatter import MessageFormatter
-from .template_processor import TemplateProcessor
 from .forgetting_handler import OnEveryTurnHandler
 from .state_utils import (
     ConversationStateManager,
@@ -30,8 +29,6 @@ __all__ = [
     'MemoryStrategyFactory',
     # Message formatting
     'MessageFormatter',
-    # Template processing
-    'TemplateProcessor',
     # Forgetting handlers
     'OnEveryTurnHandler',
     # State management

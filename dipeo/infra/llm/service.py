@@ -85,6 +85,10 @@ class LLMInfraService(BaseService, LLMServicePort):
     ) -> ChatResult:
         """Make a call to the specified LLM service with retry logic."""
         try:
+            # Guard against None messages
+            if messages is None:
+                messages = []
+            
             # Infer service from model name
             service = LLMInfraService._infer_service_from_model(model)
             adapter = self._get_client(service, model, api_key_id)

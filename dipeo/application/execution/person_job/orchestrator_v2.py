@@ -1,5 +1,6 @@
 """Enhanced PersonJobOrchestrator that integrates with ConversationManager."""
 
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -8,7 +9,7 @@ from dipeo.core.dynamic import Person
 from dipeo.models import DomainDiagram, ForgettingMode, Message, PersonID
 from dipeo.utils.arrow import MemoryTransformer, unwrap_inputs
 from dipeo.utils.conversation.state_utils import ConversationStateManager
-from dipeo.utils.prompt import PromptBuilder
+from dipeo.application.utils.template import PromptBuilder
 
 from .conversation_processor import ConversationProcessingService
 from .output_builder import PersonJobOutputBuilder, PersonJobResult
@@ -16,6 +17,8 @@ from .output_builder import PersonJobOutputBuilder, PersonJobResult
 if TYPE_CHECKING:
     from dipeo.core.dynamic.conversation_manager import ConversationManager
     from dipeo.core.ports import LLMServicePort
+
+logger = logging.getLogger(__name__)
 
 
 class PersonJobOrchestratorV2:
@@ -33,7 +36,6 @@ class PersonJobOrchestratorV2:
         output_builder: PersonJobOutputBuilder,
         conversation_processor: ConversationProcessingService,
         memory_transformer: MemoryTransformer | None = None,
-        template_service: Any | None = None,
         conversation_manager: Optional["ConversationManager"] = None,
     ):
         self._prompt_builder = prompt_builder
@@ -42,7 +44,6 @@ class PersonJobOrchestratorV2:
         self._output_builder = output_builder
         self._conversation_processor = conversation_processor
         self._memory_transformer = memory_transformer
-        self._template_service = template_service
         self._conversation_manager = conversation_manager
         
         # Cache for Person objects
@@ -72,7 +73,7 @@ class PersonJobOrchestratorV2:
         # Create Person object
         person = Person(
             id=PersonID(person_id),
-            name=person_data.name,
+            name=person_data.label,
             llm_config=person_data.llm_config
         )
         
@@ -100,7 +101,6 @@ class PersonJobOrchestratorV2:
         diagram: DomainDiagram,
         execution_count: int,
         llm_client: "LLMServicePort",
-        template_service: Any,
         tools: list[Any] | None = None,
         conversation_service: Any | None = None,
         execution_id: str | None = None,
@@ -111,12 +111,14 @@ class PersonJobOrchestratorV2:
         person = self._get_or_create_person(person_id, diagram, conversation_service)
         
         # Handle memory transformation
+        logger.debug(f"Raw inputs for {person_id}: {list(inputs.keys())}")
         transformed_inputs = self._apply_memory_transformation(
             inputs, forget_mode, execution_count
         )
+        logger.debug(f"Transformed inputs for {person_id}: {list(transformed_inputs.keys())}")
         
         # Handle conversation inputs
-        if self._conversation_processor.has_conversation_input(transformed_inputs):
+        if self._conversation_processor.has_conversation_state_input(transformed_inputs, diagram):
             self._rebuild_conversation_from_inputs(
                 person, transformed_inputs, forget_mode
             )
@@ -138,15 +140,32 @@ class PersonJobOrchestratorV2:
             transformed_inputs
         )
         
+        # Debug logging
+        logger.debug(f"Template values for {person_id}: {template_values}")
+        logger.debug(f"Prompt: '{prompt}', First only: '{first_only_prompt}', Exec count: {execution_count}")
+        
         built_prompt = self._prompt_builder.build_prompt(
             default_prompt=prompt,
             first_only_prompt=first_only_prompt,
             execution_count=execution_count,
             template_values=template_values,
-            template_substitutor=template_service,
+            template_substitutor=None,
         )
         
+        logger.debug(f"Built prompt for {person_id}: '{built_prompt}'")
+        
+        # Skip execution if there's no prompt
+        if not built_prompt:
+            return PersonJobResult(
+                content="",
+                conversation_state={},
+                metadata={"skipped": True, "reason": "No prompt available"},
+                usage={},
+                tool_outputs=None
+            )
+        
         # Use Person's chat method if we have a proper LLM service
+        logger.debug(f"Checking llm_client: has 'complete'? {hasattr(llm_client, 'complete')}")
         if hasattr(llm_client, 'complete'):
             # Add user message
             user_message = Message(
@@ -165,17 +184,15 @@ class PersonJobOrchestratorV2:
                 person.add_message(user_message)
             
             # Execute with Person's chat method
+            logger.debug(f"Executing chat for {person_id} with message: '{user_message.content}'")
             result = await person.chat(
-                message="",  # Message already added
+                message=built_prompt,  # Pass the actual prompt
                 llm_service=llm_client,
                 from_person_id="system",
                 memory_config=None,  # Memory already handled
                 temperature=0.7,
                 max_tokens=4096,
-                tools=tools,
-                model=model,
-                api_key_id=api_key_id,
-                system_prompt=system_prompt
+                tools=tools
             )
             
             llm_result = LLMExecutionResult(
@@ -189,7 +206,21 @@ class PersonJobOrchestratorV2:
                 person, system_prompt, built_prompt
             )
             
-            llm_result = await self._llm_executor.execute_llm_call(
+            logger.debug(f"Prepared messages for {person_id}: {len(messages)} messages")
+            for i, msg in enumerate(messages):
+                logger.debug(f"  Message {i}: role={msg.get('role')}, content_len={len(msg.get('content', ''))}")
+            
+            # Skip if no messages or only empty messages
+            if not messages or all(not msg.get('content') for msg in messages):
+                return PersonJobResult(
+                    content="",
+                    conversation_state={},
+                    metadata={"skipped": True, "reason": "No prompt available"},
+                    usage={},
+                    tool_outputs=None
+                )
+            
+            llm_result = await self._llm_executor.execute(
                 messages=messages,
                 model=model,
                 api_key_id=api_key_id,
@@ -232,8 +263,9 @@ class PersonJobOrchestratorV2:
     ) -> dict[str, Any]:
         """Apply memory transformation to inputs."""
         if self._memory_transformer:
-            return self._memory_transformer.transform_inputs(
-                inputs, forget_mode, execution_count
+            return self._memory_transformer.transform_input(
+                inputs, "person_job", execution_count, 
+                {"forget_mode": forget_mode.value}
             )
         return unwrap_inputs(inputs)
     
@@ -365,14 +397,6 @@ class PersonJobOrchestratorV2:
         if props.memory_config and props.memory_config.forget_mode:
             forget_mode = ForgettingMode(props.memory_config.forget_mode)
         
-        # Use template service
-        template_service = self._template_service
-        if not template_service:
-            class SimpleTemplateService:
-                def substitute_template(self, template: str, variables: dict[str, Any]) -> str:
-                    return template
-            template_service = SimpleTemplateService()
-        
         # Execute with all parameters
         return await self.execute(
             person_id=person_id,
@@ -387,7 +411,6 @@ class PersonJobOrchestratorV2:
             diagram=diagram,
             execution_count=execution_count,
             llm_client=llm_client,
-            template_service=template_service,
             tools=props.tools,
             conversation_service=conversation_service,
             execution_id=execution_id,

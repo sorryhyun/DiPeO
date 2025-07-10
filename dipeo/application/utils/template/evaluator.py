@@ -3,28 +3,16 @@
 import ast
 import operator
 from typing import Any
-import warnings
 
 from dipeo.utils.template import TemplateProcessor
 from dipeo.models import DomainDiagram, NodeType
 
 
-class ConditionEvaluationService:
+class ConditionEvaluator:
     """Service for evaluating conditions in diagram execution."""
     
-    def __init__(self, template_service: Any = None):
-        """Initialize with TemplateProcessor.
-        
-        Args:
-            template_service: Legacy template service (deprecated)
-        """
-        if template_service is not None:
-            warnings.warn(
-                "Passing template_service to ConditionEvaluationService is deprecated. "
-                "It now uses the unified TemplateProcessor internally.",
-                DeprecationWarning,
-                stacklevel=2
-            )
+    def __init__(self):
+        """Initialize with TemplateProcessor."""
         self._processor = TemplateProcessor()
     
     def evaluate_max_iterations(
@@ -41,11 +29,16 @@ class ConditionEvaluationService:
         - Compare execution count against max_iteration setting
         - Return true only if all executed person_job nodes have reached max
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         if not diagram:
             return False
         
         found_person_job = False
         all_reached_max = True
+        
+        logger.debug(f"Evaluating max iterations. Node exec counts: {node_exec_counts}")
         
         for node in diagram.nodes:
             if node.type == NodeType.person_job.value:
@@ -66,9 +59,12 @@ class ConditionEvaluationService:
                 if exec_count > 0:
                     found_person_job = True
                     max_iter = int((node.data or {}).get("max_iteration", 1))
+                    logger.debug(f"Node {node.id}: exec_count={exec_count}, max_iter={max_iter}")
                     if exec_count < max_iter:
                         all_reached_max = False
                         break
+        
+        logger.debug(f"Max iterations result: found_person_job={found_person_job}, all_reached_max={all_reached_max}")
         
         # Return true only if we found at least one person_job AND all have reached max
         return found_person_job and all_reached_max

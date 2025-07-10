@@ -3,7 +3,7 @@
 from typing import Any, Dict, List, Optional
 
 from dipeo.models import ForgettingMode, DomainDiagram
-from dipeo.utils.prompt import PromptBuilder
+from dipeo.application.utils.template import PromptBuilder
 from dipeo.utils.conversation.state_utils import ConversationStateManager
 from dipeo.utils.conversation.message_formatter import MessageFormatter
 from dipeo.application.services.llm import LLMExecutor, LLMExecutionResult
@@ -27,7 +27,6 @@ class PersonJobOrchestrator:
         output_builder: PersonJobOutputBuilder,
         conversation_processor: ConversationProcessingService,
         memory_transformer: Optional[MemoryTransformer] = None,
-        template_service: Optional[Any] = None,
     ):
         self._prompt_builder = prompt_builder
         self._conversation_state_manager = conversation_state_manager
@@ -35,7 +34,6 @@ class PersonJobOrchestrator:
         self._output_builder = output_builder
         self._conversation_processor = conversation_processor
         self._memory_transformer = memory_transformer
-        self._template_service = template_service
     
     async def execute(
         self,
@@ -51,7 +49,6 @@ class PersonJobOrchestrator:
         diagram: DomainDiagram,
         execution_count: int,
         llm_client: Any,
-        template_service: Any,  # Template substitution service
         tools: Optional[List[Any]] = None,
         conversation_service: Optional[Any] = None,
         execution_id: Optional[str] = None,
@@ -97,7 +94,7 @@ class PersonJobOrchestrator:
             first_only_prompt=first_only_prompt,
             execution_count=execution_count,
             template_values=template_values,
-            template_substitutor=template_service,
+            template_substitutor=None,
         )
         
         # Step 4: Prepare messages
@@ -361,17 +358,6 @@ class PersonJobOrchestrator:
         if props.memory_config and props.memory_config.forget_mode:
             forget_mode = ForgettingMode(props.memory_config.forget_mode)
         
-        # Use the injected template service if available, otherwise use a simple passthrough
-        if self._template_service:
-            template_service = self._template_service
-        else:
-            # Fallback to simple passthrough if no template service injected
-            class SimpleTemplateService:
-                def substitute_template(self, template: str, variables: Dict[str, Any]) -> str:
-                    return template
-            
-            template_service = SimpleTemplateService()
-        
         # Execute with all parameters
         result = await self.execute(
             person_id=person_id,
@@ -386,7 +372,6 @@ class PersonJobOrchestrator:
             diagram=diagram,
             execution_count=execution_count,
             llm_client=llm_client,
-            template_service=template_service,
             tools=props.tools,
             conversation_service=conversation_service,
             execution_id=execution_id,

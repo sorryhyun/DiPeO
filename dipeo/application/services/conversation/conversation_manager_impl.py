@@ -157,6 +157,9 @@ class ConversationManagerImpl(ConversationManager):
         history = self.memory_service.get_conversation_history(person_id)
         conversation = self._conversations[person_id]
         
+        if history is None:
+            return
+        
         for msg_dict in history:
             # Convert legacy format to Message object
             message = self._dict_to_message(msg_dict, person_id)

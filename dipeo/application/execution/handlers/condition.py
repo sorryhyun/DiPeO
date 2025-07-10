@@ -57,14 +57,21 @@ class ConditionNodeHandler(BaseNodeHandler):
         
         # Evaluate condition based on type
         if props.condition_type == "detect_max_iterations":
+            # Debug logging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Detect max iterations: has node_outputs={hasattr(context, 'node_outputs')}, executed_nodes={context.executed_nodes if hasattr(context, 'executed_nodes') else 'N/A'}")
+            
             # Use new approach with NodeOutput data if available
             if hasattr(context, 'node_outputs') and context.executed_nodes:
                 # New approach: Use executed_nodes and node outputs
+                logger.debug("Using new approach with NodeOutput data")
                 result = self._evaluate_max_iterations_with_outputs(
                     evaluation_service, diagram, context, props
                 )
             else:
                 # Fallback to old approach for backward compatibility
+                logger.debug("Using fallback approach")
                 execution_states = self._extract_execution_states(context)
                 node_exec_counts = self._extract_node_exec_counts(context)
                 
@@ -89,14 +96,19 @@ class ConditionNodeHandler(BaseNodeHandler):
             # Default to false for unknown condition types
             result = False
 
+        # Debug logging for condition result
+        logger.debug(f"Condition result: {result}, inputs: {inputs}")
+        
         # Output data to the appropriate branch based on condition result
         # Only create output for the active branch to prevent execution of the inactive branch
         if result:
             # When condition is true, output goes to "true" branch only
             output_value = {"condtrue": inputs if inputs else {}}
+            logger.debug("Outputting to condtrue branch")
         else:
             # When condition is false, output goes to "false" branch only
             output_value = {"condfalse": inputs if inputs else {}}
+            logger.debug("Outputting to condfalse branch")
         
         return create_node_output(
             output_value, 
@@ -122,6 +134,11 @@ class ConditionNodeHandler(BaseNodeHandler):
     
     def _extract_node_exec_counts(self, context: ExecutionContextPort) -> dict[str, int] | None:
         """Extract node execution counts from context."""
+        # Try to get exec counts from UnifiedExecutionContext
+        if hasattr(context, '_exec_counts'):
+            return context._exec_counts
+        
+        # Fallback: try to get from service (for backward compatibility)
         exec_info_service = context.get_service('node_exec_counts')
         if exec_info_service:
             return exec_info_service
@@ -164,9 +181,17 @@ class ConditionNodeHandler(BaseNodeHandler):
                 exec_count = context.get_node_execution_count(node.id)
                 max_iter = int(node.data.get("max_iteration", 1))
                 
+                # Debug logging
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Condition check for {node.id}: exec_count={exec_count}, max_iter={max_iter}")
+                
                 if exec_count < max_iter:
                     all_reached_max = False
                     break
+        
+        # Debug logging for final result
+        logger.debug(f"Max iterations evaluation: found_executed={found_executed}, all_reached_max={all_reached_max}")
         
         # Return true only if we found at least one executed person_job 
         # AND all executed ones have reached max iterations

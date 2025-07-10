@@ -165,6 +165,8 @@ class ConversationMemoryServiceV2(BaseService, SupportsMemory):
             
             history = self.memory_service.get_conversation_history(person_id)
             messages = []
+            if history is None:
+                return messages
             for msg in history:
                 if msg.get("execution_id") == self.current_execution_id:
                     messages.append({

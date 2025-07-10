@@ -149,8 +149,18 @@ class PersonJobNodeHandler(BaseNodeHandler):
         # Build metadata
         metadata = {}
         if result.usage:
-            metadata["tokens_used"] = result.usage.get("total", 0)
-            metadata["token_usage"] = result.usage
+            # Handle both dict and object formats for usage
+            if isinstance(result.usage, dict):
+                metadata["tokens_used"] = result.usage.get("total", 0)
+                metadata["token_usage"] = result.usage
+            else:
+                # Assume it's a TokenUsage object with attributes
+                metadata["tokens_used"] = getattr(result.usage, "total", 0)
+                metadata["token_usage"] = {
+                    "input": getattr(result.usage, "input", getattr(result.usage, "prompt", 0)),
+                    "output": getattr(result.usage, "output", getattr(result.usage, "completion", 0)),
+                    "cached": getattr(result.usage, "cached", 0)
+                }
             metadata["model"] = result.metadata.get("model") if result.metadata else "gpt-4.1-nano"
         if result.metadata:
             metadata.update(result.metadata)

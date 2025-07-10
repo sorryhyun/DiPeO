@@ -47,6 +47,10 @@ class BaseLLMAdapter(ABC):
         Returns:
             ChatResult with the completion response
         """
+        # Guard against None messages
+        if messages is None:
+            messages = []
+        
         # Extract LLMRequestOptions if provided
         options = kwargs.get('options', None)
         if isinstance(options, LLMRequestOptions):
@@ -83,6 +87,10 @@ class BaseLLMAdapter(ABC):
         """
         system_prompt = ""
         processed_messages = []
+        
+        # Guard against None messages
+        if messages is None:
+            return system_prompt, processed_messages
         
         for msg in messages:
             role = msg.get("role", "user")

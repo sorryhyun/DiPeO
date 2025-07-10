@@ -41,27 +41,31 @@ class FlowControlService:
         """
         # Check if node can still execute
         if not self.can_node_execute(node, node_exec_counts):
+            log.debug(f"Node {node.id} cannot execute - exceeded max iterations")
             return False
         
         # Check if node has already executed
         exec_count = node_exec_counts.get(node.id, 0) if node_exec_counts else 0
         if exec_count > 0:
-            # Only apply the new input check to nodes that support multiple iterations
-            # This prevents single-execution nodes from being blocked
+            # Check if node has reached its max iterations
             if node.type == NodeType.person_job and node.data:
                 max_iter = node.data.get("max_iteration", 1)
-                if max_iter > 1:
-                    # For nodes that have executed and support multiple iterations,
-                    # check if they have new inputs
-                    if not self._has_new_inputs_since_last_execution(
-                        node, diagram, executed_nodes, node_outputs, exec_count
-                    ):
-                        return False
+                if exec_count >= max_iter:
+                    # Node has reached its max iterations
+                    log.debug(f"Node {node.id} has reached max iterations: exec_count={exec_count}, max_iter={max_iter}")
+                    return False
+                
+                # For nodes that support multiple iterations and haven't reached max,
+                # always allow re-execution if dependencies are satisfied
+                # This enables iteration loops to work properly
+                log.debug(f"Node {node.id} can iterate: exec_count={exec_count}, max_iter={max_iter}")
         
         # Check dependencies
-        return self._are_dependencies_satisfied(
+        deps_satisfied = self._are_dependencies_satisfied(
             node, diagram, executed_nodes, node_outputs, node_exec_counts
         )
+        log.debug(f"Node {node.id} deps_satisfied={deps_satisfied}")
+        return deps_satisfied
     
     def get_ready_nodes(
         self,
@@ -286,6 +290,59 @@ class FlowControlService:
         
         return find_path(start_node_id, end_node_id, set(), []) or []
     
+    def _is_node_in_iteration_loop(self, node: DomainNode, diagram: DomainDiagram) -> bool:
+        """Check if a node is part of an iteration loop controlled by a condition node.
+        
+        A node is in an iteration loop if there's a path:
+        node -> ... -> condition node -> ... -> node
+        """
+        # Find all condition nodes in the diagram
+        condition_nodes = [n for n in diagram.nodes if n.type == NodeType.condition]
+        if not condition_nodes:
+            return False
+        
+        # Check if there's a path from this node through a condition node back to itself
+        for condition_node in condition_nodes:
+            # Check if there's a path from node to condition
+            if self._has_path(node.id, condition_node.id, diagram):
+                # Check if there's a path from condition back to node
+                # (via condfalse output for detect_max_iterations)
+                for arrow in diagram.arrows:
+                    source_parts = arrow.source.split('_')
+                    if len(source_parts) >= 2 and source_parts[0] == condition_node.id and source_parts[1] == 'condfalse':
+                        # This arrow comes from condition's false output
+                        target_node_id = extract_node_id_from_handle(arrow.target)
+                        if target_node_id == node.id or self._has_path(target_node_id, node.id, diagram):
+                            return True
+        
+        return False
+    
+    def _has_path(self, from_node_id: str, to_node_id: str, diagram: DomainDiagram) -> bool:
+        """Check if there's a path from one node to another."""
+        if from_node_id == to_node_id:
+            return True
+        
+        visited = set()
+        queue = [from_node_id]
+        
+        while queue:
+            current = queue.pop(0)
+            if current in visited:
+                continue
+            visited.add(current)
+            
+            # Find all nodes reachable from current
+            for arrow in diagram.arrows:
+                source_node_id = extract_node_id_from_handle(arrow.source)
+                if source_node_id == current:
+                    target_node_id = extract_node_id_from_handle(arrow.target)
+                    if target_node_id == to_node_id:
+                        return True
+                    if target_node_id not in visited:
+                        queue.append(target_node_id)
+        
+        return False
+    
     def _has_new_inputs_since_last_execution(
         self,
         node: DomainNode,
@@ -307,26 +364,33 @@ class FlowControlService:
         # 1. There's a path from this node to another node and back, OR
         # 2. The node has a self-loop
         
+        log.debug(f"Checking new inputs for {node.id}, executed_nodes: {executed_nodes}")
+        
         # First, check for self-loops
         for arrow in diagram.arrows:
             source_node_id = extract_node_id_from_handle(arrow.source)
             target_node_id = extract_node_id_from_handle(arrow.target)
             if source_node_id == node.id and target_node_id == node.id:
+                log.debug(f"Node {node.id} has self-loop")
                 return True
         
         # For person_job nodes, check if there's a feedback loop through downstream nodes
         if node.type == NodeType.person_job:
             # Check if any downstream nodes have executed and have paths back to this node
             downstream_nodes = self.get_next_nodes(node.id, diagram)
+            log.debug(f"Node {node.id} downstream nodes: {downstream_nodes}")
             
             for downstream_id in downstream_nodes:
                 if downstream_id in executed_nodes:
                     # Check if this downstream node has a path back to our node
                     # This would indicate a feedback loop
-                    if self._has_path_from_to(diagram, downstream_id, node.id):
+                    has_path_back = self._has_path_from_to(diagram, downstream_id, node.id)
+                    log.debug(f"Path from {downstream_id} to {node.id}: {has_path_back}")
+                    if has_path_back:
                         return True
         
         # No feedback loop found - node should not execute again
+        log.debug(f"No feedback loop found for {node.id}")
         return False
     
     def _has_path_from_to(self, diagram: DomainDiagram, from_id: str, to_id: str) -> bool:
@@ -392,10 +456,36 @@ class FlowControlService:
         - Start nodes have no dependencies
         - Person job nodes with "first" handle only need inputs on first execution
         - All other nodes need all their dependencies executed
+        - Nodes depending on condition outputs need the correct branch
         """
         # Start nodes have no dependencies
         if node.type == NodeType.start:
             return True
+        
+        # Check condition branch dependencies
+        for arrow in diagram.arrows:
+            target_node_id = extract_node_id_from_handle(arrow.target)
+            if target_node_id == node.id:
+                source_node_id, source_handle, _ = parse_handle_id(arrow.source)
+                
+                # Check if this is from a condition node
+                source_node = next((n for n in diagram.nodes if n.id == source_node_id), None)
+                if source_node and source_node.type == NodeType.condition:
+                    # This node depends on a condition output
+                    if source_node_id not in executed_nodes:
+                        log.debug(f"Node {node.id} depends on unexecuted condition {source_node_id}")
+                        return False
+                    
+                    # Check if the condition output matches the required branch
+                    condition_output = node_outputs.get(source_node_id)
+                    if condition_output and hasattr(condition_output, 'value'):
+                        # Check if the condition outputted to the correct branch
+                        if source_handle.value == "condtrue" and "condtrue" not in condition_output.value:
+                            log.debug(f"Node {node.id} requires condtrue but condition outputted false")
+                            return False
+                        elif source_handle.value == "condfalse" and "condfalse" not in condition_output.value:
+                            log.debug(f"Node {node.id} requires condfalse but condition outputted true")
+                            return False
         
         # Get dependencies for this node
         dependency_nodes = self.get_node_dependencies(node, diagram, node_exec_counts)

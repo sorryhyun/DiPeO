@@ -40,26 +40,6 @@ class ExecutionEngine:
         self._concurrency_semaphore: asyncio.Semaphore | None = None
         self.node_executor = NodeExecutor(service_registry, observers)
     
-    async def execute(
-        self,
-        diagram: "DomainDiagram",
-        execution_id: str,
-        options: dict[str, Any],
-        interactive_handler: Any | None = None,
-    ) -> AsyncIterator[dict[str, Any]]:
-        """Execute diagram - DEPRECATED.
-        
-        This method is deprecated and only kept for backward compatibility.
-        All diagram preparation and setup should be done in the service layer
-        (ExecuteDiagramUseCase) before calling execute_prepared.
-        
-        Since local execution is not supported, this method should not be used.
-        """
-        raise NotImplementedError(
-            "Direct execution via ExecutionEngine.execute() is deprecated. "
-            "Use ExecuteDiagramUseCase for server execution with proper setup and persistence."
-        )
-    
     async def execute_prepared(
         self,
         diagram: "DomainDiagram",

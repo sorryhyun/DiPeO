@@ -6,6 +6,7 @@ from dipeo.application import BaseNodeHandler, register_handler
 from dipeo.core.application.context.execution_context import ExecutionContextPort
 from dipeo.application.utils import create_node_output
 from dipeo.models import EndpointNodeData, NodeOutput
+from dipeo.utils.arrow import unwrap_inputs
 from pydantic import BaseModel
 
 

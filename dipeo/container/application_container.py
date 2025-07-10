@@ -57,7 +57,6 @@ def _create_service_registry(
     registry.register("template_service", template_service)
     
     # Person job services - Register orchestrator as the main service
-    registry.register("prompt_service", person_job_services["prompt_service"])
     registry.register("conversation_processor", person_job_services["conversation_processor"])
     registry.register("output_builder", person_job_services["output_builder"])
     
