@@ -16,6 +16,8 @@ from .nodes import (
     HookNode,
     create_executable_node
 )
+from .diagram_compiler import DiagramCompiler, DiagramValidator
+from .node_handler import NodeHandler, StatefulNodeHandler, NodeRegistry
 
 __all__ = [
     # Diagram structures
@@ -38,5 +40,12 @@ __all__ = [
     "HookNode",
     
     # Factory
-    "create_executable_node"
+    "create_executable_node",
+    
+    # Protocols
+    "DiagramCompiler",
+    "DiagramValidator",
+    "NodeHandler",
+    "StatefulNodeHandler",
+    "NodeRegistry"
 ]

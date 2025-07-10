@@ -20,9 +20,7 @@ from dipeo.models import (
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from dipeo.domain.services.conversation.simple_service import (
-        ConversationMemoryService,
-    )
+    from dipeo.application.services.conversation import ConversationMemoryService
 
 # PersonBatchJobNodeData is a type alias for PersonJobNodeData in TypeScript
 # but not generated in Python, so we create it here

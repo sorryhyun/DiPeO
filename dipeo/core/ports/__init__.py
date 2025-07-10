@@ -20,7 +20,7 @@ These were relocated because they represent internal application/domain logic,
 not interfaces to external infrastructure (which is what true hexagonal ports are for).
 """
 
-from .apikey_storage import APIKeyStoragePort
+from .apikey_port import APIKeyPort
 from .file_service import FileServicePort
 from .llm_service import LLMServicePort
 from .message_router import MessageRouterPort
@@ -28,7 +28,7 @@ from .notion_service import NotionServicePort
 from .state_store import StateStorePort
 
 __all__ = [
-    "APIKeyStoragePort",
+    "APIKeyPort",
     "FileServicePort",
     "LLMServicePort",
     "MessageRouterPort",

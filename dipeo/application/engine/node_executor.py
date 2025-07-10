@@ -11,9 +11,9 @@ from typing import TYPE_CHECKING, Any, Optional
 from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage, DomainDiagram
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.context import ApplicationExecutionContext
+    from dipeo.application.execution.context import UnifiedExecutionContext
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.domain.services.execution.protocols import ExecutionObserver
+    from dipeo.application.execution.protocols import ExecutionObserver
     from dipeo.models import ExecutionState
 
     from .execution_controller import ExecutionController
@@ -167,17 +167,17 @@ class NodeExecutor:
         execution_id: str,
         options: dict[str, Any],
         controller: "ExecutionController"
-    ) -> "ApplicationExecutionContext":
+    ) -> "UnifiedExecutionContext":
         """Create runtime context for node execution.
         
-        Builds an ApplicationExecutionContext with:
+        Builds a UnifiedExecutionContext with:
         - Current execution state
         - Node outputs collected so far
         - Service registry reference
         - Execution metadata
         """
         from dipeo.application.execution.context import (
-            ApplicationExecutionContext,
+            UnifiedExecutionContext,
         )
         
         # Get execution state from controller's state adapter
@@ -186,8 +186,8 @@ class NodeExecutor:
             
         execution_state = controller.state_adapter.execution_state
         
-        # Create ApplicationExecutionContext with the existing state
-        return ApplicationExecutionContext(
+        # Create UnifiedExecutionContext with the existing state
+        return UnifiedExecutionContext(
             execution_state=execution_state,
             service_registry=self.service_registry,
             current_node_id=node_id,

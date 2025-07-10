@@ -7,19 +7,17 @@ from strawberry.fastapi import BaseContext
 
 if TYPE_CHECKING:
     from dipeo_server.application.container import ServerContainer
-    from dipeo.application.services.minimal_state_store import MinimalStateStore
-    from dipeo.application.services.minimal_message_router import MinimalMessageRouter
+    from dipeo_server.infra.persistence.state_registry import StateRegistry
+    from dipeo.infra import MessageRouter
     from dipeo.infra.persistence.file import ModularFileService
     from dipeo.infra.llm import LLMInfraService
     from dipeo.infra.adapters.notion import NotionAPIService
     from dipeo.infra.services.api import APIService
     from dipeo.infra.services.file import FileOperationsService
-    from dipeo.domain.services.apikey import APIKeyDomainService
-    from dipeo.domain.services.conversation.simple_service import (
-        ConversationMemoryService,
-    )
+    from dipeo.application.services.apikey import APIKeyService
+    from dipeo.application.services.conversation import ConversationMemoryService
     from dipeo.infra.persistence.diagram import DiagramFileRepository
-    from dipeo.domain.services.diagram.domain_service import DiagramStorageDomainService
+    from dipeo.application.services.diagram import DiagramService as DiagramStorageDomainService
     from dipeo.infra.database import DBOperationsDomainService
     from dipeo.application.execution.flow_control_service import FlowControlService
     from dipeo.application.execution.use_cases import (
@@ -47,11 +45,16 @@ class GraphQLContext(BaseContext):
 
     # Properties for backward compatibility - access services through container
     @property
-    def state_store(self) -> "MinimalStateStore":
-        return self.container.infra.state_store()
+    def state_store(self) -> "StateRegistry":
+        import logging
+        logger = logging.getLogger(__name__)
+        result = self.container.infra.state_store()
+        logger.info(f"Getting state_store from container: {result}")
+        logger.info(f"Container infra type: {type(self.container.infra)}")
+        return result
 
     @property
-    def message_router(self) -> "MinimalMessageRouter":
+    def message_router(self) -> "MessageRouter":
         return self.container.infra.message_router()
 
     @property
@@ -75,7 +78,7 @@ class GraphQLContext(BaseContext):
         return self.container.infra.file_operations_service()
 
     @property
-    def api_key_service(self) -> "APIKeyDomainService":
+    def api_key_service(self) -> "APIKeyService":
         return self.container.domain.api_key_service()
 
     @property

@@ -32,6 +32,15 @@ class ExecutionMutations:
             context: GraphQLContext = info.context
             execution_service = context.execution_service
             state_store = context.state_store
+            
+            # Debug logging
+            logger.info(f"Context type: {type(context)}")
+            logger.info(f"State store value: {state_store}")
+            logger.info(f"State store type: {type(state_store)}")
+            
+            if state_store is None:
+                logger.error("State store is None!")
+                return ExecutionResult(success=False, error="State store not initialized")
 
             if data.diagram_data:
                 # The execution service will validate as DomainDiagram which expects lists

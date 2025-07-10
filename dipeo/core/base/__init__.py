@@ -9,7 +9,6 @@ from .exceptions import (
 )
 from .protocols import (
     SupportsAPIKey,
-    SupportsDiagram,
     SupportsExecution,
     SupportsMemory,
 )
@@ -27,7 +26,6 @@ __all__ = [
     "ExecutionError",
     # Protocols
     "SupportsAPIKey",
-    "SupportsDiagram",
     "SupportsExecution",
     "SupportsMemory",
     # New unified protocol

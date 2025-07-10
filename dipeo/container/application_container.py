@@ -63,7 +63,6 @@ def _create_service_registry(
     # New focused services
     registry.register("prompt_builder", person_job_services["prompt_builder"])
     registry.register("conversation_state_manager", person_job_services["conversation_state_manager"])
-    registry.register("message_builder", person_job_services["message_builder"])
     registry.register("llm_executor", person_job_services["llm_executor"])
     registry.register("person_job_orchestrator", person_job_services["person_job_orchestrator"])
     

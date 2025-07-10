@@ -5,7 +5,7 @@ import logging
 
 from dipeo.models import DomainDiagram, DomainNode, NodeID, NodeType
 from dipeo.core.static import ExecutableDiagram, ExecutableNode
-from dipeo.utils.validation import ValidationRules, ValidationIssue, ValidationSeverity
+from dipeo.utils.validation.validation_rules import ValidationRules, ValidationIssue, ValidationSeverity
 
 from .handle_resolver import HandleResolver
 from .arrow_transformer import ArrowTransformer

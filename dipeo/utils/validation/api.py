@@ -1,6 +1,6 @@
-"""API validation for integrations."""
+"""API validation utilities for integrations."""
 
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 import re
 import json
 from urllib.parse import urlparse

@@ -1,5 +1,7 @@
-"""Execution state management."""
+"""Execution state management components."""
 
-from .state_machine import ExecutionStateMachine, ExecutionState
+from .execution_coordinator import UnifiedExecutionCoordinator
 
-__all__ = ["ExecutionStateMachine", "ExecutionState"]
+__all__ = [
+    "UnifiedExecutionCoordinator",
+]

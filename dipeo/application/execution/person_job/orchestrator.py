@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional
 from dipeo.models import ForgettingMode, DomainDiagram
 from dipeo.utils.prompt import PromptBuilder
 from dipeo.application.state.conversation_state_manager import ConversationStateManager
-from dipeo.application.utils.conversation_utils import MessageBuilder
-from dipeo.domain.services.llm.executor import LLMExecutor, LLMExecutionResult  # TODO: Move to infra/llm
+from dipeo.utils.conversation.message_formatter import MessageFormatter
+from dipeo.application.services.llm import LLMExecutor, LLMExecutionResult
 from dipeo.utils.arrow import MemoryTransformer, unwrap_inputs
 
 from .output_builder import PersonJobOutputBuilder, PersonJobResult
@@ -23,7 +23,6 @@ class PersonJobOrchestrator:
         self,
         prompt_builder: PromptBuilder,
         conversation_state_manager: ConversationStateManager,
-        message_builder: MessageBuilder,
         llm_executor: LLMExecutor,
         output_builder: PersonJobOutputBuilder,
         conversation_processor: ConversationProcessingService,
@@ -32,7 +31,6 @@ class PersonJobOrchestrator:
     ):
         self._prompt_builder = prompt_builder
         self._conversation_state_manager = conversation_state_manager
-        self._message_builder = message_builder
         self._llm_executor = llm_executor
         self._output_builder = output_builder
         self._conversation_processor = conversation_processor
@@ -214,7 +212,7 @@ class PersonJobOrchestrator:
         # NOT apply forgetting strategy here.
         
         # Prepare final messages
-        return MessageBuilder.prepare_messages(
+        return MessageFormatter.prepare_messages(
             system_prompt=system_prompt,
             conversation_messages=conversation_messages,
             current_prompt=built_prompt,

@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo.core import BaseService, SupportsExecution
 
-from dipeo.domain.services.execution.observers import StreamingObserver
-from dipeo.domain.services.execution.state_machine import ExecutionStateMachine
+from dipeo.application.execution.observers import StreamingObserver
+from dipeo.application.execution.state import UnifiedExecutionCoordinator
 
 if TYPE_CHECKING:
     from dipeo.core.ports.state_store import StateStorePort
@@ -32,6 +32,9 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         self.state_store = state_store
         self.message_router = message_router
         self.diagram_storage_service = diagram_storage_service
+        self.coordinator = UnifiedExecutionCoordinator(
+            service_registry=service_registry
+        )
 
     async def initialize(self):
         """Initialize the service."""
@@ -83,7 +86,7 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
                 # Update state to running
                 state = await self.state_store.get_state(execution_id)
                 if state:
-                    ExecutionStateMachine.transition_to_running(state)
+                    self.coordinator.transition_to_running(state)
                     await self.state_store.save_state(state)
                 
                 async for _ in engine.execute_prepared(
@@ -289,9 +292,9 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
         state = await self.state_store.get_state(execution_id)
         if state:
             if status == ExecutionStatus.COMPLETED:
-                ExecutionStateMachine.transition_to_completed(state)
+                self.coordinator.transition_to_completed(state)
             elif status == ExecutionStatus.FAILED:
-                ExecutionStateMachine.transition_to_failed(state, error or "Unknown error")
+                self.coordinator.transition_to_failed(state, error or "Unknown error")
             
             # Save final state
             await self.state_store.save_state(state)

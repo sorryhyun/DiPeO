@@ -1,7 +1,8 @@
 """Domain modules."""
 
 # Re-export domain modules as they're moved
-from .execution import InputResolutionService
+# InputResolutionService moved to application layer
+InputResolutionService = None
 # FlowControlService moved to application layer
 FlowControlService = None
 

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from dipeo.models import NodeOutput, NodeState, NodeExecutionStatus, ExecutionState
-from dipeo.domain.services.execution.state_machine import ExecutionStateMachine
+from dipeo.application.execution.state import UnifiedExecutionCoordinator
 
 if TYPE_CHECKING:
     from dipeo.core.ports.state_store import StateStorePort
@@ -24,11 +24,12 @@ class ApplicationExecutionState:
     """
     
     execution_state: ExecutionState
+    coordinator: UnifiedExecutionCoordinator
     state_store: Optional["StateStorePort"] = None
     
     def get_node_exec_count(self, node_id: str) -> int:
         """Get execution count for a node."""
-        return ExecutionStateMachine.get_node_exec_count(self.execution_state, node_id)
+        return self.coordinator.get_node_exec_count(self.execution_state, node_id)
     
     def get_node_max_iterations(self, node_id: str) -> int:
         """Get max iterations for a node."""
@@ -40,7 +41,7 @@ class ApplicationExecutionState:
     
     def can_node_execute(self, node_id: str) -> bool:
         """Check if node can execute."""
-        return ExecutionStateMachine.can_node_execute(self.execution_state, node_id)
+        return self.coordinator.can_node_execute(self.execution_state, node_id)
     
     def get_node_output(self, node_id: str) -> Optional[NodeOutput]:
         """Get output for a node."""
@@ -68,13 +69,13 @@ class ApplicationExecutionState:
         """Update node state in domain model."""
         # Initialize node state if it doesn't exist
         if node_id not in self.execution_state.node_states:
-            ExecutionStateMachine.initialize_node_state(
+            self.coordinator.initialize_node_state(
                 self.execution_state, node_id, node_type, max_iterations
             )
         
         # Execute node if requested
         if increment_exec_count:
-            ExecutionStateMachine.execute_node(
+            self.coordinator.execute_node_state(
                 self.execution_state, node_id, output
             )
         elif output:
@@ -90,8 +91,8 @@ class ApplicationExecutionState:
     
     def get_executed_nodes(self) -> set[str]:
         """Get set of executed node IDs."""
-        return ExecutionStateMachine.get_executed_nodes(self.execution_state)
+        return self.coordinator.get_executed_nodes(self.execution_state)
     
     def is_endpoint_executed(self) -> bool:
         """Check if any endpoint node has been executed."""
-        return ExecutionStateMachine.is_endpoint_executed(self.execution_state)
+        return self.coordinator.is_endpoint_executed(self.execution_state)

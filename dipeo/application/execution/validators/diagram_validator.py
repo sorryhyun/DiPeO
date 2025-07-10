@@ -5,11 +5,11 @@ from typing import Any
 from dipeo.core import ValidationError
 from dipeo.models import DomainDiagram
 
-from dipeo.domain.services.apikey import APIKeyDomainService
+from dipeo.application.services.apikey import APIKeyService
 
 
 class DiagramValidator:
-    def __init__(self, api_key_service: APIKeyDomainService | None = None):
+    def __init__(self, api_key_service: APIKeyService | None = None):
         self.api_key_service = api_key_service
 
     def validate(

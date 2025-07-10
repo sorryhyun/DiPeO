@@ -548,3 +548,7 @@ class StateRegistry:
 
 
 state_store = StateRegistry()
+
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"Created state_store singleton: {state_store}")

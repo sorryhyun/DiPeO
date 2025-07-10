@@ -102,9 +102,10 @@ class ExecutionService(BaseService):
         if state and state.is_active:
             # Update state to cancelled
             from dipeo.models import ExecutionStatus
-            from dipeo.domain.services.execution.state_machine import ExecutionStateMachine
             
-            ExecutionStateMachine.transition_to_failed(state)
+            # Use coordinator from the use case
+            if self._diagram_use_case:
+                self._diagram_use_case.coordinator.transition_to_failed(state, "Execution cancelled")
             await self.state_store.save_state(state)
             
             # Send cancellation message

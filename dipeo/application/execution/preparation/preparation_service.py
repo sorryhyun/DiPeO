@@ -12,11 +12,11 @@ from dipeo.diagram import (
 )
 from dipeo.models import DiagramMetadata, DomainDiagram
 
-from ..apikey import APIKeyDomainService
-from ..diagram import DiagramStorageDomainService
+from dipeo.application.services.apikey import APIKeyService as APIKeyDomainService
+from dipeo.application.services.diagram import DiagramService as DiagramStorageDomainService
 
-from .models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
-from .validators import DiagramValidator
+from ..models import ExecutionHint, ExecutionHints, ExecutionReadyDiagram
+from ..validators import DiagramValidator
 
 logger = logging.getLogger(__name__)
 

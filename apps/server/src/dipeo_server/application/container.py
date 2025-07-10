@@ -15,17 +15,15 @@ from dipeo.core.ports import (
     LLMServicePort,
     NotionServicePort,
 )
-from dipeo.domain.services.apikey import APIKeyDomainService
-from dipeo.domain.services.conversation.simple_service import ConversationMemoryService
+from dipeo.application.services.apikey import APIKeyService
+from dipeo.application.services.conversation import ConversationMemoryService
 from dipeo.infra.database import DBOperationsDomainService
-from dipeo.domain.services.diagram import DiagramDomainService
+from dipeo.utils.diagram import DiagramBusinessLogic as DiagramDomainService
 from dipeo.infra.persistence.diagram import (
     DiagramFileRepository,
     DiagramStorageAdapter,
 )
-from dipeo.domain.services.execution.preparation_service import (
-    PrepareDiagramForExecutionUseCase,
-)
+from dipeo.application.execution.preparation import PrepareDiagramForExecutionUseCase
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
 from dipeo.utils.text import TextProcessingDomainService
@@ -46,63 +44,9 @@ from dipeo.infra.persistence.memory import InMemoryConversationStore
 
 class ServerContainer(BaseContainer):
     """Server-specific dependency injection container."""
-
-    # Override providers in init method to ensure proper initialization
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Override infrastructure providers
-        self.infra.override_providers(
-            state_store=providers.Singleton(lambda: state_store),
-            message_router=providers.Singleton(MessageRouter),
-            file_service=providers.Singleton(
-                ModularFileService,
-                base_dir=providers.Factory(lambda: BASE_DIR),
-            ),
-            memory_service=providers.Singleton(InMemoryConversationStore),
-            notion_service=providers.Singleton(NotionAPIService),
-        )
-
-        # Override infra providers to set api key storage path
-        self.infra.override_providers(
-            api_key_storage=providers.Singleton(
-                _create_api_key_storage,
-                store_file=providers.Factory(
-                    lambda: str(Path(BASE_DIR) / "files" / "apikeys.json")
-                ),
-            ),
-        )
-
-        # Override domain providers
-        self.domain.override_providers(
-            diagram_domain_service=providers.Singleton(DiagramDomainService),
-            diagram_storage_service=providers.Singleton(
-                DiagramFileRepository,
-                domain_service=self.domain.diagram_domain_service,
-                base_dir=providers.Factory(lambda: BASE_DIR),
-            ),
-            diagram_storage_adapter=providers.Singleton(
-                DiagramStorageAdapter,
-                file_repository=self.domain.diagram_storage_service,
-                domain_service=self.domain.diagram_domain_service,
-            ),
-            validation_service=providers.Singleton(ValidationDomainService),
-            text_processing_service=providers.Singleton(TextProcessingDomainService),
-            conversation_service=providers.Singleton(
-                ConversationMemoryService,
-                memory_service=self.infra.memory_service,
-            ),
-        )
-
-        # Override application providers
-        self.application.override_providers(
-            execution_preparation_service=providers.Singleton(
-                PrepareDiagramForExecutionUseCase,
-                storage_service=self.domain.diagram_storage_service,
-                validator=self.domain.validation_service,
-                api_key_service=self.domain.api_key_service,
-            )
-        )
+    
+    # We'll override providers in the app_context after instantiation
+    pass
 
 
 async def init_server_resources(container: ServerContainer) -> None:

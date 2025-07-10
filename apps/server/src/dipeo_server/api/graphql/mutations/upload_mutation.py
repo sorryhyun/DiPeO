@@ -17,7 +17,7 @@ from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
 )
-from dipeo.domain.services.apikey import APIKeyDomainService
+from dipeo.application.services.apikey import APIKeyService
 from strawberry.file_uploads import Upload
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_diagram(
-    diagram: DomainDiagram, api_key_service: APIKeyDomainService | None = None
+    diagram: DomainDiagram, api_key_service: APIKeyService | None = None
 ) -> list[str]:
     """Validates diagram structure, returns error list."""
     errors = []
@@ -222,7 +222,7 @@ class UploadMutations:
             validation_errors = validate_diagram(
                 domain_diagram,
                 context.api_key_service
-                if isinstance(context.api_key_service, APIKeyDomainService)
+                if isinstance(context.api_key_service, APIKeyService)
                 else None,
             )
 

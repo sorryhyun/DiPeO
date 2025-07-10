@@ -9,7 +9,6 @@ from .base.exceptions import (
 )
 from .base.protocols import (
     SupportsAPIKey,
-    SupportsDiagram,
     SupportsExecution,
     SupportsMemory,
 )
@@ -75,7 +74,6 @@ __all__ = [
     "ConfigurationError",
     # Protocols
     "SupportsAPIKey",
-    "SupportsDiagram",
     "SupportsExecution",
     "SupportsMemory",
     # Base classes

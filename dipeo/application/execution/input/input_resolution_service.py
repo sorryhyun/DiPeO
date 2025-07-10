@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 import logging
 
 from dipeo.models import DomainDiagram, DomainArrow, NodeType, NodeOutput
-from .interfaces import ArrowProcessorProtocol
+from ..protocols.interfaces import ArrowProcessorProtocol
 
 log = logging.getLogger(__name__)
 

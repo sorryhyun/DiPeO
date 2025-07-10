@@ -1,7 +1,18 @@
-"""Integration domain services."""
+"""Integration domain services - Deprecated, use new locations instead."""
 
-from .api_validator import APIValidator
-from .data_transformer import DataTransformer
+import warnings
+
+# Import from new locations
+from dipeo.utils.validation import APIValidator
+from .data_transformer import DataTransformer  # Already a wrapper to utils
+
+warnings.warn(
+    "dipeo.domain.services.integration is deprecated. "
+    "Use dipeo.utils.validation for APIValidator and "
+    "dipeo.utils.transform for DataTransformer.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 __all__ = [
     'APIValidator',

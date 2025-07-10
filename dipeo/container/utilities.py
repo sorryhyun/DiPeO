@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from dipeo.core import (
     SupportsAPIKey,
-    SupportsDiagram,
     SupportsExecution,
     SupportsMemory,
 )
@@ -13,6 +12,7 @@ from dipeo.core.ports import (
     LLMServicePort,
     NotionServicePort,
 )
+from dipeo.core.ports.diagram_port import DiagramPort
 
 
 def get_project_base_dir():
@@ -77,7 +77,7 @@ def validate_protocol_compliance(container) -> None:
         (container.domain.conversation_service(), SupportsMemory, "ConversationMemoryService"),
         (container.application.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
         (container.infra.notion_service(), NotionServicePort, "NotionAPIService"),
-        (container.domain.diagram_storage_service(), SupportsDiagram, "DiagramFileRepository"),
+        (container.domain.diagram_storage_service(), DiagramPort, "DiagramFileRepository"),
     ]
 
     for service, protocol, name in validations:

@@ -1,6 +1,6 @@
-"""Application services for minimal/local execution."""
+"""Application services."""
 
-from .minimal_state_store import MinimalStateStore
-from .minimal_message_router import MinimalMessageRouter
+# Note: MinimalStateStore and MinimalMessageRouter have been removed
+# as the CLI is now purely a client and doesn't need local execution
 
-__all__ = ["MinimalStateStore", "MinimalMessageRouter"]
+__all__ = []

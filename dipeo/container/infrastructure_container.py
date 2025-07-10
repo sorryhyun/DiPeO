@@ -2,58 +2,26 @@
 
 import os
 from dependency_injector import containers, providers
-from dipeo.core.ports import (
-    APIKeyStoragePort,
-    FileServicePort,
-    LLMServicePort,
-    NotionServicePort,
-)
-from dipeo.core.application.services.diagram_loader import DiagramLoaderPort
 
 
 def _create_state_store_for_context():
-    """Create appropriate state store based on execution context.
+    """Create state store - server must override this.
     
-    This factory method determines whether we're running in a server
-    or CLI context and returns the appropriate state store implementation.
+    This returns None as the base container doesn't provide
+    a state store implementation. The server container must
+    override this provider.
     """
-    # Check if we're in a server context by looking for server-specific env vars
-    # or by attempting to import server modules
-    is_server_context = os.environ.get("DIPEO_CONTEXT") == "server"
-    
-    if is_server_context:
-        try:
-            from dipeo_server.infra.persistence import state_store
-            return state_store
-        except ImportError:
-            # Fallback if server modules aren't available
-            pass
-    
-    # Return minimal implementation for CLI/local usage
-    from dipeo.application.services.minimal_state_store import MinimalStateStore
-    return MinimalStateStore()
+    return None
 
 
 def _create_message_router_for_context():
-    """Create appropriate message router based on execution context.
+    """Create message router - server must override this.
     
-    This factory method determines whether we're running in a server
-    or CLI context and returns the appropriate message router implementation.
+    This returns None as the base container doesn't provide
+    a message router implementation. The server container must
+    override this provider.
     """
-    # Check if we're in a server context
-    is_server_context = os.environ.get("DIPEO_CONTEXT") == "server"
-    
-    if is_server_context:
-        try:
-            from dipeo_server.infra.messaging import message_router
-            return message_router
-        except ImportError:
-            # Fallback if server modules aren't available
-            pass
-    
-    # Return minimal implementation for CLI/local usage
-    from dipeo.application.services.minimal_message_router import MinimalMessageRouter
-    return MinimalMessageRouter()
+    return None
 
 
 def _create_file_service(base_dir):
@@ -101,6 +69,15 @@ def _create_diagram_loader(file_service):
     return DiagramLoaderAdapter(file_service=file_service)
 
 
+def _create_integrated_diagram_service(diagram_business_logic, base_dir):
+    """Create integrated diagram service with conversion capabilities."""
+    from dipeo.infra.diagram.integrated_diagram_service import IntegratedDiagramService
+    return IntegratedDiagramService(
+        domain_service=diagram_business_logic,
+        base_dir=base_dir
+    )
+
+
 def _create_api_key_storage(store_file=None):
     """Create API key storage implementation."""
     from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
@@ -122,7 +99,8 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     # Dependencies from other layers
     api_key_service = providers.Dependency()
     api_business_logic = providers.Dependency()
-    file_domain_service = providers.Dependency()
+    file_business_logic = providers.Dependency()
+    diagram_business_logic = providers.Dependency()
     
     # Core infrastructure
     state_store = providers.Singleton(_create_state_store_for_context)
@@ -150,9 +128,14 @@ class InfrastructureContainer(containers.DeclarativeContainer):
     )
     file_operations_service = providers.Singleton(
         _create_file_operations_infra_service,
-        file_domain_service=file_domain_service,
+        file_business_logic=file_business_logic,
     )
     diagram_loader = providers.Singleton(
         _create_diagram_loader,
         file_service=file_service,
+    )
+    integrated_diagram_service = providers.Singleton(
+        _create_integrated_diagram_service,
+        diagram_business_logic=diagram_business_logic,
+        base_dir=base_dir,
     )

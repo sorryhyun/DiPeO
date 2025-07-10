@@ -4,9 +4,9 @@ from dependency_injector import containers, providers
 
 
 def _create_api_key_service(storage):
-    from dipeo.domain.services.apikey import APIKeyDomainService
+    from dipeo.application.services.apikey import APIKeyService
 
-    return APIKeyDomainService(storage=storage)
+    return APIKeyService(storage=storage)
 
 
 def _create_api_business_logic():
@@ -58,9 +58,7 @@ def _create_flow_control_service():
 
 
 def _create_conversation_service(memory_service):
-    from dipeo.domain.services.conversation.simple_service import (
-        ConversationMemoryService,
-    )
+    from dipeo.application.services.conversation import ConversationMemoryService
 
     return ConversationMemoryService(memory_service)
 
@@ -88,11 +86,9 @@ def _create_diagram_storage_adapter(storage_service, diagram_domain_service):
 
 
 def _create_diagram_storage_domain_service(storage_service):
-    from dipeo.domain.services.diagram.domain_service import (
-        DiagramStorageDomainService,
-    )
+    from dipeo.application.services.diagram import DiagramService
 
-    return DiagramStorageDomainService(storage_service=storage_service)
+    return DiagramService(storage_service=storage_service)
 
 
 def _create_diagram_validator(api_key_service):
@@ -129,8 +125,7 @@ def _create_person_job_services(template_service, conversation_memory_service, m
     # Import new focused services
     from dipeo.utils.prompt import PromptBuilder
     from dipeo.application.state.conversation_state_manager import ConversationStateManager
-    from dipeo.application.utils.conversation_utils import MessageBuilder
-    from dipeo.domain.services.llm.executor import LLMExecutor
+    from dipeo.application.services.llm import LLMExecutor
     from dipeo.application.execution.person_job.orchestrator import PersonJobOrchestrator
     
     # Create services needed by the orchestrator
@@ -141,14 +136,12 @@ def _create_person_job_services(template_service, conversation_memory_service, m
     # Create new focused services
     prompt_builder = PromptBuilder()
     conversation_state_manager = ConversationStateManager()
-    message_builder = MessageBuilder()
     llm_executor = LLMExecutor()
     
     # Create orchestrator with new services
     person_job_orchestrator = PersonJobOrchestrator(
         prompt_builder=prompt_builder,
         conversation_state_manager=conversation_state_manager,
-        message_builder=message_builder,
         llm_executor=llm_executor,
         output_builder=output_builder,
         conversation_processor=conversation_processor,
@@ -163,7 +156,6 @@ def _create_person_job_services(template_service, conversation_memory_service, m
         # New focused services
         "prompt_builder": prompt_builder,
         "conversation_state_manager": conversation_state_manager,
-        "message_builder": message_builder,
         "llm_executor": llm_executor,
         "person_job_orchestrator": person_job_orchestrator,
     }

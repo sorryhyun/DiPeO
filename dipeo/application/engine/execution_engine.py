@@ -16,9 +16,9 @@ from .execution_controller import ExecutionController
 from .node_executor import NodeExecutor
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.context import ApplicationExecutionContext
+    from dipeo.application.execution.context import UnifiedExecutionContext
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.domain.services.execution.protocols import ExecutionObserver
+    from dipeo.application.execution.protocols import ExecutionObserver
     from dipeo.models import DomainDiagram
 
 log = logging.getLogger(__name__)

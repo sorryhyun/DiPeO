@@ -1,12 +1,13 @@
 """Main execution engine for DiPeO diagrams."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set
 import logging
 
 from dipeo.core.static import ExecutableDiagram
 from dipeo.core.ports import LLMServicePort
 from dipeo.infra.persistence.diagram import DiagramStorageAdapter
-from ..state import ExecutionStateManager, ConversationStateManager
+from ..state import ConversationStateManager
+from ..execution.state import UnifiedExecutionCoordinator
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,13 @@ class DiagramExecutor:
         self.diagram = diagram
         self.storage = storage
         self.llm_factory = llm_factory
-        self.execution_state = ExecutionStateManager()
+        self.coordinator = UnifiedExecutionCoordinator()
         self.conversation_state = ConversationStateManager()
+        
+        # Legacy compatibility - maintain simple state tracking
+        self.current_node = None
+        self.completed_nodes = set()
+        self.node_results = {}
     
     async def execute(self) -> ExecutionResult:
         """Orchestrate diagram execution.
@@ -80,27 +86,27 @@ class DiagramExecutor:
                     continue
                 
                 # Mark node as current
-                self.execution_state.set_current_node(node_id)
+                self.set_current_node(node_id)
                 
                 try:
                     # Execute the node based on its type
                     result = await self._execute_node(node)
                     
                     # Mark node as complete and store result
-                    self.execution_state.mark_node_complete(node_id, result)
+                    self.mark_node_complete(node_id, result)
                     
                 except Exception as e:
                     logger.error(f"Error executing node {node_id}: {e}")
                     return ExecutionResult(
                         success=False,
-                        node_results=self.execution_state.node_results,
+                        node_results=self.node_results,
                         error=e
                     )
             
             # Execution completed successfully
             return ExecutionResult(
                 success=True,
-                node_results=self.execution_state.node_results,
+                node_results=self.node_results,
                 error=None
             )
             
@@ -108,7 +114,7 @@ class DiagramExecutor:
             logger.error(f"Unexpected error during diagram execution: {e}")
             return ExecutionResult(
                 success=False,
-                node_results=self.execution_state.node_results,
+                node_results=self.node_results,
                 error=e
             )
     
@@ -127,7 +133,7 @@ class DiagramExecutor:
         incoming_edges = self.diagram.get_incoming_edges(node_id)
         
         for edge in incoming_edges:
-            if not self.execution_state.is_node_complete(edge.source_node_id):
+            if not self.is_node_complete(edge.source_node_id):
                 return False
         
         return True
@@ -156,3 +162,25 @@ class DiagramExecutor:
             "status": "completed",
             "output": f"Placeholder result for {node.type} node"
         }
+    
+    # Legacy ExecutionStateManager compatibility methods
+    
+    def set_current_node(self, node_id: str) -> None:
+        """Set the currently executing node."""
+        self.current_node = node_id
+        logger.debug(f"Current node set to: {node_id}")
+    
+    def mark_node_complete(self, node_id: str, result: Any) -> None:
+        """Mark a node as completed and store its result."""
+        self.completed_nodes.add(node_id)
+        self.node_results[node_id] = result
+        
+        # Clear current node if it matches
+        if self.current_node == node_id:
+            self.current_node = None
+            
+        logger.info(f"Node {node_id} marked as complete with result: {result}")
+    
+    def is_node_complete(self, node_id: str) -> bool:
+        """Check if a node has been completed."""
+        return node_id in self.completed_nodes

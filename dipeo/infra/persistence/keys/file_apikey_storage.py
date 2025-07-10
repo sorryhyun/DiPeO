@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Dict
 import logging
 
-from dipeo.core.ports.apikey_storage import APIKeyStoragePort
+from dipeo.core.ports.apikey_port import APIKeyPort
 
 
 log = logging.getLogger(__name__)
 
 
-class FileAPIKeyStorage:
-    """File-based storage for API keys implementing APIKeyStoragePort."""
+class FileAPIKeyStorage(APIKeyPort):
+    """File-based storage for API keys implementing APIKeyPort."""
     
     def __init__(self, file_path: Path):
         """Initialize file-based storage.

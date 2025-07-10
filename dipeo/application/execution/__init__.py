@@ -10,7 +10,7 @@ from .handler_factory import (
 from .use_cases import ExecuteDiagramUseCase
 from .services import ExecutionService
 from .adapters import ApplicationExecutionState
-from .context import ApplicationExecutionContext
+from .context import ApplicationExecutionContext, UnifiedExecutionContext
 from .types import (
     ExecutionContext,
     ExecutionOptions,
@@ -28,6 +28,7 @@ __all__ = [
     "ApplicationExecutionState",
     # Context
     "ApplicationExecutionContext",
+    "UnifiedExecutionContext",
     # Types
     "ExecutionContext",
     "ExecutionOptions",
