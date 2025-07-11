@@ -253,13 +253,16 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
         
         # Check if completed or failed
         if node_state.status in [NodeExecutionStatus.COMPLETED, NodeExecutionStatus.FAILED]:
+            logger.debug(f"Node {node_id} cannot execute - status is {node_state.status}")
             return False
         
         # Check iteration count
         if node_state.metadata:
             exec_count = node_state.metadata.get("exec_count", 0)
             max_iterations = node_state.metadata.get("max_iterations", 1)
-            return exec_count < max_iterations
+            can_execute = exec_count < max_iterations
+            logger.debug(f"Node {node_id} iteration check: exec_count={exec_count}, max_iterations={max_iterations}, can_execute={can_execute}")
+            return can_execute
         
         return True
     
@@ -345,11 +348,14 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
         
         # Update status based on iterations
         max_iterations = node_state.metadata.get("max_iterations", 1)
+        logger.debug(f"Node {node_id} execution: exec_count={node_state.metadata['exec_count']}, max_iterations={max_iterations}")
         if node_state.metadata["exec_count"] >= max_iterations:
             node_state.status = NodeExecutionStatus.COMPLETED
             node_state.ended_at = datetime.utcnow().isoformat()
+            logger.debug(f"Node {node_id} marked as COMPLETED")
         else:
             node_state.status = NodeExecutionStatus.RUNNING
+            logger.debug(f"Node {node_id} marked as RUNNING")
         
         # Update output
         if output:
@@ -366,6 +372,7 @@ class UnifiedExecutionCoordinator(ExecutionCoordinator):
         output: Optional[NodeOutput] = None
     ) -> None:
         """Mark a node as completed and store its result."""
+        logger.debug(f"mark_node_complete called for node {node_id}")
         execution_state = self._execution_states.get(execution_id)
         if not execution_state:
             raise ValueError(f"No execution state found for {execution_id}")

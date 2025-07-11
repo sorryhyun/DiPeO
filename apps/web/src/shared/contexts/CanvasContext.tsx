@@ -7,7 +7,7 @@ import React, { createContext, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useCanvas as useCanvasBase, useCanvasInteractions } from '@/features/diagram-editor/hooks';
-import { useNodeOperations, useArrowOperations, usePersonOperations, useDiagramData, usePersonsData } from '@/core/store/hooks';
+import { useNodeOperations, useArrowOperations, usePersonOperations, useDiagramData, usePersonsData, useExecutionProgressComputed, useRunningNodesComputed, useCompletedNodesComputed, useFailedNodesComputed } from '@/core/store/hooks';
 import { useExecution, useExecutionData } from '@/features/execution-monitor/hooks';
 import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/domain-models';
 
@@ -154,6 +154,12 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const executionData = useExecutionData();
   const personsArray = usePersonsData();
   
+  // Get computed execution data
+  const executionProgress = useExecutionProgressComputed();
+  const runningNodes = useRunningNodesComputed();
+  const completedNodes = useCompletedNodesComputed();
+  const failedNodes = useFailedNodesComputed();
+  
   // Calculate persons with usage stats
   const personsWithUsage = useMemo(() => {
     const usageMap = new Map<PersonID, number>();
@@ -235,10 +241,10 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       
       // Execution state
       nodeStates: executionData.nodeStates,
-      executionProgress: executionData.progress,
-      runningNodeCount: executionData.runningNodeCount,
-      completedNodeCount: executionData.completedNodeCount,
-      failedNodeCount: executionData.failedNodeCount,
+      executionProgress: executionProgress.percentage,
+      runningNodeCount: runningNodes.length,
+      completedNodeCount: completedNodes.length,
+      failedNodeCount: failedNodes.length,
       
       // Metadata
       diagramName: uiState.diagramName,
@@ -274,6 +280,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   }), [
     selectedNodeId, selectedArrowId, selectedPersonId, selectedNodeIds,
     uiState, diagramData, executionData, personsArray, personsWithUsage,
+    executionProgress, runningNodes, completedNodes, failedNodes,
     selectionOps, storeOperations, nodeOps, arrowOps, personOps, canvasHandlers, interactions, executionOps
   ]);
   

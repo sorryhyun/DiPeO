@@ -34,10 +34,22 @@ class ExecutionController:
             
         for node in diagram.nodes:
             max_iter = 1
-            if node.type in [NodeType.person_job.value, NodeType.job.value]:
+            # Allow multiple iterations for all executable node types that can be part of loops
+            executable_types = [
+                NodeType.person_job.value, 
+                NodeType.job.value, 
+                NodeType.condition.value,
+                NodeType.code_job.value,
+                NodeType.api_job.value,
+                NodeType.person_batch_job.value,
+                NodeType.hook.value,
+                NodeType.user_response.value
+            ]
+            if node.type in executable_types:
                 max_iter = (node.data or {}).get("max_iteration", 1)
             
             # Initialize node state through adapter
+            log.debug(f"Initializing node {node.id} with max_iterations={max_iter}")
             await self.state_adapter.update_node_state(
                 node_id=node.id,
                 node_type=node.type,
@@ -66,12 +78,15 @@ class ExecutionController:
         ready = []
         filtered_out = []
         for node in ready_nodes:
-            if self.state_adapter.can_node_execute(node.id):
+            can_execute = self.state_adapter.can_node_execute(node.id)
+            if can_execute:
                 ready.append(node.id)
             else:
                 filtered_out.append(node.id)
+                log.debug(f"Node {node.id} filtered out - can_execute={can_execute}")
 
-        
+        if filtered_out:
+            log.debug(f"Filtered out nodes: {filtered_out}")
         log.debug(f"Ready nodes: {ready}")
         return ready
     
@@ -83,6 +98,7 @@ class ExecutionController:
             
         # Get max iterations for the node
         max_iterations = self.state_adapter.get_node_max_iterations(node_id)
+        log.debug(f"mark_executed for node {node_id}: max_iterations={max_iterations}")
         
         # Update state through adapter
         await self.state_adapter.update_node_state(

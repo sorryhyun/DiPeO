@@ -217,8 +217,9 @@ class Person:
             # Map our message types to LLM roles
             if msg.from_person_id == self.id:
                 role = "assistant"
-            elif msg.from_person_id == "system":
-                role = "system"
+            elif msg.to_person_id == self.id:
+                # Messages TO this person are user messages (including from system)
+                role = "user"
             else:
                 role = "user"
             

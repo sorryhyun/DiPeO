@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/forms/buttons';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
-import { useUIState } from '@/shared/hooks/selectors';
+import { useUIState } from '@/core/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/core/store/hooks';
 import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
 import { nodeId, personId } from '@/core/types';

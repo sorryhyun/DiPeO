@@ -2,7 +2,7 @@
 import React, { Suspense } from 'react';
 import { useCanvas } from '@/shared/contexts/CanvasContext';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { PersonID, DomainArrow } from '@/core/types';
+import { PersonID, DomainArrow, NodeID, ArrowID } from '@/core/types';
 import { SidebarLayout } from '@/shared/components/layout/SidebarLayout';
 
 // Lazy load PropertyPanel as it's only used in right sidebar
@@ -27,19 +27,19 @@ export const PropertiesSidebar = React.memo(() => {
   let selectedData: UniversalData | null = null;
   
   if (selectedNodeId) {
-    const node = nodes.get(selectedNodeId as string);
+    const node = nodes.get(selectedNodeId as NodeID);
     if (node) {
       selectedIdToShow = node.id;
       selectedData = { ...node.data, type: node.type || 'unknown' };
     }
   } else if (selectedArrowId) {
     // Get arrow data from the arrows Map
-    const arrow = arrows.get(selectedArrowId as string);
+    const arrow = arrows.get(selectedArrowId as ArrowID);
     if (arrow) {
       selectedIdToShow = selectedArrowId;
       // Parse handle ID to get source node ID
       const [sourceNodeId] = arrow.source.split(':');
-      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as string) : undefined;
+      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as NodeID) : undefined;
       
       selectedData = { 
         ...arrow.data,

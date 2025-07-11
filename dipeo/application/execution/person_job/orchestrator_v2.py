@@ -160,21 +160,7 @@ class PersonJobOrchestratorV2:
         
         # Use Person's chat method if we have a proper LLM service
         if hasattr(llm_client, 'complete'):
-            # Add user message
-            user_message = Message(
-                from_person_id="system",
-                to_person_id=person.id,
-                content=built_prompt,
-                message_type="system_to_person",
-                timestamp=datetime.utcnow().isoformat()
-            )
-            
-            if self._conversation_manager:
-                self._conversation_manager.add_message(
-                    person_id, user_message, execution_id or "", node_id
-                )
-            else:
-                person.add_message(user_message)
+            # Don't add user message here - person.chat() will add it
             
             # Execute with Person's chat method
             result = await person.chat(
@@ -192,6 +178,14 @@ class PersonJobOrchestratorV2:
                 usage=result.token_usage,
                 tool_outputs=None
             )
+            
+            # Sync messages added by person.chat() to conversation manager
+            if self._conversation_manager and person.conversation.messages:
+                # Get the last two messages (user prompt and assistant response)
+                for msg in person.conversation.messages[-2:]:
+                    self._conversation_manager.add_message(
+                        person_id, msg, execution_id or "", node_id
+                    )
         else:
             # Fallback to legacy execution
             messages = self._prepare_messages_for_execution(
@@ -377,6 +371,7 @@ class PersonJobOrchestratorV2:
         execution_id: str | None = None,
     ) -> PersonJobResult:
         """Execute person job with validation (backward compatibility method)."""
+        
         # Get person from diagram
         person = self._get_or_create_person(person_id, diagram, conversation_service)
         
@@ -389,7 +384,7 @@ class PersonJobOrchestratorV2:
         return await self.execute(
             person_id=person_id,
             node_id=node_id,
-            prompt=props.default_prompt or "",
+            prompt=props.default_prompt if props.default_prompt is not None else props.first_only_prompt,
             first_only_prompt=props.first_only_prompt,
             forget_mode=forget_mode,
             model=person.llm_config.model,

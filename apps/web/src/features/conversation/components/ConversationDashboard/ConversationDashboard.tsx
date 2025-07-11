@@ -8,7 +8,7 @@ import { Input, Select } from '@/shared/components/forms';
 import { downloadFile } from '@/lib/utils/file';
 import { toast } from 'sonner';
 import { useConversationData } from '../../hooks';
-import { useUIState } from '@/shared/hooks/selectors';
+import { useUIState } from '@/core/store/hooks/state';
 import { usePersonsData } from '@/features/person-management/hooks';
 import { MessageList } from '../MessageList';
 import { ExecutionOrderView } from '@/features/execution-monitor/components';
@@ -154,8 +154,7 @@ const ConversationDashboard: React.FC = () => {
       .reduce((sum: number, msg) => sum + (msg.tokenCount || 0), 0);
   }, [dashboardSelectedPerson, conversationData]);
 
-  // Memoize whole conversation data with stable dependency
-  const conversationDataKeys = Object.keys(conversationData).sort().join(',');
+  // Memoize whole conversation data
   const wholeConversationData = useMemo(() => {
     if (dashboardSelectedPerson !== 'whole') {
       return { allMessages: [], totalTokens: 0 };
@@ -179,7 +178,7 @@ const ConversationDashboard: React.FC = () => {
     
     const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
     return { allMessages: messages, totalTokens: tokens };
-  }, [dashboardSelectedPerson, conversationDataKeys]); // Use stable dependency
+  }, [dashboardSelectedPerson, conversationData]);
 
   // Handle whole conversation button click
   const handleWholeConversation = () => {

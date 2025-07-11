@@ -130,6 +130,10 @@ class NodeExecutor:
             # Update state
             await controller.mark_executed(node_id, output, node.type)
             
+            # Get the actual node state from the controller to check if it's RUNNING or COMPLETED
+            actual_node_state = controller.state_adapter.execution_state.node_states.get(node_id)
+            actual_status = actual_node_state.status if actual_node_state else NodeExecutionStatus.COMPLETED
+            
             # Create NodeState with output and timing information
             end_time = datetime.utcnow()
             
@@ -141,9 +145,9 @@ class NodeExecutor:
                     token_usage = TokenUsage(**token_usage_data)
             
             node_state = NodeState(
-                status=NodeExecutionStatus.COMPLETED,
+                status=actual_status,  # Use actual status from controller
                 started_at=start_time.isoformat(),
-                ended_at=end_time.isoformat(),
+                ended_at=end_time.isoformat() if actual_status == NodeExecutionStatus.COMPLETED else None,
                 error=None,
                 token_usage=token_usage,
                 output=output

@@ -5,7 +5,6 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { DocumentNode, OperationVariables } from '@apollo/client';
-import { toast } from 'sonner';
 import { createEntityQuery, createEntityMutation } from '@/lib/graphql/hooks/factory';
 import { createStoreOperationHook, type OperationHookConfig } from '@/features/person-management/hooks/factories/storeOpFactory';
 
@@ -49,7 +48,7 @@ export interface StoreOperationConfig<TEntity, TCreateArgs extends unknown[] = u
 /**
  * GraphQL-specific operation configuration
  */
-export interface GraphQLOperationConfig<TData = any, TVariables extends OperationVariables = OperationVariables> 
+export interface GraphQLOperationConfig<_TData = any, _TVariables extends OperationVariables = OperationVariables> 
   extends BaseOperationConfig {
   type: 'graphql';
   documents: {

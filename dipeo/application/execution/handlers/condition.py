@@ -51,15 +51,15 @@ class ConditionNodeHandler(BaseNodeHandler):
         services: dict[str, Any],
     ) -> NodeOutput:
         """Execute condition node by delegating to domain service."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Resolve services
         evaluation_service = self._resolve_service(context, services, "condition_evaluation_service")
         diagram = self._resolve_service(context, services, "diagram")
         
         # Evaluate condition based on type
         if props.condition_type == "detect_max_iterations":
-            # Debug logging
-            import logging
-            logger = logging.getLogger(__name__)
             logger.debug(f"Detect max iterations: has node_outputs={hasattr(context, 'node_outputs')}, executed_nodes={context.executed_nodes if hasattr(context, 'executed_nodes') else 'N/A'}")
             
             # Use new approach with NodeOutput data if available
@@ -157,6 +157,8 @@ class ConditionNodeHandler(BaseNodeHandler):
         to track execution state more efficiently.
         """
         from dipeo.models import NodeType
+        import logging
+        logger = logging.getLogger(__name__)
         
         # Get executed nodes list
         executed_nodes = set(context.executed_nodes) if context.executed_nodes else set()
@@ -182,8 +184,6 @@ class ConditionNodeHandler(BaseNodeHandler):
                 max_iter = int(node.data.get("max_iteration", 1))
                 
                 # Debug logging
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.debug(f"Condition check for {node.id}: exec_count={exec_count}, max_iter={max_iter}")
                 
                 if exec_count < max_iter:

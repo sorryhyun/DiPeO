@@ -3,6 +3,7 @@
  * These hooks provide read-only access to store state
  */
 
+import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../unifiedStore';
 import type { NodeID, ArrowID, PersonID, HandleID } from '@/core/types';
@@ -16,7 +17,7 @@ export const useDiagramData = () => useUnifiedStore(
   useShallow(state => ({
     nodes: state.nodesArray,
     arrows: state.arrowsArray,
-    handles: Array.from(state.handles.values()),
+    handles: state.handlesArray,
   }))
 );
 
@@ -157,3 +158,73 @@ export const useHistoryData = () => useUnifiedStore(
     isInTransaction: state.history.currentTransaction !== null,
   }))
 );
+
+// === Computed Execution Data Hooks ===
+
+/**
+ * Get running nodes from computed store
+ */
+export const useRunningNodesComputed = () => {
+  const nodes = useUnifiedStore(state => state.nodesArray);
+  const runningNodeIds = useUnifiedStore(state => state.execution.runningNodes);
+  
+  return useMemo(() => 
+    nodes.filter(node => runningNodeIds.has(node.id)),
+    [nodes, runningNodeIds]
+  );
+};
+
+/**
+ * Get completed nodes from computed store
+ */
+export const useCompletedNodesComputed = () => {
+  const nodes = useUnifiedStore(state => state.nodesArray);
+  const nodeStates = useUnifiedStore(state => state.execution.nodeStates);
+  
+  return useMemo(() => 
+    nodes.filter(node => {
+      const nodeState = nodeStates.get(node.id);
+      return nodeState?.status === 'COMPLETED';
+    }),
+    [nodes, nodeStates]
+  );
+};
+
+/**
+ * Get failed nodes from computed store
+ */
+export const useFailedNodesComputed = () => {
+  const nodes = useUnifiedStore(state => state.nodesArray);
+  const nodeStates = useUnifiedStore(state => state.execution.nodeStates);
+  
+  return useMemo(() => 
+    nodes.filter(node => {
+      const nodeState = nodeStates.get(node.id);
+      return nodeState?.status === 'FAILED';
+    }),
+    [nodes, nodeStates]
+  );
+};
+
+/**
+ * Get execution progress from computed store
+ */
+export const useExecutionProgressComputed = () => {
+  const totalNodes = useUnifiedStore(state => state.nodes.size);
+  const nodeStates = useUnifiedStore(state => state.execution.nodeStates);
+  
+  return useMemo(() => {
+    const completed = Array.from(nodeStates.values())
+      .filter(nodeState => 
+        nodeState.status === 'COMPLETED' || 
+        nodeState.status === 'SKIPPED' ||
+        nodeState.status === 'FAILED'
+      ).length;
+    
+    return {
+      completed,
+      total: totalNodes,
+      percentage: totalNodes > 0 ? Math.round((completed / totalNodes) * 100) : 0
+    };
+  }, [totalNodes, nodeStates]);
+};

@@ -165,7 +165,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   // Store a ref to current form data for async field options
   const formDataRef = useRef<T>(initialData);
   
-  // Extract async fields configuration
+  // Extract async fields configuration with stable references
   const asyncFieldsConfig = useMemo(() => {
     const config: Record<string, AsyncFieldOptions> = {};
     
@@ -176,7 +176,8 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
           : [];
           
         config[field.name] = {
-          queryKey: ['field-options', field.name],
+          // Use a more specific query key to avoid conflicts
+          queryKey: ['field-options', entityType, entityId, field.name],
           queryFn: async () => {
             const optionsFn = field.options as (formData?: T) => Promise<Array<{ value: string; label: string }>>;
             return field.dependsOn ? await optionsFn(formDataRef.current) : await optionsFn();
@@ -188,7 +189,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     });
     
     return config;
-  }, [fields]);
+  }, [fields, entityType, entityId]);
 
   // Form configuration
   const formConfig: FormConfig<T> = {

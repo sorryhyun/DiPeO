@@ -197,6 +197,12 @@ class UnifiedExecutionContext(ExecutionContext):
         
         Compatible with ApplicationExecutionContext interface.
         """
+        # First check the execution state for the most up-to-date count
+        if hasattr(self, '_execution_state') and self._execution_state:
+            node_state = self._execution_state.node_states.get(node_id)
+            if node_state and node_state.metadata:
+                return node_state.metadata.get("exec_count", 0)
+        # Fall back to cached exec counts
         return self._exec_counts.get(node_id, 0)
     
     @property
@@ -237,6 +243,13 @@ class UnifiedExecutionContext(ExecutionContext):
             return self._execution_state
         # Build execution state from current data
         return self.to_execution_state("")
+    
+    @property
+    def node_outputs(self) -> Dict[str, NodeOutput]:
+        """Get all node outputs from the execution state."""
+        if hasattr(self, '_execution_state') and self._execution_state:
+            return self._execution_state.node_outputs.copy()
+        return {}
     
     @property
     def container(self) -> Optional["Container"]:

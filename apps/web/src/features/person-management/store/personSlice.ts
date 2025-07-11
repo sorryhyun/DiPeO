@@ -24,11 +24,6 @@ export interface PersonSlice {
 }
 
 
-// Helper to track person changes
-const markPersonsChanged = (state: UnifiedStore) => {
-  // Increment dataVersion to trigger array sync via middleware
-  state.dataVersion += 1;
-};
 
 export const createPersonSlice: StateCreator<
   UnifiedStore,
@@ -55,7 +50,7 @@ export const createPersonSlice: StateCreator<
       
       set(state => {
         state.persons.set(person.id as PersonID, person);
-        markPersonsChanged(state);
+        state.triggerArraySync();
       });
       
       return person.id as PersonID;
@@ -92,13 +87,13 @@ export const createPersonSlice: StateCreator<
         }
         
         state.persons.set(id, updatedPerson);
-        markPersonsChanged(state);
+        state.triggerArraySync();
       }
     }),
     
     deletePerson: (id) => set(state => {
       state.persons.delete(id);
-      markPersonsChanged(state);
+      state.triggerArraySync();
     }),
   
     // Batch operations
@@ -109,25 +104,25 @@ export const createPersonSlice: StateCreator<
           state.persons.set(id, { ...person, ...personUpdates });
         }
       });
-      markPersonsChanged(state);
+      state.triggerArraySync();
     }),
     
     importPersons: (persons) => set(state => {
       persons.forEach(person => {
         state.persons.set(person.id as PersonID, person);
       });
-      markPersonsChanged(state);
+      state.triggerArraySync();
     }),
     
     // Clear and restore operations
     clearPersons: () => set(state => {
       state.persons.clear();
-      markPersonsChanged(state);
+      state.triggerArraySync();
     }),
     
     restorePersons: (persons) => set(state => {
       state.persons = new Map(persons);
-      markPersonsChanged(state);
+      state.triggerArraySync();
     }),
     
     restorePersonsSilently: (persons) => set(state => {

@@ -70,11 +70,15 @@ def initialize_container() -> ServerContainer:
         
         # Override domain providers
         _container.domain.override_providers(
-            diagram_storage_service=providers.Singleton(DiagramDomainService),
+            diagram_storage_service=providers.Singleton(
+                DiagramFileRepository,
+                domain_service=providers.Factory(lambda: DiagramDomainService()),
+                base_dir=providers.Factory(lambda: BASE_DIR),
+            ),
             diagram_storage_adapter=providers.Singleton(
                 DiagramStorageAdapter,
                 file_repository=_container.domain.diagram_storage_service,
-                domain_service=_container.domain.diagram_storage_service,
+                domain_service=providers.Factory(lambda: DiagramDomainService()),
             ),
             validation_service=providers.Singleton(ValidationDomainService),
             text_processing_service=providers.Singleton(TextProcessingDomainService),

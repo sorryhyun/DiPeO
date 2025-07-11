@@ -6,10 +6,19 @@ import type { UnifiedStore } from '../unifiedStore.types';
  * This avoids cross-slice violations by using the subscription mechanism
  */
 export function initializeArraySync(store: StoreApi<UnifiedStore>) {
-  let previousDataVersion = store.getState().dataVersion;
+  // Perform initial sync to ensure arrays are populated
+  const initialState = store.getState();
+  store.setState({
+    nodesArray: Array.from(initialState.nodes.values()),
+    arrowsArray: Array.from(initialState.arrows.values()),
+    personsArray: Array.from(initialState.persons.values()),
+    handlesArray: Array.from(initialState.handles.values())
+  });
+  
+  let previousDataVersion = initialState.dataVersion;
   
   // Subscribe to state changes
-  return store.subscribe((state, prevState) => {
+  return store.subscribe((state) => {
     // Check if dataVersion changed
     if (state.dataVersion !== previousDataVersion) {
       previousDataVersion = state.dataVersion;
@@ -20,7 +29,8 @@ export function initializeArraySync(store: StoreApi<UnifiedStore>) {
       store.setState({
         nodesArray: Array.from(currentState.nodes.values()),
         arrowsArray: Array.from(currentState.arrows.values()),
-        personsArray: Array.from(currentState.persons.values())
+        personsArray: Array.from(currentState.persons.values()),
+        handlesArray: Array.from(currentState.handles.values())
       });
     }
   });

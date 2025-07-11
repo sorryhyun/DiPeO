@@ -8,16 +8,15 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node } from '@xyflow/react';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { useNodeData } from '@/core/store/hooks';
-import { NodeID, PersonID, ArrowID, nodeId, personId } from '@/core/types';
+import { useNodeData, useNodeOperations, useArrowOperations, usePersonOperations } from '@/core/store/hooks';
+import { NodeID, PersonID, ArrowID, nodeId, personId, arrowId } from '@/core/types';
 import { Vec2, NodeType } from '@dipeo/domain-models';
-import { useNodeOperations, useArrowOperations, usePersonOperations } from '@/core/store/hooks';
 
 // Types
 export interface ContextMenuState {
   position: { x: number; y: number } | null;
   target: 'pane' | 'node' | 'edge';
-  targetId?: NodeID;
+  targetId?: NodeID | ArrowID;
 }
 
 export interface DragState {
@@ -49,7 +48,7 @@ export interface UseCanvasInteractionsReturn {
   // Context Menu
   contextMenu: ContextMenuState;
   isContextMenuOpen: boolean;
-  openContextMenu: (x: number, y: number, target: 'pane' | 'node' | 'edge', targetId?: NodeID) => void;
+  openContextMenu: (x: number, y: number, target: 'pane' | 'node' | 'edge', targetId?: NodeID | ArrowID) => void;
   closeContextMenu: () => void;
   
   // Drag & Drop
@@ -83,7 +82,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   
   // Store access for operations
   const store = useUnifiedStore;
-  const isMonitorMode = useUnifiedStore(state => state.readOnly || state.executionReadOnly === true);
+  const isMonitorMode = useUnifiedStore(state => state.readOnly || state.executionReadOnly);
   const selectedId = useUnifiedStore(state => state.selectedId);
   const selectedType = useUnifiedStore(state => state.selectedType);
   
@@ -115,7 +114,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     x: number, 
     y: number, 
     target: 'pane' | 'node' | 'edge',
-    targetId?: NodeID
+    targetId?: NodeID | ArrowID
   ) => {
     if (!enabled || isMonitorMode) return;
     
@@ -131,21 +130,21 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   }, []);
   
   // Common Actions
-  const handleDeleteSelected = useCallback(async () => {
+  const handleDeleteSelected = useCallback(() => {
     if (!enabled || isMonitorMode) return;
     
     if (selectedType === 'node' && selectedId) {
-      await nodeOps.deleteNode(selectedId as NodeID);
+      nodeOps.deleteNode(selectedId as NodeID);
     } else if (selectedType === 'arrow' && selectedId) {
-      await arrowOps.deleteArrow(selectedId as ArrowID);
+      arrowOps.deleteArrow(selectedId as ArrowID);
     } else if (selectedType === 'person' && selectedId) {
-      await personOps.deletePerson(selectedId as PersonID);
+      personOps.deletePerson(selectedId as PersonID);
     }
     store.getState().clearSelection();
     closeContextMenu();
   }, [enabled, isMonitorMode, selectedId, selectedType, nodeOps, arrowOps, personOps, store, closeContextMenu]);
   
-  const handleDuplicateSelected = useCallback(async () => {
+  const handleDuplicateSelected = useCallback(() => {
     if (!enabled || isMonitorMode) return;
     
     if (selectedType === 'node' && selectedId && selectedNode) {
@@ -154,7 +153,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
         y: (selectedNode.position?.y || 0) + 50
       };
       
-      const newNodeId = await nodeOps.addNode(
+      const newNodeId = nodeOps.addNode(
         selectedNode.type,
         newPosition,
         { ...selectedNode.data }
@@ -227,7 +226,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     event.dataTransfer.dropEffect = 'move';
   }, []);
   
-  const onNodeDrop = useCallback(async (
+  const onNodeDrop = useCallback((
     event: React.DragEvent, 
     projectPosition: (x: number, y: number) => Vec2
   ) => {
@@ -242,7 +241,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
       event.clientY - dragOffset.current.y
     );
     
-    await nodeOps.addNode(type as NodeType, dropPosition);
+    nodeOps.addNode(type as NodeType, dropPosition);
     
     setDragState({
       isDragging: false,
@@ -250,7 +249,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     });
   }, [enabled, isMonitorMode, nodeOps]);
   
-  const onPersonDrop = useCallback(async (
+  const onPersonDrop = useCallback((
     event: React.DragEvent,
     nodeId: NodeID
   ) => {
@@ -259,7 +258,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     event.preventDefault();
     const personIdStr = event.dataTransfer.getData('application/person');
     if (personIdStr) {
-      await nodeOps.updateNode(nodeId, { data: { person: personId(personIdStr) } });
+      nodeOps.updateNode(nodeId, { data: { person: personId(personIdStr) } });
     }
     
     setDragState({
@@ -418,7 +417,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   const onEdgeContextMenu = useCallback((event: React.MouseEvent, edgeIdStr: string) => {
     event.preventDefault();
     event.stopPropagation();
-    openContextMenu(event.clientX, event.clientY, 'edge', nodeId(edgeIdStr));
+    openContextMenu(event.clientX, event.clientY, 'edge', arrowId(edgeIdStr));
   }, [openContextMenu]);
   
   return {

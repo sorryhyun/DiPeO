@@ -41,6 +41,7 @@ class FlowControlService:
         """
         # Check if node can still execute
         if not self.can_node_execute(node, node_exec_counts):
+            log.debug(f"Node {node.id} cannot execute - reached max iterations")
             return False
         
         # Check if node has already executed
@@ -50,6 +51,7 @@ class FlowControlService:
             if node.type == NodeType.person_job and node.data:
                 max_iter = node.data.get("max_iteration", 1)
                 if exec_count >= max_iter:
+                    log.debug(f"Node {node.id} reached max iterations: {exec_count}/{max_iter}")
                     return False
 
 
@@ -57,6 +59,7 @@ class FlowControlService:
         deps_satisfied = self._are_dependencies_satisfied(
             node, diagram, executed_nodes, node_outputs, node_exec_counts
         )
+        log.debug(f"Node {node.id} dependencies satisfied: {deps_satisfied}, exec_count: {exec_count}")
         return deps_satisfied
     
     def get_ready_nodes(
@@ -461,6 +464,7 @@ class FlowControlService:
                 if source_node and source_node.type == NodeType.condition:
                     # This node depends on a condition output
                     if source_node_id not in executed_nodes:
+                        log.debug(f"Node {node.id} waiting for condition {source_node_id} to execute")
                         return False
                     
                     # Check if the condition output matches the required branch
@@ -468,8 +472,10 @@ class FlowControlService:
                     if condition_output and hasattr(condition_output, 'value'):
                         # Check if the condition outputted to the correct branch
                         if source_handle.value == "condtrue" and "condtrue" not in condition_output.value:
+                            log.debug(f"Node {node.id} waiting for condtrue branch but condition output: {condition_output.value}")
                             return False
                         elif source_handle.value == "condfalse" and "condfalse" not in condition_output.value:
+                            log.debug(f"Node {node.id} waiting for condfalse branch but condition output: {condition_output.value}")
                             return False
         
         # Get dependencies for this node
@@ -478,8 +484,10 @@ class FlowControlService:
         # Check if all dependencies have been executed
         for dep_id in dependency_nodes:
             if dep_id not in executed_nodes:
+                log.debug(f"Node {node.id} waiting for dependency {dep_id} to execute (deps: {dependency_nodes}, executed: {executed_nodes})")
                 return False
         
+        log.debug(f"Node {node.id} all dependencies satisfied: deps={dependency_nodes}, executed={executed_nodes}")
         return True
     
     def _order_ready_nodes(

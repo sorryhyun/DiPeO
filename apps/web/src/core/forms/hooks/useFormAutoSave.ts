@@ -17,7 +17,7 @@ export function useFormAutoSave<T extends Record<string, any>>({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<Error | null>(null);
   
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastSavedDataRef = useRef<T>(formState.data);
   const mountedRef = useRef(true);
 

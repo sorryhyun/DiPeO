@@ -22,7 +22,7 @@
 
 * The canvas space serves as a kind of sandbox unit, effectively an organizational unit. Here, the endpoint of a diagram becomes the endpoint of an agent system. When building an A2A (agent-to-agent) system, you can simply connect two diagrams to establish A2A. In addition, memory units are explicitly designated per diagram.
 
-    * To disambiguate this concept, nodes cannot be run in parallel in a single diagram. Instead, since each diagram is regarded as a standard for sandbox, diagram-to-diagram network can be run in parallel. Still we provide batch run which is supported by LLM API providers.
+    * Since each diagram is regarded as a standard for sandbox, diagram-to-diagram network can be run in parallel. 
 
 * Rather than merely creating diagrams, the inputs and outputs of each diagram can be exposed via API, enabling agent-based tools like Claude Code to leverage the diagrams. We aim to explore visual collaboration in which Claude Code can generate diagrams on its own or a human can modify a diagram created by Claude Code.
 

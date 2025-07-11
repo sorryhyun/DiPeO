@@ -14,6 +14,9 @@ import { NodeID, NodeType } from '@/core/types';
  */
 export const useUIState = () => useUnifiedStore(
   useShallow(state => ({
+    selectedId: state.selectedId,
+    selectedType: state.selectedType,
+    activeCanvas: state.activeCanvas,
     hasSelection: state.selectedId !== null,
     hasHighlight: state.highlightedPersonId !== null,
     readOnly: state.readOnly,
@@ -79,7 +82,7 @@ export const useDiagramStats = () => useUnifiedStore(state => ({
 /**
  * Check if diagram has unsaved changes
  */
-export const useHasUnsavedChanges = () => useUnifiedStore(state => {
+export const useHasUnsavedChanges = () => useUnifiedStore(_state => {
   // This could be enhanced to track actual changes
   // For now, return false as we don't track changes yet
   return false;

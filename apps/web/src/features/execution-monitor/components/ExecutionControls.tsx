@@ -1,9 +1,8 @@
 import React from 'react';
 import { Button } from '@/shared/components/forms/buttons';
 import { useExecution, useMonitorMode } from '../hooks';
-import { useNodesData, useArrowsData } from '@/core/store/hooks';
+import { useNodesData, useArrowsData, usePersonsData, useDiagramData as useStoreDiagramData } from '@/core/store/hooks';
 import { nodeId, diagramId, DomainDiagram } from '@/core/types';
-import { usePersonsData, useDiagramData as useStoreDiagramData } from '@/core/store/hooks';
 import { toast } from 'sonner';
 
 const ExecutionControls = () => {
