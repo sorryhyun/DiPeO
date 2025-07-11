@@ -11,40 +11,17 @@ class ConversationManager(Protocol):
     """Manages conversation state and memory during diagram execution."""
     
     @abstractmethod
-    def get_conversation(self, person_id: str) -> Conversation:
-        """Get the conversation for a specific person.
+    def get_conversation(self, person_id: str = "") -> Conversation:
+        """Get the global conversation.
         
         Args:
-            person_id: The ID of the person
+            person_id: Deprecated parameter for backward compatibility (ignored)
             
         Returns:
-            Conversation object with messages, context, and metadata
+            Global Conversation object with messages, context, and metadata
         """
         ...
     
-    @abstractmethod
-    def create_conversation(self, person_id: str) -> Conversation:
-        """Create a new conversation for a person.
-        
-        Args:
-            person_id: The ID of the person
-            
-        Returns:
-            New Conversation object
-        """
-        ...
-    
-    @abstractmethod
-    def get_or_create_conversation(self, person_id: str) -> Conversation:
-        """Get or create a conversation for a person.
-        
-        Args:
-            person_id: The ID of the person
-            
-        Returns:
-            Existing or new Conversation object
-        """
-        ...
     
     @abstractmethod
     def add_message(
@@ -97,59 +74,12 @@ class ConversationManager(Protocol):
         """
         ...
     
-    @abstractmethod
-    def forget_for_person(
-        self, person_id: str, execution_id: Optional[str] = None
-    ) -> None:
-        """Clear all messages for a person (infrastructure operation).
-        
-        Args:
-            person_id: The ID of the person
-            execution_id: Optional execution ID to scope the forgetting
-        """
-        ...
-    
-    @abstractmethod
-    def merge_conversations(
-        self,
-        source_person_id: str,
-        target_person_id: str
-    ) -> None:
-        """Merge one person's conversation into another's.
-        
-        Args:
-            source_person_id: The person whose messages to copy
-            target_person_id: The person to receive the messages
-        """
-        ...
-    
-    @abstractmethod
-    def clear_conversation(
-        self,
-        person_id: str,
-        execution_id: Optional[str] = None
-    ) -> None:
-        """Clear a person's conversation history.
-        
-        Args:
-            person_id: The ID of the person
-            execution_id: Optional execution ID to scope the clearing
-        """
-        ...
     
     @abstractmethod
     def clear_all_conversations(self) -> None:
         """Clear all conversations."""
         ...
     
-    @abstractmethod
-    def get_all_conversations(self) -> Dict[str, Conversation]:
-        """Get all active conversations.
-        
-        Returns:
-            Dictionary mapping person_id to Conversation objects
-        """
-        ...
 
 
 class ConversationPersistence(Protocol):

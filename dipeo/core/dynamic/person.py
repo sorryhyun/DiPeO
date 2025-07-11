@@ -63,9 +63,13 @@ class Person:
     def clear_conversation(self) -> None:
         """Clear this person's memory (backward compatibility only)."""
         if self._conversation_manager:
-            # In new architecture, this would clear person's memory/view
-            # For now, we'll clear messages related to this person
-            self._conversation_manager.clear_conversation(str(self.id))
+            # In new architecture, apply forgetting mode to clear person's view
+            # This maintains the global conversation but clears this person's memory
+            self._conversation_manager.apply_forgetting(
+                str(self.id), 
+                ForgettingMode.upon_request,
+                getattr(self._conversation_manager, '_current_execution_id', None)
+            )
         elif self._local_conversation:
             self._local_conversation.clear()
     
@@ -79,8 +83,8 @@ class Person:
     
     def _get_conversation(self) -> Optional[Conversation]:
         if self._conversation_manager:
-            # Get global conversation from manager
-            return self._conversation_manager.get_conversation(str(self.id))
+            # Get global conversation from manager (no person_id needed)
+            return self._conversation_manager.get_conversation("")
         return self._local_conversation
     
     @property

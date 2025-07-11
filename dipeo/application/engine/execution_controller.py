@@ -44,7 +44,6 @@ class ExecutionController:
                 max_iter = (node.data or {}).get("max_iteration", 1)
             
             # Initialize node state through adapter
-            log.debug(f"Initializing node {node.id} with max_iterations={max_iter}")
             await self.state_adapter.update_node_state(
                 node_id=node.id,
                 node_type=node.type,
@@ -78,11 +77,7 @@ class ExecutionController:
                 ready.append(node.id)
             else:
                 filtered_out.append(node.id)
-                log.debug(f"Node {node.id} filtered out - can_execute={can_execute}")
 
-        if filtered_out:
-            log.debug(f"Filtered out nodes: {filtered_out}")
-        log.debug(f"Ready nodes: {ready}")
         return ready
     
     
@@ -93,8 +88,7 @@ class ExecutionController:
             
         # Get max iterations for the node
         max_iterations = self.state_adapter.get_node_max_iterations(node_id)
-        log.debug(f"mark_executed for node {node_id}: max_iterations={max_iterations}")
-        
+
         # Update state through adapter
         await self.state_adapter.update_node_state(
             node_id=node_id,

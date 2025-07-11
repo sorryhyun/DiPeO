@@ -58,7 +58,7 @@ def _create_flow_control_service():
 
 
 def _create_conversation_manager():
-    from dipeo.application.services.conversation.conversation_manager_impl import (
+    from dipeo.application.services.conversation_manager_impl import (
         ConversationManagerImpl,
     )
     

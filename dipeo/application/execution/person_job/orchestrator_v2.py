@@ -176,13 +176,9 @@ class PersonJobOrchestratorV2:
                 tool_outputs=None
             )
             
-            # Sync messages added by person.chat() to conversation manager
-            if self._conversation_manager and person.conversation.messages:
-                # Get the last two messages (user prompt and assistant response)
-                for msg in person.conversation.messages[-2:]:
-                    self._conversation_manager.add_message(
-                        msg, execution_id or "", node_id
-                    )
+            # Messages are now automatically added to the global conversation
+            # via Person.add_message() which calls ConversationManager.add_message()
+            # No explicit sync needed
         else:
             # Fallback to legacy execution
             messages = self._prepare_messages_for_execution(

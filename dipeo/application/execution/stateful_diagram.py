@@ -91,12 +91,10 @@ class StatefulExecutableDiagram:
             state = self._context.get_node_state(node.id)
             if state and state.status in (NodeExecutionStatus.PENDING, NodeExecutionStatus.RUNNING):
                 is_reachable = self._is_node_reachable(node)
-                logger.debug(f"Node {node.id} status={state.status}, reachable={is_reachable}")
                 if is_reachable:
                     has_pending_reachable = True
         
         if has_pending_reachable:
-            logger.debug("Found pending/running reachable nodes, execution continues")
             return False
         
         logger.debug("No pending/running reachable nodes found, execution is complete")
@@ -112,16 +110,13 @@ class StatefulExecutableDiagram:
         
         state = self._context.get_node_state(node.id)
         if not state or state.status != NodeExecutionStatus.PENDING:
-            logger.debug(f"Node {node.id} not ready: status={state.status if state else 'None'}")
             return False
         
         if node.type == NodeType.start:
-            logger.debug(f"Node {node.id} is start node and pending, marking as ready")
             return True
         
         incoming_edges = self._diagram.get_incoming_edges(node.id)
         if not incoming_edges:
-            logger.debug(f"Node {node.id} has no dependencies, marking as ready")
             return True
         
         if node.type == NodeType.person_job:
@@ -135,14 +130,9 @@ class StatefulExecutableDiagram:
             if exec_count == 0:
                 first_edges = [e for e in incoming_edges if e.target_input == "first"]
                 if first_edges:
-                    logger.debug(f"Node {node.id} has {len(first_edges)} first handle dependencies")
-                    # Only check first handle dependencies
                     incoming_edges = first_edges
-                else:
-                    logger.debug(f"Node {node.id} has no first handle, checking all dependencies")
             else:
                 non_first_edges = [e for e in incoming_edges if e.target_input != "first"]
-                logger.debug(f"Node {node.id} subsequent execution, checking {len(non_first_edges)} non-first dependencies")
                 incoming_edges = non_first_edges
         
         dependencies_complete = True
@@ -152,18 +142,15 @@ class StatefulExecutableDiagram:
                 continue
             
             dep_complete = self._context.is_node_complete(edge.source_node_id)
-            logger.debug(f"Node {node.id} dependency {edge.source_node_id} complete: {dep_complete}, edge.target_input={edge.target_input}")
             if not dep_complete:
                 dependencies_complete = False
                 break
             
             if source_node.type == NodeType.condition:
                 if not self._is_conditional_edge_active(edge, source_node):
-                    logger.debug(f"Node {node.id} conditional dependency {edge.source_node_id} branch not active")
                     dependencies_complete = False
                     break
         
-        logger.debug(f"Node {node.id} ready: {dependencies_complete}")
         return dependencies_complete
     
     def _is_node_reachable(self, node: ExecutableNode) -> bool:
