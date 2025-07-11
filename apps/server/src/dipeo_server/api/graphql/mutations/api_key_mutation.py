@@ -28,7 +28,7 @@ class ApiKeyMutations:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
 
-            api_key_data = api_key_service.create_api_key(
+            api_key_data = await api_key_service.create_api_key(
                 label=input.label,
                 service=input.service.value,
                 key=input.key,
@@ -38,7 +38,7 @@ class ApiKeyMutations:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=input.service,
-                key=input.key,  # Use the actual key, not masked_key
+                key=input.key,  # Use the actual key
             )
 
             return ApiKeyResult(
@@ -104,7 +104,7 @@ class ApiKeyMutations:
             if not api_key_data:
                 return DeleteResult(success=False, error=f"API key {id} not found")
 
-            api_key_service.delete_api_key(id)
+            await api_key_service.delete_api_key(id)
 
             return DeleteResult(
                 success=True, deleted_id=id, message=f"Deleted API key {id}"

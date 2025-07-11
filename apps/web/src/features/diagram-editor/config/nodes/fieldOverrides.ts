@@ -107,9 +107,9 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       condition_type: {
         type: 'select',
         options: [
-          { value: 'javascript', label: 'JavaScript Expression' },
-          { value: 'python', label: 'Python Expression' },
-          { value: 'simple', label: 'Simple Comparison' }
+          { value: 'detect_max_iterations', label: 'Detect Max Iterations' },
+          { value: 'check_nodes_executed', label: 'Check Nodes Executed' },
+          { value: 'custom', label: 'Custom Expression' }
         ]
       },
       expression: {

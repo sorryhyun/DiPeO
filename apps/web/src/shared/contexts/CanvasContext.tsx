@@ -154,6 +154,22 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const executionData = useExecutionData();
   const personsArray = usePersonsData();
   
+  // Memoize Map creations to prevent recreating on every render
+  const nodesMap = useMemo(() => 
+    new Map(diagramData.nodes.map((node: DomainNode) => [node.id, node])),
+    [diagramData.nodes]
+  );
+  
+  const arrowsMap = useMemo(() => 
+    new Map(diagramData.arrows.map((arrow: DomainArrow) => [arrow.id, arrow])),
+    [diagramData.arrows]
+  );
+  
+  const personsMap = useMemo(() => 
+    new Map(personsArray.map((person: DomainPerson) => [person.id, person])),
+    [personsArray]
+  );
+  
   // Get computed execution data
   const executionProgress = useExecutionProgressComputed();
   const runningNodes = useRunningNodesComputed();
@@ -165,7 +181,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     const usageMap = new Map<PersonID, number>();
     
     // Count person usage in nodes
-    diagramData.nodes.forEach((node: any) => {
+    nodesMap.forEach((node: any) => {
       const personId = node.data?.person || node.data?.personId;
       if (personId && (node.type === 'person_job' || node.type === 'person_batch_job')) {
         usageMap.set(personId as PersonID, (usageMap.get(personId as PersonID) || 0) + 1);
@@ -177,7 +193,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       ...person as DomainPerson,
       nodeCount: usageMap.get(person.id as PersonID) || 0
     }));
-  }, [diagramData.nodes, personsArray]);
+  }, [nodesMap, personsArray]);
   
   // Get operation hooks
   const canvasHandlers = useCanvasBase();
@@ -234,9 +250,9 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       canvasMode: uiState.canvasMode,
       
       // Diagram data
-      nodes: new Map(diagramData.nodes.map((node: DomainNode) => [node.id, node])),
-      arrows: new Map(diagramData.arrows.map((arrow: DomainArrow) => [arrow.id, arrow])),
-      persons: new Map(personsArray.map((person: DomainPerson) => [person.id, person])),
+      nodes: nodesMap,
+      arrows: arrowsMap,
+      persons: personsMap,
       personsWithUsage,
       
       // Execution state
@@ -279,7 +295,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     }
   }), [
     selectedNodeId, selectedArrowId, selectedPersonId, selectedNodeIds,
-    uiState, diagramData, executionData, personsArray, personsWithUsage,
+    uiState, nodesMap, arrowsMap, personsMap, executionData, personsWithUsage,
     executionProgress, runningNodes, completedNodes, failedNodes,
     selectionOps, storeOperations, nodeOps, arrowOps, personOps, canvasHandlers, interactions, executionOps
   ]);

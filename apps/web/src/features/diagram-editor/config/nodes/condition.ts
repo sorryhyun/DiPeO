@@ -47,10 +47,9 @@ export const ConditionNodeConfig: UnifiedNodeConfig<ConditionNodeData> = {
       type: 'select',
       label: 'Condition Type',
       options: [
-        { value: 'custom', label: 'Custom Expression' },
-        { value: 'equals', label: 'Equals' },
-        { value: 'not_equals', label: 'Not Equals' },
-        { value: 'contains', label: 'Contains' }
+        { value: 'detect_max_iterations', label: 'Detect Max Iterations' },
+        { value: 'check_nodes_executed', label: 'Check Nodes Executed' },
+        { value: 'custom', label: 'Custom Expression' }
       ],
       defaultValue: 'custom',
       column: 1

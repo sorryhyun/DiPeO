@@ -64,52 +64,6 @@ class PromptBuilder:
         # Apply template substitution
         return self._processor.process_simple(selected_prompt, template_values)
     
-    # Backward compatibility methods
-    def build_prompt(
-        self,
-        default_prompt: str,
-        first_only_prompt: Optional[str],
-        execution_count: int,
-        template_values: Dict[str, Any],
-        template_substitutor: Any = None,
-    ) -> str:
-        """Legacy method for backward compatibility with utils.prompt.builder.
-        
-        @deprecated Use build() instead.
-        """
-        if template_substitutor is not None:
-            warnings.warn(
-                "template_substitutor parameter is deprecated and ignored. "
-                "PromptBuilder uses the unified TemplateProcessor internally.",
-                DeprecationWarning,
-                stacklevel=2
-            )
-        
-        return self.build(
-            prompt=default_prompt,
-            first_only_prompt=first_only_prompt,
-            execution_count=execution_count,
-            template_values=template_values
-        )
-    
-    def get_prompt_for_execution(
-        self,
-        prompt: str,
-        first_only_prompt: Optional[str],
-        execution_count: int,
-        template_values: Dict[str, Any]
-    ) -> str:
-        """Legacy method for backward compatibility with prompt_service.
-        
-        @deprecated Use build() instead.
-        """
-        return self.build(
-            prompt=prompt,
-            first_only_prompt=first_only_prompt,
-            execution_count=execution_count,
-            template_values=template_values
-        )
-    
     # Core functionality
     def prepare_template_values(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare values for template substitution.

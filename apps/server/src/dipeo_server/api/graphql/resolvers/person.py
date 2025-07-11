@@ -52,7 +52,6 @@ class PersonResolver:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=self._map_api_service(api_key_data["service"]),
-                masked_key=f"{api_key_data['service']}-****",
             )
 
         except Exception as e:
@@ -78,7 +77,6 @@ class PersonResolver:
                         id=key_data["id"],
                         label=key_data["label"],
                         service=self._map_api_service(key_data["service"]),
-                        masked_key=f"{key_data['service']}-****",
                     )
                     result.append(pydantic_api_key)
                 else:

@@ -22,7 +22,11 @@ from strawberry.file_uploads import Upload
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
-from config import BASE_DIR, FILES_DIR, UPLOAD_DIR
+from dipeo_server.shared.constants import BASE_DIR
+
+# Get FILES_DIR and UPLOAD_DIR from BASE_DIR
+FILES_DIR = Path(BASE_DIR) / "files"
+UPLOAD_DIR = FILES_DIR / "uploads"
 
 from ..context import GraphQLContext
 from ..types import (

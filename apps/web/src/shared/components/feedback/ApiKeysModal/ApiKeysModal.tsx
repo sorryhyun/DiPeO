@@ -142,7 +142,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                        {showKeys[key.id] ? '***hidden***' : maskApiKey('***hidden***')}
+                        {showKeys[key.id] ? key.key : maskApiKey(key.key || '')}
                       </code>
                       <button
                         onClick={() => toggleShowKey(key.id)}

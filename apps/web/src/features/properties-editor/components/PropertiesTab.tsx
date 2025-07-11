@@ -21,63 +21,78 @@ export const PropertiesTab: React.FC = () => {
     personsWithUsage 
   } = canvasState;
   
-  // Determine selected entity with cleaner logic
-  const selectedEntity = useMemo(() => {
-    if (selectedPersonId) {
-      const person = personsWithUsage.find(p => p.id === selectedPersonId);
-      if (person) {
-        return {
-          type: 'person' as const,
-          id: selectedPersonId,
-          data: { ...person, type: 'person' as const },
-          title: `${person.label || 'Person'} Properties`
-        };
-      }
+  // Get the selected entity
+  const selectedPerson = selectedPersonId ? canvasState.persons.get(selectedPersonId) : null;
+  const selectedNode = selectedNodeId ? nodes.get(selectedNodeId) : null;
+  const selectedArrow = selectedArrowId ? arrows.get(selectedArrowId) : null;
+  
+  // Memoize entity data separately to ensure stability
+  const entityData = useMemo(() => {
+    if (selectedPerson) {
+      return { ...selectedPerson, type: 'person' as const };
     }
     
-    if (selectedNodeId) {
-      const node = nodes.get(selectedNodeId);
-      if (node) {
-        const nodeData = node.data || {};
-        return {
-          type: 'node' as const,
-          id: selectedNodeId,
-          data: { ...nodeData, type: node.type || 'unknown' },
-          title: `${nodeData.label || 'Block'} Properties`
-        };
-      }
+    if (selectedNode) {
+      const nodeData = selectedNode.data || {};
+      return { ...nodeData, type: selectedNode.type || 'unknown' };
     }
     
-    if (selectedArrowId) {
-      const arrow = arrows.get(selectedArrowId);
-      if (arrow) {
-        // Parse handle ID to get source node ID
-        const [sourceNodeId, ...sourceHandleParts] = arrow.source.split(':');
-        const sourceHandleName = sourceHandleParts.join(':');
-        
-        // Find source node to determine if this is a special arrow
-        const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as any) : undefined;
-        const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
-        
-        return {
-          type: 'arrow' as const,
-          id: selectedArrowId,
-          data: {
-            ...arrow.data,
-            content_type: arrow.content_type,
-            label: arrow.label,
-            id: arrow.id,
-            type: 'arrow' as const,
-            _sourceNodeType: sourceNode?.type,
-            _isFromConditionBranch: isFromConditionBranch
-          },
-          title: 'Arrow Properties'
-        };
-      }
+    if (selectedArrow) {
+      // Parse handle ID to get source node ID
+      const [sourceNodeId, ...sourceHandleParts] = selectedArrow.source.split(':');
+      const sourceHandleName = sourceHandleParts.join(':');
+      
+      // Find source node to determine if this is a special arrow
+      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as any) : undefined;
+      const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
+      
+      return {
+        ...selectedArrow.data,
+        content_type: selectedArrow.content_type,
+        label: selectedArrow.label,
+        id: selectedArrow.id,
+        type: 'arrow' as const,
+        _sourceNodeType: sourceNode?.type,
+        _isFromConditionBranch: isFromConditionBranch
+      };
     }
     
     return null;
-  }, [selectedNodeId, selectedArrowId, selectedPersonId, nodes, arrows, personsWithUsage]);
+  }, [selectedPerson, selectedNode, selectedArrow, nodes]);
+  
+  // Determine selected entity with stable references
+  const selectedEntity = useMemo(() => {
+    if (!entityData) return null;
+    
+    if (selectedPersonId && entityData.type === 'person') {
+      return {
+        type: 'person' as const,
+        id: selectedPersonId,
+        data: entityData,
+        title: `${selectedPerson?.label || 'Person'} Properties`
+      };
+    }
+    
+    if (selectedNodeId && selectedNode) {
+      return {
+        type: 'node' as const,
+        id: selectedNodeId,
+        data: entityData,
+        title: `${selectedNode.data?.label || 'Block'} Properties`
+      };
+    }
+    
+    if (selectedArrowId) {
+      return {
+        type: 'arrow' as const,
+        id: selectedArrowId,
+        data: entityData,
+        title: 'Arrow Properties'
+      };
+    }
+    
+    return null;
+  }, [selectedPersonId, selectedNodeId, selectedArrowId, entityData, selectedPerson, selectedNode]);
   
   // Simplified rendering logic
   const showWrapperHeader = !selectedEntity;

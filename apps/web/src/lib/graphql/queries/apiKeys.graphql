@@ -4,7 +4,7 @@ query GetApiKeys($service: String) {
     id
     label
     service
-    masked_key
+    key
   }
 }
 
@@ -13,7 +13,6 @@ query GetApiKey($id: ApiKeyID!) {
     id
     label
     service
-    masked_key
   }
 }
 
@@ -29,7 +28,6 @@ mutation CreateApiKey($input: CreateApiKeyInput!) {
       id
       label
       service
-      masked_key
     }
     message
     error

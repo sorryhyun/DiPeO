@@ -161,7 +161,6 @@ type DiagramValidationResult {
 
 type DomainApiKeyType {
   id: ApiKeyID!
-  masked_key: String!
   label: String!
   service: APIServiceType!
   key: String

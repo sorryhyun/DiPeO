@@ -1,10 +1,9 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dict, DomainPerson, nodeId, arrowId, personId } from '@/core/types';
 import type { ArrowData } from '@/lib/graphql/types';
 import { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
-import { LLMService } from '@dipeo/domain-models';
 import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
 import { derivePanelConfig } from '@/core/config/unifiedConfig';
 import { ENTITY_PANEL_CONFIGS } from '../config';
@@ -14,22 +13,7 @@ import { usePropertyManager } from '../hooks';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from './fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from './fields/FormComponents';
 import { apolloClient } from '@/lib/graphql/client';
-import { GetApiKeysDocument, InitializeModelDocument, type GetApiKeysQuery, APIServiceType } from '@/__generated__/graphql';
-
-// Local conversion function for GraphQL APIServiceType to domain LLMService
-function convertApiServiceToLLM(service: APIServiceType): LLMService {
-  switch (service) {
-    case APIServiceType.openai: return LLMService.OPENAI;
-    case APIServiceType.anthropic: return LLMService.ANTHROPIC;
-    case APIServiceType.google: return LLMService.GOOGLE;
-    case APIServiceType.gemini: return LLMService.GOOGLE; // Gemini maps to Google
-    case APIServiceType.bedrock: return LLMService.BEDROCK;
-    case APIServiceType.vertex: return LLMService.VERTEX;
-    case APIServiceType.deepseek: return LLMService.DEEPSEEK;
-    default:
-      throw new Error(`Service ${service} is not an LLM service`);
-  }
-}
+import { GetApiKeysDocument, InitializeModelDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };
@@ -136,8 +120,12 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   
   const entityType = getEntityType(data.type);
 
-  // Flatten the data for form fields if it's a person
-  const flattenedData = entityType === 'person' ? ensurePersonFields(flattenObject(data as Record<string, unknown>)) : data;
+  // Flatten the data for form fields if it's a person - memoize to prevent infinite loops
+  const flattenedData = useMemo(() => {
+    return entityType === 'person' 
+      ? ensurePersonFields(flattenObject(data as Record<string, unknown>)) 
+      : data;
+  }, [entityType, data]);
 
   const {
     formData,

@@ -165,7 +165,6 @@ export interface DomainApiKey {
   label: string;
   service: APIServiceType;
   key?: string; // Excluded from serialization by default
-  masked_key: string;
 }
 
 export interface DiagramMetadata {

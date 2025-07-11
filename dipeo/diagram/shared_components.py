@@ -26,7 +26,8 @@ __all__ = (
 
 def _create_handle_id(node_id: str, label: str, direction: str) -> str:
     """Create a handle ID from components."""
-    return f"{node_id}:{label}:{direction}"
+    # Use the domain model's create_handle_id function for consistency
+    return str(create_handle_id(NodeID(node_id), HandleLabel(label), HandleDirection(direction)))
 
 
 def _push_handle(

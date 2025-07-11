@@ -237,15 +237,6 @@ class DomainApiKeyType:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return ApiKeyID(str(obj.id))
 
-    @strawberry.field
-    def masked_key(self) -> str:
-        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
-        if obj and hasattr(obj, "service"):
-            service = obj.service
-            service_str = service.value if hasattr(service, "value") else str(service)
-            return f"{service_str}-****"
-        return "unknown-****"
-
 
 @strawberry.experimental.pydantic.type(
     DomainDiagram, fields=["nodes", "handles", "arrows", "persons", "metadata"]

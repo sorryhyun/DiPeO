@@ -139,12 +139,11 @@ class PersonJobOrchestratorV2:
         )
 
         
-        built_prompt = self._prompt_builder.build_prompt(
-            default_prompt=prompt,
+        built_prompt = self._prompt_builder.build(
+            prompt=prompt,
             first_only_prompt=first_only_prompt,
             execution_count=execution_count,
             template_values=template_values,
-            template_substitutor=None,
         )
         
 

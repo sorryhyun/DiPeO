@@ -54,9 +54,15 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const { updatePerson } = personOps;
   const isMonitorMode = readOnly;
 
-  // Track entity ID changes
+  // Track entity ID changes and initial data
   const entityIdRef = useRef(entityId);
+  const initialDataRef = useRef(initialData);
   const hasEntityChanged = entityId !== entityIdRef.current;
+  
+  // Deep compare initial data to prevent unnecessary resets
+  const hasInitialDataChanged = useMemo(() => {
+    return JSON.stringify(initialData) !== JSON.stringify(initialDataRef.current);
+  }, [initialData]);
 
   // Convert validation rules to field validators
   const validators = useMemo(() => {
@@ -217,9 +223,13 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   useEffect(() => {
     if (hasEntityChanged) {
       entityIdRef.current = entityId;
+      initialDataRef.current = initialData;
       form.operations.reset(initialData);
+    } else if (hasInitialDataChanged && hasEntityChanged === false) {
+      // Only update the ref, don't reset the form for data changes on the same entity
+      initialDataRef.current = initialData;
     }
-  }, [entityId, hasEntityChanged, form.operations, initialData]);
+  }, [entityId, hasEntityChanged, hasInitialDataChanged, form.operations, initialData]);
 
   // Process fields with their async options
   const processedFields = useMemo(() => {

@@ -312,8 +312,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 person_data["system_prompt"] = p.llm_config.system_prompt
             if p.llm_config.api_key_id:
                 person_data["api_key_id"] = p.llm_config.api_key_id
-            # Store the original ID for round-trip conversion
-            person_data["id"] = p.id
             persons_out[p.label] = person_data
 
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}
