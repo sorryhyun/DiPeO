@@ -1,4 +1,4 @@
-"""Implementation of ConversationManager protocol using Person and PersonManager."""
+# Implementation of ConversationManager protocol using Person and PersonManager.
 
 import json
 from datetime import datetime
@@ -23,7 +23,6 @@ from dipeo.utils.conversation import OnEveryTurnHandler
 
 
 class PersonManagerImpl(PersonManager):
-    """Implementation of PersonManager for managing Person instances."""
     
     def __init__(self, conversation_manager: Optional[ConversationManager] = None):
         self._persons: dict[PersonID, Person] = {}
@@ -41,7 +40,6 @@ class PersonManagerImpl(PersonManager):
         llm_config: PersonLLMConfig,
         role: str | None = None
     ) -> Person:
-        # Create person with conversation_manager reference if available
         person = Person(
             id=person_id, 
             name=name, 
@@ -82,14 +80,9 @@ class PersonManagerImpl(PersonManager):
 
 
 class ConversationManagerImpl(BaseService, ConversationManager):
-    """ConversationManager implementation with global conversation.
-    
-    This class implements the ConversationManager protocol,
-    maintaining a single global conversation that all persons share.
-    """
+    # Maintains a single global conversation that all persons share
     
     def __init__(self):
-        """Initialize the conversation manager."""
         super().__init__()
         self.person_manager = PersonManagerImpl(conversation_manager=self)
         self._current_execution_id: str | None = None
@@ -98,26 +91,18 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         self._global_conversation = Conversation()
     
     def get_conversation(self, person_id: str) -> Conversation:
-        """Get the global conversation (all persons share the same conversation)."""
-        # Simply return the global conversation without creating Person objects
-        # Person creation should be handled externally to avoid circular dependencies
         return self._global_conversation
     
     def create_conversation(self, person_id: str) -> Conversation:
-        """Create a new conversation for a person (clears their view of global conversation)."""
         person_id_obj = PersonID(person_id)
         
-        # Only clear if person exists; don't create new persons here
         if self.person_manager.person_exists(person_id_obj):
             person = self.person_manager.get_person(person_id_obj)
-            # Clear messages related to this person from global conversation
-            # This is a view-based clear, not clearing the entire global conversation
             person.clear_conversation()
         
         return self._global_conversation
     
     def get_or_create_conversation(self, person_id: str) -> Conversation:
-        """Get or create a conversation for a person."""
         person_id_obj = PersonID(person_id)
         if self.person_manager.person_exists(person_id_obj):
             return self.get_conversation(person_id)
@@ -130,16 +115,8 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         execution_id: str,
         node_id: str | None = None
     ) -> None:
-        """Add a message to relevant conversations based on from/to fields.
-        
-        Messages are automatically routed to appropriate conversations:
-        - Added to sender's conversation (if from_person_id != "system")
-        - Added to recipient's conversation (if to_person_id != "system")
-        """
-        # Update current execution ID
         self._current_execution_id = execution_id
         
-        # Store in sender's conversation (if not system)
         if message.from_person_id != "system":
             self._add_to_person_conversation(
                 str(message.from_person_id), 
@@ -148,7 +125,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
                 node_id
             )
         
-        # Store in recipient's conversation (if not system and not self-message)
         if message.to_person_id != "system" and message.to_person_id != message.from_person_id:
             self._add_to_person_conversation(
                 str(message.to_person_id), 
@@ -157,9 +133,7 @@ class ConversationManagerImpl(BaseService, ConversationManager):
                 node_id
             )
         
-        # For self-messages (from == to), store only once
         if message.from_person_id == message.to_person_id and message.from_person_id != "system":
-            # Already stored in sender's conversation, no need to duplicate
             pass
     
     def _add_to_person_conversation(
@@ -169,19 +143,14 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         execution_id: str,
         node_id: str | None = None
     ) -> None:
-        """Internal method to add a message to a specific person's conversation."""
-        # Get person and add message
         person_id_obj = PersonID(person_id)
         person = self.person_manager.get_person(person_id_obj) if self.person_manager.person_exists(person_id_obj) else None
         
         if not person:
-            # Skip if person doesn't exist - Person creation should be handled externally
             return
         
-        # Add message to person's conversation
         person.add_message(message)
         
-        # Store in conversation log
         if execution_id not in self._conversation_logs:
             self._conversation_logs[execution_id] = []
         self._conversation_logs[execution_id].append({
@@ -200,11 +169,9 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         mode: ForgettingMode,
         execution_id: str | None = None
     ) -> int:
-        """Apply a forgetting strategy to a person's conversation."""
         execution_id = execution_id or self._current_execution_id
         
         if mode == ForgettingMode.on_every_turn:
-            # Get person
             person_id_obj = PersonID(person_id)
             if not self.person_manager.person_exists(person_id_obj):
                 return 0
@@ -212,16 +179,13 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             person = self.person_manager.get_person(person_id_obj)
             original_count = person.get_message_count()
             
-            # For on_every_turn, we need to manually filter
             messages = person.get_messages()
             person.clear_conversation()
             
-            # Add back only messages not from this person
             for msg in messages:
                 if msg.from_person_id != person_id:
                     person.add_message(msg)
             
-            # Update conversation logs
             if execution_id and execution_id in self._conversation_logs:
                 self._conversation_logs[execution_id] = [
                     log for log in self._conversation_logs[execution_id]
@@ -231,7 +195,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             return original_count - person.get_message_count()
         
         elif mode == ForgettingMode.upon_request:
-            # Get person and clear conversation
             person_id_obj = PersonID(person_id)
             if not self.person_manager.person_exists(person_id_obj):
                 return 0
@@ -240,7 +203,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             count = person.get_message_count()
             person.clear_conversation()
             
-            # Update conversation logs
             if execution_id and execution_id in self._conversation_logs:
                 self._conversation_logs[execution_id] = [
                     log for log in self._conversation_logs[execution_id]
@@ -256,15 +218,12 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         source_person_id: str,
         target_person_id: str
     ) -> None:
-        """Merge one person's conversation into another's."""
         source_person = self.person_manager.get_person(PersonID(source_person_id))
         target_person = self.person_manager.get_person(PersonID(target_person_id))
         
-        # Copy all messages from source to target
         for message in source_person.get_messages():
             target_person.add_message(message)
         
-        # Clear source conversation after merging
         source_person.clear_conversation()
     
     def clear_conversation(
@@ -272,16 +231,13 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         person_id: str,
         execution_id: str | None = None
     ) -> None:
-        """Clear a person's conversation history."""
         execution_id = execution_id or self._current_execution_id
         
-        # Clear person's conversation
         person_id_obj = PersonID(person_id)
         if self.person_manager.person_exists(person_id_obj):
             person = self.person_manager.get_person(person_id_obj)
             person.clear_conversation()
         
-        # Clear from conversation logs
         if execution_id and execution_id in self._conversation_logs:
             self._conversation_logs[execution_id] = [
                 log for log in self._conversation_logs[execution_id]
@@ -289,23 +245,16 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             ]
     
     def get_all_conversations(self) -> dict[str, Conversation]:
-        """Get all active conversations."""
-        # In the new architecture, all persons share the same global conversation
-        # Return a view per person for backward compatibility
         conversations = {}
         for person_id in self.person_manager.get_all_persons().keys():
             conversations[str(person_id)] = self._global_conversation
         return conversations
     
-    # Helper methods
     
     def _load_existing_messages(self, person_id: str) -> None:
-        """Load existing messages from memory service into person's conversation."""
-        # Load from conversation logs if available
         person_id_obj = PersonID(person_id)
         person = self.person_manager.get_person(person_id_obj)
         
-        # Check if we have any logs for current execution
         if not self._current_execution_id or self._current_execution_id not in self._conversation_logs:
             return
             
@@ -318,22 +267,17 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             return
         
         for msg_dict in history:
-            # Convert legacy format to Message object
             message = self._dict_to_message(msg_dict, person_id)
             if message:
                 person.add_message(message)
     
     def _dict_to_message(self, msg_dict: dict[str, Any], person_id: str) -> Message | None:
-        """Convert legacy message dictionary to Message object."""
-        # Skip if not from current execution
         if self._current_execution_id and msg_dict.get("execution_id") != self._current_execution_id:
             return None
         
-        # Determine message type and IDs
         from_person_id = msg_dict.get("from_person_id", msg_dict.get("current_person_id", person_id))
         to_person_id = msg_dict.get("to_person_id", person_id)
         
-        # Handle role mapping
         role = msg_dict.get("role", "user")
         if role == "system":
             from_person_id = "system"
@@ -354,7 +298,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
     
     @staticmethod
     def _get_role_from_message(message: Message) -> str:
-        """Extract role from Message object for legacy compatibility."""
         if message.from_person_id == "system":
             return "system"
         elif message.from_person_id == message.to_person_id:
@@ -363,20 +306,14 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             return "user"
     
     def set_execution_id(self, execution_id: str) -> None:
-        """Set the current execution ID for the manager."""
         self._current_execution_id = execution_id
     
-    # ConversationManager protocol implementation
     
     async def initialize(self) -> None:
-        """Initialize the service."""
         pass
     
     def register_person(self, person_id: str, config: dict[str, Any]) -> None:
-        """Register a person's configuration."""
-        # No need to delegate, just handle person creation
         
-        # Also create person in manager
         person_id_obj = PersonID(person_id)
         if not self.person_manager.person_exists(person_id_obj):
             llm_config = PersonLLMConfig(
@@ -396,7 +333,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             self.person_manager._persons[person_id_obj] = person
     
     def get_person_config(self, person_id: str) -> dict[str, Any] | None:
-        """Get a person's configuration."""
         person_id_obj = PersonID(person_id)
         if self.person_manager.person_exists(person_id_obj):
             person = self.person_manager.get_person(person_id_obj)
@@ -412,8 +348,7 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         return None
     
     def get_or_create_person_memory(self, person_id: str) -> Any:
-        """Get or create person memory."""
-        # This method is deprecated - use get_or_create_conversation instead
+        # TODO: deprecated - use get_or_create_conversation instead
         return self.get_or_create_conversation(person_id)
     
     def add_message_to_conversation(
@@ -426,12 +361,9 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         node_id: str | None = None,
         timestamp: float | None = None,
     ) -> None:
-        """Add a message to conversation."""
-        # Store current execution ID
         if execution_id:
             self._current_execution_id = execution_id
         
-        # Determine from/to person IDs based on role
         if role == "system":
             from_person_id = "system"
             to_person_id = PersonID(person_id)
@@ -445,7 +377,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             to_person_id = PersonID(person_id)
             message_type = "person_to_person" if current_person_id != person_id else "system_to_person"
         
-        # Create and add message
         message = Message(
             from_person_id=from_person_id,
             to_person_id=to_person_id,
@@ -462,12 +393,10 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         )
     
     def get_conversation_history(self, person_id: str) -> list[dict[str, Any]]:
-        """Get conversation history."""
         conversation = self.get_conversation(person_id)
         history = []
         
         for msg in conversation.messages:
-            # Convert to legacy format
             history.append({
                 "role": "assistant" if msg.from_person_id == person_id else "user",
                 "content": msg.content,
@@ -483,14 +412,12 @@ class ConversationManagerImpl(BaseService, ConversationManager):
     def forget_for_person(
         self, person_id: str, execution_id: str | None = None
     ) -> None:
-        """Clear all messages for a person."""
         execution_id = execution_id or self._current_execution_id
         self.clear_conversation(person_id, execution_id)
     
     def forget_own_messages_for_person(
         self, person_id: str, execution_id: str | None = None
     ) -> None:
-        """Remove messages sent by the person (on_every_turn mode)."""
         execution_id = execution_id or self._current_execution_id
         self.apply_forgetting(
             person_id,
@@ -499,26 +426,19 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         )
     
     def clear_all_conversations(self) -> None:
-        """Clear all conversations."""
-        # Clear the global conversation
         self._global_conversation.clear()
         
-        # Clear all persons
         for person_id in list(self.person_manager.get_all_persons().keys()):
             self.person_manager.remove_person(person_id)
         
-        # Clear all conversation logs
         self._conversation_logs.clear()
     
     async def save_conversation_log(self, execution_id: str, log_dir: Path) -> str:
-        """Save conversation log."""
         import json
         from datetime import datetime
         
-        # Create log directory if it doesn't exist
         log_dir.mkdir(parents=True, exist_ok=True)
         
-        # Save all conversations for this execution
         filename = f"conversation_{execution_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         filepath = log_dir / filename
         
@@ -546,11 +466,9 @@ class ConversationManagerImpl(BaseService, ConversationManager):
     
     @staticmethod
     def is_conversation(value: Any) -> bool:
-        """Check if a value is a conversation."""
         return is_conversation(value)
     
     def add_simple_message(self, person_id: str, role: str, content: str) -> None:
-        """Simplified method that delegates to add_message_to_conversation."""
         self.add_message_to_conversation(
             person_id=person_id,
             execution_id=self._current_execution_id or "",
@@ -560,13 +478,11 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         )
     
     def get_messages(self, person_id: str) -> list[dict[str, str]]:
-        """Get messages for a person."""
         if self._current_execution_id:
             conversation = self.get_conversation(person_id)
             messages = []
             
             for msg in conversation.messages:
-                # Convert Message objects to dict format
                 if str(msg.from_person_id) == person_id:
                     role = "assistant"
                 elif msg.from_person_id == "system":
@@ -581,7 +497,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             
             return messages
         else:
-            # Return empty if no current execution
             messages = []
             return messages
     
@@ -593,11 +508,9 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         keep_assistant: bool = True,
         keep_external: bool = True
     ) -> None:
-        """Clear messages with fine-grained control."""
         if not keep_system and not keep_user and not keep_assistant and not keep_external:
             self.clear_conversation(person_id, self._current_execution_id)
         elif not keep_assistant:
-            # Special case for clearing only assistant messages
             self.apply_forgetting(
                 person_id, 
                 ForgettingMode.on_every_turn,
@@ -605,15 +518,12 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             )
     
     def get_messages_for_output(self, person_id: str, forget_mode: str | None = None) -> list[dict[str, str]]:
-        """Get messages for output with forgetting mode applied."""
         if forget_mode == "on_every_turn":
             if self._current_execution_id:
                 conversation = self.get_conversation(person_id)
                 
-                # Filter messages based on on_every_turn logic
                 filtered_messages = []
                 for msg in conversation.messages:
-                    # Include messages NOT from this person
                     if str(msg.from_person_id) != person_id:
                         role = "user" if msg.from_person_id != "system" else "system"
                         filtered_messages.append({
@@ -623,33 +533,25 @@ class ConversationManagerImpl(BaseService, ConversationManager):
                 
                 return filtered_messages
             else:
-                # Return empty for now
                 return []
         
-        # For other modes, return all messages
         return self.get_messages(person_id)
     
     def prepare_messages_for_llm(self, person_id: str, system_prompt: str | None = None) -> list[dict[str, str]]:
-        """Prepare messages for LLM call."""
         messages = []
         
-        # Add system prompt if provided
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         
-        # Add conversation messages
         for msg in self.get_messages(person_id):
-            # Convert external to system for LLM compatibility
             role = "system" if msg["role"] == "external" else msg["role"]
             messages.append({"role": role, "content": msg["content"]})
         
         return messages
     
     def get_messages_with_person_id(self, person_id: str, forget_mode: str | None = None) -> list[dict[str, Any]]:
-        """Get messages with person_id attached."""
         messages = self.get_messages_for_output(person_id, forget_mode)
         
-        # Add personId to each message
         messages_with_id = []
         for msg in messages:
             msg_with_person = msg.copy()
@@ -665,25 +567,20 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         clear_existing: bool = True,
         forget_mode: str | None = None
     ) -> None:
-        """Rebuild conversation context from passed messages."""
         if not isinstance(conversation_messages, list):
             return
         
-        # Clear existing if requested
         if clear_existing:
             self.forget_for_person(person_id, self._current_execution_id)
         
-        # Filter messages if needed
         conversation_messages = OnEveryTurnHandler.filter_rebuild_messages(
             conversation_messages, person_id, forget_mode
         )
         
-        # Add messages to conversation
         for msg in conversation_messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             
-            # Format content for multi-person conversations
             if role == "assistant" and msg.get("person_id") and msg.get("person_id") != person_id:
                 sender_id = msg.get("person_id")
                 sender_label = msg.get("person_label", sender_id)

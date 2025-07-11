@@ -1,4 +1,4 @@
-"""Stateful wrapper around ExecutableDiagram that maintains execution context."""
+# Stateful wrapper around ExecutableDiagram that maintains execution context.
 
 from typing import Any, Dict, List, Optional, Set
 
@@ -8,20 +8,9 @@ from dipeo.models import NodeExecutionStatus, NodeID, NodeState, NodeType
 
 
 class StatefulExecutableDiagram:
-    """Stateful wrapper that combines an ExecutableDiagram with ExecutionContext.
-    
-    This provides a more convenient interface for step-by-step execution by
-    maintaining state and providing methods to query ready nodes and advance
-    execution progress.
-    """
+    # Stateful wrapper that combines an ExecutableDiagram with ExecutionContext.
     
     def __init__(self, diagram: ExecutableDiagram, context: ExecutionContext):
-        """Initialize with a diagram and execution context.
-        
-        Args:
-            diagram: The immutable ExecutableDiagram structure
-            context: The mutable ExecutionContext for tracking state
-        """
         self._diagram = diagram
         self._context = context
         
@@ -38,25 +27,16 @@ class StatefulExecutableDiagram:
     
     @property
     def diagram(self) -> ExecutableDiagram:
-        """Get the underlying ExecutableDiagram."""
+        # Get the underlying ExecutableDiagram.
         return self._diagram
     
     @property
     def context(self) -> ExecutionContext:
-        """Get the execution context."""
+        # Get the execution context.
         return self._context
     
     def get_ready_nodes(self) -> List[ExecutableNode]:
-        """Get all nodes that are ready to execute based on dependencies.
-        
-        A node is ready if:
-        1. It's in PENDING state
-        2. All its dependencies (incoming nodes) have completed
-        3. For conditional dependencies, the condition evaluated to true
-        
-        Returns:
-            List of nodes ready for execution
-        """
+        # Get all nodes that are ready to execute based on dependencies.
         ready_nodes = []
         
         for node in self._diagram.nodes:
@@ -66,26 +46,11 @@ class StatefulExecutableDiagram:
         return ready_nodes
     
     def next(self) -> List[ExecutableNode]:
-        """Get the next set of nodes ready for execution.
-        
-        This is an alias for get_ready_nodes() to provide a more
-        intuitive interface for iterative execution.
-        
-        Returns:
-            List of nodes ready for execution
-        """
+        # Get the next set of nodes ready for execution.
         return self.get_ready_nodes()
     
     def advance(self, node_id: NodeID, result: Optional[Dict[str, Any]] = None) -> None:
-        """Mark a node as completed and store its result.
-        
-        This advances the execution by marking a node complete, which may
-        make downstream nodes ready for execution.
-        
-        Args:
-            node_id: The ID of the node that completed
-            result: Optional execution result to store
-        """
+        # Mark a node as completed and store its result.
         # Update node state to completed
         state = self._context.get_node_state(node_id)
         if state:
@@ -103,11 +68,7 @@ class StatefulExecutableDiagram:
             pass
     
     def mark_node_running(self, node_id: NodeID) -> None:
-        """Mark a node as currently running.
-        
-        Args:
-            node_id: The ID of the node to mark as running
-        """
+        # Mark a node as currently running.
         state = self._context.get_node_state(node_id)
         if state:
             state.status = NodeExecutionStatus.RUNNING
@@ -115,12 +76,7 @@ class StatefulExecutableDiagram:
             self._context.set_current_node(node_id)
     
     def mark_node_failed(self, node_id: NodeID, error: Optional[Exception] = None) -> None:
-        """Mark a node as failed.
-        
-        Args:
-            node_id: The ID of the node that failed
-            error: Optional exception that caused the failure
-        """
+        # Mark a node as failed.
         state = self._context.get_node_state(node_id)
         if state:
             state.status = NodeExecutionStatus.FAILED
@@ -129,14 +85,7 @@ class StatefulExecutableDiagram:
             self._context.set_node_state(node_id, state)
     
     def is_complete(self) -> bool:
-        """Check if the entire diagram execution is complete.
-        
-        The diagram is complete when all reachable nodes have been executed
-        or when all end nodes have been reached.
-        
-        Returns:
-            True if execution is complete, False otherwise
-        """
+        # Check if the entire diagram execution is complete.
         import logging
         logger = logging.getLogger(__name__)
         
@@ -171,24 +120,13 @@ class StatefulExecutableDiagram:
         return True
     
     def get_execution_path(self) -> List[NodeID]:
-        """Get the execution path taken so far.
-        
-        Returns:
-            List of node IDs in the order they were executed
-        """
+        # Get the execution path taken so far.
         # Get completed nodes and sort by completion order
         # This assumes the context tracks execution order
         return self._context.get_completed_nodes()
     
     def _is_node_ready(self, node: ExecutableNode) -> bool:
-        """Check if a node is ready for execution.
-        
-        Args:
-            node: The node to check
-            
-        Returns:
-            True if the node is ready, False otherwise
-        """
+        # Check if a node is ready for execution.
         import logging
         logger = logging.getLogger(__name__)
         
@@ -263,17 +201,7 @@ class StatefulExecutableDiagram:
         return dependencies_complete
     
     def _is_node_reachable(self, node: ExecutableNode) -> bool:
-        """Check if a node is reachable given the current execution state.
-        
-        A node is reachable if there's a path from a completed or running node
-        to this node, considering conditional branches.
-        
-        Args:
-            node: The node to check
-            
-        Returns:
-            True if the node is reachable, False otherwise
-        """
+        # Check if a node is reachable given the current execution state.
         # Start nodes are always reachable
         if node.type == NodeType.start:
             return True
@@ -315,15 +243,7 @@ class StatefulExecutableDiagram:
         return False
     
     def _is_conditional_edge_active(self, edge, condition_node: ExecutableNode) -> bool:
-        """Check if a conditional edge is the active branch.
-        
-        Args:
-            edge: The edge to check
-            condition_node: The condition node
-            
-        Returns:
-            True if this edge is the active branch, False otherwise
-        """
+        # Check if a conditional edge is the active branch.
         # Get the condition result
         result = self._context.get_node_result(condition_node.id)
         if not result:

@@ -1,4 +1,3 @@
-"""Notion node handler - integrates with Notion API."""
 
 from typing import Any
 
@@ -11,10 +10,8 @@ from pydantic import BaseModel
 
 @register_handler
 class NotionNodeHandler(BaseNodeHandler):
-    """Handler for notion nodes."""
     
     def __init__(self, notion_service=None, api_key_service=None):
-        """Initialize with injected services."""
         self.notion_service = notion_service
         self.api_key_service = api_key_service
 
@@ -42,7 +39,6 @@ class NotionNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute notion node based on operation type."""
         notion_service = self.notion_service or services["notion_service"]
         api_key_service = self.api_key_service or services["api_key_service"]
         

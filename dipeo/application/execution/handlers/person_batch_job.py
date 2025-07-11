@@ -1,4 +1,3 @@
-"""Person batch job node handler - executes prompts across multiple persons."""
 
 import asyncio
 from typing import TYPE_CHECKING, Any, Optional
@@ -31,10 +30,8 @@ PersonBatchJobNodeData = PersonJobNodeData
 
 @register_handler
 class PersonBatchJobNodeHandler(BaseNodeHandler):
-    """Handler for person_batch_job nodes."""
     
     def __init__(self, llm_service=None, diagram_storage_service=None, conversation_service=None):
-        """Initialize with injected services."""
         self.llm_service = llm_service
         self.diagram_storage_service = diagram_storage_service
         self.conversation_service = conversation_service
@@ -63,7 +60,6 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute person_batch_job node."""
         # Get services from context with fallback to services dict
         conversation_service: "ConversationManager" = context.get_service("conversation_service") or services.get("conversation_service")
         llm_service = self.llm_service or services.get("llm_service")
@@ -159,7 +155,6 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         conversation_service: "ConversationManager",
         llm_service: Any,
     ) -> dict[str, Any]:
-        """Execute a single person job within the batch."""
         # Find person
         person = self._find_person(diagram, person_id)
         if not person:
@@ -310,7 +305,6 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
     def _find_person(
         self, diagram: Optional[DomainDiagram], person_id: str
     ) -> Optional[DomainPerson]:
-        """Find person in diagram."""
         if not diagram:
             return None
         return next((p for p in diagram.persons if p.id == person_id), None)

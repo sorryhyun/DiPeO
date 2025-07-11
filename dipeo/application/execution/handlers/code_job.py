@@ -1,4 +1,3 @@
-"""Code job node handler - executes Python, JavaScript, or Bash code."""
 
 import asyncio
 import json
@@ -19,10 +18,8 @@ from dipeo.utils.template import TemplateProcessor
 
 @register_handler
 class CodeJobNodeHandler(BaseNodeHandler):
-    """Handler for code_job nodes - executes code in various languages."""
     
     def __init__(self, template_service=None):
-        """Initialize with injected services."""
         if template_service is not None:
             warnings.warn(
                 "Passing template_service to CodeJobNodeHandler is deprecated. "
@@ -55,7 +52,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute code_job node with code."""
         language = props.language
         code = props.code
         timeout = props.timeout or 30  # Default 30 seconds
@@ -112,7 +108,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
             )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
-        """Execute Python code safely with timeout."""
         # Replace template variables using the standard utility
         if "{{" in code and inputs:
             # Create a namespace with all inputs
@@ -221,7 +216,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
             sys.stdout = old_stdout
 
     async def _execute_javascript(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
-        """Execute JavaScript code using Node.js with timeout."""
 
         # Replace template variables
         if "{{" in code and inputs:
@@ -288,7 +282,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
         return stdout.decode().strip()
 
     async def _execute_bash(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
-        """Execute Bash code with timeout."""
         # Replace template variables
         if "{{" in code and inputs:
             template_vars = {}

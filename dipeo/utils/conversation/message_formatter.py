@@ -1,4 +1,4 @@
-"""Message building and formatting for conversations."""
+# Message building and formatting for conversations
 
 from typing import List, Dict, Any, Optional, Union
 import json
@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 class MessageFormatter:
-    """Formats messages for LLM conversations."""
+    # Formats messages for LLM conversations
     
     @staticmethod
     def create_message(
@@ -15,7 +15,7 @@ class MessageFormatter:
         name: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Create a properly formatted message."""
+        # Create a properly formatted message
         message = {
             "role": role,
             "content": content
@@ -34,7 +34,7 @@ class MessageFormatter:
         content: str,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Create a system message."""
+        # Create a system message
         return MessageFormatter.create_message("system", content, metadata=metadata)
     
     @staticmethod
@@ -43,7 +43,7 @@ class MessageFormatter:
         name: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Create a user message."""
+        # Create a user message
         return MessageFormatter.create_message("user", content, name=name, metadata=metadata)
     
     @staticmethod
@@ -52,7 +52,7 @@ class MessageFormatter:
         name: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Create an assistant message."""
+        # Create an assistant message
         return MessageFormatter.create_message("assistant", content, name=name, metadata=metadata)
     
     @staticmethod
@@ -61,7 +61,7 @@ class MessageFormatter:
         role: str = "user",
         format_type: str = "json"
     ) -> Dict[str, Any]:
-        """Format inputs as a message."""
+        # Format inputs as a message
         if format_type == "json":
             content = json.dumps(inputs, indent=2)
         elif format_type == "yaml":
@@ -95,7 +95,7 @@ class MessageFormatter:
         messages: List[Dict[str, Any]],
         dedup: bool = True
     ) -> List[Dict[str, Any]]:
-        """Merge multiple message lists, optionally deduplicating."""
+        # Merge multiple message lists, optionally deduplicating
         if not dedup:
             return messages
         
@@ -121,7 +121,7 @@ class MessageFormatter:
         message: Dict[str, Any],
         timestamp: Optional[datetime] = None
     ) -> Dict[str, Any]:
-        """Add timestamp to message metadata."""
+        # Add timestamp to message metadata
         if timestamp is None:
             timestamp = datetime.utcnow()
         
@@ -133,7 +133,7 @@ class MessageFormatter:
     
     @staticmethod
     def extract_code_blocks(content: str) -> List[Dict[str, str]]:
-        """Extract code blocks from message content."""
+        # Extract code blocks from message content
         import re
         
         code_blocks = []
@@ -153,7 +153,7 @@ class MessageFormatter:
         messages: List[Dict[str, Any]],
         max_length: Optional[int] = None
     ) -> str:
-        """Format messages as a conversation context string."""
+        # Format messages as a conversation context string
         lines = []
         
         for msg in messages:
@@ -174,7 +174,7 @@ class MessageFormatter:
         result: Any,
         role: str = "assistant"
     ) -> Dict[str, Any]:
-        """Create a message representing a function call."""
+        # Create a message representing a function call
         content = {
             "function": function_name,
             "arguments": arguments,
@@ -192,7 +192,7 @@ class MessageFormatter:
     
     @staticmethod
     def validate_message(message: Dict[str, Any]) -> List[str]:
-        """Validate message structure and return errors."""
+        # Validate message structure and return errors
         errors = []
         
         # Check required fields
@@ -221,16 +221,7 @@ class MessageFormatter:
         conversation_messages: List[Dict[str, Any]],
         current_prompt: str,
     ) -> List[Dict[str, Any]]:
-        """Prepare messages for LLM execution.
-        
-        Args:
-            system_prompt: Optional system prompt to include
-            conversation_messages: Previous conversation messages
-            current_prompt: The current user prompt
-            
-        Returns:
-            List of formatted messages for LLM
-        """
+        # Prepare messages for LLM execution
         messages = []
         
         # Add system prompt if provided
@@ -259,17 +250,7 @@ class MessageFormatter:
         tool_calls: Optional[Any] = None,
         tool_call_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Format a single message with optional tool information.
-        
-        Args:
-            role: Message role (system, user, assistant, tool)
-            content: Message content
-            tool_calls: Optional tool calls
-            tool_call_id: Optional tool call ID
-            
-        Returns:
-            Formatted message dictionary
-        """
+        # Format a single message with optional tool information
         message = {
             "role": role,
             "content": content,
@@ -287,17 +268,7 @@ class MessageFormatter:
     def validate_messages(
         messages: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        """Validate and clean messages for LLM.
-        
-        Args:
-            messages: List of messages to validate
-            
-        Returns:
-            Validated messages
-            
-        Raises:
-            ValueError: If messages are invalid
-        """
+        # Validate and clean messages for LLM
         if not messages:
             raise ValueError("Messages list cannot be empty")
         
@@ -335,14 +306,7 @@ class MessageFormatter:
     def merge_conversation_states(
         states: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        """Merge multiple conversation states into a single message list.
-        
-        Args:
-            states: List of conversation state dictionaries
-            
-        Returns:
-            Merged list of messages
-        """
+        # Merge multiple conversation states into a single message list
         merged = []
         
         for state in states:

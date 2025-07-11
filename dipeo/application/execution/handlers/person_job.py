@@ -1,4 +1,3 @@
-"""Person job handler using domain services."""
 
 import logging
 from typing import Any, Dict, Optional
@@ -18,10 +17,8 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class PersonJobNodeHandler(BaseNodeHandler):
-    """Person job handler that delegates to domain services."""
     
     def __init__(self, person_job_execution_service=None, llm_service=None, diagram_storage_service=None, conversation_service=None):
-        """Initialize with injected services."""
         self.person_job_execution_service = person_job_execution_service
         self.llm_service = llm_service
         self.diagram_storage_service = diagram_storage_service
@@ -45,7 +42,6 @@ class PersonJobNodeHandler(BaseNodeHandler):
         return "Execute person job with conversation memory"
     
     def _resolve_service(self, context: ExecutionContextPort, services: dict[str, Any], service_name: str) -> Optional[Any]:
-        """Helper to resolve service from context or services dict."""
         service = context.get_service(service_name)
         if not service:
             service = services.get(service_name)
@@ -58,7 +54,6 @@ class PersonJobNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute person_job node by delegating to domain service."""
         # Resolve services
         person_job_orchestrator = self._resolve_service(context, services, "person_job_orchestrator")
         llm_service = self._resolve_service(context, services, "llm_service")
@@ -122,15 +117,12 @@ class PersonJobNodeHandler(BaseNodeHandler):
             )
     
     def _extract_node_id(self, context: ExecutionContextPort) -> str:
-        """Extract node ID from context."""
         return context.current_node_id
     
     def _extract_execution_count(self, context: ExecutionContextPort) -> int:
-        """Extract execution count from context."""
         return context.get_node_execution_count(context.current_node_id)
     
     def _transform_result_to_output(self, result: Any, context: ExecutionContextPort) -> NodeOutput:
-        """Transform domain result to handler NodeOutput."""
         output_value = {"default": result.content}
         
         # Add conversation if present

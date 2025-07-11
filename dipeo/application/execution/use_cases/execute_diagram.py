@@ -1,4 +1,4 @@
-"""Use case for executing a complete diagram."""
+# Use case for executing a complete diagram.
 
 import asyncio
 from collections.abc import AsyncGenerator
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from ... import ExecutionController
 
 class ExecuteDiagramUseCase(BaseService, SupportsExecution):
-    """High-level orchestration for diagram execution."""
+    # High-level orchestration for diagram execution.
 
     def __init__(
         self,

@@ -1,8 +1,5 @@
-"""Unified flow control service for execution management.
-
-This service combines the responsibilities of ExecutionFlowService and ExecutionFlowController,
-providing a single source of truth for flow control logic.
-"""
+# Unified flow control service for execution management.
+# This service combines the responsibilities of ExecutionFlowService and ExecutionFlowController.
 
 from typing import List, Dict, Any, Optional, Set
 import logging
@@ -14,15 +11,7 @@ log = logging.getLogger(__name__)
 
 
 class FlowControlService:
-    """Unified service for managing execution flow control.
-    
-    Responsibilities:
-    - Determine node readiness (pure business logic)
-    - Calculate dependencies
-    - Evaluate flow decisions
-    - Navigate execution paths
-    - Control execution lifecycle
-    """
+    # Unified service for managing execution flow control.
     
     def is_node_ready(
         self,
@@ -32,13 +21,7 @@ class FlowControlService:
         node_outputs: Dict[str, Any],
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> bool:
-        """Determine if a node is ready to execute.
-        
-        A node is ready if:
-        - It hasn't exceeded its max iterations
-        - All its dependencies are satisfied
-        - For nodes that have already executed: they have new inputs
-        """
+        # Determine if a node is ready to execute.
         # Check if node can still execute
         if not self.can_node_execute(node, node_exec_counts):
             log.debug(f"Node {node.id} cannot execute - reached max iterations")
@@ -69,7 +52,7 @@ class FlowControlService:
         node_outputs: Dict[str, Any],
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> List[DomainNode]:
-        """Get all nodes that are ready to execute."""
+        # Get all nodes that are ready to execute.
         ready_nodes = []
         
         for node in diagram.nodes:
@@ -87,13 +70,7 @@ class FlowControlService:
         diagram: DomainDiagram,
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> bool:
-        """Determine if execution should continue.
-        
-        Business rules:
-        - Stop if all endpoints have been executed
-        - Stop if only unexecutable nodes remain
-        - Stop if nodes have reached max iterations
-        """
+        # Determine if execution should continue.
         # Check if all endpoints have been executed
         endpoint_nodes = [
             node for node in diagram.nodes 
@@ -126,12 +103,7 @@ class FlowControlService:
         node: DomainNode,
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> bool:
-        """Check if a node can execute based on its max iterations.
-        
-        Business rules:
-        - Nodes without max_iteration can always execute
-        - Nodes with max_iteration stop after reaching the limit
-        """
+        # Check if a node can execute based on its max iterations.
         if not node_exec_counts:
             return True
         
@@ -157,10 +129,7 @@ class FlowControlService:
         diagram: DomainDiagram,
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> List[str]:
-        """Get all nodes that this node depends on.
-        
-        Handles special cases like person_job nodes with "first" handles.
-        """
+        # Get all nodes that this node depends on.
         dependency_ids = []
         
         # Find all arrows pointing to this node
@@ -212,10 +181,7 @@ class FlowControlService:
         diagram: DomainDiagram,
         condition_result: Optional[bool] = None
     ) -> List[str]:
-        """Get the next nodes to execute after a given node.
-        
-        Handles condition branches based on the result.
-        """
+        # Get the next nodes to execute after a given node.
         next_nodes = []
         
         # Find all arrows from this node
@@ -242,7 +208,7 @@ class FlowControlService:
         start_node_id: Optional[str] = None,
         end_node_id: Optional[str] = None
     ) -> List[str]:
-        """Find a valid execution path through the diagram."""
+        # Find a valid execution path through the diagram.
         # If no start specified, find a start node
         if not start_node_id:
             start_nodes = [n for n in diagram.nodes if n.type == NodeType.start]
@@ -286,11 +252,7 @@ class FlowControlService:
         return find_path(start_node_id, end_node_id, set(), []) or []
     
     def _is_node_in_iteration_loop(self, node: DomainNode, diagram: DomainDiagram) -> bool:
-        """Check if a node is part of an iteration loop controlled by a condition node.
-        
-        A node is in an iteration loop if there's a path:
-        node -> ... -> condition node -> ... -> node
-        """
+        # Check if a node is part of an iteration loop controlled by a condition node.
         # Find all condition nodes in the diagram
         condition_nodes = [n for n in diagram.nodes if n.type == NodeType.condition]
         if not condition_nodes:
@@ -313,7 +275,7 @@ class FlowControlService:
         return False
     
     def _has_path(self, from_node_id: str, to_node_id: str, diagram: DomainDiagram) -> bool:
-        """Check if there's a path from one node to another."""
+        # Check if there's a path from one node to another.
         if from_node_id == to_node_id:
             return True
         
@@ -346,14 +308,7 @@ class FlowControlService:
         node_outputs: Dict[str, Any],
         last_exec_count: int
     ) -> bool:
-        """Check if a node has received new inputs since its last execution.
-        
-        For nodes with multiple iterations (like person_job with max_iteration > 1),
-        they should only execute again if there's a feedback loop from downstream nodes.
-        
-        This prevents nodes from executing all their iterations immediately,
-        and ensures proper flow through the diagram.
-        """
+        # Check if a node has received new inputs since its last execution.
         # For nodes that support multiple iterations, check if there's a feedback path
         # A feedback path exists if:
         # 1. There's a path from this node to another node and back, OR
@@ -385,7 +340,7 @@ class FlowControlService:
         return False
     
     def _has_path_from_to(self, diagram: DomainDiagram, from_id: str, to_id: str) -> bool:
-        """Check if there's a path from one node to another."""
+        # Check if there's a path from one node to another.
         visited = set()
         
         def dfs(current_id: str) -> bool:
@@ -418,7 +373,7 @@ class FlowControlService:
         condition_result: Optional[bool] = None,
         node_exec_count: int = 0
     ) -> bool:
-        """Determine if an arrow should be skipped during execution."""
+        # Determine if an arrow should be skipped during execution.
         # Skip condition branches based on result
         if source_node_type == NodeType.condition and condition_result is not None:
             if source_handle == "condtrue" and not condition_result:
@@ -441,14 +396,7 @@ class FlowControlService:
         node_outputs: Dict[str, Any],
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> bool:
-        """Check if all node dependencies are satisfied.
-        
-        Business rules:
-        - Start nodes have no dependencies
-        - Person job nodes with "first" handle only need inputs on first execution
-        - All other nodes need all their dependencies executed
-        - Nodes depending on condition outputs need the correct branch
-        """
+        # Check if all node dependencies are satisfied.
         # Start nodes have no dependencies
         if node.type == NodeType.start:
             return True
@@ -495,12 +443,7 @@ class FlowControlService:
         ready_nodes: List[DomainNode],
         diagram: DomainDiagram
     ) -> List[DomainNode]:
-        """Order ready nodes to ensure deterministic execution.
-        
-        Nodes that provide inputs to other ready nodes should execute first.
-        This prevents race conditions where dependent nodes might execute
-        before their dependencies when both are ready.
-        """
+        # Order ready nodes to ensure deterministic execution.
         if len(ready_nodes) <= 1:
             return ready_nodes
         

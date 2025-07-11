@@ -1,4 +1,4 @@
-"""Execution order calculation using topological sort."""
+# Execution order calculation using topological sort.
 
 from typing import List, Dict, Set, Tuple, Optional
 from collections import deque
@@ -10,28 +10,22 @@ from dipeo.core.static import ExecutableEdge
 
 @dataclass
 class ExecutionGroup:
-    """A group of nodes that can be executed in parallel."""
+    # A group of nodes that can be executed in parallel.
     level: int
     nodes: List[NodeID]
 
 
 class CycleDetectedError(Exception):
-    """Raised when a cycle is detected in the diagram."""
+    # Raised when a cycle is detected in the diagram.
     def __init__(self, cycle_nodes: Set[NodeID]):
         self.cycle_nodes = cycle_nodes
         super().__init__(f"Cycle detected involving nodes: {cycle_nodes}")
 
 
 class ExecutionOrderCalculator:
-    """Calculates the execution order for diagram nodes using topological sort.
-    
-    This class determines the order in which nodes should be executed,
-    ensuring that all dependencies are satisfied. It also identifies
-    nodes that can be executed in parallel.
-    """
+    # Calculates the execution order for diagram nodes using topological sort.
     
     def __init__(self):
-        """Initialize the ExecutionOrderCalculator."""
         self._errors: List[str] = []
         self._warnings: List[str] = []
     

@@ -1,4 +1,4 @@
-"""Domain service for arrow-based data processing and transformation."""
+# Domain service for arrow-based data processing and transformation
 
 from typing import Dict, Any, Optional, Protocol
 import logging
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 
 class TransformationStrategy(Protocol):
-    """Protocol for content type transformation strategies."""
+    # Protocol for content type transformation strategies
     
     def transform(
         self,
@@ -24,25 +24,23 @@ class TransformationStrategy(Protocol):
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Transform value based on content type and arrow configuration."""
+        # Transform value based on content type and arrow configuration
         ...
 
 
 class ArrowProcessor:
-    """Service for processing data flow through arrows with transformations."""
+    # Service for processing data flow through arrows with transformations
     
     def __init__(self):
         self._transformation_strategies: Dict[ContentType, TransformationStrategy] = {}
         self._register_default_strategies()
     
     def _register_default_strategies(self):
-        """Register default transformation strategies."""
         self._transformation_strategies[ContentType.raw_text] = RawTextStrategy()
         self._transformation_strategies[ContentType.conversation_state] = ConversationStateStrategy()
         self._transformation_strategies[ContentType.variable] = VariableStrategy()
     
     def register_strategy(self, content_type: ContentType, strategy: TransformationStrategy):
-        """Register a transformation strategy for a content type."""
         self._transformation_strategies[content_type] = strategy
     
     def process_arrow_delivery(
@@ -52,17 +50,7 @@ class ArrowProcessor:
         target_node_type: str,
         memory_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Process data delivery through an arrow with transformations.
-        
-        This method:
-        1. Extracts the appropriate value from source output
-        2. Applies content type transformations
-        3. Formats the output based on arrow configuration
-        4. Prepares memory management metadata
-        
-        Returns:
-            Processed input ready for the target node
-        """
+        # Process data delivery through an arrow with transformations
         # Parse handles to understand the connection
         source_node_id, source_handle, _ = parse_handle_id(arrow.source)
         target_node_id, target_handle, _ = parse_handle_id(arrow.target)
@@ -117,7 +105,7 @@ class ArrowProcessor:
         source_handle: str,
         arrow_label: Optional[str],
     ) -> Any:
-        """Extract the appropriate value from node output."""
+        # Extract the appropriate value from node output
         if not output or not output.value:
             return None
         
@@ -138,7 +126,7 @@ class ArrowProcessor:
 
 
 class RawTextStrategy:
-    """Strategy for raw text content - minimal transformation."""
+    # Strategy for raw text content - minimal transformation
     
     def transform(
         self,
@@ -147,7 +135,6 @@ class RawTextStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Pass through with minimal transformation."""
         # For raw text, we just ensure it's stringifiable
         if isinstance(value, (list, dict)):
             return value
@@ -155,7 +142,7 @@ class RawTextStrategy:
 
 
 class ConversationStateStrategy:
-    """Strategy for conversation state content."""
+    # Strategy for conversation state content
     
     def transform(
         self,
@@ -164,7 +151,6 @@ class ConversationStateStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Transform conversation state data."""
         # If it's already a conversation state, return as is
         if isinstance(value, dict) and "messages" in value:
             return value
@@ -182,7 +168,7 @@ class ConversationStateStrategy:
 
 
 class VariableStrategy:
-    """Strategy for variable references."""
+    # Strategy for variable references
     
     def transform(
         self,
@@ -191,7 +177,6 @@ class VariableStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Handle variable references."""
         # For now, just pass through
         # In future, this could resolve variable references
         return value

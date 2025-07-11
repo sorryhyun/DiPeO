@@ -21,7 +21,7 @@ unified_schema = strawberry.Schema(
 
 
 def create_unified_graphql_router(context_getter=None):
-    """Create a GraphQL router with direct streaming support."""
+    # Create a GraphQL router with direct streaming support
     return GraphQLRouter(
         unified_schema,
         context_getter=context_getter,

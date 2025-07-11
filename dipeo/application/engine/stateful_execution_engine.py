@@ -1,4 +1,4 @@
-"""Refactored execution engine using StatefulExecutableDiagram and iterators."""
+# Refactored execution engine using StatefulExecutableDiagram and iterators.
 
 import asyncio
 import logging
@@ -22,11 +22,7 @@ log = logging.getLogger(__name__)
 
 
 class StatefulExecutionEngine:
-    """Refactored execution engine using StatefulExecutableDiagram.
-    
-    This engine uses the new stateful diagram wrapper and execution iterator
-    pattern for cleaner execution flow management.
-    """
+    # Refactored execution engine using StatefulExecutableDiagram and execution iterator pattern
     
     def __init__(
         self, 
@@ -45,20 +41,6 @@ class StatefulExecutionEngine:
         options: dict[str, Any],
         interactive_handler: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        """Execute using an ExecutableDiagram and ExecutionContext.
-        
-        This is the main execution method that uses the new stateful architecture.
-        
-        Args:
-            executable_diagram: The resolved ExecutableDiagram
-            context: The execution context for state management
-            execution_id: Unique execution identifier
-            options: Execution options (max_parallel_nodes, etc.)
-            interactive_handler: Optional handler for interactive nodes
-            
-        Yields:
-            Execution updates as dictionaries
-        """
         # Create stateful wrapper
         stateful_diagram = StatefulExecutableDiagram(executable_diagram, context)
         
@@ -147,11 +129,6 @@ class StatefulExecutionEngine:
         options: dict[str, Any],
         interactive_handler: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        """Execute with pre-prepared execution context (compatibility method).
-        
-        This method maintains compatibility with the existing interface while
-        internally using the new stateful execution approach.
-        """
         # Extract ExecutableDiagram if available
         executable_diagram = getattr(diagram, '_executable_diagram', None)
         if not executable_diagram:
@@ -205,10 +182,6 @@ class StatefulExecutionEngine:
         diagram: Optional["DomainDiagram"] = None,
         controller: Optional[Any] = None
     ):
-        """Create a node executor function for the iterator.
-        
-        This wraps the existing NodeExecutor to work with the iterator pattern.
-        """
         async def execute_node(node: "ExecutableNode") -> Dict[str, Any]:
             # For the stateful execution to work properly, we need to ensure
             # that nodes are executed and their results are properly tracked.
@@ -273,10 +246,6 @@ class StatefulExecutionEngine:
         options: Dict[str, Any],
         interactive_handler: Optional[Any]
     ) -> Dict[str, Any]:
-        """Execute a single node and return its result.
-        
-        This adapts the ExecutableNode to work with the existing handler system.
-        """
         # We need to use the existing node_executor, but it expects a DomainDiagram
         # For now, create a minimal wrapper that provides the necessary interface
         
@@ -306,7 +275,6 @@ class StatefulExecutionEngine:
         diagram: "ExecutableDiagram", 
         context: UnifiedExecutionContext
     ) -> bool:
-        """Check if any endpoint node has been executed."""
         for node in diagram.get_end_nodes():
             if context.is_node_complete(node.id):
                 return True

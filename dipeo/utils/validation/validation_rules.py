@@ -1,4 +1,4 @@
-"""Validation rules for diagram resolution and execution."""
+# Validation rules for diagram resolution and execution
 
 from typing import List, Set, Dict, Any, Optional, Protocol
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from dipeo.models import NodeType, NodeID, HandleLabel
 
 
 class ValidationSeverity(Enum):
-    """Severity levels for validation issues."""
+    # Severity levels for validation issues
     ERROR = "error"      # Must be fixed before execution
     WARNING = "warning"  # Should be reviewed but won't block execution
     INFO = "info"        # Informational, no action required
@@ -16,7 +16,7 @@ class ValidationSeverity(Enum):
 
 @dataclass
 class ValidationIssue:
-    """A validation issue found during diagram validation."""
+    # A validation issue found during diagram validation
     severity: ValidationSeverity
     category: str
     message: str
@@ -25,19 +25,15 @@ class ValidationIssue:
 
 
 class NodeValidator(Protocol):
-    """Protocol for node-specific validators."""
+    # Protocol for node-specific validators
     
     def validate(self, node: Any) -> List[ValidationIssue]:
-        """Validate a node and return any issues found."""
+        # Validate a node and return any issues found
         ...
 
 
 class ValidationRules:
-    """Central validation rules for diagram resolution.
-    
-    This class defines all validation rules used during diagram resolution
-    including node-specific rules, connection rules, and execution constraints.
-    """
+    # Central validation rules for diagram resolution
     
     # Node type constraints
     NODE_CONNECTION_RULES = {
@@ -95,16 +91,7 @@ class ValidationRules:
         incoming_count: int,
         outgoing_count: int
     ) -> List[ValidationIssue]:
-        """Validate node connection counts.
-        
-        Args:
-            node_type: Type of the node
-            incoming_count: Number of incoming connections
-            outgoing_count: Number of outgoing connections
-            
-        Returns:
-            List of validation issues
-        """
+        # Validate node connection counts
         issues = []
         rules = cls.NODE_CONNECTION_RULES.get(node_type, {})
         
@@ -149,15 +136,7 @@ class ValidationRules:
         node_type: NodeType,
         available_handles: Set[HandleLabel]
     ) -> List[ValidationIssue]:
-        """Validate that a node has required handles.
-        
-        Args:
-            node_type: Type of the node
-            available_handles: Set of handles the node has
-            
-        Returns:
-            List of validation issues
-        """
+        # Validate that a node has required handles
         issues = []
         rules = cls.NODE_CONNECTION_RULES.get(node_type, {})
         required_handles = set(rules.get("required_handles", []))
@@ -188,15 +167,7 @@ class ValidationRules:
         source_type: NodeType,
         target_type: NodeType
     ) -> List[ValidationIssue]:
-        """Validate that a connection between node types is allowed.
-        
-        Args:
-            source_type: Type of the source node
-            target_type: Type of the target node
-            
-        Returns:
-            List of validation issues
-        """
+        # Validate that a connection between node types is allowed
         issues = []
         source_rules = cls.NODE_CONNECTION_RULES.get(source_type, {})
         target_rules = cls.NODE_CONNECTION_RULES.get(target_type, {})
@@ -226,14 +197,7 @@ class ValidationRules:
         cls,
         groups: List[Any]
     ) -> List[ValidationIssue]:
-        """Validate execution groups for constraints.
-        
-        Args:
-            groups: List of execution groups
-            
-        Returns:
-            List of validation issues
-        """
+        # Validate execution groups for constraints
         issues = []
         
         for group in groups:
@@ -254,15 +218,7 @@ class ValidationRules:
         node_count: int,
         edge_count: int
     ) -> List[ValidationIssue]:
-        """Validate overall diagram size constraints.
-        
-        Args:
-            node_count: Number of nodes in diagram
-            edge_count: Number of edges in diagram
-            
-        Returns:
-            List of validation issues
-        """
+        # Validate overall diagram size constraints
         issues = []
         
         if node_count > cls.MAX_TOTAL_NODES:
@@ -291,14 +247,7 @@ class ValidationRules:
     
     @classmethod
     def validate_person_node(cls, node_data: Dict[str, Any]) -> List[ValidationIssue]:
-        """Validate person node specific requirements.
-        
-        Args:
-            node_data: Person node data
-            
-        Returns:
-            List of validation issues
-        """
+        # Validate person node specific requirements
         issues = []
         
         # Check for person identification in various formats
@@ -332,14 +281,7 @@ class ValidationRules:
     
     @classmethod
     def validate_condition_node(cls, node_data: Dict[str, Any]) -> List[ValidationIssue]:
-        """Validate condition node specific requirements.
-        
-        Args:
-            node_data: Condition node data
-            
-        Returns:
-            List of validation issues
-        """
+        # Validate condition node specific requirements
         issues = []
         
         # Check for condition in various formats

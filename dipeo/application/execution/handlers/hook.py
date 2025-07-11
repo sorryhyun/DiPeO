@@ -1,4 +1,3 @@
-"""Hook node handler for executing external hooks within diagram flow."""
 import asyncio
 import json
 import os
@@ -18,10 +17,8 @@ from dipeo.models import HookNodeData, HookType, NodeOutput
 
 @register_handler
 class HookNodeHandler(BaseNodeHandler):
-    """Executes external hooks (shell, webhook, python, file) as part of diagram flow."""
     
     def __init__(self):
-        """Initialize handler."""
         pass
 
     
@@ -44,7 +41,6 @@ class HookNodeHandler(BaseNodeHandler):
         inputs: Dict[str, Any],
         services: Dict[str, Any]
     ) -> NodeOutput:
-        """Execute the hook based on its type."""
         try:
             result = await self._execute_hook(props, inputs)
             return create_node_output(
@@ -56,7 +52,6 @@ class HookNodeHandler(BaseNodeHandler):
             raise NodeExecutionError(f"Hook execution failed: {str(e)}") from e
     
     async def _execute_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        """Execute hook based on type."""
         if props.hook_type == HookType.shell:
             return await self._execute_shell_hook(props, inputs)
         elif props.hook_type == HookType.webhook:
@@ -69,7 +64,6 @@ class HookNodeHandler(BaseNodeHandler):
             raise InvalidDiagramError(f"Unknown hook type: {props.hook_type}")
     
     async def _execute_shell_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        """Execute shell command hook."""
         config = props.config
         command = config.get("command")
         if not command:
@@ -121,7 +115,6 @@ class HookNodeHandler(BaseNodeHandler):
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds")
     
     async def _execute_webhook_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        """Execute webhook hook."""
         config = props.config
         url = config.get("url")
         if not url:
@@ -154,7 +147,6 @@ class HookNodeHandler(BaseNodeHandler):
                 raise NodeExecutionError(f"Webhook request failed: {str(e)}")
     
     async def _execute_python_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        """Execute Python script hook."""
         config = props.config
         script = config.get("script")
         if not script:
@@ -201,7 +193,6 @@ print(json.dumps(result))
             raise NodeExecutionError(f"Failed to parse Python script output: {str(e)}")
     
     async def _execute_file_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        """Execute file operation hook."""
         config = props.config
         file_path = config.get("file_path")
         if not file_path:

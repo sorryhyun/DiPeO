@@ -1,4 +1,4 @@
-"""Graph analysis functions for diagrams."""
+# Graph analysis functions for diagrams
 
 from typing import List, Dict, Set, Tuple, Optional
 from collections import defaultdict, deque
@@ -7,11 +7,11 @@ from dipeo.models import extract_node_id_from_handle
 
 
 class DiagramAnalyzer:
-    """Pure functions for diagram analysis."""
+    # Pure functions for diagram analysis
     
     @staticmethod
     def find_cycles(diagram: DomainDiagram) -> List[List[str]]:
-        """Find all cycles in the diagram."""
+        # Find all cycles in the diagram
         # Build adjacency list
         graph = defaultdict(list)
         for arrow in diagram.arrows:
@@ -49,7 +49,7 @@ class DiagramAnalyzer:
     
     @staticmethod
     def find_critical_path(diagram: DomainDiagram) -> List[str]:
-        """Find the longest path from start to endpoint."""
+        # Find the longest path from start to endpoint
         # Build adjacency list
         graph = defaultdict(list)
         for arrow in diagram.arrows:
@@ -82,7 +82,7 @@ class DiagramAnalyzer:
     
     @staticmethod
     def calculate_node_depths(diagram: DomainDiagram) -> Dict[str, int]:
-        """Calculate the depth of each node from start nodes."""
+        # Calculate the depth of each node from start nodes
         # Build adjacency list
         graph = defaultdict(list)
         in_degree = defaultdict(int)
@@ -122,7 +122,7 @@ class DiagramAnalyzer:
     
     @staticmethod
     def find_bottlenecks(diagram: DomainDiagram) -> List[str]:
-        """Find nodes that all paths must go through."""
+        # Find nodes that all paths must go through
         # Find nodes that lie on all paths from start to endpoint
         start_nodes = [n.id for n in diagram.nodes if n.type == NodeType.start]
         endpoint_nodes = [n.id for n in diagram.nodes if n.type == NodeType.endpoint]
@@ -167,7 +167,7 @@ class DiagramAnalyzer:
     
     @staticmethod
     def calculate_node_fanout(diagram: DomainDiagram) -> Dict[str, int]:
-        """Calculate the fanout (number of outgoing connections) for each node."""
+        # Calculate the fanout (number of outgoing connections) for each node
         fanout = defaultdict(int)
         
         for arrow in diagram.arrows:
@@ -183,7 +183,7 @@ class DiagramAnalyzer:
     
     @staticmethod
     def find_parallel_paths(diagram: DomainDiagram) -> List[Tuple[str, str, List[List[str]]]]:
-        """Find nodes that have multiple paths between them."""
+        # Find nodes that have multiple paths between them
         graph = defaultdict(list)
         for arrow in diagram.arrows:
             source_id = extract_node_id_from_handle(arrow.source)

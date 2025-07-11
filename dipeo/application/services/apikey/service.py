@@ -13,7 +13,7 @@ from dipeo.utils.apikey import (
 
 
 class APIKeyService(BaseService, SupportsAPIKey):
-    """Orchestrates API key management between business logic and storage."""
+    # Orchestrates API key management between business logic and storage
     
     def __init__(self, storage: APIKeyPort):
         super().__init__()
@@ -21,16 +21,13 @@ class APIKeyService(BaseService, SupportsAPIKey):
         self._store: dict[str, dict] = {}
     
     async def initialize(self) -> None:
-        """Initialize the service by loading API keys from storage."""
         self._store = await self.storage.load_all()
         print(f"[APIKeyService] Loaded {len(self._store)} keys")
     
     async def _save_store(self) -> None:
-        """Save the current store state to storage."""
         await self.storage.save_all(self._store)
     
     def get_api_key(self, key_id: str) -> dict:
-        """Get a specific API key by ID."""
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
         
@@ -38,7 +35,6 @@ class APIKeyService(BaseService, SupportsAPIKey):
         return format_api_key_info(key_id, info)
     
     def list_api_keys(self) -> list[dict]:
-        """List all API keys with summary information."""
         result = []
         for key_id, info in self._store.items():
             summary = extract_api_key_summary(key_id, info)
@@ -47,7 +43,6 @@ class APIKeyService(BaseService, SupportsAPIKey):
         return result
     
     async def create_api_key(self, label: str, service: str, key: str) -> dict:
-        """Create a new API key."""
         self.validate_required_fields(
             {"label": label, "service": service, "key": key},
             ["label", "service", "key"],
@@ -74,7 +69,6 @@ class APIKeyService(BaseService, SupportsAPIKey):
         return {"id": key_id, "label": label, "service": normalized_service}
     
     async def delete_api_key(self, key_id: str) -> None:
-        """Delete an API key."""
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
         
@@ -88,7 +82,6 @@ class APIKeyService(BaseService, SupportsAPIKey):
         service: str | None = None,
         key: str | None = None,
     ) -> dict:
-        """Update an existing API key."""
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
         

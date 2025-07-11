@@ -1,8 +1,4 @@
-"""File business logic utilities - pure functions for file operations.
-
-This module contains only business logic with no I/O operations.
-All file content and metadata are passed in as parameters.
-"""
+# File business logic utilities - pure functions for file operations
 
 import hashlib
 import json
@@ -17,18 +13,10 @@ log = logging.getLogger(__name__)
 
 
 class FileBusinessLogic:
-    """Pure business logic for file operations and validation.
-    
-    This utility class contains only pure functions - no I/O operations.
-    All file content and metadata are passed in as parameters.
-    """
+    # Pure business logic for file operations and validation
 
     def validate_file_size(self, size_bytes: int, max_size_mb: float) -> None:
-        """Validate file size against maximum allowed.
-        
-        Raises:
-            ValidationError: If file exceeds size limit
-        """
+        # Validate file size against maximum allowed
         max_size_bytes = max_size_mb * 1024 * 1024
         if size_bytes > max_size_bytes:
             raise ValidationError(
@@ -41,11 +29,7 @@ class FileBusinessLogic:
         file_path: str,
         allowed_extensions: list[str] | None
     ) -> None:
-        """Validate file extension against allowed list.
-        
-        Raises:
-            ValidationError: If extension not allowed
-        """
+        # Validate file extension against allowed list
         if not allowed_extensions:
             return
             
@@ -59,10 +43,7 @@ class FileBusinessLogic:
             )
 
     def create_backup_filename(self, original_path: str, suffix: str = ".bak") -> str:
-        """Generate backup filename from original path.
-        
-        Pure string manipulation - no I/O.
-        """
+        # Generate backup filename from original path
         from datetime import timezone
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         path = Path(original_path)
@@ -78,10 +59,7 @@ class FileBusinessLogic:
         add_timestamp: bool = True,
         separator: str = "\n"
     ) -> str:
-        """Format content for appending to log file.
-        
-        Pure transformation - no I/O.
-        """
+        # Format content for appending to log file
         if add_timestamp:
             timestamp = datetime.utcnow().isoformat()
             entry = f"[{timestamp}] {content}"
@@ -96,21 +74,14 @@ class FileBusinessLogic:
         new_entry: str,
         separator: str = "\n"
     ) -> str:
-        """Merge new log entry with existing content.
-        
-        Pure string manipulation.
-        """
+        # Merge new log entry with existing content
         if existing_content and not existing_content.endswith(separator):
             existing_content += separator
             
         return existing_content + new_entry
 
     def parse_json_safe(self, content: str) -> dict[str, Any] | list[Any]:
-        """Parse JSON content safely.
-        
-        Raises:
-            ValidationError: If JSON is invalid
-        """
+        # Parse JSON content safely
         try:
             return json.loads(content)
         except json.JSONDecodeError as e:
@@ -123,10 +94,7 @@ class FileBusinessLogic:
         indent: int = 2,
         sort_keys: bool = True
     ) -> str:
-        """Format data as pretty-printed JSON.
-        
-        Pure transformation.
-        """
+        # Format data as pretty-printed JSON
         return json.dumps(data, indent=indent, sort_keys=sort_keys, ensure_ascii=False)
 
     def filter_files_by_criteria(
@@ -135,10 +103,7 @@ class FileBusinessLogic:
         extensions: list[str] | None = None,
         pattern: str | None = None
     ) -> list[str]:
-        """Filter file paths by extension and pattern.
-        
-        Pure filtering logic - no I/O.
-        """
+        # Filter file paths by extension and pattern
         filtered = []
         
         for file_path in file_paths:
@@ -160,10 +125,7 @@ class FileBusinessLogic:
         return sorted(filtered)
 
     def calculate_checksum(self, content: str | bytes) -> str:
-        """Calculate MD5 checksum of content.
-        
-        Pure computation - no I/O.
-        """
+        # Calculate MD5 checksum of content
         if isinstance(content, str):
             content = content.encode("utf-8")
             
@@ -175,11 +137,7 @@ class FileBusinessLogic:
         destination_exists: bool,
         overwrite: bool = False
     ) -> None:
-        """Validate file copy operation parameters.
-        
-        Raises:
-            ValidationError: If operation is invalid
-        """
+        # Validate file copy operation parameters
         if not source_exists:
             raise ValidationError("Source file does not exist")
             
@@ -191,11 +149,7 @@ class FileBusinessLogic:
         source_checksum: str,
         destination_checksum: str
     ) -> None:
-        """Validate that checksums match.
-        
-        Raises:
-            ValidationError: If checksums don't match
-        """
+        # Validate that checksums match
         if source_checksum != destination_checksum:
             raise ValidationError(
                 f"Checksum validation failed: {source_checksum} != {destination_checksum}"
@@ -208,10 +162,7 @@ class FileBusinessLogic:
         modified_time: float,
         created_time: float | None = None
     ) -> dict[str, Any]:
-        """Construct file metadata dictionary.
-        
-        Pure transformation.
-        """
+        # Construct file metadata dictionary
         path_obj = Path(path)
         
         metadata = {

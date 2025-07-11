@@ -1,4 +1,3 @@
-"""DB node handler - file-based database operations."""
 
 from typing import Any
 
@@ -11,10 +10,8 @@ from pydantic import BaseModel
 
 @register_handler
 class DBNodeHandler(BaseNodeHandler):
-    """Handler for db nodes - delegates business logic to domain service."""
     
     def __init__(self, db_operations_service=None):
-        """Initialize with injected services."""
         self.db_operations_service = db_operations_service
 
 
@@ -41,7 +38,6 @@ class DBNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute db node - delegates to domain service for validation and execution."""
         # Get service from context or fallback to services dict
         db_service = context.get_service("db_operations_service")
         if not db_service:

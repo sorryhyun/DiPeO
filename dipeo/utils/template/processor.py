@@ -1,4 +1,4 @@
-"""Unified template processor combining all template features."""
+# Unified template processor combining all template features
 
 from typing import Dict, Any, List, Optional, Tuple, Protocol
 import re
@@ -11,7 +11,7 @@ from .types import TemplateResult, TemplateContext
 
 
 class TemplateProcessor:
-    """Unified template processor combining all existing features."""
+    # Unified template processor combining all existing features
     
     # Regex patterns - supporting various syntax variations found in codebase
     VARIABLE_PATTERN = re.compile(r'\{\{(\s*[\w\.]+\s*)\}\}')
@@ -27,17 +27,7 @@ class TemplateProcessor:
         safe: bool = True,
         track_usage: bool = True
     ) -> TemplateResult:
-        """Process template with full feature support.
-        
-        Args:
-            template: Template string to process
-            context: Context dictionary with values
-            safe: If True, missing variables are left as-is
-            track_usage: If True, track used and missing keys
-            
-        Returns:
-            TemplateResult with processed content and metadata
-        """
+        # Process template with full feature support
         missing_keys = []
         used_keys = []
         errors = []
@@ -76,7 +66,7 @@ class TemplateProcessor:
             )
     
     def process_simple(self, template: str, context: Dict[str, Any]) -> str:
-        """Simple processing that returns just the content (backward compatibility)."""
+        # Simple processing that returns just the content
         result = self.process(template, context)
         return result.content
     
@@ -89,7 +79,7 @@ class TemplateProcessor:
         safe: bool,
         track_usage: bool
     ) -> str:
-        """Process variable substitutions."""
+        # Process variable substitutions
         def replace_var(match):
             var_path = match.group(1).strip()
             if track_usage:
@@ -113,7 +103,7 @@ class TemplateProcessor:
         context: Dict[str, Any],
         safe: bool = True
     ) -> str:
-        """Process single brace variables (for arrow transformations)."""
+        # Process single brace variables for arrow transformations
         def replace_var(match):
             var_name = match.group(1)
             value = context.get(var_name)
@@ -126,7 +116,7 @@ class TemplateProcessor:
         return self.SINGLE_BRACE_PATTERN.sub(replace_var, template)
     
     def _format_value(self, value: Any) -> str:
-        """Format value based on type."""
+        # Format value based on type
         if isinstance(value, (dict, list)):
             return json.dumps(value, indent=2)
         elif isinstance(value, datetime):
@@ -137,7 +127,7 @@ class TemplateProcessor:
             return str(value)
     
     def _get_nested_value(self, obj: Dict[str, Any], path: str) -> Any:
-        """Get nested value from dict using dot notation."""
+        # Get nested value from dict using dot notation
         keys = path.split('.')
         value = obj
         
@@ -157,7 +147,7 @@ class TemplateProcessor:
         errors: List[str],
         track_usage: bool
     ) -> str:
-        """Process conditional blocks."""
+        # Process conditional blocks
         def replace_conditional(match):
             condition_type = match.group(1)  # 'if' or 'unless'
             condition_expr = match.group(2).strip()
@@ -183,7 +173,7 @@ class TemplateProcessor:
         return self.CONDITIONAL_PATTERN.sub(replace_conditional, template)
     
     def _evaluate_condition(self, expr: str, context: Dict[str, Any]) -> bool:
-        """Safely evaluate a condition expression."""
+        # Safely evaluate a condition expression
         value = self._get_nested_value(context, expr)
         
         # Handle various truthy values
@@ -208,7 +198,7 @@ class TemplateProcessor:
         errors: List[str],
         track_usage: bool
     ) -> str:
-        """Process loop blocks."""
+        # Process loop blocks
         def replace_loop(match):
             items_path = match.group(1).strip()
             block_content = match.group(2)
@@ -247,14 +237,7 @@ class TemplateProcessor:
         return self.LOOP_PATTERN.sub(replace_loop, template)
     
     def extract_variables(self, template: str) -> List[str]:
-        """Extract all variable names from a template.
-        
-        Args:
-            template: Template string
-            
-        Returns:
-            List of unique variable names found in template
-        """
+        # Extract all variable names from a template
         variables = []
         
         # Find all {{variable}} patterns
@@ -277,14 +260,7 @@ class TemplateProcessor:
         return sorted(list(set(variables)))
     
     def validate_template(self, template: str) -> List[str]:
-        """Validate template syntax and return any errors.
-        
-        Args:
-            template: Template string to validate
-            
-        Returns:
-            List of error messages (empty if valid)
-        """
+        # Validate template syntax and return any errors
         errors = []
         
         # Check for unclosed variables
@@ -318,15 +294,7 @@ class TemplateProcessor:
         variables: Dict[str, Any],
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Create a context dictionary for template processing.
-        
-        Args:
-            variables: User variables
-            metadata: Optional metadata to include
-            
-        Returns:
-            Combined context dictionary
-        """
+        # Create a context dictionary for template processing
         context = variables.copy()
         
         if metadata:
@@ -343,22 +311,22 @@ _default_processor = TemplateProcessor()
 
 
 def process_template(template: str, context: Dict[str, Any], safe: bool = True) -> str:
-    """Process a template string with context values (backward compatibility)."""
+    # Process a template string with context values
     return _default_processor.process(template, context, safe=safe).content
 
 
 def process_conditional_template(template: str, context: Dict[str, Any]) -> str:
-    """Process template with conditional sections (backward compatibility)."""
+    # Process template with conditional sections
     return _default_processor.process(template, context).content
 
 
 def extract_variables(template: str) -> List[str]:
-    """Extract all variable names from a template (backward compatibility)."""
+    # Extract all variable names from a template
     return _default_processor.extract_variables(template)
 
 
 def validate_template(template: str) -> List[str]:
-    """Validate template syntax (backward compatibility)."""
+    # Validate template syntax
     return _default_processor.validate_template(template)
 
 
@@ -366,13 +334,13 @@ def create_template_context(
     variables: Dict[str, Any],
     metadata: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
-    """Create a context dictionary (backward compatibility)."""
+    # Create a context dictionary
     return _default_processor.create_context(variables, metadata)
 
 
 # Legacy TemplateService for backward compatibility
 class TemplateService:
-    """Legacy TemplateService API for backward compatibility."""
+    # Legacy TemplateService API for backward compatibility
     
     def __init__(self):
         self._processor = TemplateProcessor()
@@ -396,7 +364,7 @@ class TemplateService:
         values: Dict[str, Any],
         track_usage: bool = True
     ) -> str:
-        """Legacy substitute method."""
+        # Legacy substitute method
         self._warn_deprecation()
         result = self._processor.process(template, values, track_usage=track_usage)
         
@@ -407,5 +375,5 @@ class TemplateService:
         return result.content
     
     def process_template(self, template: str, values: Dict[str, Any]) -> str:
-        """Alternative legacy method name."""
+        # Alternative legacy method name
         return self.substitute(template, values)

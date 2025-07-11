@@ -27,7 +27,6 @@ class ErrorResponse:
         self.data = kwargs
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary format."""
         result = {"success": self.success}
         if self.error:
             result["error"] = self.error
@@ -41,15 +40,7 @@ def handle_exceptions(
     logger_instance: Optional[logging.Logger] = None,
     **default_response_data: Any
 ) -> Callable[[Callable[P, T]], Callable[P, Union[T, Dict[str, Any]]]]:
-    """
-    Decorator for handling exceptions with standardized error responses.
-    
-    Args:
-        error_message: Base error message
-        include_details: Whether to include exception details
-        logger_instance: Logger to use (defaults to module logger)
-        **default_response_data: Additional data to include in error response
-    """
+    # Decorator for exception handling with standardized responses
     def decorator(func: Callable[P, T]) -> Callable[P, Union[T, Dict[str, Any]]]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[T, Dict[str, Any]]:
@@ -81,13 +72,7 @@ def handle_exceptions(
 
 
 def handle_file_operation(operation: str, file_path: Optional[str] = None) -> Callable[[Callable[P, T]], Callable[P, Union[T, Dict[str, Any]]]]:
-    """
-    Decorator specifically for file operations with consistent error handling.
-    
-    Args:
-        operation: Name of the operation (e.g., "read", "write", "delete")
-        file_path: Optional file path for error messages
-    """
+    # Decorator for file operations with consistent error handling
     def decorator(func: Callable[P, T]) -> Callable[P, Union[T, Dict[str, Any]]]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[T, Dict[str, Any]]:
@@ -160,15 +145,7 @@ def handle_api_errors(
     general_error_prefix: str = "Failed to",
     result_class: Optional[Type] = None
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
-    """
-    Decorator for handling API errors with consistent logging and response format.
-    
-    Args:
-        operation: Name of the operation for error messages
-        value_error_prefix: Prefix for ValueError messages
-        general_error_prefix: Prefix for general exceptions
-        result_class: Optional result class with success/error attributes
-    """
+    # Decorator for API error handling with consistent logging
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -212,16 +189,7 @@ def retry_with_backoff(
     exceptions: tuple[Type[Exception], ...] = (Exception,),
     logger_instance: Optional[logging.Logger] = None
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
-    """
-    Decorator for retrying operations with exponential backoff.
-    
-    Args:
-        max_retries: Maximum number of retry attempts
-        initial_delay: Initial delay in seconds
-        backoff_factor: Factor to multiply delay by after each attempt
-        exceptions: Tuple of exception types to catch and retry
-        logger_instance: Logger to use for warnings
-    """
+    # Decorator for retrying operations with exponential backoff
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -279,16 +247,7 @@ def retry_with_backoff(
 
 
 def safe_parse(content: str, format: Literal['json', 'yaml'] = 'json') -> Union[Any, str]:
-    """
-    Safely parse JSON or YAML content, returning original content if parsing fails.
-    
-    Args:
-        content: Content to parse
-        format: Format to parse ('json' or 'yaml')
-    
-    Returns:
-        Parsed content or original string if parsing fails
-    """
+    # Safely parse JSON/YAML, returning original content on failure
     try:
         if format == 'json':
             return json.loads(content)
@@ -314,18 +273,7 @@ def format_error_response(
     include_type: bool = True,
     **extra_data: Any
 ) -> Dict[str, Any]:
-    """
-    Format an error into a standardized response dictionary.
-    
-    Args:
-        operation: Operation that failed
-        error: The exception that was raised
-        include_type: Whether to include the exception type
-        **extra_data: Additional data to include in response
-    
-    Returns:
-        Standardized error response dictionary
-    """
+    # Format error into standardized response dictionary
     response = {
         "success": False,
         "operation": operation,

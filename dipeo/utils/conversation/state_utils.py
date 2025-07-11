@@ -1,4 +1,4 @@
-"""Utilities for managing conversation state and forgetting logic."""
+# Utilities for managing conversation state and forgetting logic
 
 from typing import Any, Dict, List, Optional
 from dipeo.models import ForgettingMode
@@ -8,15 +8,7 @@ def should_forget_messages(
     execution_count: int,
     forget_mode: ForgettingMode,
 ) -> bool:
-    """Determine if messages should be forgotten based on mode and execution count.
-    
-    Args:
-        execution_count: Current execution count (0-based)
-        forget_mode: The forgetting mode to apply
-        
-    Returns:
-        True if messages should be forgotten
-    """
+    # Determine if messages should be forgotten based on mode and execution count
     if forget_mode == ForgettingMode.no_forget:
         return False
     elif forget_mode == ForgettingMode.on_every_turn:
@@ -31,15 +23,7 @@ def apply_forgetting_strategy(
     messages: List[Dict[str, Any]],
     forget_mode: ForgettingMode,
 ) -> List[Dict[str, Any]]:
-    """Apply forgetting strategy to messages.
-    
-    Args:
-        messages: List of message dictionaries
-        forget_mode: The forgetting mode to apply
-        
-    Returns:
-        Filtered messages based on forgetting strategy
-    """
+    # Apply forgetting strategy to messages
     if forget_mode == ForgettingMode.no_forget:
         return messages
     
@@ -55,14 +39,7 @@ def apply_forgetting_strategy(
 def extract_conversation_messages(
     inputs: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
-    """Extract conversation messages from inputs.
-    
-    Args:
-        inputs: Input dictionary that may contain conversation states
-        
-    Returns:
-        List of message dictionaries
-    """
+    # Extract conversation messages from inputs
     messages = []
     
     for value in inputs.values():
@@ -82,14 +59,7 @@ def extract_conversation_messages(
 def has_conversation_input(
     inputs: Dict[str, Any],
 ) -> bool:
-    """Check if inputs contain conversation state.
-    
-    Args:
-        inputs: Input dictionary to check
-        
-    Returns:
-        True if conversation state is present
-    """
+    # Check if inputs contain conversation state
     for value in inputs.values():
         if _is_conversation_state(value):
             return True
@@ -97,7 +67,7 @@ def has_conversation_input(
 
 
 def _is_conversation_state(value: Any) -> bool:
-    """Check if a value represents a conversation state."""
+    # Check if a value represents a conversation state
     if not isinstance(value, dict):
         return False
         
@@ -116,15 +86,7 @@ def consolidate_conversation_messages(
     inputs: Dict[str, Any],
     person_labels: Dict[str, str],
 ) -> str:
-    """Consolidate conversation messages for on_every_turn mode.
-    
-    Args:
-        inputs: Input dictionary containing conversation states
-        person_labels: Mapping of input keys to person labels
-        
-    Returns:
-        Consolidated message string
-    """
+    # Consolidate conversation messages for on_every_turn mode
     consolidated = []
     
     for key, value in inputs.items():
@@ -149,7 +111,7 @@ def _format_conversation_messages(
     conversation: Dict[str, Any],
     person_label: Optional[str],
 ) -> List[str]:
-    """Format conversation messages for display."""
+    # Format conversation messages for display
     formatted = []
     
     messages = conversation.get("messages", [])
@@ -167,7 +129,7 @@ def _format_conversation_messages(
 
 
 def _format_external_message(msg: Dict[str, Any]) -> str:
-    """Format an external message."""
+    # Format an external message
     content = msg.get("content", "")
     role = msg.get("role", "user")
     return f"[{role}]: {content}"
@@ -175,11 +137,9 @@ def _format_external_message(msg: Dict[str, Any]) -> str:
 
 # Re-export class for backward compatibility
 class ConversationStateManager:
-    """Legacy class wrapper for state management functions.
-    
-    This class is maintained for backward compatibility.
-    New code should use the module functions directly.
-    """
+    # Legacy class wrapper for state management functions
+    # This class is maintained for backward compatibility
+    # New code should use the module functions directly
     
     def should_forget_messages(self, execution_count: int, forget_mode: ForgettingMode) -> bool:
         return should_forget_messages(execution_count, forget_mode)

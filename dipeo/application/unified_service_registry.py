@@ -1,4 +1,4 @@
-"""Unified service registry that works for both server and local execution."""
+# Unified service registry that works for both server and local execution.
 
 from typing import Any
 
@@ -6,35 +6,11 @@ from dipeo.core.utils.dynamic_registry import DynamicRegistry
 
 
 class UnifiedServiceRegistry(DynamicRegistry):
-    """Unified service registry that supports both static and dynamic service registration.
-    
-    This registry can be used in multiple contexts:
-    1. Server mode: Services are injected via constructor
-    2. Local/CLI mode: Services are provided via ApplicationContext
-    3. Test mode: Services can be registered dynamically
-    
-    Example:
-        # Server mode
-        registry = UnifiedServiceRegistry(
-            llm=llm_service,
-            file=file_service,
-            conversation_service=conversation_service
-        )
-        
-        # Local mode
-        registry = UnifiedServiceRegistry.from_context(app_context)
-        
-        # Dynamic mode
-        registry = UnifiedServiceRegistry()
-        registry.register("llm", llm_service)
-    """
+    # Unified service registry that supports both static and dynamic service registration.
+    # Can be used in server, local/CLI, and test modes.
     
     def __init__(self, **services):
-        """Initialize with optional services.
-        
-        Args:
-            **services: Services to register immediately
-        """
+        # Initialize with optional services.
         super().__init__()
         
         # Register any provided services
@@ -43,17 +19,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
     
     @classmethod
     def from_context(cls, context: Any) -> "UnifiedServiceRegistry":
-        """Create registry from an ApplicationContext.
-        
-        This factory method is used for local/CLI execution where services
-        are accessed through the ApplicationContext interface.
-        
-        Args:
-            context: ApplicationContext instance
-            
-        Returns:
-            UnifiedServiceRegistry configured for local execution
-        """
+        # Create registry from an ApplicationContext.
         registry = cls()
         
         # Map of service names to context attributes
@@ -104,17 +70,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
         return registry
     
     def get_handler_services(self, required_services: list[str]) -> dict[str, Any]:
-        """Get services required by a handler.
-        
-        Args:
-            required_services: List of service names required by the handler
-            
-        Returns:
-            Dictionary mapping service names to service instances
-            
-        Raises:
-            ValueError: If a required service is not available
-        """
+        # Get services required by a handler.
         services = {}
         
         for service_name in required_services:
@@ -129,13 +85,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
         return services
     
     def merge(self, other: "UnifiedServiceRegistry") -> None:
-        """Merge another registry into this one.
-        
-        This is useful for combining registries from different sources.
-        
-        Args:
-            other: Another UnifiedServiceRegistry to merge
-        """
+        # Merge another registry into this one.
         for name in other._items:
             if name not in self._items:
                 self.register(name, other._items[name])
@@ -145,17 +95,13 @@ class UnifiedServiceRegistry(DynamicRegistry):
                 self.create_alias(alias, target)
     
     def clone(self) -> "UnifiedServiceRegistry":
-        """Create a copy of this registry.
-        
-        Returns:
-            A new UnifiedServiceRegistry with the same services
-        """
+        # Create a copy of this registry.
         clone = UnifiedServiceRegistry()
         clone._items = self._items.copy()
         clone._aliases = self._aliases.copy()
         return clone
     
     def __repr__(self) -> str:
-        """String representation of the registry."""
+        # String representation of the registry.
         services = list(self._items.keys())
         return f"UnifiedServiceRegistry({', '.join(services)})"

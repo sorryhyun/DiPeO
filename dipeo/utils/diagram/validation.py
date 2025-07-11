@@ -1,4 +1,4 @@
-"""Pure validation logic for diagrams."""
+# Pure validation logic for diagrams
 
 from typing import List, Dict, Any, Optional, Set
 from dipeo.models import DomainDiagram, DomainNode, DomainArrow, NodeType
@@ -6,14 +6,11 @@ from dipeo.models import parse_handle_id, extract_node_id_from_handle
 
 
 class DiagramValidator:
-    """Pure functions for diagram validation."""
+    # Pure functions for diagram validation
     
     @staticmethod
     def validate_diagram_structure(diagram: DomainDiagram) -> List[str]:
-        """Validate the structural integrity of a diagram.
-        
-        Returns list of validation errors.
-        """
+        # Validate the structural integrity of a diagram
         errors = []
         
         # Validate node IDs are unique
@@ -45,7 +42,7 @@ class DiagramValidator:
     
     @staticmethod
     def validate_node_connections(node: DomainNode, diagram: DomainDiagram) -> List[str]:
-        """Validate connections for a specific node."""
+        # Validate connections for a specific node
         errors = []
         
         # Get incoming and outgoing arrows
@@ -77,7 +74,7 @@ class DiagramValidator:
     
     @staticmethod
     def find_unreachable_nodes(diagram: DomainDiagram) -> Set[str]:
-        """Find nodes that cannot be reached from any start node."""
+        # Find nodes that cannot be reached from any start node
         # Build adjacency list
         graph = {}
         for node in diagram.nodes:

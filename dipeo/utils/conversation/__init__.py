@@ -1,4 +1,4 @@
-"""Conversation utilities for pure message and memory management."""
+# Conversation utilities for message and memory management
 
 from .memory_strategies import (
     MemoryStrategy,

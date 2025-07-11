@@ -22,11 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class PersonJobOrchestratorV2:
-    """Enhanced orchestrator that uses ConversationManager and Person objects.
-    
-    This orchestrator integrates with the new ConversationManager protocol while
-    maintaining backward compatibility with existing conversation services.
-    """
+    # Enhanced orchestrator that uses ConversationManager and Person objects
     
     def __init__(
         self,
@@ -55,7 +51,6 @@ class PersonJobOrchestratorV2:
         diagram: DomainDiagram,
         conversation_service: Any | None = None
     ) -> Person:
-        """Get or create a Person object."""
         # Check cache first
         if person_id in self._person_cache:
             return self._person_cache[person_id]
@@ -101,7 +96,6 @@ class PersonJobOrchestratorV2:
         conversation_service: Any | None = None,
         execution_id: str | None = None,
     ) -> PersonJobResult:
-        """Execute a person job using Person objects and ConversationManager."""
         
         # Get or create Person object
         person = self._get_or_create_person(person_id, diagram, conversation_service)
@@ -246,7 +240,6 @@ class PersonJobOrchestratorV2:
         forget_mode: ForgettingMode,
         execution_count: int
     ) -> dict[str, Any]:
-        """Apply memory transformation to inputs."""
         if self._memory_transformer:
             return self._memory_transformer.transform_input(
                 inputs, "person_job", execution_count, 
@@ -260,7 +253,6 @@ class PersonJobOrchestratorV2:
         inputs: dict[str, Any],
         forget_mode: ForgettingMode
     ) -> None:
-        """Rebuild conversation from inputs."""
         # Extract conversation messages from inputs
         all_messages = []
         for value in inputs.values():
@@ -294,7 +286,6 @@ class PersonJobOrchestratorV2:
         system_prompt: str | None,
         user_prompt: str
     ) -> list[dict[str, str]]:
-        """Prepare messages for LLM execution."""
         messages = []
         
         # Add system prompt
@@ -326,7 +317,6 @@ class PersonJobOrchestratorV2:
         forget_mode: ForgettingMode,
         model: str,
     ) -> PersonJobResult:
-        """Build the final output using Person's conversation."""
         # Check if conversation output is needed
         needs_conversation = self._conversation_processor.needs_conversation_output(
             node_id, diagram
@@ -373,7 +363,6 @@ class PersonJobOrchestratorV2:
         conversation_service: Any | None = None,
         execution_id: str | None = None,
     ) -> PersonJobResult:
-        """Execute person job with validation (backward compatibility method)."""
         
         logger.debug(f"execute_person_job_with_validation called for {person_id}, node {node_id}")
         logger.debug(f"Props: default_prompt='{getattr(props, 'default_prompt', None)}', first_only_prompt='{getattr(props, 'first_only_prompt', None)}'")

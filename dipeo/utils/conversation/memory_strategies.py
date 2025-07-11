@@ -1,4 +1,4 @@
-"""Memory management strategies for conversations."""
+# Memory management strategies for conversations
 
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
@@ -7,36 +7,36 @@ from datetime import datetime
 
 
 class MemoryStrategy(ABC):
-    """Base class for memory strategies."""
+    # Base class for memory strategies
     
     @abstractmethod
     def apply(self, messages: List[Dict[str, Any]], config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Apply the memory strategy to a list of messages."""
+        # Apply the memory strategy to a list of messages
         pass
     
     @abstractmethod
     def get_summary(self, messages: List[Dict[str, Any]]) -> Optional[str]:
-        """Get a summary of the messages if applicable."""
+        # Get a summary of the messages if applicable
         pass
 
 
 class FullMemoryStrategy(MemoryStrategy):
-    """Keep all messages in memory."""
+    # Keep all messages in memory
     
     def apply(self, messages: List[Dict[str, Any]], config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Return all messages unchanged."""
+        # Return all messages unchanged
         return messages
     
     def get_summary(self, messages: List[Dict[str, Any]]) -> Optional[str]:
-        """No summary needed for full memory."""
+        # No summary needed for full memory
         return None
 
 
 class WindowMemoryStrategy(MemoryStrategy):
-    """Keep only the last N messages."""
+    # Keep only the last N messages
     
     def apply(self, messages: List[Dict[str, Any]], config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Keep only the last window_size messages."""
+        # Keep only the last window_size messages
         window_size = config.get('window_size', 10)
         if len(messages) <= window_size:
             return messages
@@ -53,7 +53,7 @@ class WindowMemoryStrategy(MemoryStrategy):
         return result
     
     def get_summary(self, messages: List[Dict[str, Any]]) -> Optional[str]:
-        """Get summary of dropped messages."""
+        # Get summary of dropped messages
         window_size = config.get('window_size', 10)
         if len(messages) <= window_size:
             return None
@@ -63,10 +63,10 @@ class WindowMemoryStrategy(MemoryStrategy):
 
 
 class SummaryMemoryStrategy(MemoryStrategy):
-    """Summarize older messages and keep recent ones."""
+    # Summarize older messages and keep recent ones
     
     def apply(self, messages: List[Dict[str, Any]], config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Summarize older messages and keep recent ones."""
+        # Summarize older messages and keep recent ones
         summary_threshold = config.get('summary_threshold', 20)
         keep_recent = config.get('keep_recent', 5)
         
@@ -92,7 +92,7 @@ class SummaryMemoryStrategy(MemoryStrategy):
         return [summary_message] + recent
     
     def get_summary(self, messages: List[Dict[str, Any]]) -> Optional[str]:
-        """Create a summary of messages."""
+        # Create a summary of messages
         if not messages:
             return None
         
@@ -126,10 +126,10 @@ class SummaryMemoryStrategy(MemoryStrategy):
 
 
 class TokenLimitMemoryStrategy(MemoryStrategy):
-    """Keep messages within a token limit."""
+    # Keep messages within a token limit
     
     def apply(self, messages: List[Dict[str, Any]], config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Keep messages within token limit."""
+        # Keep messages within token limit
         max_tokens = config.get('max_tokens', 4000)
         
         # Simple token estimation (4 chars = 1 token)
@@ -164,13 +164,13 @@ class TokenLimitMemoryStrategy(MemoryStrategy):
         return result
     
     def get_summary(self, messages: List[Dict[str, Any]]) -> Optional[str]:
-        """Get summary of token usage."""
+        # Get summary of token usage
         total_tokens = sum(len(msg.get('content', '')) // 4 for msg in messages)
         return f"Total estimated tokens: {total_tokens}"
 
 
 class MemoryStrategyFactory:
-    """Factory for creating memory strategies."""
+    # Factory for creating memory strategies
     
     STRATEGIES = {
         'full': FullMemoryStrategy,
@@ -181,11 +181,11 @@ class MemoryStrategyFactory:
     
     @classmethod
     def create(cls, strategy_type: str) -> MemoryStrategy:
-        """Create a memory strategy instance."""
+        # Create a memory strategy instance
         strategy_class = cls.STRATEGIES.get(strategy_type, FullMemoryStrategy)
         return strategy_class()
     
     @classmethod
     def get_available_strategies(cls) -> List[str]:
-        """Get list of available strategy types."""
+        # Get list of available strategy types
         return list(cls.STRATEGIES.keys())

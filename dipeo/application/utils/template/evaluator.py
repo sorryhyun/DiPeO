@@ -1,4 +1,4 @@
-"""Domain service for evaluating conditions."""
+# Domain service for evaluating conditions.
 
 import ast
 import operator
@@ -9,10 +9,10 @@ from dipeo.models import DomainDiagram, NodeType
 
 
 class ConditionEvaluator:
-    """Service for evaluating conditions in diagram execution."""
+    # Service for evaluating conditions in diagram execution.
     
     def __init__(self):
-        """Initialize with TemplateProcessor."""
+        # Initialize with TemplateProcessor.
         self._processor = TemplateProcessor()
     
     def evaluate_max_iterations(
@@ -21,14 +21,7 @@ class ConditionEvaluator:
         execution_states: dict[str, dict[str, Any]],
         node_exec_counts: dict[str, int] | None = None,
     ) -> bool:
-        """Evaluate if all upstream person_job nodes reached their max_iterations.
-        
-        Business logic:
-        - Find all person_job nodes in the diagram
-        - Check if they have been executed at least once
-        - Compare execution count against max_iteration setting
-        - Return true only if all executed person_job nodes have reached max
-        """
+        # Evaluate if all upstream person_job nodes reached their max_iterations.
         import logging
         logger = logging.getLogger(__name__)
         
@@ -74,18 +67,7 @@ class ConditionEvaluator:
         target_node_ids: list[str],
         node_outputs: dict[str, Any],
     ) -> bool:
-        """Check if specific nodes have been executed using NodeOutput data.
-        
-        This method demonstrates how the new executed_nodes field in NodeOutput
-        can be used for simpler execution tracking.
-        
-        Args:
-            target_node_ids: List of node IDs to check
-            node_outputs: Dict of node outputs containing executed_nodes info
-            
-        Returns:
-            True if all target nodes have been executed
-        """
+        # Check if specific nodes have been executed using NodeOutput data.
         if not target_node_ids or not node_outputs:
             return False
             
@@ -104,19 +86,7 @@ class ConditionEvaluator:
         node_outputs: dict[str, Any],
         exec_counts: dict[str, int],
     ) -> bool:
-        """Evaluate max iterations using NodeOutput data directly.
-        
-        This is a more efficient approach that leverages the executed_nodes
-        field in NodeOutput to track execution state.
-        
-        Args:
-            diagram: The diagram containing node definitions
-            node_outputs: Dict of node outputs with executed_nodes info
-            exec_counts: Dict of execution counts per node
-            
-        Returns:
-            True if all executed person_job nodes have reached their max iterations
-        """
+        # Evaluate max iterations using NodeOutput data directly.
         if not diagram or not node_outputs:
             return False
         
@@ -148,13 +118,7 @@ class ConditionEvaluator:
         expression: str,
         context_values: dict[str, Any],
     ) -> bool:
-        """Evaluate a custom boolean expression with variable substitution.
-        
-        Business logic:
-        - Substitute variables in the expression using template service
-        - Safely evaluate the resulting expression
-        - Return boolean result or False on error
-        """
+        # Evaluate a custom boolean expression with variable substitution.
         if not expression:
             return False
         
@@ -165,14 +129,7 @@ class ConditionEvaluator:
         return self.safe_evaluate_expression(substituted_expr)
     
     def safe_evaluate_expression(self, expression: str) -> Any:
-        """Safely evaluate a boolean expression.
-        
-        Business logic:
-        - Only allows specific operators for security
-        - Parses expression into AST
-        - Recursively evaluates AST nodes
-        - Returns evaluation result or False on error
-        """
+        # Safely evaluate a boolean expression.
         # Define allowed operators
         allowed_operators = {
             ast.Eq: operator.eq,

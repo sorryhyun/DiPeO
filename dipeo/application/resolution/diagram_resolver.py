@@ -1,4 +1,4 @@
-"""Main diagram resolver that orchestrates the resolution pipeline."""
+# Main diagram resolver that orchestrates the resolution pipeline.
 
 from typing import List, Dict, Any, Optional, Tuple
 import logging
@@ -16,18 +16,14 @@ log = logging.getLogger(__name__)
 
 
 class ResolutionError(Exception):
-    """Raised when diagram resolution fails."""
+    # Raised when diagram resolution fails.
     def __init__(self, message: str, errors: List[str]):
         self.errors = errors
         super().__init__(message)
 
 
 class DiagramResolver:
-    """Transforms DomainDiagram data structure into ExecutableDiagram domain object.
-    
-    This is the main orchestrator for the diagram resolution pipeline that:
-    1. Resolves handle references to concrete node IDs
-    2. Transforms arrows into executable edges with data flow
+    # Transforms DomainDiagram data structure into ExecutableDiagram domain object.
     3. Enriches nodes with runtime configuration
     4. Calculates and validates execution order
     5. Performs comprehensive validation

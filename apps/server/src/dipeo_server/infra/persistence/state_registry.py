@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class StateRegistry:
-    """Lightweight registry that stores references to data."""
+    # Lightweight registry that stores references to data
 
     def __init__(
         self,
@@ -81,7 +81,6 @@ class StateRegistry:
         )
 
     async def _init_schema(self):
-        """Initialize database schema."""
         schema = """
         CREATE TABLE IF NOT EXISTS execution_states (
             execution_id TEXT PRIMARY KEY,
@@ -130,7 +129,6 @@ class StateRegistry:
         return state
 
     async def save_state(self, state: ExecutionState):
-        """Save execution state to database and cache."""
         # Update cache for active executions
         if state.is_active:
             await self._execution_cache.set(state.id, state)
@@ -174,7 +172,6 @@ class StateRegistry:
             )
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
-        """Get execution state by ID, checking cache first."""
         # Check cache first
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
@@ -230,7 +227,6 @@ class StateRegistry:
     async def update_status(
         self, execution_id: str, status: ExecutionStatus, error: str | None = None
     ):
-        """Update execution status."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -250,7 +246,6 @@ class StateRegistry:
     async def get_node_output(
         self, execution_id: str, node_id: str
     ) -> NodeOutput | None:
-        """Get node output by execution and node ID."""
         state = await self.get_state(execution_id)
         if not state:
             return None
@@ -264,7 +259,6 @@ class StateRegistry:
         is_exception: bool = False,
         token_usage: TokenUsage | None = None,
     ) -> None:
-        """Store output, using references for large data."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -317,7 +311,6 @@ class StateRegistry:
         status: NodeExecutionStatus,
         error: str | None = None,
     ):
-        """Update node execution status."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -350,7 +343,6 @@ class StateRegistry:
         await self.save_state(state)
 
     async def update_variables(self, execution_id: str, variables: dict[str, Any]):
-        """Update execution variables."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -359,11 +351,7 @@ class StateRegistry:
         await self.save_state(state)
 
     async def update_token_usage(self, execution_id: str, tokens: TokenUsage):
-        """Update token usage statistics.
-
-        Note: This method REPLACES the total token usage, it does not add to it.
-        For incremental updates, retrieve the state, modify, and save.
-        """
+        # Update token usage statistics
         # Try to update cache first if execution is active
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
@@ -380,7 +368,6 @@ class StateRegistry:
         await self.save_state(state)
 
     async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
-        """Add token usage to existing statistics (incremental update)."""
 
         state = await self.get_state(execution_id)
         if not state:
@@ -406,7 +393,6 @@ class StateRegistry:
         limit: int = 100,
         offset: int = 0,
     ) -> list[ExecutionState]:
-        """List recent executions with metadata."""
         # Build query with optional filters
         query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables FROM execution_states"
         conditions = []
@@ -492,7 +478,6 @@ class StateRegistry:
         return executions
 
     async def cleanup_old_states(self, days: int = 7):
-        """Remove states older than specified days."""
         cutoff_date = datetime.now()
         cutoff_date = cutoff_date.replace(microsecond=0)
         cutoff_iso = (cutoff_date - timedelta(days=days)).isoformat()
@@ -505,7 +490,6 @@ class StateRegistry:
         await self._execute("VACUUM")
 
     async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
-        """Get execution state from cache only, no database fallback."""
         return await self._execution_cache.get(execution_id)
 
     async def create_execution_in_cache(
@@ -514,7 +498,6 @@ class StateRegistry:
         diagram_id: str | None = None,
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
-        """Create execution in cache only for active executions."""
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(execution_id),
@@ -535,7 +518,6 @@ class StateRegistry:
         return state
 
     async def persist_final_state(self, state: ExecutionState):
-        """Persist final state to database and remove from cache."""
         # Ensure the state is marked as inactive
         state.is_active = False
 

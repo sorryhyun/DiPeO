@@ -1,4 +1,4 @@
-"""Arrow transformation for converting domain arrows to executable edges."""
+# Arrow transformation for converting domain arrows to executable edges.
 
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
@@ -17,7 +17,7 @@ from dipeo.application.resolution.handle_resolver import ResolvedConnection
 
 @dataclass
 class TransformationMetadata:
-    """Metadata for arrow data transformation."""
+    # Metadata for arrow data transformation.
     content_type: ContentType
     forgetting_mode: Optional[ForgettingMode] = None
     include_in_memory: bool = True

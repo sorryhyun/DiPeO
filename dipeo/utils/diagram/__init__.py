@@ -1,4 +1,4 @@
-"""Diagram utilities for validation, transformation, and analysis."""
+# Diagram utilities for validation, transformation, and analysis
 
 from .validation import DiagramValidator
 from .transformation import DiagramTransformer

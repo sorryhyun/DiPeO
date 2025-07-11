@@ -1,4 +1,3 @@
-"""Endpoint node handler - passes through data and optionally saves to file."""
 
 from typing import Any
 
@@ -12,10 +11,8 @@ from pydantic import BaseModel
 
 @register_handler
 class EndpointNodeHandler(BaseNodeHandler):
-    """Handler for endpoint nodes."""
     
     def __init__(self, file_service=None):
-        """Initialize with injected services."""
         self.file_service = file_service
 
 
@@ -42,7 +39,6 @@ class EndpointNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute endpoint node."""
         # Get service from context or fallback to services dict
         file_service = self.file_service or services.get("file")
         if not file_service:

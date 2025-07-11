@@ -1,4 +1,4 @@
-"""Application service for diagram operations with high-level business logic."""
+# Application service for diagram operations with high-level business logic.
 
 import os
 from datetime import datetime
@@ -11,21 +11,16 @@ if TYPE_CHECKING:
 
 
 class DiagramService:
-    """High-level application service for diagram operations and management."""
 
     def __init__(self, storage_service: "DiagramPort"):
-        """Initialize with required infrastructure service."""
         self._storage = storage_service
 
     async def clone_diagram(
         self, source_id: str, new_name: str, new_description: str | None = None
     ) -> dict[str, Any]:
-        """Clone an existing diagram with a new name."""
         try:
-            # Load source diagram
             source_diagram = await self._storage.load_diagram(source_id)
 
-            # Create new metadata
             cloned_diagram = DomainDiagram(
                 metadata=source_diagram.metadata.model_copy(
                     update={
@@ -43,7 +38,6 @@ class DiagramService:
                 viewport=source_diagram.viewport,
             )
 
-            # Save cloned diagram
             saved_id = await self._storage.save_diagram(cloned_diagram)
 
             return {
@@ -60,12 +54,10 @@ class DiagramService:
     async def batch_import(
         self, directory: str, format_filter: DiagramFormat | None = None
     ) -> dict[str, Any]:
-        """Import multiple diagrams from a directory."""
         imported = []
         failed = []
 
         try:
-            # List all diagram files in directory
             files = await self._storage.list_diagrams()
 
             for file_info in files:
@@ -73,7 +65,6 @@ class DiagramService:
                     continue
 
                 try:
-                    # Load and validate each diagram
                     diagram = await self._storage.load_diagram(file_info["id"])
 
                     imported.append(
@@ -108,14 +99,12 @@ class DiagramService:
     async def export_diagram_bundle(
         self, diagram_ids: list[str], export_path: str, include_metadata: bool = True
     ) -> dict[str, Any]:
-        """Export multiple diagrams as a bundle."""
         exported = []
         failed = []
 
         try:
             os.makedirs(export_path, exist_ok=True)
 
-            # Create bundle metadata
             bundle_metadata = {
                 "export_date": datetime.utcnow().isoformat(),
                 "diagram_count": len(diagram_ids),
@@ -124,16 +113,13 @@ class DiagramService:
 
             for diagram_id in diagram_ids:
                 try:
-                    # Load diagram
                     diagram = await self._storage.load_diagram(diagram_id)
 
-                    # Determine export filename
                     safe_name = "".join(
                         c for c in diagram.metadata.name if c.isalnum() or c in " -_"
                     )[:50]
                     export_file = os.path.join(export_path, f"{safe_name}.json")
 
-                    # Save to export location
                     await self._storage.save_diagram_to_path(diagram, export_file)
 
                     exported_info = {
@@ -150,7 +136,6 @@ class DiagramService:
                 except Exception as e:
                     failed.append({"diagram_id": diagram_id, "error": str(e)})
 
-            # Save bundle metadata if requested
             if include_metadata:
                 metadata_file = os.path.join(export_path, "bundle_metadata.json")
                 import json

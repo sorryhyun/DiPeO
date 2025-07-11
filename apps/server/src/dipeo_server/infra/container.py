@@ -12,7 +12,7 @@ from dipeo_server.shared.constants import BASE_DIR
 
 
 class ServerInfrastructureContainer(InfrastructureContainer):
-    """Server-specific infrastructure container with proper overrides."""
+    # Server-specific infrastructure container with proper overrides
 
     # Override state_store with server implementation
     state_store = providers.Singleton(lambda: state_store)

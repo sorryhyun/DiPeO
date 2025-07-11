@@ -1,4 +1,3 @@
-"""Start node handler - the kick-off point for diagram execution."""
 
 from typing import Any, Optional
 
@@ -11,10 +10,8 @@ from pydantic import BaseModel
 
 @register_handler
 class StartNodeHandler(BaseNodeHandler):
-    """Handler for start nodes."""
     
     def __init__(self):
-        """Initialize handler."""
         pass
 
 
@@ -37,7 +34,6 @@ class StartNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute start node."""
         # Check trigger mode
         trigger_mode = props.trigger_mode or HookTriggerMode.manual
         
@@ -82,16 +78,6 @@ class StartNodeHandler(BaseNodeHandler):
         context: ExecutionContextPort,
         services: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
-        """Get hook event data if available.
-        
-        In a full implementation, this would:
-        1. Connect to an event queue/stream
-        2. Filter events based on props.hook_event and props.hook_filters
-        3. Wait for matching events
-        4. Return the event data
-        
-        For now, we check if event data was passed via execution state.
-        """
         # Check if hook event data was provided in the execution state
         event_data = context.get_variable('hook_event_data')
         if event_data:

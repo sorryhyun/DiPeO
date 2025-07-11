@@ -1,9 +1,4 @@
-"""Unified execution controller for managing execution flow.
-
-This module provides the controller that determines which nodes are ready
-to execute based on dependencies, delegating state management to the
-ApplicationExecutionState adapter.
-"""
+# Unified execution controller for managing execution flow.
 
 import logging
 from dataclasses import dataclass, field
@@ -20,7 +15,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class ExecutionController:
-    """Unified controller for execution flow."""
+    # Unified controller for execution flow.
     
     flow_control_service: FlowControlService
     state_adapter: Optional["ApplicationExecutionState"] = None

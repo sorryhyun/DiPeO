@@ -1,8 +1,4 @@
-"""Node executor for handling individual node execution.
-
-This module extracts node execution logic from ExecutionEngine to provide
-a focused, single-responsibility component for node-level execution.
-"""
+# Node executor for handling individual node execution
 
 import logging
 from datetime import datetime
@@ -22,15 +18,7 @@ log = logging.getLogger(__name__)
 
 
 class NodeExecutor:
-    """Handles individual node execution.
-    
-    Responsibilities:
-    - Context creation for node execution
-    - Handler invocation
-    - Result processing
-    - State updates
-    - Observer notifications
-    """
+    # Handles individual node execution
     
     def __init__(
         self,
@@ -49,17 +37,6 @@ class NodeExecutor:
         options: dict[str, Any],
         interactive_handler: Optional[Any] = None
     ) -> None:
-        """Execute a single node.
-        
-        This method handles:
-        1. Context creation
-        2. Input gathering
-        3. Service injection
-        4. Handler invocation
-        5. Result processing
-        6. State updates
-        7. Observer notifications
-        """
         # Track start time
         start_time = datetime.utcnow()
         
@@ -174,14 +151,6 @@ class NodeExecutor:
         options: dict[str, Any],
         controller: "ExecutionController"
     ) -> "UnifiedExecutionContext":
-        """Create runtime context for node execution.
-        
-        Builds a UnifiedExecutionContext with:
-        - Current execution state
-        - Node outputs collected so far
-        - Service registry reference
-        - Execution metadata
-        """
         from dipeo.application.execution.context import (
             UnifiedExecutionContext,
         )

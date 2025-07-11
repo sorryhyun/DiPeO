@@ -1,8 +1,5 @@
-"""Diagram business logic utilities - pure functions for diagram operations.
-
-This module contains only business logic with no I/O operations.
-All data is passed in as parameters.
-"""
+# Diagram business logic utilities - pure functions for diagram operations
+# This module contains only business logic with no I/O operations
 
 import logging
 from datetime import UTC, datetime
@@ -15,18 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class DiagramBusinessLogic:
-    """Pure business logic for diagram operations and validation.
-    
-    This utility class contains only pure functions - no I/O operations.
-    All data is passed in as parameters.
-    """
+    # Pure business logic for diagram operations and validation
+    # Contains only pure functions - no I/O operations
 
     def validate_diagram_data(self, data: dict[str, Any]) -> None:
-        """Validate diagram data structure.
-        
-        Raises:
-            ValidationError: If the diagram data is invalid
-        """
+        # Validate diagram data structure
         if not isinstance(data, dict):
             raise ValidationError("Diagram data must be a dictionary")
             
@@ -127,10 +117,7 @@ class DiagramBusinessLogic:
                     raise ValidationError(f"Arrow target node '{target_node_id}' not found in nodes")
 
     def clean_enum_values(self, data: Any) -> Any:
-        """Recursively convert enum values to strings in the data structure.
-        
-        This is pure transformation logic with no I/O.
-        """
+        # Recursively convert enum values to strings in the data structure
         if isinstance(data, dict):
             return {
                 key: value.value if hasattr(value, 'value') else self.clean_enum_values(value)
@@ -144,10 +131,7 @@ class DiagramBusinessLogic:
         return data
 
     def determine_format_type(self, path: str) -> str:
-        """Determine the format type from the path structure.
-        
-        This is pure logic based on path analysis.
-        """
+        # Determine the format type from the path structure
         path_obj = Path(path)
         parts = path_obj.parts
         
@@ -168,10 +152,7 @@ class DiagramBusinessLogic:
         size: int,
         modified_timestamp: float,
     ) -> dict[str, Any]:
-        """Generate file info dictionary from provided data.
-        
-        Pure transformation - no I/O operations.
-        """
+        # Generate file info dictionary from provided data
         path_obj = Path(path)
         format_type = self.determine_format_type(path)
         
@@ -189,11 +170,7 @@ class DiagramBusinessLogic:
         }
 
     def validate_file_extension(self, path: str, allowed_extensions: list[str]) -> None:
-        """Validate that file has allowed extension.
-        
-        Raises:
-            ValidationError: If extension is not allowed
-        """
+        # Validate that file has allowed extension
         path_obj = Path(path)
         extension = path_obj.suffix.lower()
         
@@ -204,10 +181,7 @@ class DiagramBusinessLogic:
             )
 
     def construct_search_paths(self, diagram_id: str, base_extensions: list[str]) -> list[str]:
-        """Construct possible file paths for a diagram ID.
-        
-        Returns list of relative paths to check.
-        """
+        # Construct possible file paths for a diagram ID
         paths = []
         
         # Direct paths with extensions
@@ -228,10 +202,7 @@ class DiagramBusinessLogic:
         diagram: dict[str, Any],
         target_format: str = "native"
     ) -> dict[str, Any]:
-        """Transform diagram data for export to specific format.
-        
-        Pure transformation logic based on target format.
-        """
+        # Transform diagram data for export to specific format
         # Clean enum values first
         cleaned = self.clean_enum_values(diagram)
         

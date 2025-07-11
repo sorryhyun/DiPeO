@@ -1,4 +1,4 @@
-"""Domain service for input resolution logic."""
+# Domain service for input resolution logic.
 
 from typing import Dict, Any, Optional
 import logging
@@ -8,7 +8,7 @@ from typing import Protocol
 
 # Define protocol locally to avoid circular imports
 class ArrowProcessorProtocol(Protocol):
-    """Protocol for arrow processing to avoid circular imports."""
+    # Protocol for arrow processing to avoid circular imports.
     
     def process_arrow_delivery(
         self,
@@ -17,22 +17,17 @@ class ArrowProcessorProtocol(Protocol):
         target_node_type: str,
         memory_config: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Process arrow delivery with transformations."""
+        # Process arrow delivery with transformations.
         ...
 
 log = logging.getLogger(__name__)
 
 
 class InputResolutionService:
-    """Service for managing input resolution business logic."""
+    # Service for managing input resolution business logic.
     
     def __init__(self, arrow_processor: Optional[ArrowProcessorProtocol] = None):
-        """Initialize with optional arrow processor.
-        
-        Args:
-            arrow_processor: Arrow processor for advanced transformations.
-                           If not provided, uses legacy resolution logic.
-        """
+        # Initialize with optional arrow processor.
         self.arrow_processor = arrow_processor
     
     def should_process_arrow(
@@ -41,13 +36,7 @@ class InputResolutionService:
         target_node_type: str,
         node_exec_counts: Optional[Dict[str, int]] = None,
     ) -> bool:
-        """Determine if an arrow should be processed for input resolution.
-        
-        Business rules:
-        - Person job nodes with "first" handle only process on first execution
-        - Person job nodes with non-first handles skip on first execution
-        - All other arrows are always processed
-        """
+        # Determine if an arrow should be processed for input resolution.
         # Special handling for person_job nodes
         if target_node_type == NodeType.person_job:
             # Parse handle from target HandleID
@@ -81,13 +70,7 @@ class InputResolutionService:
         source_node_type: str,
         condition_result: Optional[bool],
     ) -> bool:
-        """Determine if a condition branch should be skipped.
-        
-        Business rules:
-        - Skip "true" branch if condition is false
-        - Skip "false" branch if condition is true
-        - Process all arrows if condition result is unknown
-        """
+        # Determine if a condition branch should be skipped.
         if source_node_type != NodeType.condition:
             return False
         
@@ -118,19 +101,7 @@ class InputResolutionService:
         node_exec_counts: Optional[Dict[str, int]] = None,
         node_memory_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Resolve all inputs for a given node.
-        
-        This combines outputs from all upstream nodes based on arrows,
-        respecting the business rules for arrow processing.
-        
-        Args:
-            node_id: Target node ID
-            node_type: Target node type
-            diagram: The diagram containing nodes and arrows
-            node_outputs: Dict mapping node IDs to their outputs
-            node_exec_counts: Execution counts for nodes
-            node_memory_config: Memory configuration for the target node
-        """
+        # Resolve all inputs for a given node.
         return self._resolve_with_arrow_processor(
             node_id, node_type, diagram, node_outputs,
             node_exec_counts, node_memory_config
@@ -146,7 +117,7 @@ class InputResolutionService:
         node_exec_counts: Optional[Dict[str, int]] = None,
         node_memory_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Resolve inputs using the arrow processor for transformations."""
+        # Resolve inputs using the arrow processor for transformations.
         inputs = {}
         
         # Find all arrows pointing to this node

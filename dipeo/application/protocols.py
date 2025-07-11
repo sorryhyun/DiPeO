@@ -1,8 +1,4 @@
-"""Application-level service protocols.
-
-These protocols define the interfaces for application services that orchestrate
-domain logic and infrastructure. They are distinct from infrastructure ports.
-"""
+# Application-level service protocols.
 
 from pathlib import Path
 from typing import (
@@ -20,7 +16,7 @@ from typing import (
 
 @runtime_checkable
 class SupportsAPIKey(Protocol):
-    """Protocol for API key management operations."""
+    # Protocol for API key management operations.
 
     def get_api_key(self, key_id: str) -> dict: ...
     def list_api_keys(self) -> List[dict]: ...

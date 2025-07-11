@@ -1,4 +1,4 @@
-"""Pure transformation functions for diagrams."""
+# Pure transformation functions for diagrams
 
 from typing import Dict, Any, List, Optional
 from copy import deepcopy
@@ -7,11 +7,11 @@ from dipeo.models import parse_handle_id, extract_node_id_from_handle
 
 
 class DiagramTransformer:
-    """Pure functions for diagram transformations."""
+    # Pure functions for diagram transformations
     
     @staticmethod
     def merge_diagrams(diagram1: DomainDiagram, diagram2: DomainDiagram) -> DomainDiagram:
-        """Merge two diagrams into one."""
+        # Merge two diagrams into one
         # Deep copy to avoid modifying originals
         merged_nodes = deepcopy(diagram1.nodes) + deepcopy(diagram2.nodes)
         merged_arrows = deepcopy(diagram1.arrows) + deepcopy(diagram2.arrows)
@@ -48,7 +48,7 @@ class DiagramTransformer:
         diagram: DomainDiagram, 
         node_ids: List[str]
     ) -> DomainDiagram:
-        """Extract a subgraph containing only specified nodes."""
+        # Extract a subgraph containing only specified nodes
         node_id_set = set(node_ids)
         
         # Filter nodes
@@ -73,7 +73,7 @@ class DiagramTransformer:
     
     @staticmethod
     def optimize_layout(diagram: DomainDiagram) -> DomainDiagram:
-        """Optimize the visual layout of a diagram."""
+        # Optimize the visual layout of a diagram
         # This is a placeholder for layout optimization
         # In a real implementation, this would use graph layout algorithms
         optimized = deepcopy(diagram)
@@ -94,7 +94,7 @@ class DiagramTransformer:
     
     @staticmethod
     def add_node_prefix(diagram: DomainDiagram, prefix: str) -> DomainDiagram:
-        """Add a prefix to all node IDs in a diagram."""
+        # Add a prefix to all node IDs in a diagram
         transformed = deepcopy(diagram)
         id_mapping = {}
         
@@ -119,7 +119,7 @@ class DiagramTransformer:
     
     @staticmethod
     def remove_orphaned_arrows(diagram: DomainDiagram) -> DomainDiagram:
-        """Remove arrows that reference non-existent nodes."""
+        # Remove arrows that reference non-existent nodes
         node_ids = set(n.id for n in diagram.nodes)
         
         valid_arrows = []

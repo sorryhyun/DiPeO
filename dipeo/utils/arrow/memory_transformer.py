@@ -1,4 +1,4 @@
-"""Domain service for generalized memory transformation across node types."""
+# Domain service for generalized memory transformation across node types
 
 from typing import Dict, Any, List, Optional, Protocol
 import logging
@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 
 
 class MemoryStrategy(Protocol):
-    """Protocol for memory transformation strategies."""
+    # Protocol for memory transformation strategies
     
     def apply(
         self,
@@ -17,25 +17,23 @@ class MemoryStrategy(Protocol):
         execution_count: int,
         memory_config: Dict[str, Any],
     ) -> Any:
-        """Apply memory transformation to data."""
+        # Apply memory transformation to data
         ...
 
 
 class MemoryTransformer:
-    """Service for applying memory transformations to node inputs."""
+    # Service for applying memory transformations to node inputs
     
     def __init__(self):
         self._strategies: Dict[ForgettingMode, MemoryStrategy] = {}
         self._register_default_strategies()
     
     def _register_default_strategies(self):
-        """Register default memory strategies."""
         self._strategies[ForgettingMode.no_forget] = NoForgetStrategy()
         self._strategies[ForgettingMode.on_every_turn] = OnEveryTurnStrategy()
         self._strategies[ForgettingMode.upon_request] = UponRequestStrategy()
     
     def register_strategy(self, mode: ForgettingMode, strategy: MemoryStrategy):
-        """Register a memory strategy for a forgetting mode."""
         self._strategies[mode] = strategy
     
     def transform_input(
@@ -45,20 +43,7 @@ class MemoryTransformer:
         execution_count: int,
         memory_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Transform input data based on memory configuration.
-        
-        This method applies memory transformations to all inputs that have
-        memory hints from arrow processing.
-        
-        Args:
-            input_data: Raw input data from arrow processing
-            node_type: Type of the target node
-            execution_count: How many times this node has executed
-            memory_config: Node-specific memory configuration
-            
-        Returns:
-            Transformed input data with memory policies applied
-        """
+        # Transform input data based on memory configuration
         if not memory_config:
             return input_data
         
@@ -102,7 +87,6 @@ class MemoryTransformer:
         forget_mode: ForgettingMode,
         execution_count: int,
     ) -> bool:
-        """Determine if forgetting should be applied."""
         if forget_mode == ForgettingMode.no_forget:
             return False
         elif forget_mode == ForgettingMode.on_every_turn:
@@ -113,14 +97,13 @@ class MemoryTransformer:
         return False
     
     def extract_clean_value(self, wrapped_value: Any) -> Any:
-        """Extract clean value from wrapped input."""
         if isinstance(wrapped_value, dict) and "value" in wrapped_value:
             return wrapped_value["value"]
         return wrapped_value
 
 
 class NoForgetStrategy:
-    """Strategy for no forgetting - pass through unchanged."""
+    # Strategy for no forgetting - pass through unchanged
     
     def apply(
         self,
@@ -128,12 +111,11 @@ class NoForgetStrategy:
         execution_count: int,
         memory_config: Dict[str, Any],
     ) -> Any:
-        """No transformation - return data as is."""
         return data
 
 
 class OnEveryTurnStrategy:
-    """Strategy for forgetting on every turn."""
+    # Strategy for forgetting on every turn
     
     def apply(
         self,
@@ -141,7 +123,6 @@ class OnEveryTurnStrategy:
         execution_count: int,
         memory_config: Dict[str, Any],
     ) -> Any:
-        """Apply on_every_turn forgetting logic."""
         # For conversation data, keep only the last message
         if isinstance(data, dict) and "messages" in data:
             messages = data["messages"]
@@ -167,7 +148,7 @@ class OnEveryTurnStrategy:
 
 
 class UponRequestStrategy:
-    """Strategy for forgetting upon request."""
+    # Strategy for forgetting upon request
     
     def apply(
         self,
@@ -175,7 +156,6 @@ class UponRequestStrategy:
         execution_count: int,
         memory_config: Dict[str, Any],
     ) -> Any:
-        """Apply upon_request forgetting logic."""
         # Check if there's an explicit forget request
         if memory_config.get("forget_requested", False):
             # For conversation data, clear history
@@ -189,11 +169,7 @@ class UponRequestStrategy:
 
 
 def unwrap_inputs(inputs: Dict[str, Any]) -> Dict[str, Any]:
-    """Utility to unwrap processed inputs for node handlers.
-    
-    Extracts clean values from wrapped inputs that went through
-    arrow processing and memory transformation.
-    """
+    # Utility to unwrap processed inputs for node handlers
     clean_inputs = {}
     
     for key, value in inputs.items():

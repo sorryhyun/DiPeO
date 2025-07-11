@@ -1,10 +1,10 @@
-"""Centralized handler for on_every_turn forgetting mode logic."""
+# Centralized handler for on_every_turn forgetting mode logic
 
 from typing import Any, Dict, List, Optional, Tuple
 
 
 class OnEveryTurnHandler:
-    """Handles the on_every_turn forgetting mode logic in a centralized way."""
+    # Handles the on_every_turn forgetting mode logic in a centralized way
     
     @staticmethod
     def filter_messages_for_output(
@@ -12,18 +12,7 @@ class OnEveryTurnHandler:
         person_id: str,
         execution_id: str
     ) -> List[Dict[str, Any]]:
-        """Filter messages for on_every_turn mode output.
-        
-        Returns only the last assistant message from each OTHER person.
-        
-        Args:
-            messages: Raw conversation history with metadata
-            person_id: The current person's ID
-            execution_id: Current execution ID
-            
-        Returns:
-            List of filtered messages containing only the last message from each other person
-        """
+        # Returns only the last assistant message from each other person
         last_messages_by_person = {}
         
         for msg in messages:
@@ -54,19 +43,7 @@ class OnEveryTurnHandler:
         used_template_keys: set,
         diagram: Optional[Any] = None
     ) -> Tuple[str, List[str]]:
-        """Consolidate conversation inputs for on_every_turn mode.
-        
-        Extracts the last assistant message from each person in conversation inputs
-        and formats them with person labels.
-        
-        Args:
-            inputs: Dictionary of inputs that may contain conversations
-            used_template_keys: Keys already used in template substitution
-            diagram: Optional diagram for person label lookup
-            
-        Returns:
-            Tuple of (consolidated_content, person_labels)
-        """
+        # Extracts and formats last assistant message from each person with labels
         person_messages = {}
         person_labels = []
         
@@ -102,15 +79,7 @@ class OnEveryTurnHandler:
         execution_count: int,
         forget_mode: Optional[str]
     ) -> bool:
-        """Determine if messages should be forgotten based on mode and execution count.
-        
-        Args:
-            execution_count: Number of times the node has been executed
-            forget_mode: The forgetting mode (on_every_turn, no_forget, etc)
-            
-        Returns:
-            True if messages should be forgotten
-        """
+        # Determine if messages should be forgotten based on mode and execution count
         return (forget_mode == "on_every_turn" and 
                 execution_count > 0)
     
@@ -120,18 +89,7 @@ class OnEveryTurnHandler:
         person_id: str,
         forget_mode: Optional[str]
     ) -> List[Dict[str, Any]]:
-        """Filter messages when rebuilding conversation context.
-        
-        For on_every_turn mode, filters out messages from the receiving person itself.
-        
-        Args:
-            messages: List of conversation messages
-            person_id: The current person's ID
-            forget_mode: The forgetting mode
-            
-        Returns:
-            Filtered list of messages
-        """
+        # For on_every_turn mode, filters out messages from the receiving person itself
         if forget_mode != "on_every_turn":
             return messages
             

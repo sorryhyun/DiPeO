@@ -1,8 +1,4 @@
-"""API business logic utilities - pure functions for API operations.
-
-This module contains only business logic with no I/O operations.
-All API responses and data are passed in as parameters.
-"""
+# API business logic utilities - pure functions for API operations
 
 import logging
 import re
@@ -14,11 +10,7 @@ log = logging.getLogger(__name__)
 
 
 class APIBusinessLogic:
-    """Pure business logic for API operations.
-    
-    This utility class contains only pure functions - no HTTP calls or I/O operations.
-    All API responses and data are passed in as parameters.
-    """
+    # Pure business logic for API operations
 
     def validate_api_response(
         self,
@@ -26,13 +18,8 @@ class APIBusinessLogic:
         response_data: Any,
         expected_status_codes: list[int] | None = None
     ) -> None:
-        """Validate API response status and structure.
-        
-        Raises:
-            ServiceError: If response is invalid
-        """
         if expected_status_codes is None:
-            expected_status_codes = list(range(200, 300))  # 2xx success codes
+            expected_status_codes = list(range(200, 300))
             
         if status_code not in expected_status_codes:
             raise ServiceError(
@@ -47,21 +34,16 @@ class APIBusinessLogic:
         max_retries: int,
         retryable_status_codes: list[int] | None = None
     ) -> bool:
-        """Determine if request should be retried based on status and attempt count.
-        
-        Pure business logic for retry decision.
-        """
         if attempt >= max_retries - 1:
             return False
             
         if retryable_status_codes is None:
-            # Default retryable status codes
             retryable_status_codes = [
-                429,  # Too Many Requests
-                500,  # Internal Server Error  
-                502,  # Bad Gateway
-                503,  # Service Unavailable
-                504,  # Gateway Timeout
+                429,
+                500,
+                502,
+                503,
+                504,
             ]
             
         return status_code in retryable_status_codes
@@ -73,22 +55,13 @@ class APIBusinessLogic:
         max_delay: float = 60.0,
         retry_after: float | None = None
     ) -> float:
-        """Calculate exponential backoff delay for retries.
-        
-        Pure calculation - no I/O.
-        """
         if retry_after is not None:
             return min(retry_after, max_delay)
             
-        # Exponential backoff: base_delay * 2^attempt
         delay = base_delay * (2 ** attempt)
         return min(delay, max_delay)
 
     def substitute_variables(self, data: Any, context: dict[str, Any]) -> Any:
-        """Recursively substitute variables in data using context.
-        
-        Pure transformation - no I/O.
-        """
         if isinstance(data, str):
             pattern = r"\{(\w+)\}"
             
@@ -107,19 +80,13 @@ class APIBusinessLogic:
         return data
 
     def evaluate_condition(self, condition: str, data: dict[str, Any]) -> bool:
-        """Evaluate a simple condition against data.
-        
-        Pure logic - no I/O.
-        """
         try:
-            # Simple equality check
             if "==" in condition:
                 parts = condition.split("==", 1)
                 if len(parts) == 2:
                     field = parts[0].strip()
                     expected = parts[1].strip().strip("'\"")
                     
-                    # Handle nested field access (e.g., "response.status")
                     actual = data
                     for key in field.split("."):
                         if isinstance(actual, dict):
@@ -129,7 +96,6 @@ class APIBusinessLogic:
                             
                     return str(actual) == expected
                     
-            # Could add more condition types here (!=, <, >, in, etc.)
             return True
             
         except Exception as e:
@@ -137,17 +103,11 @@ class APIBusinessLogic:
             return False
 
     def validate_workflow_step(self, step: dict[str, Any]) -> None:
-        """Validate workflow step configuration.
-        
-        Raises:
-            ValidationError: If step is invalid
-        """
         required_fields = ["name", "url", "method"]
         for field in required_fields:
             if field not in step:
                 raise ValidationError(f"Workflow step missing required field: {field}")
                 
-        # Validate HTTP method
         valid_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
         if step["method"].upper() not in valid_methods:
             raise ValidationError(f"Invalid HTTP method: {step['method']}")
@@ -159,10 +119,6 @@ class APIBusinessLogic:
         step_result: Any,
         include_errors: bool = True
     ) -> dict[str, Any]:
-        """Merge step result into workflow results.
-        
-        Pure data transformation.
-        """
         if isinstance(step_result, Exception) and include_errors:
             results[step_name] = {"error": str(step_result), "status": "failed"}
         else:
@@ -177,10 +133,6 @@ class APIBusinessLogic:
         include_metadata: bool = False,
         metadata: dict[str, Any] | None = None
     ) -> str:
-        """Format API response for storage.
-        
-        Pure transformation - returns formatted string.
-        """
         import json
         
         if include_metadata and metadata:
@@ -202,13 +154,8 @@ class APIBusinessLogic:
             return str(response_data)
 
     def extract_rate_limit_info(self, headers: dict[str, str]) -> dict[str, Any]:
-        """Extract rate limit information from response headers.
-        
-        Pure data extraction.
-        """
         rate_limit_info = {}
         
-        # Common rate limit headers
         rate_limit_headers = {
             "X-RateLimit-Limit": "limit",
             "X-RateLimit-Remaining": "remaining", 
@@ -220,7 +167,6 @@ class APIBusinessLogic:
             if header in headers:
                 try:
                     value = headers[header]
-                    # Try to convert to number
                     rate_limit_info[key] = float(value) if "." in value else int(value)
                 except ValueError:
                     rate_limit_info[key] = value
@@ -236,10 +182,6 @@ class APIBusinessLogic:
         timeout: float = 30.0,
         auth: dict[str, str] | None = None
     ) -> dict[str, Any]:
-        """Build request configuration dictionary.
-        
-        Pure data construction.
-        """
         config = {
             "method": method.upper(),
             "url": url,

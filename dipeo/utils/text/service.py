@@ -1,4 +1,4 @@
-"""Text processing domain service for text manipulation and processing."""
+# Text processing domain service for text manipulation and processing
 
 import logging
 import re
@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 
 class TextProcessingDomainService:
-    """Text manipulation and processing operations."""
+    # Text manipulation and processing operations
 
     def __init__(self):
         pass
@@ -20,7 +20,7 @@ class TextProcessingDomainService:
         text: str,
         schema: dict[str, Any],
     ) -> dict[str, Any]:
-        """Extract structured data from text based on schema."""
+        # Extract structured data from text based on schema
         result = {}
 
         for field_name, field_config in schema.items():
@@ -41,7 +41,7 @@ class TextProcessingDomainService:
         return result
 
     def _convert_type(self, value: str, target_type: str) -> Any:
-        """Convert string value to target type."""
+        # Convert string value to target type
         if target_type == "int":
             return int(value)
         if target_type == "float":
@@ -55,7 +55,7 @@ class TextProcessingDomainService:
         text: str,
         transformations: list[dict[str, Any]],
     ) -> str:
-        """Apply a series of transformations to text."""
+        # Apply a series of transformations to text
         result = text
 
         for transform in transformations:
@@ -98,7 +98,7 @@ class TextProcessingDomainService:
         max_length: int = 200,
         preserve_sentences: bool = True,
     ) -> str:
-        """Generate a summary of the text."""
+        # Generate a summary of the text
         if len(text) <= max_length:
             return text
 
@@ -120,7 +120,7 @@ class TextProcessingDomainService:
         text: str,
         format: str = "auto",
     ) -> dict[str, Any] | list[Any]:
-        """Parse structured text (JSON, YAML, CSV, etc.)."""
+        # Parse structured text (JSON, YAML, CSV, etc.)
         import json
 
         if format == "auto":
@@ -168,7 +168,7 @@ class TextProcessingDomainService:
         text: str,
         rules: dict[str, Any],
     ) -> tuple[bool, list[str]]:
-        """Validate text against formatting rules."""
+        # Validate text against formatting rules
         errors = []
 
         if min_length := rules.get("min_length"):

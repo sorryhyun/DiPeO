@@ -7,7 +7,6 @@ _container: ServerContainer | None = None
 
 
 def get_container() -> ServerContainer:
-    """Get the global DI container instance."""
     if _container is None:
         raise RuntimeError(
             "Container not initialized. Call initialize_container() first."
@@ -16,7 +15,6 @@ def get_container() -> ServerContainer:
 
 
 def initialize_container() -> ServerContainer:
-    """Initialize the global DI container."""
     global _container
 
     if _container is None:

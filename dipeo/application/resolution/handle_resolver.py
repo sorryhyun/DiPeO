@@ -1,4 +1,4 @@
-"""Handle resolution for converting handle references to concrete node IDs."""
+# Handle resolution for converting handle references to concrete node IDs.
 
 from typing import Dict, List, Tuple, Set, Optional
 from dataclasses import dataclass
@@ -16,7 +16,7 @@ from dipeo.models.handle_utils import parse_handle_id_safe, ParsedHandle
 
 @dataclass
 class ResolvedConnection:
-    """A connection with handles resolved to node IDs."""
+    # A connection with handles resolved to node IDs.
     arrow_id: str
     source_node_id: NodeID
     target_node_id: NodeID
@@ -25,15 +25,9 @@ class ResolvedConnection:
 
 
 class HandleResolver:
-    """Resolves handle references in arrows to concrete node IDs.
-    
-    This class transforms DomainArrows which use handle IDs into resolved
-    connections with direct node ID references. It validates that all
-    handle references exist and point to valid nodes.
-    """
+    # Resolves handle references in arrows to concrete node IDs.
     
     def __init__(self):
-        """Initialize the HandleResolver."""
         self._errors: List[str] = []
     
     def resolve_arrows(

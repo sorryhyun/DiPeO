@@ -19,11 +19,10 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class ApiKeyMutations:
-    """Handles API key CRUD operations."""
+    # Handles API key CRUD operations
 
     @strawberry.mutation
     async def create_api_key(self, input: CreateApiKeyInput, info) -> ApiKeyResult:
-        """Creates new API key."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
@@ -56,7 +55,6 @@ class ApiKeyMutations:
 
     @strawberry.mutation
     async def test_api_key(self, id: ApiKeyID, info) -> TestApiKeyResult:
-        """Tests API key validity."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service
@@ -95,7 +93,6 @@ class ApiKeyMutations:
 
     @strawberry.mutation
     async def delete_api_key(self, id: ApiKeyID, info) -> DeleteResult:
-        """Removes API key."""
         try:
             context: GraphQLContext = info.context
             api_key_service = context.api_key_service

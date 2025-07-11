@@ -22,11 +22,10 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class DiagramMutations:
-    """Handles diagram CRUD operations."""
+    # Handles diagram CRUD operations
 
     @strawberry.mutation
     async def create_diagram(self, input: CreateDiagramInput, info) -> DiagramResult:
-        """Creates new empty diagram."""
         try:
             context: GraphQLContext = info.context
 
@@ -78,7 +77,6 @@ class DiagramMutations:
 
     @strawberry.mutation
     async def delete_diagram(self, id: DiagramID, info) -> DeleteResult:
-        """Removes diagram file."""
         try:
             context: GraphQLContext = info.context
             storage_service = context.diagram_storage_service

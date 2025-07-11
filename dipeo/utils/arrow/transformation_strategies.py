@@ -1,4 +1,4 @@
-"""Extended content type transformation strategies."""
+# Extended content type transformation strategies
 
 from typing import Any, List, Dict
 import json
@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 class JsonTransformationStrategy:
-    """Strategy for JSON transformation and formatting."""
+    # Strategy for JSON transformation and formatting
     
     def transform(
         self,
@@ -21,7 +21,6 @@ class JsonTransformationStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Transform value to/from JSON format."""
         arrow_data = arrow.data or {}
         
         # Check if we should parse or stringify
@@ -45,10 +44,9 @@ class JsonTransformationStrategy:
 
 
 class TemplateTransformationStrategy:
-    """Strategy for template-based transformations."""
+    # Strategy for template-based transformations
     
     def __init__(self):
-        """Initialize with new TemplateProcessor."""
         self._processor = TemplateProcessor()
     
     def transform(
@@ -58,7 +56,6 @@ class TemplateTransformationStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Apply template transformation."""
         arrow_data = arrow.data or {}
         template = arrow_data.get("template")
         
@@ -88,7 +85,7 @@ class TemplateTransformationStrategy:
 
 
 class AggregationStrategy:
-    """Strategy for aggregating multiple values."""
+    # Strategy for aggregating multiple values
     
     def transform(
         self,
@@ -97,7 +94,6 @@ class AggregationStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Aggregate values based on arrow configuration."""
         arrow_data = arrow.data or {}
         aggregation_type = arrow_data.get("aggregation", "list")
         
@@ -129,7 +125,7 @@ class AggregationStrategy:
 
 
 class FilterTransformationStrategy:
-    """Strategy for filtering data based on conditions."""
+    # Strategy for filtering data based on conditions
     
     def transform(
         self,
@@ -138,7 +134,6 @@ class FilterTransformationStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Filter data based on arrow configuration."""
         arrow_data = arrow.data or {}
         filter_config = arrow_data.get("filter", {})
         
@@ -155,7 +150,6 @@ class FilterTransformationStrategy:
             return value if self._check_condition(value, filter_config) else None
     
     def _filter_list(self, items: List[Any], filter_config: Dict[str, Any]) -> List[Any]:
-        """Filter list items."""
         filtered = []
         
         for item in items:
@@ -165,7 +159,6 @@ class FilterTransformationStrategy:
         return filtered
     
     def _filter_dict(self, data: Dict[str, Any], filter_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Filter dictionary keys."""
         include_keys = filter_config.get("include_keys", [])
         exclude_keys = filter_config.get("exclude_keys", [])
         
@@ -177,7 +170,6 @@ class FilterTransformationStrategy:
         return data
     
     def _check_condition(self, value: Any, filter_config: Dict[str, Any]) -> bool:
-        """Check if value meets filter condition."""
         condition_type = filter_config.get("type", "equals")
         condition_value = filter_config.get("value")
         
@@ -202,7 +194,7 @@ class FilterTransformationStrategy:
 
 
 class ErrorHandlingStrategy:
-    """Strategy for handling errors in data transformation."""
+    # Strategy for handling errors in data transformation
     
     def transform(
         self,
@@ -211,7 +203,6 @@ class ErrorHandlingStrategy:
         source_output: NodeOutput,
         target_node_type: str,
     ) -> Any:
-        """Handle error values with fallback options."""
         arrow_data = arrow.data or {}
         
         # Check if this is an error output

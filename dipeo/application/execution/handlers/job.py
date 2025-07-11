@@ -1,4 +1,3 @@
-"""Job node handler - executes Python, JavaScript, or Bash code."""
 
 import asyncio
 import json
@@ -16,10 +15,8 @@ from pydantic import BaseModel
 
 @register_handler
 class JobNodeHandler(BaseNodeHandler):
-    """Handler for job nodes - executes code in various languages."""
     
     def __init__(self):
-        """Initialize handler."""
         pass
 
 
@@ -42,7 +39,6 @@ class JobNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute job node with code."""
         code_type = props.code_type
         code = props.code
 
@@ -91,7 +87,6 @@ class JobNodeHandler(BaseNodeHandler):
             )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any]) -> Any:
-        """Execute Python code safely."""
         # Create a restricted namespace with inputs
         namespace = {
             "input_data": inputs.get("default", "") if inputs else "",
@@ -148,7 +143,6 @@ class JobNodeHandler(BaseNodeHandler):
             sys.stdout = old_stdout
 
     async def _execute_javascript(self, code: str, inputs: dict[str, Any]) -> Any:
-        """Execute JavaScript code using Node.js."""
         # Prepare the code with inputs
         js_code = f"""
         const inputs = {json.dumps(inputs) if inputs else '{}'};
@@ -172,7 +166,6 @@ class JobNodeHandler(BaseNodeHandler):
         return stdout.decode().strip()
 
     async def _execute_bash(self, code: str, inputs: dict[str, Any]) -> Any:
-        """Execute Bash code."""
         # Set up environment variables from inputs
         env = dict(os.environ)
         if inputs:

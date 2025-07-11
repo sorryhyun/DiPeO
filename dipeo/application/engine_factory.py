@@ -1,4 +1,4 @@
-"""Factory for creating execution engines with standard observer configurations."""
+# Factory for creating execution engines with standard observer configurations.
 
 import warnings
 from typing import Any, Optional
@@ -8,7 +8,7 @@ from .engine.stateful_execution_engine import StatefulExecutionEngine
 
 
 class EngineFactory:
-    """Factory for creating ExecutionEngine instances with standard configurations."""
+    # Factory for creating ExecutionEngine instances with standard configurations.
 
     
     @staticmethod
@@ -20,19 +20,7 @@ class EngineFactory:
         include_streaming_observer: bool = True,
         custom_observers: Optional[list[ExecutionObserver]] = None,
     ) -> StatefulExecutionEngine:
-        """Create a StatefulExecutionEngine with standard observers.
-        
-        Args:
-            service_registry: Service registry for handler dependencies
-            state_store: State store for persistence (optional)
-            message_router: Message router for streaming (optional)
-            include_state_observer: Whether to include StateStoreObserver
-            include_streaming_observer: Whether to include StreamingObserver
-            custom_observers: Additional custom observers to include
-            
-        Returns:
-            StatefulExecutionEngine configured with appropriate observers
-        """
+        # Create a StatefulExecutionEngine with standard observers.
         observers = []
         
         # Add state store observer if requested and available

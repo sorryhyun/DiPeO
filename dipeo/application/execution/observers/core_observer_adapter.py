@@ -1,9 +1,4 @@
-"""
-Adapter to bridge application observers to core ExecutionObserver protocol.
-
-This adapter allows existing application-layer observers to work with the
-core execution framework by adapting between the two observer interfaces.
-"""
+# Adapter to bridge application observers to core ExecutionObserver protocol
 
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -15,18 +10,10 @@ from dipeo.application.execution.protocols import ExecutionObserver as Applicati
 
 
 class CoreObserverAdapter(CoreExecutionObserver):
-    """Adapts application observers to the core ExecutionObserver protocol.
-    
-    This adapter wraps application-layer observers and translates between
-    the simpler application interface and the more detailed core interface.
-    """
+    # Adapts application observers to the core ExecutionObserver protocol
     
     def __init__(self, app_observers: List[ApplicationExecutionObserver]):
-        """Initialize the adapter with application observers.
-        
-        Args:
-            app_observers: List of application-layer observers to adapt
-        """
+        # Initialize the adapter with application observers
         self._app_observers = app_observers
         self._start_times: Dict[NodeID, datetime] = {}
     
@@ -36,10 +23,7 @@ class CoreObserverAdapter(CoreExecutionObserver):
         diagram_id: Optional[str],
         metadata: Dict[str, Any]
     ) -> None:
-        """Called when diagram execution begins.
-        
-        Delegates to application observers with simplified interface.
-        """
+        # Called when diagram execution begins
         for observer in self._app_observers:
             await observer.on_execution_start(execution_id, diagram_id)
     
@@ -50,10 +34,7 @@ class CoreObserverAdapter(CoreExecutionObserver):
         node_type: NodeType,
         inputs: Dict[str, Any]
     ) -> None:
-        """Called when a node begins execution.
-        
-        Stores start time and delegates to application observers.
-        """
+        # Called when a node begins execution
         # Store start time for duration calculation
         self._start_times[node_id] = datetime.utcnow()
         
@@ -69,10 +50,7 @@ class CoreObserverAdapter(CoreExecutionObserver):
         outputs: Dict[str, Any],
         duration_ms: int
     ) -> None:
-        """Called when a node completes execution.
-        
-        Updates state with timing info and delegates to application observers.
-        """
+        # Called when a node completes execution
         # Update state with end time if not set
         if not state.ended_at and node_id in self._start_times:
             state.ended_at = datetime.utcnow().isoformat()
@@ -91,10 +69,7 @@ class CoreObserverAdapter(CoreExecutionObserver):
         error: Exception,
         retry_count: int
     ) -> None:
-        """Called when a node encounters an error.
-        
-        Converts exception to string and delegates to application observers.
-        """
+        # Called when a node encounters an error
         error_str = str(error)
         if retry_count > 0:
             error_str = f"{error_str} (retry {retry_count})"
@@ -109,10 +84,7 @@ class CoreObserverAdapter(CoreExecutionObserver):
         total_duration_ms: int,
         node_count: int
     ) -> None:
-        """Called when diagram execution completes.
-        
-        Delegates to appropriate application observer method based on success.
-        """
+        # Called when diagram execution completes
         if success:
             # Call on_execution_complete for successful execution
             for observer in self._app_observers:
@@ -134,27 +106,16 @@ class CoreObserverAdapter(CoreExecutionObserver):
         message_type: str,
         payload_size: int
     ) -> None:
-        """Called when a message is sent between nodes.
-        
-        Currently not used by application observers, so this is a no-op.
-        """
+        # Called when a message is sent between nodes
         # Application observers don't have this method, so we skip it
         pass
 
 
 class ApplicationObserverAdapter(ApplicationExecutionObserver):
-    """Adapts core observers to the application ExecutionObserver protocol.
-    
-    This reverse adapter allows core-layer observers to be used in places
-    that expect application-layer observers.
-    """
+    # Adapts core observers to the application ExecutionObserver protocol
     
     def __init__(self, core_observer: CoreExecutionObserver):
-        """Initialize the adapter with a core observer.
-        
-        Args:
-            core_observer: Core-layer observer to adapt
-        """
+        # Initialize the adapter with a core observer
         self._core_observer = core_observer
         self._execution_metadata: Dict[str, Dict[str, Any]] = {}
         self._node_states: Dict[str, NodeState] = {}
@@ -162,10 +123,7 @@ class ApplicationObserverAdapter(ApplicationExecutionObserver):
     async def on_execution_start(
         self, execution_id: str, diagram_id: Optional[str]
     ) -> None:
-        """Called when execution starts.
-        
-        Adds default metadata and delegates to core observer.
-        """
+        # Called when execution starts
         metadata = {
             "started_at": datetime.utcnow().isoformat(),
             "diagram_id": diagram_id,
@@ -177,10 +135,7 @@ class ApplicationObserverAdapter(ApplicationExecutionObserver):
         )
     
     async def on_node_start(self, execution_id: str, node_id: str) -> None:
-        """Called when a node starts.
-        
-        Adds default node type and inputs, delegates to core observer.
-        """
+        # Called when a node starts
         # We don't have node type or inputs, so use defaults
         await self._core_observer.on_node_start(
             execution_id,
@@ -192,10 +147,7 @@ class ApplicationObserverAdapter(ApplicationExecutionObserver):
     async def on_node_complete(
         self, execution_id: str, node_id: str, state: NodeState
     ) -> None:
-        """Called when a node completes.
-        
-        Calculates duration and extracts outputs, delegates to core observer.
-        """
+        # Called when a node completes
         # Store state for later reference
         self._node_states[node_id] = state
         
@@ -227,10 +179,7 @@ class ApplicationObserverAdapter(ApplicationExecutionObserver):
     async def on_node_error(
         self, execution_id: str, node_id: str, error: str
     ) -> None:
-        """Called when a node errors.
-        
-        Converts string to exception and delegates to core observer.
-        """
+        # Called when a node errors
         await self._core_observer.on_node_error(
             execution_id,
             NodeID(node_id),
@@ -239,10 +188,7 @@ class ApplicationObserverAdapter(ApplicationExecutionObserver):
         )
     
     async def on_execution_complete(self, execution_id: str) -> None:
-        """Called when execution completes successfully.
-        
-        Calculates metrics and delegates to core observer.
-        """
+        # Called when execution completes successfully
         # Calculate total duration and node count
         metadata = self._execution_metadata.get(execution_id, {})
         total_duration_ms = 0
@@ -269,10 +215,7 @@ class ApplicationObserverAdapter(ApplicationExecutionObserver):
         self._execution_metadata.pop(execution_id, None)
     
     async def on_execution_error(self, execution_id: str, error: str) -> None:
-        """Called when execution fails.
-        
-        Delegates to core observer's on_execution_complete with failure.
-        """
+        # Called when execution fails
         # Similar to on_execution_complete but with success=False
         metadata = self._execution_metadata.get(execution_id, {})
         total_duration_ms = 0

@@ -1,8 +1,4 @@
-"""
-DiPeO Application Package.
-
-Application orchestration layer providing use cases and node handlers.
-"""
+# DiPeO Application Package.
 
 # Context
 from .execution.context import UnifiedExecutionContext

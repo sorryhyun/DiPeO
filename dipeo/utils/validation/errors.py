@@ -1,10 +1,10 @@
-"""Validation error types."""
+# Validation error types
 
 from typing import Any, Dict, List, Optional
 
 
 class ValidationError(Exception):
-    """Base validation error."""
+    # Base validation error
 
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message)
@@ -12,7 +12,7 @@ class ValidationError(Exception):
 
 
 class ResourceNotFoundError(ValidationError):
-    """Error when a required resource is not found."""
+    # Error when a required resource is not found
 
     def __init__(
         self, resource_type: str, resource_id: str, message: Optional[str] = None
@@ -26,7 +26,7 @@ class ResourceNotFoundError(ValidationError):
 
 
 class BusinessRuleViolationError(ValidationError):
-    """Error when a business rule is violated."""
+    # Error when a business rule is violated
 
     def __init__(
         self, rule: str, message: str, context: Optional[Dict[str, Any]] = None
@@ -39,7 +39,7 @@ class BusinessRuleViolationError(ValidationError):
 
 
 class InputValidationError(ValidationError):
-    """Error for invalid input data."""
+    # Error for invalid input data
 
     def __init__(self, field: str, value: Any, message: str):
         self.field = field
@@ -48,7 +48,7 @@ class InputValidationError(ValidationError):
 
 
 class BatchValidationError(ValidationError):
-    """Error containing multiple validation errors."""
+    # Error containing multiple validation errors
 
     def __init__(self, errors: List[ValidationError]):
         self.errors = errors

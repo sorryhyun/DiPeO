@@ -1,4 +1,4 @@
-"""Arrow processing domain services."""
+# Arrow processing domain services
 
 from .arrow_processor import ArrowProcessor, TransformationStrategy
 from .memory_transformer import MemoryTransformer, MemoryStrategy, unwrap_inputs

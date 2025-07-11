@@ -1,4 +1,4 @@
-"""Handler registry, base classes, and factory for DiPeO."""
+# Handler registry, base classes, and factory for DiPeO.
 
 from abc import ABC, abstractmethod
 import inspect
@@ -54,11 +54,11 @@ class HandlerRegistry:
         self._service_registry: Optional[UnifiedServiceRegistry] = None
 
     def set_service_registry(self, service_registry: UnifiedServiceRegistry) -> None:
-        """Set the service registry for dependency injection."""
+        # Set the service registry for dependency injection.
         self._service_registry = service_registry
 
     def register(self, handler: BaseNodeHandler) -> None:
-        """Register a handler instance."""
+        # Register a handler instance.
         node_def = NodeDefinition(
             type=handler.node_type,
             node_schema=handler.schema,
@@ -69,7 +69,7 @@ class HandlerRegistry:
         self._handlers[handler.node_type] = node_def
 
     def register_class(self, handler_class: Type[BaseNodeHandler]) -> None:
-        """Register a handler class for later instantiation."""
+        # Register a handler class for later instantiation.
         # Create a temporary instance to get the node_type
         temp_instance = handler_class()
         node_type = temp_instance.node_type
@@ -85,7 +85,7 @@ class HandlerRegistry:
         requires_services: Optional[List[str]] = None,
         description: str = "",
     ) -> None:
-        """Register a function-based handler."""
+        # Register a function-based handler.
         node_def = NodeDefinition(
             type=node_type,
             node_schema=schema,
@@ -96,7 +96,7 @@ class HandlerRegistry:
         self._handlers[node_type] = node_def
 
     def create_handler(self, node_type: str) -> BaseNodeHandler:
-        """Create a handler instance with injected services."""
+        # Create a handler instance with injected services.
         handler_class = self._handler_classes.get(node_type)
         if not handler_class:
             raise ValueError(f"No handler class registered for node type: {node_type}")
@@ -114,7 +114,7 @@ class HandlerRegistry:
             return self._create_handler_with_services(handler_class)
 
     def _create_handler_with_services(self, handler_class: Type[BaseNodeHandler]) -> BaseNodeHandler:
-        """Create a handler instance with services based on its constructor signature."""
+        # Create a handler instance with services based on its constructor signature.
         if not self._service_registry:
             raise RuntimeError("Service registry not set. Call set_service_registry first.")
 
@@ -155,20 +155,20 @@ class HandlerRegistry:
         return handler_class(**kwargs)
 
     def get(self, node_type: str) -> Optional[NodeDefinition]:
-        """Get node definition by type."""
+        # Get node definition by type.
         return self._handlers.get(node_type)
 
     def get_handler(self, node_type: str) -> Optional[NodeHandler]:
-        """Get handler function by node type."""
+        # Get handler function by node type.
         node_def = self._handlers.get(node_type)
         return node_def.handler if node_def else None
 
     def list_types(self) -> List[str]:
-        """List all registered node types."""
+        # List all registered node types.
         return list(self._handlers.keys())
 
     def clear(self) -> None:
-        """Clear all registered handlers."""
+        # Clear all registered handlers.
         self._handlers.clear()
         self._handler_classes.clear()
 
@@ -178,18 +178,18 @@ _global_registry = HandlerRegistry()
 
 
 def register_handler(handler_class: type[BaseNodeHandler]) -> type[BaseNodeHandler]:
-    """Decorator to register a handler class."""
+    # Decorator to register a handler class.
     _global_registry.register_class(handler_class)
     return handler_class
 
 
 def get_global_registry() -> HandlerRegistry:
-    """Get the global handler registry."""
+    # Get the global handler registry.
     return _global_registry
 
 
 class HandlerFactory:
-    """Legacy factory class for backward compatibility."""
+    # Legacy factory class for backward compatibility.
 
     def __init__(self, service_registry: UnifiedServiceRegistry):
         self.service_registry = service_registry
@@ -197,16 +197,16 @@ class HandlerFactory:
         _global_registry.set_service_registry(service_registry)
 
     def register_handler_class(self, handler_class: Type[BaseNodeHandler]) -> None:
-        """Register a handler class for later instantiation."""
+        # Register a handler class for later instantiation.
         _global_registry.register_class(handler_class)
 
     def create_handler(self, node_type: str) -> BaseNodeHandler:
-        """Create a handler instance with injected services."""
+        # Create a handler instance with injected services.
         return _global_registry.create_handler(node_type)
 
 
 def create_handler_factory_provider():
-    """Provider function for DI container."""
+    # Provider function for DI container.
     def factory(service_registry: UnifiedServiceRegistry) -> HandlerFactory:
         return HandlerFactory(service_registry)
     return factory

@@ -1,8 +1,4 @@
-"""Data transformation utilities for converting between different formats.
-
-Pure functions for transforming data between JSON, YAML, XML, CSV, form data,
-and base64 formats.
-"""
+# Data transformation utilities for converting between different formats
 
 from typing import Dict, Any, List, Optional, Union
 import json
@@ -17,19 +13,7 @@ def transform_to_format(
     format: str,
     options: Optional[Dict[str, Any]] = None
 ) -> Union[str, bytes, Dict[str, Any]]:
-    """Transform data to specified format.
-    
-    Args:
-        data: Data to transform
-        format: Target format (json, yaml, xml, form, csv, base64)
-        options: Format-specific options
-        
-    Returns:
-        Transformed data in the specified format
-        
-    Raises:
-        ValueError: If format is not supported
-    """
+    # Transform data to specified format
     options = options or {}
     
     if format == 'json':
@@ -53,19 +37,7 @@ def transform_from_format(
     format: str,
     options: Optional[Dict[str, Any]] = None
 ) -> Any:
-    """Transform data from specified format.
-    
-    Args:
-        data: Data to transform
-        format: Source format (json, yaml, xml, form, csv, base64)
-        options: Format-specific options
-        
-    Returns:
-        Transformed data from the specified format
-        
-    Raises:
-        ValueError: If format is not supported
-    """
+    # Transform data from specified format
     options = options or {}
     
     if format == 'json':
@@ -85,7 +57,7 @@ def transform_from_format(
 
 
 def _to_json(data: Any, options: Dict[str, Any]) -> str:
-    """Convert data to JSON."""
+    # Convert data to JSON
     indent = options.get('indent', 2) if options.get('pretty', True) else None
     
     # Custom JSON encoder for special types
@@ -103,14 +75,14 @@ def _to_json(data: Any, options: Dict[str, Any]) -> str:
 
 
 def _from_json(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
-    """Parse JSON data."""
+    # Parse JSON data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
     return json.loads(data)
 
 
 def _to_yaml(data: Any, options: Dict[str, Any]) -> str:
-    """Convert data to YAML."""
+    # Convert data to YAML
     # Simple YAML serialization
     def serialize_value(value, indent=0):
         spaces = '  ' * indent
@@ -148,7 +120,7 @@ def _to_yaml(data: Any, options: Dict[str, Any]) -> str:
 
 
 def _from_yaml(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
-    """Parse YAML data."""
+    # Parse YAML data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
     # For full YAML support, would use PyYAML
@@ -157,7 +129,7 @@ def _from_yaml(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
 
 
 def _to_xml(data: Any, options: Dict[str, Any]) -> str:
-    """Convert data to XML."""
+    # Convert data to XML
     root_tag = options.get('root_tag', 'root')
     
     def build_element(parent, key, value):
@@ -184,7 +156,7 @@ def _to_xml(data: Any, options: Dict[str, Any]) -> str:
 
 
 def _from_xml(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any]:
-    """Parse XML data."""
+    # Parse XML data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
     
@@ -221,7 +193,7 @@ def _from_xml(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any
 
 
 def _to_form_data(data: Dict[str, Any], options: Dict[str, Any]) -> str:
-    """Convert data to form-encoded format."""
+    # Convert data to form-encoded format
     from urllib.parse import urlencode
     
     # Flatten nested structures
@@ -244,7 +216,7 @@ def _to_form_data(data: Dict[str, Any], options: Dict[str, Any]) -> str:
 
 
 def _from_form_data(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any]:
-    """Parse form-encoded data."""
+    # Parse form-encoded data
     from urllib.parse import parse_qs
     
     if isinstance(data, bytes):
@@ -260,7 +232,7 @@ def _from_form_data(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[st
 
 
 def _to_csv(data: List[Dict[str, Any]], options: Dict[str, Any]) -> str:
-    """Convert data to CSV."""
+    # Convert data to CSV
     if not isinstance(data, list):
         raise ValueError("CSV format requires a list of dictionaries")
     
@@ -290,7 +262,7 @@ def _to_csv(data: List[Dict[str, Any]], options: Dict[str, Any]) -> str:
 
 
 def _from_csv(data: Union[str, bytes], options: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Parse CSV data."""
+    # Parse CSV data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
     
@@ -327,14 +299,14 @@ def _from_csv(data: Union[str, bytes], options: Dict[str, Any]) -> List[Dict[str
 
 
 def _to_base64(data: Union[str, bytes], options: Dict[str, Any]) -> str:
-    """Convert data to base64."""
+    # Convert data to base64
     if isinstance(data, str):
         data = data.encode('utf-8')
     return base64.b64encode(data).decode('ascii')
 
 
 def _from_base64(data: Union[str, bytes], options: Dict[str, Any]) -> bytes:
-    """Decode base64 data."""
+    # Decode base64 data
     if isinstance(data, bytes):
         data = data.decode('ascii')
     return base64.b64decode(data)
@@ -344,15 +316,7 @@ def apply_transformation_chain(
     data: Any,
     transformations: List[Dict[str, Any]]
 ) -> Any:
-    """Apply a chain of transformations to data.
-    
-    Args:
-        data: Initial data
-        transformations: List of transformation specifications
-        
-    Returns:
-        Final transformed data
-    """
+    # Apply a chain of transformations to data
     result = data
     
     for transform in transformations:

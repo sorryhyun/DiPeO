@@ -1,4 +1,3 @@
-"""API job node handler - makes HTTP requests to external APIs."""
 
 import asyncio
 import json
@@ -13,10 +12,8 @@ from pydantic import BaseModel
 
 @register_handler
 class ApiJobNodeHandler(BaseNodeHandler):
-    """Handler for api_job nodes - makes HTTP requests."""
     
     def __init__(self, api_service=None):
-        """Initialize with injected services."""
         self.api_service = api_service
 
     @property
@@ -42,7 +39,6 @@ class ApiJobNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute API job node using the infrastructure API service."""
         # Use injected service or fall back to old pattern for backward compatibility
         api_service = self.api_service
         if not api_service:
@@ -145,7 +141,6 @@ class ApiJobNodeHandler(BaseNodeHandler):
     def _parse_json_inputs(
         self, headers: Any, params: Any, body: Any, auth_config: Any
     ) -> dict[str, Any]:
-        """Parse JSON string inputs into Python objects."""
         result = {
             "headers": headers or {},
             "params": params or {},
@@ -205,7 +200,6 @@ class ApiJobNodeHandler(BaseNodeHandler):
     def _prepare_request_data(
         self, method: HttpMethod, params: dict, body: Any
     ) -> dict[str, Any] | None:
-        """Prepare request data based on method."""
         # For GET requests, params are query parameters (handled separately)
         if method == HttpMethod.GET:
             return None
@@ -221,7 +215,6 @@ class ApiJobNodeHandler(BaseNodeHandler):
         return None
     
     def _apply_auth_headers(self, headers: dict, auth_type: str, auth_config: dict) -> dict:
-        """Apply authentication to headers for bearer token and API key."""
         headers = headers.copy()  # Don't modify original
         
         if auth_type == "bearer":

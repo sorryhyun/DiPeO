@@ -1,4 +1,4 @@
-"""Validation domain service for business rule validation."""
+# Validation domain service for business rule validation
 
 import os
 from typing import Any, Dict, List, Optional
@@ -15,12 +15,12 @@ from .errors import (
 
 
 class ValidationDomainService:
-    """Centralized validation service for business rules."""
+    # Centralized validation service for business rules
 
     def validate_required_fields(
         self, data: Dict[str, Any], required_fields: List[str]
     ) -> None:
-        """Validate that all required fields are present and non-empty."""
+        # Validate that all required fields are present and non-empty
         errors = []
 
         for field in required_fields:
@@ -42,7 +42,7 @@ class ValidationDomainService:
             raise BatchValidationError(errors)
 
     def validate_operation(self, operation: str, allowed_operations: List[str]) -> None:
-        """Validate that an operation is allowed."""
+        # Validate that an operation is allowed
         if operation not in allowed_operations:
             raise BusinessRuleViolationError(
                 rule="allowed_operations",
@@ -51,7 +51,7 @@ class ValidationDomainService:
             )
 
     def validate_file_exists(self, file_path: str) -> None:
-        """Validate that a file exists."""
+        # Validate that a file exists
         path = Path(file_path)
         if not path.exists():
             raise ResourceNotFoundError(
@@ -59,7 +59,7 @@ class ValidationDomainService:
             )
 
     def validate_file_writable(self, file_path: str) -> None:
-        """Validate that a file path is writable."""
+        # Validate that a file path is writable
         path = Path(file_path)
         parent = path.parent
 
@@ -85,7 +85,7 @@ class ValidationDomainService:
     def validate_person_exists(
         self, diagram: DomainDiagram, person_id: str
     ) -> DomainPerson:
-        """Validate that a person exists in the diagram."""
+        # Validate that a person exists in the diagram
         if not diagram.persons:
             raise ResourceNotFoundError(
                 "person", person_id, "No persons defined in diagram"
@@ -105,7 +105,7 @@ class ValidationDomainService:
     def validate_diagram_not_none(
         self, diagram: Optional[DomainDiagram], context: str = ""
     ) -> DomainDiagram:
-        """Validate that a diagram is not None."""
+        # Validate that a diagram is not None
         if diagram is None:
             raise ResourceNotFoundError(
                 "diagram",
@@ -117,7 +117,7 @@ class ValidationDomainService:
     def validate_interactive_handler(
         self, handler: Optional[Any], context: str = ""
     ) -> Any:
-        """Validate that an interactive handler is available."""
+        # Validate that an interactive handler is available
         if handler is None:
             raise BusinessRuleViolationError(
                 rule="interactive_handler_required",
@@ -129,7 +129,7 @@ class ValidationDomainService:
     def validate_input_value(
         self, value: Any, expected_type: Optional[type] = None, context: str = ""
     ) -> Any:
-        """Validate input value and optionally check its type."""
+        # Validate input value and optionally check its type
         if value is None:
             raise InputValidationError(
                 "value",
@@ -147,7 +147,7 @@ class ValidationDomainService:
         return value
 
     def validate_db_operation_input(self, operation: str, value: Any) -> None:
-        """Validate input for database operations."""
+        # Validate input for database operations
         if operation in ["write", "append"] and not value:
             raise BusinessRuleViolationError(
                 rule="db_operation_input",
@@ -158,7 +158,7 @@ class ValidationDomainService:
     def validate_file_operation_params(
         self, data: Dict[str, Any]
     ) -> tuple[str, Optional[str]]:
-        """Validate and extract file operation parameters."""
+        # Validate and extract file operation parameters
         file_path = data.get("file_path", "").strip()
         file_name = data.get("file_name", "").strip()
 
@@ -174,7 +174,7 @@ class ValidationDomainService:
     def validate_batch_size(
         self, batch_size: int, min_size: int = 1, max_size: int = 1000
     ) -> None:
-        """Validate batch size is within acceptable range."""
+        # Validate batch size is within acceptable range
         if batch_size < min_size or batch_size > max_size:
             raise BusinessRuleViolationError(
                 rule="batch_size_range",

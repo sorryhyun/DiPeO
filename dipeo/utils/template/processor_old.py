@@ -1,8 +1,4 @@
-"""Template processing utilities for conversation messages.
-
-Pure functions for template string processing, variable substitution,
-and conditional template evaluation.
-"""
+# Template processing utilities for conversation messages
 
 from typing import Dict, Any, List, Optional
 import re
@@ -15,16 +11,7 @@ def process_template(
     context: Dict[str, Any],
     safe: bool = True
 ) -> str:
-    """Process a template string with context values.
-    
-    Args:
-        template: Template string with {{variable}} placeholders
-        context: Dictionary of values to substitute
-        safe: If True, missing variables are left as-is
-        
-    Returns:
-        Processed template string
-    """
+    # Process a template string with context values
     # Find all template variables
     pattern = r'\{\{(\s*[\w\.]+\s*)\}\}'
     
@@ -47,7 +34,7 @@ def process_template(
 
 
 def _get_nested_value(data: Dict[str, Any], path: str) -> Any:
-    """Get value from nested dictionary using dot notation."""
+    # Get value from nested dictionary using dot notation
     keys = path.split('.')
     current = data
     
@@ -64,13 +51,7 @@ def process_conditional_template(
     template: str,
     context: Dict[str, Any]
 ) -> str:
-    """Process template with conditional sections.
-    
-    Supports:
-    - {{#if condition}}...{{/if}}
-    - {{#unless condition}}...{{/unless}}
-    - {{#each items}}...{{/each}}
-    """
+    # Process template with conditional sections
     # Process if conditions
     template = _process_if_conditions(template, context)
     
@@ -85,7 +66,7 @@ def process_conditional_template(
 
 
 def _process_if_conditions(template: str, context: Dict[str, Any]) -> str:
-    """Process {{#if}} conditions."""
+    # Process {{#if}} conditions
     pattern = r'\{\{#if\s+([\w\.]+)\}\}(.*?)\{\{/if\}\}'
     
     def replacer(match):
@@ -101,7 +82,7 @@ def _process_if_conditions(template: str, context: Dict[str, Any]) -> str:
 
 
 def _process_unless_conditions(template: str, context: Dict[str, Any]) -> str:
-    """Process {{#unless}} conditions."""
+    # Process {{#unless}} conditions
     pattern = r'\{\{#unless\s+([\w\.]+)\}\}(.*?)\{\{/unless\}\}'
     
     def replacer(match):
@@ -117,7 +98,7 @@ def _process_unless_conditions(template: str, context: Dict[str, Any]) -> str:
 
 
 def _process_each_loops(template: str, context: Dict[str, Any]) -> str:
-    """Process {{#each}} loops."""
+    # Process {{#each}} loops
     pattern = r'\{\{#each\s+([\w\.]+)\}\}(.*?)\{\{/each\}\}'
     
     def replacer(match):
@@ -147,14 +128,7 @@ def _process_each_loops(template: str, context: Dict[str, Any]) -> str:
 
 
 def extract_variables(template: str) -> List[str]:
-    """Extract all variable names from a template.
-    
-    Args:
-        template: Template string
-        
-    Returns:
-        List of unique variable names found in template
-    """
+    # Extract all variable names from a template
     # Find all {{variable}} patterns
     pattern = r'\{\{(\s*[\w\.]+\s*)\}\}'
     matches = re.findall(pattern, template)
@@ -174,14 +148,7 @@ def extract_variables(template: str) -> List[str]:
 
 
 def validate_template(template: str) -> List[str]:
-    """Validate template syntax and return any errors.
-    
-    Args:
-        template: Template string to validate
-        
-    Returns:
-        List of error messages (empty if valid)
-    """
+    # Validate template syntax and return any errors
     errors = []
     
     # Check for unclosed variables
@@ -215,15 +182,7 @@ def create_template_context(
     variables: Dict[str, Any],
     metadata: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
-    """Create a context dictionary for template processing.
-    
-    Args:
-        variables: User variables
-        metadata: Optional metadata to include
-        
-    Returns:
-        Combined context dictionary
-    """
+    # Create a context dictionary for template processing
     context = variables.copy()
     
     if metadata:

@@ -1,4 +1,3 @@
-"""User response node handler - handles interactive user input."""
 
 from typing import Any
 
@@ -11,10 +10,8 @@ from pydantic import BaseModel
 
 @register_handler
 class UserResponseNodeHandler(BaseNodeHandler):
-    """Handler for user_response nodes."""
     
     def __init__(self):
-        """Initialize handler."""
         pass
 
 
@@ -37,7 +34,6 @@ class UserResponseNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute user_response node."""
         # Check if we have an interactive handler
         exec_context = services.get("execution_context")
         if (

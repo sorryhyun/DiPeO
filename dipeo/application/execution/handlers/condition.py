@@ -1,4 +1,3 @@
-"""Condition node handler - handles conditional logic in diagram execution."""
 
 from typing import Any
 
@@ -12,10 +11,8 @@ from dipeo.models import ConditionNodeData, NodeOutput
 
 @register_handler
 class ConditionNodeHandler(BaseNodeHandler):
-    """Handler for condition nodes."""
     
     def __init__(self, condition_evaluation_service=None, diagram_storage_service=None):
-        """Initialize with injected services."""
         self.condition_evaluation_service = condition_evaluation_service
         self.diagram_storage_service = diagram_storage_service
 
@@ -37,7 +34,6 @@ class ConditionNodeHandler(BaseNodeHandler):
         return "Condition node: supports detect_max_iterations and custom expressions"
     
     def _resolve_service(self, context: ExecutionContextPort, services: dict[str, Any], service_name: str) -> Any | None:
-        """Helper to resolve service from context or services dict."""
         service = context.get_service(service_name)
         if not service:
             service = services.get(service_name)
@@ -50,7 +46,6 @@ class ConditionNodeHandler(BaseNodeHandler):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        """Execute condition node by delegating to domain service."""
         import logging
         logger = logging.getLogger(__name__)
         
@@ -118,7 +113,6 @@ class ConditionNodeHandler(BaseNodeHandler):
         )
     
     def _extract_execution_states(self, context: ExecutionContextPort) -> dict[str, dict[str, Any]]:
-        """Extract execution states from context."""
         execution_states = {}
         
         if hasattr(context.execution_state, 'node_states'):
@@ -133,7 +127,6 @@ class ConditionNodeHandler(BaseNodeHandler):
         return execution_states
     
     def _extract_node_exec_counts(self, context: ExecutionContextPort) -> dict[str, int] | None:
-        """Extract node execution counts from context."""
         # Try to get exec counts from UnifiedExecutionContext
         if hasattr(context, '_exec_counts'):
             return context._exec_counts
@@ -151,11 +144,6 @@ class ConditionNodeHandler(BaseNodeHandler):
         context: ExecutionContextPort,
         props: ConditionNodeData
     ) -> bool:
-        """Evaluate max iterations using the new NodeOutput data.
-        
-        This improved approach uses the executed_nodes field from NodeOutput
-        to track execution state more efficiently.
-        """
         from dipeo.models import NodeType
         import logging
         logger = logging.getLogger(__name__)

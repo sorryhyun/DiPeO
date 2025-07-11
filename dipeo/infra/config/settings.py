@@ -7,18 +7,13 @@ from enum import Enum
 
 
 class Environment(str, Enum):
-    """Supported environments."""
-
     DEVELOPMENT = "development"
     TESTING = "testing"
     PRODUCTION = "production"
 
 
 class Settings:
-    """Centralized configuration settings with validation."""
-
     def __init__(self):
-        """Initialize settings from environment variables."""
         self.environment = self._get_environment()
         self.base_dir = self._get_base_dir()
 
@@ -81,7 +76,6 @@ class Settings:
         self._validate()
 
     def _get_environment(self) -> Environment:
-        """Get the current environment."""
         env = os.getenv("DIPEO_ENV", "development").lower()
         try:
             return Environment(env)
@@ -89,7 +83,6 @@ class Settings:
             return Environment.DEVELOPMENT
 
     def _get_base_dir(self) -> Path:
-        """Get the base directory for the project."""
         # Try environment variable first
         if base_dir := os.getenv("DIPEO_BASE_DIR"):
             return Path(base_dir)
@@ -105,13 +98,11 @@ class Settings:
         return Path.cwd()
 
     def _parse_list(self, value: str) -> list[str]:
-        """Parse comma-separated list from string."""
         if not value or value == "*":
             return ["*"]
         return [item.strip() for item in value.split(",") if item.strip()]
 
     def _validate(self):
-        """Validate configuration settings."""
         # Ensure directories exist
         for dir_path in [
             self.files_dir,
@@ -151,7 +142,6 @@ class Settings:
             )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert settings to dictionary for logging/debugging."""
         return {
             "environment": self.environment.value,
             "base_dir": str(self.base_dir),
@@ -194,7 +184,6 @@ class Settings:
         }
 
     def get_environment_config(self) -> Dict[str, Any]:
-        """Get environment-specific configuration overrides."""
         if self.environment == Environment.PRODUCTION:
             return {
                 "log_level": "WARNING",
@@ -222,11 +211,9 @@ settings = Settings()
 
 
 def get_settings() -> Settings:
-    """Get the global settings instance."""
     return settings
 
 
 def reload_settings():
-    """Reload settings from environment variables."""
     global settings
     settings = Settings()

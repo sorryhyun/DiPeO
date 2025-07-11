@@ -23,11 +23,10 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class ExecutionMutations:
-    """Handles diagram execution via GraphQL API."""
+    # Handles diagram execution via GraphQL API
 
     @strawberry.mutation
     async def execute_diagram(self, data: ExecuteDiagramInput, info) -> ExecutionResult:
-        """Starts diagram execution with provided configuration."""
         try:
             context: GraphQLContext = info.context
             execution_service = context.execution_service
@@ -112,7 +111,6 @@ class ExecutionMutations:
     async def control_execution(
         self, data: ExecutionControlInput, info
     ) -> ExecutionResult:
-        """Controls execution state (pause/resume/abort/skip)."""
         try:
             context: GraphQLContext = info.context
             state_store = context.state_store
@@ -178,7 +176,6 @@ class ExecutionMutations:
     async def submit_interactive_response(
         self, data: InteractiveResponseInput, info
     ) -> ExecutionResult:
-        """Handles interactive node responses from users."""
         try:
             context: GraphQLContext = info.context
             state_store = context.state_store
@@ -231,7 +228,6 @@ class ExecutionMutations:
 
 
 def _map_status(status: str) -> ExecutionStatus:
-    """Maps status string to ExecutionStatus enum."""
     status_map = {
         "pending": ExecutionStatus.PENDING,
         "running": ExecutionStatus.RUNNING,
@@ -244,7 +240,6 @@ def _map_status(status: str) -> ExecutionStatus:
 
 
 def _map_action_to_status(action: str, current_status: str) -> ExecutionStatus:
-    """Maps control action to execution status."""
     current = _map_status(current_status)
     action_map = {
         "pause": ExecutionStatus.PAUSED,

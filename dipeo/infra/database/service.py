@@ -9,9 +9,6 @@ from dipeo.utils.validation import ValidationDomainService, BusinessRuleViolatio
 
 
 class DBOperationsDomainService:
-    # Domain service handling database operations with business logic.
-    # Supports read, write, and append operations with validation.
-    # Handles different file service implementations.
 
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
@@ -28,7 +25,6 @@ class DBOperationsDomainService:
         self.validation_service.validate_db_operation_input(operation, value)
 
         if operation == "prompt":
-            # For prompt operation, return the db_name directly as the prompt content
             return {
                 "value": db_name,
                 "metadata": {
@@ -36,8 +32,6 @@ class DBOperationsDomainService:
                     "content_type": "text"
                 }
             }
-        
-        # For file-based operations, get the file path
         file_path = await self._get_db_file_path(db_name)
         
         if operation == "read":
@@ -95,18 +89,15 @@ class DBOperationsDomainService:
                             },
                         }
                     else:
-                        log.debug("SimpleFileService - file doesn't exist")
                         return {
                             "value": {},
                             "metadata": {"empty": True, "file_path": file_path},
                         }
             except (AttributeError, TypeError):
-                # Try to read the file first
                 try:
                     content = await self.file_service.read(file_path)
                     data = json.loads(content) if content else {}
                 except Exception:
-                    # File doesn't exist or can't be read
                     return {
                         "value": {},
                         "metadata": {"empty": True, "file_path": file_path},
@@ -135,7 +126,6 @@ class DBOperationsDomainService:
 
     async def _write_db(self, file_path: str, value: Any) -> Dict[str, Any]:
         try:
-            # The file service should handle directory creation
             json_data = self._ensure_json_serializable(value)
             content = json.dumps(json_data, indent=2)
 
@@ -209,5 +199,4 @@ class DBOperationsDomainService:
         elif hasattr(value, "__dict__"):  # Regular objects
             return value.__dict__
         else:
-            # Convert to string as fallback
             return str(value)

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class PersonMutations:
-    """Handles person/LLM agent CRUD operations."""
+    # Handles person/LLM agent CRUD operations
 
     @strawberry.mutation
     async def create_person(
@@ -33,7 +33,6 @@ class PersonMutations:
         person_input: CreatePersonInput,
         info: strawberry.Info[GraphQLContext],
     ) -> PersonResult:
-        """Creates a new person (LLM agent) in diagram."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_storage_service
@@ -93,7 +92,6 @@ class PersonMutations:
     async def update_person(
         self, person_input: UpdatePersonInput, info: strawberry.Info[GraphQLContext]
     ) -> PersonResult:
-        """Updates person configuration and properties."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_storage_service
@@ -250,7 +248,6 @@ class PersonMutations:
     async def delete_person(
         self, person_id: PersonID, info: strawberry.Info[GraphQLContext]
     ) -> DeleteResult:
-        """Removes person and updates referencing nodes."""
         try:
             context: GraphQLContext = info.context
             diagram_service = context.diagram_storage_service
@@ -301,7 +298,6 @@ class PersonMutations:
         model: str,
         label: str = "",
     ) -> PersonResult:
-        """Warms up model for faster first execution."""
         try:
             context: GraphQLContext = info.context
             llm_service = context.llm_service
@@ -354,7 +350,6 @@ class PersonMutations:
 
     @strawberry.mutation
     async def clear_conversations(self, info: strawberry.Info) -> DeleteResult:
-        """Clear all conversation history for all persons."""
         try:
             context: GraphQLContext = info.context
             conversation_service = context.conversation_service

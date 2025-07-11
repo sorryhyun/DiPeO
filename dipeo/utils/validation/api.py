@@ -1,4 +1,4 @@
-"""API validation utilities for integrations."""
+# API validation utilities for integrations
 
 from typing import Dict, Any, List, Optional
 import re
@@ -7,11 +7,11 @@ from urllib.parse import urlparse
 
 
 class APIValidator:
-    """Validates API configurations and requests."""
+    # Validates API configurations and requests
     
     @staticmethod
     def validate_url(url: str) -> List[str]:
-        """Validate URL format."""
+        # Validate URL format
         errors = []
         
         if not url:
@@ -43,7 +43,7 @@ class APIValidator:
     
     @staticmethod
     def validate_method(method: str) -> List[str]:
-        """Validate HTTP method."""
+        # Validate HTTP method
         errors = []
         valid_methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
         
@@ -56,7 +56,7 @@ class APIValidator:
     
     @staticmethod
     def validate_headers(headers: Dict[str, str]) -> List[str]:
-        """Validate HTTP headers."""
+        # Validate HTTP headers
         errors = []
         
         if not isinstance(headers, dict):
@@ -87,7 +87,7 @@ class APIValidator:
         content_type: Optional[str] = None,
         method: Optional[str] = None
     ) -> List[str]:
-        """Validate request body."""
+        # Validate request body
         errors = []
         
         # GET requests shouldn't have body
@@ -126,7 +126,7 @@ class APIValidator:
     
     @staticmethod
     def validate_auth(auth_config: Dict[str, Any]) -> List[str]:
-        """Validate authentication configuration."""
+        # Validate authentication configuration
         errors = []
         
         if not auth_config:
@@ -173,7 +173,7 @@ class APIValidator:
     
     @staticmethod
     def validate_api_config(config: Dict[str, Any]) -> List[str]:
-        """Validate complete API configuration."""
+        # Validate complete API configuration
         errors = []
         
         # Validate URL
@@ -239,7 +239,7 @@ class APIValidator:
     
     @staticmethod
     def sanitize_url(url: str, params: Optional[Dict[str, Any]] = None) -> str:
-        """Sanitize and build URL with parameters."""
+        # Sanitize and build URL with parameters
         # Remove trailing slashes
         url = url.rstrip('/')
         
