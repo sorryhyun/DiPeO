@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.models import (
     NodeOutput,
     PersonJobNodeData,
@@ -41,7 +41,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Execute person job with conversation memory"
     
-    def _resolve_service(self, context: ExecutionContextPort, services: dict[str, Any], service_name: str) -> Optional[Any]:
+    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Optional[Any]:
         service = context.get_service(service_name)
         if not service:
             service = services.get(service_name)
@@ -50,7 +50,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: PersonJobNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -116,13 +116,13 @@ class PersonJobNodeHandler(BaseNodeHandler):
                 executed_nodes=context.executed_nodes
             )
     
-    def _extract_node_id(self, context: ExecutionContextPort) -> str:
+    def _extract_node_id(self, context: UnifiedExecutionContext) -> str:
         return context.current_node_id
     
-    def _extract_execution_count(self, context: ExecutionContextPort) -> int:
+    def _extract_execution_count(self, context: UnifiedExecutionContext) -> int:
         return context.get_node_execution_count(context.current_node_id)
     
-    def _transform_result_to_output(self, result: Any, context: ExecutionContextPort) -> NodeOutput:
+    def _transform_result_to_output(self, result: Any, context: UnifiedExecutionContext) -> NodeOutput:
         output_value = {"default": result.content}
         
         # Add conversation if present

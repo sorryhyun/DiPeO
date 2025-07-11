@@ -1,4 +1,4 @@
-"""Iterator pattern implementation for diagram execution flow control."""
+# Iterator pattern implementation for diagram execution flow control
 
 import asyncio
 from dataclasses import dataclass
@@ -11,13 +11,12 @@ from dipeo.models import NodeExecutionStatus, NodeID
 
 @dataclass
 class ExecutionStep:
-    """Represents a single step in the execution flow."""
+    # Represents a single step in the execution flow
     nodes: List[ExecutableNode]  # Nodes to execute in this step
     is_parallel: bool = False  # Whether nodes can be executed in parallel
     
     @property
     def node_ids(self) -> List[NodeID]:
-        """Get the IDs of nodes in this step."""
         return [node.id for node in self.nodes]
 
 

@@ -1,4 +1,4 @@
-# Core execution types for DiPeO.
+# Core execution types for DiPeO
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Protocol, Type

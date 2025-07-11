@@ -1,8 +1,4 @@
-"""Infrastructure service for API operations.
-
-This service handles HTTP I/O operations and delegates business logic to APIDomainService.
-It follows the hexagonal architecture pattern where infrastructure depends on domain.
-"""
+"""Infrastructure service for API operations."""
 
 import asyncio
 import logging
@@ -17,34 +13,17 @@ log = logging.getLogger(__name__)
 
 
 class APIService:
-    """Infrastructure service that handles API operations.
-    
-    This service combines:
-    - HTTP client for I/O operations
-    - APIBusinessLogic for business logic
-    - File service for saving responses
-    
-    It implements the adapter pattern, providing concrete HTTP implementation
-    while using business logic utilities for decisions like retry strategies and validation.
-    """
 
     def __init__(
         self, 
         business_logic: APIBusinessLogic,
         file_service: FileServicePort | None = None
     ):
-        """Initialize API service.
-        
-        Args:
-            business_logic: Business logic utilities
-            file_service: Optional file service for saving responses
-        """
         self.business_logic = business_logic
         self.file_service = file_service
         self._session: aiohttp.ClientSession | None = None
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
-        """Ensure HTTP session exists."""
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
         return self._session

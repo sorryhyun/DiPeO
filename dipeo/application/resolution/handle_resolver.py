@@ -16,7 +16,6 @@ from dipeo.models.handle_utils import parse_handle_id_safe, ParsedHandle
 
 @dataclass
 class ResolvedConnection:
-    # A connection with handles resolved to node IDs.
     arrow_id: str
     source_node_id: NodeID
     target_node_id: NodeID
@@ -25,7 +24,6 @@ class ResolvedConnection:
 
 
 class HandleResolver:
-    # Resolves handle references in arrows to concrete node IDs.
     
     def __init__(self):
         self._errors: List[str] = []
@@ -35,15 +33,6 @@ class HandleResolver:
         arrows: List[DomainArrow], 
         nodes: List[DomainNode]
     ) -> Tuple[List[ResolvedConnection], List[str]]:
-        """Resolve all arrows to node connections.
-        
-        Args:
-            arrows: List of domain arrows with handle references
-            nodes: List of nodes in the diagram
-            
-        Returns:
-            Tuple of (resolved connections, validation errors)
-        """
         self._errors = []
         
         # Create node lookup for validation
@@ -63,15 +52,6 @@ class HandleResolver:
         arrow: DomainArrow, 
         valid_nodes: Set[NodeID]
     ) -> Optional[ResolvedConnection]:
-        """Resolve a single arrow to a connection.
-        
-        Args:
-            arrow: The arrow to resolve
-            valid_nodes: Set of valid node IDs for validation
-            
-        Returns:
-            Resolved connection or None if invalid
-        """
         # Parse source handle
         source_parsed = parse_handle_id_safe(arrow.source)
         if not source_parsed:
@@ -126,14 +106,6 @@ class HandleResolver:
         self, 
         resolved: List[ResolvedConnection]
     ) -> Dict[NodeID, List[ResolvedConnection]]:
-        """Build a map of node IDs to their outgoing connections.
-        
-        Args:
-            resolved: List of resolved connections
-            
-        Returns:
-            Dictionary mapping node IDs to their outgoing connections
-        """
         connection_map: Dict[NodeID, List[ResolvedConnection]] = {}
         
         for connection in resolved:
@@ -147,14 +119,6 @@ class HandleResolver:
         self, 
         resolved: List[ResolvedConnection]
     ) -> Dict[NodeID, List[ResolvedConnection]]:
-        """Build a map of node IDs to their incoming connections.
-        
-        Args:
-            resolved: List of resolved connections
-            
-        Returns:
-            Dictionary mapping node IDs to their incoming connections
-        """
         reverse_map: Dict[NodeID, List[ResolvedConnection]] = {}
         
         for connection in resolved:
@@ -169,15 +133,6 @@ class HandleResolver:
         nodes: List[DomainNode],
         resolved: List[ResolvedConnection]
     ) -> Set[NodeID]:
-        """Find nodes that have no connections.
-        
-        Args:
-            nodes: List of all nodes
-            resolved: List of resolved connections
-            
-        Returns:
-            Set of node IDs that have no connections
-        """
         connected_nodes = set()
         
         for connection in resolved:

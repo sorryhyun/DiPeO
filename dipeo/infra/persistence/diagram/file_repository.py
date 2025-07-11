@@ -14,32 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 class DiagramFileRepository:
-    """File-based repository for diagram storage."""
+    # File-based repository for diagram storage
 
     def __init__(self, domain_service: DiagramDomainService, base_dir: str = None):
-        """Initialize the repository.
-
-        Args:
-            domain_service: Domain service for diagram operations
-            base_dir: Base directory for file operations
-        """
+        # Initialize the repository
         self.domain_service = domain_service
         self.base_dir = Path(base_dir) if base_dir else Path(BASE_DIR)
         self.diagrams_dir = self.base_dir / "files" / "diagrams"
 
     async def initialize(self) -> None:
-        """Initialize the repository by ensuring directories exist."""
+        # Initialize the repository by ensuring directories exist
         self.diagrams_dir.mkdir(parents=True, exist_ok=True)
 
     async def find_by_id(self, diagram_id: str) -> Optional[str]:
-        """Find a diagram file by ID.
-
-        Args:
-            diagram_id: The diagram ID to search for
-
-        Returns:
-            Path to the diagram file relative to diagrams_dir, or None if not found
-        """
+        # Find a diagram file by ID
         # Construct possible paths for the diagram
         search_paths = self.domain_service.construct_search_paths(
             diagram_id,
@@ -64,14 +52,7 @@ class DiagramFileRepository:
         return None
 
     async def read_file(self, path: str) -> Dict[str, Any]:
-        """Read a diagram file.
-
-        Args:
-            path: Path relative to diagrams_dir
-
-        Returns:
-            Parsed diagram data
-        """
+        # Read a diagram file
         file_path = self.diagrams_dir / path
         if not file_path.exists():
             raise FileNotFoundError(f"Diagram file not found: {path}")
@@ -86,12 +67,7 @@ class DiagramFileRepository:
             raise ValueError(f"Unsupported file format: {file_path.suffix}")
 
     async def write_file(self, path: str, data: Dict[str, Any]) -> None:
-        """Write a diagram file.
-
-        Args:
-            path: Path relative to diagrams_dir
-            data: Diagram data to write
-        """
+        # Write a diagram file
         file_path = self.diagrams_dir / path
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -105,34 +81,19 @@ class DiagramFileRepository:
         file_path.write_text(content, encoding="utf-8")
 
     async def delete_file(self, path: str) -> None:
-        """Delete a diagram file.
-
-        Args:
-            path: Path relative to diagrams_dir
-        """
+        # Delete a diagram file
         file_path = self.diagrams_dir / path
         if not file_path.exists():
             raise FileNotFoundError(f"Diagram file not found: {path}")
         file_path.unlink()
 
     async def exists(self, path: str) -> bool:
-        """Check if a diagram file exists.
-
-        Args:
-            path: Path relative to diagrams_dir
-
-        Returns:
-            True if file exists, False otherwise
-        """
+        # Check if a diagram file exists
         file_path = self.diagrams_dir / path
         return file_path.exists()
 
     async def list_files(self) -> List[Dict[str, Any]]:
-        """List all diagram files.
-
-        Returns:
-            List of file information dictionaries
-        """
+        # List all diagram files
         files = []
         allowed_extensions = [".yaml", ".yml", ".json"]
 
@@ -159,7 +120,7 @@ class DiagramFileRepository:
         return files
     
     def detect_format(self, content: str) -> DiagramFormat:
-        """Detect the format of diagram content."""
+        # Detect the format of diagram content
         content = content.strip()
         if content.startswith('{'):
             return DiagramFormat.JSON
@@ -171,7 +132,7 @@ class DiagramFileRepository:
         content: str,
         format: Optional[DiagramFormat] = None,
     ) -> DomainDiagram:
-        """Load a diagram from string content."""
+        # Load a diagram from string content
         if format is None:
             format = self.detect_format(content)
         
@@ -189,7 +150,7 @@ class DiagramFileRepository:
         file_path: str,
         format: Optional[DiagramFormat] = None,
     ) -> DomainDiagram:
-        """Load a diagram from a file path."""
+        # Load a diagram from a file path
         # Convert absolute path to relative if needed
         path = Path(file_path)
         if path.is_absolute():
@@ -206,7 +167,7 @@ class DiagramFileRepository:
         return DomainDiagram(**data)
     
     def list_diagrams(self, directory: Optional[str] = None) -> List[Dict[str, Any]]:
-        """List all diagrams synchronously."""
+        # List all diagrams synchronously
         # This is a sync wrapper around the async list_files method
         import asyncio
         try:
@@ -218,7 +179,7 @@ class DiagramFileRepository:
         return loop.run_until_complete(self.list_files())
     
     def save_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
-        """Save a diagram synchronously."""
+        # Save a diagram synchronously
         import asyncio
         try:
             loop = asyncio.get_event_loop()
@@ -231,7 +192,7 @@ class DiagramFileRepository:
     def create_diagram(
         self, name: str, diagram: Dict[str, Any], format: str = "json"
     ) -> str:
-        """Create a new diagram and return its path."""
+        # Create a new diagram and return its path
         # Generate filename
         extension = ".json" if format == "json" else ".yaml"
         filename = f"{name}{extension}"
@@ -247,11 +208,11 @@ class DiagramFileRepository:
         return path
     
     def update_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
-        """Update an existing diagram."""
+        # Update an existing diagram
         self.save_diagram(path, diagram)
     
     def delete_diagram(self, path: str) -> None:
-        """Delete a diagram synchronously."""
+        # Delete a diagram synchronously
         import asyncio
         try:
             loop = asyncio.get_event_loop()
@@ -264,7 +225,7 @@ class DiagramFileRepository:
     async def save_diagram_with_id(
         self, diagram_dict: Dict[str, Any], filename: str
     ) -> str:
-        """Save a diagram with an ID and return the path."""
+        # Save a diagram with an ID and return the path
         # Ensure the diagram has an ID
         if "id" not in diagram_dict:
             diagram_dict["id"] = filename.split(".")[0]
@@ -273,7 +234,7 @@ class DiagramFileRepository:
         return filename
     
     async def get_diagram(self, diagram_id: str) -> Optional[Dict[str, Any]]:
-        """Get a diagram by ID."""
+        # Get a diagram by ID
         path = await self.find_by_id(diagram_id)
         if path is None:
             return None

@@ -7,20 +7,6 @@ from .base import BaseLLMAdapter
 def create_adapter(
     provider: str, model_name: str, api_key: str, base_url: str | None = None
 ) -> BaseLLMAdapter:
-    """Factory function to create LLM adapters based on provider.
-
-    Args:
-        provider: The LLM provider name ('anthropic', 'openai', 'google', 'xai')
-        model_name: The specific model to use
-        api_key: API key for the provider
-        base_url: Optional custom base URL for the API
-
-    Returns:
-        An instance of the appropriate adapter
-
-    Raises:
-        ValueError: If the provider is not supported
-    """
     provider = provider.lower()
 
     if provider in ["anthropic", "claude"]:

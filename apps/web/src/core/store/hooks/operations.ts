@@ -1,7 +1,4 @@
-/**
- * Operation hooks for store mutations/actions
- * These hooks provide functions to modify store state
- */
+// Operation hooks for store mutations and actions
 
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../unifiedStore';

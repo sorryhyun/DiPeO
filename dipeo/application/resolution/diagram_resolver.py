@@ -16,39 +16,23 @@ log = logging.getLogger(__name__)
 
 
 class ResolutionError(Exception):
-    # Raised when diagram resolution fails.
     def __init__(self, message: str, errors: List[str]):
         self.errors = errors
         super().__init__(message)
 
 
 class DiagramResolver:
-    # Transforms DomainDiagram data structure into ExecutableDiagram domain object.
-    3. Enriches nodes with runtime configuration
-    4. Calculates and validates execution order
-    5. Performs comprehensive validation
+    """Transforms DomainDiagram data structure into ExecutableDiagram domain object.
+    Enriches nodes with runtime configuration, calculates execution order, and validates.
     """
     
     def __init__(self):
-        """Initialize the DiagramResolver with its components."""
         self.handle_resolver = HandleResolver()
         self.arrow_transformer = ArrowTransformer()
         self.order_calculator = ExecutionOrderCalculator()
         self._validation_issues: List[ValidationIssue] = []
     
     async def resolve(self, domain_diagram: DomainDiagram, api_keys: Optional[Dict[str, str]] = None) -> ExecutableDiagram:
-        """Transform DomainDiagram into ExecutableDiagram.
-        
-        Args:
-            domain_diagram: Raw diagram data structure
-            api_keys: Optional API keys needed for execution
-            
-        Returns:
-            Fully resolved executable diagram
-            
-        Raises:
-            ResolutionError: If resolution fails
-        """
         log.info(f"Starting diagram resolution for {len(domain_diagram.nodes)} nodes")
         
         # Clear previous validation issues
@@ -155,11 +139,6 @@ class DiagramResolver:
             raise ResolutionError(f"Diagram resolution failed: {str(e)}", [str(e)])
     
     def _validate_input_diagram(self, diagram: DomainDiagram) -> None:
-        """Validate the input diagram structure.
-        
-        Args:
-            diagram: The domain diagram to validate
-        """
         # Check for empty diagram
         if not diagram.nodes:
             self._validation_issues.append(ValidationIssue(
@@ -197,14 +176,6 @@ class DiagramResolver:
         self, 
         domain_nodes: List[DomainNode]
     ) -> List[ExecutableNode]:
-        """Transform domain nodes into executable nodes.
-        
-        Args:
-            domain_nodes: List of domain nodes
-            
-        Returns:
-            List of executable nodes with runtime configuration
-        """
         executable_nodes = []
         
         for node in domain_nodes:
@@ -224,11 +195,6 @@ class DiagramResolver:
         return executable_nodes
     
     def _validate_node_config(self, node: DomainNode) -> None:
-        """Validate node-specific configuration.
-        
-        Args:
-            node: The node to validate
-        """
         if node.type == NodeType.person_job:
             issues = ValidationRules.validate_person_node(node.data or {})
             for issue in issues:
@@ -242,20 +208,10 @@ class DiagramResolver:
             self._validation_issues.extend(issues)
     
     def _validate_execution_groups(self, groups: List[Any]) -> None:
-        """Validate execution groups.
-        
-        Args:
-            groups: List of execution groups
-        """
         issues = ValidationRules.validate_execution_groups(groups)
         self._validation_issues.extend(issues)
     
     def _validate_executable_diagram(self, diagram: ExecutableDiagram) -> None:
-        """Perform final validation on the executable diagram.
-        
-        Args:
-            diagram: The executable diagram to validate
-        """
         # Use built-in validation
         diagram_errors = diagram.validate()
         for error in diagram_errors:
@@ -280,11 +236,6 @@ class DiagramResolver:
             self._validation_issues.extend(conn_issues)
     
     def get_validation_report(self) -> Dict[str, Any]:
-        """Get a detailed validation report.
-        
-        Returns:
-            Dictionary with validation statistics and issues
-        """
         errors = [i for i in self._validation_issues if i.severity == ValidationSeverity.ERROR]
         warnings = [i for i in self._validation_issues if i.severity == ValidationSeverity.WARNING]
         info = [i for i in self._validation_issues if i.severity == ValidationSeverity.INFO]
@@ -309,14 +260,12 @@ class DiagramResolver:
         }
     
     def _group_issues_by_category(self) -> Dict[str, int]:
-        """Group validation issues by category."""
         categories: Dict[str, int] = {}
         for issue in self._validation_issues:
             categories[issue.category] = categories.get(issue.category, 0) + 1
         return categories
     
     def _group_issues_by_node(self) -> Dict[str, int]:
-        """Group validation issues by node ID."""
         nodes: Dict[str, int] = {}
         for issue in self._validation_issues:
             if issue.node_id:
@@ -325,7 +274,6 @@ class DiagramResolver:
 
 
 class ExecutableNodeImpl:
-    """Implementation of ExecutableNode protocol."""
     
     def __init__(
         self,
@@ -340,7 +288,6 @@ class ExecutableNodeImpl:
         self.data = data
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
         return {
             "id": self.id,
             "type": self.type.value,

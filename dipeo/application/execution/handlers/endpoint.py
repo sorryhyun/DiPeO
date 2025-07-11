@@ -2,7 +2,7 @@
 from typing import Any
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import EndpointNodeData, NodeOutput
 from dipeo.utils.arrow import unwrap_inputs
@@ -35,7 +35,7 @@ class EndpointNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: EndpointNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:

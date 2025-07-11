@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ConnectionHealth:
-    """Track connection health metrics"""
     last_successful_send: float
     failed_attempts: int = 0
     total_messages: int = 0
@@ -25,8 +24,8 @@ class MessageRouter:
         self._initialized = False
         self.connection_health: dict[str, ConnectionHealth] = {}
         self._message_queue_size: dict[str, int] = {}
-        self._queue_lock = threading.Lock()  # Thread-safe queue operations
-        self.max_queue_size = 100  # Backpressure threshold
+        self._queue_lock = threading.Lock()
+        self.max_queue_size = 100
 
     async def initialize(self):
         if self._initialized:

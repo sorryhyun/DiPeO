@@ -1,4 +1,4 @@
-# Handler registry, base classes, and factory for DiPeO.
+# Handler registry, base classes, and factory for DiPeO
 
 from abc import ABC, abstractmethod
 import inspect
@@ -96,25 +96,19 @@ class HandlerRegistry:
         self._handlers[node_type] = node_def
 
     def create_handler(self, node_type: str) -> BaseNodeHandler:
-        # Create a handler instance with injected services.
         handler_class = self._handler_classes.get(node_type)
         if not handler_class:
             raise ValueError(f"No handler class registered for node type: {node_type}")
 
-        # Check if the handler has been updated to use constructor injection
         sig = inspect.signature(handler_class.__init__)
         params = list(sig.parameters.keys())
 
-        # If it only has 'self', it's the old style
         if len(params) == 1 and params[0] == 'self':
-            # Old style handler - create without services
             return handler_class()
         else:
-            # New style handler - inject services
             return self._create_handler_with_services(handler_class)
 
     def _create_handler_with_services(self, handler_class: Type[BaseNodeHandler]) -> BaseNodeHandler:
-        # Create a handler instance with services based on its constructor signature.
         if not self._service_registry:
             raise RuntimeError("Service registry not set. Call set_service_registry first.")
 
@@ -125,10 +119,8 @@ class HandlerRegistry:
             if param_name == 'self':
                 continue
 
-            # Try to get the service from the registry
             service_name = param_name
 
-            # Handle special mappings
             if service_name == 'template_service':
                 service_name = 'template'
             elif service_name == 'conversation_service':
@@ -138,11 +130,8 @@ class HandlerRegistry:
                 service = self._service_registry.get_service(service_name)
                 kwargs[param_name] = service
             except:
-                # If service not found and parameter has no default, this will fail
                 if param.default is inspect.Parameter.empty:
-                    # Try alternative names
                     if service_name.endswith('_service'):
-                        # Try without _service suffix
                         alt_name = service_name[:-8]
                         try:
                             service = self._service_registry.get_service(alt_name)
@@ -197,11 +186,9 @@ class HandlerFactory:
         _global_registry.set_service_registry(service_registry)
 
     def register_handler_class(self, handler_class: Type[BaseNodeHandler]) -> None:
-        # Register a handler class for later instantiation.
         _global_registry.register_class(handler_class)
 
     def create_handler(self, node_type: str) -> BaseNodeHandler:
-        # Create a handler instance with injected services.
         return _global_registry.create_handler(node_type)
 
 

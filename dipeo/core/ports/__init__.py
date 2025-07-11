@@ -3,21 +3,15 @@
 These interfaces define the contracts that infrastructure implementations must follow.
 They enable the core and domain layers to depend on abstractions rather than concrete implementations.
 
-ARCHITECTURAL NOTE - File Relocations (2025-07-09):
-Several files were moved from this directory to better align with hexagonal architecture:
+ARCHITECTURAL NOTE - Historical Context:
+This directory originally contained protocol definitions that were later reorganized:
+- Flow control and node execution protocols were temporarily moved to core/domain/services/ 
+  but have since been removed in favor of direct concrete implementations in the application layer
+- diagram_loader.py was moved to dipeo/core/application/services/
+- execution_context.py was moved to dipeo/core/application/context/
 
-Moved to dipeo/core/domain/services/:
-- flow_control.py → Core domain logic for execution flow decisions
-- node_execution.py → Core domain logic for node execution
-
-Moved to dipeo/core/application/services/:
-- diagram_loader.py → Application service for diagram loading (uses FileServicePort)
-
-Moved to dipeo/core/application/context/:
-- execution_context.py → Application-level context object
-
-These were relocated because they represent internal application/domain logic,
-not interfaces to external infrastructure (which is what true hexagonal ports are for).
+The current architecture uses concrete implementations directly rather than abstract protocols,
+following the principle noted in CLAUDE.md about direct implementation usage.
 """
 
 from .apikey_port import APIKeyPort

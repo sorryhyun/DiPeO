@@ -21,15 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 class ModularFileService(BaseService, FileServicePort):
-    """Modular file service that composes focused components.
-    
-    This service uses:
-    - FormatHandlerRegistry for format-specific operations
-    - FileValidator for validation logic
-    - AsyncFileAdapter for async/sync bridging
-    
-    Implements FileServicePort for file operations compatibility.
-    """
     
     def __init__(
         self,
@@ -38,21 +29,11 @@ class ModularFileService(BaseService, FileServicePort):
         validator: Optional[FileValidator] = None,
         async_adapter: Optional[AsyncFileAdapter] = None,
     ):
-        """Initialize with optional component overrides.
-        
-        Args:
-            base_dir: Base directory for file operations
-            format_registry: Registry for format-specific handlers
-            validator: Validator for file operations
-            async_adapter: Adapter for async/sync operations
-        """
         super().__init__()
         
-        # Base directory setup
         self.base_dir = Path(base_dir) if base_dir else Path.cwd()
         self.base_dir.mkdir(parents=True, exist_ok=True)
         
-        # Component setup with defaults
         self.formats = format_registry or FormatHandlerRegistry()
         self.validator = validator or FileValidator()
         self.async_adapter = async_adapter or AsyncFileAdapter()

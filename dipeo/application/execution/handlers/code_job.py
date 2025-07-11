@@ -8,7 +8,7 @@ from typing import Any
 import warnings
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import CodeJobNodeData, NodeOutput
 from pydantic import BaseModel
@@ -48,7 +48,7 @@ class CodeJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: CodeJobNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -108,7 +108,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
             )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
-        # Replace template variables using the standard utility
         if "{{" in code and inputs:
             # Create a namespace with all inputs
             template_vars = {}
@@ -216,8 +215,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
             sys.stdout = old_stdout
 
     async def _execute_javascript(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
-
-        # Replace template variables
         if "{{" in code and inputs:
             template_vars = {}
             for key, value in inputs.items():
@@ -282,7 +279,6 @@ class CodeJobNodeHandler(BaseNodeHandler):
         return stdout.decode().strip()
 
     async def _execute_bash(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
-        # Replace template variables
         if "{{" in code and inputs:
             template_vars = {}
             for key, value in inputs.items():

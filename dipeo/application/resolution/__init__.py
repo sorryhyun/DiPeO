@@ -1,12 +1,5 @@
-"""
-Diagram resolution pipeline for transforming DomainDiagram to ExecutableDiagram.
-
-This module handles:
-- Handle resolution (handles → node IDs)
-- Arrow transformation (arrows → executable edges)
-- Execution order calculation
-- Validation of executable diagrams
-"""
+# Diagram resolution pipeline for transforming DomainDiagram to ExecutableDiagram.
+# Handles resolution, arrow transformation, execution order, and validation.
 
 from .diagram_resolver import DiagramResolver
 from .handle_resolver import HandleResolver

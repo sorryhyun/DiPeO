@@ -2,7 +2,7 @@
 from typing import Any
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import DBNodeData, NodeOutput
 from pydantic import BaseModel
@@ -34,7 +34,7 @@ class DBNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: DBNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:

@@ -1,10 +1,7 @@
 import type { StoreApi } from 'zustand';
 import type { UnifiedStore } from '../unifiedStore.types';
 
-/**
- * Subscribe to dataVersion changes and sync arrays
- * This avoids cross-slice violations by using the subscription mechanism
- */
+// Subscribe to dataVersion changes and sync arrays
 export function initializeArraySync(store: StoreApi<UnifiedStore>) {
   // Perform initial sync to ensure arrays are populated
   const initialState = store.getState();

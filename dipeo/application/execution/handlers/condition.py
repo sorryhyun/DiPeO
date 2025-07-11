@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.application import BaseNodeHandler, register_handler
 from dipeo.models import ConditionNodeData, NodeOutput
@@ -33,7 +33,7 @@ class ConditionNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Condition node: supports detect_max_iterations and custom expressions"
     
-    def _resolve_service(self, context: ExecutionContextPort, services: dict[str, Any], service_name: str) -> Any | None:
+    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Any | None:
         service = context.get_service(service_name)
         if not service:
             service = services.get(service_name)
@@ -42,7 +42,7 @@ class ConditionNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: ConditionNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -112,7 +112,7 @@ class ConditionNodeHandler(BaseNodeHandler):
             executed_nodes=context.executed_nodes
         )
     
-    def _extract_execution_states(self, context: ExecutionContextPort) -> dict[str, dict[str, Any]]:
+    def _extract_execution_states(self, context: UnifiedExecutionContext) -> dict[str, dict[str, Any]]:
         execution_states = {}
         
         if hasattr(context.execution_state, 'node_states'):
@@ -126,7 +126,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         
         return execution_states
     
-    def _extract_node_exec_counts(self, context: ExecutionContextPort) -> dict[str, int] | None:
+    def _extract_node_exec_counts(self, context: UnifiedExecutionContext) -> dict[str, int] | None:
         # Try to get exec counts from UnifiedExecutionContext
         if hasattr(context, '_exec_counts'):
             return context._exec_counts
@@ -141,7 +141,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         self, 
         evaluation_service: Any, 
         diagram: Any, 
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         props: ConditionNodeData
     ) -> bool:
         from dipeo.models import NodeType

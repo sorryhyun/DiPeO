@@ -9,7 +9,7 @@ from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage, D
 if TYPE_CHECKING:
     from dipeo.application.execution.context import UnifiedExecutionContext
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.application.execution.protocols import ExecutionObserver
+    from dipeo.application.protocols import ExecutionObserver
     from dipeo.models import ExecutionState
 
     from .execution_controller import ExecutionController

@@ -10,7 +10,7 @@ from dipeo.models import (
     NodeState,
     TokenUsage,
 )
-from ..protocols import ExecutionObserver
+from dipeo.application.protocols import ExecutionObserver
 
 
 class StateStoreObserver(ExecutionObserver):

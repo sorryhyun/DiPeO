@@ -14,8 +14,6 @@ class NotionAPIService(BaseService, NotionServicePort):
         self._clients: dict[str, Client] = {}
 
     async def initialize(self) -> None:
-        """Initialize the Notion service."""
-        # No initialization needed for Notion service
         pass
 
     def _get_client(self, api_key: str) -> Client:
@@ -24,7 +22,6 @@ class NotionAPIService(BaseService, NotionServicePort):
         return self._clients[api_key]
 
     async def retrieve_page(self, page_id: str, api_key: str) -> dict[str, Any]:
-        """Retrieve page metadata"""
         try:
             client = self._get_client(api_key)
             return client.pages.retrieve(page_id=page_id)
@@ -33,7 +30,6 @@ class NotionAPIService(BaseService, NotionServicePort):
             raise ExecutionError(f"Notion API error: {e!s}")
 
     async def list_blocks(self, page_id: str, api_key: str) -> list[dict[str, Any]]:
-        """List all blocks in a page"""
         try:
             client = self._get_client(api_key)
             all_blocks = []
@@ -56,7 +52,6 @@ class NotionAPIService(BaseService, NotionServicePort):
     async def append_blocks(
         self, page_id: str, blocks: list[dict[str, Any]], api_key: str
     ) -> dict[str, Any]:
-        """Append blocks to a page"""
         try:
             client = self._get_client(api_key)
             return client.blocks.children.append(block_id=page_id, children=blocks)
@@ -67,7 +62,6 @@ class NotionAPIService(BaseService, NotionServicePort):
     async def update_block(
         self, block_id: str, block_data: dict[str, Any], api_key: str
     ) -> dict[str, Any]:
-        """Update a block"""
         try:
             client = self._get_client(api_key)
             return client.blocks.update(block_id=block_id, **block_data)
@@ -82,7 +76,6 @@ class NotionAPIService(BaseService, NotionServicePort):
         sorts: list | None = None,
         api_key: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Query a Notion database"""
         try:
             client = self._get_client(api_key)
             all_results = []
@@ -116,7 +109,6 @@ class NotionAPIService(BaseService, NotionServicePort):
         children: list[dict] | None = None,
         api_key: str | None = None,
     ) -> dict[str, Any]:
-        """Create a new page in Notion"""
         try:
             client = self._get_client(api_key)
             page_data = {"parent": parent, "properties": properties}
@@ -129,7 +121,6 @@ class NotionAPIService(BaseService, NotionServicePort):
             raise ExecutionError(f"Notion API error: {e!s}")
 
     def extract_text_from_blocks(self, blocks: list[dict[str, Any]]) -> str:
-        """Extract plain text from Notion blocks"""
         text_parts = []
 
         for block in blocks:
@@ -156,7 +147,6 @@ class NotionAPIService(BaseService, NotionServicePort):
     def create_text_block(
         self, text: str, block_type: str = "paragraph"
     ) -> dict[str, Any]:
-        """Create a text block for Notion"""
         return {
             "object": "block",
             "type": block_type,

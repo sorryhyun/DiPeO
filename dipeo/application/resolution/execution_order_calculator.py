@@ -10,20 +10,17 @@ from dipeo.core.static import ExecutableEdge
 
 @dataclass
 class ExecutionGroup:
-    # A group of nodes that can be executed in parallel.
     level: int
     nodes: List[NodeID]
 
 
 class CycleDetectedError(Exception):
-    # Raised when a cycle is detected in the diagram.
     def __init__(self, cycle_nodes: Set[NodeID]):
         self.cycle_nodes = cycle_nodes
         super().__init__(f"Cycle detected involving nodes: {cycle_nodes}")
 
 
 class ExecutionOrderCalculator:
-    # Calculates the execution order for diagram nodes using topological sort.
     
     def __init__(self):
         self._errors: List[str] = []
@@ -34,15 +31,6 @@ class ExecutionOrderCalculator:
         nodes: List[DomainNode],
         edges: List[ExecutableEdge]
     ) -> Tuple[List[NodeID], List[ExecutionGroup], List[str]]:
-        """Calculate the execution order for nodes.
-        
-        Args:
-            nodes: List of nodes in the diagram
-            edges: List of edges representing dependencies
-            
-        Returns:
-            Tuple of (execution order, parallel groups, errors)
-        """
         self._errors = []
         self._warnings = []
         
@@ -69,11 +57,6 @@ class ExecutionOrderCalculator:
         return order, groups, self._errors
     
     def get_warnings(self) -> List[str]:
-        """Get any warnings generated during order calculation.
-        
-        Returns:
-            List of warning messages
-        """
         return self._warnings
     
     def _build_graph(
@@ -81,15 +64,6 @@ class ExecutionOrderCalculator:
         nodes: List[DomainNode],
         edges: List[ExecutableEdge]
     ) -> Tuple[Dict[NodeID, List[NodeID]], Dict[NodeID, int]]:
-        """Build adjacency list and in-degree map from edges.
-        
-        Args:
-            nodes: List of nodes
-            edges: List of edges
-            
-        Returns:
-            Tuple of (adjacency list, in-degree map)
-        """
         graph: Dict[NodeID, List[NodeID]] = {node.id: [] for node in nodes}
         in_degree: Dict[NodeID, int] = {node.id: 0 for node in nodes}
         
@@ -106,15 +80,6 @@ class ExecutionOrderCalculator:
         graph: Dict[NodeID, List[NodeID]],
         node_ids: Set[NodeID]
     ) -> None:
-        """Detect cycles in the graph using DFS.
-        
-        Args:
-            graph: Adjacency list representation
-            node_ids: Set of all node IDs
-            
-        Raises:
-            CycleDetectedError: If a cycle is found
-        """
         WHITE = 0  # Not visited
         GRAY = 1   # Currently visiting
         BLACK = 2  # Visited
@@ -123,7 +88,6 @@ class ExecutionOrderCalculator:
         cycle_nodes: Set[NodeID] = set()
         
         def dfs(node: NodeID, path: List[NodeID]) -> bool:
-            """DFS helper to detect cycles."""
             colors[node] = GRAY
             path.append(node)
             
@@ -156,19 +120,6 @@ class ExecutionOrderCalculator:
         graph: Dict[NodeID, List[NodeID]],
         in_degree: Dict[NodeID, int]
     ) -> Tuple[List[NodeID], List[ExecutionGroup]]:
-        """Perform topological sort tracking execution levels.
-        
-        For diagrams with cycles (e.g., iterative debates), this uses a modified
-        algorithm that includes all nodes in the execution order.
-        
-        Args:
-            nodes: List of nodes
-            graph: Adjacency list
-            in_degree: In-degree map
-            
-        Returns:
-            Tuple of (execution order, parallel groups)
-        """
         # Make a copy of in_degree to avoid modifying the original
         in_degree_copy = in_degree.copy()
         
@@ -245,15 +196,6 @@ class ExecutionOrderCalculator:
         groups: List[ExecutionGroup],
         nodes: Dict[NodeID, DomainNode]
     ) -> List[ExecutionGroup]:
-        """Optimize execution groups for maximum parallelism.
-        
-        Args:
-            groups: Initial execution groups
-            nodes: Node lookup dictionary
-            
-        Returns:
-            Optimized execution groups
-        """
         optimized_groups = []
         
         for group in groups:
@@ -282,14 +224,6 @@ class ExecutionOrderCalculator:
         return optimized_groups
     
     def _is_heavy_node(self, node: DomainNode) -> bool:
-        """Determine if a node is computationally heavy.
-        
-        Args:
-            node: The node to check
-            
-        Returns:
-            True if the node is likely to be slow
-        """
         # Person nodes (LLM calls) are typically slow
         if node.type == NodeType.person_job:
             return True

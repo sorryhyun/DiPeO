@@ -12,7 +12,7 @@ from dipeo.core.dynamic.execution_context import ExecutionContext
 
 if TYPE_CHECKING:
     from dipeo.container import Container
-    from dipeo.application.execution.protocols.service_registry import ServiceRegistryProtocol
+    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 
 
 class UnifiedExecutionContext(ExecutionContext):
@@ -25,7 +25,7 @@ class UnifiedExecutionContext(ExecutionContext):
     def __init__(
         self,
         execution_state: ExecutionState,
-        service_registry: Optional["ServiceRegistryProtocol"] = None,
+        service_registry: Optional["UnifiedServiceRegistry"] = None,
         container: Optional["Container"] = None,
         current_node_id: str = "",
         executed_nodes: Optional[List[str]] = None,
@@ -46,7 +46,7 @@ class UnifiedExecutionContext(ExecutionContext):
         """
         self._execution_id = execution_state.id
         self._execution_state = execution_state  # Store for compatibility
-        self._service_registry: Optional["ServiceRegistryProtocol"] = service_registry
+        self._service_registry: Optional["UnifiedServiceRegistry"] = service_registry
         self._container = container
         self._current_node: Optional[NodeID] = NodeID(current_node_id) if current_node_id else None
         self._executed_nodes = executed_nodes or []

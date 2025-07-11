@@ -1,4 +1,4 @@
-# Domain service for evaluating conditions.
+# Condition evaluation service
 
 import ast
 import operator
@@ -9,10 +9,8 @@ from dipeo.models import DomainDiagram, NodeType
 
 
 class ConditionEvaluator:
-    # Service for evaluating conditions in diagram execution.
     
     def __init__(self):
-        # Initialize with TemplateProcessor.
         self._processor = TemplateProcessor()
     
     def evaluate_max_iterations(
@@ -21,7 +19,6 @@ class ConditionEvaluator:
         execution_states: dict[str, dict[str, Any]],
         node_exec_counts: dict[str, int] | None = None,
     ) -> bool:
-        # Evaluate if all upstream person_job nodes reached their max_iterations.
         import logging
         logger = logging.getLogger(__name__)
         
@@ -35,20 +32,15 @@ class ConditionEvaluator:
         
         for node in diagram.nodes:
             if node.type == NodeType.person_job.value:
-                # Get execution count
                 exec_count = 0
                 
-                # Check if node has been executed
                 node_state = execution_states.get(node.id)
                 if node_state and node_state.get('status', 'pending') != 'pending':
-                    # Node has been executed at least once
                     exec_count = 1
                     
-                    # Get actual count from tracking service if available
                     if node_exec_counts and node.id in node_exec_counts:
                         exec_count = node_exec_counts[node.id]
                 
-                # Only check nodes that have executed at least once
                 if exec_count > 0:
                     found_person_job = True
                     max_iter = int((node.data or {}).get("max_iteration", 1))
@@ -59,7 +51,6 @@ class ConditionEvaluator:
         
         logger.debug(f"Max iterations result: found_person_job={found_person_job}, all_reached_max={all_reached_max}")
         
-        # Return true only if we found at least one person_job AND all have reached max
         return found_person_job and all_reached_max
     
     def check_nodes_executed(
@@ -67,17 +58,14 @@ class ConditionEvaluator:
         target_node_ids: list[str],
         node_outputs: dict[str, Any],
     ) -> bool:
-        # Check if specific nodes have been executed using NodeOutput data.
         if not target_node_ids or not node_outputs:
             return False
             
-        # Get the most recent output with executed_nodes info
         all_executed = set()
         for output in node_outputs.values():
             if hasattr(output, 'executed_nodes') and output.executed_nodes:
                 all_executed.update(output.executed_nodes)
         
-        # Check if all target nodes have been executed
         return all(node_id in all_executed for node_id in target_node_ids)
     
     def evaluate_max_iterations_from_outputs(
@@ -86,23 +74,19 @@ class ConditionEvaluator:
         node_outputs: dict[str, Any],
         exec_counts: dict[str, int],
     ) -> bool:
-        # Evaluate max iterations using NodeOutput data directly.
         if not diagram or not node_outputs:
             return False
         
-        # Collect all executed nodes from outputs
         all_executed = set()
         for output in node_outputs.values():
             if hasattr(output, 'executed_nodes') and output.executed_nodes:
                 all_executed.update(output.executed_nodes)
         
-        # Find person_job nodes and check their status
         found_person_job = False
         all_reached_max = True
         
         for node in diagram.nodes:
             if node.type == NodeType.person_job.value and node.id in all_executed:
-                # Only check nodes that have been executed
                 found_person_job = True
                 exec_count = exec_counts.get(node.id, 0)
                 max_iter = int((node.data or {}).get("max_iteration", 1))
@@ -118,18 +102,14 @@ class ConditionEvaluator:
         expression: str,
         context_values: dict[str, Any],
     ) -> bool:
-        # Evaluate a custom boolean expression with variable substitution.
         if not expression:
             return False
         
-        # Substitute variables in the expression using new processor
         substituted_expr = self._processor.process_simple(expression, context_values)
         
-        # Evaluate the expression
         return self.safe_evaluate_expression(substituted_expr)
     
     def safe_evaluate_expression(self, expression: str) -> Any:
-        # Safely evaluate a boolean expression.
         # Define allowed operators
         allowed_operators = {
             ast.Eq: operator.eq,
@@ -145,13 +125,11 @@ class ConditionEvaluator:
             ast.NotIn: lambda x, y: x not in y,
         }
         
-        # Parse the expression
         try:
             tree = ast.parse(expression, mode='eval')
         except SyntaxError:
             return False
         
-        # Evaluate the expression tree
         def eval_node(node):
             if isinstance(node, ast.Expression):
                 return eval_node(node.body)

@@ -3,36 +3,21 @@
 from typing import Any, Dict, Optional, Union
 
 from dipeo.core.ports import FileServicePort
-from dipeo.core.application.services.diagram_loader import DiagramLoaderPort
 from dipeo.diagram import BackendDiagram, backend_to_graphql
 from dipeo.diagram.unified_converter import UnifiedDiagramConverter
 from dipeo.models import DiagramFormat, DomainDiagram
 
 
 class DiagramLoaderAdapter:
-    """Infrastructure adapter for diagram loading and format detection."""
+    # Infrastructure adapter for diagram loading and format detection
     
     def __init__(self, file_service: FileServicePort):
-        """Initialize the adapter.
-        
-        Args:
-            file_service: File service for reading diagram files
-        """
+        # Initialize the adapter
         self.file_service = file_service
         self.converter = UnifiedDiagramConverter()
     
     def detect_format(self, content: str) -> DiagramFormat:
-        """Detect the format of diagram content.
-        
-        Args:
-            content: Raw content to analyze
-            
-        Returns:
-            Detected diagram format
-            
-        Raises:
-            ValueError: If format cannot be detected
-        """
+        # Detect the format of diagram content
         content = content.strip()
         
         # Try JSON detection
@@ -73,18 +58,7 @@ class DiagramLoaderAdapter:
         content: str,
         format: Optional[DiagramFormat] = None,
     ) -> DomainDiagram:
-        """Load a diagram from content.
-        
-        Args:
-            content: Raw content to parse
-            format: Optional format hint. If not provided, will auto-detect
-            
-        Returns:
-            Parsed diagram object
-            
-        Raises:
-            ValueError: If diagram cannot be parsed
-        """
+        # Load a diagram from content
         if format is None:
             format = self.detect_format(content)
         
@@ -96,19 +70,7 @@ class DiagramLoaderAdapter:
         file_path: str,
         format: Optional[DiagramFormat] = None,
     ) -> DomainDiagram:
-        """Load a diagram from a file.
-        
-        Args:
-            file_path: Path to the diagram file
-            format: Optional format hint. If not provided, will auto-detect
-            
-        Returns:
-            Parsed diagram object
-            
-        Raises:
-            FileNotFoundError: If file doesn't exist
-            ValueError: If diagram cannot be parsed
-        """
+        # Load a diagram from a file
         # Read file using file service
         result = self.file_service.read(file_path)
         content = result.get("content", "")
@@ -122,20 +84,7 @@ class DiagramLoaderAdapter:
         self,
         diagram_ref: Union[str, Dict[str, Any], DomainDiagram],
     ) -> DomainDiagram:
-        """Prepare a diagram from various input types.
-        
-        Args:
-            diagram_ref: Can be:
-                - A file path (string)
-                - A diagram dict
-                - A Diagram object
-                
-        Returns:
-            Prepared diagram object
-            
-        Raises:
-            ValueError: If diagram cannot be prepared
-        """
+        # Prepare a diagram from various input types
         import yaml
         
         # If it's already a DomainDiagram object, validate and return

@@ -21,7 +21,6 @@ from .factory import create_adapter
 
 
 class LLMInfraService(BaseService, LLMServicePort):
-    """Service for handling LLM interactions that implements the LLMServicePort protocol."""
 
     def __init__(self, api_key_service: APIKeyService):
         super().__init__()
@@ -29,12 +28,9 @@ class LLMInfraService(BaseService, LLMServicePort):
         self._adapter_pool: dict[str, dict[str, Any]] = {}
 
     async def initialize(self) -> None:
-        """Initialize the LLM service."""
-        # No specific initialization needed for now
         pass
 
     def _get_api_key(self, api_key_id: str) -> str:
-        """Get raw API key from service."""
         try:
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             return api_key_data["key"]
@@ -44,7 +40,6 @@ class LLMInfraService(BaseService, LLMServicePort):
             )
 
     def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
-        """Get the appropriate LLM adapter with connection pooling and TTL."""
         provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
@@ -77,29 +72,22 @@ class LLMInfraService(BaseService, LLMServicePort):
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
-        """Internal method for LLM calls with retry logic."""
         return client.chat(messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
         self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs
     ) -> ChatResult:
-        """Make a call to the specified LLM service with retry logic."""
         try:
-            # Guard against None messages
             if messages is None:
                 messages = []
             
-            # Infer service from model name
             service = LLMInfraService._infer_service_from_model(model)
             adapter = self._get_client(service, model, api_key_id)
 
-            # Messages should already be in the correct format
             messages_list = messages
 
-            # Pass all kwargs to the adapter
             adapter_kwargs = {**kwargs}
 
-            # Domain ChatResult already has tokenUsage, just return it
             return await self._call_llm_with_retry(
                 adapter, messages_list, **adapter_kwargs
             )
@@ -109,45 +97,35 @@ class LLMInfraService(BaseService, LLMServicePort):
 
     @staticmethod
     def _infer_service_from_model(model: str) -> str:
-        """Infer the LLM service from the model name."""
         model_lower = model.lower()
         
-        # OpenAI models
         if any(x in model_lower for x in ["gpt", "o1", "o3", "dall-e", "whisper", "embedding"]):
             return "openai"
-        # Claude models
         elif any(x in model_lower for x in ["claude", "haiku", "sonnet", "opus"]):
             return "anthropic"
-        # Gemini models
         elif any(x in model_lower for x in ["gemini", "bison", "palm"]):
             return "google"
         else:
-            # Default to OpenAI for unknown models
             return "openai"
 
     async def get_available_models(self, api_key_id: str) -> list[str]:
-        """Get list of available models for the given API key."""
         try:
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             service = api_key_data["service"]
             
             if service == "openai":
-                # Dynamically fetch models from OpenAI API
                 try:
                     from openai import OpenAI
                     raw_key = self._get_api_key(api_key_id)
                     client = OpenAI(api_key=raw_key)
                     models_response = client.models.list()
                     
-                    # Filter for chat models and known good models
                     chat_models = []
                     for model in models_response.data:
                         model_id = model.id
-                        # Include GPT, o1, o3, and other chat-capable models
                         if any(prefix in model_id for prefix in ["gpt-", "o1", "o3", "chatgpt"]):
                             chat_models.append(model_id)
                     
-                    # Always include gpt-4.1-nano as it's a special model
                     if "gpt-4.1-nano" not in chat_models:
                         chat_models.append("gpt-4.1-nano")
                     

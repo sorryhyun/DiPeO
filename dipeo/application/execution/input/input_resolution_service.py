@@ -1,4 +1,4 @@
-# Domain service for input resolution logic.
+# Domain service for input resolution logic
 
 from typing import Dict, Any, Optional
 import logging
@@ -8,7 +8,6 @@ from typing import Protocol
 
 # Define protocol locally to avoid circular imports
 class ArrowProcessorProtocol(Protocol):
-    # Protocol for arrow processing to avoid circular imports.
     
     def process_arrow_delivery(
         self,
@@ -17,17 +16,14 @@ class ArrowProcessorProtocol(Protocol):
         target_node_type: str,
         memory_config: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        # Process arrow delivery with transformations.
         ...
 
 log = logging.getLogger(__name__)
 
 
 class InputResolutionService:
-    # Service for managing input resolution business logic.
     
     def __init__(self, arrow_processor: Optional[ArrowProcessorProtocol] = None):
-        # Initialize with optional arrow processor.
         self.arrow_processor = arrow_processor
     
     def should_process_arrow(

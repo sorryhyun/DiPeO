@@ -2,7 +2,7 @@
 from typing import Any
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import NodeOutput, NotionNodeData, NotionOperation
 from pydantic import BaseModel
@@ -35,7 +35,7 @@ class NotionNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: NotionNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:

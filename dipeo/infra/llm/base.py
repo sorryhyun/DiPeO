@@ -8,20 +8,8 @@ from dipeo.models import ToolConfig, TokenUsage
 
 
 class BaseLLMAdapter(ABC):
-    """Base class for LLM provider adapters.
-    
-    This abstract class defines the common interface and shared functionality
-    for all LLM provider adapters (OpenAI, Claude, Gemini, etc.).
-    """
     
     def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
-        """Initialize the adapter with model and API configuration.
-        
-        Args:
-            model_name: Name of the model to use
-            api_key: API key for authentication
-            base_url: Optional custom base URL for the API
-        """
         self.model_name = model_name
         self.api_key = api_key
         self.base_url = base_url
@@ -29,35 +17,20 @@ class BaseLLMAdapter(ABC):
 
     @abstractmethod
     def _initialize_client(self) -> Any:
-        """Initialize the provider-specific client."""
         raise NotImplementedError
 
     @abstractmethod
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        """Make API call and return ChatResult. Each adapter implements this."""
         raise NotImplementedError
 
     def chat(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        """Main chat method - delegates to _make_api_call.
-        
-        Args:
-            messages: List of message dictionaries with 'role' and 'content'
-            **kwargs: Additional provider-specific parameters
-            
-        Returns:
-            ChatResult with the completion response
-        """
-        # Guard against None messages
         if messages is None:
             messages = []
         
-        # Extract LLMRequestOptions if provided
         options = kwargs.get('options', None)
         if isinstance(options, LLMRequestOptions):
-            # Pass tools to the adapter if supported
             if options.tools and self.supports_tools():
                 kwargs['tools'] = options.tools
-            # Pass other options
             if options.temperature is not None:
                 kwargs['temperature'] = options.temperature
             if options.max_tokens is not None:
@@ -70,25 +43,17 @@ class BaseLLMAdapter(ABC):
         return self._make_api_call(messages, **kwargs)
     
     def supports_tools(self) -> bool:
-        """Check if this adapter supports tool usage."""
         return False
     
     def supports_response_api(self) -> bool:
-        """Check if this adapter supports the new response API."""
         return False
     
     def _extract_system_and_messages(
         self, messages: list[dict[str, str]]
     ) -> tuple[str, list[dict[str, str]]]:
-        """Extract system prompt and convert messages to standard format.
-        
-        Returns:
-            tuple of (system_prompt, processed_messages)
-        """
         system_prompt = ""
         processed_messages = []
         
-        # Guard against None messages
         if messages is None:
             return system_prompt, processed_messages
         
@@ -104,15 +69,6 @@ class BaseLLMAdapter(ABC):
         return system_prompt, processed_messages
     
     def _extract_api_params(self, kwargs: dict, allowed_params: list[str]) -> dict:
-        """Extract allowed API parameters from kwargs.
-        
-        Args:
-            kwargs: All keyword arguments
-            allowed_params: List of parameter names to extract
-            
-        Returns:
-            Dictionary with only allowed parameters that have non-None values
-        """
         return {
             k: v for k, v in kwargs.items() 
             if k in allowed_params and v is not None
@@ -125,44 +81,28 @@ class BaseLLMAdapter(ABC):
         output_field: str | list[str],
         usage_attr: str = "usage"
     ) -> TokenUsage | None:
-        """Create TokenUsage object from API response.
-        
-        Args:
-            response: The API response object
-            input_field: Field name(s) for input/prompt tokens
-            output_field: Field name(s) for output/completion tokens  
-            usage_attr: Attribute name for usage object in response
-            
-        Returns:
-            TokenUsage object or None if no usage data available
-        """
         usage_obj = getattr(response, usage_attr, None)
         if not usage_obj:
             return None
         
-        # Handle single field name or list of possible field names
         input_fields = [input_field] if isinstance(input_field, str) else input_field
         output_fields = [output_field] if isinstance(output_field, str) else output_field
         
-        # Try to get input tokens
         input_tokens = None
         for field in input_fields:
             input_tokens = getattr(usage_obj, field, None)
             if input_tokens is not None:
                 break
         
-        # Try to get output tokens
         output_tokens = None
         for field in output_fields:
             output_tokens = getattr(usage_obj, field, None)
             if output_tokens is not None:
                 break
         
-        # Return None if we have no usage data
         if input_tokens is None and output_tokens is None:
             return None
         
-        # Calculate total if both values are available
         total = None
         if input_tokens is not None and output_tokens is not None:
             total = input_tokens + output_tokens

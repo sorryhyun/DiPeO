@@ -44,7 +44,7 @@ from .utils.conversation_utils import InputDetector, MessageBuilder
 from .execution.use_cases import ExecuteDiagramUseCase
 
 # Protocols
-from .protocols import SupportsAPIKey, SupportsExecution
+from .protocols import SupportsAPIKey, SupportsExecution, ExecutionObserver
 
 __all__ = [
     # Context
@@ -84,4 +84,5 @@ __all__ = [
     # Protocols
     "SupportsAPIKey",
     "SupportsExecution",
+    "ExecutionObserver",
 ]

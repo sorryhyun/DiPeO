@@ -2,7 +2,7 @@
 from typing import Any, Optional
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import NodeOutput, StartNodeData, HookTriggerMode
 from pydantic import BaseModel
@@ -30,7 +30,7 @@ class StartNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: StartNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -75,7 +75,7 @@ class StartNodeHandler(BaseNodeHandler):
     async def _get_hook_event_data(
         self, 
         props: StartNodeData, 
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         services: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
         # Check if hook event data was provided in the execution state

@@ -1,5 +1,4 @@
-# Unified flow control service for execution management.
-# This service combines the responsibilities of ExecutionFlowService and ExecutionFlowController.
+# Unified flow control service for execution management
 
 from typing import List, Dict, Any, Optional, Set
 import logging
@@ -11,7 +10,6 @@ log = logging.getLogger(__name__)
 
 
 class FlowControlService:
-    # Unified service for managing execution flow control.
     
     def is_node_ready(
         self,

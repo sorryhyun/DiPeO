@@ -15,12 +15,12 @@ if TYPE_CHECKING:
     from dipeo.core.ports.state_store import StateStorePort
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.infra.persistence.diagram import DiagramStorageAdapter
+    from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
     from ...unified_service_registry import UnifiedServiceRegistry
     from dipeo.models import DomainDiagram
     from ... import ExecutionController
 
 class ExecuteDiagramUseCase(BaseService, SupportsExecution):
-    # High-level orchestration for diagram execution.
 
     def __init__(
         self,
@@ -139,9 +139,10 @@ class ExecuteDiagramUseCase(BaseService, SupportsExecution):
     async def _prepare_diagram(self, diagram: Dict[str, Any]) -> "DomainDiagram":
         """Prepare and convert diagram to domain format."""
         # Get the diagram loader from service registry
-        diagram_loader = self.service_registry.get('diagram_loader')
+        from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
+        diagram_loader: DiagramLoaderAdapter = self.service_registry.get('diagram_loader')
         if not diagram_loader:
-            raise ValueError("DiagramLoaderPort not found in service registry")
+            raise ValueError("DiagramLoaderAdapter not found in service registry")
         
         # Use the infrastructure adapter to prepare the diagram
         domain_diagram = diagram_loader.prepare_diagram(diagram)

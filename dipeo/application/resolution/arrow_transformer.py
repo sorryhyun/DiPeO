@@ -17,7 +17,6 @@ from dipeo.application.resolution.handle_resolver import ResolvedConnection
 
 @dataclass
 class TransformationMetadata:
-    # Metadata for arrow data transformation.
     content_type: ContentType
     forgetting_mode: Optional[ForgettingMode] = None
     include_in_memory: bool = True
@@ -36,7 +35,6 @@ class ArrowTransformer:
     """
     
     def __init__(self):
-        """Initialize the ArrowTransformer."""
         self._errors: List[str] = []
     
     def transform_arrows(
@@ -45,16 +43,6 @@ class ArrowTransformer:
         resolved_connections: List[ResolvedConnection],
         nodes: Dict[NodeID, DomainNode]
     ) -> Tuple[List[ExecutableEdge], List[str]]:
-        """Transform arrows into executable edges.
-        
-        Args:
-            arrows: Original domain arrows
-            resolved_connections: Connections with resolved node IDs
-            nodes: Node lookup dictionary
-            
-        Returns:
-            Tuple of (executable edges, transformation errors)
-        """
         self._errors = []
         
         # Create arrow lookup
@@ -80,16 +68,6 @@ class ArrowTransformer:
         arrow: DomainArrow,
         nodes: Dict[NodeID, DomainNode]
     ) -> Optional[ExecutableEdge]:
-        """Transform a single connection into an executable edge.
-        
-        Args:
-            connection: Resolved connection with node IDs
-            arrow: Original arrow with metadata
-            nodes: Node lookup dictionary
-            
-        Returns:
-            Executable edge or None if transformation fails
-        """
         # Get source and target nodes
         source_node = nodes.get(connection.source_node_id)
         target_node = nodes.get(connection.target_node_id)
@@ -136,17 +114,6 @@ class ArrowTransformer:
         arrow: DomainArrow,
         connection: ResolvedConnection
     ) -> TransformationMetadata:
-        """Create transformation metadata based on node types and arrow data.
-        
-        Args:
-            source_node: Source node
-            target_node: Target node
-            arrow: Arrow with potential metadata
-            connection: Resolved connection
-            
-        Returns:
-            Transformation metadata for the edge
-        """
         # Default content type based on source node
         content_type = self._determine_content_type(source_node, arrow)
         
@@ -182,15 +149,6 @@ class ArrowTransformer:
         source_node: DomainNode,
         arrow: DomainArrow
     ) -> ContentType:
-        """Determine content type based on source node and arrow data.
-        
-        Args:
-            source_node: The source node
-            arrow: The arrow with potential content type override
-            
-        Returns:
-            The content type for data transformation
-        """
         # Check for explicit content type in arrow data
         if arrow.data and "contentType" in arrow.data:
             try:
@@ -216,16 +174,6 @@ class ArrowTransformer:
         target_node: DomainNode,
         arrow: DomainArrow
     ) -> bool:
-        """Determine if arrow data should be included in conversation memory.
-        
-        Args:
-            source_node: Source node
-            target_node: Target node
-            arrow: Arrow with potential override
-            
-        Returns:
-            Whether to include in memory
-        """
         # Check for explicit override in arrow data
         if arrow.data and "includeInMemory" in arrow.data:
             return bool(arrow.data["includeInMemory"])
@@ -249,16 +197,6 @@ class ArrowTransformer:
         source_node: DomainNode,
         target_node: DomainNode
     ) -> Dict[str, Any]:
-        """Extract custom transformation rules from arrow and nodes.
-        
-        Args:
-            arrow: Arrow with potential rules
-            source_node: Source node
-            target_node: Target node
-            
-        Returns:
-            Dictionary of transformation rules
-        """
         rules = {}
         
         # Extract from arrow data

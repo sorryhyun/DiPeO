@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 from dipeo.application import BaseNodeHandler, register_handler
-from dipeo.core.application.context.execution_context import ExecutionContextPort
+from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod
 from pydantic import BaseModel
@@ -35,7 +35,7 @@ class ApiJobNodeHandler(BaseNodeHandler):
     async def execute(
         self,
         props: ApiJobNodeData,
-        context: ExecutionContextPort,
+        context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -180,11 +180,6 @@ class ApiJobNodeHandler(BaseNodeHandler):
         return result
     
     def _prepare_auth(self, auth_type: str, auth_config: dict) -> dict[str, str] | None:
-        """Prepare authentication dictionary for API service.
-        
-        Note: For bearer and API key auth, we'll apply them directly to headers
-        since the API service expects basic auth format for the auth parameter.
-        """
         if auth_type == "none":
             return None
             

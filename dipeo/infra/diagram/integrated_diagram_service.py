@@ -13,7 +13,6 @@ from dipeo.utils.diagram import DiagramBusinessLogic as DiagramDomainService
 from typing import Any, Dict, Optional, Union
 
 from dipeo.core.ports import FileServicePort
-from dipeo.core.application.services.diagram_loader import DiagramLoaderPort
 from dipeo.diagram import BackendDiagram, backend_to_graphql
 from dipeo.diagram.unified_converter import UnifiedDiagramConverter
 from dipeo.models import DiagramFormat, DomainDiagram
@@ -169,7 +168,6 @@ class IntegratedDiagramService(DiagramPort):
         if filename.endswith(".json"):
             format_type = "native"
         elif filename.endswith((".yaml", ".yml")):
-            # Try to determine from path
             if "light" in filename:
                 format_type = "light"
             elif "readable" in filename:
@@ -182,12 +180,9 @@ class IntegratedDiagramService(DiagramPort):
         path = f"{format_type}/{filename}"
         self.save_diagram(path, diagram_dict)
         
-        # Return the diagram ID (usually from the diagram data)
         return diagram_dict.get("id", filename)
     
     async def get_diagram(self, diagram_id: str) -> Optional[Dict[str, Any]]:
-        """Get diagram by ID."""
-        # Search for the diagram file
         search_paths = self.domain_service.construct_search_paths(
             diagram_id,
             base_extensions=[".yaml", ".yml", ".json"]
@@ -198,7 +193,6 @@ class IntegratedDiagramService(DiagramPort):
             if file_path.exists():
                 return self.load_diagram(path)
         
-        # If not found in standard locations, scan all files
         all_files = self.list_diagram_files()
         for file_info in all_files:
             try:

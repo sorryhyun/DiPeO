@@ -14,7 +14,7 @@ from .node_executor import NodeExecutor
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.application.execution.protocols import ExecutionObserver
+    from dipeo.application.protocols import ExecutionObserver
     from dipeo.models import DomainDiagram
     from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
 

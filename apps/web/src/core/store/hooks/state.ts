@@ -1,7 +1,4 @@
-/**
- * State hooks for computed/derived state
- * These hooks provide derived state based on store data
- */
+// State hooks for computed and derived state
 
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../unifiedStore';

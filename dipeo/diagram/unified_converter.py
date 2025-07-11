@@ -1,4 +1,4 @@
-"""Unified converter that uses format strategies."""
+# Unified converter that uses format strategies
 
 import logging
 from typing import Any
@@ -16,7 +16,6 @@ from dipeo.models import (
     parse_handle_id,
 )
 
-# Ensure models are rebuilt to resolve forward references
 DomainDiagram.model_rebuild()
 
 from .base import DiagramConverter, FormatStrategy
@@ -34,11 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class UnifiedDiagramConverter(DiagramConverter):
-    """
-    Universal converter that uses strategy pattern for different formats.
-    This replaces individual converter classes with a single converter
-    that switches strategies based on format.
-    """
+    # Universal converter using strategy pattern for different formats
 
     def __init__(self):
         self.strategies: dict[str, FormatStrategy] = {}

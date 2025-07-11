@@ -8,17 +8,9 @@ import {
 } from '@dipeo/domain-models';
 import { nodeId, arrowId, personId, handleId } from '@/core/types/branded';
 
-/**
- * Conversion Utilities Service
- * 
- * This service provides common utility functions to reduce code duplication
- * across the codebase for frequent conversion patterns.
- * 
- * Focus areas:
- * - ID type conversions and validation
- * - Common array/set/map transformations
- * - Data structure utilities
- */
+// Conversion utilities service for ID conversions and common transformations
+// Reduces code duplication across the codebase
+// Focus: ID types, array/set/map transformations, data utilities
 export class ConversionService {
   // ===== ID Type Conversions =====
   

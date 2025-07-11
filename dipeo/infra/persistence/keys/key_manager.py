@@ -9,27 +9,13 @@ from .file_apikey_storage import FileAPIKeyStorage
 
 
 class KeyManager:
-    """Manages API keys and credentials.
-    
-    This infrastructure component provides a unified interface for
-    managing API keys from various sources including environment
-    variables and secure storage.
-    """
     
     def __init__(self, storage: Optional[FileAPIKeyStorage] = None):
-        """Initialize the key manager.
-        
-        Args:
-            storage: Optional API key storage implementation.
-                    If not provided, creates a default FileAPIKeyStorage.
-        """
         self.storage = storage or FileAPIKeyStorage()
         self._env_cache: Dict[str, str] = {}
         self._load_env_keys()
     
     def _load_env_keys(self) -> None:
-        """Load API keys from environment variables."""
-        # Standard provider environment variable mappings
         env_mappings = {
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY", 
@@ -41,7 +27,6 @@ class KeyManager:
             "huggingface": "HUGGINGFACE_API_KEY",
         }
         
-        # Load keys from environment
         for provider, env_var in env_mappings.items():
             value = os.getenv(env_var)
             if value:

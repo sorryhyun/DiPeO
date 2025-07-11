@@ -1,7 +1,4 @@
-/**
- * Data access hooks for reading store data
- * These hooks provide read-only access to store state
- */
+// Data access hooks for reading store data
 
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
