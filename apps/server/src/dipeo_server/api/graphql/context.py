@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from dipeo.infra.services.api import APIService
     from dipeo.infra.services.file import FileOperationsService
     from dipeo.application.services.apikey import APIKeyService
-    from dipeo.application.protocols import SupportsMemory
+    from dipeo.core.dynamic.conversation_manager import ConversationManager
     from dipeo.infra.persistence.diagram import DiagramFileRepository
     from dipeo.application.services.diagram import DiagramService as DiagramStorageDomainService
     from dipeo.infra.database import DBOperationsDomainService
@@ -77,7 +77,7 @@ class GraphQLContext(BaseContext):
         return self.container.domain.api_key_service()
 
     @property
-    def conversation_service(self) -> "SupportsMemory":
+    def conversation_service(self) -> "ConversationManager":
         return self.container.domain.conversation_service()
 
     @property

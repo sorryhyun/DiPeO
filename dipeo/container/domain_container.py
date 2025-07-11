@@ -57,16 +57,12 @@ def _create_flow_control_service():
     return FlowControlService()
 
 
-def _create_conversation_manager(memory_service):
-    from dipeo.application.services.conversation.conversation_manager_impl import ConversationManagerImpl
+def _create_conversation_manager():
+    from dipeo.application.services.conversation.conversation_manager_impl import (
+        ConversationManagerImpl,
+    )
     
-    return ConversationManagerImpl(memory_service)
-
-
-def _create_conversation_service(memory_service, conversation_manager=None):
-    from dipeo.application.services.conversation.memory_service_v2 import ConversationMemoryServiceV2
-
-    return ConversationMemoryServiceV2(memory_service, conversation_manager)
+    return ConversationManagerImpl()
 
 
 def _create_diagram_business_logic():
@@ -121,17 +117,17 @@ def _create_input_resolution_service(arrow_processor):
     return InputResolutionService(arrow_processor=arrow_processor)
 
 
-def _create_person_job_services(conversation_memory_service, memory_transformer, conversation_manager=None):
+def _create_person_job_services(memory_transformer, conversation_manager=None):
     from dipeo.application.execution.person_job import (
         ConversationProcessingService,
         PersonJobOutputBuilder,
     )
-    
+    from dipeo.application.execution.person_job.orchestrator_v2 import PersonJobOrchestratorV2
+    from dipeo.application.services.llm import LLMExecutor
+
     # Import new focused services
     from dipeo.application.utils.template import PromptBuilder
     from dipeo.utils.conversation.state_utils import ConversationStateManager
-    from dipeo.application.services.llm import LLMExecutor
-    from dipeo.application.execution.person_job.orchestrator_v2 import PersonJobOrchestratorV2
     
     # Create services needed by the orchestrator
     conversation_processor = ConversationProcessingService()
@@ -185,18 +181,13 @@ class DomainContainer(containers.DeclarativeContainer):
     memory_transformer = providers.Singleton(_create_memory_transformer)
     flow_control_service = providers.Singleton(_create_flow_control_service)
     
-    # Conversation manager (new protocol implementation)
-    conversation_manager = providers.Singleton(
+    # Conversation service - implements ConversationManager
+    conversation_service = providers.Singleton(
         _create_conversation_manager,
-        memory_service=infra.memory_service,
     )
     
-    # Conversation service (depends on infra memory and conversation manager)
-    conversation_service = providers.Singleton(
-        _create_conversation_service,
-        memory_service=infra.memory_service,
-        conversation_manager=conversation_manager,
-    )
+    # Alias for backward compatibility
+    conversation_manager = conversation_service
     
     # Diagram services
     diagram_business_logic = providers.Singleton(_create_diagram_business_logic)
@@ -240,7 +231,6 @@ class DomainContainer(containers.DeclarativeContainer):
     # Person job services
     person_job_services = providers.Singleton(
         _create_person_job_services,
-        conversation_memory_service=conversation_service,
         memory_transformer=memory_transformer,
         conversation_manager=conversation_manager,
     )

@@ -105,9 +105,11 @@ class NodeExecutor:
                 raise ValueError(f"No handler for node type: {node.type}")
             
             # Get services
+            log.debug(f"Getting services for handler: {handler_def.requires_services}")
             services = self.service_registry.get_handler_services(
                 handler_def.requires_services
             )
+            log.debug(f"Retrieved services: {list(services.keys())}")
             services["diagram"] = diagram
             services["execution_context"] = {
                 "interactive_handler": interactive_handler

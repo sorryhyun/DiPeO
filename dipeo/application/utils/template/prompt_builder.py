@@ -79,8 +79,15 @@ class PromptBuilder:
         Returns:
             Dictionary of template-safe values
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.debug(f"prepare_template_values - Raw inputs: {inputs}")
+        
         # First unwrap any arrow-processed inputs
         unwrapped_inputs = unwrap_inputs(inputs)
+        
+        logger.debug(f"prepare_template_values - Unwrapped inputs: {unwrapped_inputs}")
         
         template_values = {}
         
@@ -106,6 +113,8 @@ class PromptBuilder:
             # Handle lists of simple values
             elif isinstance(value, list) and all(isinstance(v, (str, int, float, bool)) for v in value):
                 template_values[key] = value
+        
+        logger.debug(f"prepare_template_values - Final template values: {template_values}")
         
         return template_values
     

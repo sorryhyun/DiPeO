@@ -96,12 +96,11 @@ except ImportError as e:
 # For convenience, re-export commonly used items from application
 try:
     from .application import (
-        ApplicationContext,
-        ExecutionEngine,
+        StatefulExecutionEngine,
         UnifiedServiceRegistry,
     )
     _imported_modules.extend([
-        "ApplicationContext", "ExecutionEngine",
+        "StatefulExecutionEngine",
         "UnifiedServiceRegistry"
     ])
 except ImportError as e:

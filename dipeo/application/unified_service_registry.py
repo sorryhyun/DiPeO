@@ -63,7 +63,6 @@ class UnifiedServiceRegistry(DynamicRegistry):
             "llm_service": "llm_service",
             "api_key_service": "api_key_service",
             "file_service": "file_service",
-            "memory_service": "memory_service",
             "conversation_service": "conversation_service",
             "conversation_manager": "conversation_manager",
             "notion_service": "notion_service",

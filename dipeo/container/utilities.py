@@ -5,7 +5,6 @@ from pathlib import Path
 from dipeo.application.protocols import (
     SupportsAPIKey,
     SupportsExecution,
-    SupportsMemory,
 )
 from dipeo.core.ports import (
     FileServicePort,
@@ -13,6 +12,7 @@ from dipeo.core.ports import (
     NotionServicePort,
 )
 from dipeo.core.ports.diagram_port import DiagramPort
+from dipeo.core.dynamic.conversation_manager import ConversationManager
 
 
 def get_project_base_dir():
@@ -44,6 +44,11 @@ async def init_resources(container) -> None:
     await container.infra.llm_service().initialize()
     await container.domain.diagram_storage_service().initialize()
     
+    # Initialize API key service
+    api_key_service = container.domain.api_key_service()
+    if hasattr(api_key_service, 'initialize'):
+        await api_key_service.initialize()
+    
     notion_service = container.infra.notion_service()
     if notion_service is not None and hasattr(notion_service, 'initialize'):
         await notion_service.initialize()
@@ -74,7 +79,7 @@ def validate_protocol_compliance(container) -> None:
         (container.domain.api_key_service(), SupportsAPIKey, "APIKeyService"),
         (container.infra.llm_service(), LLMServicePort, "LLMInfrastructureService"),
         (container.infra.file_service(), FileServicePort, "FileSystemRepository"),
-        (container.domain.conversation_service(), SupportsMemory, "ConversationMemoryServiceV2"),
+        (container.domain.conversation_service(), ConversationManager, "ConversationManagerImpl"),
         (container.application.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
         (container.infra.notion_service(), NotionServicePort, "NotionAPIService"),
         (container.domain.diagram_storage_service(), DiagramPort, "DiagramFileRepository"),

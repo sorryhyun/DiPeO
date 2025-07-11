@@ -249,10 +249,10 @@ class DiPeOCLI:
                         continue
 
                     status = exec_result.get("status")
-                    if status == "completed":
+                    if status == "COMPLETED":
                         print("✅ Execution completed successfully!")
                         break
-                    elif status == "failed":
+                    elif status == "FAILED":
                         print(
                             f"❌ Execution failed: {exec_result.get('error', 'Unknown error')}"
                         )

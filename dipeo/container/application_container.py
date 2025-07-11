@@ -18,7 +18,7 @@ def _create_service_registry(
     llm_service,
     api_key_service,
     file_service,
-    conversation_memory_service,
+    conversation_service,
     notion_service,
     diagram_storage_domain_service,
     text_processing_service,
@@ -45,8 +45,7 @@ def _create_service_registry(
     registry.register("llm_service", llm_service)
     registry.register("api_key_service", api_key_service)
     registry.register("file_service", file_service)
-    registry.register("conversation_memory_service", conversation_memory_service)
-    registry.register("conversation_service", conversation_memory_service)  # Alias for handlers
+    registry.register("conversation_service", conversation_service)
     registry.register("notion_service", notion_service)
     
     # Domain services - Primary registration with _service suffix
@@ -129,7 +128,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
         diagram_loader=infra.diagram_loader,
         # Domain services
         api_key_service=domain.api_key_service,
-        conversation_memory_service=domain.conversation_service,
+        conversation_service=domain.conversation_service,
         diagram_storage_domain_service=domain.diagram_storage_domain_service,
         text_processing_service=domain.text_processing_service,
         validation_service=domain.validation_service,

@@ -70,17 +70,13 @@ class PersonJobOrchestratorV2:
         if not person_data:
             raise ValueError(f"Person not found: {person_id}")
         
-        # Create Person object
+        # Create Person object with conversation_manager reference
         person = Person(
             id=PersonID(person_id),
             name=person_data.label,
-            llm_config=person_data.llm_config
+            llm_config=person_data.llm_config,
+            conversation_manager=self._conversation_manager
         )
-        
-        # If we have a ConversationManager, sync the conversation
-        if self._conversation_manager:
-            conversation = self._conversation_manager.get_conversation(person_id)
-            person.conversation = conversation
         
         # Cache the person
         self._person_cache[person_id] = person
@@ -138,6 +134,10 @@ class PersonJobOrchestratorV2:
             transformed_inputs
         )
 
+        logger.debug(f"Building prompt for person {person_id}, node {node_id}")
+        logger.debug(f"Input prompt: '{prompt}'")
+        logger.debug(f"Input first_only_prompt: '{first_only_prompt}'")
+        logger.debug(f"Execution count: {execution_count}")
         
         built_prompt = self._prompt_builder.build(
             prompt=prompt,
@@ -149,6 +149,10 @@ class PersonJobOrchestratorV2:
 
         # Skip execution if there's no prompt
         if not built_prompt:
+            logger.warning(f"Skipping execution for person {person_id} - no prompt available")
+            logger.debug(f"Prompt: {prompt}, First-only prompt: {first_only_prompt}, Execution count: {execution_count}")
+            logger.debug(f"Template values: {template_values}")
+            logger.debug(f"Transformed inputs: {transformed_inputs}")
             return PersonJobResult(
                 content="",
                 conversation_state={},
@@ -183,7 +187,7 @@ class PersonJobOrchestratorV2:
                 # Get the last two messages (user prompt and assistant response)
                 for msg in person.conversation.messages[-2:]:
                     self._conversation_manager.add_message(
-                        person_id, msg, execution_id or "", node_id
+                        msg, execution_id or "", node_id
                     )
         else:
             # Fallback to legacy execution
@@ -221,7 +225,7 @@ class PersonJobOrchestratorV2:
             
             if self._conversation_manager:
                 self._conversation_manager.add_message(
-                    person_id, assistant_message, execution_id or "", node_id
+                    assistant_message, execution_id or "", node_id
                 )
             else:
                 person.add_message(assistant_message)
@@ -370,6 +374,10 @@ class PersonJobOrchestratorV2:
         execution_id: str | None = None,
     ) -> PersonJobResult:
         """Execute person job with validation (backward compatibility method)."""
+        
+        logger.debug(f"execute_person_job_with_validation called for {person_id}, node {node_id}")
+        logger.debug(f"Props: default_prompt='{getattr(props, 'default_prompt', None)}', first_only_prompt='{getattr(props, 'first_only_prompt', None)}'")
+        logger.debug(f"Execution count: {execution_count}")
         
         # Get person from diagram
         person = self._get_or_create_person(person_id, diagram, conversation_service)

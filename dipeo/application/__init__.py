@@ -8,7 +8,7 @@ Application orchestration layer providing use cases and node handlers.
 from .execution.context import UnifiedExecutionContext
 
 # Engine components
-from .engine import ExecutionEngine, ExecutionController
+from .engine import StatefulExecutionEngine, ExecutionController
 
 # Execution framework (moved from core)
 from .execution import (
@@ -48,13 +48,13 @@ from .utils.conversation_utils import InputDetector, MessageBuilder
 from .execution.use_cases import ExecuteDiagramUseCase
 
 # Protocols
-from .protocols import SupportsAPIKey, SupportsExecution, SupportsMemory
+from .protocols import SupportsAPIKey, SupportsExecution
 
 __all__ = [
     # Context
     "UnifiedExecutionContext",
     # Engine
-    "ExecutionEngine",
+    "StatefulExecutionEngine",
     "ExecutionController",
     # Execution
     "ExecuteDiagramUseCase",
@@ -88,5 +88,4 @@ __all__ = [
     # Protocols
     "SupportsAPIKey",
     "SupportsExecution",
-    "SupportsMemory",
 ]

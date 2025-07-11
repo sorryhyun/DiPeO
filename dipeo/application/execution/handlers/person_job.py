@@ -71,8 +71,9 @@ class PersonJobNodeHandler(BaseNodeHandler):
         execution_id = getattr(context.execution_state, 'id', None) if hasattr(context, 'execution_state') else None
         
         # Only log in debug mode if explicitly enabled
-        # logger.debug(f"🚀 Executing person_job node: {node_id}")
-        # logger.debug(f"🔍 Node inputs: {list(inputs.keys())}")
+        logger.debug(f"🚀 Executing person_job node: {node_id}")
+        logger.debug(f"🔍 Node inputs: {inputs}")
+        logger.debug(f"📝 Props: person={props.person}, prompt={props.default_prompt}, first_only={props.first_only_prompt}")
         
         # Basic validation
         if not props.person:

@@ -1,5 +1,5 @@
 """Memory persistence adapters."""
 
-from .conversation_store import InMemoryConversationStore
+# This module is deprecated - conversation management is now handled by ConversationManagerImpl
 
-__all__ = ["InMemoryConversationStore"]
+__all__ = []

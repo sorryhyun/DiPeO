@@ -59,7 +59,7 @@ class FlowControlService:
         deps_satisfied = self._are_dependencies_satisfied(
             node, diagram, executed_nodes, node_outputs, node_exec_counts
         )
-        log.debug(f"Node {node.id} dependencies satisfied: {deps_satisfied}, exec_count: {exec_count}")
+        log.debug(f"Node {node.id} ({node.type}) dependencies satisfied: {deps_satisfied}, exec_count: {exec_count}, executed_nodes: {executed_nodes}")
         return deps_satisfied
     
     def get_ready_nodes(

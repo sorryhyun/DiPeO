@@ -313,7 +313,15 @@ class ValidationRules:
                 message="Person node must have a personId or person reference"
             ))
         
-        if not node_data.get("prompt") and not node_data.get("useLatestMessage"):
+        # Check for prompts - person_job nodes use default_prompt and first_only_prompt
+        has_prompt = any([
+            node_data.get("prompt"),
+            node_data.get("default_prompt"),
+            node_data.get("first_only_prompt"),
+            node_data.get("useLatestMessage")
+        ])
+        
+        if not has_prompt:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.WARNING,
                 category="configuration",

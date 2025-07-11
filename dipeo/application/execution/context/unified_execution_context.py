@@ -170,7 +170,6 @@ class UnifiedExecutionContext(ExecutionContext):
                 'llm_service': lambda: self._container.infra.llm_service(),
                 'api_key_service': lambda: self._container.domain.api_key_service(),
                 'file_service': lambda: self._container.infra.file_service(),
-                'memory_service': lambda: self._container.infra.memory_service(),
                 'notion_service': lambda: self._container.infra.notion_service(),
                 'api_integration_service': lambda: self._container.infra.api_service(),
                 'diagram_loader': lambda: self._container.infra.diagram_loader(),
@@ -271,7 +270,6 @@ class UnifiedExecutionContext(ExecutionContext):
         registry.register("llm_service", self._container.infra.llm_service())
         registry.register("api_key_service", self._container.domain.api_key_service())
         registry.register("file_service", self._container.infra.file_service())
-        registry.register("memory_service", self._container.infra.memory_service())
         registry.register("conversation_service", self._container.domain.conversation_service())
         registry.register("notion_service", self._container.infra.notion_service())
         registry.register("api_integration_service", self._container.infra.api_service())

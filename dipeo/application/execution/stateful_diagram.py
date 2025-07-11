@@ -137,6 +137,9 @@ class StatefulExecutableDiagram:
         Returns:
             True if execution is complete, False otherwise
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Check if all end nodes are complete
         end_nodes = self._diagram.get_end_nodes()
         if end_nodes:
@@ -145,16 +148,26 @@ class StatefulExecutableDiagram:
                 for node in end_nodes
             )
             if all_ends_complete:
+                logger.debug("All end nodes are complete, execution is finished")
                 return True
         
-        # Check if there are any pending or running nodes
+        # Check if there are any pending or running nodes that are reachable
+        has_pending_reachable = False
         for node in self._diagram.nodes:
             state = self._context.get_node_state(node.id)
             if state and state.status in (NodeExecutionStatus.PENDING, NodeExecutionStatus.RUNNING):
                 # Check if this node is reachable
-                if self._is_node_reachable(node):
-                    return False
+                is_reachable = self._is_node_reachable(node)
+                logger.debug(f"Node {node.id} status={state.status}, reachable={is_reachable}")
+                if is_reachable:
+                    has_pending_reachable = True
         
+        # If we have pending reachable nodes, execution is not complete
+        if has_pending_reachable:
+            logger.debug("Found pending/running reachable nodes, execution continues")
+            return False
+        
+        logger.debug("No pending/running reachable nodes found, execution is complete")
         return True
     
     def get_execution_path(self) -> List[NodeID]:
@@ -176,39 +189,78 @@ class StatefulExecutableDiagram:
         Returns:
             True if the node is ready, False otherwise
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Check node state
         state = self._context.get_node_state(node.id)
         if not state or state.status != NodeExecutionStatus.PENDING:
+            logger.debug(f"Node {node.id} not ready: status={state.status if state else 'None'}")
             return False
         
         # Start nodes are always ready if pending
         if node.type == NodeType.start:
+            logger.debug(f"Node {node.id} is start node and pending, marking as ready")
             return True
         
         # Check all dependencies
         incoming_edges = self._diagram.get_incoming_edges(node.id)
         if not incoming_edges:
             # No dependencies, ready to execute
+            logger.debug(f"Node {node.id} has no dependencies, marking as ready")
             return True
         
+        # Special handling for person_job nodes with "first" handle
+        if node.type == NodeType.person_job:
+            # Check execution count
+            exec_count = 0
+            completed_nodes = self._context.get_completed_nodes()
+            # Simple way to check if this node has executed before
+            if node.id in completed_nodes:
+                exec_count = 1  # For now, assume 1 if in completed list
+            
+            logger.debug(f"Node {node.id} is person_job, exec_count={exec_count}")
+            
+            if exec_count == 0:
+                # First execution - only check "first" handle dependencies
+                first_edges = [e for e in incoming_edges if e.target_input == "first"]
+                if first_edges:
+                    logger.debug(f"Node {node.id} has {len(first_edges)} first handle dependencies")
+                    # Only check first handle dependencies
+                    incoming_edges = first_edges
+                else:
+                    logger.debug(f"Node {node.id} has no first handle, checking all dependencies")
+            else:
+                # Subsequent executions - only check non-"first" dependencies
+                non_first_edges = [e for e in incoming_edges if e.target_input != "first"]
+                logger.debug(f"Node {node.id} subsequent execution, checking {len(non_first_edges)} non-first dependencies")
+                incoming_edges = non_first_edges
+        
         # Check each dependency
+        dependencies_complete = True
         for edge in incoming_edges:
             source_node = self._diagram.get_node(edge.source_node_id)
             if not source_node:
                 continue
             
             # Check if dependency is complete
-            if not self._context.is_node_complete(edge.source_node_id):
-                return False
+            dep_complete = self._context.is_node_complete(edge.source_node_id)
+            logger.debug(f"Node {node.id} dependency {edge.source_node_id} complete: {dep_complete}, edge.target_input={edge.target_input}")
+            if not dep_complete:
+                dependencies_complete = False
+                break
             
             # Handle conditional dependencies
             if source_node.type == NodeType.condition:
                 # Check if this edge was the chosen branch
                 if not self._is_conditional_edge_active(edge, source_node):
                     # This path wasn't taken, so this node isn't reachable
-                    return False
+                    logger.debug(f"Node {node.id} conditional dependency {edge.source_node_id} branch not active")
+                    dependencies_complete = False
+                    break
         
-        return True
+        logger.debug(f"Node {node.id} ready: {dependencies_complete}")
+        return dependencies_complete
     
     def _is_node_reachable(self, node: ExecutableNode) -> bool:
         """Check if a node is reachable given the current execution state.

@@ -30,12 +30,6 @@ def _create_file_service(base_dir):
     return ModularFileService(base_dir=base_dir)
 
 
-def _create_memory_service():
-    from dipeo.infra.persistence.memory import InMemoryConversationStore
-    
-    return InMemoryConversationStore()
-
-
 def _create_llm_service(api_key_service):
     from dipeo.infra.llm import LLMInfraService
 
@@ -109,7 +103,6 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         _create_file_service,
         base_dir=base_dir,
     )
-    memory_service = providers.Singleton(_create_memory_service)
     notion_service = providers.Singleton(_create_notion_service)
     api_key_storage = providers.Singleton(
         _create_api_key_storage,

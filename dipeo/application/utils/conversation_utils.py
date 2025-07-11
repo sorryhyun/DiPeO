@@ -1,7 +1,11 @@
 """Utility methods for conversation handling."""
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from dipeo.core.utils import is_conversation as core_is_conversation, has_nested_conversation as core_has_nested_conversation, contains_conversation as core_contains_conversation
+from dipeo.models import Message, PersonID
+
+if TYPE_CHECKING:
+    from dipeo.core.dynamic.conversation_manager import ConversationManager
 
 
 class InputDetector:
@@ -43,19 +47,43 @@ class InputDetector:
 class MessageBuilder:
     """Builder pattern for cleaner message handling."""
     
-    def __init__(self, conversation_service: Any, person_id: str, execution_id: str):
+    def __init__(self, conversation_service: "ConversationManager", person_id: str, execution_id: str):
         self.service = conversation_service
         self.person_id = person_id
         self.execution_id = execution_id
     
     def add(self, role: str, content: str) -> 'MessageBuilder':
         """Add a message and return self for chaining."""
-        self.service.add_message_to_conversation(
-            person_id=self.person_id,
-            execution_id=self.execution_id,
-            role=role,
+        # Create message based on role
+        if role == "system":
+            from_person_id = "system"
+            to_person_id = PersonID(self.person_id)
+            message_type = "system_to_person"
+        elif role == "assistant":
+            from_person_id = PersonID(self.person_id)
+            to_person_id = "system"  # Assistant messages typically go to system
+            message_type = "person_to_system"
+        elif role == "user":
+            from_person_id = "system"  # User messages come from system context
+            to_person_id = PersonID(self.person_id)
+            message_type = "system_to_person"
+        else:  # external or other
+            from_person_id = "system"
+            to_person_id = PersonID(self.person_id)
+            message_type = "system_to_person"
+        
+        # Create and add message
+        message = Message(
+            from_person_id=from_person_id,
+            to_person_id=to_person_id,
             content=content,
-            current_person_id=self.person_id
+            message_type=message_type,  # type: ignore
+            metadata={"role": role}
+        )
+        
+        self.service.add_message(
+            message=message,
+            execution_id=self.execution_id
         )
         return self
     

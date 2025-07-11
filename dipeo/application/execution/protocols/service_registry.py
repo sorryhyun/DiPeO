@@ -87,11 +87,6 @@ class TypedServiceRegistryProtocol(ServiceRegistryProtocol, Protocol):
         ...
     
     @property
-    def memory_service(self) -> Any:
-        """Memory/cache service."""
-        ...
-    
-    @property
     def conversation_service(self) -> Any:
         """Conversation management service."""
         ...

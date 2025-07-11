@@ -31,8 +31,6 @@ plan.md
 **/.ruff_cache/
 .logs
 apps/server/.import_linter_cache
-dipeo/models/models.py
-dipeo/models/conversions.py
 part1.md
 part2.md
 part3.md

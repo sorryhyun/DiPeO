@@ -10,36 +10,50 @@ from .conversation import Conversation, ConversationContext
 
 if TYPE_CHECKING:
     from dipeo.core.ports import LLMServicePort
+    from .conversation_manager import ConversationManager
 
 
 class Person:
-    """Represents an LLM agent with evolving conversation state.
+    """Represents an LLM agent with memory of a shared global conversation.
     
-    This is a dynamic object that maintains and manages conversation history
-    and context during diagram execution. Each person has their own independent
-    conversation state that evolves as messages are exchanged.
+    This is a dynamic object that maintains a memory (filtered view) of a global
+    conversation managed by ConversationManager. Each person can access messages
+    relevant to them and interact with other persons through the shared conversation.
     """
     
-    def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig):
-        """Initialize a Person with configuration and empty conversation.
+    def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig, 
+                 conversation_manager: Optional["ConversationManager"] = None):
+        """Initialize a Person with configuration and reference to conversation manager.
         
         Args:
             id: Unique identifier for this person
             name: Display name for this person
             llm_config: LLM configuration including service, model, and settings
+            conversation_manager: Reference to the global conversation manager
         """
         self.id = id
         self.name = name
         self.llm_config = llm_config
-        self.conversation: Conversation = Conversation()
+        self._conversation_manager = conversation_manager
+        # For backward compatibility, maintain a local conversation if no manager provided
+        self._local_conversation: Optional[Conversation] = Conversation() if not conversation_manager else None
     
     def add_message(self, message: Message) -> None:
-        """Add a message to this person's conversation history.
+        """Add a message to the global conversation.
         
         Args:
             message: The message to add to the conversation
         """
-        self.conversation.add_message(message)
+        if self._conversation_manager:
+            # Add to global conversation via manager
+            self._conversation_manager.add_message(
+                message=message,
+                execution_id=getattr(self._conversation_manager, '_current_execution_id', ''),
+                node_id=None
+            )
+        elif self._local_conversation:
+            # Fallback to local conversation for backward compatibility
+            self._local_conversation.add_message(message)
     
     def get_context(self) -> ConversationContext:
         """Get the current conversation context for this person.
@@ -47,35 +61,54 @@ class Person:
         Returns:
             ConversationContext containing messages and metadata
         """
-        return self.conversation.get_context()
+        conversation = self._get_conversation()
+        return conversation.get_context() if conversation else ConversationContext(messages=[], metadata=None, context={})
     
     def get_messages(self) -> List[Message]:
-        """Get all messages in this person's conversation.
+        """Get messages relevant to this person (their memory).
         
         Returns:
-            List of messages in chronological order
+            List of messages where this person is sender or recipient
         """
-        return self.conversation.messages
+        conversation = self._get_conversation()
+        if not conversation:
+            return []
+        
+        # Return messages where this person is involved
+        return [
+            msg for msg in conversation.messages
+            if msg.from_person_id == self.id or msg.to_person_id == self.id
+        ]
     
     def get_latest_message(self) -> Optional[Message]:
-        """Get the most recent message in the conversation.
+        """Get the most recent message relevant to this person.
         
         Returns:
-            The latest message or None if conversation is empty
+            The latest message or None if no relevant messages
         """
-        return self.conversation.get_latest_message()
+        messages = self.get_messages()
+        return messages[-1] if messages else None
     
     def clear_conversation(self) -> None:
-        """Clear all messages from this person's conversation."""
-        self.conversation.clear()
+        """Clear this person's memory (for backward compatibility).
+        
+        Note: This doesn't clear the global conversation, only affects
+        what this person remembers.
+        """
+        if self._conversation_manager:
+            # In new architecture, this would clear person's memory/view
+            # For now, we'll clear messages related to this person
+            self._conversation_manager.clear_conversation(str(self.id))
+        elif self._local_conversation:
+            self._local_conversation.clear()
     
     def get_message_count(self) -> int:
-        """Get the number of messages in this person's conversation.
+        """Get the number of messages in this person's memory.
         
         Returns:
-            Total number of messages
+            Total number of messages relevant to this person
         """
-        return len(self.conversation.messages)
+        return len(self.get_messages())
     
     def update_context(self, context_updates: Dict[str, Any]) -> None:
         """Update the conversation context with new values.
@@ -83,7 +116,33 @@ class Person:
         Args:
             context_updates: Dictionary of context values to merge
         """
-        self.conversation.update_context(context_updates)
+        conversation = self._get_conversation()
+        if conversation:
+            conversation.update_context(context_updates)
+    
+    def _get_conversation(self) -> Optional[Conversation]:
+        """Get the conversation this person has access to.
+        
+        Returns:
+            The global conversation if using ConversationManager,
+            or local conversation for backward compatibility
+        """
+        if self._conversation_manager:
+            # Get global conversation from manager
+            return self._conversation_manager.get_conversation(str(self.id))
+        return self._local_conversation
+    
+    @property
+    def conversation(self) -> Conversation:
+        """Get conversation for backward compatibility.
+        
+        Returns:
+            The conversation object
+        """
+        conv = self._get_conversation()
+        if not conv:
+            raise RuntimeError("No conversation available")
+        return conv
     
     async def chat(
         self,
@@ -179,7 +238,7 @@ class Person:
         """Apply memory management rules to forget old messages.
         
         This method respects the forgetting mode and max_messages settings
-        to manage the conversation history size.
+        to manage the person's memory of the conversation.
         
         Args:
             memory_config: Configuration for memory management
@@ -194,9 +253,18 @@ class Person:
             return forgotten
         
         if memory_config.forget_mode == ForgettingMode.on_every_turn:
-            # Keep only the most recent messages based on max_messages
-            if memory_config.max_messages:
-                forgotten = self.conversation.truncate_to_recent(
+            # For new architecture, delegate to ConversationManager
+            if self._conversation_manager:
+                count = self._conversation_manager.apply_forgetting(
+                    str(self.id), 
+                    memory_config.forget_mode,
+                    getattr(self._conversation_manager, '_current_execution_id', None)
+                )
+                # Can't return actual forgotten messages without more info
+                return []
+            elif self._local_conversation and memory_config.max_messages:
+                # Fallback for backward compatibility
+                forgotten = self._local_conversation.truncate_to_recent(
                     int(memory_config.max_messages)
                 )
         
@@ -213,7 +281,8 @@ class Person:
         """
         llm_messages = []
         
-        for msg in self.conversation.messages:
+        # Get messages relevant to this person
+        for msg in self.get_messages():
             # Map our message types to LLM roles
             if msg.from_person_id == self.id:
                 role = "assistant"
@@ -230,20 +299,21 @@ class Person:
         
         return llm_messages
     
-    @staticmethod
-    def can_see_conversation_of(other_person: "Person") -> bool:  # pylint: disable=unused-argument
+    def can_see_conversation_of(self, other_person: "Person") -> bool:
         """Check if this person can see another person's conversation.
         
-        By default, persons cannot see each other's conversations.
-        This ensures proper isolation between different agents.
+        In the new architecture with global conversation, persons can
+        potentially see messages between other persons if configured to do so.
         
         Args:
             other_person: The other person to check
             
         Returns:
-            False - persons have isolated conversations
+            True - in global conversation model, visibility is possible
         """
-        return False
+        # In new architecture, persons share a global conversation
+        # Visibility rules can be configured based on requirements
+        return True
     
     def __repr__(self) -> str:
         """String representation of the Person."""

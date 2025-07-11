@@ -70,11 +70,20 @@ class StatefulExecutionEngine:
         try:
             # Create async execution iterator
             max_parallel = options.get("max_parallel_nodes", 10)
+            
+            # The diagram will be passed through context's global context
+            # No need to extract it here
+            
+            # Get controller from context's execution state
+            controller = getattr(context.execution_state, '_controller', None)
+            
             iterator = AsyncExecutionIterator(
                 stateful_diagram=stateful_diagram,
                 max_parallel_nodes=max_parallel,
                 node_executor=self._create_node_executor_wrapper(
-                    context, options, interactive_handler
+                    context, options, interactive_handler, 
+                    diagram=None,  # Will be retrieved from context
+                    controller=controller
                 )
             )
             
@@ -102,7 +111,10 @@ class StatefulExecutionEngine:
                 }
                 
                 # Check for completion
-                if stateful_diagram.is_complete():
+                is_complete = stateful_diagram.is_complete()
+                log.debug(f"After step {step_count}, is_complete={is_complete}")
+                if is_complete:
+                    log.info(f"Execution marked as complete after step {step_count}")
                     break
             
             # Notify completion
@@ -150,6 +162,9 @@ class StatefulExecutionEngine:
             # Get execution state from the adapter
             execution_state = controller.state_adapter.execution_state
             
+            # Store controller reference in execution state for later access
+            execution_state._controller = controller
+            
             # Create context from execution state
             context = UnifiedExecutionContext(
                 execution_state=execution_state,
@@ -157,6 +172,9 @@ class StatefulExecutionEngine:
             )
         else:
             raise ValueError("Controller must have a state_adapter")
+        
+        # Store diagram in context for access by node executor
+        context.update_global_context({"diagram": diagram})
         
         # Delegate to new execution method
         async for update in self.execute_with_executable(
@@ -171,7 +189,7 @@ class StatefulExecutionEngine:
                 yield {
                     "type": "iteration_complete", 
                     "iteration": update["step"],
-                    "executed_nodes": len(update["progress"]["completed_nodes"]),
+                    "executed_nodes": update["progress"]["completed_nodes"],
                     "endpoint_executed": self._check_endpoint_executed(
                         executable_diagram, context
                     )
@@ -183,45 +201,60 @@ class StatefulExecutionEngine:
         self,
         context: UnifiedExecutionContext,
         options: Dict[str, Any],
-        interactive_handler: Optional[Any]
+        interactive_handler: Optional[Any],
+        diagram: Optional["DomainDiagram"] = None,
+        controller: Optional[Any] = None
     ):
         """Create a node executor function for the iterator.
         
         This wraps the existing NodeExecutor to work with the iterator pattern.
         """
         async def execute_node(node: "ExecutableNode") -> Dict[str, Any]:
-            # Create a node-specific context view
-            node_context = context.create_node_view(str(node.id))
+            # For the stateful execution to work properly, we need to ensure
+            # that nodes are executed and their results are properly tracked.
             
-            # Notify observers of node start
-            for observer in self.observers:
-                await observer.on_node_start(
-                    context.get_execution_id(), 
-                    str(node.id), 
-                    node.type
-                )
+            log.debug(f"Wrapper executing node {node.id} of type {node.type}")
             
             try:
-                # Execute the node using existing node executor logic
-                # This requires adapting the interface slightly
-                result = await self._execute_single_node(
-                    node=node,
-                    context=node_context,
+                # Get diagram from context if not provided
+                execution_diagram = diagram
+                if not execution_diagram:
+                    # Try to get from context's global context
+                    global_ctx = context.get_global_context()
+                    execution_diagram = global_ctx.get("diagram") if global_ctx else None
+                
+                if not execution_diagram:
+                    raise ValueError("No diagram available for execution")
+                
+                # Get controller from context if not provided
+                execution_controller = controller
+                if not execution_controller:
+                    # Try to get from execution state
+                    execution_controller = getattr(context.execution_state, '_controller', None)
+                
+                if not execution_controller:
+                    raise ValueError("No controller available for execution")
+                
+                # Actually execute the node using NodeExecutor
+                await self.node_executor.execute_node(
+                    node_id=str(node.id),
+                    diagram=execution_diagram,
+                    controller=execution_controller,
+                    execution_id=context.get_execution_id(),
                     options=options,
                     interactive_handler=interactive_handler
                 )
                 
-                # Notify observers of node completion
-                for observer in self.observers:
-                    await observer.on_node_complete(
-                        context.get_execution_id(),
-                        str(node.id),
-                        result
-                    )
+                log.debug(f"Node {node.id} execution completed")
                 
-                return result
+                # Return a result for the iterator
+                return {
+                    "value": {"status": "completed", "node_id": str(node.id)},
+                    "metadata": {"node_type": str(node.type)}
+                }
                 
             except Exception as e:
+                log.error(f"Error executing node {node.id}: {e}", exc_info=True)
                 # Notify observers of node error
                 for observer in self.observers:
                     await observer.on_node_error(
@@ -244,28 +277,29 @@ class StatefulExecutionEngine:
         
         This adapts the ExecutableNode to work with the existing handler system.
         """
-        # Get the handler for this node type
-        handler = self.node_executor.handler_registry.get_handler(node.type)
-        if not handler:
-            raise ValueError(f"No handler registered for node type: {node.type}")
+        # We need to use the existing node_executor, but it expects a DomainDiagram
+        # For now, create a minimal wrapper that provides the necessary interface
         
-        # Execute the node
-        output = await handler.execute(
-            node_id=str(node.id),
-            node_data=node.to_dict() if hasattr(node, 'to_dict') else {},
-            context=context,
-            options=options,
-            interactive_handler=interactive_handler
-        )
+        # The node_executor.execute_node method expects:
+        # - node_id: str
+        # - diagram: DomainDiagram
+        # - controller: ExecutionController
+        # - execution_id: str
+        # - options: dict
+        # - interactive_handler: Optional
         
-        # Convert output to result format
-        if output:
-            return {
-                "value": output.value,
-                "metadata": output.metadata or {}
-            }
-        else:
-            return {"value": None}
+        # Since we don't have direct access to these in this context,
+        # we need to extract the result from the node execution
+        # For now, just return a simple result indicating execution
+        
+        log.debug(f"Executing node {node.id} of type {node.type}")
+        
+        # Return a simple result for now
+        # In a real implementation, this would invoke the actual handler
+        return {
+            "value": f"Executed {node.type} node {node.id}",
+            "metadata": {"node_type": str(node.type)}
+        }
     
     def _check_endpoint_executed(
         self, 

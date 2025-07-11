@@ -22,7 +22,7 @@ from dipeo.models import (
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from dipeo.application.protocols import SupportsMemory
+    from dipeo.core.dynamic.conversation_manager import ConversationManager
 
 # PersonBatchJobNodeData is a type alias for PersonJobNodeData in TypeScript
 # but not generated in Python, so we create it here
@@ -65,7 +65,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
     ) -> NodeOutput:
         """Execute person_batch_job node."""
         # Get services from context with fallback to services dict
-        conversation_service: "SupportsMemory" = context.get_service("conversation_service") or services.get("conversation_service")
+        conversation_service: "ConversationManager" = context.get_service("conversation_service") or services.get("conversation_service")
         llm_service = self.llm_service or services.get("llm_service")
         diagram: Optional[DomainDiagram] = context.get_service("diagram") or services.get("diagram")
         
@@ -156,7 +156,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         context: ExecutionContextPort,
         inputs: dict[str, Any],
         diagram: Optional[DomainDiagram],
-        conversation_service: "SupportsMemory",
+        conversation_service: "ConversationManager",
         llm_service: Any,
     ) -> dict[str, Any]:
         """Execute a single person job within the batch."""
