@@ -4,9 +4,9 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.services.llm import LLMExecutionResult, LLMExecutor
+from dipeo.application.services.llm_executor import LLMExecutionResult, LLMExecutor
 from dipeo.core.dynamic import Person
-from dipeo.models import DomainDiagram, ForgettingMode, Message, PersonID
+from dipeo.models import DomainDiagram, ForgettingMode, Message, PersonID, MemoryConfig
 from dipeo.utils.arrow import MemoryTransformer, unwrap_inputs
 from dipeo.utils.conversation.state_utils import ConversationStateManager
 from dipeo.application.utils.template import PromptBuilder
@@ -85,6 +85,7 @@ class PersonJobOrchestratorV2:
         prompt: str,
         first_only_prompt: str | None,
         forget_mode: ForgettingMode,
+        memory_config: Any | None,
         model: str,
         api_key_id: str | None,
         system_prompt: str | None,
@@ -111,7 +112,7 @@ class PersonJobOrchestratorV2:
                 person, transformed_inputs, forget_mode
             )
         
-        # Apply forgetting if needed
+        # Apply memory management if needed
         if (
             self._conversation_manager
             and execution_count > 0
@@ -119,19 +120,24 @@ class PersonJobOrchestratorV2:
                 execution_count, forget_mode
             )
         ):
-            self._conversation_manager.apply_forgetting(
-                person_id, forget_mode, execution_id
-            )
+            # If we have a full memory config, apply it to the person
+            if memory_config:
+                mem_config = MemoryConfig(
+                    forget_mode=forget_mode,
+                    max_messages=getattr(memory_config, 'max_messages', None)
+                )
+                person.apply_memory_management(mem_config)
+            else:
+                # Otherwise just apply forgetting
+                self._conversation_manager.apply_forgetting(
+                    person_id, forget_mode, execution_id, execution_count
+                )
         
         # Build prompt
         template_values = self._prompt_builder.prepare_template_values(
             transformed_inputs
         )
 
-        logger.debug(f"Building prompt for person {person_id}, node {node_id}")
-        logger.debug(f"Input prompt: '{prompt}'")
-        logger.debug(f"Input first_only_prompt: '{first_only_prompt}'")
-        logger.debug(f"Execution count: {execution_count}")
         
         built_prompt = self._prompt_builder.build(
             prompt=prompt,
@@ -144,9 +150,6 @@ class PersonJobOrchestratorV2:
         # Skip execution if there's no prompt
         if not built_prompt:
             logger.warning(f"Skipping execution for person {person_id} - no prompt available")
-            logger.debug(f"Prompt: {prompt}, First-only prompt: {first_only_prompt}, Execution count: {execution_count}")
-            logger.debug(f"Template values: {template_values}")
-            logger.debug(f"Transformed inputs: {transformed_inputs}")
             return PersonJobResult(
                 content="",
                 conversation_state={},
@@ -359,10 +362,7 @@ class PersonJobOrchestratorV2:
         conversation_service: Any | None = None,
         execution_id: str | None = None,
     ) -> PersonJobResult:
-        
-        logger.debug(f"execute_person_job_with_validation called for {person_id}, node {node_id}")
-        logger.debug(f"Props: default_prompt='{getattr(props, 'default_prompt', None)}', first_only_prompt='{getattr(props, 'first_only_prompt', None)}'")
-        logger.debug(f"Execution count: {execution_count}")
+
         
         # Get person from diagram
         person = self._get_or_create_person(person_id, diagram, conversation_service)
@@ -379,6 +379,7 @@ class PersonJobOrchestratorV2:
             prompt=props.default_prompt if props.default_prompt is not None else props.first_only_prompt,
             first_only_prompt=props.first_only_prompt,
             forget_mode=forget_mode,
+            memory_config=props.memory_config,
             model=person.llm_config.model,
             api_key_id=person.llm_config.api_key_id,
             system_prompt=person.llm_config.system_prompt,

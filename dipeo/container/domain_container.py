@@ -4,7 +4,7 @@ from dependency_injector import containers, providers
 
 
 def _create_api_key_service(storage):
-    from dipeo.application.services.apikey import APIKeyService
+    from dipeo.application.services.apikey_service import APIKeyService
 
     return APIKeyService(storage=storage)
 
@@ -88,7 +88,7 @@ def _create_diagram_storage_adapter(storage_service, diagram_domain_service):
 
 
 def _create_diagram_storage_domain_service(storage_service):
-    from dipeo.application.services.diagram import DiagramService
+    from dipeo.application.services.diagram_service import DiagramService
 
     return DiagramService(storage_service=storage_service)
 
@@ -123,7 +123,7 @@ def _create_person_job_services(memory_transformer, conversation_manager=None):
         PersonJobOutputBuilder,
     )
     from dipeo.application.execution.person_job.orchestrator_v2 import PersonJobOrchestratorV2
-    from dipeo.application.services.llm import LLMExecutor
+    from dipeo.application.services.llm_executor import LLMExecutor
 
     # Import new focused services
     from dipeo.application.utils.template import PromptBuilder

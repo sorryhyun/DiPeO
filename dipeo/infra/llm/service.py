@@ -7,7 +7,7 @@ from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.ports import LLMServicePort
 from dipeo.models import ChatResult
 from dipeo.models import LLMService as LLMServiceEnum
-from dipeo.application.services.apikey import APIKeyService
+from dipeo.application.services.apikey_service import APIKeyService
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -16,6 +16,7 @@ from tenacity import (
 )
 
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.infra.config.settings import get_settings
 
 from .factory import create_adapter
 
@@ -26,6 +27,7 @@ class LLMInfraService(BaseService, LLMServicePort):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
+        self._settings = get_settings()
 
     async def initialize(self) -> None:
         pass
@@ -64,15 +66,25 @@ class LLMInfraService(BaseService, LLMServicePort):
 
         return entry["adapter"]
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-    )
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
-        return client.chat(messages=messages, **kwargs)
+        # Create retry decorator with configurable delays
+        retry_decorator = retry(
+            stop=stop_after_attempt(self._settings.llm_max_retries),
+            wait=wait_exponential(
+                multiplier=1,
+                min=self._settings.llm_retry_min_wait,
+                max=self._settings.llm_retry_max_wait
+            ),
+            retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        )
+        
+        @retry_decorator
+        async def _make_call():
+            return client.chat(messages=messages, **kwargs)
+        
+        return await _make_call()
 
     async def complete(  # type: ignore[override]
         self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs

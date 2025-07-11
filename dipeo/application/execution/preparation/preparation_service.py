@@ -12,8 +12,8 @@ from dipeo.diagram import (
 )
 from dipeo.models import DiagramMetadata, DomainDiagram
 
-from dipeo.application.services.apikey import APIKeyService as APIKeyDomainService
-from dipeo.application.services.diagram import DiagramService as DiagramStorageDomainService
+from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
+from dipeo.application.services.diagram_service import DiagramService as DiagramStorageDomainService
 
 from ..validators import DiagramValidator
 from ...resolution import DiagramResolver

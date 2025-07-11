@@ -14,10 +14,10 @@ if TYPE_CHECKING:
     from dipeo.infra.adapters.notion import NotionAPIService
     from dipeo.infra.services.api import APIService
     from dipeo.infra.services.file import FileOperationsService
-    from dipeo.application.services.apikey import APIKeyService
+    from dipeo.application.services.apikey_service import APIKeyService
     from dipeo.core.dynamic.conversation_manager import ConversationManager
     from dipeo.infra.persistence.diagram import DiagramFileRepository
-    from dipeo.application.services.diagram import DiagramService as DiagramStorageDomainService
+    from dipeo.application.services.diagram_service import DiagramService as DiagramStorageDomainService
     from dipeo.infra.database import DBOperationsDomainService
     from dipeo.application.execution.flow_control_service import FlowControlService
     from dipeo.application.execution.use_cases import (

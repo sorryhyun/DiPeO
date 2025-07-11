@@ -41,6 +41,8 @@ class Settings:
         self.default_llm_model = os.getenv("DIPEO_DEFAULT_LLM_MODEL", "gpt-4.1-nano")
         self.llm_timeout = int(os.getenv("DIPEO_LLM_TIMEOUT", "300"))
         self.llm_max_retries = int(os.getenv("DIPEO_LLM_MAX_RETRIES", "3"))
+        self.llm_retry_min_wait = float(os.getenv("DIPEO_LLM_RETRY_MIN_WAIT", "4.0"))
+        self.llm_retry_max_wait = float(os.getenv("DIPEO_LLM_RETRY_MAX_WAIT", "10.0"))
 
         # API settings
         self.api_max_retries = int(os.getenv("DIPEO_API_MAX_RETRIES", "3"))
@@ -53,6 +55,8 @@ class Settings:
         self.parallel_execution = (
             os.getenv("DIPEO_PARALLEL_EXECUTION", "true").lower() == "true"
         )
+        self.node_ready_poll_interval = float(os.getenv("DIPEO_NODE_READY_POLL_INTERVAL", "0.01"))
+        self.node_ready_max_polls = int(os.getenv("DIPEO_NODE_READY_MAX_POLLS", "100"))
 
         # Security settings
         self.cors_origins = self._parse_list(os.getenv("DIPEO_CORS_ORIGINS", "*"))
@@ -161,6 +165,8 @@ class Settings:
                 "default_model": self.default_llm_model,
                 "timeout": self.llm_timeout,
                 "max_retries": self.llm_max_retries,
+                "retry_min_wait": self.llm_retry_min_wait,
+                "retry_max_wait": self.llm_retry_max_wait,
             },
             "api": {
                 "max_retries": self.api_max_retries,
@@ -171,6 +177,8 @@ class Settings:
                 "timeout": self.execution_timeout,
                 "node_timeout": self.node_timeout,
                 "parallel": self.parallel_execution,
+                "node_ready_poll_interval": self.node_ready_poll_interval,
+                "node_ready_max_polls": self.node_ready_max_polls,
             },
             "security": {
                 "cors_origins": self.cors_origins,

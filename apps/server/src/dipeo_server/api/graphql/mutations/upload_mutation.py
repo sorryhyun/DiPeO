@@ -17,7 +17,7 @@ from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
 )
-from dipeo.application.services.apikey import APIKeyService
+from dipeo.application.services.apikey_service import APIKeyService
 from strawberry.file_uploads import Upload
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION

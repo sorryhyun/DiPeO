@@ -54,8 +54,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         # Log input messages
         logger.info(f"OpenAI API Call - Model: {self.model_name}")
         logger.info(f"Input messages: {input_messages}")
-        print(f"[OPENAI DEBUG] Model: {self.model_name}")
-        print(f"[OPENAI DEBUG] Input messages: {input_messages}")
         
         # Convert tools to API format
         api_tools = []

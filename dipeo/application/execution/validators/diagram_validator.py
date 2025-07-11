@@ -5,7 +5,7 @@ from typing import Any
 from dipeo.core import ValidationError
 from dipeo.models import DomainDiagram
 
-from dipeo.application.services.apikey import APIKeyService
+from dipeo.application.services.apikey_service import APIKeyService
 
 
 class DiagramValidator:

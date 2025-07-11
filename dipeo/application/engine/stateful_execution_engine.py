@@ -9,6 +9,7 @@ from dipeo.application.execution.context import UnifiedExecutionContext
 from dipeo.application.execution.iterators import AsyncExecutionIterator
 from dipeo.application.execution.stateful_diagram import StatefulExecutableDiagram
 from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
+from dipeo.infra.config.settings import get_settings
 
 from .node_executor import NodeExecutor
 
@@ -32,6 +33,7 @@ class StatefulExecutionEngine:
         self.service_registry = service_registry
         self.observers = observers or []
         self.node_executor = NodeExecutor(service_registry, observers)
+        self._settings = get_settings()
     
     async def execute_with_executable(
         self,
@@ -66,7 +68,9 @@ class StatefulExecutionEngine:
                     context, options, interactive_handler, 
                     diagram=None,  # Will be retrieved from context
                     controller=controller
-                )
+                ),
+                node_ready_poll_interval=self._settings.node_ready_poll_interval,
+                max_poll_retries=self._settings.node_ready_max_polls
             )
             
             # Execute using iterator pattern
@@ -74,7 +78,8 @@ class StatefulExecutionEngine:
             async for step in iterator:
                 if not step.nodes:
                     # Empty step - waiting for running nodes
-                    await asyncio.sleep(0.1)
+                    # Use shorter interval from settings for more responsive execution
+                    await asyncio.sleep(self._settings.node_ready_poll_interval)
                     continue
                 
                 step_count += 1
@@ -94,9 +99,7 @@ class StatefulExecutionEngine:
                 
                 # Check for completion
                 is_complete = stateful_diagram.is_complete()
-                log.debug(f"After step {step_count}, is_complete={is_complete}")
                 if is_complete:
-                    log.info(f"Execution marked as complete after step {step_count}")
                     break
             
             # Notify completion

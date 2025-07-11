@@ -7,6 +7,7 @@ from dipeo.models import (
     MemoryConfig, ForgettingMode
 )
 from .conversation import Conversation, ConversationContext
+from .memory_filters import MemoryView, MemoryFilterFactory, MemoryLimiter
 
 if TYPE_CHECKING:
     from dipeo.core.ports import LLMServicePort
@@ -21,13 +22,19 @@ class Person:
     """
     
     def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig, 
-                 conversation_manager: Optional["ConversationManager"] = None):
+                 conversation_manager: Optional["ConversationManager"] = None,
+                 memory_view: MemoryView = MemoryView.ALL_INVOLVED):
         self.id = id
         self.name = name
         self.llm_config = llm_config
         self._conversation_manager = conversation_manager
         # For backward compatibility, maintain a local conversation if no manager provided
         self._local_conversation: Optional[Conversation] = Conversation() if not conversation_manager else None
+        
+        # Memory management
+        self.memory_view = memory_view
+        self._memory_filter = MemoryFilterFactory.create(memory_view)
+        self._memory_limiter: Optional[MemoryLimiter] = None
     
     def add_message(self, message: Message) -> None:
         if self._conversation_manager:
@@ -45,16 +52,23 @@ class Person:
         conversation = self._get_conversation()
         return conversation.get_context() if conversation else ConversationContext(messages=[], metadata=None, context={})
     
-    def get_messages(self) -> List[Message]:
+    def get_messages(self, memory_view: Optional[MemoryView] = None) -> List[Message]:
         conversation = self._get_conversation()
         if not conversation:
             return []
         
-        # Return messages where this person is involved
-        return [
-            msg for msg in conversation.messages
-            if msg.from_person_id == self.id or msg.to_person_id == self.id
-        ]
+        # Use specified view or default view
+        view = memory_view or self.memory_view
+        filter = self._memory_filter if view == self.memory_view else MemoryFilterFactory.create(view)
+        
+        # Apply memory filter
+        filtered_messages = filter.filter(conversation.messages, self.id)
+        
+        # Apply memory limit if configured
+        if self._memory_limiter:
+            filtered_messages = self._memory_limiter.limit(filtered_messages)
+        
+        return filtered_messages
     
     def get_latest_message(self) -> Optional[Message]:
         messages = self.get_messages()
@@ -75,6 +89,27 @@ class Person:
     
     def get_message_count(self) -> int:
         return len(self.get_messages())
+    
+    def set_memory_view(self, view: MemoryView) -> None:
+        """Change the default memory view for this person."""
+        self.memory_view = view
+        self._memory_filter = MemoryFilterFactory.create(view)
+    
+    def set_memory_limit(self, max_messages: int, preserve_system: bool = True) -> None:
+        """Set a memory limit for this person's view of the conversation."""
+        if max_messages <= 0:
+            self._memory_limiter = None
+        else:
+            self._memory_limiter = MemoryLimiter(max_messages, preserve_system)
+    
+    def get_memory_config(self) -> Dict[str, Any]:
+        """Get current memory configuration."""
+        return {
+            "view": self.memory_view.value,
+            "filter_description": self._memory_filter.describe(),
+            "max_messages": self._memory_limiter.max_messages if self._memory_limiter else None,
+            "preserve_system": self._memory_limiter.preserve_system if self._memory_limiter else None
+        }
     
     def update_context(self, context_updates: Dict[str, Any]) -> None:
         conversation = self._get_conversation()
@@ -156,34 +191,61 @@ class Person:
             **llm_options
         )
     
-    def forget(self, memory_config: MemoryConfig) -> List[Message]:
-        """Apply memory management rules to forget old messages."""
-        forgotten = []
+    def apply_memory_management(self, memory_config: MemoryConfig) -> int:
+        """Apply memory management rules including forgetting and limits.
         
+        Returns:
+            Number of messages affected by memory management
+        """
+        affected_count = 0
+        
+        # Apply memory limit if specified
+        if memory_config.max_messages and memory_config.max_messages > 0:
+            self.set_memory_limit(int(memory_config.max_messages))
+        
+        # Apply forgetting mode
         if memory_config.forget_mode == ForgettingMode.no_forget:
-            # Never forget anything
-            return forgotten
+            return 0
         
-        if memory_config.forget_mode == ForgettingMode.on_every_turn:
-            # For new architecture, delegate to ConversationManager
-            if self._conversation_manager:
-                count = self._conversation_manager.apply_forgetting(
-                    str(self.id), 
-                    memory_config.forget_mode,
-                    getattr(self._conversation_manager, '_current_execution_id', None)
-                )
-                # Can't return actual forgotten messages without more info
-                return []
-            elif self._local_conversation and memory_config.max_messages:
-                # Fallback for backward compatibility
-                forgotten = self._local_conversation.truncate_to_recent(
-                    int(memory_config.max_messages)
-                )
+        if self._conversation_manager:
+            # Delegate to ConversationManager
+            affected_count = self._conversation_manager.apply_forgetting(
+                str(self.id), 
+                memory_config.forget_mode,
+                getattr(self._conversation_manager, '_current_execution_id', None)
+            )
+        elif self._local_conversation:
+            # Backward compatibility: apply forgetting locally
+            if memory_config.forget_mode == ForgettingMode.on_every_turn:
+                # Keep only system messages and last exchange
+                original_count = len(self._local_conversation.messages)
+                messages = self._local_conversation.messages
+                self._local_conversation.clear()
+                
+                # Keep system messages
+                for msg in messages:
+                    if msg.from_person_id == PersonID("system"):
+                        self._local_conversation.add_message(msg)
+                
+                # Keep last exchange if any
+                if messages:
+                    self._local_conversation.add_message(messages[-1])
+                
+                affected_count = original_count - len(self._local_conversation.messages)
+            
+            elif memory_config.forget_mode == ForgettingMode.upon_request:
+                affected_count = len(self._local_conversation.messages)
+                self._local_conversation.clear()
         
-        # Note: ForgettingMode.upon_request would be handled externally
-        # by explicitly calling this method when needed
+        return affected_count
+    
+    def forget(self, memory_config: MemoryConfig) -> List[Message]:
+        """Apply memory management rules to forget old messages.
         
-        return forgotten
+        Deprecated: Use apply_memory_management() instead.
+        """
+        self.apply_memory_management(memory_config)
+        return []  # Can't return forgotten messages in new architecture
     
     def _prepare_messages_for_llm(self) -> List[Dict[str, str]]:
         llm_messages = []

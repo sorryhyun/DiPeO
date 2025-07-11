@@ -60,7 +60,8 @@ class ConversationManager(Protocol):
         self,
         person_id: str,
         mode: ForgettingMode,
-        execution_id: Optional[str] = None
+        execution_id: Optional[str] = None,
+        execution_count: int = 0
     ) -> int:
         """Apply a forgetting strategy to a person's conversation.
         

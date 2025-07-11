@@ -55,16 +55,5 @@ class SupportsAPIKey(Protocol):
     ) -> dict: ...
 
 
-@runtime_checkable
-class SupportsExecution(Protocol):
-    """Protocol for diagram execution operations."""
-
-    async def execute_diagram(
-        self,
-        diagram: Dict[str, Any],
-        options: Dict[str, Any],
-        execution_id: str,
-        interactive_handler: Optional[Callable] = None,
-    ) -> AsyncIterator[Dict[str, Any]]: ...
 
 

@@ -18,6 +18,10 @@ from dipeo.models import (
     PersonLLMConfig,
 )
 from dipeo.application.services.person_manager_impl import PersonManagerImpl
+from dipeo.core.dynamic.memory_filters import (
+    MemoryView, MemoryFilterFactory, MemoryLimiter
+)
+from dipeo.core.dynamic.forgetting_strategies import ForgettingStrategyFactory
 
 
 class ConversationManagerImpl(BaseService, ConversationManager):
@@ -98,34 +102,31 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         self,
         person_id: str,
         mode: ForgettingMode,
-        execution_id: str | None = None
+        execution_id: str | None = None,
+        execution_count: int = 0
     ) -> int:
-        """Apply forgetting strategy to a person's memory view."""
+        """Apply forgetting strategy to a person's memory view.
+        
+        Note: In the global conversation model, forgetting doesn't delete messages
+        from the global conversation. Instead, it changes what the person "remembers"
+        by adjusting their memory view or filters.
+        """
         person_id_obj = PersonID(person_id)
         
         if not self.person_manager.person_exists(person_id_obj):
             return 0
         
         person = self.person_manager.get_person(person_id_obj)
-        original_count = person.get_message_count()
         
-        if mode == ForgettingMode.on_every_turn:
-            # Keep only messages where person is not the sender
-            messages = person.get_messages()
-            person.clear_conversation()
-            
-            for msg in messages:
-                if str(msg.from_person_id) != person_id:
-                    person.add_message(msg)
-            
-            return original_count - person.get_message_count()
+        # Create forgetting strategy
+        strategy = ForgettingStrategyFactory.create(mode)
         
-        elif mode == ForgettingMode.upon_request:
-            # Clear all messages from person's memory
-            person.clear_conversation()
-            return original_count
+        # Create a minimal memory config if needed
+        from dipeo.models import MemoryConfig
+        memory_config = MemoryConfig(forget_mode=mode)
         
-        return 0
+        # Apply the strategy
+        return strategy.apply(person, memory_config, execution_count)
     
     
     

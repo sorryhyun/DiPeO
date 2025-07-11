@@ -5,7 +5,6 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo.core import BaseService
-from dipeo.application.protocols import SupportsExecution
 from dipeo.models import ExecutionStatus
 
 from dipeo.application.execution.observers import StreamingObserver
@@ -20,7 +19,7 @@ if TYPE_CHECKING:
     from dipeo.models import DomainDiagram
     from ... import ExecutionController
 
-class ExecuteDiagramUseCase(BaseService, SupportsExecution):
+class ExecuteDiagramUseCase(BaseService):
 
     def __init__(
         self,

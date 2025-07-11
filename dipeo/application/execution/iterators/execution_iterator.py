@@ -176,7 +176,9 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         self,
         stateful_diagram: StatefulExecutableDiagram,
         max_parallel_nodes: int = 10,
-        node_executor: Optional[Callable[[ExecutableNode], Any]] = None  # Can be sync or async
+        node_executor: Optional[Callable[[ExecutableNode], Any]] = None,  # Can be sync or async
+        node_ready_poll_interval: float = 0.01,  # Reduced from 0.1 for more responsive execution
+        max_poll_retries: int = 100  # Increased to maintain same total wait time (1s)
     ):
         """Initialize the async execution iterator.
         
@@ -184,6 +186,8 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             stateful_diagram: The stateful diagram to iterate over
             max_parallel_nodes: Maximum nodes to execute in parallel
             node_executor: Optional async function to execute nodes
+            node_ready_poll_interval: How long to wait between polling for ready nodes (seconds)
+            max_poll_retries: Maximum number of polling attempts before giving up
         """
         self._diagram = stateful_diagram
         self._max_parallel = max_parallel_nodes
@@ -191,6 +195,8 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         self._cancelled = False
         self._current_step = 0
         self._running_tasks: Set[asyncio.Task] = set()
+        self._node_ready_poll_interval = node_ready_poll_interval
+        self._max_poll_retries = max_poll_retries
     
     def __aiter__(self) -> AsyncIterator[ExecutionStep]:
         """Return the async iterator."""
@@ -214,9 +220,9 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             await self._cleanup_tasks()
             raise StopAsyncIteration("Execution complete")
         
-        # Wait a bit if we have running tasks but no ready nodes
+        # Poll for ready nodes with configurable interval
         retry_count = 0
-        while retry_count < 10:  # Retry up to 10 times with delays
+        while retry_count < self._max_poll_retries:
             ready_nodes = self._diagram.next()
             
             if ready_nodes:
@@ -227,8 +233,12 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
                 await self._cleanup_tasks()
                 raise StopAsyncIteration("No nodes ready and none running - possible deadlock")
             
-            # Wait a bit for running nodes to complete
-            await asyncio.sleep(0.1)
+            # Use shorter poll interval for more responsive execution
+            if self._node_ready_poll_interval > 0:
+                await asyncio.sleep(self._node_ready_poll_interval)
+            else:
+                # If interval is 0, yield control without sleeping
+                await asyncio.sleep(0)
             retry_count += 1
         
         if not ready_nodes:
