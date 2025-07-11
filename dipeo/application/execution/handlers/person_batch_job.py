@@ -16,11 +16,13 @@ from dipeo.models import (
     DomainPerson,
     NodeOutput,
     PersonJobNodeData,
+    Message,
+    PersonID,
 )
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from dipeo.application.services.conversation import ConversationMemoryService
+    from dipeo.application.protocols import SupportsMemory
 
 # PersonBatchJobNodeData is a type alias for PersonJobNodeData in TypeScript
 # but not generated in Python, so we create it here
@@ -63,7 +65,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
     ) -> NodeOutput:
         """Execute person_batch_job node."""
         # Get services from context with fallback to services dict
-        conversation_service: "ConversationMemoryService" = context.get_service("conversation_service") or services.get("conversation_service")
+        conversation_service: "SupportsMemory" = context.get_service("conversation_service") or services.get("conversation_service")
         llm_service = self.llm_service or services.get("llm_service")
         diagram: Optional[DomainDiagram] = context.get_service("diagram") or services.get("diagram")
         
@@ -154,7 +156,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         context: ExecutionContextPort,
         inputs: dict[str, Any],
         diagram: Optional[DomainDiagram],
-        conversation_service: "ConversationMemoryService",
+        conversation_service: "SupportsMemory",
         llm_service: Any,
     ) -> dict[str, Any]:
         """Execute a single person job within the batch."""
@@ -213,15 +215,21 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                         # Extract the last user message from conversation
                         if isinstance(value, list):
                             for msg in reversed(value):
-                                if msg.get("role") == "user":
+                                if isinstance(msg, dict) and msg.get("role") == "user":
                                     combined_content_parts.append(msg.get("content", ""))
+                                    break
+                                elif isinstance(msg, Message) and msg.from_person_id == "system" and msg.message_type == "system_to_person":
+                                    combined_content_parts.append(msg.content)
                                     break
                     elif key == "default":
                         # Handle conversation data nested under 'default' key
                         if is_conversation(value):
                             for msg in reversed(value):
-                                if msg.get("role") == "user":
+                                if isinstance(msg, dict) and msg.get("role") == "user":
                                     combined_content_parts.append(msg.get("content", ""))
+                                    break
+                                elif isinstance(msg, Message) and msg.from_person_id == "system" and msg.message_type == "system_to_person":
+                                    combined_content_parts.append(msg.content)
                                     break
                         else:
                             combined_content_parts.append(str(value))
@@ -248,20 +256,39 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
             if prompt:
                 message_builder.user(prompt)
 
-        # Build messages with system prompt
+        # Build messages list
         messages = []
+        
+        # Handle system prompt if available
         if person.llm_config and person.llm_config.system_prompt:
+            # For now, we keep using dictionary format for LLM compatibility
             messages.append(
                 {"role": "system", "content": person.llm_config.system_prompt}
             )
         
+        # Get messages from conversation service
+        # Note: The conversation service may still return dictionaries for backward compatibility
+        conversation_messages = conversation_service.get_messages(person_id)
+        
         # Convert messages, mapping 'external' to 'system' for LLM compatibility
-        for msg in conversation_service.get_messages(person_id):
-            if msg["role"] == "external":
-                # Convert external messages to system messages for LLM
-                messages.append({"role": "system", "content": msg["content"]})
+        for msg in conversation_messages:
+            if isinstance(msg, dict):
+                # Handle dictionary format (backward compatibility)
+                if msg.get("role") == "external":
+                    # Convert external messages to system messages for LLM
+                    messages.append({"role": "system", "content": msg["content"]})
+                else:
+                    messages.append(msg)
             else:
-                messages.append(msg)
+                # Handle Message object format
+                # Convert Message to dictionary for LLM API
+                if msg.from_person_id == "system":
+                    role = "system"
+                elif msg.from_person_id == PersonID(person_id):
+                    role = "assistant"
+                else:
+                    role = "user"
+                messages.append({"role": role, "content": msg.content})
 
         # Call LLM
         result: ChatResult = await llm_service.complete(

@@ -16,7 +16,6 @@ from dipeo.core.ports import (
     NotionServicePort,
 )
 from dipeo.application.services.apikey import APIKeyService
-from dipeo.application.services.conversation import ConversationMemoryService
 from dipeo.infra.database import DBOperationsDomainService
 from dipeo.utils.diagram import DiagramBusinessLogic as DiagramDomainService
 from dipeo.infra.persistence.diagram import (
@@ -106,7 +105,7 @@ def _validate_protocol_compliance(container: ServerContainer) -> None:
         (
             container.domain.conversation_service(),
             SupportsMemory,
-            "ConversationMemoryService",
+            "ConversationMemoryServiceV2",
         ),
         (
             container.application.execution_service(),

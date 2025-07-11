@@ -111,12 +111,10 @@ class PersonJobOrchestratorV2:
         person = self._get_or_create_person(person_id, diagram, conversation_service)
         
         # Handle memory transformation
-        logger.debug(f"Raw inputs for {person_id}: {list(inputs.keys())}")
         transformed_inputs = self._apply_memory_transformation(
             inputs, forget_mode, execution_count
         )
-        logger.debug(f"Transformed inputs for {person_id}: {list(transformed_inputs.keys())}")
-        
+
         # Handle conversation inputs
         if self._conversation_processor.has_conversation_state_input(transformed_inputs, diagram):
             self._rebuild_conversation_from_inputs(
@@ -139,10 +137,7 @@ class PersonJobOrchestratorV2:
         template_values = self._prompt_builder.prepare_template_values(
             transformed_inputs
         )
-        
-        # Debug logging
-        logger.debug(f"Template values for {person_id}: {template_values}")
-        logger.debug(f"Prompt: '{prompt}', First only: '{first_only_prompt}', Exec count: {execution_count}")
+
         
         built_prompt = self._prompt_builder.build_prompt(
             default_prompt=prompt,
@@ -152,8 +147,7 @@ class PersonJobOrchestratorV2:
             template_substitutor=None,
         )
         
-        logger.debug(f"Built prompt for {person_id}: '{built_prompt}'")
-        
+
         # Skip execution if there's no prompt
         if not built_prompt:
             return PersonJobResult(
@@ -165,7 +159,6 @@ class PersonJobOrchestratorV2:
             )
         
         # Use Person's chat method if we have a proper LLM service
-        logger.debug(f"Checking llm_client: has 'complete'? {hasattr(llm_client, 'complete')}")
         if hasattr(llm_client, 'complete'):
             # Add user message
             user_message = Message(
@@ -184,7 +177,6 @@ class PersonJobOrchestratorV2:
                 person.add_message(user_message)
             
             # Execute with Person's chat method
-            logger.debug(f"Executing chat for {person_id} with message: '{user_message.content}'")
             result = await person.chat(
                 message=built_prompt,  # Pass the actual prompt
                 llm_service=llm_client,
@@ -205,11 +197,7 @@ class PersonJobOrchestratorV2:
             messages = self._prepare_messages_for_execution(
                 person, system_prompt, built_prompt
             )
-            
-            logger.debug(f"Prepared messages for {person_id}: {len(messages)} messages")
-            for i, msg in enumerate(messages):
-                logger.debug(f"  Message {i}: role={msg.get('role')}, content_len={len(msg.get('content', ''))}")
-            
+
             # Skip if no messages or only empty messages
             if not messages or all(not msg.get('content') for msg in messages):
                 return PersonJobResult(

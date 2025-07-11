@@ -48,7 +48,7 @@ def initialize_container() -> ServerContainer:
         from dipeo.infra.persistence.diagram import DiagramFileRepository, DiagramStorageAdapter
         from dipeo.utils.validation import ValidationDomainService
         from dipeo.utils.text import TextProcessingDomainService
-        from dipeo.application.services.conversation import ConversationMemoryService
+        from dipeo.application.services.conversation import ConversationMemoryServiceV2
         from dipeo.application.execution.preparation import PrepareDiagramForExecutionUseCase
         
         _container.infra.override_providers(
@@ -79,8 +79,9 @@ def initialize_container() -> ServerContainer:
             validation_service=providers.Singleton(ValidationDomainService),
             text_processing_service=providers.Singleton(TextProcessingDomainService),
             conversation_service=providers.Singleton(
-                ConversationMemoryService,
+                ConversationMemoryServiceV2,
                 memory_service=_container.infra.memory_service,
+                conversation_manager=_container.domain.conversation_manager,
             ),
         )
         

@@ -74,7 +74,7 @@ def validate_protocol_compliance(container) -> None:
         (container.domain.api_key_service(), SupportsAPIKey, "APIKeyService"),
         (container.infra.llm_service(), LLMServicePort, "LLMInfrastructureService"),
         (container.infra.file_service(), FileServicePort, "FileSystemRepository"),
-        (container.domain.conversation_service(), SupportsMemory, "ConversationMemoryService"),
+        (container.domain.conversation_service(), SupportsMemory, "ConversationMemoryServiceV2"),
         (container.application.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
         (container.infra.notion_service(), NotionServicePort, "NotionAPIService"),
         (container.domain.diagram_storage_service(), DiagramPort, "DiagramFileRepository"),

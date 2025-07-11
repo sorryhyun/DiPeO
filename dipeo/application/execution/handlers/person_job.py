@@ -9,6 +9,7 @@ from dipeo.models import (
     NodeOutput,
     PersonJobNodeData,
     ForgettingMode,
+    Message,
 )
 from pydantic import BaseModel
 
@@ -135,16 +136,32 @@ class PersonJobNodeHandler(BaseNodeHandler):
         if result.conversation_state:
             # conversation_state is now a dictionary with 'messages' key
             messages = result.conversation_state.get("messages", [])
-            output_value["conversation"] = [
-                {
-                    "role": msg.get("role"),
-                    "content": msg.get("content"),
-                    "tool_calls": msg.get("tool_calls"),
-                    "tool_call_id": msg.get("tool_call_id"),
-                    "person_label": result.metadata.get("person") if result.metadata else None,
-                }
-                for msg in messages
-            ]
+            output_value["conversation"] = []
+            
+            for msg in messages:
+                if isinstance(msg, dict):
+                    # Handle dictionary format (backward compatibility)
+                    output_value["conversation"].append({
+                        "role": msg.get("role"),
+                        "content": msg.get("content"),
+                        "tool_calls": msg.get("tool_calls"),
+                        "tool_call_id": msg.get("tool_call_id"),
+                        "person_label": result.metadata.get("person") if result.metadata else None,
+                    })
+                elif isinstance(msg, Message):
+                    # Handle Message object format
+                    # Convert Message to dictionary format for output
+                    role = "system" if msg.from_person_id == "system" else "user"
+                    if msg.message_type == "person_to_system":
+                        role = "assistant"
+                    
+                    output_value["conversation"].append({
+                        "role": role,
+                        "content": msg.content,
+                        "tool_calls": msg.metadata.get("tool_calls") if msg.metadata else None,
+                        "tool_call_id": msg.metadata.get("tool_call_id") if msg.metadata else None,
+                        "person_label": result.metadata.get("person") if result.metadata else None,
+                    })
         
         # Build metadata
         metadata = {}

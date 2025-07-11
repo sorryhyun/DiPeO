@@ -41,7 +41,6 @@ class FlowControlService:
         """
         # Check if node can still execute
         if not self.can_node_execute(node, node_exec_counts):
-            log.debug(f"Node {node.id} cannot execute - exceeded max iterations")
             return False
         
         # Check if node has already executed
@@ -51,20 +50,13 @@ class FlowControlService:
             if node.type == NodeType.person_job and node.data:
                 max_iter = node.data.get("max_iteration", 1)
                 if exec_count >= max_iter:
-                    # Node has reached its max iterations
-                    log.debug(f"Node {node.id} has reached max iterations: exec_count={exec_count}, max_iter={max_iter}")
                     return False
-                
-                # For nodes that support multiple iterations and haven't reached max,
-                # always allow re-execution if dependencies are satisfied
-                # This enables iteration loops to work properly
-                log.debug(f"Node {node.id} can iterate: exec_count={exec_count}, max_iter={max_iter}")
-        
+
+
         # Check dependencies
         deps_satisfied = self._are_dependencies_satisfied(
             node, diagram, executed_nodes, node_outputs, node_exec_counts
         )
-        log.debug(f"Node {node.id} deps_satisfied={deps_satisfied}")
         return deps_satisfied
     
     def get_ready_nodes(
@@ -364,22 +356,19 @@ class FlowControlService:
         # 1. There's a path from this node to another node and back, OR
         # 2. The node has a self-loop
         
-        log.debug(f"Checking new inputs for {node.id}, executed_nodes: {executed_nodes}")
-        
+
         # First, check for self-loops
         for arrow in diagram.arrows:
             source_node_id = extract_node_id_from_handle(arrow.source)
             target_node_id = extract_node_id_from_handle(arrow.target)
             if source_node_id == node.id and target_node_id == node.id:
-                log.debug(f"Node {node.id} has self-loop")
                 return True
         
         # For person_job nodes, check if there's a feedback loop through downstream nodes
         if node.type == NodeType.person_job:
             # Check if any downstream nodes have executed and have paths back to this node
             downstream_nodes = self.get_next_nodes(node.id, diagram)
-            log.debug(f"Node {node.id} downstream nodes: {downstream_nodes}")
-            
+
             for downstream_id in downstream_nodes:
                 if downstream_id in executed_nodes:
                     # Check if this downstream node has a path back to our node
@@ -390,7 +379,6 @@ class FlowControlService:
                         return True
         
         # No feedback loop found - node should not execute again
-        log.debug(f"No feedback loop found for {node.id}")
         return False
     
     def _has_path_from_to(self, diagram: DomainDiagram, from_id: str, to_id: str) -> bool:
@@ -473,7 +461,6 @@ class FlowControlService:
                 if source_node and source_node.type == NodeType.condition:
                     # This node depends on a condition output
                     if source_node_id not in executed_nodes:
-                        log.debug(f"Node {node.id} depends on unexecuted condition {source_node_id}")
                         return False
                     
                     # Check if the condition output matches the required branch
@@ -481,10 +468,8 @@ class FlowControlService:
                     if condition_output and hasattr(condition_output, 'value'):
                         # Check if the condition outputted to the correct branch
                         if source_handle.value == "condtrue" and "condtrue" not in condition_output.value:
-                            log.debug(f"Node {node.id} requires condtrue but condition outputted false")
                             return False
                         elif source_handle.value == "condfalse" and "condfalse" not in condition_output.value:
-                            log.debug(f"Node {node.id} requires condfalse but condition outputted true")
                             return False
         
         # Get dependencies for this node
