@@ -61,6 +61,9 @@ class StatefulExecutionEngine:
             # Get controller from context's execution state
             controller = getattr(context.execution_state, '_controller', None)
             
+            # Store executable diagram reference for node executor
+            self._executable_diagram = executable_diagram
+            
             iterator = AsyncExecutionIterator(
                 stateful_diagram=stateful_diagram,
                 max_parallel_nodes=max_parallel,

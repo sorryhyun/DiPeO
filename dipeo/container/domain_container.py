@@ -11,13 +11,13 @@ def _create_api_key_service(storage):
 
 def _create_api_business_logic():
     """Create pure API business logic utilities."""
-    from dipeo.utils.api import APIBusinessLogic
+    from dipeo.domain.api.services import APIBusinessLogic
     return APIBusinessLogic()
 
 
 def _create_file_business_logic():
     """Create pure file business logic utilities."""
-    from dipeo.utils.file import FileBusinessLogic
+    from dipeo.domain.file.services import FileBusinessLogic
     return FileBusinessLogic()
 
 
@@ -34,9 +34,9 @@ def _create_template_service():
 
 
 def _create_validation_service():
-    from dipeo.utils.validation import ValidationDomainService
+    from dipeo.core.base import BaseValidator
 
-    return ValidationDomainService()
+    return BaseValidator()
 
 
 def _create_arrow_processor():
@@ -66,7 +66,7 @@ def _create_conversation_manager():
 
 
 def _create_diagram_business_logic():
-    from dipeo.utils.diagram import DiagramBusinessLogic
+    from dipeo.domain.diagram.services import DiagramBusinessLogic
     return DiagramBusinessLogic()
 
 
@@ -94,15 +94,16 @@ def _create_diagram_storage_domain_service(storage_service):
 
 
 def _create_diagram_validator(api_key_service):
-    from dipeo.application.execution.validators import DiagramValidator
+    from dipeo.domain.diagram.services import DiagramValidator
 
     return DiagramValidator(api_key_service)
 
 
-def _create_db_operations_service(file_service, validation_service):
+def _create_db_operations_service(file_service):
     from dipeo.infra.database import DBOperationsDomainService
+    from dipeo.domain.db.services import DBValidator
 
-    return DBOperationsDomainService(file_service, validation_service)
+    return DBOperationsDomainService(file_service, DBValidator())
 
 
 def _create_condition_evaluation_service():
@@ -127,7 +128,7 @@ def _create_person_job_services(memory_transformer, conversation_manager=None):
 
     # Import new focused services
     from dipeo.application.utils.template import PromptBuilder
-    from dipeo.utils.conversation.state_utils import ConversationStateManager
+    from dipeo.domain.conversation.services import ConversationStateManager
     
     # Create services needed by the orchestrator
     conversation_processor = ConversationProcessingService()
@@ -214,7 +215,6 @@ class DomainContainer(containers.DeclarativeContainer):
     db_operations_service = providers.Singleton(
         _create_db_operations_service,
         file_service=infra.file_service,
-        validation_service=validation_service,
     )
     
     # Condition evaluation

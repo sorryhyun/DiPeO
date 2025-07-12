@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Union
 
 from dipeo.core.ports import FileServicePort
-from dipeo.utils.validation import ValidationDomainService, BusinessRuleViolationError
+from dipeo.core import ValidationError
+from dipeo.domain.db.services import DBValidator
 
 
 class DBOperationsDomainService:
@@ -13,7 +14,7 @@ class DBOperationsDomainService:
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
     def __init__(
-        self, file_service: FileServicePort, validation_service: ValidationDomainService
+        self, file_service: FileServicePort, validation_service: DBValidator
     ):
         self.file_service = file_service
         self.validation_service = validation_service
@@ -41,10 +42,9 @@ class DBOperationsDomainService:
         elif operation == "append":
             return await self._append_db(file_path, value)
         else:
-            raise BusinessRuleViolationError(
-                rule="db_operation",
-                message=f"Unsupported operation: {operation}",
-                context={"operation": operation},
+            raise ValidationError(
+                f"Unsupported operation: {operation}",
+                details={"operation": operation}
             )
 
     async def _get_db_file_path(self, db_name: str) -> str:

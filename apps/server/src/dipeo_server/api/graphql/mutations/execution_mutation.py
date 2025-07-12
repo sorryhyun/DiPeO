@@ -36,10 +36,16 @@ class ExecutionMutations:
             logger.info(f"Context type: {type(context)}")
             logger.info(f"State store value: {state_store}")
             logger.info(f"State store type: {type(state_store)}")
+            logger.info(f"Execution service value: {execution_service}")
+            logger.info(f"Execution service type: {type(execution_service)}")
             
             if state_store is None:
                 logger.error("State store is None!")
                 return ExecutionResult(success=False, error="State store not initialized")
+            
+            if execution_service is None:
+                logger.error("Execution service is None!")
+                return ExecutionResult(success=False, error="Execution service not initialized")
 
             if data.diagram_data:
                 # The execution service will validate as DomainDiagram which expects lists

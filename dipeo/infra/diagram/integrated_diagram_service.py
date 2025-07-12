@@ -9,7 +9,7 @@ import yaml
 from dipeo.core.constants import BASE_DIR
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.diagram.unified_converter import UnifiedDiagramConverter
-from dipeo.utils.diagram import DiagramBusinessLogic as DiagramDomainService
+from dipeo.domain.diagram.services import DiagramBusinessLogic as DiagramDomainService
 from typing import Any, Dict, Optional, Union
 
 from dipeo.core.ports import FileServicePort

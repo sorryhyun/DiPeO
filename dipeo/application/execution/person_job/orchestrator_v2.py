@@ -8,7 +8,7 @@ from dipeo.application.services.llm_executor import LLMExecutionResult, LLMExecu
 from dipeo.core.dynamic import Person
 from dipeo.models import DomainDiagram, ForgettingMode, Message, PersonID, MemoryConfig
 from dipeo.utils.arrow import MemoryTransformer, unwrap_inputs
-from dipeo.utils.conversation.state_utils import ConversationStateManager
+from dipeo.domain.conversation.services import ConversationStateManager
 from dipeo.application.utils.template import PromptBuilder
 
 from .conversation_processor import ConversationProcessingService

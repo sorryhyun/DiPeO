@@ -1,12 +1,14 @@
 
-from typing import Any
+from typing import Any, Type
 
 from pydantic import BaseModel
 
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.models import ConditionNodeData, NodeOutput
+from dipeo.core.static.nodes import ConditionNode
 
 
 @register_handler
@@ -25,6 +27,7 @@ class ConditionNodeHandler(BaseNodeHandler):
     def schema(self) -> type[BaseModel]:
         return ConditionNodeData
 
+
     @property
     def requires_services(self) -> list[str]:
         return ["condition_evaluation_service", "diagram"]
@@ -40,6 +43,40 @@ class ConditionNodeHandler(BaseNodeHandler):
         return service
 
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, ConditionNode):
+            # Convert typed node to props
+            condition_props = ConditionNodeData(
+                condition_type=typed_node.condition_type,
+                expression=typed_node.expression,
+                node_indices=typed_node.node_indices
+            )
+        elif isinstance(props, ConditionNodeData):
+            condition_props = props
+        else:
+            # Handle unexpected case
+            return create_node_output(
+                {"default": ""}, 
+                {"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        # Execute using props-based logic
+        return await self._execute_with_props(condition_props, context, inputs, services)
+    
+    async def _execute_with_props(
         self,
         props: ConditionNodeData,
         context: UnifiedExecutionContext,

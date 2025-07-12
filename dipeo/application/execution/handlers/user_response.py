@@ -1,10 +1,12 @@
 
-from typing import Any
+from typing import Any, Type
 
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import NodeOutput, UserResponseNodeData
+from dipeo.core.static.nodes import UserResponseNode
 from pydantic import BaseModel
 
 
@@ -22,12 +24,42 @@ class UserResponseNodeHandler(BaseNodeHandler):
     @property
     def schema(self) -> type[BaseModel]:
         return UserResponseNodeData
+    
 
     @property
     def description(self) -> str:
         return "Interactive node that prompts for user input"
 
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, UserResponseNode):
+            # Convert typed node to props
+            response_props = UserResponseNodeData(
+                prompt=typed_node.prompt,
+                timeout=typed_node.timeout
+            )
+        elif isinstance(props, UserResponseNodeData):
+            response_props = props
+        else:
+            # Handle unexpected case
+            return create_node_output(
+                {"default": "", "user_response": ""}, 
+                {"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        return await self._execute_user_response(response_props, context, inputs, services)
+    
+    async def _execute_user_response(
         self,
         props: UserResponseNodeData,
         context: UnifiedExecutionContext,

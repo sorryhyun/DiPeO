@@ -16,7 +16,7 @@ from dipeo.application.services.apikey_service import APIKeyService as APIKeyDom
 from dipeo.application.services.diagram_service import DiagramService as DiagramStorageDomainService
 
 from ..validators import DiagramValidator
-from ...resolution import DiagramResolver
+from ...resolution import StaticDiagramCompiler
 from dipeo.core.static import ExecutableDiagram
 
 logger = logging.getLogger(__name__)
@@ -124,9 +124,16 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                 metadata_dict["id"] = diagram_id
                 domain_diagram.metadata = DiagramMetadata(**metadata_dict)
 
-        # Step 5: Resolve diagram to ExecutableDiagram
-        resolver = DiagramResolver()
-        executable_diagram = await resolver.resolve(domain_diagram, api_keys)
+        # Step 5: Compile diagram to ExecutableDiagram with static types
+        logger.info("Compiling diagram with StaticDiagramCompiler")
+        import time
+        start_time = time.time()
+        compiler = StaticDiagramCompiler()
+        executable_diagram = compiler.compile(domain_diagram)
+        # Add API keys to metadata
+        executable_diagram.metadata["api_keys"] = api_keys
+        compile_time = time.time() - start_time
+        logger.info(f"Diagram compilation took {compile_time:.3f}s")
         
         # Store the diagram ID in metadata for tracking
         if diagram_id:

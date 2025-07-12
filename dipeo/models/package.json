@@ -24,7 +24,8 @@
     "generate:conversions": "tsx scripts/generate-conversions.ts",
     "generate:field-configs": "tsx scripts/generate-field-configs.ts",
     "generate:zod-schemas": "tsx scripts/generate-zod-schemas.ts",
-    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions && pnpm generate:field-configs && pnpm generate:zod-schemas && pnpm build"
+    "generate:static-nodes": "tsx scripts/generate-static-nodes.ts",
+    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions && pnpm generate:field-configs && pnpm generate:zod-schemas && pnpm generate:static-nodes && pnpm build"
   },
   "dependencies": {
     "zod": "^3.25.42"

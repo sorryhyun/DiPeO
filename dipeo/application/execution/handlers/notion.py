@@ -1,10 +1,12 @@
 
-from typing import Any
+from typing import Any, Type
 
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import NodeOutput, NotionNodeData, NotionOperation
+from dipeo.core.static.nodes import NotionNode
 from pydantic import BaseModel
 
 
@@ -23,6 +25,7 @@ class NotionNodeHandler(BaseNodeHandler):
     @property
     def schema(self) -> type[BaseModel]:
         return NotionNodeData
+    
 
     @property
     def requires_services(self) -> list[str]:
@@ -33,6 +36,37 @@ class NotionNodeHandler(BaseNodeHandler):
         return "Executes Notion API operations"
 
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, NotionNode):
+            # Convert typed node to props
+            notion_props = NotionNodeData(
+                operation=typed_node.operation,
+                page_id=typed_node.page_id,
+                database_id=typed_node.database_id,
+                properties=typed_node.properties
+            )
+        elif isinstance(props, NotionNodeData):
+            notion_props = props
+        else:
+            # Handle unexpected case
+            return create_node_output(
+                {"default": ""}, 
+                {"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        return await self._execute_notion_operation(notion_props, context, inputs, services)
+    
+    async def _execute_notion_operation(
         self,
         props: NotionNodeData,
         context: UnifiedExecutionContext,

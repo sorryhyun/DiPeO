@@ -3,16 +3,18 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Type
 
 import aiohttp
 from pydantic import BaseModel
 
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.core.errors import NodeExecutionError, InvalidDiagramError
 from dipeo.application.utils import create_node_output
 from dipeo.models import HookNodeData, HookType, NodeOutput
+from dipeo.core.static.nodes import HookNode
 
 
 @register_handler
@@ -30,11 +32,45 @@ class HookNodeHandler(BaseNodeHandler):
     def schema(self) -> type[BaseModel]:
         return HookNodeData
     
+    
     @property
     def description(self) -> str:
         return "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
     
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: Dict[str, Any],
+        services: Dict[str, Any]
+    ) -> NodeOutput:
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, HookNode):
+            # Convert typed node to props
+            hook_props = HookNodeData(
+                hook_type=typed_node.hook_type,
+                config=typed_node.config,
+                timeout=typed_node.timeout,
+                retry_count=typed_node.retry_count,
+                retry_delay=typed_node.retry_delay,
+                label=typed_node.label  # Add label from node since it's used in the handler
+            )
+        elif isinstance(props, HookNodeData):
+            hook_props = props
+        else:
+            # Handle unexpected case
+            return create_node_output(
+                {"default": ""}, 
+                {"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        return await self._execute_hook_node(hook_props, context, inputs, services)
+    
+    async def _execute_hook_node(
         self,
         props: HookNodeData,
         context: UnifiedExecutionContext,

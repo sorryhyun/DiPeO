@@ -24,10 +24,15 @@ def _create_message_router_for_context():
     return None
 
 
-def _create_file_service(base_dir):
+def _create_file_service(base_dir, backup_service=None, domain_validator=None):
     from dipeo.infra.persistence.file import ModularFileService
+    from dipeo.domain.file.services import BackupService, FileValidator
 
-    return ModularFileService(base_dir=base_dir)
+    return ModularFileService(
+        base_dir=base_dir,
+        backup_service=backup_service or BackupService(),
+        domain_validator=domain_validator or FileValidator()
+    )
 
 
 def _create_llm_service(api_key_service):
@@ -51,10 +56,6 @@ def _create_api_service(api_business_logic, file_service):
     )
 
 
-def _create_file_operations_infra_service(file_business_logic):
-    """Create infrastructure file operations service."""
-    from dipeo.infra.services.file import FileOperationsService
-    return FileOperationsService(domain_service=file_business_logic)
 
 
 def _create_diagram_loader(file_service):
@@ -118,10 +119,6 @@ class InfrastructureContainer(containers.DeclarativeContainer):
         _create_api_service,
         api_business_logic=api_business_logic,
         file_service=file_service,
-    )
-    file_operations_service = providers.Singleton(
-        _create_file_operations_infra_service,
-        file_business_logic=file_business_logic,
     )
     diagram_loader = providers.Singleton(
         _create_diagram_loader,

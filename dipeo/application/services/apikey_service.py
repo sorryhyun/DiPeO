@@ -3,7 +3,7 @@
 from dipeo.core import BaseService, APIKeyError
 from dipeo.application.protocols import SupportsAPIKey
 from dipeo.core.ports import APIKeyPort
-from dipeo.utils.apikey import (
+from dipeo.domain.api.services import (
     validate_service_name,
     validate_api_key_format,
     generate_api_key_id,

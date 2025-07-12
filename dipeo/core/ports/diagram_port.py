@@ -7,7 +7,7 @@ from typing import Any
 
 import yaml
 from dipeo.core.constants import BASE_DIR
-from dipeo.utils.diagram import DiagramBusinessLogic as DiagramDomainService
+from dipeo.domain.diagram.services import DiagramBusinessLogic as DiagramDomainService
 
 logger = logging.getLogger(__name__)
 

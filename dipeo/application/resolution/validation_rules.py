@@ -1,7 +1,7 @@
-"""Re-export validation rules from utils for resolution module."""
+"""Re-export validation rules from domain for resolution module."""
 
-# Re-export from utils for convenience
-from dipeo.utils.validation.validation_rules import (
+# Re-export from domain for convenience
+from dipeo.domain.diagram.services import (
     ValidationRules,
     ValidationIssue,
     ValidationSeverity,

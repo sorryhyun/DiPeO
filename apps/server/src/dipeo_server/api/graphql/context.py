@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from dipeo.infra.llm import LLMInfraService
     from dipeo.infra.adapters.notion import NotionAPIService
     from dipeo.infra.services.api import APIService
-    from dipeo.infra.services.file import FileOperationsService
     from dipeo.application.services.apikey_service import APIKeyService
     from dipeo.core.dynamic.conversation_manager import ConversationManager
     from dipeo.infra.persistence.diagram import DiagramFileRepository
@@ -46,55 +45,51 @@ class GraphQLContext(BaseContext):
     # Properties for backward compatibility - access services through container
     @property
     def state_store(self) -> "StateRegistry":
-        return self.container.infra.state_store()
+        return self.container.persistence.state_store()
 
     @property
     def message_router(self) -> "MessageRouter":
-        return self.container.infra.message_router()
+        return self.container.persistence.message_router()
 
     @property
     def file_service(self) -> "ModularFileService":
-        return self.container.infra.file_service()
+        return self.container.persistence.file_service()
 
     @property
     def llm_service(self) -> "LLMInfraService":
-        return self.container.infra.llm_service()
+        return self.container.integration.llm_service()
 
     @property
     def notion_service(self) -> "NotionAPIService":
-        return self.container.infra.notion_service()
+        return self.container.integration.notion_service()
 
     @property
     def api_service(self) -> "APIService":
-        return self.container.infra.api_service()
-
-    @property
-    def file_operations_service(self) -> "FileOperationsService":
-        return self.container.infra.file_operations_service()
+        return self.container.integration.api_service()
 
     @property
     def api_key_service(self) -> "APIKeyService":
-        return self.container.domain.api_key_service()
+        return self.container.persistence.api_key_service()
 
     @property
     def conversation_service(self) -> "ConversationManager":
-        return self.container.domain.conversation_service()
+        return self.container.dynamic.conversation_manager()
 
     @property
     def diagram_storage_service(self) -> "DiagramFileRepository":
-        return self.container.domain.diagram_storage_service()
+        return self.container.persistence.diagram_storage_service()
 
     @property
     def diagram_storage_domain_service(self) -> "DiagramStorageDomainService":
-        return self.container.domain.diagram_storage_domain_service()
+        return self.container.persistence.diagram_storage_domain_service()
 
     @property
     def db_operations_service(self) -> "DBOperationsDomainService":
-        return self.container.domain.db_operations_service()
+        return self.container.persistence.db_operations_service()
 
     @property
     def flow_control_service(self) -> "FlowControlService":
-        return self.container.domain.flow_control_service()
+        return self.container.business.flow_control_service()
 
     @property
     def execution_service(self) -> "ExecuteDiagramUseCase":

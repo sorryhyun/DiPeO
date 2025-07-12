@@ -1,0 +1,170 @@
+"""Immutable pure business logic services."""
+
+from dependency_injector import containers, providers
+from ..base import ImmutableBaseContainer
+
+
+def _create_api_business_logic():
+    """Create pure API business logic utilities."""
+    from dipeo.domain.api.services import APIBusinessLogic
+    return APIBusinessLogic()
+
+
+def _create_file_business_logic():
+    """Create pure file business logic utilities."""
+    from dipeo.domain.file.services import FileBusinessLogic
+    return FileBusinessLogic()
+
+
+def _create_diagram_business_logic():
+    """Create pure diagram business logic utilities."""
+    from dipeo.domain.diagram.services import DiagramBusinessLogic
+    return DiagramBusinessLogic()
+
+
+def _create_text_processing_service():
+    """Create text processing domain service."""
+    from dipeo.utils.text import TextProcessingDomainService
+    return TextProcessingDomainService()
+
+
+def _create_base_validator():
+    """Create base validation service."""
+    from dipeo.core.base import BaseValidator
+    return BaseValidator()
+
+
+def _create_condition_evaluator():
+    """Create condition evaluation service."""
+    from dipeo.application.utils.template import ConditionEvaluator
+    return ConditionEvaluator()
+
+
+def _create_prompt_builder():
+    """Create prompt builder service."""
+    from dipeo.application.utils.template import PromptBuilder
+    return PromptBuilder()
+
+
+def _create_input_resolution_service(arrow_processor):
+    """Create input resolution service."""
+    from dipeo.application.execution.input import InputResolutionService
+    return InputResolutionService(arrow_processor=arrow_processor)
+
+
+def _create_flow_control_service():
+    """Create flow control service."""
+    from dipeo.application.execution.flow_control_service import FlowControlService
+    return FlowControlService()
+
+
+def _create_conversation_processor():
+    """Create conversation processing service."""
+    from dipeo.application.execution.person_job import ConversationProcessingService
+    return ConversationProcessingService()
+
+
+def _create_output_builder():
+    """Create person job output builder."""
+    from dipeo.application.execution.person_job import PersonJobOutputBuilder
+    return PersonJobOutputBuilder()
+
+
+def _create_conversation_state_manager():
+    """Create conversation state manager."""
+    from dipeo.domain.conversation.services import ConversationStateManager
+    return ConversationStateManager()
+
+
+def _create_diagram_analyzer():
+    """Create diagram analyzer service."""
+    from dipeo.domain.diagram.services import DiagramAnalyzer
+    return DiagramAnalyzer()
+
+
+def _create_diagram_transformer():
+    """Create diagram transformer service."""
+    from dipeo.domain.diagram.services import DiagramTransformer
+    return DiagramTransformer()
+
+
+def _create_validation_service():
+    """Create shared validation service."""
+    from dipeo.core.base import BaseValidator
+    return BaseValidator()
+
+
+def _create_api_validator():
+    """Create API validator service."""
+    from dipeo.domain.api.services import APIValidator
+    return APIValidator()
+
+
+def _create_file_validator():
+    """Create file validator service."""
+    from dipeo.domain.file.services import FileValidator
+    return FileValidator()
+
+
+def _create_db_validator():
+    """Create database validator service."""
+    from dipeo.domain.db.services import DBValidator
+    return DBValidator()
+
+
+def _create_backup_service():
+    """Create backup service."""
+    from dipeo.domain.file.services import BackupService
+    return BackupService()
+
+
+class BusinessLogicContainer(ImmutableBaseContainer):
+    """Immutable pure business logic services.
+    
+    These services contain pure business logic with no I/O operations
+    or external dependencies. They are stateless and can be safely shared.
+    """
+    
+    config = providers.Configuration()
+    
+    # Dependencies from other containers (minimal)
+    static = providers.DependenciesContainer()
+    
+    # Pure business logic services by domain
+    # API domain
+    api_business_logic = providers.Singleton(_create_api_business_logic)
+    api_validator = providers.Singleton(_create_api_validator)
+    
+    # File domain
+    file_business_logic = providers.Singleton(_create_file_business_logic)
+    file_validator = providers.Singleton(_create_file_validator)
+    backup_service = providers.Singleton(_create_backup_service)
+    
+    # Diagram domain
+    diagram_business_logic = providers.Singleton(_create_diagram_business_logic)
+    diagram_analyzer = providers.Singleton(_create_diagram_analyzer)
+    diagram_transformer = providers.Singleton(_create_diagram_transformer)
+    
+    # Database domain
+    db_validator = providers.Singleton(_create_db_validator)
+    
+    # Shared services
+    text_processing_service = providers.Singleton(_create_text_processing_service)
+    base_validator = providers.Singleton(_create_base_validator)
+    validation_service = providers.Singleton(_create_validation_service)
+    
+    # Template and evaluation services
+    condition_evaluator = providers.Singleton(_create_condition_evaluator)
+    prompt_builder = providers.Singleton(_create_prompt_builder)
+    
+    # Execution services (pure logic only)
+    input_resolution_service = providers.Singleton(
+        _create_input_resolution_service,
+        arrow_processor=static.arrow_processor,
+    )
+    flow_control_service = providers.Singleton(_create_flow_control_service)
+    
+    # Person job services (pure processing logic)
+    conversation_processor = providers.Singleton(_create_conversation_processor)
+    output_builder = providers.Singleton(_create_output_builder)
+    conversation_state_manager = providers.Singleton(_create_conversation_state_manager)

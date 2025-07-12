@@ -4,13 +4,15 @@ import json
 import os
 import sys
 from io import StringIO
-from typing import Any
+from typing import Any, Type
 import warnings
 
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import CodeJobNodeData, NodeOutput
+from dipeo.core.static.nodes import CodeJobNode
 from pydantic import BaseModel
 from dipeo.utils.template import TemplateProcessor
 
@@ -37,6 +39,7 @@ class CodeJobNodeHandler(BaseNodeHandler):
     def schema(self) -> type[BaseModel]:
         return CodeJobNodeData
     
+    
     @property
     def requires_services(self) -> list[str]:
         return ["template"]
@@ -46,6 +49,36 @@ class CodeJobNodeHandler(BaseNodeHandler):
         return "Executes Python, JavaScript, or Bash code with enhanced capabilities"
 
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, CodeJobNode):
+            # Convert typed node to props
+            code_props = CodeJobNodeData(
+                language=typed_node.language,
+                code=typed_node.code,
+                timeout=typed_node.timeout
+            )
+        elif isinstance(props, CodeJobNodeData):
+            code_props = props
+        else:
+            # Handle unexpected case
+            return create_node_output(
+                {"default": ""}, 
+                {"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        return await self._execute_code(code_props, context, inputs, services)
+    
+    async def _execute_code(
         self,
         props: CodeJobNodeData,
         context: UnifiedExecutionContext,

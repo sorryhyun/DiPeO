@@ -20,20 +20,17 @@ def initialize_container() -> ServerContainer:
     if _container is None:
         _container = ServerContainer()
 
-        # Override the infrastructure container with server-specific implementation
+        # Override the persistence container with server-specific implementation
         from dependency_injector import providers
 
-        from dipeo_server.infra.container import ServerInfrastructureContainer
+        from dipeo_server.infra.persistence_container import ServerPersistenceContainer
 
-        _container.infra.override(
+        _container.persistence.override(
             providers.Container(
-                ServerInfrastructureContainer,
+                ServerPersistenceContainer,
                 config=_container.config,
                 base_dir=_container.base_dir,
-                api_key_service=_container.domain.api_key_service,
-                api_business_logic=_container.domain.api_business_logic,
-                file_business_logic=_container.domain.file_business_logic,
-                diagram_business_logic=_container.domain.diagram_business_logic,
+                business=_container.business,
             )
         )
 

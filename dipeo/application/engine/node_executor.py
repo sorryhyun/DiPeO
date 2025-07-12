@@ -41,7 +41,14 @@ class NodeExecutor:
         start_time = datetime.utcnow()
         
         # Find the node in the diagram
-        node = next((n for n in diagram.nodes if n.id == node_id), None)
+        # First check if diagram has _executable_diagram with typed nodes
+        if hasattr(diagram, '_executable_diagram') and diagram._executable_diagram:
+            executable_diagram = diagram._executable_diagram
+            node = next((n for n in executable_diagram.nodes if n.id == node_id), None)
+        else:
+            # Fallback to dictionary-based nodes
+            node = next((n for n in diagram.nodes if n.id == node_id), None)
+        
         if not node:
             raise ValueError(f"Node {node_id} not found in diagram")
         
@@ -71,7 +78,7 @@ class NodeExecutor:
                 diagram=diagram,
                 node_outputs=node_outputs,
                 node_exec_counts=node_exec_counts,
-                node_memory_config=(node.data or {}).get('memory_config')
+                node_memory_config=self._get_node_memory_config(node)
             )
             
             # Get handler from registry
@@ -92,8 +99,14 @@ class NodeExecutor:
                 "interactive_handler": interactive_handler
             }
             
-            # Prepare node data
-            node_data = (node.data or {}).copy()
+            # All nodes are now typed nodes from StaticDiagramCompiler
+            if not (hasattr(node, 'to_dict') and callable(getattr(node, 'to_dict'))):
+                raise ValueError(f"Node {node_id} is not a typed node. All nodes must be strongly-typed.")
+            
+            node_data = node.to_dict()
+            # Pass the typed node in services for compatibility during migration
+            services["typed_node"] = node
+            
             if node.type == NodeType.person_job.value:
                 node_data.setdefault("first_only_prompt", "")
                 node_data.setdefault("max_iteration", 1)
@@ -169,3 +182,10 @@ class NodeExecutor:
             executed_nodes=list(controller.state_adapter.get_executed_nodes()),
             exec_counts=controller.state_adapter.get_all_node_exec_counts(),
         )
+    
+    def _get_node_memory_config(self, node: Any) -> Optional[dict[str, Any]]:
+        """Extract memory config from typed node."""
+        if hasattr(node, 'memory_config'):
+            return node.memory_config
+        else:
+            return None

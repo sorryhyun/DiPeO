@@ -1,6 +1,9 @@
 """Modular file service using composition of focused components."""
 
+import hashlib
+import json
 import logging
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -11,6 +14,7 @@ from dipeo.core import (
     handle_file_operation,
 )
 from dipeo.core.ports.file_service import FileServicePort
+from dipeo.domain.file.services import BackupService, FileValidator as DomainFileValidator
 
 from .handlers.registry import FormatHandlerRegistry
 from .validation import FileValidator
@@ -28,6 +32,8 @@ class ModularFileService(BaseService, FileServicePort):
         format_registry: Optional[FormatHandlerRegistry] = None,
         validator: Optional[FileValidator] = None,
         async_adapter: Optional[AsyncFileAdapter] = None,
+        backup_service: Optional[BackupService] = None,
+        domain_validator: Optional[DomainFileValidator] = None,
     ):
         super().__init__()
         
@@ -37,6 +43,8 @@ class ModularFileService(BaseService, FileServicePort):
         self.formats = format_registry or FormatHandlerRegistry()
         self.validator = validator or FileValidator()
         self.async_adapter = async_adapter or AsyncFileAdapter()
+        self.backup_service = backup_service or BackupService()
+        self.domain_validator = domain_validator or DomainFileValidator()
     
     async def initialize(self) -> None:
         """Initialize the service."""
@@ -325,6 +333,261 @@ class ModularFileService(BaseService, FileServicePort):
         files.sort(key=lambda x: x.modified, reverse=True)
         return files
     
+    # === Additional Operations from FileOperationsService ===
+    
+    async def append_to_file(
+        self,
+        file_path: str,
+        content: str,
+        add_timestamp: bool = True,
+        separator: str = "\n",
+        encoding: str = "utf-8",
+    ) -> None:
+        """Append content to file with optional timestamp.
+        
+        Args:
+            file_path: Target file path
+            content: Content to append
+            add_timestamp: Whether to add timestamp to entry
+            separator: Line separator
+            encoding: File encoding
+            
+        Raises:
+            FileOperationError: On append failures
+        """
+        try:
+            path = self._resolve_path(file_path)
+            
+            # Format entry with timestamp if requested
+            if add_timestamp:
+                timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+                entry = f"[{timestamp}] {content}"
+            else:
+                entry = content
+            
+            # Add separator
+            if not entry.endswith(separator):
+                entry += separator
+            
+            # Ensure directory exists
+            path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Append to file
+            await self.async_adapter.append_text_async(path, entry, encoding)
+            
+        except Exception as e:
+            raise FileOperationError("append", file_path, str(e))
+    
+    async def copy_file(
+        self,
+        source_path: str,
+        destination_path: str,
+        overwrite: bool = False,
+        verify_checksum: bool = True,
+    ) -> None:
+        """Copy file from source to destination with optional checksum verification.
+        
+        Args:
+            source_path: Source file path
+            destination_path: Destination file path
+            overwrite: Whether to overwrite existing file
+            verify_checksum: Whether to verify copy integrity
+            
+        Raises:
+            FileOperationError: On copy failures
+        """
+        try:
+            src_path = self._resolve_path(source_path)
+            dst_path = self._resolve_path(destination_path)
+            
+            # Validate source exists
+            if not src_path.exists():
+                raise FileOperationError("copy", source_path, "Source file not found")
+            
+            # Check destination
+            if dst_path.exists() and not overwrite:
+                raise FileOperationError(
+                    "copy", destination_path, "Destination file already exists and overwrite is False"
+                )
+            
+            # Ensure destination directory exists
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Copy file
+            await self.async_adapter.copy_file_async(src_path, dst_path)
+            
+            # Verify checksum if requested
+            if verify_checksum:
+                src_content = await self.async_adapter.read_bytes_async(src_path)
+                dst_content = await self.async_adapter.read_bytes_async(dst_path)
+                
+                src_checksum = hashlib.md5(src_content).hexdigest()
+                dst_checksum = hashlib.md5(dst_content).hexdigest()
+                
+                if src_checksum != dst_checksum:
+                    raise FileOperationError(
+                        "copy", f"{source_path} -> {destination_path}", 
+                        f"Checksum validation failed: {src_checksum} != {dst_checksum}"
+                    )
+            
+        except Exception as e:
+            if isinstance(e, FileOperationError):
+                raise
+            raise FileOperationError("copy", f"{source_path} -> {destination_path}", str(e))
+    
+    async def delete_file(
+        self,
+        file_path: str,
+        create_backup: bool = False,
+    ) -> None:
+        """Delete file with optional backup.
+        
+        Args:
+            file_path: File to delete
+            create_backup: Whether to create backup before deletion
+            
+        Raises:
+            FileOperationError: On deletion failures
+        """
+        try:
+            path = self._resolve_path(file_path)
+            
+            if not path.exists():
+                raise FileOperationError("delete", file_path, "File not found")
+            
+            # Create backup if requested
+            backup_path = None
+            if create_backup:
+                backup_path = await self._create_backup_if_exists(path)
+                if backup_path:
+                    logger.info(f"Created backup before deletion: {backup_path}")
+            
+            # Delete file
+            await self.async_adapter.delete_file_async(path)
+            
+        except Exception as e:
+            if isinstance(e, FileOperationError):
+                raise
+            raise FileOperationError("delete", file_path, str(e))
+    
+    async def read_json(
+        self,
+        file_path: str,
+        encoding: str = "utf-8",
+    ) -> Dict[str, Any] | List[Any]:
+        """Read and parse JSON file.
+        
+        Args:
+            file_path: Path to JSON file
+            encoding: File encoding
+            
+        Returns:
+            Parsed JSON data
+            
+        Raises:
+            FileOperationError: On read or parse failures
+        """
+        try:
+            result = self.read(file_path)
+            if not result["success"]:
+                raise FileOperationError("read_json", file_path, result.get('error', 'Unknown error'))
+            
+            # Parse JSON
+            try:
+                return json.loads(result["raw_content"])
+            except json.JSONDecodeError as e:
+                raise FileOperationError("read_json", file_path, f"Invalid JSON content: {e}")
+            
+        except Exception as e:
+            if isinstance(e, FileOperationError):
+                raise
+            raise FileOperationError("read_json", file_path, str(e))
+    
+    async def write_json(
+        self,
+        file_path: str,
+        data: Dict[str, Any] | List[Any],
+        indent: int = 2,
+        sort_keys: bool = True,
+        encoding: str = "utf-8",
+        create_backup: bool = False,
+    ) -> None:
+        """Write data as JSON to file.
+        
+        Args:
+            file_path: Target file path
+            data: Data to write
+            indent: JSON indentation
+            sort_keys: Whether to sort keys
+            encoding: File encoding
+            create_backup: Whether to create backup
+            
+        Raises:
+            FileOperationError: On write failures
+        """
+        try:
+            # Format JSON
+            content = json.dumps(data, indent=indent, sort_keys=sort_keys, ensure_ascii=False)
+            
+            # Write to file
+            result = await self.write(
+                file_id=file_path,
+                content=content,
+            )
+            
+            if not result["success"]:
+                raise FileOperationError("write_json", file_path, result.get('error', 'Unknown error'))
+            
+        except Exception as e:
+            if isinstance(e, FileOperationError):
+                raise
+            raise FileOperationError("write_json", file_path, str(e))
+    
+    async def get_file_info(
+        self,
+        file_path: str,
+    ) -> Dict[str, Any]:
+        """Get detailed file metadata.
+        
+        Args:
+            file_path: Path to file
+            
+        Returns:
+            File metadata dictionary
+            
+        Raises:
+            FileOperationError: If file doesn't exist
+        """
+        try:
+            path = self._resolve_path(file_path)
+            
+            if not path.exists():
+                raise FileOperationError("get_file_info", file_path, "File not found")
+            
+            stat = path.stat()
+            
+            # Construct metadata
+            metadata = {
+                "path": str(path),
+                "name": path.name,
+                "extension": path.suffix.lstrip("."),
+                "size_bytes": stat.st_size,
+                "size_mb": stat.st_size / (1024 * 1024),
+                "modified": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
+                "created": datetime.fromtimestamp(stat.st_ctime, tz=UTC).isoformat(),
+                "is_file": path.is_file(),
+                "is_directory": path.is_dir(),
+                "is_symlink": path.is_symlink(),
+                "exists": path.exists(),
+            }
+            
+            return metadata
+            
+        except Exception as e:
+            if isinstance(e, FileOperationError):
+                raise
+            raise FileOperationError("get_file_info", file_path, str(e))
+    
     # === Internal Helper Methods ===
     
     def _resolve_path(
@@ -358,6 +621,9 @@ class ModularFileService(BaseService, FileServicePort):
         path.mkdir(parents=True, exist_ok=True)
         
         # Add filename
+        # Ensure path is a Path object
+        if not isinstance(path, Path):
+            path = Path(path)
         return path / file_id
     
     async def _create_backup_if_exists(self, file_path: Path) -> Optional[Path]:
@@ -372,8 +638,7 @@ class ModularFileService(BaseService, FileServicePort):
         if not file_path.exists():
             return None
         
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_path = file_path.with_suffix(f".{timestamp}.bak")
+        backup_path = self.backup_service.create_backup_name(file_path)
         
         # Copy file content
         content = await self.async_adapter.read_bytes_async(file_path)

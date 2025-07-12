@@ -31,7 +31,6 @@ def _create_service_registry(
     template_service,
     # New infrastructure services
     api_service,
-    file_operations_infra_service,
     diagram_loader,
     # Pure business logic utilities
     api_business_logic,
@@ -72,7 +71,6 @@ def _create_service_registry(
     
     # New infrastructure services
     registry.register("api_service", api_service)
-    registry.register("file_operations_infra_service", file_operations_infra_service)
     registry.register("diagram_loader", diagram_loader)
     
     # Pure business logic utilities
@@ -105,48 +103,65 @@ class ApplicationContainer(containers.DeclarativeContainer):
     """Application layer container - Use cases and orchestration."""
     
     config = providers.Configuration()
-    infra = providers.DependenciesContainer()
-    domain = providers.DependenciesContainer()
+    # New container dependencies
+    static = providers.DependenciesContainer()
+    business = providers.DependenciesContainer()
+    dynamic = providers.DependenciesContainer()
+    persistence = providers.DependenciesContainer()
+    integration = providers.DependenciesContainer()
     
     # Execution preparation
     execution_preparation_service = providers.Singleton(
         _create_execution_preparation_service,
-        storage_service=domain.diagram_storage_service,
-        validator=domain.diagram_validator,
-        api_key_service=domain.api_key_service,
+        storage_service=persistence.diagram_storage_service,
+        validator=static.diagram_validator,
+        api_key_service=persistence.api_key_service,
     )
     
     # Service Registry with explicit dependencies from all layers
     service_registry = providers.Singleton(
         _create_service_registry,
-        # Infrastructure services
-        llm_service=infra.llm_service,
-        file_service=infra.file_service,
-        notion_service=infra.notion_service,
-        api_service=infra.api_service,
-        file_operations_infra_service=infra.file_operations_service,
-        diagram_loader=infra.diagram_loader,
-        # Domain services
-        api_key_service=domain.api_key_service,
-        conversation_service=domain.conversation_service,
-        diagram_storage_domain_service=domain.diagram_storage_domain_service,
-        text_processing_service=domain.text_processing_service,
-        validation_service=domain.validation_service,
-        db_operations_service=domain.db_operations_service,
-        person_job_services=domain.person_job_services,
-        condition_evaluation_service=domain.condition_evaluation_service,
-        flow_control_service=domain.flow_control_service,
-        input_resolution_service=domain.input_resolution_service,
-        template_service=domain.template_service,
-        api_business_logic=domain.api_business_logic,
-        file_domain_service=domain.file_business_logic,
+        # From Integration Container (was infra)
+        llm_service=integration.llm_service,
+        notion_service=integration.notion_service,
+        api_service=integration.api_service,
+        
+        # From Persistence Container (was infra/domain)
+        file_service=persistence.file_service,
+        diagram_loader=persistence.diagram_loader,
+        api_key_service=persistence.api_key_service,
+        diagram_storage_domain_service=persistence.diagram_storage_domain_service,
+        db_operations_service=persistence.db_operations_service,
+        
+        # From Business Container (was domain)
+        text_processing_service=business.text_processing_service,
+        validation_service=business.validation_service,
+        condition_evaluation_service=business.condition_evaluator,  # Note: renamed
+        api_business_logic=business.api_business_logic,
+        file_domain_service=business.file_business_logic,
+        flow_control_service=business.flow_control_service,
+        input_resolution_service=business.input_resolution_service,
+        
+        # From Static Container (was domain)
+        template_service=static.template_processor,  # Note: renamed
+        
+        # From Dynamic Container (was domain) - person job services unpacked
+        conversation_service=dynamic.conversation_manager,
+        person_job_services={
+            "conversation_processor": business.conversation_processor,
+            "output_builder": business.output_builder,
+            "prompt_builder": business.prompt_builder,
+            "conversation_state_manager": business.conversation_state_manager,
+            "llm_executor": dynamic.llm_executor,
+            "person_job_orchestrator": dynamic.person_job_orchestrator,
+        },
     )
     
     # Execute Diagram Use Case
     execution_service = providers.Singleton(
         _create_execute_diagram_use_case,
         service_registry=service_registry,
-        state_store=infra.state_store,
-        message_router=infra.message_router,
-        diagram_storage_service=domain.diagram_storage_service,
+        state_store=persistence.state_store,
+        message_router=persistence.message_router,
+        diagram_storage_service=persistence.diagram_storage_service,
     )

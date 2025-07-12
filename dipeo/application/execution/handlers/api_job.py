@@ -1,12 +1,14 @@
 
 import asyncio
 import json
-from typing import Any
+from typing import Any, Type
 
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod
+from dipeo.core.static.nodes import ApiJobNode
 from pydantic import BaseModel
 
 
@@ -23,6 +25,7 @@ class ApiJobNodeHandler(BaseNodeHandler):
     @property
     def schema(self) -> type[BaseModel]:
         return ApiJobNodeData
+    
 
     @property
     def requires_services(self) -> list[str]:
@@ -33,6 +36,41 @@ class ApiJobNodeHandler(BaseNodeHandler):
         return "Makes HTTP requests to external APIs with authentication support"
 
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, ApiJobNode):
+            # Convert typed node to props
+            api_props = ApiJobNodeData(
+                url=typed_node.url,
+                method=typed_node.method,
+                headers=typed_node.headers,
+                params=typed_node.params,
+                body=typed_node.body,
+                timeout=typed_node.timeout,
+                auth_type=typed_node.auth_type,
+                auth_config=typed_node.auth_config
+            )
+        elif isinstance(props, ApiJobNodeData):
+            api_props = props
+        else:
+            # Handle unexpected case
+            return create_node_output(
+                {"default": ""}, 
+                {"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        return await self._execute_api_call(api_props, context, inputs, services)
+    
+    async def _execute_api_call(
         self,
         props: ApiJobNodeData,
         context: UnifiedExecutionContext,

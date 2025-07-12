@@ -1,8 +1,9 @@
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.models import (
     NodeOutput,
@@ -10,6 +11,7 @@ from dipeo.models import (
     ForgettingMode,
     Message,
 )
+from dipeo.core.static.nodes import PersonNode
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ class PersonJobNodeHandler(BaseNodeHandler):
     def schema(self) -> type[BaseModel]:
         return PersonJobNodeData
 
+
     @property
     def requires_services(self) -> list[str]:
         return ["person_job_orchestrator", "llm_service", "diagram", "conversation_service"]
@@ -48,6 +51,101 @@ class PersonJobNodeHandler(BaseNodeHandler):
         return service
 
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, PersonNode):
+            node = typed_node
+        elif isinstance(props, PersonJobNodeData):
+            # Use props directly
+            return await self._execute_with_props(props, context, inputs, services)
+        else:
+            # Handle unexpected case
+            return NodeOutput(
+                value={"default": ""}, 
+                metadata={"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        # Resolve services
+        person_job_orchestrator = self._resolve_service(context, services, "person_job_orchestrator")
+        llm_service = self._resolve_service(context, services, "llm_service")
+        diagram = self._resolve_service(context, services, "diagram")
+        conversation_service = self._resolve_service(context, services, "conversation_service")
+        
+        # Get current node ID and execution info
+        node_id = self._extract_node_id(context)
+        execution_count = self._extract_execution_count(context)
+        execution_id = getattr(context.execution_state, 'id', None) if hasattr(context, 'execution_state') else None
+        
+        # Only log in debug mode if explicitly enabled
+        logger.debug(f"🚀 Executing person_job node: {node_id}")
+        logger.debug(f"🔍 Node inputs: {inputs}")
+        logger.debug(f"📝 Props: person={node.person_id}, prompt={node.default_prompt}, first_only={node.first_only_prompt}")
+        
+        # Basic validation
+        if not node.person_id:
+            return NodeOutput(
+                value={"default": ""}, 
+                metadata={"error": "No person specified"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        try:
+            # Convert typed node to props for backward compatibility
+            props = PersonJobNodeData(
+                person=node.person_id,
+                first_only_prompt=node.first_only_prompt,
+                default_prompt=node.default_prompt,
+                max_iteration=node.max_iteration,
+                memory_config=node.memory_config,
+                tools=node.tools
+            )
+            
+            # Execute using domain service - all business logic is in the service
+            result = await person_job_orchestrator.execute_person_job_with_validation(
+                person_id=node.person_id,
+                node_id=node_id,
+                props=props,
+                inputs=inputs,
+                diagram=diagram,
+                execution_count=execution_count,
+                llm_client=llm_service,
+                conversation_service=conversation_service,
+                execution_id=execution_id,
+            )
+            
+            # Transform domain result to handler output
+            return self._transform_result_to_output(result, context)
+            
+        except ValueError as e:
+            # Domain validation errors - only log if debug enabled
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Validation error in person job: {e}")
+            return NodeOutput(
+                value={"default": ""}, 
+                metadata={"error": str(e)},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        except Exception as e:
+            # Unexpected errors
+            logger.error(f"Error executing person job: {e}")
+            return NodeOutput(
+                value={"default": ""}, 
+                metadata={"error": str(e)},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+    
+    async def _execute_with_props(
         self,
         props: PersonJobNodeData,
         context: UnifiedExecutionContext,

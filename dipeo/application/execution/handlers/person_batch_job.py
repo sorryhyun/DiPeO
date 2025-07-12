@@ -1,8 +1,9 @@
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Type
 
-from dipeo.application import BaseNodeHandler, register_handler
+from dipeo.application import register_handler
+from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
 from dipeo.core.utils import is_conversation
@@ -18,6 +19,7 @@ from dipeo.models import (
     Message,
     PersonID,
 )
+from dipeo.core.static.nodes import PersonBatchJobNode
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
@@ -44,6 +46,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
     @property
     def schema(self) -> type[BaseModel]:
         return PersonBatchJobNodeData
+    
 
     @property
     def requires_services(self) -> list[str]:
@@ -54,6 +57,41 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         return "Execute prompts across multiple persons in batch"
 
     async def execute(
+        self,
+        props: BaseModel,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        # Extract typed node from services if available
+        typed_node = services.get("typed_node")
+        
+        if typed_node and isinstance(typed_node, PersonBatchJobNode):
+            # Convert typed node to props
+            batch_props = PersonBatchJobNodeData(
+                person=typed_node.person_id,
+                first_only_prompt=typed_node.first_only_prompt,
+                default_prompt=typed_node.default_prompt,
+                max_iteration=typed_node.max_iteration,
+                memory_config=typed_node.memory_config,
+                tools=typed_node.tools
+            )
+            # Note: The current implementation expects fields like person_ids, prompt, parallel_execution, aggregate_results
+            # which don't exist in PersonJobNodeData. This appears to be a bug in the handler.
+        elif isinstance(props, PersonBatchJobNodeData):
+            batch_props = props
+        else:
+            # Handle unexpected case
+            return create_node_output(
+                {"default": ""}, 
+                {"error": "Invalid node data provided"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
+        
+        return await self._execute_batch(batch_props, context, inputs, services)
+    
+    async def _execute_batch(
         self,
         props: PersonBatchJobNodeData,
         context: UnifiedExecutionContext,

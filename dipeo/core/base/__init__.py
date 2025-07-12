@@ -8,10 +8,12 @@ from .exceptions import (
     ValidationError,
 )
 from .service import BaseService
+from .validator import BaseValidator
 
 __all__ = [
     # Base classes
     "BaseService",
+    "BaseValidator",
     # Exceptions
     "DiPeOError",
     "ValidationError",

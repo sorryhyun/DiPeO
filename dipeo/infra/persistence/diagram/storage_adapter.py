@@ -3,7 +3,7 @@ from typing import Any
 
 from dipeo.core import BaseService
 from dipeo.models import DiagramID, DomainDiagram
-from dipeo.utils.diagram import DiagramBusinessLogic
+from dipeo.domain.diagram.services import DiagramBusinessLogic
 
 from .file_repository import DiagramFileRepository
 

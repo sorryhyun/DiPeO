@@ -146,9 +146,9 @@ class ExecuteDiagramUseCase(BaseService):
         # Use the infrastructure adapter to prepare the diagram
         domain_diagram = diagram_loader.prepare_diagram(diagram)
         
-        # Apply diagram resolution pipeline
-        from ...resolution import DiagramResolver
-        resolver = DiagramResolver()
+        # Apply diagram compilation pipeline with static types
+        from ...resolution import StaticDiagramCompiler
+        compiler = StaticDiagramCompiler()
         
         # Get API keys if available
         api_keys = None
@@ -158,8 +158,11 @@ class ExecuteDiagramUseCase(BaseService):
                 # Extract API keys needed by the diagram
                 api_keys = self._extract_api_keys_for_diagram(domain_diagram, api_key_service)
         
-        # Note: The resolver returns an ExecutableDiagram with execution hints
-        executable_diagram = await resolver.resolve(domain_diagram, api_keys)
+        # Note: The compiler returns an ExecutableDiagram with static typed nodes
+        executable_diagram = compiler.compile(domain_diagram)
+        # Add API keys to metadata
+        if api_keys:
+            executable_diagram.metadata["api_keys"] = api_keys
         
         # Store the executable diagram in metadata for use by the engine
         if not hasattr(domain_diagram, '_executable_diagram'):
