@@ -108,7 +108,9 @@ class ExecutionMutations:
             logger.error(f"Validation error executing diagram: {e}")
             return ExecutionResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
+            import traceback
             logger.error(f"Failed to execute diagram: {e}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
             return ExecutionResult(
                 success=False, error=f"Failed to execute diagram: {e!s}"
             )

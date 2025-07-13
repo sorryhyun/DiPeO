@@ -7,7 +7,7 @@ from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.ports import LLMServicePort
 from dipeo.models import ChatResult
 from dipeo.models import LLMService as LLMServiceEnum
-from dipeo.application.services.apikey_service import APIKeyService
+from dipeo.application.protocols import SupportsAPIKey
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -23,7 +23,7 @@ from .factory import create_adapter
 
 class LLMInfraService(BaseService, LLMServicePort):
 
-    def __init__(self, api_key_service: APIKeyService):
+    def __init__(self, api_key_service: SupportsAPIKey):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}

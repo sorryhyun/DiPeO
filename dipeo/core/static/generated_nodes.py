@@ -268,7 +268,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            save_to_file=data.get("save_to_file"),
+            save_to_file=data.get("save_to_file", False),
             file_name=data.get("file_name"),
         )
     
@@ -280,9 +280,9 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             person_id=data.get("person"),
-            first_only_prompt=data.get("first_only_prompt"),
+            first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
-            max_iteration=data.get("max_iteration"),
+            max_iteration=data.get("max_iteration", 1),
             memory_config=data.get("memory_config"),
             tools=data.get("tools"),
         )
@@ -294,7 +294,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            condition_type=data.get("condition_type"),
+            condition_type=data.get("condition_type", ""),
             expression=data.get("expression"),
             node_indices=data.get("node_indices"),
         )
@@ -306,8 +306,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            language=data.get("language"),
-            code=data.get("code"),
+            language=data.get("language", SupportedLanguage.python),
+            code=data.get("code", ""),
             timeout=data.get("timeout"),
         )
     
@@ -318,8 +318,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            url=data.get("url"),
-            method=data.get("method"),
+            url=data.get("url", ""),
+            method=data.get("method", HttpMethod.GET),
             headers=data.get("headers"),
             params=data.get("params"),
             body=data.get("body"),
@@ -337,8 +337,8 @@ def create_executable_node(
             metadata=metadata,
             file=data.get("file"),
             collection=data.get("collection"),
-            sub_type=data.get("sub_type"),
-            operation=data.get("operation"),
+            sub_type=data.get("sub_type", DBBlockSubType.fixed_prompt),
+            operation=data.get("operation", ""),
             query=data.get("query"),
             data=data.get("data"),
         )
@@ -350,8 +350,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            prompt=data.get("prompt"),
-            timeout=data.get("timeout"),
+            prompt=data.get("prompt", ""),
+            timeout=data.get("timeout", 60),
         )
     
     if node_type == NodeType.notion:
@@ -361,7 +361,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            operation=data.get("operation"),
+            operation=data.get("operation", NotionOperation.read_page),
             page_id=data.get("page_id"),
             database_id=data.get("database_id"),
         )
@@ -373,7 +373,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            hook_type=data.get("hook_type"),
+            hook_type=data.get("hook_type", HookType.shell),
             config=data.get("config", {}),
             timeout=data.get("timeout"),
             retry_count=data.get("retry_count"),

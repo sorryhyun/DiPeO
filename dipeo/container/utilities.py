@@ -12,6 +12,8 @@ from dipeo.core.ports import (
 )
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.core.dynamic.conversation_manager import ConversationManager
+from .profiling import get_profiler
+from .core.container_profiles import ContainerProfile
 
 
 def get_project_base_dir():
@@ -30,44 +32,105 @@ def get_project_base_dir():
 
 async def init_resources(container) -> None:
     """Initialize all resources that require async setup."""
-    # Initialize infrastructure
-    state_store = container.infra.state_store()
-    if hasattr(state_store, 'initialize'):
-        await state_store.initialize()
+    profiler = get_profiler()
+    # Get profile from the Container class
+    from .container import Container as ContainerClass
+    profile = ContainerClass.get_profile() if hasattr(ContainerClass, 'get_profile') else None
+    # Profile is now available for conditional initialization
     
-    message_router = container.infra.message_router()
-    if hasattr(message_router, 'initialize'):
-        await message_router.initialize()
+    # Initialize infrastructure
+    # Initialize state store first (from persistence container)
+    if not profile or profile.include_state_management:
+        if profiler:
+            async with profiler.profile_async("persistence.state_store"):
+                state_store = container.persistence.state_store()
+                if hasattr(state_store, 'initialize'):
+                    await state_store.initialize()
+        else:
+            state_store = container.persistence.state_store()
+            if hasattr(state_store, 'initialize'):
+                await state_store.initialize()
+        
+        # Initialize message router
+        if profiler:
+            async with profiler.profile_async("persistence.message_router"):
+                message_router = container.persistence.message_router()
+                if hasattr(message_router, 'initialize'):
+                    await message_router.initialize()
+        else:
+            message_router = container.persistence.message_router()
+            if hasattr(message_router, 'initialize'):
+                await message_router.initialize()
 
     # Initialize services
-    await container.infra.llm_service().initialize()
-    await container.domain.diagram_storage_service().initialize()
+    # Always initialize diagram storage (needed for all modes)
+    if profiler:
+        async with profiler.profile_async("persistence.diagram_storage"):
+            await container.persistence.diagram_storage_service().initialize()
+    else:
+        await container.persistence.diagram_storage_service().initialize()
+    
+    # Initialize LLM service only if needed
+    if not profile or profile.include_llm_services:
+        if not profile or not profile.lazy_load_llm:
+            if profiler:
+                async with profiler.profile_async("integration.llm_service"):
+                    await container.integration.llm_service().initialize()
+            else:
+                await container.integration.llm_service().initialize()
     
     # Initialize API key service
-    api_key_service = container.domain.api_key_service()
-    if hasattr(api_key_service, 'initialize'):
-        await api_key_service.initialize()
+    if profiler:
+        async with profiler.profile_async("persistence.api_key_service"):
+            api_key_service = container.persistence.api_key_service()
+            if hasattr(api_key_service, 'initialize'):
+                await api_key_service.initialize()
+    else:
+        api_key_service = container.persistence.api_key_service()
+        if hasattr(api_key_service, 'initialize'):
+            await api_key_service.initialize()
     
-    notion_service = container.infra.notion_service()
-    if notion_service is not None and hasattr(notion_service, 'initialize'):
-        await notion_service.initialize()
+    # Initialize optional services
+    if not profile or profile.include_notion_service:
+        if not profile or not profile.lazy_load_integrations:
+            if profiler:
+                async with profiler.profile_async("integration.notion_service"):
+                    notion_service = container.integration.notion_service()
+                    if notion_service is not None and hasattr(notion_service, 'initialize'):
+                        await notion_service.initialize()
+            else:
+                notion_service = container.integration.notion_service()
+                if notion_service is not None and hasattr(notion_service, 'initialize'):
+                    await notion_service.initialize()
 
     # Initialize execution service
-    execution_service = container.application.execution_service()
-    if execution_service is not None:
-        await execution_service.initialize()
+    if not profile or profile.include_execution_service:
+        if not profile or not profile.lazy_load_execution:
+            if profiler:
+                async with profiler.profile_async("application.execution_service"):
+                    execution_service = container.application.execution_service()
+                    if execution_service is not None:
+                        await execution_service.initialize()
+            else:
+                execution_service = container.application.execution_service()
+                if execution_service is not None:
+                    await execution_service.initialize()
 
     # Validate protocol compliance
-    validate_protocol_compliance(container)
+    if profiler:
+        with profiler.profile("validate_protocol_compliance"):
+            validate_protocol_compliance(container)
+    else:
+        validate_protocol_compliance(container)
 
 
 async def shutdown_resources(container) -> None:
     """Cleanup all resources."""
-    message_router = container.infra.message_router()
+    message_router = container.persistence.message_router()
     if hasattr(message_router, 'cleanup'):
         await message_router.cleanup()
     
-    state_store = container.infra.state_store()
+    state_store = container.persistence.state_store()
     if hasattr(state_store, 'cleanup'):
         await state_store.cleanup()
 
@@ -75,12 +138,12 @@ async def shutdown_resources(container) -> None:
 def validate_protocol_compliance(container) -> None:
     """Validate that all services implement their required protocols."""
     validations = [
-        (container.domain.api_key_service(), SupportsAPIKey, "APIKeyService"),
-        (container.infra.llm_service(), LLMServicePort, "LLMInfrastructureService"),
-        (container.infra.file_service(), FileServicePort, "FileSystemRepository"),
-        (container.domain.conversation_service(), ConversationManager, "ConversationManagerImpl"),
-        (container.infra.notion_service(), NotionServicePort, "NotionAPIService"),
-        (container.domain.diagram_storage_service(), DiagramPort, "DiagramFileRepository"),
+        (container.persistence.api_key_service(), SupportsAPIKey, "APIKeyService"),
+        (container.integration.llm_service(), LLMServicePort, "LLMInfrastructureService"),
+        (container.persistence.file_service(), FileServicePort, "FileSystemRepository"),
+        (container.dynamic.conversation_manager(), ConversationManager, "ConversationManagerImpl"),
+        (container.integration.notion_service(), NotionServicePort, "NotionAPIService"),
+        (container.persistence.diagram_storage_service(), DiagramPort, "DiagramFileRepository"),
     ]
 
     for service, protocol, name in validations:

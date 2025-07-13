@@ -275,6 +275,9 @@ class StaticNodeGenerator {
           lines.push(`            ${field.pyName}=data.get("${field.tsName}"),`);
         } else if (field.pyName === 'config' && dataInterface === 'HookNodeData') {
           lines.push(`            config=data.get("config", {}),`);
+        } else if (field.defaultValue && !field.defaultValue.includes('field(')) {
+          // For fields with default values (excluding field() defaults), use the default when None
+          lines.push(`            ${field.pyName}=data.get("${field.tsName}", ${field.defaultValue}),`);
         } else {
           lines.push(`            ${field.pyName}=data.get("${field.tsName}"),`);
         }

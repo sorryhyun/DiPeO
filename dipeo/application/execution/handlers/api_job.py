@@ -48,6 +48,7 @@ class ApiJobNodeHandler(BaseNodeHandler):
         if typed_node and isinstance(typed_node, ApiJobNode):
             # Convert typed node to props
             api_props = ApiJobNodeData(
+                label=typed_node.label,
                 url=typed_node.url,
                 method=typed_node.method,
                 headers=typed_node.headers,

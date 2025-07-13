@@ -69,6 +69,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         if typed_node and isinstance(typed_node, PersonBatchJobNode):
             # Convert typed node to props
             batch_props = PersonBatchJobNodeData(
+                label=typed_node.label,
                 person=typed_node.person_id,
                 first_only_prompt=typed_node.first_only_prompt,
                 default_prompt=typed_node.default_prompt,

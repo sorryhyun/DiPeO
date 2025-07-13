@@ -43,6 +43,7 @@ class UserResponseNodeHandler(BaseNodeHandler):
         if typed_node and isinstance(typed_node, UserResponseNode):
             # Convert typed node to props
             response_props = UserResponseNodeData(
+                label=typed_node.label,
                 prompt=typed_node.prompt,
                 timeout=typed_node.timeout
             )

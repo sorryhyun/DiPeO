@@ -58,6 +58,7 @@ class ConditionNodeHandler(BaseNodeHandler):
         if typed_node and isinstance(typed_node, ConditionNode):
             # Convert typed node to props
             condition_props = ConditionNodeData(
+                label=typed_node.label,
                 condition_type=typed_node.condition_type,
                 expression=typed_node.expression,
                 node_indices=typed_node.node_indices

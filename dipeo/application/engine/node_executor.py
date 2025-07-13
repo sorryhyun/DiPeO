@@ -84,7 +84,11 @@ class NodeExecutor:
             # Get handler from registry
             from dipeo.application import get_global_registry
             registry = get_global_registry()
+            log.info(f"Registry type: {type(registry)}")
+            log.info(f"Registry: {registry}")
+            log.info(f"Node type: {node.type}")
             handler_def = registry.get(node.type)
+            log.info(f"Handler def: {handler_def}")
             if not handler_def:
                 raise ValueError(f"No handler for node type: {node.type}")
             
@@ -107,11 +111,13 @@ class NodeExecutor:
             # Pass the typed node in services for compatibility during migration
             services["typed_node"] = node
             
-            if node.type == NodeType.person_job.value:
+            if node.type == NodeType.person_job:
                 node_data.setdefault("first_only_prompt", "")
                 node_data.setdefault("max_iteration", 1)
             
             # Execute handler
+            log.info(f"Handler def handler attribute: {handler_def.handler}")
+            log.info(f"Has execute? {hasattr(handler_def.handler, 'execute')}")
             output = await handler_def.handler(
                 props=handler_def.node_schema.model_validate(node_data),
                 context=context,

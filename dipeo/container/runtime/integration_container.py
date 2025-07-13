@@ -13,9 +13,8 @@ def _create_llm_service(api_key_service):
 
 def _create_notion_service():
     """Create Notion integration service."""
-    # TODO: NotionAPIService not yet implemented in new structure
-    # Return None for now as it's optional
-    return None
+    from dipeo.infra.adapters.notion import NotionAPIService
+    return NotionAPIService()
 
 
 def _create_api_service(api_business_logic, file_service):
@@ -38,8 +37,8 @@ def _create_integrated_diagram_service(diagram_business_logic, base_dir):
 
 def _create_openai_adapter():
     """Create OpenAI LLM adapter."""
-    from dipeo.infra.llm.adapters import OpenAIAdapter
-    return OpenAIAdapter()
+    from dipeo.infra.llm.adapters import ChatGPTAdapter
+    return ChatGPTAdapter()
 
 
 def _create_claude_adapter():
@@ -56,15 +55,9 @@ def _create_gemini_adapter():
 
 def _create_llm_factory():
     """Create LLM factory with all adapters."""
-    from dipeo.infra.llm.factory import LLMFactory
-    
-    factory = LLMFactory()
-    # Register adapters
-    factory.register("openai", _create_openai_adapter())
-    factory.register("claude", _create_claude_adapter())
-    factory.register("gemini", _create_gemini_adapter())
-    
-    return factory
+    # TODO: LLMFactory not yet implemented
+    # For now, return None as it's not used
+    return None
 
 
 def _create_webhook_service():

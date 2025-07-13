@@ -12,12 +12,10 @@ def _create_diagram_compiler():
 
 def _create_node_registry():
     """Create the registry of node handlers."""
-    from dipeo.application.execution.handler_factory import NodeHandlerFactory
-    from dipeo.core.static import NodeRegistry
+    from dipeo.application import get_global_registry
     
-    # The factory will return a registry of handlers
-    factory = NodeHandlerFactory()
-    return factory  # Acts as a registry
+    # Return the global handler registry
+    return get_global_registry()
 
 
 def _create_diagram_validator(api_key_service):
@@ -46,8 +44,8 @@ def _create_template_processor():
 
 def _create_validation_rules():
     """Create the validation rules registry."""
-    from dipeo.domain.diagram.services.validation_rules import ValidationRulesRegistry
-    return ValidationRulesRegistry()
+    from dipeo.domain.diagram.services.validation_rules import ValidationRules
+    return ValidationRules()
 
 
 def _create_execution_order_calculator():

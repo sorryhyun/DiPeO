@@ -4,8 +4,6 @@ import os
 from pathlib import Path
 from dependency_injector import containers, providers
 
-from .infrastructure_container import InfrastructureContainer
-from .domain_container import DomainContainer
 from .application_container import ApplicationContainer
 from .utilities import (
     get_project_base_dir,
@@ -13,6 +11,7 @@ from .utilities import (
     shutdown_resources,
     validate_protocol_compliance,
 )
+from .core.container_profiles import ContainerProfile, get_profile
 
 # Import new containers
 from .core.static_container import StaticServicesContainer
@@ -34,6 +33,9 @@ class Container(containers.DeclarativeContainer):
 
     # Configuration
     config = providers.Configuration()
+    
+    # Profile management
+    _profile: ContainerProfile = None
 
     # Base directory configuration
     base_dir = providers.Factory(
@@ -83,28 +85,6 @@ class Container(containers.DeclarativeContainer):
         integration=integration,
     )
     
-    # ===== LEGACY CONTAINERS (for backward compatibility) =====
-    
-    # Domain layer first (no dependencies on other layers)
-    domain = providers.Container(
-        DomainContainer,
-        config=config,
-        base_dir=base_dir,
-    )
-    
-    # Infrastructure layer (depends on domain services)
-    infra = providers.Container(
-        InfrastructureContainer,
-        config=config,
-        base_dir=base_dir,
-        api_key_service=domain.api_key_service,
-        api_business_logic=domain.api_business_logic,
-        file_business_logic=domain.file_business_logic,
-        diagram_business_logic=domain.diagram_business_logic,
-    )
-    
-    # Wire domain's infrastructure dependencies
-    domain.override_providers(infra=infra)
     
     # Application layer (now depends on new containers)
     application = providers.Container(
@@ -117,51 +97,17 @@ class Container(containers.DeclarativeContainer):
         integration=integration,
     )
     
-    # ===== BACKWARD COMPATIBILITY ALIASES =====
-    # These provide direct access to commonly used services
+    @classmethod
+    def set_profile(cls, profile_name: str) -> None:
+        """Set the container profile for initialization."""
+        cls._profile = get_profile(profile_name)
     
-    # Infrastructure services
-    @providers.Singleton
-    def llm_service(self):
-        """LLM service backward compatibility."""
-        return self.integration.llm_service()
-    
-    @providers.Singleton
-    def file_service(self):
-        """File service backward compatibility."""
-        return self.persistence.file_service()
-    
-    @providers.Singleton
-    def api_key_service(self):
-        """API key service backward compatibility."""
-        return self.persistence.api_key_service()
-    
-    @providers.Singleton
-    def notion_service(self):
-        """Notion service backward compatibility."""
-        return self.integration.notion_service()
-    
-    # Domain services
-    @providers.Singleton
-    def diagram_validator(self):
-        """Diagram validator backward compatibility."""
-        return self.static.diagram_validator()
-    
-    @providers.Singleton
-    def conversation_manager(self):
-        """Conversation manager backward compatibility."""
-        return self.dynamic.conversation_manager()
-    
-    # Application services
-    @providers.Singleton
-    def service_registry(self):
-        """Service registry backward compatibility."""
-        return self.application.service_registry()
-    
-    @providers.Singleton
-    def execution_service(self):
-        """Execution service backward compatibility."""
-        return self.application.execution_service()
+    @classmethod
+    def get_profile(cls) -> ContainerProfile:
+        """Get the current container profile."""
+        if cls._profile is None:
+            cls._profile = get_profile('full')  # Default profile
+        return cls._profile
 
 
 # Export utility functions at module level for backward compatibility

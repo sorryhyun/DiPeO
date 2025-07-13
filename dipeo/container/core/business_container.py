@@ -76,6 +76,18 @@ def _create_conversation_state_manager():
     return ConversationStateManager()
 
 
+def _create_message_formatter():
+    """Create message formatter service."""
+    from dipeo.domain.conversation.services import MessageFormatter
+    return MessageFormatter()
+
+
+def _create_memory_strategy_factory():
+    """Create memory strategy factory."""
+    from dipeo.domain.conversation.services.memory_strategies import MemoryStrategyFactory
+    return MemoryStrategyFactory()
+
+
 def _create_diagram_analyzer():
     """Create diagram analyzer service."""
     from dipeo.domain.diagram.services import DiagramAnalyzer
@@ -118,6 +130,18 @@ def _create_backup_service():
     return BackupService()
 
 
+def _create_path_validator():
+    """Create path validator service."""
+    from dipeo.domain.file.services import PathValidator
+    return PathValidator()
+
+
+def _create_data_transformer():
+    """Create data transformer service."""
+    from dipeo.domain.services.integration import DataTransformer
+    return DataTransformer()
+
+
 class BusinessLogicContainer(ImmutableBaseContainer):
     """Immutable pure business logic services.
     
@@ -139,6 +163,7 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     file_business_logic = providers.Singleton(_create_file_business_logic)
     file_validator = providers.Singleton(_create_file_validator)
     backup_service = providers.Singleton(_create_backup_service)
+    path_validator = providers.Singleton(_create_path_validator)
     
     # Diagram domain
     diagram_business_logic = providers.Singleton(_create_diagram_business_logic)
@@ -167,4 +192,11 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     # Person job services (pure processing logic)
     conversation_processor = providers.Singleton(_create_conversation_processor)
     output_builder = providers.Singleton(_create_output_builder)
+    
+    # Conversation domain
     conversation_state_manager = providers.Singleton(_create_conversation_state_manager)
+    message_formatter = providers.Singleton(_create_message_formatter)
+    memory_strategy_factory = providers.Singleton(_create_memory_strategy_factory)
+    
+    # Integration services
+    data_transformer = providers.Singleton(_create_data_transformer)

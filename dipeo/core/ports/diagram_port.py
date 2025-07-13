@@ -1,13 +1,7 @@
-# Infrastructure implementation for diagram file I/O operations.
+# Protocol definition for diagram I/O operations.
 
-import json
 import logging
-from pathlib import Path
 from typing import Any
-
-import yaml
-from dipeo.core.constants import BASE_DIR
-from dipeo.domain.diagram.services import DiagramBusinessLogic as DiagramDomainService
 
 logger = logging.getLogger(__name__)
 

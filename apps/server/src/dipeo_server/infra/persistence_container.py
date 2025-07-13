@@ -6,11 +6,16 @@ from dipeo.infra import MessageRouter
 from dipeo_server.infra.persistence.state_registry import state_store
 
 
+def _create_initialized_state_store():
+    """Create and initialize the state store."""
+    return state_store
+
+
 class ServerPersistenceContainer(PersistenceServicesContainer):
     """Server-specific persistence container with proper overrides."""
     
     # Override state_store with server implementation
-    state_store = providers.Singleton(lambda: state_store)
+    state_store = providers.Singleton(_create_initialized_state_store)
     
     # Override message_router with actual implementation  
     message_router = providers.Singleton(MessageRouter)

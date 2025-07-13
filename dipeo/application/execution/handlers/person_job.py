@@ -101,8 +101,9 @@ class PersonJobNodeHandler(BaseNodeHandler):
         try:
             # Convert typed node to props for backward compatibility
             props = PersonJobNodeData(
+                label=node.label,
                 person=node.person_id,
-                first_only_prompt=node.first_only_prompt,
+                first_only_prompt=node.first_only_prompt or "",
                 default_prompt=node.default_prompt,
                 max_iteration=node.max_iteration,
                 memory_config=node.memory_config,

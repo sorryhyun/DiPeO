@@ -1,45 +1,23 @@
-"""Domain modules."""
+"""Domain services module.
 
-# Re-export domain modules as they're moved
-# InputResolutionService moved to application layer
-InputResolutionService = None
-# FlowControlService moved to application layer
-FlowControlService = None
+This module provides backward compatibility references to services that have been moved
+to their proper domain locations during the architectural refactoring.
+"""
 
-# Import new services with try/except for backward compatibility
-try:
-    from .prompt import PromptBuilder
-except ImportError:
-    PromptBuilder = None
+# Note: Services have been moved to their respective domain modules:
+# - API services: dipeo.domain.api.services
+# - File services: dipeo.domain.file.services  
+# - Diagram services: dipeo.domain.diagram.services
+# - Conversation services: dipeo.domain.conversation.services
+# - Database services: dipeo.domain.db.services
 
-try:
-    from .llm import LLMExecutor, LLMExecutionResult
-except ImportError:
-    LLMExecutor = None
-    LLMExecutionResult = None
+# For backward compatibility, maintain empty references
+InputResolutionService = None  # Moved to application layer
+FlowControlService = None  # Moved to application layer
+PersonJobOrchestrator = None  # Moved to application layer
 
-try:
-    from .conversation import ConversationStateManager, MessageBuilder
-except ImportError:
-    ConversationStateManager = None
-    MessageBuilder = None
-
-# PersonJobOrchestrator moved to application layer
-PersonJobOrchestrator = None
-
-# Build exports list dynamically
 __all__ = [
     "InputResolutionService",
+    "FlowControlService",
+    "PersonJobOrchestrator",
 ]
-
-if FlowControlService is not None:
-    __all__.append("FlowControlService")
-
-if PromptBuilder is not None:
-    __all__.append("PromptBuilder")
-if LLMExecutor is not None:
-    __all__.extend(["LLMExecutor", "LLMExecutionResult"])
-if ConversationStateManager is not None:
-    __all__.extend(["ConversationStateManager", "MessageBuilder"])
-if PersonJobOrchestrator is not None:
-    __all__.append("PersonJobOrchestrator")

@@ -61,6 +61,7 @@ class CodeJobNodeHandler(BaseNodeHandler):
         if typed_node and isinstance(typed_node, CodeJobNode):
             # Convert typed node to props
             code_props = CodeJobNodeData(
+                label=typed_node.label,
                 language=typed_node.language,
                 code=typed_node.code,
                 timeout=typed_node.timeout

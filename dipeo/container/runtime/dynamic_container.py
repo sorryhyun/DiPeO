@@ -28,17 +28,14 @@ def _create_person_manager():
 
 def _create_stateful_diagram(diagram):
     """Create stateful diagram wrapper."""
-    from dipeo.application.execution.stateful_diagram import StatefulDiagram
-    return StatefulDiagram(diagram)
+    from dipeo.application.execution.stateful_diagram import StatefulExecutableDiagram
+    return StatefulExecutableDiagram(diagram)
 
 
 def _create_execution_coordinator(state_store, message_router):
     """Create execution coordinator."""
-    from dipeo.application.execution.state import ExecutionCoordinator
-    return ExecutionCoordinator(
-        state_store=state_store,
-        message_router=message_router
-    )
+    from dipeo.application.execution.state import UnifiedExecutionCoordinator
+    return UnifiedExecutionCoordinator()
 
 
 def _create_execution_engine(

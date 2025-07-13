@@ -48,6 +48,7 @@ class NotionNodeHandler(BaseNodeHandler):
         if typed_node and isinstance(typed_node, NotionNode):
             # Convert typed node to props
             notion_props = NotionNodeData(
+                label=typed_node.label,
                 operation=typed_node.operation,
                 page_id=typed_node.page_id,
                 database_id=typed_node.database_id,

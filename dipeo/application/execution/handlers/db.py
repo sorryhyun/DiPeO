@@ -47,6 +47,7 @@ class DBNodeHandler(BaseNodeHandler):
         if typed_node and isinstance(typed_node, DBNode):
             # Convert typed node to props
             db_props = DBNodeData(
+                label=typed_node.label,
                 file=typed_node.file,
                 collection=typed_node.collection,
                 sub_type=typed_node.sub_type,
