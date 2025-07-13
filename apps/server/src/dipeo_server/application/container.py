@@ -1,5 +1,6 @@
 """Server-specific dependency injection container."""
 
+from pathlib import Path
 from dependency_injector import providers
 from dipeo.container import Container as BaseContainer
 from dipeo.container.utilities import init_resources, shutdown_resources

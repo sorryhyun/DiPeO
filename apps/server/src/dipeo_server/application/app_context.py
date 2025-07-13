@@ -26,18 +26,23 @@ def initialize_container() -> ServerContainer:
 
         _container = ServerContainer()
 
-        # Override the persistence container with server-specific implementation
+        # Override specific providers in the persistence container
         from dependency_injector import providers
+        from dipeo_server.infra.persistence_container import (
+            _create_initialized_state_store,
+            _create_server_api_key_storage,
+        )
+        from dipeo.infra import MessageRouter
 
-        from dipeo_server.infra.persistence_container import ServerPersistenceContainer
-
-        _container.persistence.override(
-            providers.Container(
-                ServerPersistenceContainer,
-                config=_container.config,
-                base_dir=_container.base_dir,
-                business=_container.business,
-            )
+        # Override specific providers instead of the whole container
+        _container.persistence.state_store.override(
+            providers.Singleton(_create_initialized_state_store)
+        )
+        _container.persistence.message_router.override(
+            providers.Singleton(MessageRouter)
+        )
+        _container.persistence.api_key_storage.override(
+            providers.Singleton(_create_server_api_key_storage)
         )
 
         # Wire the container to necessary modules

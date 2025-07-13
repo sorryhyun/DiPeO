@@ -186,6 +186,22 @@ class ExecuteDiagramUseCase(BaseService):
         if domain_diagram.metadata:
             executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
         
+        # Copy persons data from domain diagram to executable diagram metadata
+        if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
+            persons_dict = {}
+            for person in domain_diagram.persons:
+                person_id = str(person.id)
+                persons_dict[person_id] = {
+                    'name': person.label,
+                    'service': person.llm_config.service.value if hasattr(person.llm_config.service, 'value') else person.llm_config.service,
+                    'model': person.llm_config.model,
+                    'api_key_id': str(person.llm_config.api_key_id),
+                    'system_prompt': person.llm_config.system_prompt or '',
+                    'temperature': getattr(person.llm_config, 'temperature', 0.7),
+                    'max_tokens': getattr(person.llm_config, 'max_tokens', None),
+                }
+            executable_diagram.metadata['persons'] = persons_dict
+        
         # Register person configs from executable diagram
         await self._register_typed_person_configs(executable_diagram)
         
@@ -243,12 +259,13 @@ class ExecuteDiagramUseCase(BaseService):
             # Extract person configs from typed nodes
             person_configs = {}
             for node in typed_diagram.nodes:
-                if isinstance(node, PersonJobNode):
-                    person_id = str(node.id)
+                if isinstance(node, PersonJobNode) and node.person_id:
+                    # Use the actual person_id from the node, not the node ID
+                    person_id = str(node.person_id)
                     # For PersonJobNode, we need to get person config from metadata or defaults
                     # The node itself only has person_id reference
                     config = {
-                        'name': person_id,  # Use node ID as default name
+                        'name': person_id,  # Use person ID as default name
                         'system_prompt': '',
                         'model': 'gpt-4.1-nano',
                         'temperature': 0.7,
@@ -263,9 +280,11 @@ class ExecuteDiagramUseCase(BaseService):
                             config.update({
                                 'name': person_data.get('name', person_id),
                                 'system_prompt': person_data.get('system_prompt', ''),
+                                'service': person_data.get('service', 'openai'),
                                 'model': person_data.get('model', 'gpt-4.1-nano'),
                                 'temperature': person_data.get('temperature', 0.7),
                                 'max_tokens': person_data.get('max_tokens'),
+                                'api_key_id': person_data.get('api_key_id', ''),
                             })
                     
                     person_configs[person_id] = config

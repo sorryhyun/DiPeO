@@ -54,12 +54,6 @@ def _create_execution_order_calculator():
     return ExecutionOrderCalculator()
 
 
-def _create_diagram_resolver():
-    """Create the diagram resolver."""
-    from dipeo.application.resolution import DiagramResolver
-    return DiagramResolver()
-
-
 def _create_arrow_transformer():
     """Create the arrow transformer."""
     from dipeo.application.resolution import ArrowTransformer
@@ -106,6 +100,5 @@ class StaticServicesContainer(ImmutableBaseContainer):
     
     # Diagram resolution services
     execution_order_calculator = providers.Singleton(_create_execution_order_calculator)
-    diagram_resolver = providers.Singleton(_create_diagram_resolver)
     arrow_transformer = providers.Singleton(_create_arrow_transformer)
     handle_resolver = providers.Singleton(_create_handle_resolver)

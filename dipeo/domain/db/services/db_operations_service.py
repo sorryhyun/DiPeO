@@ -40,6 +40,13 @@ class DBOperationsDomainService:
         Construct a safe database file path from a database name.
         This is pure business logic without file system operations.
         """
+        # Handle None or empty db_name
+        if not db_name:
+            raise ValidationError(
+                "Database name cannot be None or empty",
+                details={"db_name": db_name}
+            )
+            
         if "/" in db_name or "\\" in db_name:
             return db_name
 

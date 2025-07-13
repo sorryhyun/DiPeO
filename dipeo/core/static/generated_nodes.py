@@ -273,6 +273,23 @@ def create_executable_node(
         )
     
     if node_type == NodeType.person_job:
+        # Handle memory_config conversion
+        memory_config_data = data.get("memory_config")
+        memory_config = None
+        if memory_config_data:
+            if isinstance(memory_config_data, dict):
+                # Convert dict to MemoryConfig object
+                from dipeo.models import ForgettingMode
+                forget_mode = memory_config_data.get("forget_mode", "no_forget")
+                if isinstance(forget_mode, str):
+                    forget_mode = ForgettingMode(forget_mode)
+                memory_config = MemoryConfig(
+                    forget_mode=forget_mode,
+                    max_messages=memory_config_data.get("max_messages")
+                )
+            else:
+                memory_config = memory_config_data
+                
         return PersonJobNode(
             id=node_id,
             position=position,
@@ -283,7 +300,7 @@ def create_executable_node(
             first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
-            memory_config=data.get("memory_config"),
+            memory_config=memory_config,
             tools=data.get("tools"),
         )
     

@@ -6,7 +6,7 @@ from dipeo.models import NodeOutput, NodeType
 
 if TYPE_CHECKING:
     from dipeo.core.static.executable_diagram import ExecutableDiagram
-    from dipeo.application.execution.arrow.arrow_processor import ArrowProcessor
+    from dipeo.utils.arrow.arrow_processor import ArrowProcessor
 
 
 class TypedInputResolutionService:

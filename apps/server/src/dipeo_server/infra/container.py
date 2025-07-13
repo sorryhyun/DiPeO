@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from dependency_injector import providers
-from dipeo.container.infrastructure_container import InfrastructureContainer
+from dipeo.container.runtime.integration_container import IntegrationServicesContainer
 from dipeo.infra import MessageRouter, NotionAPIService
 from dipeo.infra.persistence.file import ModularFileService
 from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
@@ -11,7 +11,7 @@ from dipeo_server.infra.persistence.state_registry import state_store
 from dipeo_server.shared.constants import BASE_DIR
 
 
-class ServerInfrastructureContainer(InfrastructureContainer):
+class ServerInfrastructureContainer(IntegrationServicesContainer):
     # Server-specific infrastructure container with proper overrides
 
     # Override state_store with server implementation

@@ -247,16 +247,20 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 api_key_id=ApiKeyID("")  # Wrap empty string with ApiKeyID
             )
         
-        # Create Person object
+        # Create Person object without conversation_manager to avoid circular reference
         person = Person(
             id=PersonID(person_id),
             name=person_name,
             llm_config=person_config,
-            conversation_manager=conversation_manager
+            conversation_manager=None  # Initially None to avoid recursion
         )
         
-        # Cache the person
+        # Cache the person BEFORE setting conversation_manager
         self._person_cache[person_id] = person
+        
+        # Now safely set the conversation_manager after caching
+        person._conversation_manager = conversation_manager
+        
         return person
     
     def _has_conversation_input(self, inputs: dict[str, Any]) -> bool:

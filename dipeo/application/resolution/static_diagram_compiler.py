@@ -11,9 +11,8 @@ from dipeo.core.static.generated_nodes import (
 )
 from dipeo.models import DomainDiagram, NodeType, NodeID
 from dipeo.application.resolution.handle_resolver import HandleResolver
-from dipeo.application.resolution.arrow_transformer import ArrowTransformer
+from dipeo.application.resolution.arrow_transformer import ArrowTransformer, ExecutableNodeImpl
 from dipeo.application.resolution.execution_order_calculator import ExecutionOrderCalculator
-from dipeo.application.resolution.diagram_resolver import ExecutableNodeImpl
 
 
 class StaticDiagramCompiler(DiagramCompiler):
