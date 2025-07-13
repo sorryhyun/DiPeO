@@ -4,7 +4,7 @@ import warnings
 from typing import Any, Optional
 
 from dipeo.application.protocols import ExecutionObserver
-from .engine.stateful_execution_engine import StatefulExecutionEngine
+from .engine.typed_execution_engine import TypedExecutionEngine
 
 
 class EngineFactory:
@@ -19,8 +19,8 @@ class EngineFactory:
         include_state_observer: bool = True,
         include_streaming_observer: bool = True,
         custom_observers: Optional[list[ExecutionObserver]] = None,
-    ) -> StatefulExecutionEngine:
-        # Create a StatefulExecutionEngine with standard observers.
+    ) -> TypedExecutionEngine:
+        # Create a TypedExecutionEngine with standard observers.
         observers = []
         
         # Add state store observer if requested and available
@@ -37,8 +37,8 @@ class EngineFactory:
         if custom_observers:
             observers.extend(custom_observers)
         
-        # Create the StatefulExecutionEngine
-        return StatefulExecutionEngine(
+        # Create the TypedExecutionEngine
+        return TypedExecutionEngine(
             service_registry=service_registry,
             observers=observers,
         )

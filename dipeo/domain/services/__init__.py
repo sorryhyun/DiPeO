@@ -13,11 +13,9 @@ to their proper domain locations during the architectural refactoring.
 
 # For backward compatibility, maintain empty references
 InputResolutionService = None  # Moved to application layer
-FlowControlService = None  # Moved to application layer
 PersonJobOrchestrator = None  # Moved to application layer
 
 __all__ = [
     "InputResolutionService",
-    "FlowControlService",
     "PersonJobOrchestrator",
 ]

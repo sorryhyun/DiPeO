@@ -1,18 +1,20 @@
 
-from typing import Any, Type
+from typing import Any
+import logging
 
 from pydantic import BaseModel
 
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
-from dipeo.models import ConditionNodeData, NodeOutput
-from dipeo.core.static.nodes import ConditionNode
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.models import ConditionNodeData, NodeOutput, NodeType
+from dipeo.core.static.generated_nodes import ConditionNode
+
+logger = logging.getLogger(__name__)
 
 
 @register_handler
-class ConditionNodeHandler(BaseNodeHandler):
+class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     
     def __init__(self, condition_evaluation_service=None, diagram_storage_service=None):
         self.condition_evaluation_service = condition_evaluation_service
@@ -20,8 +22,12 @@ class ConditionNodeHandler(BaseNodeHandler):
 
 
     @property
+    def node_class(self) -> type[ConditionNode]:
+        return ConditionNode
+    
+    @property
     def node_type(self) -> str:
-        return "condition"
+        return NodeType.condition.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -42,64 +48,31 @@ class ConditionNodeHandler(BaseNodeHandler):
             service = services.get(service_name)
         return service
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
+        node: ConditionNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, ConditionNode):
-            # Convert typed node to props
-            condition_props = ConditionNodeData(
-                label=typed_node.label,
-                condition_type=typed_node.condition_type,
-                expression=typed_node.expression,
-                node_indices=typed_node.node_indices
-            )
-        elif isinstance(props, ConditionNodeData):
-            condition_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        # Execute using props-based logic
-        return await self._execute_with_props(condition_props, context, inputs, services)
-    
-    async def _execute_with_props(
-        self,
-        props: ConditionNodeData,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        import logging
-        logger = logging.getLogger(__name__)
-        
         # Resolve services
         evaluation_service = self._resolve_service(context, services, "condition_evaluation_service")
         diagram = self._resolve_service(context, services, "diagram")
         
+        # Direct typed access to node properties
+        condition_type = node.condition_type
+        expression = node.expression
+        node_indices = node.node_indices
+        
         # Evaluate condition based on type
-        if props.condition_type == "detect_max_iterations":
+        if condition_type == "detect_max_iterations":
             logger.debug(f"Detect max iterations: has node_outputs={hasattr(context, 'node_outputs')}, executed_nodes={context.executed_nodes if hasattr(context, 'executed_nodes') else 'N/A'}")
             
             # Use new approach with NodeOutput data if available
             if hasattr(context, 'node_outputs') and context.executed_nodes:
                 # New approach: Use executed_nodes and node outputs
                 result = self._evaluate_max_iterations_with_outputs(
-                    evaluation_service, diagram, context, props
+                    evaluation_service, diagram, context, node
                 )
             else:
                 # Fallback to old approach for backward compatibility
@@ -112,16 +85,16 @@ class ConditionNodeHandler(BaseNodeHandler):
                     execution_states=execution_states,
                     node_exec_counts=node_exec_counts,
                 )
-        elif props.condition_type == "check_nodes_executed":
+        elif condition_type == "check_nodes_executed":
             # New condition type using executed_nodes field
-            target_nodes = props.node_indices or []
+            target_nodes = node_indices or []
             result = evaluation_service.check_nodes_executed(
                 target_node_ids=target_nodes,
                 node_outputs=context.node_outputs if hasattr(context, 'node_outputs') else {}
             )
-        elif props.condition_type == "custom":
+        elif condition_type == "custom":
             result = evaluation_service.evaluate_custom_expression(
-                expression=props.expression or "",
+                expression=expression or "",
                 context_values=inputs,
             )
         else:
@@ -136,12 +109,12 @@ class ConditionNodeHandler(BaseNodeHandler):
             # When condition is false, output goes to "false" branch only
             output_value = {"condfalse": inputs if inputs else {}}
 
-        return create_node_output(
+        return self._build_output(
             output_value, 
-            {"condition_result": result},
-            node_id=context.current_node_id,
-            executed_nodes=context.executed_nodes
+            context,
+            {"condition_result": result}
         )
+    
     
     def _extract_execution_states(self, context: UnifiedExecutionContext) -> dict[str, dict[str, Any]]:
         execution_states = {}
@@ -173,11 +146,8 @@ class ConditionNodeHandler(BaseNodeHandler):
         evaluation_service: Any, 
         diagram: Any, 
         context: UnifiedExecutionContext,
-        props: ConditionNodeData
+        node: ConditionNode
     ) -> bool:
-        from dipeo.models import NodeType
-        import logging
-        logger = logging.getLogger(__name__)
         
         # Get executed nodes list
         executed_nodes = set(context.executed_nodes) if context.executed_nodes else set()
@@ -200,7 +170,14 @@ class ConditionNodeHandler(BaseNodeHandler):
             if node.id in executed_nodes:
                 found_executed = True
                 exec_count = context.get_node_execution_count(node.id)
-                max_iter = int(node.data.get("max_iteration", 1))
+                
+                # Handle typed nodes from ExecutableDiagram
+                if hasattr(node, 'max_iteration'):
+                    # Direct property access for typed nodes
+                    max_iter = node.max_iteration
+                else:
+                    # Fallback for dict-based nodes
+                    max_iter = int(node.data.get("max_iteration", 1)) if hasattr(node, 'data') else 1
                 
                 # Debug logging
 

@@ -1,18 +1,17 @@
 
-from typing import Any, Type
+from typing import Any
 
 from dipeo.application import register_handler
 from dipeo.domain.notion.services import NotionValidator
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
-from dipeo.models import NodeOutput, NotionNodeData, NotionOperation
-from dipeo.core.static.nodes import NotionNode
+from dipeo.models import NodeOutput, NotionNodeData, NotionOperation, NodeType
+from dipeo.core.static.generated_nodes import NotionNode
 from pydantic import BaseModel
 
 
 @register_handler
-class NotionNodeHandler(BaseNodeHandler):
+class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     
     def __init__(self, notion_service=None, api_key_service=None):
         self.notion_service = notion_service
@@ -21,8 +20,12 @@ class NotionNodeHandler(BaseNodeHandler):
 
 
     @property
+    def node_class(self) -> type[NotionNode]:
+        return NotionNode
+    
+    @property
     def node_type(self) -> str:
-        return "notion"
+        return NodeType.notion.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -37,41 +40,18 @@ class NotionNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Executes Notion API operations"
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
+        node: NotionNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, NotionNode):
-            # Convert typed node to props
-            notion_props = NotionNodeData(
-                label=typed_node.label,
-                operation=typed_node.operation,
-                page_id=typed_node.page_id,
-                database_id=typed_node.database_id,
-                properties=typed_node.properties
-            )
-        elif isinstance(props, NotionNodeData):
-            notion_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        return await self._execute_notion_operation(notion_props, context, inputs, services)
+        return await self._execute_notion_operation(node, context, inputs, services)
     
     async def _execute_notion_operation(
         self,
-        props: NotionNodeData,
+        node: NotionNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
@@ -97,9 +77,9 @@ class NotionNodeHandler(BaseNodeHandler):
         
         # Validate operation configuration
         validation_result = self.validator.validate_operation_config(
-            operation=props.operation,
-            page_id=props.page_id,
-            database_id=props.database_id,
+            operation=node.operation,
+            page_id=node.page_id,
+            database_id=node.database_id,
             inputs=inputs
         )
         
@@ -107,10 +87,10 @@ class NotionNodeHandler(BaseNodeHandler):
             raise ValueError(validation_result.errors[0].message)
         
         # Execute based on operation type
-        if props.operation == NotionOperation.READ_PAGE:
-            result = await notion_service.retrieve_page(props.page_id, api_key)
+        if node.operation == NotionOperation.READ_PAGE:
+            result = await notion_service.retrieve_page(node.page_id, api_key)
             
-        elif props.operation == NotionOperation.CREATE_PAGE:
+        elif node.operation == NotionOperation.CREATE_PAGE:
             # Extract page data from inputs
             parent = inputs.get("parent", {})
             properties = inputs.get("properties", {})
@@ -122,19 +102,19 @@ class NotionNodeHandler(BaseNodeHandler):
                 api_key=api_key
             )
             
-        elif props.operation == NotionOperation.UPDATE_PAGE:
+        elif node.operation == NotionOperation.UPDATE_PAGE:
             # For now, we can only append blocks to a page
             blocks = inputs.get("blocks", [])
             if blocks:
-                result = await notion_service.append_blocks(props.page_id, blocks, api_key)
+                result = await notion_service.append_blocks(node.page_id, blocks, api_key)
             else:
                 raise ValueError("UPDATE_PAGE requires blocks to append")
                 
-        elif props.operation == NotionOperation.QUERY_DATABASE:
+        elif node.operation == NotionOperation.QUERY_DATABASE:
             filter_query = inputs.get("filter", None)
             sorts = inputs.get("sorts", None)
             result = await notion_service.query_database(
-                database_id=props.database_id,
+                database_id=node.database_id,
                 filter=filter_query,
                 sorts=sorts,
                 api_key=api_key
@@ -142,10 +122,9 @@ class NotionNodeHandler(BaseNodeHandler):
             
         else:
             # This should have been caught by validation, but just in case
-            raise ValueError(f"Unsupported Notion operation: {props.operation}")
+            raise ValueError(f"Unsupported Notion operation: {node.operation}")
             
-        return create_node_output(
+        return self._build_output(
             {"default": result},
-            node_id=context.current_node_id,
-            executed_nodes=context.executed_nodes
+            context
         )

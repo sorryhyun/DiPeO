@@ -32,12 +32,17 @@ class TypedStatefulExecution:
         execution_state: ExecutionState,
         service_registry: Optional["UnifiedServiceRegistry"] = None,
         container: Optional["Container"] = None,
+        max_global_iterations: int = 100,
     ):
         """Initialize with a typed executable diagram."""
         self.diagram = diagram
         self.state = execution_state
         self._service_registry = service_registry
         self._container = container
+        
+        # Global iteration tracking
+        self.iteration_count: int = 0
+        self.max_global_iterations: int = max_global_iterations
         
         # Cache for ready nodes
         self._ready_nodes_cache: Optional[List[ExecutableNode]] = None
@@ -453,4 +458,16 @@ class TypedStatefulExecution:
     def container(self) -> Optional["Container"]:
         """Get the underlying container for direct access."""
         return self._container
+    
+    def increment_iteration(self) -> None:
+        """Increment global iteration counter."""
+        self.iteration_count += 1
+    
+    def should_continue(self) -> bool:
+        """Check if execution should continue based on completion and iteration limit."""
+        if self.iteration_count >= self.max_global_iterations:
+            return False
+        
+        # Use typed execution's is_complete method
+        return not self.is_complete()
     

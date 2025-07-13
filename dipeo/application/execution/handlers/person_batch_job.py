@@ -1,11 +1,10 @@
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Optional, Type
+from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
 from dipeo.core.utils import is_conversation
 from dipeo.application.utils.conversation_utils import MessageBuilder
 from dipeo.models import extract_node_id_from_handle
@@ -18,8 +17,9 @@ from dipeo.models import (
     PersonJobNodeData,
     Message,
     PersonID,
+    NodeType,
 )
-from dipeo.core.static.nodes import PersonBatchJobNode
+from dipeo.core.static.generated_nodes import PersonBatchJobNode
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
@@ -31,7 +31,11 @@ PersonBatchJobNodeData = PersonJobNodeData
 
 
 @register_handler
-class PersonBatchJobNodeHandler(BaseNodeHandler):
+class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
+    # TODO: This handler expects fields (person_ids, prompt, parallel_execution, aggregate_results)
+    # that don't exist in PersonJobNodeData. This needs to be fixed either by:
+    # 1. Creating a proper PersonBatchJobNodeData model with these fields, or
+    # 2. Refactoring the handler to use PersonJobNodeData fields correctly
     
     def __init__(self, llm_service=None, diagram_storage_service=None, conversation_service=None):
         self.llm_service = llm_service
@@ -40,8 +44,12 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
 
 
     @property
+    def node_class(self) -> type[PersonBatchJobNode]:
+        return PersonBatchJobNode
+    
+    @property
     def node_type(self) -> str:
-        return "person_batch_job"
+        return NodeType.person_batch_job.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -56,45 +64,20 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Execute prompts across multiple persons in batch"
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
+        node: PersonBatchJobNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, PersonBatchJobNode):
-            # Convert typed node to props
-            batch_props = PersonBatchJobNodeData(
-                label=typed_node.label,
-                person=typed_node.person_id,
-                first_only_prompt=typed_node.first_only_prompt,
-                default_prompt=typed_node.default_prompt,
-                max_iteration=typed_node.max_iteration,
-                memory_config=typed_node.memory_config,
-                tools=typed_node.tools
-            )
-            # Note: The current implementation expects fields like person_ids, prompt, parallel_execution, aggregate_results
-            # which don't exist in PersonJobNodeData. This appears to be a bug in the handler.
-        elif isinstance(props, PersonBatchJobNodeData):
-            batch_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        return await self._execute_batch(batch_props, context, inputs, services)
+        # Note: The current implementation expects fields like person_ids, prompt, parallel_execution, aggregate_results
+        # which don't exist in PersonBatchJobNode. For now, we'll pass the node directly.
+        return await self._execute_batch(node, context, inputs, services)
     
     async def _execute_batch(
         self,
-        props: PersonBatchJobNodeData,
+        node: PersonBatchJobNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
@@ -107,21 +90,27 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         if not conversation_service or not llm_service:
             raise ValueError("Required services not available")
 
-        # Just use the prompt as-is, inputs will be handled separately
-        prompt = props.prompt
+        # FIXME: PersonBatchJobNode doesn't have a prompt field - this needs to be fixed
+        # For now, using default_prompt as a fallback
+        prompt = getattr(node, 'prompt', node.default_prompt or '')
 
         results = {}
-        metadata = {"person_count": len(props.person_ids)}
+        # FIXME: PersonBatchJobNode doesn't have person_ids field
+        # For now, create a single-person list using person_id
+        person_ids = getattr(node, 'person_ids', [node.person_id] if node.person_id else [])
+        metadata = {"person_count": len(person_ids)}
         total_tokens = 0
 
-        if props.parallel_execution:
+        # FIXME: PersonBatchJobNode doesn't have parallel_execution field
+        parallel_execution = getattr(node, 'parallel_execution', False)
+        if parallel_execution:
             # Execute in parallel
             tasks = []
-            for person_id in props.person_ids:
+            for person_id in person_ids:
                 task = self._execute_single_person(
                     person_id=person_id,
                     prompt=prompt,
-                    props=props,
+                    node=node,
                     context=context,
                     inputs=inputs,
                     diagram=diagram,
@@ -132,7 +121,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
 
             responses = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for person_id, response in zip(props.person_ids, responses, strict=False):
+            for person_id, response in zip(person_ids, responses, strict=False):
                 if isinstance(response, Exception):
                     results[person_id] = {"error": str(response)}
                 else:
@@ -141,12 +130,12 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                         total_tokens += response["tokens"]
         else:
             # Execute sequentially
-            for person_id in props.person_ids:
+            for person_id in person_ids:
                 try:
                     response = await self._execute_single_person(
                         person_id=person_id,
                         prompt=prompt,
-                        props=props,
+                        node=node,
                         context=context,
                         inputs=inputs,
                         diagram=diagram,
@@ -160,20 +149,22 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
                     results[person_id] = {"error": str(e)}
 
         # Aggregate results if requested
-        if props.aggregate_results:
+        # FIXME: PersonBatchJobNode doesn't have aggregate_results field
+        aggregate_results = getattr(node, 'aggregate_results', True)
+        if aggregate_results:
             aggregated = "\n\n".join(
                 [f"Person {pid}: {result}" for pid, result in results.items()]
             )
-            output = create_node_output(
-                {"default": aggregated, "results": results}, metadata,
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+            output = self._build_output(
+                {"default": aggregated, "results": results}, 
+                context,
+                metadata
             )
         else:
-            output = create_node_output(
-                {"default": results, "results": results}, metadata,
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+            output = self._build_output(
+                {"default": results, "results": results}, 
+                context,
+                metadata
             )
 
         # Add token usage if any
@@ -187,7 +178,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         self,
         person_id: str,
         prompt: str,
-        props: PersonBatchJobNodeData,
+        node: PersonBatchJobNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         diagram: Optional[DomainDiagram],
@@ -204,7 +195,7 @@ class PersonBatchJobNodeHandler(BaseNodeHandler):
         message_builder = MessageBuilder(conversation_service, person_id, execution_id)
         
         # Handle forgetting based on memory config
-        if props.memory_config and props.memory_config.forget_mode == "on_every_turn":
+        if node.memory_config and node.memory_config.forget_mode == "on_every_turn":
             # Check if legacy methods are available (through adapter)
             execution_count = 0
             if hasattr(context, 'get_node_execution_count') and hasattr(context, 'current_node_id'):

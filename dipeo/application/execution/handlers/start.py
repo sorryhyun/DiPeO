@@ -1,23 +1,26 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
-from dipeo.models import NodeOutput, StartNodeData, HookTriggerMode
-from dipeo.core.static.nodes import StartNode
+from dipeo.models import NodeOutput, StartNodeData, HookTriggerMode, NodeType
+from dipeo.core.static.generated_nodes import StartNode
 from pydantic import BaseModel
 
 
 @register_handler
-class StartNodeHandler(BaseNodeHandler):
+class StartNodeHandler(TypedNodeHandler[StartNode]):
     
     def __init__(self):
         pass
 
     @property
+    def node_class(self) -> type[StartNode]:
+        return StartNode
+    
+    @property
     def node_type(self) -> str:
-        return "start"
+        return NodeType.start.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -27,31 +30,22 @@ class StartNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Kick-off node: can start manually or via hook trigger"
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: Any,  # Will receive typed node directly
+        node: StartNode,
         context: UnifiedExecutionContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any],
+        inputs: dict[str, Any],
+        services: dict[str, Any],
     ) -> NodeOutput:
-        # Extract typed node from props or services
-        if isinstance(props, StartNode):
-            node = props
-        else:
-            # Fallback for compatibility during migration
-            node = services.get("typed_node")
-            if not isinstance(node, StartNode):
-                raise ValueError("StartNodeHandler requires a StartNode instance")
-        
+        # Direct typed access to node properties
         trigger_mode = node.trigger_mode or HookTriggerMode.manual
         
         if trigger_mode == HookTriggerMode.manual:
             output_data = node.custom_data or {}
-            return create_node_output(
+            return self._build_output(
                 {"default": output_data}, 
-                {"message": "Manual execution started"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
+                {"message": "Manual execution started"}
             )
         
         elif trigger_mode == HookTriggerMode.hook:
@@ -59,27 +53,25 @@ class StartNodeHandler(BaseNodeHandler):
             
             if hook_data:
                 output_data = {**node.custom_data, **hook_data}
-                return create_node_output(
+                return self._build_output(
                     {"default": output_data},
-                    {"message": f"Triggered by hook event: {node.hook_event}"},
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
+                    context,
+                    {"message": f"Triggered by hook event: {node.hook_event}"}
                 )
             else:
                 output_data = node.custom_data or {}
-                return create_node_output(
+                return self._build_output(
                     {"default": output_data},
-                    {"message": "Hook trigger mode but no event data available"},
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
+                    context,
+                    {"message": "Hook trigger mode but no event data available"}
                 )
     
     async def _get_hook_event_data(
         self,
         node: StartNode,
         context: UnifiedExecutionContext,
-        services: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        services: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
         # Check if hook event data was provided in the execution state
         event_data = context.get_variable('hook_event_data')
         if event_data:

@@ -166,21 +166,32 @@ class UnifiedExecutionContext(ExecutionContext):
         elif self._container:
             # Map service names to container paths
             service_mapping = {
-                # Infrastructure services
-                'llm_service': lambda: self._container.infra.llm_service(),
-                'api_key_service': lambda: self._container.domain.api_key_service(),
-                'file_service': lambda: self._container.infra.file_service(),
-                'notion_service': lambda: self._container.infra.notion_service(),
-                'api_integration_service': lambda: self._container.infra.api_service(),
-                'diagram_loader': lambda: self._container.infra.diagram_loader(),
+                # Integration services
+                'llm_service': lambda: self._container.integration.llm_service(),
+                'notion_service': lambda: self._container.integration.notion_service(),
+                'api_integration_service': lambda: self._container.integration.api_service(),
                 
-                # Domain services
-                'conversation_service': lambda: self._container.domain.conversation_service(),
-                'diagram_storage_service': lambda: self._container.domain.diagram_storage_domain_service(),
-                'text_processing_service': lambda: self._container.domain.text_processing_service(),
-                'db_operations_service': lambda: self._container.domain.db_operations_service(),
-                'execution_flow_service': lambda: self._container.domain.flow_control_service(),
-                'input_resolution_service': lambda: self._container.domain.input_resolution_service(),
+                # Persistence services
+                'api_key_service': lambda: self._container.persistence.api_key_service(),
+                'file_service': lambda: self._container.persistence.file_service(),
+                'diagram_loader': lambda: self._container.persistence.diagram_loader(),
+                'diagram_storage_service': lambda: self._container.persistence.diagram_storage_service(),
+                'db_operations_service': lambda: self._container.persistence.db_operations_service(),
+                
+                # Business services
+                'text_processing_service': lambda: self._container.business.text_processing_service(),
+                'input_resolution_service': lambda: self._container.business.input_resolution_service(),
+                
+                # Dynamic services
+                'conversation_service': lambda: self._container.dynamic.conversation_manager(),
+                'conversation_manager': lambda: self._container.dynamic.conversation_manager(),
+                # 'person_job_orchestrator': lambda: self._container.dynamic.person_job_orchestrator(),  # Removed - using direct services
+                # 'llm_executor': lambda: self._container.dynamic.llm_executor(),  # Removed
+                
+                # Additional services for PersonJobNodeHandler
+                'prompt_builder': lambda: self._container.business.prompt_builder(),
+                'conversation_state_manager': lambda: self._container.business.conversation_state_manager(),
+                'memory_transformer': lambda: self._container.static.memory_transformer(),
             }
             
             service_factory = service_mapping.get(service_name)
@@ -268,12 +279,20 @@ class UnifiedExecutionContext(ExecutionContext):
         registry = UnifiedServiceRegistry()
         
         # Register core services
-        registry.register("llm_service", self._container.infra.llm_service())
-        registry.register("api_key_service", self._container.domain.api_key_service())
-        registry.register("file_service", self._container.infra.file_service())
-        registry.register("conversation_service", self._container.domain.conversation_service())
-        registry.register("notion_service", self._container.infra.notion_service())
-        registry.register("api_integration_service", self._container.infra.api_service())
+        registry.register("llm_service", self._container.integration.llm_service())
+        registry.register("api_key_service", self._container.persistence.api_key_service())
+        registry.register("file_service", self._container.persistence.file_service())
+        registry.register("conversation_service", self._container.dynamic.conversation_manager())
+        registry.register("conversation_manager", self._container.dynamic.conversation_manager())
+        registry.register("notion_service", self._container.integration.notion_service())
+        registry.register("api_integration_service", self._container.integration.api_service())
+        # registry.register("person_job_orchestrator", self._container.dynamic.person_job_orchestrator())  # Removed - using direct services
+        # registry.register("llm_executor", self._container.dynamic.llm_executor())  # Removed
+        
+        # Additional services for PersonJobNodeHandler
+        registry.register("prompt_builder", self._container.business.prompt_builder())
+        registry.register("conversation_state_manager", self._container.business.conversation_state_manager())
+        registry.register("memory_transformer", self._container.static.memory_transformer())
         
         return registry
     

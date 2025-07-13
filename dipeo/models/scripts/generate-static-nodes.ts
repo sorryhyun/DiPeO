@@ -143,7 +143,7 @@ class StaticNodeGenerator {
       .replace(/^import\([^)]+\)\./, ''); // Remove import() wrapper
     
     // Handle string literal unions like 'none' | 'bearer' | 'basic' | 'api_key'
-    if (tsType.includes("'") && tsType.includes('|')) {
+    if ((tsType.includes('"') || tsType.includes("'")) && tsType.includes('|')) {
       // Extract the individual string literals and quote them properly for Python
       const literals = tsType.split('|').map(lit => {
         const cleaned = lit.trim().replace(/['"]/g, '');

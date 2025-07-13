@@ -9,20 +9,22 @@ from dipeo.application.execution.iterators import AsyncExecutionIterator
 from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
 from dipeo.infra.config.settings import get_settings
+from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
 
 from .node_executor import NodeExecutor
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
     from dipeo.application.protocols import ExecutionObserver
-    from dipeo.models import DomainDiagram
-    from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
 
 log = logging.getLogger(__name__)
 
 
-class StatefulExecutionEngine:
-    # Refactored execution engine using StatefulExecutableDiagram and execution iterator pattern
+class TypedExecutionEngine:
+    """Execution engine that works directly with typed ExecutableDiagram and TypedStatefulExecution.
+    
+    This is the simplified engine from Phase 6 that leverages static typing throughout.
+    """
     
     def __init__(
         self, 
@@ -34,7 +36,7 @@ class StatefulExecutionEngine:
         self.node_executor = NodeExecutor(service_registry, observers)
         self._settings = get_settings()
     
-    async def execute_with_executable(
+    async def execute(
         self,
         executable_diagram: "ExecutableDiagram",
         stateful_execution: TypedStatefulExecution,
@@ -52,22 +54,12 @@ class StatefulExecutionEngine:
             # Create async execution iterator
             max_parallel = options.get("max_parallel_nodes", 10)
             
-            # The diagram will be passed through context's global context
-            # No need to extract it here
-            
-            # Get controller from execution state if available
-            controller = getattr(stateful_execution.state, '_controller', None)
-            
-            # Store executable diagram reference for node executor
-            self._executable_diagram = executable_diagram
-            
+            # Create iterator with typed execution
             iterator = AsyncExecutionIterator(
                 stateful_execution=stateful_execution,
                 max_parallel_nodes=max_parallel,
                 node_executor=self._create_node_executor_wrapper(
-                    stateful_execution, options, interactive_handler, 
-                    diagram=None,  # Will be retrieved from stateful_execution
-                    controller=controller
+                    stateful_execution, options, interactive_handler
                 ),
                 node_ready_poll_interval=self._settings.node_ready_poll_interval,
                 max_poll_retries=self._settings.node_ready_max_polls
@@ -83,8 +75,7 @@ class StatefulExecutionEngine:
                     continue
                 
                 step_count += 1
-                log.info(f"Executing step {step_count} with {len(step.nodes)} nodes")
-                
+
                 # Execute the step
                 results = await iterator.execute_step(step)
                 
@@ -124,110 +115,29 @@ class StatefulExecutionEngine:
             }
             raise
     
-    async def execute_prepared(
-        self,
-        diagram: "DomainDiagram",
-        controller: Any,  # ExecutionController - kept for compatibility
-        execution_id: str,
-        options: dict[str, Any],
-        interactive_handler: Any | None = None,
-    ) -> AsyncIterator[dict[str, Any]]:
-        # Extract ExecutableDiagram if available
-        executable_diagram = getattr(diagram, '_executable_diagram', None)
-        if not executable_diagram:
-            raise ValueError("No ExecutableDiagram found - diagram must be resolved first")
-        
-        # Get TypedStatefulExecution from controller
-        if hasattr(controller, 'execution') and controller.execution:
-            # Get execution state from the execution
-            execution_state = controller.execution.state
-            
-            # Store controller reference in execution state for later access
-            execution_state._controller = controller
-            
-            # Get or create TypedStatefulExecution
-            stateful_execution = getattr(execution_state, '_stateful_execution', None)
-            if not stateful_execution:
-                # Create it if not exists (backward compatibility)
-                from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
-                stateful_execution = TypedStatefulExecution(
-                    diagram=executable_diagram,
-                    execution_state=execution_state,
-                    service_registry=self.service_registry,
-                    container=getattr(self.service_registry, '_container', None)
-                )
-        else:
-            raise ValueError("Controller must have an execution property")
-        
-        # Store domain diagram reference for node executor
-        self._current_domain_diagram = diagram
-        
-        # Delegate to new execution method
-        async for update in self.execute_with_executable(
-            executable_diagram=executable_diagram,
-            stateful_execution=stateful_execution,
-            execution_id=execution_id,
-            options=options,
-            interactive_handler=interactive_handler
-        ):
-            # Transform updates to match expected format
-            if update["type"] == "step_complete":
-                yield {
-                    "type": "iteration_complete", 
-                    "iteration": update["step"],
-                    "executed_nodes": update["progress"]["completed_nodes"],
-                    "endpoint_executed": self._check_endpoint_executed(
-                        executable_diagram, stateful_execution
-                    )
-                }
-            else:
-                yield update
-    
     def _create_node_executor_wrapper(
         self,
         stateful_execution: TypedStatefulExecution,
         options: Dict[str, Any],
-        interactive_handler: Optional[Any],
-        diagram: Optional["DomainDiagram"] = None,
-        controller: Optional[Any] = None
+        interactive_handler: Optional[Any]
     ):
         async def execute_node(node: "ExecutableNode") -> Dict[str, Any]:
             # For the stateful execution to work properly, we need to ensure
             # that nodes are executed and their results are properly tracked.
             
-            log.debug(f"Wrapper executing node {node.id} of type {node.type}")
-            
+
             try:
-                # Get diagram from instance if not provided
-                execution_diagram = diagram
-                if not execution_diagram:
-                    execution_diagram = self._current_domain_diagram
-                
-                if not execution_diagram:
-                    raise ValueError("No diagram available for execution")
-                
-                # Get controller from stateful_execution if not provided
-                execution_controller = controller
-                if not execution_controller:
-                    # Try to get from execution state
-                    execution_controller = getattr(stateful_execution.state, '_controller', None)
-                
-                if not execution_controller:
-                    raise ValueError("No controller available for execution")
-                
-                # Actually execute the node using NodeExecutor
+                # Execute using the typed node executor with full type safety
                 await self.node_executor.execute_node(
-                    node_id=str(node.id),
-                    diagram=execution_diagram,
-                    controller=execution_controller,
+                    node=node,
+                    execution=stateful_execution,
+                    handler=None,  # Will be resolved by executor
                     execution_id=stateful_execution.execution_id,
                     options=options,
-                    interactive_handler=interactive_handler,
-                    typed_node=node
+                    interactive_handler=interactive_handler
                 )
                 
-                log.debug(f"Node {node.id} execution completed")
-                
+
                 # Return a result for the iterator
                 return {
                     "value": {"status": "completed", "node_id": str(node.id)},
@@ -255,3 +165,7 @@ class StatefulExecutionEngine:
             if stateful_execution.get_node_state(node.id).status == NodeExecutionStatus.COMPLETED:
                 return True
         return False
+
+
+# Backward compatibility alias
+StatefulExecutionEngine = TypedExecutionEngine

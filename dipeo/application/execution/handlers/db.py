@@ -1,30 +1,47 @@
+from __future__ import annotations
 
-from typing import Any, Type
+import logging
+from typing import Any
+
+from pydantic import BaseModel
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
-from dipeo.models import DBNodeData, NodeOutput
-from dipeo.core.static.nodes import DBNode
-from pydantic import BaseModel
+from dipeo.application.execution.context.unified_execution_context import (
+    UnifiedExecutionContext,
+)
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.core.static.generated_nodes import DBNode
+from dipeo.models import DBNodeData, NodeOutput, NodeType
+
+logger = logging.getLogger(__name__)
 
 
 @register_handler
-class DBNodeHandler(BaseNodeHandler):
-    
-    def __init__(self, db_operations_service=None):
+class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
+    """
+    File-based DB node supporting read, write and append operations.
+    Mirrors the behaviour of the original DBNodeHandler, but with a
+    strongly-typed `DBNode` instance supplied by the execution engine.
+    """
+
+    # ---------------------------------------------------------------------#
+    #  Metadata                                                             #
+    # ---------------------------------------------------------------------#
+
+    def __init__(self, db_operations_service: Any | None = None) -> None:
         self.db_operations_service = db_operations_service
 
+    @property
+    def node_class(self) -> type[DBNode]:  # noqa: D401
+        return DBNode
 
     @property
-    def node_type(self) -> str:
-        return "db"
+    def node_type(self) -> str:  # noqa: D401
+        return NodeType.db.value
 
     @property
-    def schema(self) -> type[BaseModel]:
+    def schema(self) -> type[BaseModel]:  # noqa: D401
         return DBNodeData
-    
 
     @property
     def requires_services(self) -> list[str]:
@@ -34,91 +51,73 @@ class DBNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "File-based DB node supporting read, write and append operations"
 
-    async def execute(
-        self,
-        props: BaseModel,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, DBNode):
-            # Convert typed node to props
-            db_props = DBNodeData(
-                label=typed_node.label,
-                file=typed_node.file,
-                collection=typed_node.collection,
-                sub_type=typed_node.sub_type,
-                operation=typed_node.operation,
-                query=typed_node.query,
-                data=typed_node.data
-            )
-        elif isinstance(props, DBNodeData):
-            db_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        return await self._execute_db_operation(db_props, context, inputs, services)
-    
-    async def _execute_db_operation(
-        self,
-        props: DBNodeData,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        # Get service from context or fallback to services dict
-        db_service = context.get_service("db_operations_service")
-        if not db_service:
-            db_service = services.get("db_operations_service")
+    # ---------------------------------------------------------------------#
+    #  Helpers                                                              #
+    # ---------------------------------------------------------------------#
 
-        # Get single input value
-        input_val = None
-        if inputs:
-            # Get first non-empty value
-            for _key, val in inputs.items():
-                if val is not None:
-                    input_val = val
-                    break
+    @staticmethod
+    def _resolve_service(
+        context: UnifiedExecutionContext,
+        services: dict[str, Any],
+        service_name: str,
+    ) -> Any | None:
+        """Try context first, fall back to the services mapping."""
+        service = context.get_service(service_name)
+        return service or services.get(service_name)
+
+    @staticmethod
+    def _first_non_empty(inputs: dict[str, Any] | None) -> Any | None:
+        if not inputs:
+            return None
+        for _k, v in inputs.items():
+            if v is not None:
+                return v
+        return None
+
+    # ---------------------------------------------------------------------#
+    #  Typed execution                                                      #
+    # ---------------------------------------------------------------------#
+
+    async def execute_typed(  # noqa: D401
+        self,
+        node: DBNode,
+        context: UnifiedExecutionContext,
+        inputs: dict[str, Any],
+        services: dict[str, Any],
+    ) -> NodeOutput:
+        """Run the DB operation with a strongly-typed `DBNode` instance."""
+        db_service = self._resolve_service(context, services, "db_operations_service")
+        if db_service is None:  # Hard failure early
+            raise RuntimeError("db_operations_service not available")
+
+        input_val = self._first_non_empty(inputs)
 
         try:
-            # Delegate to domain service which handles validation and business logic
             result = await db_service.execute_operation(
-                db_name=props.file, operation=props.operation, value=input_val
+                db_name=node.file,
+                operation=node.operation,
+                value=input_val,
             )
-
-            # Format output based on operation
-            if props.operation == "read":
+            # ----------------- Format output ----------------- #
+            if node.operation == "read":
                 output_value = result["value"]
-            else:
-                # For write/append, return a success message with metadata
-                metadata = result["metadata"]
-                output_value = f"{props.operation.capitalize()}d to {metadata['file_path']} ({metadata.get('size', 0)} bytes)"
+            else:  # write / append
+                meta = result["metadata"]
+                output_value = (
+                    f"{node.operation.capitalize()}d to "
+                    f"{meta['file_path']} ({meta.get('size', 0)} bytes)"
+                )
 
-            import logging
-
-            log = logging.getLogger(__name__)
-            log.debug(f"DB node output_value: {repr(output_value)}")
-            return create_node_output(
+            logger.debug("DB node output_value: %s", repr(output_value))
+            return self._build_output(
                 {"default": output_value},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
             )
 
-        except Exception as exc:
-            # Domain service throws specific validation errors
-            error_msg = f"DB operation failed: {str(exc)}"
-            return create_node_output(
-                {"default": error_msg},
-                metadata={"error": str(exc), "status": "failed"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("DB operation failed: %s", exc)
+            return self._build_output(
+                {"default": f"DB operation failed: {exc}"},
+                context,
+                {"error": str(exc), "status": "failed"},
             )

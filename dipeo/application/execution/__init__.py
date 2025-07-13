@@ -1,11 +1,11 @@
 """Application execution services."""
 
 from .handler_factory import (
-    BaseNodeHandler,
     HandlerRegistry,
     get_global_registry,
     register_handler,
 )
+from .typed_handler_base import TypedNodeHandler
 from .use_cases import ExecuteDiagramUseCase
 from .context import UnifiedExecutionContext
 from .types import (
@@ -26,7 +26,7 @@ __all__ = [
     "NodeDefinition",
     "NodeHandler",
     # Handlers
-    "BaseNodeHandler",
+    "TypedNodeHandler",
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",

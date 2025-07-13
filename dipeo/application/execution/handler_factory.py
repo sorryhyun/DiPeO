@@ -2,17 +2,26 @@
 
 from abc import ABC, abstractmethod
 import inspect
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from .types import NodeDefinition, NodeHandler
 from ..unified_service_registry import UnifiedServiceRegistry
+from .typed_handler_base import TypedNodeHandler
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 
 T = TypeVar("T", bound=BaseModel)
 
 
+# Legacy BaseNodeHandler - now just an alias for TypedNodeHandler compatibility
 class BaseNodeHandler(ABC):
+    """Legacy interface maintained for backward compatibility.
+    
+    All new handlers should use TypedNodeHandler directly.
+    """
 
     @property
     @abstractmethod
@@ -50,25 +59,25 @@ class HandlerRegistry:
 
     def __init__(self):
         self._handlers: Dict[str, NodeDefinition] = {}
-        self._handler_classes: Dict[str, Type[BaseNodeHandler]] = {}
+        self._handler_classes: Dict[str, Type[TypedNodeHandler]] = {}
         self._service_registry: Optional[UnifiedServiceRegistry] = None
 
     def set_service_registry(self, service_registry: UnifiedServiceRegistry) -> None:
         # Set the service registry for dependency injection.
         self._service_registry = service_registry
 
-    def register(self, handler: BaseNodeHandler) -> None:
-        # Register a handler instance.
+    def register(self, handler: Any) -> None:
+        # Register a handler instance (supports both BaseNodeHandler and TypedNodeHandler).
         node_def = NodeDefinition(
             type=handler.node_type,
             node_schema=handler.schema,
-            handler=handler.to_node_handler(),
+            handler=handler.to_node_handler() if hasattr(handler, 'to_node_handler') else handler.execute,
             requires_services=handler.requires_services,
             description=handler.description,
         )
         self._handlers[handler.node_type] = node_def
 
-    def register_class(self, handler_class: Type[BaseNodeHandler]) -> None:
+    def register_class(self, handler_class: Type[TypedNodeHandler]) -> None:
         # Register a handler class for later instantiation.
         # Create a temporary instance to get the node_type
         temp_instance = handler_class()
@@ -95,7 +104,7 @@ class HandlerRegistry:
         )
         self._handlers[node_type] = node_def
 
-    def create_handler(self, node_type: str) -> BaseNodeHandler:
+    def create_handler(self, node_type: str) -> TypedNodeHandler:
         handler_class = self._handler_classes.get(node_type)
         if not handler_class:
             raise ValueError(f"No handler class registered for node type: {node_type}")
@@ -108,7 +117,7 @@ class HandlerRegistry:
         else:
             return self._create_handler_with_services(handler_class)
 
-    def _create_handler_with_services(self, handler_class: Type[BaseNodeHandler]) -> BaseNodeHandler:
+    def _create_handler_with_services(self, handler_class: Type[TypedNodeHandler]) -> TypedNodeHandler:
         if not self._service_registry:
             raise RuntimeError("Service registry not set. Call set_service_registry first.")
 
@@ -166,9 +175,14 @@ class HandlerRegistry:
 _global_registry = HandlerRegistry()
 
 
-def register_handler(handler_class: type[BaseNodeHandler]) -> type[BaseNodeHandler]:
+def register_handler(handler_class: type) -> type:
     # Decorator to register a handler class.
-    _global_registry.register_class(handler_class)
+    # Only support TypedNodeHandler now
+    if hasattr(handler_class, 'node_type') and hasattr(handler_class, 'schema'):
+        # Directly register TypedNodeHandler classes
+        _global_registry.register_class(handler_class)
+    else:
+        raise ValueError(f"Handler class {handler_class.__name__} must have node_type and schema properties")
     return handler_class
 
 
@@ -185,10 +199,10 @@ class HandlerFactory:
         # Set the service registry on the global registry
         _global_registry.set_service_registry(service_registry)
 
-    def register_handler_class(self, handler_class: Type[BaseNodeHandler]) -> None:
+    def register_handler_class(self, handler_class: Type[TypedNodeHandler]) -> None:
         _global_registry.register_class(handler_class)
 
-    def create_handler(self, node_type: str) -> BaseNodeHandler:
+    def create_handler(self, node_type: str) -> TypedNodeHandler:
         return _global_registry.create_handler(node_type)
 
 

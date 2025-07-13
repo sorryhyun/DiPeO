@@ -1,25 +1,28 @@
 
-from typing import Any, Type
+from typing import Any
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
-from dipeo.models import NodeOutput, UserResponseNodeData
-from dipeo.core.static.nodes import UserResponseNode
+from dipeo.models import NodeOutput, UserResponseNodeData, NodeType
+from dipeo.core.static.generated_nodes import UserResponseNode
 from pydantic import BaseModel
 
 
 @register_handler
-class UserResponseNodeHandler(BaseNodeHandler):
+class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     
     def __init__(self):
         pass
 
 
     @property
+    def node_class(self) -> type[UserResponseNode]:
+        return UserResponseNode
+    
+    @property
     def node_type(self) -> str:
-        return "user_response"
+        return NodeType.user_response.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -30,39 +33,18 @@ class UserResponseNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Interactive node that prompts for user input"
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
+        node: UserResponseNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, UserResponseNode):
-            # Convert typed node to props
-            response_props = UserResponseNodeData(
-                label=typed_node.label,
-                prompt=typed_node.prompt,
-                timeout=typed_node.timeout
-            )
-        elif isinstance(props, UserResponseNodeData):
-            response_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": "", "user_response": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        return await self._execute_user_response(response_props, context, inputs, services)
+        return await self._execute_user_response(node, context, inputs, services)
     
     async def _execute_user_response(
         self,
-        props: UserResponseNodeData,
+        node: UserResponseNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
@@ -75,7 +57,7 @@ class UserResponseNodeHandler(BaseNodeHandler):
             and exec_context.interactive_handler
         ):
             # Prepare the message with inputs if available
-            message = props.prompt
+            message = node.prompt
             if inputs:
                 input_str = str(inputs.get("default", inputs))
                 message = f"{message}\n\nContext: {input_str}"
@@ -86,19 +68,17 @@ class UserResponseNodeHandler(BaseNodeHandler):
                     "type": "user_input_required",
                     "node_id": getattr(context, 'current_node_id', 'unknown'),
                     "prompt": message,
-                    "timeout": props.timeout,
+                    "timeout": node.timeout,
                 }
             )
 
-            return create_node_output(
+            return self._build_output(
                 {"default": response, "user_response": response},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context
             )
         # If no interactive handler, return empty response
-        return create_node_output(
+        return self._build_output(
             {"default": "", "user_response": ""},
-            {"warning": "No interactive handler available"},
-            node_id=context.current_node_id,
-            executed_nodes=context.executed_nodes
+            context,
+            {"warning": "No interactive handler available"}
         )

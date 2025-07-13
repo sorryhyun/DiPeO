@@ -31,11 +31,6 @@ _imported_modules = ["core", "domain", "models", "diagram", "application", "infr
 try:
     from .core import (
         BaseService,
-        BaseExecutor,
-        BaseNodeHandler,
-        ExecutionOptions,
-        NodeDefinition,
-        NodeHandler,
         Result,
         Error,
         DiPeOError,
@@ -43,13 +38,26 @@ try:
         NodeExecutionError,
     )
     _imported_modules.extend([
-        "BaseService", "BaseExecutor", "BaseNodeHandler",
-        "ExecutionOptions",
-        "NodeDefinition", "NodeHandler", "Result", "Error",
+        "BaseService", "Result", "Error",
         "DiPeOError", "ValidationError", "NodeExecutionError"
     ])
 except ImportError as e:
     warnings.warn(f"Could not import some core items: {e}", ImportWarning)
+
+# Import execution framework items from application layer
+try:
+    from .application import (
+        TypedNodeHandler,
+        ExecutionOptions,
+        NodeDefinition,
+        NodeHandler,
+    )
+    _imported_modules.extend([
+        "TypedNodeHandler", "ExecutionOptions",
+        "NodeDefinition", "NodeHandler"
+    ])
+except ImportError as e:
+    warnings.warn(f"Could not import some execution framework items: {e}", ImportWarning)
 
 # For convenience, re-export commonly used models from domain
 try:
@@ -96,11 +104,11 @@ except ImportError as e:
 # For convenience, re-export commonly used items from application
 try:
     from .application import (
-        StatefulExecutionEngine,
+        TypedExecutionEngine,
         UnifiedServiceRegistry,
     )
     _imported_modules.extend([
-        "StatefulExecutionEngine",
+        "TypedExecutionEngine",
         "UnifiedServiceRegistry"
     ])
 except ImportError as e:

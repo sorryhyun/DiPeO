@@ -52,12 +52,6 @@ def _create_input_resolution_service(arrow_processor):
     return InputResolutionService(arrow_processor=arrow_processor)
 
 
-def _create_flow_control_service():
-    """Create flow control service."""
-    from dipeo.application.execution.flow_control_service import FlowControlService
-    return FlowControlService()
-
-
 def _create_conversation_processor():
     """Create conversation processing service."""
     from dipeo.application.execution.person_job import ConversationProcessingService
@@ -205,7 +199,6 @@ class BusinessLogicContainer(ImmutableBaseContainer):
         _create_input_resolution_service,
         arrow_processor=static.arrow_processor,
     )
-    flow_control_service = providers.Singleton(_create_flow_control_service)
     
     # Person job services (pure processing logic)
     conversation_processor = providers.Singleton(_create_conversation_processor)

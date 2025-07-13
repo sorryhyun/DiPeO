@@ -1,26 +1,28 @@
 
-import asyncio
 import json
-from typing import Any, Type
+from typing import Any
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
-from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod
-from dipeo.core.static.nodes import ApiJobNode
+from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod, NodeType
+from dipeo.core.static.generated_nodes import ApiJobNode
 from pydantic import BaseModel
 
 
 @register_handler
-class ApiJobNodeHandler(BaseNodeHandler):
+class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     
     def __init__(self, api_service=None):
         self.api_service = api_service
 
     @property
+    def node_class(self) -> type[ApiJobNode]:
+        return ApiJobNode
+    
+    @property
     def node_type(self) -> str:
-        return "api_job"
+        return NodeType.api_job.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -35,45 +37,9 @@ class ApiJobNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, ApiJobNode):
-            # Convert typed node to props
-            api_props = ApiJobNodeData(
-                label=typed_node.label,
-                url=typed_node.url,
-                method=typed_node.method,
-                headers=typed_node.headers,
-                params=typed_node.params,
-                body=typed_node.body,
-                timeout=typed_node.timeout,
-                auth_type=typed_node.auth_type,
-                auth_config=typed_node.auth_config
-            )
-        elif isinstance(props, ApiJobNodeData):
-            api_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        return await self._execute_api_call(api_props, context, inputs, services)
-    
-    async def _execute_api_call(
-        self,
-        props: ApiJobNodeData,
+        node: ApiJobNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
@@ -86,39 +52,37 @@ class ApiJobNodeHandler(BaseNodeHandler):
                 api_service = services.get("api_service")
             
         if not api_service:
-            return create_node_output(
+            return self._build_output(
                 {"default": ""}, 
-                {"error": "API service not available"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
+                {"error": "API service not available"}
             )
         
-        url = props.url
-        method = props.method
-        headers = props.headers or {}
-        params = props.params or {}
-        body = props.body
-        timeout = props.timeout or 30
-        auth_type = props.auth_type or "none"
-        auth_config = props.auth_config or {}
+        # Direct typed access to node properties
+        url = node.url
+        method = node.method
+        headers = node.headers or {}
+        params = node.params or {}
+        body = node.body
+        timeout = node.timeout or 30
+        auth_type = node.auth_type or "none"
+        auth_config = node.auth_config or {}
 
         if not url:
-            return create_node_output(
+            return self._build_output(
                 {"default": ""}, 
-                {"error": "No URL provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
+                {"error": "No URL provided"}
             )
 
         try:
             # Parse JSON strings for headers, params, body, and auth_config
             parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
             if "error" in parsed_data:
-                return create_node_output(
+                return self._build_output(
                     {"default": ""}, 
-                    {"error": parsed_data["error"]},
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
+                    context,
+                    {"error": parsed_data["error"]}
                 )
             
             headers = parsed_data["headers"]
@@ -141,7 +105,7 @@ class ApiJobNodeHandler(BaseNodeHandler):
                 method=method.value,
                 data=request_data,
                 headers=headers,
-                max_retries=props.max_retries if hasattr(props, "max_retries") else 3,
+                max_retries=node.max_retries if hasattr(node, "max_retries") else 3,
                 retry_delay=1.0,
                 timeout=timeout,
                 auth=auth,
@@ -151,30 +115,28 @@ class ApiJobNodeHandler(BaseNodeHandler):
             # Format output
             output_value = json.dumps(response_data) if isinstance(response_data, dict) else str(response_data)
             
-            return create_node_output(
+            return self._build_output(
                 {"default": output_value},
+                context,
                 {
                     "success": True,
                     "url": url,
                     "method": method.value
-                },
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                }
             )
 
         except Exception as e:
             # API service handles retries and specific errors
             # This catches any remaining errors
-            return create_node_output(
+            return self._build_output(
                 {"default": ""}, 
+                context,
                 {
                     "error": str(e),
                     "success": False,
                     "url": url,
                     "method": method.value
-                },
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                }
             )
 
     def _parse_json_inputs(

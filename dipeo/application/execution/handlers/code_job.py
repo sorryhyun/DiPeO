@@ -4,22 +4,21 @@ import json
 import os
 import sys
 from io import StringIO
-from typing import Any, Type
+from typing import Any
 import warnings
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application.utils import create_node_output
-from dipeo.models import CodeJobNodeData, NodeOutput
-from dipeo.core.static.nodes import CodeJobNode
+from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
+from dipeo.core.static.generated_nodes import CodeJobNode
 from pydantic import BaseModel
 from dipeo.utils.template import TemplateProcessor
 
 
 
 @register_handler
-class CodeJobNodeHandler(BaseNodeHandler):
+class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     
     def __init__(self, template_service=None):
         if template_service is not None:
@@ -32,8 +31,12 @@ class CodeJobNodeHandler(BaseNodeHandler):
         self._processor = TemplateProcessor()
 
     @property
+    def node_class(self) -> type[CodeJobNode]:
+        return CodeJobNode
+    
+    @property
     def node_type(self) -> str:
-        return "code_job"
+        return NodeType.code_job.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -48,54 +51,23 @@ class CodeJobNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Executes Python, JavaScript, or Bash code with enhanced capabilities"
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
+        node: CodeJobNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, CodeJobNode):
-            # Convert typed node to props
-            code_props = CodeJobNodeData(
-                label=typed_node.label,
-                language=typed_node.language,
-                code=typed_node.code,
-                timeout=typed_node.timeout
-            )
-        elif isinstance(props, CodeJobNodeData):
-            code_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        return await self._execute_code(code_props, context, inputs, services)
-    
-    async def _execute_code(
-        self,
-        props: CodeJobNodeData,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        language = props.language
-        code = props.code
-        timeout = props.timeout or 30  # Default 30 seconds
+        # Direct typed access to node properties
+        language = node.language
+        code = node.code
+        timeout = node.timeout or 30  # Default 30 seconds
 
         if not code:
-            return create_node_output(
+            return self._build_output(
                 {"default": ""}, 
-                {"error": "No code provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
+                {"error": "No code provided"}
             )
 
         try:
@@ -106,11 +78,10 @@ class CodeJobNodeHandler(BaseNodeHandler):
             elif language == "bash":
                 result = await self._execute_bash(code, inputs, timeout)
             else:
-                return create_node_output(
+                return self._build_output(
                     {"default": ""}, 
-                    {"error": f"Unsupported language: {language}"},
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
+                    context,
+                    {"error": f"Unsupported language: {language}"}
                 )
 
             # Convert result to string if needed
@@ -119,26 +90,23 @@ class CodeJobNodeHandler(BaseNodeHandler):
             else:
                 output = str(result)
 
-            return create_node_output(
+            return self._build_output(
                 {"default": output},
-                {"language": language, "success": True},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
+                {"language": language, "success": True}
             )
 
         except asyncio.TimeoutError:
-            return create_node_output(
+            return self._build_output(
                 {"default": ""}, 
-                {"error": f"Code execution timed out after {timeout} seconds", "language": language, "success": False},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
+                {"error": f"Code execution timed out after {timeout} seconds", "language": language, "success": False}
             )
         except Exception as e:
-            return create_node_output(
+            return self._build_output(
                 {"default": ""}, 
-                {"error": str(e), "language": language, "success": False},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context,
+                {"error": str(e), "language": language, "success": False}
             )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:

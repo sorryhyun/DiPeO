@@ -42,9 +42,9 @@ def _create_execution_engine(
     message_router
 ):
     """Create stateful execution engine."""
-    from dipeo.application.engine import StatefulExecutionEngine
+    from dipeo.application.engine import TypedExecutionEngine
     
-    return StatefulExecutionEngine(
+    return TypedExecutionEngine(
         context=context,
         service_registry=service_registry,
         state_store=state_store,
@@ -52,43 +52,19 @@ def _create_execution_engine(
     )
 
 
-def _create_node_executor(registry, context):
+def _create_node_executor(service_registry, observers=None):
     """Create node executor for running nodes."""
     from dipeo.application.engine import NodeExecutor
     
     return NodeExecutor(
-        handler_registry=registry,
-        context=context
+        service_registry=service_registry,
+        observers=observers or []
     )
 
 
-def _create_person_job_orchestrator(
-    prompt_builder,
-    conversation_state_manager,
-    llm_executor,
-    output_builder,
-    conversation_processor,
-    memory_transformer,
-    conversation_manager
-):
-    """Create person job orchestrator with all dependencies."""
-    from dipeo.application.execution.person_job.orchestrator_v2 import PersonJobOrchestratorV2
-    
-    return PersonJobOrchestratorV2(
-        prompt_builder=prompt_builder,
-        conversation_state_manager=conversation_state_manager,
-        llm_executor=llm_executor,
-        output_builder=output_builder,
-        conversation_processor=conversation_processor,
-        memory_transformer=memory_transformer,
-        conversation_manager=conversation_manager,
-    )
+# PersonJobOrchestratorV2 removed - functionality integrated into PersonJobNodeHandler
 
 
-def _create_llm_executor():
-    """Create LLM executor service."""
-    from dipeo.application.services.llm_executor import LLMExecutor
-    return LLMExecutor()
 
 
 def _create_execution_iterator(execution_id, state_store):
@@ -144,24 +120,13 @@ class DynamicServicesContainer(MutableBaseContainer):
     # Node executor - Factory for fresh executor per execution
     node_executor = providers.Factory(
         _create_node_executor,
-        registry=static.node_registry,
-        context=execution_context,
+        service_registry=providers.Dependency(),  # Injected from application layer
+        observers=providers.List(),  # Optional observers
     )
     
     # LLM executor - Can be singleton as it's stateless
-    llm_executor = providers.Singleton(_create_llm_executor)
     
-    # Person job orchestrator - Factory for fresh instance per execution
-    person_job_orchestrator = providers.Factory(
-        _create_person_job_orchestrator,
-        prompt_builder=business.prompt_builder,
-        conversation_state_manager=business.conversation_state_manager,
-        llm_executor=llm_executor,
-        output_builder=business.output_builder,
-        conversation_processor=business.conversation_processor,
-        memory_transformer=static.memory_transformer,
-        conversation_manager=conversation_manager,
-    )
+    # Person job orchestrator removed - integrated into PersonJobNodeHandler
     
     # Execution iterator - Factory for specific execution traversal
     execution_iterator = providers.Factory(

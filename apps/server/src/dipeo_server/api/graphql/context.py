@@ -20,7 +20,6 @@ if TYPE_CHECKING:
         DiagramService as DiagramStorageDomainService,
     )
     from dipeo.infra.database import DBOperationsDomainService
-    from dipeo.application.execution.flow_control_service import FlowControlService
     from dipeo.application.execution.use_cases import (
         ExecuteDiagramUseCase,
     )
@@ -88,10 +87,6 @@ class GraphQLContext(BaseContext):
     @property
     def db_operations_service(self) -> "DBOperationsDomainService":
         return self.container.persistence.db_operations_service()
-
-    @property
-    def flow_control_service(self) -> "FlowControlService":
-        return self.container.business.flow_control_service()
 
     @property
     def execution_service(self) -> "ExecuteDiagramUseCase":

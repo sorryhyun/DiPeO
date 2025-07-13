@@ -4,11 +4,11 @@
 from .execution.context import UnifiedExecutionContext
 
 # Engine components
-from .engine import StatefulExecutionEngine, ExecutionController
+from .engine import TypedExecutionEngine
 
 # Execution framework (moved from core)
 from .execution import (
-    BaseNodeHandler,
+    TypedNodeHandler,
     HandlerRegistry,
     register_handler,
     get_global_registry,
@@ -23,14 +23,13 @@ from dipeo.application.execution.handlers import (
     StartNodeHandler,
     EndpointNodeHandler,
     ConditionNodeHandler,
-    DBNodeHandler,
+    DBTypedNodeHandler,
     HookNodeHandler,
     PersonJobNodeHandler,
     PersonBatchJobNodeHandler,
     ApiJobNodeHandler,
     CodeJobNodeHandler,
     NotionNodeHandler,
-    JobNodeHandler,
     UserResponseNodeHandler,
 )
 
@@ -50,12 +49,11 @@ __all__ = [
     # Context
     "UnifiedExecutionContext",
     # Engine
-    "StatefulExecutionEngine",
-    "ExecutionController",
+    "TypedExecutionEngine",
     # Execution
     "ExecuteDiagramUseCase",
     # Execution framework (moved from core)
-    "BaseNodeHandler",
+    "TypedNodeHandler",
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
@@ -67,14 +65,13 @@ __all__ = [
     "StartNodeHandler",
     "EndpointNodeHandler",
     "ConditionNodeHandler",
-    "DBNodeHandler",
+    "DBTypedNodeHandler",
     "HookNodeHandler",
     "PersonJobNodeHandler",
     "PersonBatchJobNodeHandler",
     "ApiJobNodeHandler",
     "CodeJobNodeHandler",
     "NotionNodeHandler",
-    "JobNodeHandler",
     "UserResponseNodeHandler",
     # Services
     # Note: MinimalMessageRouter and MinimalStateStore have been removed

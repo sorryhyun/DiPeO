@@ -160,7 +160,6 @@ class Person:
             messages=messages,
             model=self.llm_config.model,
             api_key_id=self.llm_config.api_key_id,
-            system_prompt=self.llm_config.system_prompt,
             **llm_options
         )
         
@@ -249,6 +248,13 @@ class Person:
     
     def _prepare_messages_for_llm(self) -> List[Dict[str, str]]:
         llm_messages = []
+        
+        # Add system prompt as first message if present
+        if self.llm_config.system_prompt:
+            llm_messages.append({
+                "role": "system",
+                "content": self.llm_config.system_prompt
+            })
         
         # Get messages relevant to this person
         for msg in self.get_messages():

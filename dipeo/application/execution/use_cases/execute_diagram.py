@@ -2,7 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo.core import BaseService
@@ -17,7 +17,8 @@ if TYPE_CHECKING:
     from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
     from ...unified_service_registry import UnifiedServiceRegistry
     from dipeo.models import DomainDiagram
-    from ... import ExecutionController
+    from ..stateful_execution_typed import TypedStatefulExecution
+    from dipeo.core.static.executable_diagram import ExecutableDiagram
 
 class ExecuteDiagramUseCase(BaseService):
 
@@ -47,14 +48,14 @@ class ExecuteDiagramUseCase(BaseService):
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Execute diagram with streaming updates."""
 
-        # Prepare diagram
-        diagram_obj = await self._prepare_diagram(diagram)
+        # Step 1: Compile to typed diagram
+        typed_diagram = await self._compile_typed_diagram(diagram)
         
-        # Initialize execution state in persistence first
-        await self._initialize_execution_state(execution_id, diagram_obj, options)
+        # Step 2: Initialize execution state in persistence
+        await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
         
-        # Setup execution context (which needs the state to exist)
-        controller = await self._setup_execution_context(diagram_obj, options, execution_id)
+        # Step 3: Create typed execution
+        typed_execution = await self._create_typed_execution(typed_diagram, options, execution_id)
 
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)
@@ -85,13 +86,13 @@ class ExecuteDiagramUseCase(BaseService):
                 state = await self.state_store.get_state(execution_id)
                 if state:
                     state.status = ExecutionStatus.RUNNING
-                    state.started_at = datetime.utcnow().isoformat()
+                    state.started_at = datetime.now(timezone.utc).isoformat()
                     state.is_active = True
                     await self.state_store.save_state(state)
                 
-                async for _ in engine.execute_prepared(
-                    diagram_obj,
-                    controller,
+                async for _ in engine.execute(
+                    typed_diagram,
+                    typed_execution,
                     execution_id,
                     options,
                     interactive_handler,
@@ -134,8 +135,8 @@ class ExecuteDiagramUseCase(BaseService):
             if update.get("type") in ["execution_complete", "execution_error"]:
                 break
     
-    async def _prepare_diagram(self, diagram: Dict[str, Any]) -> "DomainDiagram":
-        """Prepare and convert diagram to domain format."""
+    async def _compile_typed_diagram(self, diagram: Dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
+        """Compile diagram to typed executable format."""
         # Get the diagram loader from service registry
         from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
         diagram_loader: DiagramLoaderAdapter = self.service_registry.get('diagram_loader')
@@ -173,82 +174,59 @@ class ExecuteDiagramUseCase(BaseService):
             api_key_service = self.service_registry.get('api_key_service')
             if api_key_service:
                 # Extract API keys needed by the diagram
-                api_keys = self._extract_api_keys_for_diagram(domain_diagram, api_key_service)
+                api_keys = self._extract_api_keys_for_typed_diagram(domain_diagram, api_key_service)
         
-        # Note: The compiler returns an ExecutableDiagram with static typed nodes
+        # Compile to typed diagram
         executable_diagram = compiler.compile(domain_diagram)
         # Add API keys to metadata
         if api_keys:
             executable_diagram.metadata["api_keys"] = api_keys
         
-        # Store the executable diagram in metadata for use by the engine
-        if not hasattr(domain_diagram, '_executable_diagram'):
-            domain_diagram._executable_diagram = executable_diagram
+        # Store original domain diagram metadata if needed
+        if domain_diagram.metadata:
+            executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
         
-        return domain_diagram
+        # Register person configs from executable diagram
+        await self._register_typed_person_configs(executable_diagram)
+        
+        return executable_diagram
     
-    async def _setup_execution_context(
+    async def _create_typed_execution(
         self, 
-        diagram: "DomainDiagram", 
+        typed_diagram: "ExecutableDiagram", 
         options: Dict[str, Any],
         execution_id: str
-    ) -> "ExecutionController":
-        """Setup execution context including controller and state."""
-        from ...engine.execution_controller import ExecutionController
+    ) -> "TypedStatefulExecution":
+        """Create typed execution with single source of truth."""
         from ..stateful_execution_typed import TypedStatefulExecution
         
-        # Get required domain services
+        # Service registry validation
         if not hasattr(self.service_registry, 'get'):
             raise ValueError("Service registry must support 'get' method")
-            
-        flow_control_service = self.service_registry.get('flow_control_service')
-        if not flow_control_service:
-            # Try legacy name for backward compatibility
-            flow_control_service = self.service_registry.get('execution_flow_service')
-        
-        if not flow_control_service:
-            raise ValueError("FlowControlService is required but not found in service registry")
         
         # Get current execution state from store
         execution_state = await self.state_store.get_state(execution_id)
         if not execution_state:
-            # Should have been initialized by _initialize_execution_state
+            # Should have been initialized by _initialize_typed_execution_state
             raise ValueError(f"Execution state not found for {execution_id}")
-        
-        # Get executable diagram
-        executable_diagram = getattr(diagram, '_executable_diagram', None)
-        if not executable_diagram:
-            raise ValueError("No ExecutableDiagram found - diagram must be resolved first")
         
         # Create typed stateful execution - single source of truth for state management
         typed_execution = TypedStatefulExecution(
-            diagram=executable_diagram,
+            diagram=typed_diagram,
             execution_state=execution_state,
             service_registry=self.service_registry,
-            container=getattr(self.service_registry, '_container', None)
+            container=getattr(self.service_registry, '_container', None),
+            max_global_iterations=options.get("max_iterations", 100)
         )
         
         # Store stateful_execution reference in execution_state for later access
         execution_state._stateful_execution = typed_execution
         
-        # Create controller with typed execution
-        controller = ExecutionController(
-            flow_control_service=flow_control_service,
-            execution=typed_execution,
-            max_global_iterations=options.get("max_iterations", 100)
-        )
-        
-        # Initialize controller with nodes from diagram
-        await controller.initialize_nodes(diagram)
-        
-        # Register person configs with conversation service
-        await self._register_person_configs(diagram)
-        
-        return controller
+        return typed_execution
     
-    async def _register_person_configs(self, diagram: "DomainDiagram") -> None:
-        """Register person configurations with conversation service and create minimal context."""
-        from dipeo.models import NodeType
+    async def _register_typed_person_configs(self, typed_diagram: "ExecutableDiagram") -> None:  # type: ignore
+        """Register person configurations from typed diagram."""
+        from dipeo.core.static.generated_nodes import PersonJobNode
         import logging
         
         log = logging.getLogger(__name__)
@@ -262,50 +240,64 @@ class ExecuteDiagramUseCase(BaseService):
                 conversation_service = self.service_registry.get('conversation')
         
         if conversation_service:
-            # Extract person configs from diagram
+            # Extract person configs from typed nodes
             person_configs = {}
-            for node in diagram.nodes:
-                if node.type == NodeType.person_job.value:
-                    person_id = node.id
-                    # Extract person config from node data
-                    if hasattr(node, 'data') and node.data:
-                        config = {
-                            'name': node.data.get('name', person_id),
-                            'system_prompt': node.data.get('system_prompt', ''),
-                            'model': node.data.get('model', 'gpt-4.1-nano'),
-                            'temperature': node.data.get('temperature', 0.7),
-                            'max_tokens': node.data.get('max_tokens'),
-                        }
-                        person_configs[person_id] = config
-                        
-                        # Register person if conversation service supports it
-                        if hasattr(conversation_service, 'register_person'):
-                            conversation_service.register_person(person_id, config)
-                        else:
-                            # For services that don't have register_person, 
-                            # we can at least ensure the person memory is created
-                            if hasattr(conversation_service, 'get_or_create_person_memory'):
-                                conversation_service.get_or_create_person_memory(person_id)
+            for node in typed_diagram.nodes:
+                if isinstance(node, PersonJobNode):
+                    person_id = str(node.id)
+                    # For PersonJobNode, we need to get person config from metadata or defaults
+                    # The node itself only has person_id reference
+                    config = {
+                        'name': person_id,  # Use node ID as default name
+                        'system_prompt': '',
+                        'model': 'gpt-4.1-nano',
+                        'temperature': 0.7,
+                        'max_tokens': None,
+                    }
+                    
+                    # Try to get person config from diagram metadata if available
+                    if typed_diagram.metadata and 'persons' in typed_diagram.metadata:
+                        persons_metadata = typed_diagram.metadata['persons']
+                        if person_id in persons_metadata:
+                            person_data = persons_metadata[person_id]
+                            config.update({
+                                'name': person_data.get('name', person_id),
+                                'system_prompt': person_data.get('system_prompt', ''),
+                                'model': person_data.get('model', 'gpt-4.1-nano'),
+                                'temperature': person_data.get('temperature', 0.7),
+                                'max_tokens': person_data.get('max_tokens'),
+                            })
+                    
+                    person_configs[person_id] = config
+                    
+                    # Register person if conversation service supports it
+                    if hasattr(conversation_service, 'register_person'):
+                        conversation_service.register_person(person_id, config)
+                    else:
+                        # For services that don't have register_person, 
+                        # we can at least ensure the person memory is created
+                        if hasattr(conversation_service, 'get_or_create_person_memory'):
+                            conversation_service.get_or_create_person_memory(person_id)
             
             # Log person registrations
             if person_configs:
                 log.debug(f"Registered {len(person_configs)} person configs for execution")
     
-    async def _initialize_execution_state(
+    async def _initialize_typed_execution_state(
         self,
         execution_id: str,
-        diagram: "DomainDiagram",
+        typed_diagram: "ExecutableDiagram",  # type: ignore
         options: Dict[str, Any]
     ) -> None:
-        """Initialize execution state in persistence layer."""
+        """Initialize execution state for typed diagram."""
         from dipeo.models import ExecutionState, ExecutionStatus, TokenUsage
-        from datetime import datetime
+        from datetime import datetime, timezone
         
         # Create initial execution state
         initial_state = ExecutionState(
             id=execution_id,
             status=ExecutionStatus.PENDING,
-            diagram_id=diagram.metadata.id if diagram.metadata else None,
+            diagram_id=typed_diagram.metadata.get('id') if typed_diagram.metadata else None,
             started_at=datetime.now().isoformat(),
             node_states={},
             node_outputs={},
@@ -331,28 +323,28 @@ class ExecuteDiagramUseCase(BaseService):
         if state:
             if status == ExecutionStatus.COMPLETED:
                 state.status = ExecutionStatus.COMPLETED
-                state.ended_at = datetime.utcnow().isoformat()
+                state.ended_at = datetime.now(timezone.utc).isoformat()
                 state.is_active = False
                 
                 # Calculate duration
                 if state.started_at:
                     start = datetime.fromisoformat(state.started_at.replace('Z', '+00:00'))
-                    end = datetime.utcnow()
+                    end = datetime.now(timezone.utc)
                     state.duration_seconds = (end - start).total_seconds()
             elif status == ExecutionStatus.FAILED:
                 state.status = ExecutionStatus.FAILED
-                state.ended_at = datetime.utcnow().isoformat()
+                state.ended_at = datetime.now(timezone.utc).isoformat()
                 state.is_active = False
                 state.error = error or "Unknown error"
             
             # Save final state
             await self.state_store.save_state(state)
     
-    def _extract_api_keys_for_diagram(self, diagram: "DomainDiagram", api_key_service) -> Dict[str, str]:
+    def _extract_api_keys_for_typed_diagram(self, diagram: "DomainDiagram", api_key_service) -> Dict[str, str]:
         """Extract API keys needed by the diagram.
         
         Args:
-            diagram: The domain diagram
+            diagram: The domain diagram (before compilation)
             api_key_service: The API key service
             
         Returns:

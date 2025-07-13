@@ -3,30 +3,33 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, Type
+from typing import Any
 
 import aiohttp
 from pydantic import BaseModel
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.core.errors import NodeExecutionError, InvalidDiagramError
-from dipeo.application.utils import create_node_output
-from dipeo.models import HookNodeData, HookType, NodeOutput
-from dipeo.core.static.nodes import HookNode
+from dipeo.models import HookNodeData, HookType, NodeOutput, NodeType
+from dipeo.core.static.generated_nodes import HookNode
 
 
 @register_handler
-class HookNodeHandler(BaseNodeHandler):
+class HookNodeHandler(TypedNodeHandler[HookNode]):
     
     def __init__(self):
         pass
 
     
     @property
+    def node_class(self) -> type[HookNode]:
+        return HookNode
+    
+    @property
     def node_type(self) -> str:
-        return "hook"
+        return NodeType.hook.value
     
     @property
     def schema(self) -> type[BaseModel]:
@@ -37,70 +40,45 @@ class HookNodeHandler(BaseNodeHandler):
     def description(self) -> str:
         return "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
     
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
+        node: HookNode,
         context: UnifiedExecutionContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any]
+        inputs: dict[str, Any],
+        services: dict[str, Any]
     ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, HookNode):
-            # Convert typed node to props
-            hook_props = HookNodeData(
-                hook_type=typed_node.hook_type,
-                config=typed_node.config,
-                timeout=typed_node.timeout,
-                retry_count=typed_node.retry_count,
-                retry_delay=typed_node.retry_delay,
-                label=typed_node.label  # Add label from node since it's used in the handler
-            )
-        elif isinstance(props, HookNodeData):
-            hook_props = props
-        else:
-            # Handle unexpected case
-            return create_node_output(
-                {"default": ""}, 
-                {"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        
-        return await self._execute_hook_node(hook_props, context, inputs, services)
+        return await self._execute_hook_node(node, context, inputs, services)
     
     async def _execute_hook_node(
         self,
-        props: HookNodeData,
+        node: HookNode,
         context: UnifiedExecutionContext,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any]
+        inputs: dict[str, Any],
+        services: dict[str, Any]
     ) -> NodeOutput:
         try:
-            result = await self._execute_hook(props, inputs)
-            return create_node_output(
+            result = await self._execute_hook(node, inputs)
+            return self._build_output(
                 {"default": result},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                context
             )
         except Exception as e:
             raise NodeExecutionError(f"Hook execution failed: {str(e)}") from e
     
-    async def _execute_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        if props.hook_type == HookType.shell:
-            return await self._execute_shell_hook(props, inputs)
-        elif props.hook_type == HookType.webhook:
-            return await self._execute_webhook_hook(props, inputs)
-        elif props.hook_type == HookType.python:
-            return await self._execute_python_hook(props, inputs)
-        elif props.hook_type == HookType.file:
-            return await self._execute_file_hook(props, inputs)
+    async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        if node.hook_type == HookType.shell:
+            return await self._execute_shell_hook(node, inputs)
+        elif node.hook_type == HookType.webhook:
+            return await self._execute_webhook_hook(node, inputs)
+        elif node.hook_type == HookType.python:
+            return await self._execute_python_hook(node, inputs)
+        elif node.hook_type == HookType.file:
+            return await self._execute_file_hook(node, inputs)
         else:
-            raise InvalidDiagramError(f"Unknown hook type: {props.hook_type}")
+            raise InvalidDiagramError(f"Unknown hook type: {node.hook_type}")
     
-    async def _execute_shell_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        config = props.config
+    async def _execute_shell_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        config = node.config
         command = config.get("command")
         if not command:
             raise InvalidDiagramError("Shell hook requires 'command' in config")
@@ -129,7 +107,7 @@ class HookNodeHandler(BaseNodeHandler):
             )
             
             # Apply timeout if specified
-            timeout = props.timeout or 30
+            timeout = node.timeout or 30
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(),
                 timeout=timeout
@@ -150,8 +128,8 @@ class HookNodeHandler(BaseNodeHandler):
         except asyncio.TimeoutError:
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds")
     
-    async def _execute_webhook_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        config = props.config
+    async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        config = node.config
         url = config.get("url")
         if not url:
             raise InvalidDiagramError("Webhook hook requires 'url' in config")
@@ -164,10 +142,10 @@ class HookNodeHandler(BaseNodeHandler):
         payload = {
             "inputs": inputs,
             "hook_type": "hook_node",
-            "node_id": props.label
+            "node_id": node.label
         }
         
-        timeout = aiohttp.ClientTimeout(total=props.timeout or 30)
+        timeout = aiohttp.ClientTimeout(total=node.timeout or 30)
         
         async with aiohttp.ClientSession(timeout=timeout) as session:
             try:
@@ -182,8 +160,8 @@ class HookNodeHandler(BaseNodeHandler):
             except aiohttp.ClientError as e:
                 raise NodeExecutionError(f"Webhook request failed: {str(e)}")
     
-    async def _execute_python_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        config = props.config
+    async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        config = node.config
         script = config.get("script")
         if not script:
             raise InvalidDiagramError("Python hook requires 'script' in config")
@@ -210,7 +188,7 @@ print(json.dumps(result))
                 stderr=subprocess.PIPE
             )
             
-            timeout = props.timeout or 30
+            timeout = node.timeout or 30
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(),
                 timeout=timeout
@@ -228,8 +206,8 @@ print(json.dumps(result))
         except json.JSONDecodeError as e:
             raise NodeExecutionError(f"Failed to parse Python script output: {str(e)}")
     
-    async def _execute_file_hook(self, props: HookNodeData, inputs: Dict[str, Any]) -> Any:
-        config = props.config
+    async def _execute_file_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        config = node.config
         file_path = config.get("file_path")
         if not file_path:
             raise InvalidDiagramError("File hook requires 'file_path' in config")
@@ -239,7 +217,7 @@ print(json.dumps(result))
         # Prepare data to write
         data = {
             "inputs": inputs,
-            "node_id": props.label
+            "node_id": node.label
         }
         
         try:

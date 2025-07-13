@@ -1,35 +1,45 @@
 
 import logging
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 from dipeo.application import register_handler
-from dipeo.application.execution.handler_factory import BaseNodeHandler
+from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.models import (
     NodeOutput,
     PersonJobNodeData,
     ForgettingMode,
     Message,
+    PersonID,
+    MemoryConfig,
+    NodeType,
 )
-from dipeo.core.static.nodes import PersonNode
+from dipeo.core.static.generated_nodes import PersonJobNode
+from dipeo.core.dynamic import Person
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 
 @register_handler
-class PersonJobNodeHandler(BaseNodeHandler):
+class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
     def __init__(self, person_job_execution_service=None, llm_service=None, diagram_storage_service=None, conversation_service=None):
         self.person_job_execution_service = person_job_execution_service
         self.llm_service = llm_service
         self.diagram_storage_service = diagram_storage_service
         self.conversation_service = conversation_service
+        # Person cache managed at handler level
+        self._person_cache: dict[str, Person] = {}
 
 
     @property
+    def node_class(self) -> type[PersonJobNode]:
+        return PersonJobNode
+    
+    @property
     def node_type(self) -> str:
-        return "person_job"
+        return NodeType.person_job.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -38,7 +48,16 @@ class PersonJobNodeHandler(BaseNodeHandler):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["person_job_orchestrator", "llm_service", "diagram", "conversation_service"]
+        # Note: person_job_orchestrator removed - functionality integrated into handler
+        return [
+            "llm_service", 
+            "diagram", 
+            "conversation_service",
+            "conversation_manager",
+            "prompt_builder",
+            "conversation_state_manager", 
+            "memory_transformer"
+        ]
 
     @property
     def description(self) -> str:
@@ -48,36 +67,31 @@ class PersonJobNodeHandler(BaseNodeHandler):
         service = context.get_service(service_name)
         if not service:
             service = services.get(service_name)
+
+        # If it's a dependency_injector provider, call it to get the instance
+        from dependency_injector import providers
+        if isinstance(service, (providers.Factory, providers.Singleton, providers.Dependency)):
+            service = service()
+            
         return service
 
-    async def execute(
+    async def execute_typed(
         self,
-        props: BaseModel,
+        node: PersonJobNode,
         context: UnifiedExecutionContext,
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
-        # Extract typed node from services if available
-        typed_node = services.get("typed_node")
-        
-        if typed_node and isinstance(typed_node, PersonNode):
-            node = typed_node
-        elif isinstance(props, PersonJobNodeData):
-            # Use props directly
-            return await self._execute_with_props(props, context, inputs, services)
-        else:
-            # Handle unexpected case
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": "Invalid node data provided"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
+        # Direct typed access to person_id
+        person_id = node.person_id
         # Resolve services
-        person_job_orchestrator = self._resolve_service(context, services, "person_job_orchestrator")
         llm_service = self._resolve_service(context, services, "llm_service")
         diagram = self._resolve_service(context, services, "diagram")
         conversation_service = self._resolve_service(context, services, "conversation_service")
+        conversation_manager = self._resolve_service(context, services, "conversation_manager")
+        prompt_builder = self._resolve_service(context, services, "prompt_builder")
+        conversation_state_manager = self._resolve_service(context, services, "conversation_state_manager")
+        memory_transformer = self._resolve_service(context, services, "memory_transformer")
         
         # Get current node ID and execution info
         node_id = self._extract_node_id(context)
@@ -86,42 +100,98 @@ class PersonJobNodeHandler(BaseNodeHandler):
         
         # Only log in debug mode if explicitly enabled
 
-        # Basic validation
-        if not node.person_id:
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": "No person specified"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+        # Basic validation using typed property
+        if not person_id:
+            return self._build_output(
+                {"default": ""}, 
+                context,
+                {"error": "No person specified"}
             )
         
         try:
-            # Convert typed node to props for backward compatibility
-            props = PersonJobNodeData(
-                label=node.label,
-                person=node.person_id,
-                first_only_prompt=node.first_only_prompt or "",
-                default_prompt=node.default_prompt,
-                max_iteration=node.max_iteration,
-                memory_config=node.memory_config,
-                tools=node.tools
-            )
+            # Get or create person
+            person = self._get_or_create_person(person_id, diagram, conversation_manager)
             
-            # Execute using domain service - all business logic is in the service
-            result = await person_job_orchestrator.execute_person_job_with_validation(
-                person_id=node.person_id,
-                node_id=node_id,
-                props=props,
-                inputs=inputs,
-                diagram=diagram,
+            # Direct typed access to memory_config
+            forget_mode = ForgettingMode.no_forget
+            if node.memory_config:
+                # Direct property access - no dict lookups!
+                forget_mode = node.memory_config.forget_mode
+            
+            # Apply memory transformation
+            transformed_inputs = inputs
+            if memory_transformer:
+                from dipeo.utils.arrow import unwrap_inputs
+                transformed_inputs = memory_transformer.transform_input(
+                    inputs, "person_job", execution_count, 
+                    {"forget_mode": forget_mode.value}
+                )
+            else:
+                from dipeo.utils.arrow import unwrap_inputs
+                transformed_inputs = unwrap_inputs(inputs)
+            
+            # Handle conversation inputs
+            if self._has_conversation_input(transformed_inputs):
+                self._rebuild_conversation(person, transformed_inputs, forget_mode)
+            
+            # Apply memory management with typed access
+            if conversation_manager and execution_count > 0 and conversation_state_manager.should_forget_messages(execution_count, forget_mode):
+                if node.memory_config:
+                    # Direct typed access to max_messages
+                    mem_config = MemoryConfig(
+                        forget_mode=forget_mode,
+                        max_messages=node.memory_config.max_messages
+                    )
+                    person.apply_memory_management(mem_config)
+                else:
+                    conversation_manager.apply_forgetting(
+                        person_id, forget_mode, execution_id, execution_count
+                    )
+            
+            # Build prompt
+            template_values = prompt_builder.prepare_template_values(transformed_inputs)
+            built_prompt = prompt_builder.build(
+                prompt=node.default_prompt if node.default_prompt is not None else node.first_only_prompt,
+                first_only_prompt=node.first_only_prompt,
                 execution_count=execution_count,
-                llm_client=llm_service,
-                conversation_service=conversation_service,
-                execution_id=execution_id,
+                template_values=template_values,
             )
             
-            # Transform domain result to handler output
-            return self._transform_result_to_output(result, context)
+            # Skip if no prompt
+            if not built_prompt:
+                logger.warning(f"Skipping execution for person {person_id} - no prompt available")
+                return NodeOutput(
+                    value={"default": ""},
+                    metadata={"skipped": True, "reason": "No prompt available"},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
+                )
+            
+            # Execute LLM call
+            # Only pass tools if they are configured
+            chat_kwargs = {
+                "message": built_prompt,
+                "llm_service": llm_service,
+                "from_person_id": "system",
+                "memory_config": None,
+                "temperature": 0.7,
+                "max_tokens": 4096,
+            }
+            
+            # Add tools only if they exist
+            if node.tools:
+                chat_kwargs["tools"] = node.tools
+                
+            result = await person.chat(**chat_kwargs)
+            
+            # Build and return output
+            return self._build_node_output(
+                result=result,
+                person=person,
+                context=context,
+                diagram=diagram,
+                model=person.llm_config.model
+            )
             
         except ValueError as e:
             # Domain validation errors - only log if debug enabled
@@ -143,71 +213,123 @@ class PersonJobNodeHandler(BaseNodeHandler):
                 executed_nodes=context.executed_nodes
             )
     
-    async def _execute_with_props(
+    # _execute_with_props removed - logic integrated into execute method
+    
+    def _get_or_create_person(
         self,
-        props: PersonJobNodeData,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        # Resolve services
-        person_job_orchestrator = self._resolve_service(context, services, "person_job_orchestrator")
-        llm_service = self._resolve_service(context, services, "llm_service")
-        diagram = self._resolve_service(context, services, "diagram")
-        conversation_service = self._resolve_service(context, services, "conversation_service")
+        person_id: str,
+        diagram: Any,
+        conversation_manager: Any
+    ) -> Person:
+        # Check cache first
+        if person_id in self._person_cache:
+            return self._person_cache[person_id]
         
-        # Get current node ID and execution info
-        node_id = self._extract_node_id(context)
-        execution_count = self._extract_execution_count(context)
-        execution_id = getattr(context.execution_state, 'id', None) if hasattr(context, 'execution_state') else None
+        # Get person config from conversation manager
+        person_config = None
+        person_name = person_id  # Default to person_id as name
         
-        # Only log in debug mode if explicitly enabled
-
-        # Basic validation
-        if not props.person:
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": "No person specified"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+        if hasattr(conversation_manager, 'get_person_config'):
+            person_config = conversation_manager.get_person_config(person_id)
+        
+        if not person_config:
+            # Try to get from conversation service if available
+            conversation_service = self.conversation_service
+            if conversation_service and hasattr(conversation_service, 'get_person_config'):
+                person_config = conversation_service.get_person_config(person_id)
+        
+        if not person_config:
+            # Fallback: create minimal config with default LLM
+            from dipeo.models import PersonLLMConfig, LLMService, ApiKeyID
+            person_config = PersonLLMConfig(
+                service=LLMService.openai,
+                model="gpt-4.1-nano",
+                api_key_id=ApiKeyID("")  # Wrap empty string with ApiKeyID
             )
         
-        try:
-            # Execute using domain service - all business logic is in the service
-            result = await person_job_orchestrator.execute_person_job_with_validation(
-                person_id=props.person,
-                node_id=node_id,
-                props=props,
-                inputs=inputs,
-                diagram=diagram,
-                execution_count=execution_count,
-                llm_client=llm_service,
-                conversation_service=conversation_service,
-                execution_id=execution_id,
+        # Create Person object
+        person = Person(
+            id=PersonID(person_id),
+            name=person_name,
+            llm_config=person_config,
+            conversation_manager=conversation_manager
+        )
+        
+        # Cache the person
+        self._person_cache[person_id] = person
+        return person
+    
+    def _has_conversation_input(self, inputs: dict[str, Any]) -> bool:
+        for value in inputs.values():
+            if isinstance(value, dict) and "messages" in value:
+                return True
+        return False
+    
+    def _rebuild_conversation(self, person: Person, inputs: dict[str, Any], forget_mode: ForgettingMode) -> None:
+        all_messages = []
+        for value in inputs.values():
+            if isinstance(value, dict) and "messages" in value:
+                messages = value["messages"]
+                if isinstance(messages, list):
+                    all_messages.extend(messages)
+        
+        if not all_messages:
+            return
+        
+        if forget_mode == ForgettingMode.on_every_turn:
+            person.clear_conversation()
+        
+        for msg_dict in all_messages:
+            message = Message(
+                from_person_id=msg_dict.get("from_person_id", person.id),
+                to_person_id=msg_dict.get("to_person_id", person.id),
+                content=msg_dict.get("content", ""),
+                message_type="person_to_person",
+                timestamp=msg_dict.get("timestamp"),
             )
-            
-            # Transform domain result to handler output
-            return self._transform_result_to_output(result, context)
-            
-        except ValueError as e:
-            # Domain validation errors - only log if debug enabled
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Validation error in person job: {e}")
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": str(e)},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
-        except Exception as e:
-            # Unexpected errors
-            logger.error(f"Error executing person job: {e}")
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": str(e)},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
+            person.add_message(message)
+    
+    def _needs_conversation_output(self, node_id: str, diagram: Any) -> bool:
+        # Check if any edge from this node expects conversation output
+        for edge in diagram.edges:
+            if edge.source == node_id and edge.source_output == "conversation":
+                return True
+        return False
+    
+    def _build_node_output(self, result: Any, person: Person, context: UnifiedExecutionContext, diagram: Any, model: str) -> NodeOutput:
+        output_value = {"default": result.text}
+        
+        # Add conversation if needed
+        if self._needs_conversation_output(context.current_node_id, diagram):
+            output_value["conversation"] = []
+            for msg in person.get_messages():
+                output_value["conversation"].append({
+                    "role": "assistant" if msg.from_person_id == person.id else "user",
+                    "content": msg.content,
+                    "person_id": person.id,
+                    "person_label": person.name,
+                })
+        
+        # Build metadata
+        metadata = {"model": model}
+        if result.token_usage:
+            if isinstance(result.token_usage, dict):
+                metadata["tokens_used"] = result.token_usage.get("total", 0)
+                metadata["token_usage"] = result.token_usage
+            else:
+                metadata["tokens_used"] = getattr(result.token_usage, "total", 0)
+                metadata["token_usage"] = {
+                    "input": getattr(result.token_usage, "input", 0),
+                    "output": getattr(result.token_usage, "output", 0),
+                    "cached": getattr(result.token_usage, "cached", 0)
+                }
+        
+        return NodeOutput(
+            value=output_value, 
+            metadata=metadata,
+            node_id=context.current_node_id,
+            executed_nodes=context.executed_nodes
+        )
     
     def _extract_node_id(self, context: UnifiedExecutionContext) -> str:
         return context.current_node_id

@@ -5,7 +5,7 @@ from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 
 
 def _create_execution_preparation_service(storage_service, validator, api_key_service):
-    from dipeo.application.execution.preparation import PrepareDiagramForExecutionUseCase
+    from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
 
     return PrepareDiagramForExecutionUseCase(
         storage_service=storage_service,
@@ -26,7 +26,6 @@ def _create_service_registry(
     db_operations_service,
     person_job_services,
     condition_evaluation_service,
-    flow_control_service,
     input_resolution_service,
     template_service,
     # New infrastructure services
@@ -35,6 +34,9 @@ def _create_service_registry(
     # Pure business logic utilities
     api_business_logic,
     file_domain_service,
+    # Additional services for PersonJobNodeHandler
+    conversation_manager,
+    memory_transformer,
 ):
     """Factory for UnifiedServiceRegistry with explicit dependencies."""
     # Create registry and register all services dynamically
@@ -61,12 +63,19 @@ def _create_service_registry(
     # New focused services
     registry.register("prompt_builder", person_job_services["prompt_builder"])
     registry.register("conversation_state_manager", person_job_services["conversation_state_manager"])
-    registry.register("llm_executor", person_job_services["llm_executor"])
-    registry.register("person_job_orchestrator", person_job_services["person_job_orchestrator"])
+    
+    # Handle Factory providers by calling them to get instances
+    from dependency_injector import providers
+    
+    # person_job_orchestrator removed - using direct services instead
+    # person_job_orchestrator_provider = person_job_services["person_job_orchestrator"]
+    # if isinstance(person_job_orchestrator_provider, providers.Factory) or isinstance(person_job_orchestrator_provider, providers.Singleton):
+    #     registry.register("person_job_orchestrator", person_job_orchestrator_provider())
+    # else:
+    #     registry.register("person_job_orchestrator", person_job_orchestrator_provider)
     
     # Execution services - Primary registration with _service suffix
     registry.register("condition_evaluation_service", condition_evaluation_service)
-    registry.register("flow_control_service", flow_control_service)  # New unified service
     registry.register("input_resolution_service", input_resolution_service)
     
     # New infrastructure services
@@ -76,6 +85,10 @@ def _create_service_registry(
     # Pure business logic utilities
     registry.register("api_business_logic", api_business_logic)
     registry.register("file_domain_service", file_domain_service)
+    
+    # Additional services for PersonJobNodeHandler
+    registry.register("conversation_manager", conversation_manager)
+    registry.register("memory_transformer", memory_transformer)
 
     
     # Aliases for handlers that use short names
@@ -139,7 +152,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         condition_evaluation_service=business.condition_evaluator,  # Note: renamed
         api_business_logic=business.api_business_logic,
         file_domain_service=business.file_business_logic,
-        flow_control_service=business.flow_control_service,
         input_resolution_service=business.input_resolution_service,
         
         # From Static Container (was domain)
@@ -152,9 +164,11 @@ class ApplicationContainer(containers.DeclarativeContainer):
             "output_builder": business.output_builder,
             "prompt_builder": business.prompt_builder,
             "conversation_state_manager": business.conversation_state_manager,
-            "llm_executor": dynamic.llm_executor,
-            "person_job_orchestrator": dynamic.person_job_orchestrator,
+            # "person_job_orchestrator": dynamic.person_job_orchestrator,  # Removed - using direct services
         },
+        # Additional services for PersonJobNodeHandler
+        conversation_manager=dynamic.conversation_manager,
+        memory_transformer=static.memory_transformer,
     )
     
     # Execute Diagram Use Case
