@@ -2,6 +2,7 @@
 from typing import Any, Type
 
 from dipeo.application import register_handler
+from dipeo.domain.notion.services import NotionValidator
 from dipeo.application.execution.handler_factory import BaseNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.application.utils import create_node_output
@@ -16,6 +17,7 @@ class NotionNodeHandler(BaseNodeHandler):
     def __init__(self, notion_service=None, api_key_service=None):
         self.notion_service = notion_service
         self.api_key_service = api_key_service
+        self.validator = NotionValidator()
 
 
     @property
@@ -88,10 +90,24 @@ class NotionNodeHandler(BaseNodeHandler):
         
         api_key = notion_key["key"]
         
+        # Validate API key
+        api_key_result = self.validator.validate_api_key(api_key)
+        if api_key_result.has_errors():
+            raise ValueError(f"Invalid API key: {api_key_result.errors[0].message}")
+        
+        # Validate operation configuration
+        validation_result = self.validator.validate_operation_config(
+            operation=props.operation,
+            page_id=props.page_id,
+            database_id=props.database_id,
+            inputs=inputs
+        )
+        
+        if validation_result.has_errors():
+            raise ValueError(validation_result.errors[0].message)
+        
         # Execute based on operation type
         if props.operation == NotionOperation.READ_PAGE:
-            if not props.page_id:
-                raise ValueError("page_id is required for READ_PAGE operation")
             result = await notion_service.retrieve_page(props.page_id, api_key)
             
         elif props.operation == NotionOperation.CREATE_PAGE:
@@ -107,8 +123,6 @@ class NotionNodeHandler(BaseNodeHandler):
             )
             
         elif props.operation == NotionOperation.UPDATE_PAGE:
-            if not props.page_id:
-                raise ValueError("page_id is required for UPDATE_PAGE operation")
             # For now, we can only append blocks to a page
             blocks = inputs.get("blocks", [])
             if blocks:
@@ -117,8 +131,6 @@ class NotionNodeHandler(BaseNodeHandler):
                 raise ValueError("UPDATE_PAGE requires blocks to append")
                 
         elif props.operation == NotionOperation.QUERY_DATABASE:
-            if not props.database_id:
-                raise ValueError("database_id is required for QUERY_DATABASE operation")
             filter_query = inputs.get("filter", None)
             sorts = inputs.get("sorts", None)
             result = await notion_service.query_database(
@@ -129,6 +141,7 @@ class NotionNodeHandler(BaseNodeHandler):
             )
             
         else:
+            # This should have been caught by validation, but just in case
             raise ValueError(f"Unsupported Notion operation: {props.operation}")
             
         return create_node_output(

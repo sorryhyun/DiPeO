@@ -17,7 +17,6 @@ from dipeo.core.ports.file_service import FileServicePort
 from dipeo.domain.file.services import BackupService, FileValidator as DomainFileValidator
 
 from .handlers.registry import FormatHandlerRegistry
-from .validation import FileValidator
 from .async_adapter import AsyncFileAdapter
 from .file_info import FileInfo
 
@@ -30,10 +29,9 @@ class ModularFileService(BaseService, FileServicePort):
         self,
         base_dir: Optional[Union[str, Path]] = None,
         format_registry: Optional[FormatHandlerRegistry] = None,
-        validator: Optional[FileValidator] = None,
         async_adapter: Optional[AsyncFileAdapter] = None,
         backup_service: Optional[BackupService] = None,
-        domain_validator: Optional[DomainFileValidator] = None,
+        validator: Optional[DomainFileValidator] = None,
     ):
         super().__init__()
         
@@ -41,10 +39,9 @@ class ModularFileService(BaseService, FileServicePort):
         self.base_dir.mkdir(parents=True, exist_ok=True)
         
         self.formats = format_registry or FormatHandlerRegistry()
-        self.validator = validator or FileValidator()
         self.async_adapter = async_adapter or AsyncFileAdapter()
         self.backup_service = backup_service or BackupService()
-        self.domain_validator = domain_validator or DomainFileValidator()
+        self.validator = validator or DomainFileValidator()
     
     async def initialize(self) -> None:
         """Initialize the service."""
@@ -153,7 +150,7 @@ class ModularFileService(BaseService, FileServicePort):
         """
         try:
             # Validate filename
-            self.validator.validate_filename(filename)
+            self.validator.validate_filename_strict(filename)
             
             # Determine target directory
             if target_path:
