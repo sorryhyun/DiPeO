@@ -98,7 +98,6 @@ class ConditionNodeHandler(BaseNodeHandler):
             # Use new approach with NodeOutput data if available
             if hasattr(context, 'node_outputs') and context.executed_nodes:
                 # New approach: Use executed_nodes and node outputs
-                logger.debug("Using new approach with NodeOutput data")
                 result = self._evaluate_max_iterations_with_outputs(
                     evaluation_service, diagram, context, props
                 )
@@ -129,20 +128,14 @@ class ConditionNodeHandler(BaseNodeHandler):
             # Default to false for unknown condition types
             result = False
 
-        # Debug logging for condition result
-        logger.debug(f"Condition result: {result}, inputs: {inputs}")
-        
-        # Output data to the appropriate branch based on condition result
         # Only create output for the active branch to prevent execution of the inactive branch
         if result:
             # When condition is true, output goes to "true" branch only
             output_value = {"condtrue": inputs if inputs else {}}
-            logger.debug("Outputting to condtrue branch")
         else:
             # When condition is false, output goes to "false" branch only
             output_value = {"condfalse": inputs if inputs else {}}
-            logger.debug("Outputting to condfalse branch")
-        
+
         return create_node_output(
             output_value, 
             {"condition_result": result},
@@ -210,15 +203,9 @@ class ConditionNodeHandler(BaseNodeHandler):
                 max_iter = int(node.data.get("max_iteration", 1))
                 
                 # Debug logging
-                logger.debug(f"Condition check for {node.id}: exec_count={exec_count}, max_iter={max_iter}")
-                
+
                 if exec_count < max_iter:
                     all_reached_max = False
                     break
-        
-        # Debug logging for final result
-        logger.debug(f"Max iterations evaluation: found_executed={found_executed}, all_reached_max={all_reached_max}")
-        
-        # Return true only if we found at least one executed person_job 
-        # AND all executed ones have reached max iterations
+
         return found_executed and all_reached_max

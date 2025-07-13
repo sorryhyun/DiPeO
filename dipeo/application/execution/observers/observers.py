@@ -26,7 +26,6 @@ class StateStoreObserver(ExecutionObserver):
         # Check if execution already exists
         existing = await self.state_store.get_state(execution_id)
         if not existing:
-            logger.debug(f"StateStoreObserver: Creating new execution {execution_id}")
             await self.state_store.create_execution(execution_id, diagram_id)
         else:
             logger.debug(f"StateStoreObserver: Execution {execution_id} already exists, skipping creation")
@@ -68,9 +67,7 @@ class StateStoreObserver(ExecutionObserver):
         
         # Verify the state was saved
         state = await self.state_store.get_state(execution_id)
-        if state:
-            logger.debug(f"StateStoreObserver: Verified execution {execution_id} status is {state.status}")
-        else:
+        if not state:
             logger.error(f"StateStoreObserver: Failed to verify execution {execution_id} after completion")
 
     async def on_execution_error(self, execution_id: str, error: str):

@@ -142,6 +142,24 @@ def _create_data_transformer():
     return DataTransformer()
 
 
+def _create_llm_domain_service():
+    """Create LLM domain service."""
+    from dipeo.domain.llm import LLMDomainService
+    return LLMDomainService()
+
+
+def _create_execution_domain_service():
+    """Create execution domain service."""
+    from dipeo.domain.execution import ExecutionDomainService
+    return ExecutionDomainService()
+
+
+def _create_domain_service_registry():
+    """Create domain service registry."""
+    from dipeo.domain.service_registry import get_domain_service_registry
+    return get_domain_service_registry()
+
+
 class BusinessLogicContainer(ImmutableBaseContainer):
     """Immutable pure business logic services.
     
@@ -200,3 +218,8 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     
     # Integration services
     data_transformer = providers.Singleton(_create_data_transformer)
+    
+    # New domain services (Phase 4 & 5)
+    llm_domain_service = providers.Singleton(_create_llm_domain_service)
+    execution_domain_service = providers.Singleton(_create_execution_domain_service)
+    domain_service_registry = providers.Singleton(_create_domain_service_registry)

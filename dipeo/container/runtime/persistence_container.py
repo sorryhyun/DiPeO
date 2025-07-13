@@ -12,7 +12,7 @@ def _create_file_service(base_dir, backup_service=None, domain_validator=None):
     return ModularFileService(
         base_dir=base_dir,
         backup_service=backup_service or BackupService(),
-        domain_validator=domain_validator or FileValidator()
+        validator=domain_validator or FileValidator()
     )
 
 

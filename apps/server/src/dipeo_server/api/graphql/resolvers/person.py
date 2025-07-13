@@ -65,7 +65,6 @@ class PersonResolver:
             api_key_service = context.api_key_service
 
             all_keys = api_key_service.list_api_keys()
-            logger.info(f"Found {len(all_keys)} total API keys")
 
             if service:
                 all_keys = [k for k in all_keys if k["service"] == service]

@@ -4,11 +4,11 @@ from dependency_injector import containers, providers
 from ..base import MutableBaseContainer
 
 
-def _create_llm_service(api_key_service):
+def _create_llm_service(api_key_service, llm_domain_service):
     """Create LLM infrastructure service."""
     from dipeo.infra.llm import LLMInfraService
     
-    return LLMInfraService(api_key_service)
+    return LLMInfraService(api_key_service, llm_domain_service)
 
 
 def _create_notion_service():
@@ -97,6 +97,7 @@ class IntegrationServicesContainer(MutableBaseContainer):
     llm_service = providers.Singleton(
         _create_llm_service,
         api_key_service=persistence.api_key_service,
+        llm_domain_service=business.llm_domain_service,
     )
     
     # External API integrations

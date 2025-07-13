@@ -142,6 +142,17 @@ class StaticNodeGenerator {
       .replace(/\s*\|\s*undefined/g, '')
       .replace(/^import\([^)]+\)\./, ''); // Remove import() wrapper
     
+    // Handle string literal unions like 'none' | 'bearer' | 'basic' | 'api_key'
+    if (tsType.includes("'") && tsType.includes('|')) {
+      // Extract the individual string literals and quote them properly for Python
+      const literals = tsType.split('|').map(lit => {
+        const cleaned = lit.trim().replace(/['"]/g, '');
+        return `"${cleaned}"`;
+      });
+      const literalType = `Literal[${literals.join(', ')}]`;
+      return optional ? `Optional[${literalType}]` : literalType;
+    }
+    
     // Direct mapping
     if (TS_TO_PY_TYPE[tsType]) {
       return TS_TO_PY_TYPE[tsType];
@@ -322,7 +333,7 @@ class StaticNodeGenerator {
     lines.push('"""');
     lines.push('');
     lines.push('from dataclasses import dataclass, field');
-    lines.push('from typing import Dict, Any, Optional, List, Union');
+    lines.push('from typing import Dict, Any, Optional, List, Union, Literal');
     lines.push('');
     lines.push('from dipeo.models.models import (');
     lines.push('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, ToolConfig,');

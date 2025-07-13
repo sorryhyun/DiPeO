@@ -32,10 +32,7 @@ def _create_stateful_diagram(diagram):
     return StatefulExecutableDiagram(diagram)
 
 
-def _create_execution_coordinator(state_store, message_router):
-    """Create execution coordinator."""
-    from dipeo.application.execution.state import UnifiedExecutionCoordinator
-    return UnifiedExecutionCoordinator()
+# UnifiedExecutionCoordinator removed - functionality merged into TypedStatefulExecution
 
 
 def _create_execution_engine(
@@ -130,12 +127,7 @@ class DynamicServicesContainer(MutableBaseContainer):
         conversation_manager=conversation_manager,
     )
     
-    # Execution coordination
-    execution_coordinator = providers.Factory(
-        _create_execution_coordinator,
-        state_store=persistence.state_store,
-        message_router=persistence.message_router,
-    )
+    # Execution coordination removed - functionality merged into TypedStatefulExecution
     
     # Stateful diagram - Factory for fresh instance per diagram
     stateful_diagram = providers.Factory(_create_stateful_diagram)

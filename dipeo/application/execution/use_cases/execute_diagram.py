@@ -2,13 +2,13 @@
 
 import asyncio
 from collections.abc import AsyncGenerator
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
 
 from dipeo.core import BaseService
 from dipeo.models import ExecutionStatus
 
 from dipeo.application.execution.observers import StreamingObserver
-from dipeo.application.execution.state import UnifiedExecutionCoordinator
 
 if TYPE_CHECKING:
     from dipeo.core.ports.state_store import StateStorePort
@@ -33,9 +33,6 @@ class ExecuteDiagramUseCase(BaseService):
         self.state_store = state_store
         self.message_router = message_router
         self.diagram_storage_service = diagram_storage_service
-        self.coordinator = UnifiedExecutionCoordinator(
-            service_registry=service_registry
-        )
 
     async def initialize(self):
         """Initialize the service."""
@@ -87,7 +84,9 @@ class ExecuteDiagramUseCase(BaseService):
                 # Update state to running
                 state = await self.state_store.get_state(execution_id)
                 if state:
-                    self.coordinator.transition_to_running(state)
+                    state.status = ExecutionStatus.RUNNING
+                    state.started_at = datetime.utcnow().isoformat()
+                    state.is_active = True
                     await self.state_store.save_state(state)
                 
                 async for _ in engine.execute_prepared(
@@ -146,6 +145,24 @@ class ExecuteDiagramUseCase(BaseService):
         # Use the infrastructure adapter to prepare the diagram
         domain_diagram = diagram_loader.prepare_diagram(diagram)
         
+        # Validate execution flow using domain service
+        from dipeo.domain.execution import ExecutionDomainService
+        execution_domain_service = ExecutionDomainService()
+        validation_result = execution_domain_service.validate_execution_flow(domain_diagram)
+        
+        if not validation_result.is_valid:
+            critical_issues = validation_result.critical_issues
+            if critical_issues:
+                # Raise error for critical issues
+                error_messages = [f"- {issue.message}" for issue in critical_issues]
+                raise ValueError(f"Diagram validation failed:\n" + "\n".join(error_messages))
+            else:
+                # Log warnings for non-critical issues
+                import logging
+                logger = logging.getLogger(__name__)
+                for warning in validation_result.warnings:
+                    logger.warning(f"Diagram validation warning: {warning.message}")
+        
         # Apply diagram compilation pipeline with static types
         from ...resolution import StaticDiagramCompiler
         compiler = StaticDiagramCompiler()
@@ -178,6 +195,7 @@ class ExecuteDiagramUseCase(BaseService):
     ) -> "ExecutionController":
         """Setup execution context including controller and state."""
         from ...engine.execution_controller import ExecutionController
+        from ..stateful_execution_typed import TypedStatefulExecution
         
         # Get required domain services
         if not hasattr(self.service_registry, 'get'):
@@ -197,24 +215,26 @@ class ExecuteDiagramUseCase(BaseService):
             # Should have been initialized by _initialize_execution_state
             raise ValueError(f"Execution state not found for {execution_id}")
         
-        # Create state adapter with coordinator
-        from ..adapters.state_adapter import ApplicationExecutionState
-        from ..state import UnifiedExecutionCoordinator
+        # Get executable diagram
+        executable_diagram = getattr(diagram, '_executable_diagram', None)
+        if not executable_diagram:
+            raise ValueError("No ExecutableDiagram found - diagram must be resolved first")
         
-        coordinator = UnifiedExecutionCoordinator(
-            service_registry=self.service_registry
-        )
-        
-        state_adapter = ApplicationExecutionState(
+        # Create typed stateful execution - single source of truth for state management
+        typed_execution = TypedStatefulExecution(
+            diagram=executable_diagram,
             execution_state=execution_state,
-            coordinator=coordinator,
-            state_store=self.state_store
+            service_registry=self.service_registry,
+            container=getattr(self.service_registry, '_container', None)
         )
         
-        # Create controller with state adapter
+        # Store stateful_execution reference in execution_state for later access
+        execution_state._stateful_execution = typed_execution
+        
+        # Create controller with typed execution
         controller = ExecutionController(
             flow_control_service=flow_control_service,
-            state_adapter=state_adapter,
+            execution=typed_execution,
             max_global_iterations=options.get("max_iterations", 100)
         )
         
@@ -310,9 +330,20 @@ class ExecuteDiagramUseCase(BaseService):
         state = await self.state_store.get_state(execution_id)
         if state:
             if status == ExecutionStatus.COMPLETED:
-                self.coordinator.transition_to_completed(state)
+                state.status = ExecutionStatus.COMPLETED
+                state.ended_at = datetime.utcnow().isoformat()
+                state.is_active = False
+                
+                # Calculate duration
+                if state.started_at:
+                    start = datetime.fromisoformat(state.started_at.replace('Z', '+00:00'))
+                    end = datetime.utcnow()
+                    state.duration_seconds = (end - start).total_seconds()
             elif status == ExecutionStatus.FAILED:
-                self.coordinator.transition_to_failed(state, error or "Unknown error")
+                state.status = ExecutionStatus.FAILED
+                state.ended_at = datetime.utcnow().isoformat()
+                state.is_active = False
+                state.error = error or "Unknown error"
             
             # Save final state
             await self.state_store.save_state(state)

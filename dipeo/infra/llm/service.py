@@ -1,13 +1,14 @@
 """LLM infrastructure service implementation."""
 
 import time
-from typing import Any
+from typing import Any, Optional
 
 from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.ports import LLMServicePort
 from dipeo.models import ChatResult
 from dipeo.models import LLMService as LLMServiceEnum
 from dipeo.application.protocols import SupportsAPIKey
+from dipeo.domain.llm import LLMDomainService, ModelConfig, RetryStrategy
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -23,11 +24,12 @@ from .factory import create_adapter
 
 class LLMInfraService(BaseService, LLMServicePort):
 
-    def __init__(self, api_key_service: SupportsAPIKey):
+    def __init__(self, api_key_service: SupportsAPIKey, llm_domain_service: Optional[LLMDomainService] = None):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
         self._settings = get_settings()
+        self._llm_domain_service = llm_domain_service or LLMDomainService()
 
     async def initialize(self) -> None:
         pass
@@ -69,22 +71,32 @@ class LLMInfraService(BaseService, LLMServicePort):
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
-        # Create retry decorator with configurable delays
-        retry_decorator = retry(
-            stop=stop_after_attempt(self._settings.llm_max_retries),
-            wait=wait_exponential(
-                multiplier=1,
-                min=self._settings.llm_retry_min_wait,
-                max=self._settings.llm_retry_max_wait
-            ),
-            retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-        )
-        
-        @retry_decorator
-        async def _make_call():
-            return client.chat(messages=messages, **kwargs)
-        
-        return await _make_call()
+        # Try to make the call without retry first
+        try:
+            return await client.chat(messages=messages, **kwargs)
+        except Exception as e:
+            # Determine retry strategy using domain service
+            retry_strategy = self._llm_domain_service.determine_retry_strategy(e)
+            
+            if not retry_strategy.should_retry(1):
+                raise
+            
+            # Create retry decorator based on domain-determined strategy
+            retry_decorator = retry(
+                stop=stop_after_attempt(retry_strategy.max_retries),
+                wait=wait_exponential(
+                    multiplier=retry_strategy.backoff_factor,
+                    min=retry_strategy.initial_delay_seconds,
+                    max=retry_strategy.max_delay_seconds
+                ),
+                retry=retry_if_exception_type((ConnectionError, TimeoutError, Exception)),
+            )
+            
+            @retry_decorator
+            async def _make_call():
+                return await client.chat(messages=messages, **kwargs)
+            
+            return await _make_call()
 
     async def complete(  # type: ignore[override]
         self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs
@@ -94,6 +106,27 @@ class LLMInfraService(BaseService, LLMServicePort):
                 messages = []
             
             service = LLMInfraService._infer_service_from_model(model)
+            
+            # Validate model configuration using domain service
+            is_valid, error_msg = self._llm_domain_service.validate_model_config(
+                provider=service,
+                model=model,
+                config=kwargs
+            )
+            if not is_valid:
+                raise LLMServiceError(service="llm", message=error_msg)
+            
+            # Validate prompt size if messages exist
+            if messages:
+                prompt_text = " ".join(msg.get("content", "") for msg in messages)
+                is_valid, error_msg = self._llm_domain_service.validate_prompt_size(
+                    prompt=prompt_text,
+                    provider=service,
+                    model=model
+                )
+                if not is_valid:
+                    self.logger.warning(f"Prompt validation warning: {error_msg}")
+            
             adapter = self._get_client(service, model, api_key_id)
 
             messages_list = messages

@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage, DomainDiagram
+from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage, DomainDiagram, NodeID
 
 if TYPE_CHECKING:
     from dipeo.application.execution.context import UnifiedExecutionContext
@@ -35,22 +35,27 @@ class NodeExecutor:
         controller: "ExecutionController",
         execution_id: str,
         options: dict[str, Any],
-        interactive_handler: Optional[Any] = None
+        interactive_handler: Optional[Any] = None,
+        typed_node: Optional[Any] = None  # ExecutableNode
     ) -> None:
         # Track start time
         start_time = datetime.utcnow()
         
-        # Find the node in the diagram
-        # First check if diagram has _executable_diagram with typed nodes
-        if hasattr(diagram, '_executable_diagram') and diagram._executable_diagram:
-            executable_diagram = diagram._executable_diagram
-            node = next((n for n in executable_diagram.nodes if n.id == node_id), None)
+        # Use typed node if provided, otherwise find it in the diagram
+        if typed_node:
+            node = typed_node
         else:
-            # Fallback to dictionary-based nodes
-            node = next((n for n in diagram.nodes if n.id == node_id), None)
-        
-        if not node:
-            raise ValueError(f"Node {node_id} not found in diagram")
+            # Find the node in the diagram
+            # First check if diagram has _executable_diagram with typed nodes
+            if hasattr(diagram, '_executable_diagram') and diagram._executable_diagram:
+                executable_diagram = diagram._executable_diagram
+                node = next((n for n in executable_diagram.nodes if n.id == node_id), None)
+            else:
+                # Fallback to dictionary-based nodes
+                node = next((n for n in diagram.nodes if n.id == node_id), None)
+            
+            if not node:
+                raise ValueError(f"Node {node_id} not found in diagram")
         
         # Notify observers
         for observer in self.observers:
@@ -68,8 +73,11 @@ class NodeExecutor:
                 raise ValueError("InputResolutionService is required but not found")
             
             # Get current state for input resolution
-            node_outputs = controller.state_adapter.get_all_node_outputs()
-            node_exec_counts = controller.state_adapter.get_all_node_exec_counts()
+            node_outputs = controller.execution.state.node_outputs
+            node_exec_counts = {
+                node_id: controller.execution.get_node_execution_count(NodeID(node_id))
+                for node_id in controller.execution.state.node_states
+            }
             
             # Resolve inputs for this node
             inputs = input_resolution_service.resolve_inputs_for_node(
@@ -126,10 +134,10 @@ class NodeExecutor:
             )
             
             # Update state
-            await controller.mark_executed(node_id, output, node.type)
+            await controller.mark_node_complete(node_id, output)
             
             # Get the actual node state from the controller to check if it's RUNNING or COMPLETED
-            actual_node_state = controller.state_adapter.execution_state.node_states.get(node_id)
+            actual_node_state = controller.execution.get_node_state(node_id)
             actual_status = actual_node_state.status if actual_node_state else NodeExecutionStatus.COMPLETED
             
             # Create NodeState with output and timing information
@@ -174,19 +182,19 @@ class NodeExecutor:
             UnifiedExecutionContext,
         )
         
-        # Get execution state from controller's state adapter
-        if not controller.state_adapter:
-            raise ValueError("Controller must have a state adapter")
-            
-        execution_state = controller.state_adapter.execution_state
+        # Get execution state from controller's execution
+        execution_state = controller.execution.state
         
         # Create UnifiedExecutionContext with the existing state
         return UnifiedExecutionContext(
             execution_state=execution_state,
             service_registry=self.service_registry,
             current_node_id=node_id,
-            executed_nodes=list(controller.state_adapter.get_executed_nodes()),
-            exec_counts=controller.state_adapter.get_all_node_exec_counts(),
+            executed_nodes=list(controller.execution._executed_nodes),
+            exec_counts={
+                node_id: controller.execution.get_node_execution_count(NodeID(node_id))
+                for node_id in controller.execution.state.node_states
+            },
         )
     
     def _get_node_memory_config(self, node: Any) -> Optional[dict[str, Any]]:

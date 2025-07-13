@@ -32,8 +32,5 @@ class ServerInfrastructureContainer(InfrastructureContainer):
     # Override api_key_storage with server-specific path
     api_key_storage = providers.Singleton(
         FileAPIKeyStorage,
-        file_path=providers.Factory(
-            lambda: Path(BASE_DIR) / "files" / "apikeys.json"
-        ),
+        file_path=providers.Factory(lambda: Path(BASE_DIR) / "files" / "apikeys.json"),
     )
-

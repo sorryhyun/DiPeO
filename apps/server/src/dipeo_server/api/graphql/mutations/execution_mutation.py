@@ -31,21 +31,25 @@ class ExecutionMutations:
             context: GraphQLContext = info.context
             execution_service = context.execution_service
             state_store = context.state_store
-            
+
             # Debug logging
             logger.info(f"Context type: {type(context)}")
             logger.info(f"State store value: {state_store}")
             logger.info(f"State store type: {type(state_store)}")
             logger.info(f"Execution service value: {execution_service}")
             logger.info(f"Execution service type: {type(execution_service)}")
-            
+
             if state_store is None:
                 logger.error("State store is None!")
-                return ExecutionResult(success=False, error="State store not initialized")
-            
+                return ExecutionResult(
+                    success=False, error="State store not initialized"
+                )
+
             if execution_service is None:
                 logger.error("Execution service is None!")
-                return ExecutionResult(success=False, error="Execution service not initialized")
+                return ExecutionResult(
+                    success=False, error="Execution service not initialized"
+                )
 
             if data.diagram_data:
                 # The execution service will validate as DomainDiagram which expects lists
@@ -109,6 +113,7 @@ class ExecutionMutations:
             return ExecutionResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
             import traceback
+
             logger.error(f"Failed to execute diagram: {e}")
             logger.error(f"Full traceback:\n{traceback.format_exc()}")
             return ExecutionResult(

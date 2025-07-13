@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Callable, Dict, Iterator, List, Optional, Set
 
-from dipeo.application.execution.stateful_diagram import StatefulExecutableDiagram
+from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.models import NodeExecutionStatus, NodeID
 
@@ -29,18 +29,18 @@ class ExecutionIterator(Iterator[ExecutionStep]):
     
     def __init__(
         self,
-        stateful_diagram: StatefulExecutableDiagram,
+        stateful_execution: TypedStatefulExecution,
         max_parallel_nodes: int = 1,
         node_executor: Optional[Callable[[ExecutableNode], Dict[str, Any]]] = None
     ):
         """Initialize the execution iterator.
         
         Args:
-            stateful_diagram: The stateful diagram to iterate over
+            stateful_execution: The stateful execution to iterate over
             max_parallel_nodes: Maximum nodes to execute in parallel
             node_executor: Optional function to execute nodes (for convenience)
         """
-        self._diagram = stateful_diagram
+        self._execution = stateful_execution
         self._max_parallel = max_parallel_nodes
         self._node_executor = node_executor
         self._cancelled = False
@@ -63,11 +63,11 @@ class ExecutionIterator(Iterator[ExecutionStep]):
             raise StopIteration("Execution cancelled")
         
         # Check if execution is complete
-        if self._diagram.is_complete():
+        if self._execution.is_complete():
             raise StopIteration("Execution complete")
         
         # Get ready nodes
-        ready_nodes = self._diagram.next()
+        ready_nodes = self._execution.get_ready_nodes()
         
         if not ready_nodes:
             # No nodes ready - check for deadlock
@@ -77,8 +77,24 @@ class ExecutionIterator(Iterator[ExecutionStep]):
             # Return empty step to indicate waiting
             return ExecutionStep(nodes=[], is_parallel=False)
         
-        # Determine if nodes can run in parallel
+        # Determine if nodes can run in parallel using domain service
         can_parallel = len(ready_nodes) > 1 and self._max_parallel > 1
+        
+        # Use domain service for smarter parallelization if available
+        if hasattr(self, '_execution_domain_service') and self._execution_domain_service:
+            # Convert ready nodes to format expected by domain service
+            node_list = [{"id": node.id, "node_type": node.node_type} for node in ready_nodes]
+            execution_plan = self._execution_domain_service.determine_parallelization(node_list)
+            
+            # Get current step's parallel group
+            if execution_plan.parallel_groups:
+                ready_node_ids = {node.id for node in ready_nodes}
+                # Find which parallel group these nodes belong to
+                for group_nodes in execution_plan.parallel_groups.values():
+                    if group_nodes.intersection(ready_node_ids):
+                        # These nodes are in a parallel group
+                        can_parallel = True
+                        break
         
         # Limit nodes based on max parallel setting
         if can_parallel and len(ready_nodes) > self._max_parallel:
@@ -86,7 +102,7 @@ class ExecutionIterator(Iterator[ExecutionStep]):
         
         # Mark nodes as running
         for node in ready_nodes:
-            self._diagram.mark_node_running(node.id)
+            self._execution.mark_node_running(node.id)
         
         self._current_step += 1
         
@@ -102,7 +118,9 @@ class ExecutionIterator(Iterator[ExecutionStep]):
             node_id: The ID of the completed node
             result: Optional execution result
         """
-        self._diagram.advance(node_id, result)
+        self._execution.mark_node_complete(node_id)
+        if result:
+            self._execution.set_node_output(node_id, result.get('value', result))
     
     def fail_node(self, node_id: NodeID, error: Exception) -> None:
         """Mark a node as failed.
@@ -111,7 +129,7 @@ class ExecutionIterator(Iterator[ExecutionStep]):
             node_id: The ID of the failed node
             error: The exception that caused the failure
         """
-        self._diagram.mark_node_failed(node_id, error)
+        self._execution.mark_node_failed(node_id, str(error))
     
     def cancel(self) -> None:
         """Cancel the execution."""
@@ -123,44 +141,18 @@ class ExecutionIterator(Iterator[ExecutionStep]):
         Returns:
             Dictionary with progress metrics
         """
-        total_nodes = len(self._diagram.diagram.nodes)
-        completed = len(self._diagram.context.get_completed_nodes())
-        
-        # Count nodes by status
-        status_counts = {
-            "pending": 0,
-            "running": 0,
-            "completed": 0,
-            "failed": 0
-        }
-        
-        for node in self._diagram.diagram.nodes:
-            state = self._diagram.context.get_node_state(node.id)
-            if state:
-                if state.status == NodeExecutionStatus.PENDING:
-                    status_counts["pending"] += 1
-                elif state.status == NodeExecutionStatus.RUNNING:
-                    status_counts["running"] += 1
-                elif state.status == NodeExecutionStatus.COMPLETED:
-                    status_counts["completed"] += 1
-                elif state.status == NodeExecutionStatus.FAILED:
-                    status_counts["failed"] += 1
-        
-        return {
+        progress = self._execution.get_progress()
+        progress.update({
             "current_step": self._current_step,
-            "total_nodes": total_nodes,
-            "completed_nodes": completed,
-            "progress_percentage": (completed / total_nodes * 100) if total_nodes > 0 else 0,
-            "status_counts": status_counts,
-            "is_complete": self._diagram.is_complete(),
             "is_cancelled": self._cancelled
-        }
+        })
+        return progress
     
     def _has_running_nodes(self) -> bool:
         """Check if any nodes are currently running."""
-        for node in self._diagram.diagram.nodes:
-            state = self._diagram.context.get_node_state(node.id)
-            if state and state.status == NodeExecutionStatus.RUNNING:
+        for node in self._execution.diagram.nodes:
+            state = self._execution.get_node_state(node.id)
+            if state.status == NodeExecutionStatus.RUNNING:
                 return True
         return False
 
@@ -174,7 +166,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
     
     def __init__(
         self,
-        stateful_diagram: StatefulExecutableDiagram,
+        stateful_execution: TypedStatefulExecution,
         max_parallel_nodes: int = 10,
         node_executor: Optional[Callable[[ExecutableNode], Any]] = None,  # Can be sync or async
         node_ready_poll_interval: float = 0.01,  # Reduced from 0.1 for more responsive execution
@@ -183,13 +175,13 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         """Initialize the async execution iterator.
         
         Args:
-            stateful_diagram: The stateful diagram to iterate over
+            stateful_execution: The stateful execution to iterate over
             max_parallel_nodes: Maximum nodes to execute in parallel
             node_executor: Optional async function to execute nodes
             node_ready_poll_interval: How long to wait between polling for ready nodes (seconds)
             max_poll_retries: Maximum number of polling attempts before giving up
         """
-        self._diagram = stateful_diagram
+        self._execution = stateful_execution
         self._max_parallel = max_parallel_nodes
         self._node_executor = node_executor
         self._cancelled = False
@@ -216,14 +208,14 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             raise StopAsyncIteration("Execution cancelled")
         
         # Check if execution is complete
-        if self._diagram.is_complete():
+        if self._execution.is_complete():
             await self._cleanup_tasks()
             raise StopAsyncIteration("Execution complete")
         
         # Poll for ready nodes with configurable interval
         retry_count = 0
         while retry_count < self._max_poll_retries:
-            ready_nodes = self._diagram.next()
+            ready_nodes = self._execution.get_ready_nodes()
             
             if ready_nodes:
                 break
@@ -254,7 +246,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         
         # Mark nodes as running
         for node in ready_nodes:
-            self._diagram.mark_node_running(node.id)
+            self._execution.mark_node_running(node.id)
         
         self._current_step += 1
         
@@ -332,7 +324,9 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             node_id: The ID of the completed node
             result: Optional execution result
         """
-        self._diagram.advance(node_id, result)
+        self._execution.mark_node_complete(node_id)
+        if result:
+            self._execution.set_node_output(node_id, result.get('value', result))
     
     def fail_node(self, node_id: NodeID, error: Exception) -> None:
         """Mark a node as failed.
@@ -341,7 +335,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             node_id: The ID of the failed node
             error: The exception that caused the failure
         """
-        self._diagram.mark_node_failed(node_id, error)
+        self._execution.mark_node_failed(node_id, str(error))
     
     async def cancel(self) -> None:
         """Cancel the execution and clean up tasks."""
@@ -364,44 +358,18 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         Returns:
             Dictionary with progress metrics
         """
-        total_nodes = len(self._diagram.diagram.nodes)
-        completed = len(self._diagram.context.get_completed_nodes())
-        
-        # Count nodes by status
-        status_counts = {
-            "pending": 0,
-            "running": 0,
-            "completed": 0,
-            "failed": 0
-        }
-        
-        for node in self._diagram.diagram.nodes:
-            state = self._diagram.context.get_node_state(node.id)
-            if state:
-                if state.status == NodeExecutionStatus.PENDING:
-                    status_counts["pending"] += 1
-                elif state.status == NodeExecutionStatus.RUNNING:
-                    status_counts["running"] += 1
-                elif state.status == NodeExecutionStatus.COMPLETED:
-                    status_counts["completed"] += 1
-                elif state.status == NodeExecutionStatus.FAILED:
-                    status_counts["failed"] += 1
-        
-        return {
+        progress = self._execution.get_progress()
+        progress.update({
             "current_step": self._current_step,
-            "total_nodes": total_nodes,
-            "completed_nodes": completed,
-            "progress_percentage": (completed / total_nodes * 100) if total_nodes > 0 else 0,
-            "status_counts": status_counts,
-            "is_complete": self._diagram.is_complete(),
             "is_cancelled": self._cancelled,
             "running_tasks": len(self._running_tasks)
-        }
+        })
+        return progress
     
     def _has_running_nodes(self) -> bool:
         """Check if any nodes are currently running."""
-        for node in self._diagram.diagram.nodes:
-            state = self._diagram.context.get_node_state(node.id)
-            if state and state.status == NodeExecutionStatus.RUNNING:
+        for node in self._execution.diagram.nodes:
+            state = self._execution.get_node_state(node.id)
+            if state.status == NodeExecutionStatus.RUNNING:
                 return True
         return False

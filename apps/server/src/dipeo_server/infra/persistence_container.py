@@ -13,9 +13,9 @@ def _create_initialized_state_store():
 
 class ServerPersistenceContainer(PersistenceServicesContainer):
     """Server-specific persistence container with proper overrides."""
-    
+
     # Override state_store with server implementation
     state_store = providers.Singleton(_create_initialized_state_store)
-    
-    # Override message_router with actual implementation  
+
+    # Override message_router with actual implementation
     message_router = providers.Singleton(MessageRouter)

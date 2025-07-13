@@ -199,8 +199,9 @@ class UnifiedExecutionContext(ExecutionContext):
         # First check the execution state for the most up-to-date count
         if hasattr(self, '_execution_state') and self._execution_state:
             node_state = self._execution_state.node_states.get(node_id)
-            if node_state and node_state.metadata:
-                return node_state.metadata.get("exec_count", 0)
+            if node_state:
+                # Use extra fields instead of metadata
+                return getattr(node_state, "exec_count", 0)
         # Fall back to cached exec counts
         return self._exec_counts.get(node_id, 0)
     

@@ -368,7 +368,6 @@ class StateRegistry:
         await self.save_state(state)
 
     async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
-
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -532,5 +531,6 @@ class StateRegistry:
 state_store = StateRegistry()
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.info(f"Created state_store singleton: {state_store}")

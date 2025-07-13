@@ -9,7 +9,10 @@ import yaml
 from dipeo.core.constants import BASE_DIR
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.diagram.unified_converter import UnifiedDiagramConverter
-from dipeo.domain.diagram.services import DiagramBusinessLogic as DiagramDomainService
+from dipeo.domain.diagram.services import (
+    DiagramBusinessLogic as DiagramDomainService,
+    DiagramFormatService
+)
 from typing import Any, Dict, Optional, Union
 
 from dipeo.core.ports import FileServicePort
@@ -27,36 +30,11 @@ class IntegratedDiagramService(DiagramPort):
         self.converter = UnifiedDiagramConverter()
         self.diagrams_dir = Path(BASE_DIR) / "files" / "diagrams"
         self.domain_service = DiagramDomainService()
+        self.format_service = DiagramFormatService()
 
     def detect_format(self, content: str) -> DiagramFormat:
-        content = content.strip()
-
-        if content.startswith('{'):
-            import json
-            try:
-                data = json.loads(content)
-                if "nodes" in data and isinstance(data["nodes"], dict):
-                    return DiagramFormat.native
-                return DiagramFormat.native
-            except json.JSONDecodeError:
-                pass
-
-        try:
-            import yaml
-            data = yaml.safe_load(content)
-            if isinstance(data, dict):
-                if (data.get("version") == "light" or
-                        (isinstance(data.get("nodes"), list) and
-                         "connections" in data and
-                         "persons" in data)):
-                    return DiagramFormat.light
-                if data.get("format") == "readable":
-                    return DiagramFormat.readable
-                return DiagramFormat.light
-        except yaml.YAMLError:
-            pass
-
-        raise ValueError("Unable to detect diagram format")
+        """Delegate format detection to domain service."""
+        return self.format_service.detect_format(content)
 
     def load_diagram(
             self,
@@ -64,7 +42,7 @@ class IntegratedDiagramService(DiagramPort):
             format: Optional[DiagramFormat] = None,
     ) -> DomainDiagram:
         if format is None:
-            format = self.detect_format(content)
+            format = self.format_service.detect_format(content)
 
         return self.converter.deserialize(content, format_id=format.value)
 
@@ -127,7 +105,12 @@ class IntegratedDiagramService(DiagramPort):
         
         self.domain_service.validate_diagram_data(diagram)
         
-        format_type = self.domain_service.determine_format_type(path)
+        # Determine format from path
+        format = self.format_service.determine_format_from_filename(path)
+        if format is None:
+            # Fallback to native format
+            format = DiagramFormat.native
+        format_type = format.value
         
         if file_path.suffix.lower() in [".yaml", ".yml"]:
             content = self.converter.dict_to_yaml(diagram, format_type=format_type)
@@ -139,11 +122,17 @@ class IntegratedDiagramService(DiagramPort):
             raise ValueError(f"Unsupported file format: {file_path.suffix}")
     
     def create_diagram(self, name: str, diagram: Dict[str, Any], format: str = "json") -> str:
-        format_type = "native" if format == "json" else format
+        # Determine format based on requested format
+        if format == "json":
+            diagram_format = DiagramFormat.native
+        else:
+            diagram_format = DiagramFormat.light  # Default to light for YAML
+        
+        format_type = diagram_format.value
         format_dir = self.diagrams_dir / format_type
         format_dir.mkdir(parents=True, exist_ok=True)
         
-        extension = ".json" if format == "json" else ".yaml"
+        extension = self.format_service.get_file_extension_for_format(diagram_format)
         filename = f"{name}{extension}"
         path = f"{format_type}/{filename}"
         
@@ -165,17 +154,12 @@ class IntegratedDiagramService(DiagramPort):
         file_path.unlink()
     
     async def save_diagram_with_id(self, diagram_dict: Dict[str, Any], filename: str) -> str:
-        if filename.endswith(".json"):
-            format_type = "native"
-        elif filename.endswith((".yaml", ".yml")):
-            if "light" in filename:
-                format_type = "light"
-            elif "readable" in filename:
-                format_type = "readable"
-            else:
-                format_type = "native"
+        # Determine format from filename
+        detected_format = self.format_service.determine_format_from_filename(filename)
+        if detected_format:
+            format_type = detected_format.value
         else:
-            format_type = "native"
+            format_type = "native"  # Default
         
         path = f"{format_type}/{filename}"
         self.save_diagram(path, diagram_dict)
@@ -183,10 +167,8 @@ class IntegratedDiagramService(DiagramPort):
         return diagram_dict.get("id", filename)
     
     async def get_diagram(self, diagram_id: str) -> Optional[Dict[str, Any]]:
-        search_paths = self.domain_service.construct_search_paths(
-            diagram_id,
-            base_extensions=[".yaml", ".yml", ".json"]
-        )
+        # Use format service to construct search patterns
+        search_paths = self.format_service.construct_search_patterns(diagram_id)
         
         for path in search_paths:
             file_path = self.diagrams_dir / path

@@ -7,7 +7,6 @@ from .handler_factory import (
     register_handler,
 )
 from .use_cases import ExecuteDiagramUseCase
-from .adapters import ApplicationExecutionState
 from .context import UnifiedExecutionContext
 from .types import (
     ExecutionContext,
@@ -19,8 +18,6 @@ from .types import (
 __all__ = [
     # Use cases
     "ExecuteDiagramUseCase",
-    # Adapters
-    "ApplicationExecutionState",
     # Context
     "UnifiedExecutionContext",
     # Types

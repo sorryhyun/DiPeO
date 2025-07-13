@@ -20,10 +20,10 @@ def initialize_container() -> ServerContainer:
 
     if _container is None:
         # Set container profile based on environment variable
-        profile = os.environ.get('DIPEO_CONTAINER_PROFILE', 'full')
+        profile = os.environ.get("DIPEO_CONTAINER_PROFILE", "full")
         ServerContainer.set_profile(profile)
         print(f"Initializing server with container profile: {profile}")
-        
+
         _container = ServerContainer()
 
         # Override the persistence container with server-specific implementation
