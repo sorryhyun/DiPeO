@@ -17,7 +17,7 @@ from .nodes import (
     create_executable_node
 )
 from .diagram_compiler import DiagramCompiler, DiagramValidator
-from .node_handler import NodeHandler, StatefulNodeHandler, NodeRegistry
+from .node_handler import TypedNodeHandler
 
 __all__ = [
     # Diagram structures
@@ -45,7 +45,5 @@ __all__ = [
     # Protocols
     "DiagramCompiler",
     "DiagramValidator",
-    "NodeHandler",
-    "StatefulNodeHandler",
-    "NodeRegistry"
+    "TypedNodeHandler"
 ]

@@ -1,11 +1,12 @@
-# Type-safe handler system using generics
+# Type-safe handler system implementation
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Dict, Generic, TypeVar, Type, Optional, TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from dipeo.core.static.executable_diagram import ExecutableNode
+from dipeo.core.static.node_handler import TypedNodeHandler as TypedNodeHandlerProtocol
 from dipeo.models import NodeOutput
 
 if TYPE_CHECKING:
@@ -16,36 +17,12 @@ if TYPE_CHECKING:
 T = TypeVar('T', bound=ExecutableNode)
 
 
-class TypedNodeHandler(Generic[T], ABC):
-    """Base class for type-safe node handlers using generics."""
+class TypedNodeHandlerBase(Generic[T], TypedNodeHandlerProtocol[T], ABC):
+    """Base implementation class for type-safe node handlers.
     
-    @property
-    @abstractmethod
-    def node_class(self) -> Type[T]:
-        """The typed node class this handler handles."""
-        pass
-    
-    @property
-    @abstractmethod
-    def node_type(self) -> str:
-        """The node type string identifier."""
-        pass
-    
-    @property
-    @abstractmethod
-    def schema(self) -> Type[BaseModel]:
-        """The Pydantic schema for validation."""
-        pass
-    
-    @property
-    def requires_services(self) -> list[str]:
-        """List of services required by this handler."""
-        return []
-    
-    @property
-    def description(self) -> str:
-        """Description of this handler."""
-        return f"Typed handler for {self.node_type} nodes"
+    This class provides the concrete implementation of the TypedNodeHandler protocol
+    from core, adding application-specific functionality.
+    """
     
     async def execute(
         self,
@@ -68,16 +45,7 @@ class TypedNodeHandler(Generic[T], ABC):
             services=services
         )
     
-    @abstractmethod
-    async def execute_typed(
-        self,
-        node: T,
-        context: "UnifiedExecutionContext",
-        inputs: Dict[str, Any],
-        services: Dict[str, Any]
-    ) -> NodeOutput:
-        """Execute with strongly-typed node."""
-        pass
+    # Note: execute_typed is abstract in the protocol, subclasses must implement it
     
     def to_node_handler(self):
         """Convert to node handler for compatibility with registry."""
@@ -120,3 +88,7 @@ class TypedNodeHandler(Generic[T], ABC):
             node_id=context.current_node_id,
             executed_nodes=context.executed_nodes
         )
+
+
+# Backward compatibility alias
+TypedNodeHandler = TypedNodeHandlerBase

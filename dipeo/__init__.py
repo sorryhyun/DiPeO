@@ -20,12 +20,9 @@ from . import core
 from . import domain
 from . import domain as models  # Alias for backward compatibility
 from . import diagram
-from . import application
-from . import infra
-from . import container
 
 # Track what we successfully imported
-_imported_modules = ["core", "domain", "models", "diagram", "application", "infra", "container"]
+_imported_modules = ["core", "domain", "models", "diagram"]
 
 # For convenience, re-export commonly used items from core
 try:
@@ -44,20 +41,6 @@ try:
 except ImportError as e:
     warnings.warn(f"Could not import some core items: {e}", ImportWarning)
 
-# Import execution framework items from application layer
-try:
-    from .application import (
-        TypedNodeHandler,
-        ExecutionOptions,
-        NodeDefinition,
-        NodeHandler,
-    )
-    _imported_modules.extend([
-        "TypedNodeHandler", "ExecutionOptions",
-        "NodeDefinition", "NodeHandler"
-    ])
-except ImportError as e:
-    warnings.warn(f"Could not import some execution framework items: {e}", ImportWarning)
 
 # For convenience, re-export commonly used models from domain
 try:
@@ -101,45 +84,8 @@ try:
 except ImportError as e:
     warnings.warn(f"Could not import some diagram items: {e}", ImportWarning)
 
-# For convenience, re-export commonly used items from application
-try:
-    from .application import (
-        TypedExecutionEngine,
-        UnifiedServiceRegistry,
-    )
-    _imported_modules.extend([
-        "TypedExecutionEngine",
-        "UnifiedServiceRegistry"
-    ])
-except ImportError as e:
-    warnings.warn(f"Could not import some application items: {e}", ImportWarning)
 
-# For convenience, re-export commonly used items from infra
-try:
-    from .infra import (
-        LLMInfraService,
-        ModularFileService,
-        AsyncFileAdapter,
-    )
-    
-    _imported_modules.extend([
-        "LLMInfraService", "ModularFileService", "AsyncFileAdapter"
-    ])
-except ImportError as e:
-    warnings.warn(f"Could not import some infra items: {e}", ImportWarning)
 
-# For convenience, re-export commonly used items from container
-try:
-    from .container import (
-        Container,
-        init_resources,
-        shutdown_resources,
-    )
-    _imported_modules.extend([
-        "Container", "init_resources", "shutdown_resources"
-    ])
-except ImportError as e:
-    warnings.warn(f"Could not import some container items: {e}", ImportWarning)
 
 # Define __all__ based on what we successfully imported
 __all__ = ["__version__"] + _imported_modules

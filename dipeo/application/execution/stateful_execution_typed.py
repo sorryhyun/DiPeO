@@ -5,7 +5,7 @@ This version uses the strongly-typed node classes for better type safety and
 more efficient execution logic.
 """
 
-from typing import Dict, Any, Optional, List, Set, TYPE_CHECKING, cast
+from typing import Dict, Any, Optional, List, Set, cast
 from datetime import datetime
 
 from dipeo.models import (
@@ -18,10 +18,6 @@ from dipeo.core.static.generated_nodes import (
     CodeJobNode, ApiJobNode, DBNode, HookNode
 )
 
-if TYPE_CHECKING:
-    from dipeo.container import Container
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-
 
 class TypedStatefulExecution:
     """Type-aware stateful execution that leverages strongly-typed nodes."""
@@ -30,15 +26,11 @@ class TypedStatefulExecution:
         self,
         diagram: ExecutableDiagram,
         execution_state: ExecutionState,
-        service_registry: Optional["UnifiedServiceRegistry"] = None,
-        container: Optional["Container"] = None,
         max_global_iterations: int = 100,
     ):
         """Initialize with a typed executable diagram."""
         self.diagram = diagram
         self.state = execution_state
-        self._service_registry = service_registry
-        self._container = container
         
         # Global iteration tracking
         self.iteration_count: int = 0
@@ -428,10 +420,6 @@ class TypedStatefulExecution:
         # Fall back to internal tracking
         return self._exec_counts.get(str(node_id), 0)
     
-    def get_service(self, service_name: str) -> Any:
-        """Get a service by name. Simplified version - services should be injected."""
-        # YAGNI: Service lookups should be handled by dependency injection
-        return None
     
     # Properties for compatibility
     @property
@@ -454,10 +442,6 @@ class TypedStatefulExecution:
         """Get the execution ID."""
         return str(self.state.id)
     
-    @property
-    def container(self) -> Optional["Container"]:
-        """Get the underlying container for direct access."""
-        return self._container
     
     def increment_iteration(self) -> None:
         """Increment global iteration counter."""

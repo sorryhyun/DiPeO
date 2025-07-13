@@ -5,9 +5,9 @@ from typing import Any, Optional
 
 from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.ports import LLMServicePort
+from dipeo.core.ports.apikey_port import SupportsAPIKey
 from dipeo.models import ChatResult
 from dipeo.models import LLMService as LLMServiceEnum
-from dipeo.application.protocols import SupportsAPIKey
 from dipeo.domain.llm import LLMDomainService, ModelConfig, RetryStrategy
 from tenacity import (
     retry,

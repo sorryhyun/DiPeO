@@ -88,6 +88,13 @@ class ArrowTransformer:
         )
         
         # Create the executable edge
+        edge_metadata = {
+            "arrow_data": arrow.data or {},
+            "source_type": source_node.type.value,
+            "target_type": target_node.type.value,
+            "label": getattr(arrow, 'label', None)
+        }
+        
         return ExecutableEdge(
             id=arrow.id,
             source_node_id=connection.source_node_id,
@@ -100,12 +107,7 @@ class ArrowTransformer:
                 "include_in_memory": transform_metadata.include_in_memory,
                 "rules": transform_metadata.transformation_rules
             },
-            metadata={
-                "arrow_data": arrow.data or {},
-                "source_type": source_node.type.value,
-                "target_type": target_node.type.value,
-                "label": arrow.label
-            }
+            metadata=edge_metadata
         )
     
     def _create_transformation_metadata(

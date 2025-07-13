@@ -36,19 +36,8 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           
           # Install DiPeO package in development mode (unified umbrella package)
-          pip install -e ./dipeo
-          
-          # Install server dependencies
-          cd apps/server
           pip install -r requirements.txt
-          pip install -e .
-          cd ../..
           
-          # Install CLI dependencies
-          cd apps/cli
-          pip install -r requirements.txt
-          pip install -e .
-          cd ../..
       
       - name: Install Frontend dependencies
         run: |
@@ -65,7 +54,7 @@ jobs:
       - name: Test CLI execution
         run: |
           # Test that the CLI can at least show help
-          python -m dipeo_cli --help
+          dipeo --help
       
       - name: Check code generation
         run: |

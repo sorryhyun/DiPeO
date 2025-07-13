@@ -1,124 +1,70 @@
-"""Protocol for node handlers in the execution system."""
+"""Protocol for typed node handlers in the execution system."""
 
-from typing import Protocol, Dict, Any, Optional, TYPE_CHECKING, List
+from typing import Protocol, Type, TypeVar, List, Dict, Any, TYPE_CHECKING, runtime_checkable
 from abc import abstractmethod
 
 if TYPE_CHECKING:
-    from dipeo.models import NodeState
+    from dipeo.core.static.executable_diagram import ExecutableNode
+    from dipeo.models import BaseModel, NodeOutput
+
+# Type variable for node types
+T = TypeVar('T', bound='ExecutableNode')
 
 
-class NodeHandler(Protocol):
-    """Base protocol for all node handlers.
+@runtime_checkable
+class TypedNodeHandler(Protocol[T]):
+    """Protocol for type-safe node handlers using generics.
     
-    Each node type (Person, Job, Condition, etc.) implements this protocol
-    to define how it should be executed within a diagram.
+    Each node type implements this protocol to define how it should be executed
+    within a diagram. The handler is parameterized by the specific node type
+    to ensure type safety.
     """
     
+    @property
     @abstractmethod
-    async def execute(
-        self,
-        node_config: Dict[str, Any],
-        inputs: Dict[str, Any],
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Execute the node with given inputs and context.
-        
-        Args:
-            node_config: The node's configuration from the diagram
-            inputs: Input data from connected nodes
-            context: Execution context (services, state, etc.)
-            
-        Returns:
-            Dictionary containing the node's outputs
-            
-        Raises:
-            NodeExecutionError: If execution fails
-        """
+    def node_class(self) -> Type[T]:
+        """The typed node class this handler handles."""
         ...
     
+    @property
     @abstractmethod
-    def validate_config(self, node_config: Dict[str, Any]) -> List[str]:
-        """Validate the node's configuration.
-        
-        Args:
-            node_config: The node configuration to validate
-            
-        Returns:
-            List of validation errors (empty if valid)
-        """
+    def node_type(self) -> str:
+        """The node type string identifier."""
         ...
     
-    def get_required_inputs(self) -> List[str]:
-        """Get the list of required input names for this handler.
-        
-        Returns:
-            List of required input names
-        """
+    @property
+    @abstractmethod
+    def schema(self) -> Type['BaseModel']:
+        """The Pydantic schema for validation."""
+        ...
+    
+    @property
+    def requires_services(self) -> List[str]:
+        """List of services required by this handler."""
         return []
     
-    def get_output_schema(self) -> Dict[str, Any]:
-        """Get the schema of outputs this handler produces.
-        
-        Returns:
-            Dictionary describing the output schema
-        """
-        return {}
-
-
-class StatefulNodeHandler(NodeHandler):
-    """Protocol for node handlers that maintain state across executions."""
+    @property
+    def description(self) -> str:
+        """Description of this handler."""
+        return f"Typed handler for {self.node_type} nodes"
     
     @abstractmethod
-    async def initialize(self, context: Dict[str, Any]) -> None:
-        """Initialize the handler before first execution.
+    async def execute_typed(
+        self,
+        node: T,
+        context: Any,
+        inputs: Dict[str, Any],
+        services: Dict[str, Any]
+    ) -> 'NodeOutput':
+        """Execute with strongly-typed node.
         
         Args:
-            context: Initialization context
-        """
-        ...
-    
-    @abstractmethod
-    async def cleanup(self) -> None:
-        """Cleanup resources after execution completes."""
-        ...
-    
-    @abstractmethod
-    def get_state(self) -> "NodeState":
-        """Get the current state of the node.
-        
-        Returns:
-            Current node state
-        """
-        ...
-
-
-class NodeRegistry(Protocol):
-    """Registry for managing node type handlers."""
-    
-    def register_handler(self, node_type: str, handler: NodeHandler) -> None:
-        """Register a handler for a specific node type.
-        
-        Args:
-            node_type: The type of node this handler processes
-            handler: The handler instance
-        """
-        ...
-    
-    def get_handler(self, node_type: str) -> Optional[NodeHandler]:
-        """Get the handler for a specific node type.
-        
-        Args:
-            node_type: The type of node
+            node: The typed node instance
+            context: Execution context (application-specific)
+            inputs: Input data from connected nodes
+            services: Available services for execution
             
         Returns:
-            The handler if registered, None otherwise
-        """
-        ...
-    
-    def list_supported_types(self) -> List[str]:
-        """Get list of all supported node types.
-        
-        Returns:
-            List of node type names
+            NodeOutput containing the execution results
         """
         ...

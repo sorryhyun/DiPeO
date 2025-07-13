@@ -137,11 +137,20 @@ class TypedExecutionEngine:
                 )
                 
 
-                # Return a result for the iterator
-                return {
-                    "value": {"status": "completed", "node_id": str(node.id)},
-                    "metadata": {"node_type": str(node.type)}
-                }
+                # Get the actual node output that was stored by the executor
+                node_output = stateful_execution.state.node_outputs.get(str(node.id))
+                if node_output:
+                    # Return the actual output value
+                    return {
+                        "value": node_output.value,
+                        "metadata": node_output.metadata
+                    }
+                else:
+                    # Fallback if no output was stored
+                    return {
+                        "value": {"status": "completed", "node_id": str(node.id)},
+                        "metadata": {"node_type": str(node.type)}
+                    }
                 
             except Exception as e:
                 log.error(f"Error executing node {node.id}: {e}", exc_info=True)

@@ -26,12 +26,6 @@ def _create_person_manager():
     return PersonManagerImpl()
 
 
-def _create_stateful_diagram(diagram):
-    """Create stateful diagram wrapper."""
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
-    return TypedStatefulExecution(diagram)
-
-
 # UnifiedExecutionCoordinator removed - functionality merged into TypedStatefulExecution
 
 
@@ -106,7 +100,6 @@ class DynamicServicesContainer(MutableBaseContainer):
     # Execution coordination removed - functionality merged into TypedStatefulExecution
     
     # Stateful diagram - Factory for fresh instance per diagram
-    stateful_diagram = providers.Factory(_create_stateful_diagram)
     
     # Execution engine - Factory for fresh engine per execution
     execution_engine = providers.Factory(

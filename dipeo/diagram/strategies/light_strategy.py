@@ -183,7 +183,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
             # Handle target handle
             if dst_handle_from_split:
-                dst_handle = dst_handle_from_split
+                # Convert "_first" to "first" for proper HandleLabel enum mapping
+                if dst_handle_from_split == "_first":
+                    dst_handle = "first"
+                else:
+                    dst_handle = dst_handle_from_split
             else:
                 dst_handle = "default"
 

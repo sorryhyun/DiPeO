@@ -80,10 +80,6 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
           
-          # Install DiPeO package (unified umbrella package)
-          pip install -e ../../dipeo
-          pip install -e .
-          
           # Build executable
           pyinstaller build.spec --clean --noconfirm
           

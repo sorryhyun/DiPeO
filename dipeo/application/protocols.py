@@ -38,22 +38,4 @@ class ExecutionObserver(Protocol):
     async def on_execution_error(self, execution_id: str, error: str) -> None: ...
 
 
-@runtime_checkable
-class SupportsAPIKey(Protocol):
-    # Protocol for API key management operations.
-
-    def get_api_key(self, key_id: str) -> dict: ...
-    def list_api_keys(self) -> List[dict]: ...
-    def create_api_key(self, label: str, service: str, key: str) -> dict: ...
-    def delete_api_key(self, key_id: str) -> None: ...
-    def update_api_key(
-        self,
-        key_id: str,
-        label: Optional[str] = None,
-        service: Optional[str] = None,
-        key: Optional[str] = None,
-    ) -> dict: ...
-
-
-
 

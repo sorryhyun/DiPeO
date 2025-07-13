@@ -1,6 +1,6 @@
 """Port interface for API key storage operations."""
 
-from typing import Protocol, Dict, List
+from typing import Protocol, Dict, List, Optional, runtime_checkable
 
 
 class APIKeyPort(Protocol):
@@ -28,5 +28,30 @@ class APIKeyPort(Protocol):
         Returns:
             True if storage exists, False otherwise
         """
+        ...
+
+@runtime_checkable
+class SupportsAPIKey(Protocol):
+    """Protocol for API key management operations."""
+
+    def get_api_key(self, key_id: str) -> dict: 
+        ...
+        
+    def list_api_keys(self) -> List[dict]: 
+        ...
+        
+    def create_api_key(self, label: str, service: str, key: str) -> dict: 
+        ...
+        
+    def delete_api_key(self, key_id: str) -> None: 
+        ...
+        
+    def update_api_key(
+        self,
+        key_id: str,
+        label: Optional[str] = None,
+        service: Optional[str] = None,
+        key: Optional[str] = None,
+    ) -> dict: 
         ...
 

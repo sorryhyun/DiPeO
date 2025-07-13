@@ -6,13 +6,9 @@ with the core protocols, replacing the existing ApplicationExecutionContext with
 cleaner, more maintainable version.
 """
 
-from typing import Dict, Any, Optional, List, TYPE_CHECKING
+from typing import Dict, Any, Optional, List
 from dipeo.models import NodeID, NodeState, ExecutionState, NodeOutput, NodeExecutionStatus
 from dipeo.core.dynamic.execution_context import ExecutionContext
-
-if TYPE_CHECKING:
-    from dipeo.container import Container
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 
 
 class UnifiedExecutionContext(ExecutionContext):
@@ -25,29 +21,23 @@ class UnifiedExecutionContext(ExecutionContext):
     def __init__(
         self,
         execution_state: ExecutionState,
-        service_registry: Optional["UnifiedServiceRegistry"] = None,
-        container: Optional["Container"] = None,
+        service_registry: Any,
         current_node_id: str = "",
         executed_nodes: Optional[List[str]] = None,
         exec_counts: Optional[Dict[str, int]] = None,
     ):
         """Initialize the unified execution context.
         
-        This constructor is compatible with the existing ApplicationExecutionContext
-        interface to ease migration.
-        
         Args:
             execution_state: The execution state
-            service_registry: Optional service registry (for compatibility)
-            container: Optional DI container with all services
+            service_registry: Service registry for accessing application services
             current_node_id: ID of the currently executing node
             executed_nodes: List of node IDs that have been executed
             exec_counts: Dictionary of node execution counts
         """
         self._execution_id = execution_state.id
         self._execution_state = execution_state  # Store for compatibility
-        self._service_registry: Optional["UnifiedServiceRegistry"] = service_registry
-        self._container = container
+        self._service_registry = service_registry
         self._current_node: Optional[NodeID] = NodeID(current_node_id) if current_node_id else None
         self._executed_nodes = executed_nodes or []
         self._exec_counts = exec_counts or {}
@@ -59,6 +49,58 @@ class UnifiedExecutionContext(ExecutionContext):
         
         # Populate from execution state
         self._populate_from_state(execution_state)
+    
+    @classmethod
+    def from_container(
+        cls,
+        execution_state: ExecutionState,
+        container: Any,
+        current_node_id: str = "",
+        executed_nodes: Optional[List[str]] = None,
+        exec_counts: Optional[Dict[str, int]] = None,
+    ) -> "UnifiedExecutionContext":
+        """Factory method to create context from a DI container.
+        
+        This provides backward compatibility for code that uses containers directly.
+        
+        Args:
+            execution_state: The execution state
+            container: DI container with all services
+            current_node_id: ID of the currently executing node
+            executed_nodes: List of node IDs that have been executed
+            exec_counts: Dictionary of node execution counts
+            
+        Returns:
+            A new UnifiedExecutionContext with services registered from the container
+        """
+        from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+        
+        # Create a registry and populate it from the container
+        registry = UnifiedServiceRegistry()
+        
+        # Register services from container
+        registry.register("llm_service", container.integration.llm_service())
+        registry.register("api_key_service", container.persistence.api_key_service())
+        registry.register("file_service", container.persistence.file_service())
+        registry.register("diagram_loader", container.persistence.diagram_loader())
+        registry.register("diagram_storage_service", container.persistence.diagram_storage_service())
+        registry.register("db_operations_service", container.persistence.db_operations_service())
+        registry.register("conversation_service", container.dynamic.conversation_manager())
+        registry.register("conversation_manager", container.dynamic.conversation_manager())
+        registry.register("notion_service", container.integration.notion_service())
+        registry.register("api_integration_service", container.integration.api_service())
+        registry.register("text_processing_service", container.business.text_processing_service())
+        registry.register("prompt_builder", container.business.prompt_builder())
+        registry.register("conversation_state_manager", container.business.conversation_state_manager())
+        registry.register("memory_transformer", container.static.memory_transformer())
+        
+        return cls(
+            execution_state=execution_state,
+            service_registry=registry,
+            current_node_id=current_node_id,
+            executed_nodes=executed_nodes,
+            exec_counts=exec_counts,
+        )
     
     def _populate_from_state(self, state: ExecutionState) -> None:
         """Populate context from an existing execution state.
@@ -161,46 +203,7 @@ class UnifiedExecutionContext(ExecutionContext):
         
         Compatible with ApplicationExecutionContext interface.
         """
-        if self._service_registry:
-            return self._service_registry.get(service_name)
-        elif self._container:
-            # Map service names to container paths
-            service_mapping = {
-                # Integration services
-                'llm_service': lambda: self._container.integration.llm_service(),
-                'notion_service': lambda: self._container.integration.notion_service(),
-                'api_integration_service': lambda: self._container.integration.api_service(),
-                
-                # Persistence services
-                'api_key_service': lambda: self._container.persistence.api_key_service(),
-                'file_service': lambda: self._container.persistence.file_service(),
-                'diagram_loader': lambda: self._container.persistence.diagram_loader(),
-                'diagram_storage_service': lambda: self._container.persistence.diagram_storage_service(),
-                'db_operations_service': lambda: self._container.persistence.db_operations_service(),
-                
-                # Business services
-                'text_processing_service': lambda: self._container.business.text_processing_service(),
-                # 'input_resolution_service' removed - using typed version directly
-                
-                # Dynamic services
-                'conversation_service': lambda: self._container.dynamic.conversation_manager(),
-                'conversation_manager': lambda: self._container.dynamic.conversation_manager(),
-                # 'person_job_orchestrator': lambda: self._container.dynamic.person_job_orchestrator(),  # Removed - using direct services
-                # 'llm_executor': lambda: self._container.dynamic.llm_executor(),  # Removed
-                
-                # Additional services for PersonJobNodeHandler
-                'prompt_builder': lambda: self._container.business.prompt_builder(),
-                'conversation_state_manager': lambda: self._container.business.conversation_state_manager(),
-                'memory_transformer': lambda: self._container.static.memory_transformer(),
-            }
-            
-            service_factory = service_mapping.get(service_name)
-            if service_factory:
-                try:
-                    return service_factory()
-                except Exception:
-                    return None
-        return None
+        return self._service_registry.get(service_name)
     
     def get_node_execution_count(self, node_id: str) -> int:
         """Get the execution count for a specific node.
@@ -262,39 +265,12 @@ class UnifiedExecutionContext(ExecutionContext):
             return self._execution_state.node_outputs.copy()
         return {}
     
-    @property
-    def container(self) -> Optional["Container"]:
-        """Get the underlying container for direct access."""
-        return self._container
-    
-    def get_service_registry(self) -> "ServiceRegistryProtocol":
-        """Get a service registry from the container.
+    def get_service_registry(self) -> Any:
+        """Get the service registry.
         
-        This creates a UnifiedServiceRegistry that accesses services
-        through the container, providing compatibility with existing code.
+        Returns the existing service registry used by this context.
         """
-        from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-        
-        # Create a registry that delegates to the container
-        registry = UnifiedServiceRegistry()
-        
-        # Register core services
-        registry.register("llm_service", self._container.integration.llm_service())
-        registry.register("api_key_service", self._container.persistence.api_key_service())
-        registry.register("file_service", self._container.persistence.file_service())
-        registry.register("conversation_service", self._container.dynamic.conversation_manager())
-        registry.register("conversation_manager", self._container.dynamic.conversation_manager())
-        registry.register("notion_service", self._container.integration.notion_service())
-        registry.register("api_integration_service", self._container.integration.api_service())
-        # registry.register("person_job_orchestrator", self._container.dynamic.person_job_orchestrator())  # Removed - using direct services
-        # registry.register("llm_executor", self._container.dynamic.llm_executor())  # Removed
-        
-        # Additional services for PersonJobNodeHandler
-        registry.register("prompt_builder", self._container.business.prompt_builder())
-        registry.register("conversation_state_manager", self._container.business.conversation_state_manager())
-        registry.register("memory_transformer", self._container.static.memory_transformer())
-        
-        return registry
+        return self._service_registry
     
     def create_node_view(self, node_id: str) -> "UnifiedExecutionContext":
         """Create a view of the context for a specific node.
@@ -305,7 +281,6 @@ class UnifiedExecutionContext(ExecutionContext):
         view = UnifiedExecutionContext(
             execution_state=self._execution_state,
             service_registry=self._service_registry,
-            container=self._container,
             current_node_id=node_id,
             executed_nodes=self._executed_nodes,
             exec_counts=self._exec_counts,

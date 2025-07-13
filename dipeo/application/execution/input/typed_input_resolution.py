@@ -25,6 +25,9 @@ class TypedInputResolutionService:
         node_memory_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Resolve inputs for a node using ExecutableDiagram edges."""
+        import logging
+        log = logging.getLogger(__name__)
+        
         inputs = {}
         
         # Find all edges pointing to this node
@@ -33,15 +36,22 @@ class TypedInputResolutionService:
             if str(edge.target_node_id) == node_id
         ]
         
+        log.debug(f"Node {node_id} has {len(incoming_edges)} incoming edges")
+        log.debug(f"Node outputs available: {list(node_outputs.keys())}")
+        
         for edge in incoming_edges:
             # Check if we should process this edge
+            log.debug(f"Processing edge: source={edge.source_node_id}, target_input={edge.target_input}")
             if not self._should_process_edge(edge, node_type, node_exec_counts):
+                log.debug(f"Edge skipped by _should_process_edge")
                 continue
             
             # Get source node output
             source_node_id = str(edge.source_node_id)
             source_output = node_outputs.get(source_node_id)
+            log.debug(f"Source node {source_node_id} output: {source_output}")
             if not source_output:
+                log.debug(f"No output found for source node {source_node_id}")
                 continue
             
             # Handle different source_output formats
@@ -74,11 +84,15 @@ class TypedInputResolutionService:
                     output_key = "default"
                 else:
                     # Skip if no matching output
+                    log.debug(f"No matching output key '{output_key}' in node output: {node_output.value}")
                     continue
             
             # Get the input key where this should be placed
             # Use label from metadata if available, otherwise use target_input
+            log.debug(f"Edge metadata: {edge.metadata}")
             input_key = edge.metadata.get("label") or edge.target_input or "default"
+            
+            log.debug(f"Adding input: key='{input_key}', value from output_key='{output_key}'")
             
             # Apply any transformations if specified
             if edge.data_transform:
@@ -114,10 +128,15 @@ class TypedInputResolutionService:
         node_exec_counts: Optional[Dict[str, int]] = None
     ) -> bool:
         """Check if an edge should be processed based on node type and execution state."""
+        import logging
+        log = logging.getLogger(__name__)
+        
         # PersonJob nodes have special handling for "first" inputs
         if node_type == NodeType.person_job:
             node_id = str(edge.target_node_id)
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
+            
+            log.debug(f"PersonJob edge check: target_input={edge.target_input}, exec_count={exec_count}")
             
             # On first execution, only process inputs ending with "_first" or exactly "first"
             if exec_count == 0 and edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first")):

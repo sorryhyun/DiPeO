@@ -109,6 +109,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     ) -> NodeOutput:
         # Direct typed access to person_id
         person_id = node.person_id
+        logger.debug(f"Raw inputs for person {person_id}: {inputs}")
         # Resolve services
         llm_service = self._resolve_service(context, services, "llm_service")
         diagram = self._resolve_service(context, services, "diagram")
@@ -174,13 +175,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                     )
             
             # Build prompt
+            logger.debug(f"Transformed inputs for person {person_id}: {transformed_inputs}")
             template_values = prompt_builder.prepare_template_values(transformed_inputs)
+            logger.debug(f"Template values for person {person_id}: {template_values}")
             built_prompt = prompt_builder.build(
                 prompt=node.default_prompt if node.default_prompt is not None else node.first_only_prompt,
                 first_only_prompt=node.first_only_prompt,
                 execution_count=execution_count,
                 template_values=template_values,
             )
+            logger.debug(f"Built prompt for person {person_id}: {built_prompt}")
             
             # Skip if no prompt
             if not built_prompt:

@@ -239,8 +239,6 @@ class ExecuteDiagramUseCase(BaseService):
         typed_execution = TypedStatefulExecution(
             diagram=typed_diagram,
             execution_state=execution_state,
-            service_registry=self.service_registry,
-            container=getattr(self.service_registry, '_container', None),
             max_global_iterations=options.get("max_iterations", 100)
         )
         

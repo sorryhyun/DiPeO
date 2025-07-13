@@ -31,6 +31,7 @@ def _create_service_registry(
     # New infrastructure services
     api_service,
     diagram_loader,
+    arrow_processor,
     # Pure business logic utilities
     api_business_logic,
     file_domain_service,
@@ -95,6 +96,9 @@ def _create_service_registry(
     registry.register("message_router", message_router)
 
     
+    # Arrow processor for input resolution
+    registry.register("arrow_processor", arrow_processor)
+    
     # Aliases for handlers that use short names
     registry.register("file", file_service)  # Used by endpoint.py
     registry.register("template", template_service)  # Used by code_job.py
@@ -157,6 +161,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
         
         # From Static Container (was domain)
         template_service=static.template_processor,  # Note: renamed
+        arrow_processor=static.arrow_processor,
         
         # From Dynamic Container (was domain) - person job services unpacked
         conversation_service=dynamic.conversation_manager,

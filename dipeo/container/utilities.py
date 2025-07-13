@@ -2,13 +2,11 @@
 
 import os
 import logging
-from dipeo.application.protocols import (
-    SupportsAPIKey,
-)
 from dipeo.core.ports import (
     FileServicePort,
     LLMServicePort,
     NotionServicePort,
+    SupportsAPIKey
 )
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.core.dynamic.conversation_manager import ConversationManager

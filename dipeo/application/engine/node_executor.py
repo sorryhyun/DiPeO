@@ -175,9 +175,11 @@ class NodeExecutor:
         execution: "TypedStatefulExecution"
     ) -> Dict[str, Any]:
         """Resolve inputs using typed node information."""
+        
         # Get arrow processor for the typed input resolution
         arrow_processor = self.service_registry.get('arrow_processor')
         if not arrow_processor:
+            log.error("arrow_processor not found in service registry!")
             # Fallback to empty inputs if no arrow processor
             return {}
         

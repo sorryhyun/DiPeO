@@ -161,7 +161,8 @@ class StaticDiagramCompiler(DiagramCompiler):
                 target_node_id=edge.target_node_id,
                 source_output=edge.source_output,
                 target_input=edge.target_input,
-                data_transform=self._get_data_transform(source_node, target_node) if source_node and target_node else {}
+                data_transform=self._get_data_transform(source_node, target_node) if source_node and target_node else {},
+                metadata=edge.metadata if hasattr(edge, 'metadata') else {}
             )
             typed_edges.append(typed_edge)
         

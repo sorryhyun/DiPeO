@@ -76,8 +76,8 @@ class DomainServiceRegistry:
     def _register_db_services(self) -> None:
         """Register database domain services."""
         try:
-            from .db.services.db_operations_service import DatabaseOperationsService
-            self._business_services["db_operations"] = DatabaseOperationsService()
+            from .db.services.db_operations_service import DBOperationsDomainService
+            self._business_services["db_operations"] = DBOperationsDomainService()
         except ImportError:
             # Service might not exist yet
             pass

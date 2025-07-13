@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dipeo"
-version = "3.0.0"
+name = "dipeo_cli"
+version = "0.1.0"
 authors = [{name = "sorryhyun"}]
 description = "Simplified DiPeO CLI - thin orchestration layer"
 readme = "README.md"
