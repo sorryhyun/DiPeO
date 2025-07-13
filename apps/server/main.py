@@ -45,7 +45,6 @@ from dipeo_server.application.container import (
     shutdown_server_resources,
 )
 
-logger.info("🚀 Using UNIFIED architecture with direct streaming")
 
 from dipeo_server.api.graphql.context import get_graphql_context
 from dipeo_server.api.middleware import setup_middleware

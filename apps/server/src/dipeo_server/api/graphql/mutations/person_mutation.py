@@ -35,7 +35,7 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            diagram_service = context.get_service("diagram_storage_domain_service")
 
             # Use input directly without conversion
 
@@ -94,7 +94,7 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            diagram_service = context.get_service("diagram_storage_domain_service")
 
             # Use input directly without conversion
 
@@ -250,7 +250,7 @@ class PersonMutations:
     ) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            diagram_service = context.get_service("diagram_storage_domain_service")
 
             diagrams = await diagram_service.list_files()
             diagram_id = None
@@ -300,11 +300,11 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            llm_service = context.llm_service
+            llm_service = context.get_service("llm_service")
 
             # Validate API key exists
             try:
-                api_key_data = context.api_key_service.get_api_key(api_key_id)
+                api_key_data = context.get_service("api_key_service").get_api_key(api_key_id)
                 service_str = api_key_data["service"]
             except Exception:
                 return PersonResult(
@@ -352,7 +352,7 @@ class PersonMutations:
     async def clear_conversations(self, info: strawberry.Info) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            conversation_service = context.conversation_service
+            conversation_service = context.get_service("conversation_service")
 
             # Clear all conversations
             conversation_service.clear_all_conversations()

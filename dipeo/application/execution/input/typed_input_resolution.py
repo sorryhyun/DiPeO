@@ -82,11 +82,28 @@ class TypedInputResolutionService:
             
             # Apply any transformations if specified
             if edge.data_transform:
-                # Apply transformation rules from edge metadata
-                pass
-            
-            # Store the input
-            inputs[input_key] = node_output.value[output_key]
+                # Wrap the input with memory configuration from edge
+                wrapped_input = {
+                    "value": node_output.value[output_key],
+                    "arrow_metadata": {
+                        "arrow_id": edge.id,
+                        "source_node_id": str(edge.source_node_id),
+                        "target_node_id": str(edge.target_node_id),
+                    }
+                }
+                
+                # Add memory hints from edge data_transform
+                if "forgetting_mode" in edge.data_transform and edge.data_transform["forgetting_mode"]:
+                    wrapped_input["memory_hints"] = {
+                        "forget_mode": edge.data_transform["forgetting_mode"],
+                        "should_apply": edge.data_transform.get("include_in_memory", True),
+                    }
+                
+                # Store the wrapped input
+                inputs[input_key] = wrapped_input
+            else:
+                # Store the input directly
+                inputs[input_key] = node_output.value[output_key]
         
         return inputs
     

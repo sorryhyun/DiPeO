@@ -30,14 +30,7 @@ class ExecutionMutations:
         try:
             context: GraphQLContext = info.context
             execution_service = context.execution_service
-            state_store = context.state_store
-
-            # Debug logging
-            logger.info(f"Context type: {type(context)}")
-            logger.info(f"State store value: {state_store}")
-            logger.info(f"State store type: {type(state_store)}")
-            logger.info(f"Execution service value: {execution_service}")
-            logger.info(f"Execution service type: {type(execution_service)}")
+            state_store = context.get_service("state_store")
 
             if state_store is None:
                 logger.error("State store is None!")
@@ -58,7 +51,7 @@ class ExecutionMutations:
                 diagram_data = data.diagram_data
             elif data.diagram_id:
                 # Use new services
-                storage_service = context.diagram_storage_service
+                storage_service = context.get_service("diagram_storage_domain_service")
                 path = await storage_service.find_by_id(data.diagram_id)
                 if path:
                     diagram_data = await storage_service.read_file(path)
@@ -126,8 +119,8 @@ class ExecutionMutations:
     ) -> ExecutionResult:
         try:
             context: GraphQLContext = info.context
-            state_store = context.state_store
-            message_router = context.message_router
+            state_store = context.get_service("state_store")
+            message_router = context.get_service("message_router")
 
             state = await state_store.get_state(data.execution_id)
             if not state:
@@ -191,8 +184,8 @@ class ExecutionMutations:
     ) -> ExecutionResult:
         try:
             context: GraphQLContext = info.context
-            state_store = context.state_store
-            message_router = context.message_router
+            state_store = context.get_service("state_store")
+            message_router = context.get_service("message_router")
 
             execution_state = await state_store.get_state(data.execution_id)
             if not execution_state:

@@ -35,7 +35,7 @@ class PersonResolver:
         """Returns API key by ID."""
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
             api_key_data = api_key_service.get_api_key(api_key_id)
 
@@ -62,7 +62,7 @@ class PersonResolver:
         """Returns API key list, optionally filtered."""
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
             all_keys = api_key_service.list_api_keys()
 
@@ -95,7 +95,7 @@ class PersonResolver:
         """Returns available models for service/API key."""
         try:
             context: GraphQLContext = info.context
-            llm_service = context.llm_service
+            llm_service = context.get_service("llm_service")
 
             return await llm_service.get_available_models(api_key_id=api_key_id)
 

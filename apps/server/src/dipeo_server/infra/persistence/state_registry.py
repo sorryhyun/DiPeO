@@ -43,18 +43,33 @@ class StateRegistry:
         self._thread_id: int | None = None
         self.message_store = message_store
         self._execution_cache = ExecutionCache(ttl_minutes=60)
+        self._initialized = False
 
     async def initialize(self):
-        await self._connect()
-        await self._init_schema()
+        async with self._lock:
+            if self._initialized:
+                return
+            await self._connect()
+            await self._init_schema()
+            self._initialized = True
 
     async def cleanup(self):
-        if self._conn:
-            await asyncio.get_event_loop().run_in_executor(
-                self._executor, self._conn.close
-            )
-            self._conn = None
-        self._executor.shutdown(wait=True)
+        async with self._lock:
+            if self._conn:
+                try:
+                    await asyncio.get_event_loop().run_in_executor(
+                        self._executor, self._conn.close
+                    )
+                except RuntimeError:
+                    # Executor already shutdown
+                    pass
+                self._conn = None
+            
+            # Don't shutdown executor immediately - let pending operations complete
+            if not self._executor._shutdown:
+                self._executor.shutdown(wait=False)
+            
+            self._initialized = False
 
     async def _connect(self):
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -71,16 +86,51 @@ class StateRegistry:
             conn.execute("PRAGMA journal_mode=WAL")
             return conn
 
-        self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+        # Ensure executor is available
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+        
+        try:
+            self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+        except RuntimeError as e:
+            if "cannot schedule new futures after shutdown" in str(e):
+                # Recreate executor and retry
+                self._executor = ThreadPoolExecutor(max_workers=1)
+                self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+            else:
+                raise
 
     async def _execute(self, *args, **kwargs):
         """Execute a database operation in the dedicated thread."""
         if self._conn is None:
             raise RuntimeError("StateRegistry not initialized. Call initialize() first.")
+        
+        # Ensure executor is available
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+        
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            self._executor, self._conn.execute, *args, **kwargs
-        )
+        try:
+            return await loop.run_in_executor(
+                self._executor, self._conn.execute, *args, **kwargs
+            )
+        except RuntimeError as e:
+            if "cannot schedule new futures after shutdown" in str(e):
+                # Recreate executor and retry once
+                self._executor = ThreadPoolExecutor(max_workers=1)
+                return await loop.run_in_executor(
+                    self._executor, self._conn.execute, *args, **kwargs
+                )
+            raise
+    
+    async def _ensure_initialized(self):
+        """Ensure the registry is initialized, initializing if necessary."""
+        if not self._initialized:
+            await self.initialize()
+        
+        # Check if executor was shutdown and recreate if needed
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
 
     async def _init_schema(self):
         schema = """
@@ -102,21 +152,43 @@ class StateRegistry:
         CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
         """
 
-        await asyncio.get_event_loop().run_in_executor(
-            self._executor, self._conn.executescript, schema
-        )
+        # Ensure executor is available
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+        
+        try:
+            await asyncio.get_event_loop().run_in_executor(
+                self._executor, self._conn.executescript, schema
+            )
+        except RuntimeError as e:
+            if "cannot schedule new futures after shutdown" in str(e):
+                # Recreate executor and retry
+                self._executor = ThreadPoolExecutor(max_workers=1)
+                await asyncio.get_event_loop().run_in_executor(
+                    self._executor, self._conn.executescript, schema
+                )
+            else:
+                raise
 
     async def create_execution(
         self,
-        execution_id: str,
-        diagram_id: str | None = None,
+        execution_id: str | ExecutionID,
+        diagram_id: str | DiagramID | None = None,
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
+        await self._ensure_initialized()
+        
+        # Handle both str and ExecutionID types
+        exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
+        diag_id = None
+        if diagram_id:
+            diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+        
         now = datetime.now().isoformat()
         state = ExecutionState(
-            id=ExecutionID(execution_id),
+            id=ExecutionID(exec_id),
             status=ExecutionStatus.PENDING,
-            diagram_id=DiagramID(diagram_id) if diagram_id else None,
+            diagram_id=diag_id,
             started_at=now,
             ended_at=None,
             node_states={},
@@ -174,6 +246,8 @@ class StateRegistry:
             )
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
+        await self._ensure_initialized()
+        
         # Check cache first
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
@@ -229,6 +303,8 @@ class StateRegistry:
     async def update_status(
         self, execution_id: str, status: ExecutionStatus, error: str | None = None
     ):
+        await self._ensure_initialized()
+        
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -495,15 +571,21 @@ class StateRegistry:
 
     async def create_execution_in_cache(
         self,
-        execution_id: str,
-        diagram_id: str | None = None,
+        execution_id: str | ExecutionID,
+        diagram_id: str | DiagramID | None = None,
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
+        # Handle both str and ExecutionID types
+        exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
+        diag_id = None
+        if diagram_id:
+            diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+        
         now = datetime.now().isoformat()
         state = ExecutionState(
-            id=ExecutionID(execution_id),
+            id=ExecutionID(exec_id),
             status=ExecutionStatus.PENDING,
-            diagram_id=DiagramID(diagram_id) if diagram_id else None,
+            diagram_id=diag_id,
             started_at=now,
             ended_at=None,
             node_states={},

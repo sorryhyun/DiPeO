@@ -37,6 +37,9 @@ def _create_service_registry(
     # Additional services for PersonJobNodeHandler
     conversation_manager,
     memory_transformer,
+    # Core infrastructure services
+    state_store,
+    message_router,
 ):
     """Factory for UnifiedServiceRegistry with explicit dependencies."""
     # Create registry and register all services dynamically
@@ -86,6 +89,10 @@ def _create_service_registry(
     # Additional services for PersonJobNodeHandler
     registry.register("conversation_manager", conversation_manager)
     registry.register("memory_transformer", memory_transformer)
+    
+    # Core infrastructure services
+    registry.register("state_store", state_store)
+    registry.register("message_router", message_router)
 
     
     # Aliases for handlers that use short names
@@ -96,15 +103,13 @@ def _create_service_registry(
 
 
 def _create_execute_diagram_use_case(
-    service_registry, state_store, message_router, diagram_storage_service
+    service_registry, diagram_storage_service
 ):
     """Factory for ExecuteDiagramUseCase with explicit dependencies."""
     from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
 
     return ExecuteDiagramUseCase(
         service_registry=service_registry,
-        state_store=state_store,
-        message_router=message_router,
         diagram_storage_service=diagram_storage_service,
     )
 
@@ -163,13 +168,14 @@ class ApplicationContainer(containers.DeclarativeContainer):
         # Additional services for PersonJobNodeHandler
         conversation_manager=dynamic.conversation_manager,
         memory_transformer=static.memory_transformer,
+        # Core infrastructure services
+        state_store=persistence.state_store,
+        message_router=persistence.message_router,
     )
     
     # Execute Diagram Use Case
     execution_service = providers.Singleton(
         _create_execute_diagram_use_case,
         service_registry=service_registry,
-        state_store=persistence.state_store,
-        message_router=persistence.message_router,
         diagram_storage_service=persistence.diagram_storage_service,
     )

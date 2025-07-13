@@ -102,7 +102,7 @@ class Subscription:
     ) -> AsyncGenerator[ExecutionStateType]:
         """Streams execution state changes using direct streaming."""
         context: GraphQLContext = info.context
-        state_store = context.state_store
+        state_store = context.get_service("state_store")
 
         # Subscription started for execution updates
 
@@ -342,7 +342,7 @@ class Subscription:
     ) -> AsyncGenerator[InteractivePrompt | None]:
         """Streams interactive prompts requiring user response."""
         context: GraphQLContext = info.context
-        state_store = context.state_store
+        state_store = context.get_service("state_store")
 
         # Interactive prompts subscription started
 

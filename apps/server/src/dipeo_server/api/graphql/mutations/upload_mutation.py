@@ -223,10 +223,11 @@ class UploadMutations:
                 )
 
             # Validate diagram
+            api_key_service = context.get_service("api_key_service")
             validation_errors = validate_diagram(
                 domain_diagram,
-                context.api_key_service
-                if isinstance(context.api_key_service, APIKeyService)
+                api_key_service
+                if isinstance(api_key_service, APIKeyService)
                 else None,
             )
 

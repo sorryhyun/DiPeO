@@ -33,7 +33,7 @@ class DiagramResolver:
 
             # Use storage service to find and load diagram data
             storage_service: DiagramFileRepository = (
-                info.context.diagram_storage_service
+                info.context.get_service("diagram_storage_domain_service")
             )
 
             # Find the diagram file
@@ -109,7 +109,7 @@ class DiagramResolver:
         try:
             # Use new storage service
             storage_service: DiagramFileRepository = (
-                info.context.diagram_storage_service
+                info.context.get_service("diagram_storage_domain_service")
             )
 
             file_infos = await storage_service.list_files()

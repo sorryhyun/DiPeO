@@ -7,19 +7,6 @@ from strawberry.fastapi import BaseContext
 
 if TYPE_CHECKING:
     from dipeo_server.application.container import ServerContainer
-    from dipeo_server.infra.persistence.state_registry import StateRegistry
-    from dipeo.infra import MessageRouter
-    from dipeo.infra.persistence.file import ModularFileService
-    from dipeo.infra.llm import LLMInfraService
-    from dipeo.infra.adapters.notion import NotionAPIService
-    from dipeo.infra.services.api import APIService
-    from dipeo.application.services.apikey_service import APIKeyService
-    from dipeo.core.dynamic.conversation_manager import ConversationManager
-    from dipeo.infra.persistence.diagram import DiagramFileRepository
-    from dipeo.application.services.diagram_service import (
-        DiagramService as DiagramStorageDomainService,
-    )
-    from dipeo.infra.database import DBOperationsDomainService
     from dipeo.application.execution.use_cases import (
         ExecuteDiagramUseCase,
     )
@@ -42,59 +29,19 @@ class GraphQLContext(BaseContext):
         self.request = request
         self.user_data = {}
         self.container = container
-
-    # Properties for backward compatibility - access services through container
-    @property
-    def state_store(self) -> "StateRegistry":
-        return self.container.persistence.state_store()
-
-    @property
-    def message_router(self) -> "MessageRouter":
-        return self.container.persistence.message_router()
-
-    @property
-    def file_service(self) -> "ModularFileService":
-        return self.container.persistence.file_service()
-
-    @property
-    def llm_service(self) -> "LLMInfraService":
-        return self.container.integration.llm_service()
-
-    @property
-    def notion_service(self) -> "NotionAPIService":
-        return self.container.integration.notion_service()
-
-    @property
-    def api_service(self) -> "APIService":
-        return self.container.integration.api_service()
-
-    @property
-    def api_key_service(self) -> "APIKeyService":
-        return self.container.persistence.api_key_service()
-
-    @property
-    def conversation_service(self) -> "ConversationManager":
-        return self.container.dynamic.conversation_manager()
-
-    @property
-    def diagram_storage_service(self) -> "DiagramFileRepository":
-        return self.container.persistence.diagram_storage_service()
-
-    @property
-    def diagram_storage_domain_service(self) -> "DiagramStorageDomainService":
-        return self.container.persistence.diagram_storage_domain_service()
-
-    @property
-    def db_operations_service(self) -> "DBOperationsDomainService":
-        return self.container.persistence.db_operations_service()
-
-    @property
-    def execution_service(self) -> "ExecuteDiagramUseCase":
-        return self.container.application.execution_service()
+    
+    def get_service(self, name: str) -> Any:
+        """Get a service from the unified service registry."""
+        return self.service_registry.get(name)
 
     @property
     def service_registry(self) -> "UnifiedServiceRegistry":
         return self.container.application.service_registry()
+    
+    @property
+    def execution_service(self) -> "ExecuteDiagramUseCase":
+        """Direct access to execution service to avoid circular dependency."""
+        return self.container.application.execution_service()
 
     @property
     def can_read_api_keys(self) -> bool:

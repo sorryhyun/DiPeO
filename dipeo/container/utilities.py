@@ -1,6 +1,7 @@
 """Utility functions for container management."""
 
 import os
+import logging
 from dipeo.application.protocols import (
     SupportsAPIKey,
 )
@@ -12,6 +13,8 @@ from dipeo.core.ports import (
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.core.dynamic.conversation_manager import ConversationManager
 from .profiling import get_profiler
+
+logger = logging.getLogger(__name__)
 
 
 async def init_resources(container) -> None:
@@ -106,6 +109,26 @@ async def init_resources(container) -> None:
             validate_protocol_compliance(container)
     else:
         validate_protocol_compliance(container)
+    
+    # Validate required services in registry
+    service_registry = container.application.service_registry()
+    required_services = [
+        "state_store",
+        "message_router",
+        "llm_service",
+        "api_key_service",
+        "file_service",
+        "diagram_storage_domain_service"
+    ]
+    
+    validation_results = service_registry.validate_required_services(required_services)
+    missing_services = [name for name, present in validation_results.items() if not present]
+    
+    if missing_services:
+        logger.warning(f"Missing required services: {missing_services}")
+    
+    # Log service health status
+    health_status = service_registry.get_health_status()
 
 
 async def shutdown_resources(container) -> None:

@@ -111,7 +111,7 @@ class Query:
     async def execution_capabilities(self, info) -> JSONScalar:
         context = info.context
 
-        storage_service = context.diagram_storage_service
+        storage_service = context.get_service("diagram_storage_domain_service")
         persons_list = []
 
         file_infos = await storage_service.list_files()
@@ -147,7 +147,7 @@ class Query:
         checks = {"database": False, "redis": False, "file_system": False}
 
         try:
-            await context.state_store.list_executions(limit=1)
+            await context.get_service("state_store").list_executions(limit=1)
             checks["database"] = True
         except:
             pass
@@ -184,7 +184,7 @@ class Query:
         since: datetime | None = None,
     ) -> JSONScalar:
         context = info.context
-        conversation_service = context.conversation_service
+        conversation_service = context.get_service("conversation_service")
 
         all_conversations = []
 
@@ -383,11 +383,11 @@ class Query:
     @strawberry.field
     async def prompt_files(self, info) -> list[JSONScalar]:
         context = info.context
-        file_service = context.file_service
+        file_service = context.get_service("file_service")
         return await file_service.list_prompt_files()
 
     @strawberry.field
     async def prompt_file(self, filename: str, info) -> JSONScalar:
         context = info.context
-        file_service = context.file_service
+        file_service = context.get_service("file_service")
         return await file_service.read_prompt_file(filename)

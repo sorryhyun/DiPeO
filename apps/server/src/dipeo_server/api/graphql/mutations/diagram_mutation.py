@@ -30,7 +30,7 @@ class DiagramMutations:
             context: GraphQLContext = info.context
 
             # Try new services first
-            storage_service = context.diagram_storage_service
+            storage_service = context.get_service("diagram_storage_domain_service")
 
             # Create metadata directly from input
             metadata = DiagramMetadata(
@@ -79,7 +79,7 @@ class DiagramMutations:
     async def delete_diagram(self, id: DiagramID, info) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            storage_service = context.diagram_storage_service
+            storage_service = context.get_service("diagram_storage_domain_service")
 
             # Use new service
             path = await storage_service.find_by_id(id)

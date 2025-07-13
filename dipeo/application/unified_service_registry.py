@@ -103,6 +103,25 @@ class UnifiedServiceRegistry(DynamicRegistry):
         clone._aliases = self._aliases.copy()
         return clone
     
+    def validate_required_services(self, required_services: list[str]) -> dict[str, bool]:
+        # Validate that required services are registered and available.
+        validation_results = {}
+        for service_name in required_services:
+            service = self.get(service_name)
+            validation_results[service_name] = service is not None
+        return validation_results
+    
+    def get_health_status(self) -> dict[str, dict]:
+        # Get health status of all registered services.
+        health_status = {}
+        for service_name, service in self._items.items():
+            health_status[service_name] = {
+                "registered": True,
+                "type": type(service).__name__,
+                "healthy": True  # Could be extended to check actual health
+            }
+        return health_status
+    
     def __repr__(self) -> str:
         # String representation of the registry.
         services = list(self._items.keys())

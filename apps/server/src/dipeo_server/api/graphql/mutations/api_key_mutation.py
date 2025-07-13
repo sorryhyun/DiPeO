@@ -25,7 +25,7 @@ class ApiKeyMutations:
     async def create_api_key(self, input: CreateApiKeyInput, info) -> ApiKeyResult:
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
             api_key_data = await api_key_service.create_api_key(
                 label=input.label,
@@ -57,8 +57,8 @@ class ApiKeyMutations:
     async def test_api_key(self, id: ApiKeyID, info) -> TestApiKeyResult:
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
-            llm_service = context.llm_service
+            api_key_service = context.get_service("api_key_service")
+            llm_service = context.get_service("llm_service")
 
             api_key_data = api_key_service.get_api_key(id)
             if not api_key_data:
@@ -95,7 +95,7 @@ class ApiKeyMutations:
     async def delete_api_key(self, id: ApiKeyID, info) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
             api_key_data = api_key_service.get_api_key(id)
             if not api_key_data:
