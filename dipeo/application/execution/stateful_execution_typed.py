@@ -114,8 +114,8 @@ class TypedStatefulExecution:
                 if first_edges:
                     incoming_edges = first_edges
             else:
-                # Subsequent executions - check non-'first' edges
-                non_first_edges = [e for e in incoming_edges if e.target_input != "first"]
+                # Subsequent executions - check non-'first' edges and edges without target_input
+                non_first_edges = [e for e in incoming_edges if not e.target_input or e.target_input != "first"]
                 incoming_edges = non_first_edges
         
         # Check if all dependencies are satisfied
@@ -317,11 +317,16 @@ class TypedStatefulExecution:
     
     def set_node_output(self, node_id: NodeID, output: Any) -> None:
         """Store the output of a node execution."""
-        self.state.node_outputs[str(node_id)] = NodeOutput(
-            node_id=node_id,
-            value=output,
-            metadata={"timestamp": datetime.now().isoformat()}
-        )
+        # Check if output is already a NodeOutput
+        if isinstance(output, NodeOutput):
+            self.state.node_outputs[str(node_id)] = output
+        else:
+            # Legacy support: wrap non-NodeOutput values
+            self.state.node_outputs[str(node_id)] = NodeOutput(
+                node_id=node_id,
+                value=output,
+                metadata={"timestamp": datetime.now().isoformat()}
+            )
         
         # Also update the node state with output
         node_state = self.get_node_state(node_id)
@@ -364,6 +369,12 @@ class TypedStatefulExecution:
         # Update execution count
         node_id_str = str(node_id)
         self._exec_counts[node_id_str] = self._exec_counts.get(node_id_str, 0) + 1
+        
+        # Update node state's exec_count to keep it synchronized
+        node_state = self.get_node_state(node_id)
+        if node_state:
+            # Set exec_count on the node state object
+            setattr(node_state, "exec_count", self._exec_counts[node_id_str])
     
     def mark_node_complete(self, node_id: NodeID) -> None:
         """Mark a node as completed."""

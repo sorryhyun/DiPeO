@@ -269,16 +269,10 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             save_to_file=data.get("save_to_file", False),
-            file_name=data.get("file_name"),
+            file_name=data.get("file_name") or data.get("file_path"),
         )
     
     if node_type == NodeType.person_job:
-        # Convert memory_config dict to MemoryConfig object if present
-        memory_config_data = data.get("memory_config")
-        memory_config = None
-        if memory_config_data and isinstance(memory_config_data, dict):
-            memory_config = MemoryConfig(**memory_config_data)
-        
         return PersonJobNode(
             id=node_id,
             position=position,
@@ -289,7 +283,7 @@ def create_executable_node(
             first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
-            memory_config=memory_config,
+            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
             tools=data.get("tools"),
         )
     
@@ -387,12 +381,6 @@ def create_executable_node(
         )
     
     if node_type == NodeType.person_batch_job:
-        # Convert memory_config dict to MemoryConfig object if present
-        memory_config_data = data.get("memory_config")
-        memory_config = None
-        if memory_config_data and isinstance(memory_config_data, dict):
-            memory_config = MemoryConfig(**memory_config_data)
-        
         return PersonBatchJobNode(
             id=node_id,
             position=position,
@@ -403,7 +391,7 @@ def create_executable_node(
             first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
-            memory_config=memory_config,
+            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
             tools=data.get("tools")
         )
     

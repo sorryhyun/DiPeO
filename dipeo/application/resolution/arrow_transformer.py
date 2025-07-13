@@ -152,7 +152,11 @@ class ArrowTransformer:
         source_node: DomainNode,
         arrow: DomainArrow
     ) -> ContentType:
-        # Check for explicit content type in arrow data
+        # Check for explicit content type in arrow field
+        if arrow.content_type:
+            return arrow.content_type
+        
+        # Check for explicit content type in arrow data (legacy)
         if arrow.data and "contentType" in arrow.data:
             try:
                 return ContentType(arrow.data["contentType"])

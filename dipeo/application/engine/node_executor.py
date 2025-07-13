@@ -256,7 +256,7 @@ class NodeExecutor:
         
         # Store output
         if output:
-            execution.set_node_output(node.id, output.value)
+            execution.set_node_output(node.id, output)
         
         # Type-specific state updates
         if isinstance(node, PersonJobNode):

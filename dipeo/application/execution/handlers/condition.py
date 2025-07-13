@@ -91,7 +91,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 )
             else:
                 # Fallback to old approach for backward compatibility
-                logger.debug("Using fallback approach")
                 execution_states = self._extract_execution_states(context)
                 node_exec_counts = self._extract_node_exec_counts(context)
                 
@@ -119,10 +118,38 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Only create output for the active branch to prevent execution of the inactive branch
         if result:
             # When condition is true, output goes to "true" branch only
-            output_value = {"condtrue": inputs if inputs else {}}
+            # For detect_max_iterations, aggregate conversation states from all person_job nodes
+            if condition_type == "detect_max_iterations" and hasattr(context, 'node_outputs'):
+                aggregated_conversations = self._aggregate_conversation_states(context, diagram)
+                output_value = {"condtrue": aggregated_conversations if aggregated_conversations else inputs}
+            else:
+                output_value = {"condtrue": inputs if inputs else {}}
         else:
             # When condition is false, output goes to "false" branch only
-            output_value = {"condfalse": inputs if inputs else {}}
+            # For detect_max_iterations, we need to pass the conversation state back
+            if condition_type == "detect_max_iterations" and hasattr(context, 'node_outputs'):
+                # Get the latest conversation state from the Pessimist node (or any person_job node)
+                latest_conversation = None
+                for node in diagram.nodes:
+                    if hasattr(node, 'type') and node.type == 'person_job':
+                        node_id = str(node.id)
+                        if node_id in context.node_outputs:
+                            output = context.node_outputs[node_id]
+                            # Handle NodeOutput object
+                            if isinstance(output, NodeOutput):
+                                value = output.value
+                                if isinstance(value, dict) and 'conversation' in value:
+                                    latest_conversation = {"messages": value['conversation']}
+                            # Handle dict format (backward compatibility)
+                            elif isinstance(output, dict) and 'value' in output:
+                                value = output['value']
+                                if isinstance(value, dict) and 'conversation' in value:
+                                    latest_conversation = {"messages": value['conversation']}
+                
+                # Pass conversation state if found, otherwise pass inputs
+                output_value = {"condfalse": latest_conversation if latest_conversation else inputs}
+            else:
+                output_value = {"condfalse": inputs if inputs else {}}
 
         return self._build_output(
             output_value, 
@@ -144,6 +171,41 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 execution_states[node_id] = state_dict
         
         return execution_states
+    
+    def _aggregate_conversation_states(self, context: UnifiedExecutionContext, diagram: Any) -> dict[str, Any]:
+        """Aggregate conversation states from all person_job nodes."""
+        import logging
+        from dipeo.models import NodeOutput
+        logger = logging.getLogger(__name__)
+        
+        aggregated = {"messages": []}
+        
+        # Find all person_job nodes in the diagram
+        person_job_nodes = []
+        for node in diagram.nodes:
+            if hasattr(node, 'type') and node.type == 'person_job':
+                person_job_nodes.append(node)
+        
+
+        # Collect conversations from each person_job node's output
+        for node in person_job_nodes:
+            node_id = str(node.id)
+            if node_id in context.node_outputs:
+                output = context.node_outputs[node_id]
+                # Handle NodeOutput object
+                if isinstance(output, NodeOutput):
+                    value = output.value
+                    if isinstance(value, dict) and 'conversation' in value:
+                        aggregated["messages"].extend(value['conversation'])
+                        logger.debug(f"Added {len(value['conversation'])} messages from node {node_id}")
+                # Handle dict format (backward compatibility)
+                elif isinstance(output, dict) and 'value' in output:
+                    value = output['value']
+                    if isinstance(value, dict) and 'conversation' in value:
+                        aggregated["messages"].extend(value['conversation'])
+        
+        logger.debug(f"Aggregated {len(aggregated['messages'])} total messages from {len(person_job_nodes)} person_job nodes")
+        return aggregated
     
     def _extract_node_exec_counts(self, context: UnifiedExecutionContext) -> dict[str, int] | None:
         # Try to get exec counts from UnifiedExecutionContext

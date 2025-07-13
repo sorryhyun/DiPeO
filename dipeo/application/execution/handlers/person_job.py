@@ -87,7 +87,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         exec_count = execution.get_node_execution_count(node.id)
         
         # Determine which prompt to use
-        if exec_count == 0 and node.first_only_prompt:
+        # exec_count is 1 on first run because it's incremented before execution
+        if exec_count == 1 and node.first_only_prompt:
             prompt = node.first_only_prompt
         else:
             prompt = node.default_prompt
@@ -123,6 +124,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         node_id = self._extract_node_id(context)
         execution_count = self._extract_execution_count(context)
         execution_id = getattr(context.execution_state, 'id', None) if hasattr(context, 'execution_state') else None
+        
+        # Check if max_iteration is reached
+        if execution_count >= node.max_iteration:
+            logger.debug(f"Person {person_id} reached max_iteration ({node.max_iteration}), skipping execution")
+            return NodeOutput(
+                value={"default": ""},
+                metadata={"skipped": True, "reason": f"Max iteration ({node.max_iteration}) reached"},
+                node_id=context.current_node_id,
+                executed_nodes=context.executed_nodes
+            )
         
         # Only log in debug mode if explicitly enabled
 
@@ -160,7 +171,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             if self._has_conversation_input(transformed_inputs):
                 self._rebuild_conversation(person, transformed_inputs, forget_mode)
             
-            # Apply memory management with typed access
+            # Build prompt BEFORE applying memory management
+            template_values = prompt_builder.prepare_template_values(transformed_inputs)
+            built_prompt = prompt_builder.build(
+                prompt=node.default_prompt if node.default_prompt is not None else node.first_only_prompt,
+                first_only_prompt=node.first_only_prompt,
+                execution_count=execution_count,
+                template_values=template_values,
+            )
+            
+            # Apply memory management AFTER building the prompt
             if conversation_manager and execution_count > 0 and conversation_state_manager.should_forget_messages(execution_count, forget_mode):
                 if node.memory_config:
                     # Direct typed access to max_messages
@@ -173,17 +193,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                     conversation_manager.apply_forgetting(
                         person_id, forget_mode, execution_id, execution_count
                     )
-            
-            # Build prompt
-            logger.debug(f"Transformed inputs for person {person_id}: {transformed_inputs}")
-            template_values = prompt_builder.prepare_template_values(transformed_inputs)
-            logger.debug(f"Template values for person {person_id}: {template_values}")
-            built_prompt = prompt_builder.build(
-                prompt=node.default_prompt if node.default_prompt is not None else node.first_only_prompt,
-                first_only_prompt=node.first_only_prompt,
-                execution_count=execution_count,
-                template_values=template_values,
-            )
             logger.debug(f"Built prompt for person {person_id}: {built_prompt}")
             
             # Skip if no prompt
@@ -225,13 +234,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         except ValueError as e:
             # Domain validation errors - only log if debug enabled
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Validation error in person job: {e}")
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": str(e)},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
+                return NodeOutput(
+                    value={"default": ""},
+                    metadata={"error": str(e)},
+                    node_id=context.current_node_id,
+                    executed_nodes=context.executed_nodes
+                )
         except Exception as e:
             # Unexpected errors
             logger.error(f"Error executing person job: {e}")
@@ -325,8 +333,17 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     def _needs_conversation_output(self, node_id: str, diagram: Any) -> bool:
         # Check if any edge from this node expects conversation output
         for edge in diagram.edges:
-            if edge.source == node_id and edge.source_output == "conversation":
-                return True
+            if str(edge.source_node_id) == node_id:
+                # Check for explicit conversation output
+                if edge.source_output == "conversation":
+                    logger.debug(f"[CONVERSATION_OUTPUT] Node {node_id} needs conversation output (source_output=conversation)")
+                    return True
+                # Check data_transform for content_type = conversation_state
+                if hasattr(edge, 'data_transform') and edge.data_transform:
+                    if edge.data_transform.get('content_type') == 'conversation_state':
+                        logger.debug(f"[CONVERSATION_OUTPUT] Node {node_id} needs conversation output (content_type=conversation_state)")
+                        return True
+        logger.debug(f"[CONVERSATION_OUTPUT] Node {node_id} does not need conversation output")
         return False
     
     def _build_node_output(self, result: Any, person: Person, context: UnifiedExecutionContext, diagram: Any, model: str) -> NodeOutput:
@@ -335,13 +352,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         # Add conversation if needed
         if self._needs_conversation_output(context.current_node_id, diagram):
             output_value["conversation"] = []
+            messages = person.get_messages()
+            logger.debug(f"[CONVERSATION_OUTPUT] Building conversation output with {len(messages)} messages")
             for msg in person.get_messages():
                 output_value["conversation"].append({
                     "role": "assistant" if msg.from_person_id == person.id else "user",
                     "content": msg.content,
-                    "person_id": person.id,
+                    "person_id": str(person.id),
                     "person_label": person.name,
                 })
+            logger.debug(f"[CONVERSATION_OUTPUT] Added conversation to output_value")
         
         # Build metadata
         metadata = {"model": model}

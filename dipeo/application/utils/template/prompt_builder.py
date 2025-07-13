@@ -43,6 +43,15 @@ class PromptBuilder:
             
             elif isinstance(value, dict):
                 if "messages" in value:
+                    # Extract the last message content as the argument to respond to
+                    messages = value.get("messages", [])
+                    if messages:
+                        # Get the last message content
+                        last_message = messages[-1]
+                        if isinstance(last_message, dict) and "content" in last_message:
+                            template_values[f"{key}_last_message"] = last_message["content"]
+                            # Also make the full conversation available
+                            template_values[f"{key}_messages"] = messages
                     continue
                     
                 if "value" in value and isinstance(value["value"], dict) and "default" in value["value"]:
@@ -61,7 +70,8 @@ class PromptBuilder:
         first_only_prompt: Optional[str],
         execution_count: int
     ) -> bool:
-        return bool(first_only_prompt and execution_count == 0)
+        # execution_count is 1 on first run because it's incremented before execution
+        return bool(first_only_prompt and execution_count == 1)
     
     def _select_prompt(
         self,

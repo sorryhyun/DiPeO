@@ -72,7 +72,19 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         # Direct typed access to node properties
         save_to_file = node.save_to_file
+        # Handle both file_name and file_path from node data
         file_name = node.file_name
+        
+        # Also check the original node data for file_path if file_name is not set
+        if not file_name and hasattr(node, 'metadata') and node.metadata:
+            file_name = node.metadata.get('file_path')
+        
+        # Check in the raw node data from services
+        if not file_name and 'typed_node' in services:
+            typed_node = services['typed_node']
+            if hasattr(typed_node, 'to_dict'):
+                node_dict = typed_node.to_dict()
+                file_name = node_dict.get('file_path') or node_dict.get('file_name')
 
         if save_to_file and file_name:
             try:

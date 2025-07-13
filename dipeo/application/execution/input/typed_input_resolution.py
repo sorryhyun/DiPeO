@@ -36,22 +36,23 @@ class TypedInputResolutionService:
             if str(edge.target_node_id) == node_id
         ]
         
-        log.debug(f"Node {node_id} has {len(incoming_edges)} incoming edges")
-        log.debug(f"Node outputs available: {list(node_outputs.keys())}")
+        log.debug(f"[INPUT_RESOLUTION] Node {node_id} ({node_type}) has {len(incoming_edges)} incoming edges")
+        if node_exec_counts:
+            log.debug(f"[INPUT_RESOLUTION] Node {node_id} exec_count: {node_exec_counts.get(node_id, 0)}")
         
         for edge in incoming_edges:
             # Check if we should process this edge
-            log.debug(f"Processing edge: source={edge.source_node_id}, target_input={edge.target_input}")
-            if not self._should_process_edge(edge, node_type, node_exec_counts):
-                log.debug(f"Edge skipped by _should_process_edge")
+            should_process = self._should_process_edge(edge, node_type, node_exec_counts)
+            log.debug(f"[INPUT_RESOLUTION] Edge {edge.source_node_id} -> {edge.target_node_id} (target_input={edge.target_input}): should_process={should_process}")
+            
+            if not should_process:
                 continue
             
             # Get source node output
             source_node_id = str(edge.source_node_id)
             source_output = node_outputs.get(source_node_id)
-            log.debug(f"Source node {source_node_id} output: {source_output}")
             if not source_output:
-                log.debug(f"No output found for source node {source_node_id}")
+                log.debug(f"[INPUT_RESOLUTION] No output found for source node {source_node_id}")
                 continue
             
             # Handle different source_output formats
@@ -89,36 +90,44 @@ class TypedInputResolutionService:
             
             # Get the input key where this should be placed
             # Use label from metadata if available, otherwise use target_input
-            log.debug(f"Edge metadata: {edge.metadata}")
             input_key = edge.metadata.get("label") or edge.target_input or "default"
-            
-            log.debug(f"Adding input: key='{input_key}', value from output_key='{output_key}'")
-            
+
             # Apply any transformations if specified
             if edge.data_transform:
-                # Wrap the input with memory configuration from edge
-                wrapped_input = {
-                    "value": node_output.value[output_key],
-                    "arrow_metadata": {
-                        "arrow_id": edge.id,
-                        "source_node_id": str(edge.source_node_id),
-                        "target_node_id": str(edge.target_node_id),
+                # Check if this is a conversation_state content type
+                if edge.data_transform.get('content_type') == 'conversation_state':
+                    # For conversation_state, pass the conversation data directly
+                    output_value = node_output.value[output_key]
+                    if isinstance(output_value, dict) and 'messages' in output_value:
+                        # Pass the messages directly to the target node
+                        inputs[input_key] = output_value
+                    else:
+                        inputs[input_key] = output_value
+                else:
+                    # Wrap the input with memory configuration from edge
+                    wrapped_input = {
+                        "value": node_output.value[output_key],
+                        "arrow_metadata": {
+                            "arrow_id": edge.id,
+                            "source_node_id": str(edge.source_node_id),
+                            "target_node_id": str(edge.target_node_id),
+                        }
                     }
-                }
-                
-                # Add memory hints from edge data_transform
-                if "forgetting_mode" in edge.data_transform and edge.data_transform["forgetting_mode"]:
-                    wrapped_input["memory_hints"] = {
-                        "forget_mode": edge.data_transform["forgetting_mode"],
-                        "should_apply": edge.data_transform.get("include_in_memory", True),
-                    }
-                
-                # Store the wrapped input
-                inputs[input_key] = wrapped_input
+                    
+                    # Add memory hints from edge data_transform
+                    if "forgetting_mode" in edge.data_transform and edge.data_transform["forgetting_mode"]:
+                        wrapped_input["memory_hints"] = {
+                            "forget_mode": edge.data_transform["forgetting_mode"],
+                            "should_apply": edge.data_transform.get("include_in_memory", True),
+                        }
+                    
+                    # Store the wrapped input
+                    inputs[input_key] = wrapped_input
             else:
                 # Store the input directly
                 inputs[input_key] = node_output.value[output_key]
         
+        log.debug(f"[INPUT_RESOLUTION] Resolved inputs for node {node_id}: {list(inputs.keys())}")
         return inputs
     
     def _should_process_edge(
@@ -135,17 +144,16 @@ class TypedInputResolutionService:
         if node_type == NodeType.person_job:
             node_id = str(edge.target_node_id)
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
-            
-            log.debug(f"PersonJob edge check: target_input={edge.target_input}, exec_count={exec_count}")
-            
-            # On first execution, only process inputs ending with "_first" or exactly "first"
-            if exec_count == 0 and edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first")):
-                return True
-            # On subsequent executions, skip "_first" inputs
-            elif exec_count > 0 and edge.target_input and not (edge.target_input == "first" or edge.target_input.endswith("_first")):
-                return True
+
+            # On first execution (exec_count == 1 because it's incremented before execution),
+            # only process inputs ending with "_first" or exactly "first"
+            if exec_count == 1:
+                # Process only _first inputs on first execution
+                return edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
+            # On subsequent executions, process all non-_first inputs
             else:
-                return False
+                # Process edges without target_input (regular edges) or non-_first inputs
+                return not edge.target_input or not (edge.target_input == "first" or edge.target_input.endswith("_first"))
         
         # For all other node types, process all edges
         return True

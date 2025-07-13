@@ -286,6 +286,9 @@ class StaticNodeGenerator {
           lines.push(`            ${field.pyName}=data.get("${field.tsName}"),`);
         } else if (field.pyName === 'config' && dataInterface === 'HookNodeData') {
           lines.push(`            config=data.get("config", {}),`);
+        } else if (field.pyName === 'memory_config') {
+          // Convert dict to MemoryConfig object
+          lines.push(`            ${field.pyName}=MemoryConfig(**data.get("${field.tsName}")) if data.get("${field.tsName}") else None,`);
         } else if (field.defaultValue && !field.defaultValue.includes('field(')) {
           // For fields with default values (excluding field() defaults), use the default when None
           lines.push(`            ${field.pyName}=data.get("${field.tsName}", ${field.defaultValue}),`);
@@ -310,7 +313,7 @@ class StaticNodeGenerator {
     lines.push('            first_only_prompt=data.get("first_only_prompt", ""),');
     lines.push('            default_prompt=data.get("default_prompt"),');
     lines.push('            max_iteration=data.get("max_iteration", 1),');
-    lines.push('            memory_config=data.get("memory_config"),');
+    lines.push('            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,');
     lines.push('            tools=data.get("tools")');
     lines.push('        )');
     lines.push('    ');

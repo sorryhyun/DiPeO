@@ -68,35 +68,16 @@ class LLMInfraService(BaseService, LLMServicePort):
 
         return entry["adapter"]
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+    )
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
-        # Try to make the call without retry first
-        try:
-            return await client.chat(messages=messages, **kwargs)
-        except Exception as e:
-            # Determine retry strategy using domain service
-            retry_strategy = self._llm_domain_service.determine_retry_strategy(e)
-            
-            if not retry_strategy.should_retry(1):
-                raise
-            
-            # Create retry decorator based on domain-determined strategy
-            retry_decorator = retry(
-                stop=stop_after_attempt(retry_strategy.max_retries),
-                wait=wait_exponential(
-                    multiplier=retry_strategy.backoff_factor,
-                    min=retry_strategy.initial_delay_seconds,
-                    max=retry_strategy.max_delay_seconds
-                ),
-                retry=retry_if_exception_type((ConnectionError, TimeoutError, Exception)),
-            )
-            
-            @retry_decorator
-            async def _make_call():
-                return await client.chat(messages=messages, **kwargs)
-            
-            return await _make_call()
+        # client.chat is a sync method, not async
+        return client.chat(messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
         self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs
@@ -124,7 +105,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                     provider=service,
                     model=model
                 )
-                if not is_valid:
+                if not is_valid and hasattr(self, 'logger'):
                     self.logger.warning(f"Prompt validation warning: {error_msg}")
             
             adapter = self._get_client(service, model, api_key_id)
@@ -133,9 +114,15 @@ class LLMInfraService(BaseService, LLMServicePort):
 
             adapter_kwargs = {**kwargs}
 
-            return await self._call_llm_with_retry(
-                adapter, messages_list, **adapter_kwargs
-            )
+            try:
+                return await self._call_llm_with_retry(
+                    adapter, messages_list, **adapter_kwargs
+                )
+            except Exception as inner_e:
+                # Log the actual error for debugging if logger is available
+                if hasattr(self, 'logger'):
+                    self.logger.error(f"LLM call failed: {type(inner_e).__name__}: {str(inner_e)}")
+                raise LLMServiceError(service="llm", message=f"LLM service {service} failed: {str(inner_e)}")
 
         except Exception as e:
             raise LLMServiceError(service="llm", message=str(e))
@@ -180,7 +167,8 @@ class LLMInfraService(BaseService, LLMServicePort):
                     
                 except Exception as e:
                     # If API call fails, return empty list
-                    self.logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
+                    if hasattr(self, 'logger'):
+                        self.logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
                     return []
             elif service == "anthropic":
                 # Dynamically fetch models from Anthropic API
@@ -201,7 +189,8 @@ class LLMInfraService(BaseService, LLMServicePort):
                     
                 except Exception as e:
                     # If API call fails, return empty list
-                    self.logger.warning(f"Failed to fetch Anthropic models dynamically: {e}")
+                    if hasattr(self, 'logger'):
+                        self.logger.warning(f"Failed to fetch Anthropic models dynamically: {e}")
                     return []
             elif service == "google":
                 # Dynamically fetch models from Google Gemini API
@@ -226,7 +215,8 @@ class LLMInfraService(BaseService, LLMServicePort):
                     
                 except Exception as e:
                     # If API call fails, return empty list
-                    self.logger.warning(f"Failed to fetch Google models dynamically: {e}")
+                    if hasattr(self, 'logger'):
+                        self.logger.warning(f"Failed to fetch Google models dynamically: {e}")
                     return []
             else:
                 return []
