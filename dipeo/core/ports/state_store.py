@@ -1,61 +1,58 @@
-"""State Store port interface."""
+"""State storage port for domain layer."""
 
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from dipeo.models import (
+        DiagramID,
+        ExecutionID,
+        ExecutionState,
+        ExecutionStatus,
+        NodeExecutionStatus,
+        NodeOutput,
+        TokenUsage,
+    )
 
 
 @runtime_checkable
 class StateStorePort(Protocol):
-    """Port for execution state persistence.
-    
-    This interface defines the contract for storing and retrieving
-    execution state, node outputs, and execution history.
-    """
+    """Port for execution state persistence."""
 
-    async def create_execution(
-        self, execution_id: str, diagram_id: Optional[str] = None
-    ) -> None:
-        """Create a new execution record.
-        
-        Args:
-            execution_id: Unique execution identifier
-            diagram_id: Optional diagram identifier
-        """
+    async def initialize(self) -> None:
+        """Initialize the state store."""
         ...
 
-    async def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve execution state by ID.
-        
-        Args:
-            execution_id: Execution to retrieve
-            
-        Returns:
-            Execution state data or None if not found
-        """
+    async def cleanup(self) -> None:
+        """Clean up resources."""
+        ...
+
+    async def create_execution(
+        self,
+        execution_id: "ExecutionID",
+        diagram_id: "DiagramID | None" = None,
+        variables: dict[str, Any] | None = None,
+    ) -> "ExecutionState":
+        """Create a new execution state."""
+        ...
+
+    async def save_state(self, state: "ExecutionState") -> None:
+        """Save or update the complete execution state."""
+        ...
+
+    async def get_state(self, execution_id: str) -> "ExecutionState | None":
+        """Get execution state by ID."""
         ...
 
     async def update_status(
-        self, execution_id: str, status: Any, error: Optional[str] = None
+        self, execution_id: str, status: "ExecutionStatus", error: str | None = None
     ) -> None:
-        """Update execution status.
-        
-        Args:
-            execution_id: Execution to update
-            status: New status (ExecutionStatus enum value)
-            error: Optional error message
-        """
+        """Update execution status."""
         ...
 
-    async def update_node_status(
-        self, execution_id: str, node_id: str, status: Any, error: Optional[str] = None
-    ) -> None:
-        """Update node execution status.
-        
-        Args:
-            execution_id: Parent execution ID
-            node_id: Node to update
-            status: New node status (NodeExecutionStatus enum value)
-            error: Optional error message
-        """
+    async def get_node_output(
+        self, execution_id: str, node_id: str
+    ) -> "NodeOutput | None":
+        """Get output for a specific node."""
         ...
 
     async def update_node_output(
@@ -63,36 +60,63 @@ class StateStorePort(Protocol):
         execution_id: str,
         node_id: str,
         output: Any,
-        token_usage: Optional[Any] = None,
+        is_exception: bool = False,
+        token_usage: "TokenUsage | None" = None,
     ) -> None:
-        """Store node output and token usage.
-        
-        Args:
-            execution_id: Parent execution ID
-            node_id: Node that produced the output
-            output: NodeOutput object
-            token_usage: Optional TokenUsage object
-        """
+        """Update output for a specific node."""
+        ...
+
+    async def update_node_status(
+        self,
+        execution_id: str,
+        node_id: str,
+        status: "NodeExecutionStatus",
+        error: str | None = None,
+    ) -> None:
+        """Update status for a specific node."""
+        ...
+
+    async def update_variables(
+        self, execution_id: str, variables: dict[str, Any]
+    ) -> None:
+        """Update execution variables."""
+        ...
+
+    async def update_token_usage(self, execution_id: str, tokens: "TokenUsage") -> None:
+        """Update token usage (replaces existing)."""
+        ...
+
+    async def add_token_usage(self, execution_id: str, tokens: "TokenUsage") -> None:
+        """Add to token usage (increments existing)."""
         ...
 
     async def list_executions(
-        self, limit: int = 10, offset: int = 0
-    ) -> List[Dict[str, Any]]:
-        """List recent executions.
-        
-        Args:
-            limit: Maximum number of executions to return
-            offset: Number of executions to skip
-            
-        Returns:
-            List of execution summaries
-        """
+        self,
+        diagram_id: "DiagramID | None" = None,
+        status: "ExecutionStatus | None" = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list["ExecutionState"]:
+        """List executions with optional filtering."""
         ...
 
-    async def delete_execution(self, execution_id: str) -> None:
-        """Delete an execution and all associated data.
-        
-        Args:
-            execution_id: Execution to delete
-        """
+    async def cleanup_old_states(self, days: int = 7) -> None:
+        """Clean up old execution states."""
+        ...
+
+    async def get_state_from_cache(self, execution_id: str) -> "ExecutionState | None":
+        """Get state from cache only (no DB lookup)."""
+        ...
+
+    async def create_execution_in_cache(
+        self,
+        execution_id: "ExecutionID",
+        diagram_id: "DiagramID | None" = None,
+        variables: dict[str, Any] | None = None,
+    ) -> "ExecutionState":
+        """Create execution in cache only."""
+        ...
+
+    async def persist_final_state(self, state: "ExecutionState") -> None:
+        """Persist final state from cache to database."""
         ...

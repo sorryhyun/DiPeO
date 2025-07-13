@@ -44,13 +44,8 @@ DiPeO now supports Windows through a native desktop application built with Tauri
 
 2. **Install dependencies:**
    ```powershell
-   # Install Python packages
-   pip install -e packages/python/dipeo_core
-   pip install -e packages/python/dipeo_domain
-   pip install -e packages/python/dipeo_diagram
-   pip install -e packages/python/dipeo_application
-   pip install -e packages/python/dipeo_infra
-   pip install -e packages/python/dipeo_container
+   # Install Python package (unified umbrella package)
+   pip install -e dipeo
    
    # Install frontend dependencies
    cd apps/web

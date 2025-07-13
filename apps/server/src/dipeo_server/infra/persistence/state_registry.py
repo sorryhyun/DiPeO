@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
-from dipeo.domain import (
+from dipeo.models import (
     DiagramID,
     ExecutionID,
     ExecutionState,
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class StateRegistry:
-    """Lightweight registry that stores references to data."""
+    # Lightweight registry that stores references to data
 
     def __init__(
         self,
@@ -43,18 +43,33 @@ class StateRegistry:
         self._thread_id: int | None = None
         self.message_store = message_store
         self._execution_cache = ExecutionCache(ttl_minutes=60)
+        self._initialized = False
 
     async def initialize(self):
-        await self._connect()
-        await self._init_schema()
+        async with self._lock:
+            if self._initialized:
+                return
+            await self._connect()
+            await self._init_schema()
+            self._initialized = True
 
     async def cleanup(self):
-        if self._conn:
-            await asyncio.get_event_loop().run_in_executor(
-                self._executor, self._conn.close
-            )
-            self._conn = None
-        self._executor.shutdown(wait=True)
+        async with self._lock:
+            if self._conn:
+                try:
+                    await asyncio.get_event_loop().run_in_executor(
+                        self._executor, self._conn.close
+                    )
+                except RuntimeError:
+                    # Executor already shutdown
+                    pass
+                self._conn = None
+            
+            # Don't shutdown executor immediately - let pending operations complete
+            if not self._executor._shutdown:
+                self._executor.shutdown(wait=False)
+            
+            self._initialized = False
 
     async def _connect(self):
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -71,17 +86,53 @@ class StateRegistry:
             conn.execute("PRAGMA journal_mode=WAL")
             return conn
 
-        self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+        # Ensure executor is available
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+        
+        try:
+            self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+        except RuntimeError as e:
+            if "cannot schedule new futures after shutdown" in str(e):
+                # Recreate executor and retry
+                self._executor = ThreadPoolExecutor(max_workers=1)
+                self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+            else:
+                raise
 
     async def _execute(self, *args, **kwargs):
         """Execute a database operation in the dedicated thread."""
+        if self._conn is None:
+            raise RuntimeError("StateRegistry not initialized. Call initialize() first.")
+        
+        # Ensure executor is available
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+        
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            self._executor, self._conn.execute, *args, **kwargs
-        )
+        try:
+            return await loop.run_in_executor(
+                self._executor, self._conn.execute, *args, **kwargs
+            )
+        except RuntimeError as e:
+            if "cannot schedule new futures after shutdown" in str(e):
+                # Recreate executor and retry once
+                self._executor = ThreadPoolExecutor(max_workers=1)
+                return await loop.run_in_executor(
+                    self._executor, self._conn.execute, *args, **kwargs
+                )
+            raise
+    
+    async def _ensure_initialized(self):
+        """Ensure the registry is initialized, initializing if necessary."""
+        if not self._initialized:
+            await self.initialize()
+        
+        # Check if executor was shutdown and recreate if needed
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
 
     async def _init_schema(self):
-        """Initialize database schema."""
         schema = """
         CREATE TABLE IF NOT EXISTS execution_states (
             execution_id TEXT PRIMARY KEY,
@@ -101,21 +152,43 @@ class StateRegistry:
         CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
         """
 
-        await asyncio.get_event_loop().run_in_executor(
-            self._executor, self._conn.executescript, schema
-        )
+        # Ensure executor is available
+        if self._executor._shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+        
+        try:
+            await asyncio.get_event_loop().run_in_executor(
+                self._executor, self._conn.executescript, schema
+            )
+        except RuntimeError as e:
+            if "cannot schedule new futures after shutdown" in str(e):
+                # Recreate executor and retry
+                self._executor = ThreadPoolExecutor(max_workers=1)
+                await asyncio.get_event_loop().run_in_executor(
+                    self._executor, self._conn.executescript, schema
+                )
+            else:
+                raise
 
     async def create_execution(
         self,
-        execution_id: str,
-        diagram_id: str | None = None,
+        execution_id: str | ExecutionID,
+        diagram_id: str | DiagramID | None = None,
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
+        await self._ensure_initialized()
+        
+        # Handle both str and ExecutionID types
+        exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
+        diag_id = None
+        if diagram_id:
+            diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+        
         now = datetime.now().isoformat()
         state = ExecutionState(
-            id=ExecutionID(execution_id),
+            id=ExecutionID(exec_id),
             status=ExecutionStatus.PENDING,
-            diagram_id=DiagramID(diagram_id) if diagram_id else None,
+            diagram_id=diag_id,
             started_at=now,
             ended_at=None,
             node_states={},
@@ -130,7 +203,6 @@ class StateRegistry:
         return state
 
     async def save_state(self, state: ExecutionState):
-        """Save execution state to database and cache."""
         # Update cache for active executions
         if state.is_active:
             await self._execution_cache.set(state.id, state)
@@ -141,7 +213,7 @@ class StateRegistry:
         async with self._lock:
             # Convert node_states and node_outputs to JSON-serializable format
             node_states_dict = {
-                node_id: node_state.model_dump() 
+                node_id: node_state.model_dump()
                 for node_id, node_state in state.node_states.items()
             }
 
@@ -165,14 +237,17 @@ class StateRegistry:
                     state.ended_at,
                     json.dumps(node_states_dict),
                     json.dumps(node_outputs_dict),
-                    json.dumps(state.token_usage.model_dump() if state.token_usage else {}),
+                    json.dumps(
+                        state.token_usage.model_dump() if state.token_usage else {}
+                    ),
                     state.error,
                     json.dumps(state.variables),
                 ),
             )
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
-        """Get execution state by ID, checking cache first."""
+        await self._ensure_initialized()
+        
         # Check cache first
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
@@ -228,7 +303,8 @@ class StateRegistry:
     async def update_status(
         self, execution_id: str, status: ExecutionStatus, error: str | None = None
     ):
-        """Update execution status."""
+        await self._ensure_initialized()
+        
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -248,7 +324,6 @@ class StateRegistry:
     async def get_node_output(
         self, execution_id: str, node_id: str
     ) -> NodeOutput | None:
-        """Get node output by execution and node ID."""
         state = await self.get_state(execution_id)
         if not state:
             return None
@@ -262,7 +337,6 @@ class StateRegistry:
         is_exception: bool = False,
         token_usage: TokenUsage | None = None,
     ) -> None:
-        """Store output, using references for large data."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -315,7 +389,6 @@ class StateRegistry:
         status: NodeExecutionStatus,
         error: str | None = None,
     ):
-        """Update node execution status."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -348,7 +421,6 @@ class StateRegistry:
         await self.save_state(state)
 
     async def update_variables(self, execution_id: str, variables: dict[str, Any]):
-        """Update execution variables."""
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -357,11 +429,7 @@ class StateRegistry:
         await self.save_state(state)
 
     async def update_token_usage(self, execution_id: str, tokens: TokenUsage):
-        """Update token usage statistics.
-
-        Note: This method REPLACES the total token usage, it does not add to it.
-        For incremental updates, retrieve the state, modify, and save.
-        """
+        # Update token usage statistics
         # Try to update cache first if execution is active
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
@@ -378,8 +446,6 @@ class StateRegistry:
         await self.save_state(state)
 
     async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
-        """Add token usage to existing statistics (incremental update)."""
-
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -404,7 +470,6 @@ class StateRegistry:
         limit: int = 100,
         offset: int = 0,
     ) -> list[ExecutionState]:
-        """List recent executions with metadata."""
         # Build query with optional filters
         query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables FROM execution_states"
         conditions = []
@@ -490,7 +555,6 @@ class StateRegistry:
         return executions
 
     async def cleanup_old_states(self, days: int = 7):
-        """Remove states older than specified days."""
         cutoff_date = datetime.now()
         cutoff_date = cutoff_date.replace(microsecond=0)
         cutoff_iso = (cutoff_date - timedelta(days=days)).isoformat()
@@ -503,21 +567,25 @@ class StateRegistry:
         await self._execute("VACUUM")
 
     async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
-        """Get execution state from cache only, no database fallback."""
         return await self._execution_cache.get(execution_id)
 
     async def create_execution_in_cache(
         self,
-        execution_id: str,
-        diagram_id: str | None = None,
+        execution_id: str | ExecutionID,
+        diagram_id: str | DiagramID | None = None,
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
-        """Create execution in cache only for active executions."""
+        # Handle both str and ExecutionID types
+        exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
+        diag_id = None
+        if diagram_id:
+            diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+        
         now = datetime.now().isoformat()
         state = ExecutionState(
-            id=ExecutionID(execution_id),
+            id=ExecutionID(exec_id),
             status=ExecutionStatus.PENDING,
-            diagram_id=DiagramID(diagram_id) if diagram_id else None,
+            diagram_id=diag_id,
             started_at=now,
             ended_at=None,
             node_states={},
@@ -533,7 +601,6 @@ class StateRegistry:
         return state
 
     async def persist_final_state(self, state: ExecutionState):
-        """Persist final state to database and remove from cache."""
         # Ensure the state is marked as inactive
         state.is_active = False
 
@@ -544,5 +611,3 @@ class StateRegistry:
         # Remove from cache after persisting
         await self._execution_cache.remove(state.id)
 
-
-state_store = StateRegistry()

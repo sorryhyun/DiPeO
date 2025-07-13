@@ -1,4 +1,4 @@
-"""Message Router port interface."""
+"""Messaging port for domain layer."""
 
 from collections.abc import Callable
 from typing import Protocol, runtime_checkable
@@ -6,11 +6,7 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class MessageRouterPort(Protocol):
-    """Port for message routing infrastructure.
-    
-    This interface defines the contract for real-time message routing,
-    supporting WebSocket connections and execution subscriptions.
-    """
+    """Port for message routing infrastructure."""
 
     async def initialize(self) -> None:
         """Initialize the message router."""
@@ -21,69 +17,33 @@ class MessageRouterPort(Protocol):
         ...
 
     async def register_connection(self, connection_id: str, handler: Callable) -> None:
-        """Register a connection handler.
-        
-        Args:
-            connection_id: Unique identifier for the connection
-            handler: Async callable to handle messages for this connection
-        """
+        """Register a connection handler."""
         ...
 
     async def unregister_connection(self, connection_id: str) -> None:
-        """Unregister a connection.
-        
-        Args:
-            connection_id: Connection to unregister
-        """
+        """Unregister a connection."""
         ...
 
     async def route_to_connection(self, connection_id: str, message: dict) -> bool:
-        """Route a message to a specific connection.
-        
-        Args:
-            connection_id: Target connection ID
-            message: Message to send
-            
-        Returns:
-            True if message was delivered, False otherwise
-        """
+        """Route a message to a specific connection."""
         ...
 
     async def broadcast_to_execution(self, execution_id: str, message: dict) -> None:
-        """Broadcast a message to all connections subscribed to an execution.
-        
-        Args:
-            execution_id: Execution ID to broadcast to
-            message: Message to broadcast
-        """
+        """Broadcast a message to all connections subscribed to an execution."""
         ...
 
     async def subscribe_connection_to_execution(
         self, connection_id: str, execution_id: str
     ) -> None:
-        """Subscribe a connection to execution updates.
-        
-        Args:
-            connection_id: Connection to subscribe
-            execution_id: Execution to subscribe to
-        """
+        """Subscribe a connection to execution updates."""
         ...
 
     async def unsubscribe_connection_from_execution(
         self, connection_id: str, execution_id: str
     ) -> None:
-        """Unsubscribe a connection from execution updates.
-        
-        Args:
-            connection_id: Connection to unsubscribe
-            execution_id: Execution to unsubscribe from
-        """
+        """Unsubscribe a connection from execution updates."""
         ...
 
     def get_stats(self) -> dict:
-        """Get statistics about active connections and subscriptions.
-        
-        Returns:
-            Dictionary with connection and subscription stats
-        """
+        """Get statistics about active connections and subscriptions."""
         ...

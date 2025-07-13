@@ -9,13 +9,12 @@ import aiosqlite
 
 
 class MessageStore:
-    """Stores actual message content, returns only references."""
+    # Stores actual message content, returns only references
 
     def __init__(self, db_path: Path):
         self.db_path = db_path
 
     async def initialize(self):
-        """Create tables for message storage."""
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
@@ -40,7 +39,6 @@ class MessageStore:
         person_id: str | None = None,
         token_count: int | None = None,
     ) -> str:
-        """Store message and return reference ID."""
         message_id = f"{execution_id}:{node_id}:{datetime.utcnow().timestamp()}"
 
         async with aiosqlite.connect(self.db_path) as db:
@@ -62,7 +60,6 @@ class MessageStore:
         return message_id
 
     async def get_message(self, message_id: str) -> dict[str, Any] | None:
-        """Retrieve message by reference ID."""
         async with (
             aiosqlite.connect(self.db_path) as db,
             db.execute(
@@ -75,7 +72,6 @@ class MessageStore:
     async def get_conversation_messages(
         self, execution_id: str, person_id: str
     ) -> list[dict[str, Any]]:
-        """Get all messages for a person in an execution."""
         async with (
             aiosqlite.connect(self.db_path) as db,
             db.execute(

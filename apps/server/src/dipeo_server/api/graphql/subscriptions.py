@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 
 import strawberry
-from dipeo.domain import ExecutionStatus, NodeExecutionStatus, NodeType
+from dipeo.models import ExecutionStatus, NodeExecutionStatus, NodeType
 
 from .context import GraphQLContext
 from .types import (
@@ -102,7 +102,7 @@ class Subscription:
     ) -> AsyncGenerator[ExecutionStateType]:
         """Streams execution state changes using direct streaming."""
         context: GraphQLContext = info.context
-        state_store = context.state_store
+        state_store = context.get_service("state_store")
 
         # Subscription started for execution updates
 
@@ -139,7 +139,6 @@ class Subscription:
                         if state:
                             yield state
                     else:
-
                         if update.get("type") == "execution_complete":
                             # Give the persistence layer a brief moment to flush the
                             # final state to the database.
@@ -153,8 +152,10 @@ class Subscription:
                         if not state:
                             state = await state_store.get_state(execution_id)
 
-                        if state: yield state
-                        else: break
+                        if state:
+                            yield state
+                        else:
+                            break
 
                     # Check if execution is complete
                     if state and state.status in [
@@ -341,7 +342,7 @@ class Subscription:
     ) -> AsyncGenerator[InteractivePrompt | None]:
         """Streams interactive prompts requiring user response."""
         context: GraphQLContext = info.context
-        state_store = context.state_store
+        state_store = context.get_service("state_store")
 
         # Interactive prompts subscription started
 
@@ -354,7 +355,6 @@ class Subscription:
                 if not state:
                     # Fall back to database if not in cache
                     state = await state_store.get_state(execution_id)
-
 
                 # Check if execution is complete
                 if state and state.status in [

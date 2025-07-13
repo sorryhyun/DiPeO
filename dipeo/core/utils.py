@@ -8,7 +8,6 @@ T = TypeVar("T")
 
 
 def ensure_list(value: T | list[T] | None) -> list[T]:
-    """Ensure a value is a list."""
     if value is None:
         return []
     if isinstance(value, list):
@@ -17,7 +16,6 @@ def ensure_list(value: T | list[T] | None) -> list[T]:
 
 
 def safe_json_loads(data: str | bytes, default: Any = None) -> Any:
-    """Safely load JSON data, returning default on error."""
     try:
         return json.loads(data)
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -25,7 +23,6 @@ def safe_json_loads(data: str | bytes, default: Any = None) -> Any:
 
 
 def safe_json_dumps(data: Any, indent: int | None = None) -> str:
-    """Safely dump data to JSON string."""
     try:
         return json.dumps(data, indent=indent, default=str)
     except (TypeError, ValueError):
@@ -37,7 +34,6 @@ def get_timestamp() -> str:
 
 
 def truncate_string(text: str, max_length: int = 100, suffix: str = "...") -> str:
-    """Truncate a string to a maximum length."""
     if len(text) <= max_length:
         return text
     return text[: max_length - len(suffix)] + suffix
@@ -58,7 +54,6 @@ def camel_to_snake(camel_str: str) -> str:
 
 
 def merge_dicts(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:
-    """Deep merge two dictionaries."""
     result = base.copy()
 
     for key, value in updates.items():

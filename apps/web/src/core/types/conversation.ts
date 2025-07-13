@@ -1,5 +1,5 @@
-import type { Dict } from '@/core/types';
-import type { NodeID, ExecutionID, PersonID } from '@dipeo/domain-models';
+import type { Dict } from './utilities';
+import type { NodeID, ExecutionID, PersonID } from './domain';
 
 export interface InteractivePromptData {
   nodeId: NodeID;
@@ -17,7 +17,8 @@ export interface ConversationFilters {
   endTime?: string;
 }
 
-export interface ConversationMessage {
+// UI-specific conversation message with additional display fields
+export interface UIConversationMessage {
   id?: string;
   role: 'user' | 'assistant' | 'system';
   personId: PersonID;
@@ -27,8 +28,9 @@ export interface ConversationMessage {
   nodeLabel?: string;
 }
 
-export interface PersonMemoryState {
-  messages: ConversationMessage[];
+// UI-specific memory state for display purposes
+export interface UIPersonMemoryState {
+  messages: UIConversationMessage[];
   visibleMessages: number;
   hasMore: boolean;
   config: {

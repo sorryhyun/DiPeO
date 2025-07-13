@@ -1,204 +1,76 @@
 """Server-specific dependency injection container."""
 
 from pathlib import Path
-
 from dependency_injector import providers
 from dipeo.container import Container as BaseContainer
-from dipeo.core import (
-    SupportsAPIKey,
-    SupportsExecution,
-    SupportsFile,
-    SupportsLLM,
-    SupportsMemory,
-    SupportsNotion,
-)
-from dipeo.domain.domains.apikey import APIKeyDomainService
-from dipeo.domain.domains.conversation.simple_service import ConversationMemoryService
-from dipeo.domain.domains.db import DBOperationsDomainService
-from dipeo.domain.domains.diagram import (
-    DiagramFileRepository,
-    DiagramStorageAdapter,
-)
-from dipeo.domain.domains.execution import PrepareDiagramForExecutionUseCase
-from dipeo.domain.domains.execution.services import ExecuteDiagramUseCase
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-from dipeo.domain.domains.file import FileOperationsDomainService
-from dipeo.domain.domains.text import TextProcessingDomainService
-from dipeo.domain.domains.validation import ValidationDomainService
-from dipeo.infra import (
-    MessageRouter,
-    NotionAPIService,
-    LLMInfraService,
-    ConsolidatedFileService,
-)
-from dipeo.domain.domains.api import APIIntegrationDomainService
-from dipeo_server.infra.persistence.state_registry import state_store
+from dipeo.container.utilities import init_resources, shutdown_resources
+from dipeo.container.runtime.dynamic_container import DynamicServicesContainer
+from dipeo.container.runtime.integration_container import IntegrationServicesContainer
+from dipeo.container.core.static_container import StaticServicesContainer
+from dipeo.container.application_container import ApplicationContainer
+
 from dipeo_server.shared.constants import BASE_DIR
-from dipeo.infra.persistence.memory import MemoryService
+from dipeo_server.infra.persistence_container import ServerPersistenceContainer
 
 
 class ServerContainer(BaseContainer):
-    """Server-specific dependency injection container."""
+    # Server-specific dependency injection container
 
-    # Infrastructure providers
-    state_store = providers.Singleton(lambda: state_store)
-
-    message_router = providers.Singleton(MessageRouter)
-
-    # Domain service providers
-    api_key_service = providers.Singleton(
-        APIKeyDomainService,
-        store_file=providers.Factory(
-            lambda: str(Path(BASE_DIR) / "files" / "apikeys.json")
-        ),
-    )
-
-    llm_service = providers.Singleton(
-        LLMInfraService,
-        api_key_service=api_key_service,
-    )
-
-    file_service = providers.Singleton(
-        ConsolidatedFileService,
-        base_dir=providers.Factory(lambda: BASE_DIR),
-    )
-
-    memory_service = providers.Singleton(
-        MemoryService,
+    # Override base directory to use server-specific constant
+    base_dir = providers.Factory(lambda: BASE_DIR)
+    
+    # Override persistence container with server-specific implementation
+    persistence = providers.Container(
+        ServerPersistenceContainer,
+        config=BaseContainer.config,
+        base_dir=base_dir,
+        business=BaseContainer.business,
     )
     
-    conversation_memory_service = providers.Singleton(
-        ConversationMemoryService,
-        memory_service=memory_service,
+    # Override integration container to use our persistence
+    integration = providers.Container(
+        IntegrationServicesContainer,  
+        config=BaseContainer.config,
+        base_dir=base_dir,
+        business=BaseContainer.business,
+        persistence=persistence,  # Use our overridden persistence with correct api_key_service
     )
-
-    diagram_file_repository = providers.Singleton(
-        DiagramFileRepository,
-        base_dir=providers.Factory(lambda: BASE_DIR),
+    
+    # Override static container to use our persistence  
+    static = providers.Container(
+        StaticServicesContainer,
+        config=BaseContainer.config,
+        persistence=persistence,  # Use our overridden persistence
     )
-
-    diagram_storage_adapter = providers.Singleton(
-        DiagramStorageAdapter,
-        storage_service=diagram_file_repository,
+    
+    # Need to recreate containers that depend on persistence
+    # Dynamic container needs updated persistence
+    dynamic = providers.Container(
+        DynamicServicesContainer,
+        config=BaseContainer.config,
+        static=static,  # Use our overridden static
+        business=BaseContainer.business,
+        persistence=persistence,  # Use our overridden persistence
+        integration=integration,  # Use our overridden integration
     )
-
-    diagram_storage_service = diagram_file_repository
-
-    validation_service = providers.Singleton(ValidationDomainService)
-
-    prepare_diagram_use_case = providers.Singleton(
-        PrepareDiagramForExecutionUseCase,
-        storage_service=diagram_file_repository,
-        validator=validation_service,
-        api_key_service=api_key_service,
-    )
-
-    text_processing_service = providers.Singleton(TextProcessingDomainService)
-
-    file_operations_service = providers.Singleton(
-        FileOperationsDomainService,
-        file_service=file_service,
-    )
-
-    db_operations_service = providers.Singleton(
-        DBOperationsDomainService,
-        file_service=file_service,
-        validation_service=validation_service,
-    )
-
-    api_integration_service = providers.Factory(
-        APIIntegrationDomainService,
-        file_service=file_service,
-    )
-
-    notion_api_service = providers.Singleton(NotionAPIService)
-
-    # Service registry for node handlers
-    service_registry = providers.Factory(
-        UnifiedServiceRegistry,
-        llm=llm_service,
-        llm_service=llm_service,
-        api_key=api_key_service,
-        api_key_service=api_key_service,
-        file=file_service,
-        file_service=file_service,
-        conversation_memory=conversation_memory_service,
-        conversation_memory_service=conversation_memory_service,
-        memory=conversation_memory_service,
-        memory_service=conversation_memory_service,
-        conversation=conversation_memory_service,
-        notion=notion_api_service,
-        notion_service=notion_api_service,
-        diagram_storage=diagram_storage_service,
-        diagram_storage_service=diagram_storage_service,
-        storage=diagram_storage_service,
-        api_integration=api_integration_service,
-        api_integration_service=api_integration_service,
-        api=api_integration_service,
-        text_processing=text_processing_service,
-        text_processing_service=text_processing_service,
-        text=text_processing_service,
-        file_operations=file_operations_service,
-        file_operations_service=file_operations_service,
-        validation=validation_service,
-        validation_service=validation_service,
-        db_operations=db_operations_service,
-        db_operations_service=db_operations_service,
-    )
-
-    # Execution service
-    execution_service = providers.Singleton(
-        ExecuteDiagramUseCase,
-        service_registry=service_registry,
-        state_store=state_store,
-        message_router=message_router,
-        diagram_storage_service=diagram_storage_service,
+    
+    # Application container needs updated persistence and dynamic
+    application = providers.Container(
+        ApplicationContainer,
+        config=BaseContainer.config,
+        static=static,  # Use our overridden static
+        business=BaseContainer.business,
+        dynamic=dynamic,  # Use our updated dynamic
+        persistence=persistence,  # Use our overridden persistence
+        integration=integration,  # Use our overridden integration
     )
 
 
 async def init_server_resources(container: ServerContainer) -> None:
-    """Initialize all server resources that require async setup."""
-    # Initialize infrastructure
-    await container.state_store().initialize()
-    await container.message_router().initialize()
-
-    # Initialize services
-    await container.api_key_service().initialize()
-    await container.llm_service().initialize()
-    await container.diagram_storage_service().initialize()
-    await container.notion_api_service().initialize()
-
-    # Initialize execution service
-    execution_service = container.execution_service()
-    await execution_service.initialize()
-
-    # Validate protocol compliance
-    _validate_protocol_compliance(container)
+    # Use the base container's init_resources utility
+    await init_resources(container)
 
 
 async def shutdown_server_resources(container: ServerContainer) -> None:
-    """Cleanup all server resources."""
-    await container.message_router().cleanup()
-    await container.state_store().cleanup()
-
-
-def _validate_protocol_compliance(container: ServerContainer) -> None:
-    """Validate that all services implement their required protocols."""
-    validations = [
-        (container.api_key_service(), SupportsAPIKey, "APIKeyService"),
-        (container.llm_service(), SupportsLLM, "LLMInfrastructureService"),
-        (container.file_service(), SupportsFile, "ConsolidatedFileService"),
-        (
-            container.conversation_memory_service(),
-            SupportsMemory,
-            "ConversationMemoryService",
-        ),
-        (container.execution_service(), SupportsExecution, "ExecuteDiagramUseCase"),
-        (container.notion_api_service(), SupportsNotion, "NotionAPIService"),
-    ]
-
-    for service, protocol, name in validations:
-        if service is not None and not isinstance(service, protocol):
-            raise TypeError(
-                f"{name} does not implement required protocol {protocol.__name__}"
-            )
+    # Use the base container's shutdown_resources utility
+    await shutdown_resources(container)

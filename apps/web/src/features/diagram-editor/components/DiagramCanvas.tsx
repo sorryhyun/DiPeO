@@ -24,7 +24,7 @@ import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { FileText } from "lucide-react";
-import { useCanvasContext } from "@/shared/contexts/CanvasContext";
+import { useCanvasState, useCanvasOperations } from "@/shared/contexts/CanvasContext";
 import { useUnifiedStore } from "@/core/store/unifiedStore";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
@@ -78,6 +78,8 @@ interface CommonFlowPropsParams {
   selectArrow: (id: string) => void;
   executionMode: boolean;
   clearSelection: () => void;
+  highlightPerson: (personId: PersonID | null) => void;
+  setDashboardTab: (tab: 'properties' | 'persons' | 'settings' | 'history') => void;
 }
 
 function useCommonFlowProps({
@@ -97,11 +99,12 @@ function useCommonFlowProps({
   selectArrow,
   executionMode,
   clearSelection,
+  highlightPerson,
+  setDashboardTab,
 }: CommonFlowPropsParams) {
   return useMemo(() => {
     // Convert handle-based arrows to ReactFlow edges
     const edges = arrows.map(arrow => DiagramAdapter.arrowToReactFlow(arrow)) as Edge[];
-
     
     const baseProps = {
       fitView: false, // We'll handle fitView manually
@@ -143,7 +146,6 @@ function useCommonFlowProps({
         // Enable left-click selection for all nodes
         selectNode(n.id);
         // Clear highlight on any left-click
-        const { highlightPerson } = useUnifiedStore.getState();
         highlightPerson(null);
       },
       onEdgeClick: (event: React.MouseEvent, e: Edge) => {
@@ -160,7 +162,6 @@ function useCommonFlowProps({
         // Select node and show properties on right-click
         selectNode(node.id);
         // Ensure properties tab is shown
-        const { setDashboardTab, highlightPerson } = useUnifiedStore.getState();
         setDashboardTab('properties');
         
         // If it's a person_job node, highlight which person it's assigned to
@@ -179,7 +180,6 @@ function useCommonFlowProps({
         // Select arrow and show properties on right-click
         selectArrow(edge.id);
         // Ensure properties tab is shown
-        const { setDashboardTab } = useUnifiedStore.getState();
         setDashboardTab('properties');
       },
       onPaneContextMenu: (evt: React.MouseEvent | MouseEvent) => {
@@ -188,7 +188,6 @@ function useCommonFlowProps({
         }
         clearSelection();
         // Clear person highlight when clicking on empty canvas
-        const { highlightPerson } = useUnifiedStore.getState();
         highlightPerson(null);
       },
       className: executionMode ? "bg-gray-900" : "bg-gradient-to-br from-slate-50 to-sky-100",
@@ -210,15 +209,18 @@ function useCommonFlowProps({
     selectNode,
     onNodeDragStart,
     onNodeDragStop,
+    highlightPerson,
+    setDashboardTab,
   ]);
 }
 
 const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) => {
    // Stores & Hooks
-  const context = useCanvasContext();
+  const state = useCanvasState();
+  const operations = useCanvasOperations();
   
   // Extract from canvas hook
-  const { nodes, arrows, onNodesChange, onArrowsChange, onConnect } = context.canvas;
+  const { nodes, arrows, onNodesChange, onArrowsChange, onConnect } = operations.canvasHandlers;
   
   // Extract from interactions hook
   const {
@@ -232,21 +234,27 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     closeContextMenu: _closeContextMenu,
     onNodeDragStartCanvas,
     onNodeDragStopCanvas,
-  } = context.interactions;
+  } = operations.interactions;
   
   // Extract from operation hooks
-  const { addNode: _addNode, deleteNode: _deleteNode } = context.nodeOps;
-  const { deleteArrow: _deleteArrow } = context.arrowOps;
-  const { addPerson } = context.personOps;
+  const { addNode: _addNode, deleteNode: _deleteNode } = operations.nodeOps;
+  const { deleteArrow: _deleteArrow } = operations.arrowOps;
+  const { addPerson } = operations.personOps;
   
   const {
     selectedNodeId,
     selectedArrowId,
     selectedPersonId,
+  } = state;
+  const {
     selectNode,
     selectArrow,
     clearSelection,
-  } = context;
+  } = operations;
+  
+  // Get store methods directly (not inside useMemo) to avoid cross-slice issues
+  const highlightPerson = useUnifiedStore(state => state.highlightPerson);
+  const setDashboardTab = useUnifiedStore(state => state.setDashboardTab);
 
    // React Flow instance helpers
   const flowWrapperRef = useRef<HTMLDivElement>(null);
@@ -326,6 +334,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     selectArrow: (id: string) => selectArrow(arrowId(id)),
     executionMode,
     clearSelection,
+    highlightPerson,
+    setDashboardTab,
   });
 
   /** --------------------------------------------------

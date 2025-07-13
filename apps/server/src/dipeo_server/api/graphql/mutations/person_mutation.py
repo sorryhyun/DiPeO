@@ -4,11 +4,13 @@ import logging
 import uuid
 
 import strawberry
-from dipeo.domain import DomainPerson, LLMService, PersonLLMConfig
-from dipeo.domain import PersonID as DomainPersonID
+from dipeo.models import DomainPerson, LLMService
+from dipeo.models import PersonLLMConfig
+from dipeo.models import PersonID as DomainPersonID
 
 from ..context import GraphQLContext
 from ..types import (
+    ApiKeyID,
     CreatePersonInput,
     DeleteResult,
     DiagramID,
@@ -22,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class PersonMutations:
-    """Handles person/LLM agent CRUD operations."""
+    # Handles person/LLM agent CRUD operations
 
     @strawberry.mutation
     async def create_person(
@@ -31,10 +33,9 @@ class PersonMutations:
         person_input: CreatePersonInput,
         info: strawberry.Info[GraphQLContext],
     ) -> PersonResult:
-        """Creates a new person (LLM agent) in diagram."""
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            diagram_service = context.get_service("diagram_storage_domain_service")
 
             # Use input directly without conversion
 
@@ -57,8 +58,8 @@ class PersonMutations:
             )
 
             # Use mode='json' to serialize enums as values
-            person_data = person.model_dump(mode='json')
-            
+            person_data = person.model_dump(mode="json")
+
             person_data.update(
                 {
                     "temperature": getattr(person_input, "temperature", 0.7),
@@ -91,10 +92,9 @@ class PersonMutations:
     async def update_person(
         self, person_input: UpdatePersonInput, info: strawberry.Info[GraphQLContext]
     ) -> PersonResult:
-        """Updates person configuration and properties."""
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            diagram_service = context.get_service("diagram_storage_domain_service")
 
             # Use input directly without conversion
 
@@ -119,11 +119,25 @@ class PersonMutations:
 
             # Handle both flat and nested llmConfig structures
             # Get existing values with fallbacks for different formats
-            existing_service = person_data.get("service") or person_data.get("llmConfig", {}).get("service", "openai")
-            existing_api_key = person_data.get("api_key_id") or person_data.get("apiKeyId") or person_data.get("llmConfig", {}).get("apiKeyId", "")
-            existing_model = person_data.get("model") or person_data.get("modelName") or person_data.get("llmConfig", {}).get("model", "gpt-4")
-            existing_system_prompt = person_data.get("system_prompt") or person_data.get("systemPrompt") or person_data.get("llmConfig", {}).get("systemPrompt", "")
-            
+            existing_service = person_data.get("service") or person_data.get(
+                "llmConfig", {}
+            ).get("service", "openai")
+            existing_api_key = (
+                person_data.get("api_key_id")
+                or person_data.get("apiKeyId")
+                or person_data.get("llmConfig", {}).get("apiKeyId", "")
+            )
+            existing_model = (
+                person_data.get("model")
+                or person_data.get("modelName")
+                or person_data.get("llmConfig", {}).get("model", "gpt-4")
+            )
+            existing_system_prompt = (
+                person_data.get("system_prompt")
+                or person_data.get("systemPrompt")
+                or person_data.get("llmConfig", {}).get("systemPrompt", "")
+            )
+
             if person_input.label is not None:
                 person_data["label"] = person_input.label
             if person_input.model is not None:
@@ -136,15 +150,21 @@ class PersonMutations:
                     person_data.pop("modelName", None)
             if person_input.api_key_id is not None:
                 person_data["api_key_id"] = person_input.api_key_id
-                person_data["apiKeyId"] = person_input.api_key_id  # Support both formats
+                person_data["apiKeyId"] = (
+                    person_input.api_key_id
+                )  # Support both formats
             if person_input.system_prompt is not None:
                 person_data["system_prompt"] = person_input.system_prompt
-                person_data["systemPrompt"] = person_input.system_prompt  # Support both formats
+                person_data["systemPrompt"] = (
+                    person_input.system_prompt
+                )  # Support both formats
             if person_input.temperature is not None:
                 person_data["temperature"] = person_input.temperature
             if person_input.max_tokens is not None:
                 person_data["maxTokens"] = person_input.max_tokens
-                person_data["max_tokens"] = person_input.max_tokens  # Support both formats
+                person_data["max_tokens"] = (
+                    person_input.max_tokens
+                )  # Support both formats
             if person_input.top_p is not None:
                 person_data["topP"] = person_input.top_p
                 person_data["top_p"] = person_input.top_p  # Support both formats
@@ -154,40 +174,47 @@ class PersonMutations:
                 person_data["service"] = existing_service
 
             try:
-                service = LLMService(person_data.get("service", existing_service).lower())
+                service = LLMService(
+                    person_data.get("service", existing_service).lower()
+                )
             except (ValueError, AttributeError):
                 service = LLMService.openai
 
             # Get the current API key ID - check all possible field names
             current_api_key_id = (
-                person_data.get("api_key_id") or 
-                person_data.get("apiKeyId") or 
-                person_data.get("llmConfig", {}).get("apiKeyId") or
-                person_data.get("llmConfig", {}).get("api_key_id") or
-                existing_api_key
+                person_data.get("api_key_id")
+                or person_data.get("apiKeyId")
+                or person_data.get("llmConfig", {}).get("apiKeyId")
+                or person_data.get("llmConfig", {}).get("api_key_id")
+                or existing_api_key
             )
-            
+
             if not current_api_key_id:
                 return PersonResult(
                     success=False,
-                    error="API key ID is required for person configuration"
+                    error="API key ID is required for person configuration",
                 )
-            
+
             updated_person = DomainPerson(
                 id=person_input.id,
                 label=person_data["label"],
                 llm_config=PersonLLMConfig(  # Use snake_case for field name
                     service=service,
-                    model=person_data.get("model") or person_data.get("modelName") or existing_model or "gpt-4",  # Default to gpt-4 if no model
+                    model=person_data.get("model")
+                    or person_data.get("modelName")
+                    or existing_model
+                    or "gpt-4",  # Default to gpt-4 if no model
                     api_key_id=current_api_key_id,  # Use snake_case as expected by the model
-                    system_prompt=person_data.get("system_prompt") or person_data.get("systemPrompt") or existing_system_prompt,
+                    system_prompt=person_data.get("system_prompt")
+                    or person_data.get("systemPrompt")
+                    or existing_system_prompt,
                 ),
                 type=person_data.get("type", "person"),
             )
 
             # Use mode='json' to serialize enums as values
-            person_dict = updated_person.model_dump(mode='json')
-            
+            person_dict = updated_person.model_dump(mode="json")
+
             # Store additional fields for backward compatibility
             person_dict.update(
                 {
@@ -221,10 +248,9 @@ class PersonMutations:
     async def delete_person(
         self, person_id: PersonID, info: strawberry.Info[GraphQLContext]
     ) -> DeleteResult:
-        """Removes person and updates referencing nodes."""
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            diagram_service = context.get_service("diagram_storage_domain_service")
 
             diagrams = await diagram_service.list_files()
             diagram_id = None
@@ -265,50 +291,25 @@ class PersonMutations:
 
     @strawberry.mutation
     async def initialize_model(
-        self, info: strawberry.Info[GraphQLContext], person_id: PersonID
+        self,
+        info: strawberry.Info[GraphQLContext],
+        person_id: PersonID,
+        api_key_id: ApiKeyID,
+        model: str,
+        label: str = "",
     ) -> PersonResult:
-        """Warms up model for faster first execution."""
         try:
             context: GraphQLContext = info.context
-            llm_service = context.llm_service
-            diagram_service = context.diagram_storage_service
+            llm_service = context.get_service("llm_service")
 
-            person_data = None
-
-            diagrams = await diagram_service.list_files()
-            for diagram_meta in diagrams:
-                diagram = await diagram_service.read_file(diagram_meta.path)
-                if person_id in diagram.get("persons", {}):
-                    person_data = diagram["persons"][person_id]
-                    break
-
-            if not person_data:
+            # Validate API key exists
+            try:
+                api_key_data = context.get_service("api_key_service").get_api_key(api_key_id)
+                service_str = api_key_data["service"]
+            except Exception:
                 return PersonResult(
-                    success=False, error=f"Person {person_id} not found"
+                    success=False, error=f"API key {api_key_id} not found"
                 )
-
-            # Check for API key in multiple possible locations
-            api_key_id = (
-                person_data.get("api_key_id") or 
-                person_data.get("apiKeyId") or
-                person_data.get("llm_config", {}).get("api_key_id") or
-                person_data.get("llm_config", {}).get("apiKeyId") or
-                person_data.get("llmConfig", {}).get("api_key_id") or
-                person_data.get("llmConfig", {}).get("apiKeyId")
-            )
-            if not api_key_id:
-                return PersonResult(
-                    success=False, error=f"Person {person_id} has no API key configured"
-                )
-
-            service_str = context.api_key_service.get_api_key(api_key_id)["service"]
-            model = (
-                person_data.get("model") or 
-                person_data.get("modelName") or
-                person_data.get("llm_config", {}).get("model") or
-                person_data.get("llmConfig", {}).get("model") or
-                "gpt-4o-mini"
-            )
 
             # Initialize the model by making a simple call
             messages = [{"role": "user", "content": "Say 'initialized'"}]
@@ -325,20 +326,14 @@ class PersonMutations:
 
             person = DomainPerson(
                 id=person_id,
-                label=person_data.get("label", ""),
-                llm_config=PersonLLMConfig(  # Use snake_case for field name
+                label=label,
+                llm_config=PersonLLMConfig(
                     service=service,
                     model=model,
-                    api_key_id=api_key_id,  # Use snake_case
-                    system_prompt=(
-                        person_data.get("system_prompt") or
-                        person_data.get("systemPrompt") or
-                        person_data.get("llm_config", {}).get("system_prompt") or
-                        person_data.get("llmConfig", {}).get("systemPrompt") or
-                        ""
-                    ),
+                    api_key_id=api_key_id,
+                    system_prompt="",
                 ),
-                type=person_data.get("type", "person"),
+                type="person",
             )
 
             return PersonResult(
@@ -355,10 +350,9 @@ class PersonMutations:
 
     @strawberry.mutation
     async def clear_conversations(self, info: strawberry.Info) -> DeleteResult:
-        """Clear all conversation history for all persons."""
         try:
             context: GraphQLContext = info.context
-            conversation_service = context.conversation_service
+            conversation_service = context.get_service("conversation_service")
 
             # Clear all conversations
             conversation_service.clear_all_conversations()

@@ -1,0 +1,1 @@
+"""Notion domain module."""

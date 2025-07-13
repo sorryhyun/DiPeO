@@ -1,8 +1,10 @@
-import { create } from "zustand";
+import { create, StateCreator } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { ArrowID, NodeID, PersonID } from '@/core/types';
+import { ArrowID, NodeID, PersonID, HandleID } from '@/core/types';
 import { UnifiedStore } from "./unifiedStore.types";
+import { logger } from "./middleware/debugMiddleware";
+import { initializeArraySync } from "./middleware/arraySyncSubscriber";
 
 // Import slices
 import {
@@ -43,10 +45,13 @@ const devtoolsOptions = {
   }
 };
 
-export const useUnifiedStore = create<UnifiedStore>()(
-  devtools(
-    subscribeWithSelector(
-      immer((set, get, api) => ({
+const createStore = () => {
+  const storeCreator: StateCreator<
+    UnifiedStore,
+    [['zustand/immer', never]],
+    [],
+    UnifiedStore
+  > = (set, get, api) => ({
         // Compose all slices
         ...createDiagramSlice(set, get, api),
         ...createComputedSlice(set, get, api),
@@ -75,53 +80,59 @@ export const useUnifiedStore = create<UnifiedStore>()(
           return get().history.redoStack.length > 0;
         },
         
-        undo: () => set(state => {
+        undo: () => {
+          const state = get();
           if (state.history.undoStack.length === 0) return;
 
-          state.history.redoStack.push(createFullSnapshot(state));
-          const snapshot = state.history.undoStack.pop();
-          
+          const snapshot = state.history.undoStack[state.history.undoStack.length - 1];
           if (snapshot) {
-            Object.assign(state, {
-              nodes: new Map(snapshot.nodes),
-              arrows: new Map(snapshot.arrows),
-              persons: new Map(snapshot.persons),
-              handles: new Map(snapshot.handles)
+            // Save current state to redo stack
+            set(state => {
+              state.history.redoStack.push(createFullSnapshot(state));
+              state.history.undoStack.pop();
             });
             
-            // Rebuild handle index for O(1) lookups
-            state.handleIndex = rebuildHandleIndex(state.handles);
+            // Use silent restore methods to avoid multiple dataVersion increments
+            state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
+            state.restorePersonsSilently(snapshot.persons);
             
-            // Update arrays after restoring maps
-            state.nodesArray = Array.from(state.nodes.values());
-            state.arrowsArray = Array.from(state.arrows.values());
-            state.personsArray = Array.from(state.persons.values());
+            // Restore unified store data
+            set(state => {
+              state.handles = new Map(snapshot.handles);
+              state.handleIndex = rebuildHandleIndex(state.handles);
+            });
+            
+            // Trigger array sync once through the diagram slice
+            state.triggerArraySync();
           }
-        }),
+        },
 
-        redo: () => set(state => {
+        redo: () => {
+          const state = get();
           if (state.history.redoStack.length === 0) return;
 
-          state.history.undoStack.push(createFullSnapshot(state));
-          const snapshot = state.history.redoStack.pop();
-          
+          const snapshot = state.history.redoStack[state.history.redoStack.length - 1];
           if (snapshot) {
-            Object.assign(state, {
-              nodes: new Map(snapshot.nodes),
-              arrows: new Map(snapshot.arrows),
-              persons: new Map(snapshot.persons),
-              handles: new Map(snapshot.handles)
+            // Save current state to undo stack
+            set(state => {
+              state.history.undoStack.push(createFullSnapshot(state));
+              state.history.redoStack.pop();
             });
             
-            // Rebuild handle index for O(1) lookups
-            state.handleIndex = rebuildHandleIndex(state.handles);
+            // Use silent restore methods to avoid multiple dataVersion increments
+            state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
+            state.restorePersonsSilently(snapshot.persons);
             
-            // Update arrays after restoring maps
-            state.nodesArray = Array.from(state.nodes.values());
-            state.arrowsArray = Array.from(state.arrows.values());
-            state.personsArray = Array.from(state.persons.values());
+            // Restore unified store data
+            set(state => {
+              state.handles = new Map(snapshot.handles);
+              state.handleIndex = rebuildHandleIndex(state.handles);
+            });
+            
+            // Trigger array sync once through the diagram slice
+            state.triggerArraySync();
           }
-        }),
+        },
 
         // === Transactions ===
         transaction: (fn) => {
@@ -150,41 +161,87 @@ export const useUnifiedStore = create<UnifiedStore>()(
         // === Utilities ===
         createSnapshot: () => createFullSnapshot(get()),
 
-        restoreSnapshot: (snapshot) => set(state => {
-          Object.assign(state, {
-            nodes: new Map(snapshot.nodes),
-            arrows: new Map(snapshot.arrows),
-            persons: new Map(snapshot.persons),
-            handles: new Map(snapshot.handles),
-            dataVersion: state.dataVersion + 1,
+        restoreSnapshot: (snapshot) => {
+          const state = get();
+          
+          // Use silent restore methods to avoid multiple dataVersion increments
+          state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
+          state.restorePersonsSilently(snapshot.persons);
+          
+          // Update UnifiedStore-specific data
+          set(state => {
+            state.handles = new Map(snapshot.handles);
+            state.handleIndex = rebuildHandleIndex(snapshot.handles);
           });
           
-          // Rebuild handle index for O(1) lookups
-          state.handleIndex = rebuildHandleIndex(state.handles);
+          // Trigger array sync once through the diagram slice
+          state.triggerArraySync();
+        },
+
+        // Handle cleanup method for node deletion
+        cleanupNodeHandles: (nodeId: NodeID) => {
+          set(state => {
+            const handleIdsToDelete: HandleID[] = [];
+            state.handles.forEach((handle, handleId) => {
+              if (handle.node_id === nodeId) {
+                handleIdsToDelete.push(handleId);
+              }
+            });
+            
+            handleIdsToDelete.forEach(handleId => {
+              state.handles.delete(handleId);
+            });
+            
+            state.handleIndex.delete(nodeId);
+          });
+        },
+        
+        clearAll: () => {
+          const state = get();
+          // Use slice methods to clear data properly
+          state.clearDiagram();
+          state.clearPersons();
+          state.stopExecution();
+          state.clearUIState();
           
-          // Update arrays after restoring maps
-          state.nodesArray = Array.from(state.nodes.values());
-          state.arrowsArray = Array.from(state.arrows.values());
-          state.personsArray = Array.from(state.persons.values());
-        }),
+          // Clear unified store specific data
+          set(state => {
+            state.handles = new Map();
+            state.handleIndex = new Map();
+          });
+        },
+  });
 
-        clearAll: () => set(state => {
-          state.nodes = new Map();
-          state.arrows = new Map();
-          state.persons = new Map();
-          state.handles = new Map();
-          state.handleIndex = new Map();
-          state.nodesArray = [];
-          state.arrowsArray = [];
-          state.personsArray = [];
-          state.dataVersion = 0;
-        }),
+  // Apply middleware based on environment
+  if (import.meta.env.DEV) {
+    return create<UnifiedStore>()(
+      logger(
+        devtools(
+          subscribeWithSelector(
+            immer(storeCreator)
+          ),
+          devtoolsOptions
+        ),
+        'UnifiedStore'
+      )
+    );
+  }
 
-      }))
-    ),
-    devtoolsOptions
-  )
-);
+  // Production build without logger
+  return create<UnifiedStore>()(
+    devtools(
+      subscribeWithSelector(
+        immer(storeCreator)
+      ),
+      devtoolsOptions
+    )
+  );
+};
+
+export const useUnifiedStore = createStore();
+
+// Initialize array synchronization
+initializeArraySync(useUnifiedStore);
 
 // Store initialization is now handled by the backend
 // Auto-save and diagram persistence are managed through GraphQL

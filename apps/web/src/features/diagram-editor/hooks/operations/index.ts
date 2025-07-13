@@ -1,4 +1,5 @@
 // Operation hooks for domain CRUD operations
-export * from './useNodeOperations';
-export * from './useArrowOperations';
-export * from './usePersonOperations';
+// These hooks have been moved to @/core/store/hooks
+// Please import them directly from there instead
+
+export {};

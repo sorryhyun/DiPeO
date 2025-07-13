@@ -1,0 +1,1 @@
+"""LLM domain repository interfaces."""

@@ -36,9 +36,15 @@ logger = logging.getLogger(__name__)
 from dipeo_server.api.graphql.schema import (
     create_unified_graphql_router as create_graphql_router,
 )
-from dipeo_server.application.app_context import app_context
+from dipeo_server.application.app_context import (
+    get_container,
+    initialize_container,
+)
+from dipeo_server.application.container import (
+    init_server_resources,
+    shutdown_server_resources,
+)
 
-logger.info("🚀 Using UNIFIED architecture with direct streaming")
 
 from dipeo_server.api.graphql.context import get_graphql_context
 from dipeo_server.api.middleware import setup_middleware
@@ -46,9 +52,11 @@ from dipeo_server.api.middleware import setup_middleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await app_context.startup()
+    # Initialize container
+    container = initialize_container()
+    await init_server_resources(container)
     yield
-    await app_context.shutdown()
+    await shutdown_server_resources(container)
 
 
 app = FastAPI(
@@ -61,6 +69,11 @@ setup_middleware(app)
 
 graphql_router = create_graphql_router(context_getter=get_graphql_context)
 app.include_router(graphql_router, prefix="")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "service": "dipeo-server"}
 
 
 @app.get("/metrics")

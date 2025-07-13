@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { Input, Select, Switch, Spinner, FileUploadButton } from '@/shared/components/ui';
+import { Input, Select, Switch } from '@/shared/components/forms';
+import { Spinner } from '@/shared/components/feedback';
+import { FileUploadButton } from '@/shared/components/forms/buttons';
 import { 
   FULL_WIDTH, SPACE_Y_2, TEXTAREA_CLASSES, LABEL_TEXT, 
   ERROR_TEXT, ERROR_TEXT_MT, HELPER_TEXT, HELPER_TEXT_MT, 
   REQUIRED_ASTERISK, FLEX_CENTER_GAP 
 } from '../styles.constants';
-import { readFileAsText } from '@/shared/utils/file';
+import { readFileAsText } from '@/lib/utils/file';
 import { FIELD_TYPES } from '@/core/types/panel';
 import { LEGACY_TYPE_MAP } from '@/core/types/fieldTypeRegistry';
 import { PromptFileButton } from '../PromptFileButton';
@@ -140,7 +142,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Select
       id={p.fieldId}
       value={String(p.value || '')}
-      onValueChange={(value) => {
+      onValueChange={(value: string) => {
         // Handle empty string as null/undefined for consistency
         p.onChange(value === '' ? null : value);
       }}
@@ -217,7 +219,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
         <Input
           id={p.fieldId}
           value={String(p.value || '')}
-          onChange={(e) => p.onChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
           placeholder={p.placeholder || "Enter file path or upload below"}
           disabled={p.isLoadingState}
           className={FULL_WIDTH}

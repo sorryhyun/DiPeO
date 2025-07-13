@@ -1,69 +1,83 @@
-"""
-DiPeO Application Package.
-
-Application orchestration layer providing use cases and node handlers.
-"""
+# DiPeO Application Package.
 
 # Context
-from .context.application_execution_context import ApplicationExecutionContext
+from .execution.context import UnifiedExecutionContext
 
 # Engine components
-from .engine import ExecutionEngine, ExecutionController, LocalExecutionView
+from .engine import TypedExecutionEngine
+
+# Execution framework (moved from core)
+from .execution import (
+    TypedNodeHandler,
+    HandlerRegistry,
+    register_handler,
+    get_global_registry,
+    ExecutionContext,
+    ExecutionOptions,
+    NodeDefinition,
+    NodeHandler,
+)
 
 # Handlers
-from .handlers import (
+from dipeo.application.execution.handlers import (
     StartNodeHandler,
     EndpointNodeHandler,
     ConditionNodeHandler,
-    DBNodeHandler,
+    DBTypedNodeHandler,
     HookNodeHandler,
     PersonJobNodeHandler,
     PersonBatchJobNodeHandler,
     ApiJobNodeHandler,
     CodeJobNodeHandler,
     NotionNodeHandler,
-    JobNodeHandler,
     UserResponseNodeHandler,
 )
 
 # Services
-from .services import MinimalMessageRouter, MinimalStateStore
+# Note: MinimalMessageRouter and MinimalStateStore have been removed
 
 # Utilities
-from .utils.conversation_utils import ConversationUtils, InputDetector, MessageBuilder
-from .utils.template import substitute_template
+from .utils.conversation_utils import InputDetector, MessageBuilder
 
 # Execution
-from .execution import LocalExecutionService
+from .execution.use_cases import ExecuteDiagramUseCase
+
+# Protocols
+from .protocols import ExecutionObserver
 
 __all__ = [
     # Context
-    "ApplicationExecutionContext",
+    "UnifiedExecutionContext",
     # Engine
-    "ExecutionEngine",
-    "ExecutionController",
-    "LocalExecutionView",
+    "TypedExecutionEngine",
     # Execution
-    "LocalExecutionService",
+    "ExecuteDiagramUseCase",
+    # Execution framework (moved from core)
+    "TypedNodeHandler",
+    "HandlerRegistry",
+    "register_handler",
+    "get_global_registry",
+    "ExecutionContext",
+    "ExecutionOptions",
+    "NodeDefinition",
+    "NodeHandler",
     # Handlers
     "StartNodeHandler",
     "EndpointNodeHandler",
     "ConditionNodeHandler",
-    "DBNodeHandler",
+    "DBTypedNodeHandler",
     "HookNodeHandler",
     "PersonJobNodeHandler",
     "PersonBatchJobNodeHandler",
     "ApiJobNodeHandler",
     "CodeJobNodeHandler",
     "NotionNodeHandler",
-    "JobNodeHandler",
     "UserResponseNodeHandler",
     # Services
-    "MinimalMessageRouter",
-    "MinimalStateStore",
+    # Note: MinimalMessageRouter and MinimalStateStore have been removed
     # Utilities
-    "ConversationUtils",
     "InputDetector",
     "MessageBuilder",
-    "substitute_template",
+    # Protocols
+    "ExecutionObserver",
 ]

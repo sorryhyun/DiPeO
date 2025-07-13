@@ -1,6 +1,6 @@
-"""Application services for minimal/local execution."""
+"""Application services."""
 
-from .minimal_state_store import MinimalStateStore
-from .minimal_message_router import MinimalMessageRouter
 
-__all__ = ["MinimalStateStore", "MinimalMessageRouter"]
+from .person_manager_impl import PersonManagerImpl
+
+__all__ = ["PersonManagerImpl"]

@@ -60,4 +60,5 @@ export interface UnifiedStore extends
   createSnapshot: () => Snapshot;
   restoreSnapshot: (snapshot: Snapshot) => void;
   clearAll: () => void;
+  cleanupNodeHandles: (nodeId: NodeID) => void;
 }

@@ -8,9 +8,9 @@
 import React, { useRef, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react';
-import { isWithinTolerance } from '@/shared/utils/math';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { useUIState } from '@/shared/hooks/selectors';
+import { isWithinTolerance } from '@/lib/utils/math';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUIState } from '@/core/store/hooks/state';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
 import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
 import { NodeType, type NodeID, type ArrowID, type HandleID } from '@dipeo/domain-models';
@@ -69,7 +69,10 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     deleteArrow,
     updateNode,
     deleteNode,
-    transaction
+    transaction,
+    select,
+    clearSelection,
+    selectedId
   } = useUnifiedStore(useShallow(state => ({
     nodes: state.nodes,
     arrows: state.arrows,
@@ -84,7 +87,10 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     deleteArrow: state.deleteArrow,
     updateNode: state.updateNode,
     deleteNode: state.deleteNode,
-    transaction: state.transaction
+    transaction: state.transaction,
+    select: state.select,
+    clearSelection: state.clearSelection,
+    selectedId: state.selectedId
   })));
   
   // We get arrays directly from store now, but keep handlesArray for local use
@@ -116,9 +122,6 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
       }
     };
   }, []);
-  
-  // Store for unified store access  
-  const store = useUnifiedStore;
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     if (readOnly || isMonitorMode) return;
@@ -146,7 +149,6 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
       } else if (change.type === 'remove' && 'id' in change) {
         deleteNode(change.id as NodeID);
       } else if (change.type === 'select' && 'selected' in change && 'id' in change) {
-        const { select, clearSelection, selectedId } = store.getState();
         if (change.selected) {
           select(change.id as NodeID, 'node');
         } else if (selectedId === change.id) {
@@ -154,7 +156,7 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
         }
       }
     });
-  }, [readOnly, isMonitorMode, isExecutionMode, nodesMap, updateNode, deleteNode, store]);
+  }, [readOnly, isMonitorMode, isExecutionMode, nodesMap, updateNode, deleteNode, select, clearSelection, selectedId]);
   
   const onArrowsChange = useCallback((changes: EdgeChange[]) => {
     if (readOnly || isMonitorMode || isExecutionMode) return;

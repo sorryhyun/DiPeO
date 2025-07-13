@@ -112,7 +112,7 @@ def main():
     python_files = []
     
     # Add all Python source directories
-    for pattern in ["packages/python/*/src/**/*.py", "apps/*/src/**/*.py"]:
+    for pattern in ["dipeo/**/*.py", "apps/*/src/**/*.py"]:
         python_files.extend(root_dir.glob(pattern))
     
     # Exclude generated files
@@ -136,7 +136,7 @@ def main():
         
         print(f"\nTotal violations: {len(all_violations)}")
         print("\nTo fix these violations, import and use the appropriate enums:")
-        print("  from dipeo_domain import NodeType, HandleLabel")
+        print("  from dipeo.models import NodeType, HandleLabel")
         sys.exit(1)
     else:
         print("✓ No string literal violations found!")

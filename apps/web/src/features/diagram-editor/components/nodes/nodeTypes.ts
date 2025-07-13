@@ -1,10 +1,10 @@
 // Node types mapping for React Flow
-import { UNIFIED_NODE_CONFIGS } from '@/core/config';
+import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
 import ConfigurableNode from './ConfigurableNode';
 
 // Create node types object for React Flow using NODE_CONFIGS
 const nodeTypes = Object.fromEntries(
-  Object.keys(UNIFIED_NODE_CONFIGS).map((nodeType) => [
+  Object.keys(NODE_CONFIGS_MAP).map((nodeType) => [
     nodeType,
     ConfigurableNode
   ])

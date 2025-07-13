@@ -7,8 +7,9 @@ from datetime import UTC, datetime
 
 import yaml
 from dipeo.diagram import converter_registry
-from dipeo.domain import DiagramMetadata, DomainDiagram
-from dipeo.domain.domains.diagram.services import DiagramFileRepository
+from dipeo.models import DomainDiagram
+from dipeo.models import DiagramMetadata
+from dipeo.infra.persistence.diagram import DiagramFileRepository
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 from ..types import (
@@ -32,7 +33,7 @@ class DiagramResolver:
 
             # Use storage service to find and load diagram data
             storage_service: DiagramFileRepository = (
-                info.context.diagram_storage_service
+                info.context.get_service("diagram_storage_domain_service")
             )
 
             # Find the diagram file
@@ -64,7 +65,9 @@ class DiagramResolver:
                 logger.info(f"Detected readable format for diagram {diagram_id}")
                 # Convert to YAML string for readable format processing
                 yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-                domain_diagram = converter_registry.deserialize(yaml_content, "readable")
+                domain_diagram = converter_registry.deserialize(
+                    yaml_content, "readable"
+                )
             else:
                 # For native format, use converter registry
                 json_content = json.dumps(diagram_data)
@@ -106,7 +109,7 @@ class DiagramResolver:
         try:
             # Use new storage service
             storage_service: DiagramFileRepository = (
-                info.context.diagram_storage_service
+                info.context.get_service("diagram_storage_domain_service")
             )
 
             file_infos = await storage_service.list_files()

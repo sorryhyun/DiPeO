@@ -40,8 +40,6 @@ function parseArgs(): CliOpts {
       resolve(
         __dirname,
         '..',
-        '..',
-        'domain',
         'conversions.py'
       ),
   };
@@ -122,7 +120,7 @@ def create_handle_id(
     direction: HandleDirection,
 ) -> HandleID:
     """Compose a handle ID the same way the frontend expects it."""
-    return f"handle:{node_id}:{handle_label}:{direction.name.lower()}"  # type: ignore[return-value]
+    return f"{node_id}_{handle_label}_{direction.value}"  # type: ignore[return-value]
 
 
 class ParsedHandle(TypedDict):
@@ -133,9 +131,9 @@ class ParsedHandle(TypedDict):
 
 def parse_handle_id(handle_id: HandleID) -> ParsedHandle:
     parts = handle_id.split("_")
-    if len(parts) != 4 or parts[0] != "handle":
+    if len(parts) != 3:
         raise ValueError(f"Invalid handle ID: {handle_id}")
-    _, node_id, label, dir_str = parts
+    node_id, label, dir_str = parts
     try:
         direction = HandleDirection[dir_str.upper()]
     except KeyError as exc:

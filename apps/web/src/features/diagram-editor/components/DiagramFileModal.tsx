@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal } from '@/shared/components/ui/feedback/Modal';
+import { Modal } from '@/shared/components/feedback';
 import { DiagramFileManager } from '@/features/diagram-editor';
 
 interface DiagramFileModalProps {

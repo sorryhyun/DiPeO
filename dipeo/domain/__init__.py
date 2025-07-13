@@ -7,16 +7,6 @@ These models are auto-generated from TypeScript definitions.
 
 __version__ = "0.1.0"
 
-# Import all models
-from .models import *  # noqa: F401, F403
-
-# Import handle utilities
-from .handle_utils import (
-    create_handle_id,
-    parse_handle_id,
-    HandleReference,
-)
-
 # Import service utilities
 from .service_utils import (
     is_llm_service,
@@ -29,16 +19,7 @@ from .service_utils import (
     LLM_SERVICE_TYPES,
 )
 
-# Rebuild models to resolve forward references
-from .models import DomainDiagram
-
-DomainDiagram.model_rebuild()
-
 __all__ = [
-    # Handle utilities
-    "create_handle_id",
-    "parse_handle_id",
-    "HandleReference",
     # Service utilities
     "is_llm_service",
     "api_service_type_to_llm_service",

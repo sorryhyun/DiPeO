@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Modal, Button } from '@/shared/components/ui';
+import { Modal } from '@/shared/components/feedback';
+import { Button } from '@/shared/components/forms/buttons';
 import { Loader2, FileText, FileCode, File } from 'lucide-react';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { GetPromptFilesDocument, GetPromptFileDocument } from '@/__generated__/graphql';

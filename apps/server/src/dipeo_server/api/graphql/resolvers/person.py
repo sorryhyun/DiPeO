@@ -2,7 +2,8 @@
 
 import logging
 
-from dipeo.domain import LLMService, APIServiceType, DomainApiKey, DomainPerson
+from dipeo.models import LLMService, DomainPerson
+from dipeo.models import APIServiceType, DomainApiKey
 
 from ..context import GraphQLContext
 from ..types import (
@@ -34,7 +35,7 @@ class PersonResolver:
         """Returns API key by ID."""
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
             api_key_data = api_key_service.get_api_key(api_key_id)
 
@@ -51,7 +52,6 @@ class PersonResolver:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=self._map_api_service(api_key_data["service"]),
-                masked_key=f"{api_key_data['service']}-****",
             )
 
         except Exception as e:
@@ -62,10 +62,9 @@ class PersonResolver:
         """Returns API key list, optionally filtered."""
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
             all_keys = api_key_service.list_api_keys()
-            logger.info(f"Found {len(all_keys)} total API keys")
 
             if service:
                 all_keys = [k for k in all_keys if k["service"] == service]
@@ -77,7 +76,6 @@ class PersonResolver:
                         id=key_data["id"],
                         label=key_data["label"],
                         service=self._map_api_service(key_data["service"]),
-                        masked_key=f"{key_data['service']}-****",
                     )
                     result.append(pydantic_api_key)
                 else:
@@ -97,11 +95,9 @@ class PersonResolver:
         """Returns available models for service/API key."""
         try:
             context: GraphQLContext = info.context
-            llm_service = context.llm_service
+            llm_service = context.get_service("llm_service")
 
-            return await llm_service.get_available_models_for_service(
-                service=service, api_key_id=api_key_id
-            )
+            return await llm_service.get_available_models(api_key_id=api_key_id)
 
         except Exception as e:
             logger.error(

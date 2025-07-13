@@ -6,7 +6,7 @@ import {
   ControlExecutionDocument,
   SubmitInteractiveResponseDocument,
 } from '@/__generated__/graphql';
-import { createEntityMutation, createEntitySubscription } from '@/graphql/hooks';
+import { createEntityMutation, createEntitySubscription } from '@/lib/graphql/hooks';
 
 export interface UseExecutionGraphQLProps {
   executionId: string | null;

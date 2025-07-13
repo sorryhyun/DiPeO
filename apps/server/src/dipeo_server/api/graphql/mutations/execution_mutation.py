@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 
 import strawberry
-from dipeo.domain import (
+from dipeo.models import (
     ExecutionStatus,
 )
 
@@ -23,15 +23,26 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class ExecutionMutations:
-    """Handles diagram execution via GraphQL API."""
+    # Handles diagram execution via GraphQL API
 
     @strawberry.mutation
     async def execute_diagram(self, data: ExecuteDiagramInput, info) -> ExecutionResult:
-        """Starts diagram execution with provided configuration."""
         try:
             context: GraphQLContext = info.context
             execution_service = context.execution_service
-            state_store = context.state_store
+            state_store = context.get_service("state_store")
+
+            if state_store is None:
+                logger.error("State store is None!")
+                return ExecutionResult(
+                    success=False, error="State store not initialized"
+                )
+
+            if execution_service is None:
+                logger.error("Execution service is None!")
+                return ExecutionResult(
+                    success=False, error="Execution service not initialized"
+                )
 
             if data.diagram_data:
                 # The execution service will validate as DomainDiagram which expects lists
@@ -40,7 +51,7 @@ class ExecutionMutations:
                 diagram_data = data.diagram_data
             elif data.diagram_id:
                 # Use new services
-                storage_service = context.diagram_storage_service
+                storage_service = context.get_service("diagram_storage_domain_service")
                 path = await storage_service.find_by_id(data.diagram_id)
                 if path:
                     diagram_data = await storage_service.read_file(path)
@@ -55,6 +66,7 @@ class ExecutionMutations:
                 "debugMode": data.debug_mode,
                 "maxIterations": data.max_iterations,
                 "timeout": data.timeout_seconds,
+                "variables": data.variables or {},
             }
 
             diagram_id = data.diagram_id if data.diagram_id else None
@@ -93,7 +105,10 @@ class ExecutionMutations:
             logger.error(f"Validation error executing diagram: {e}")
             return ExecutionResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
+            import traceback
+
             logger.error(f"Failed to execute diagram: {e}")
+            logger.error(f"Full traceback:\n{traceback.format_exc()}")
             return ExecutionResult(
                 success=False, error=f"Failed to execute diagram: {e!s}"
             )
@@ -102,11 +117,10 @@ class ExecutionMutations:
     async def control_execution(
         self, data: ExecutionControlInput, info
     ) -> ExecutionResult:
-        """Controls execution state (pause/resume/abort/skip)."""
         try:
             context: GraphQLContext = info.context
-            state_store = context.state_store
-            message_router = context.message_router
+            state_store = context.get_service("state_store")
+            message_router = context.get_service("message_router")
 
             state = await state_store.get_state(data.execution_id)
             if not state:
@@ -168,11 +182,10 @@ class ExecutionMutations:
     async def submit_interactive_response(
         self, data: InteractiveResponseInput, info
     ) -> ExecutionResult:
-        """Handles interactive node responses from users."""
         try:
             context: GraphQLContext = info.context
-            state_store = context.state_store
-            message_router = context.message_router
+            state_store = context.get_service("state_store")
+            message_router = context.get_service("message_router")
 
             execution_state = await state_store.get_state(data.execution_id)
             if not execution_state:
@@ -221,7 +234,6 @@ class ExecutionMutations:
 
 
 def _map_status(status: str) -> ExecutionStatus:
-    """Maps status string to ExecutionStatus enum."""
     status_map = {
         "pending": ExecutionStatus.PENDING,
         "running": ExecutionStatus.RUNNING,
@@ -234,7 +246,6 @@ def _map_status(status: str) -> ExecutionStatus:
 
 
 def _map_action_to_status(action: str, current_status: str) -> ExecutionStatus:
-    """Maps control action to execution status."""
     current = _map_status(current_status)
     action_map = {
         "pause": ExecutionStatus.PAUSED,

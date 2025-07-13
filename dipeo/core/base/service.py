@@ -11,18 +11,15 @@ class BaseService(ABC):
     """Base service class with common functionality for DiPeO services."""
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """Initialize the service with optional configuration."""
         self.config = config or {}
 
     @abstractmethod
     async def initialize(self) -> None:
-        """Initialize the service. Must be implemented by subclasses."""
         pass
 
     def validate_required_fields(
         self, data: Dict[str, Any], required_fields: list[str]
     ) -> None:
-        """Validate that all required fields are present in the data."""
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             raise ValidationError(
@@ -32,7 +29,7 @@ class BaseService(ABC):
     def validate_file_path(
         self, file_path: str, allowed_base: Optional[Path] = None
     ) -> Path:
-        """Validate file path for security."""
+        # Validate file path for security
         rel_path = Path(file_path)
 
         if allowed_base is None:
@@ -47,7 +44,7 @@ class BaseService(ABC):
         return full_path
 
     def safe_get_nested(self, obj: Any, path: str, default: Any = None) -> Any:
-        """Safely get nested value from object using dot notation."""
+        # Get nested value using dot notation
         if obj is None:
             return default
 
@@ -69,5 +66,4 @@ class BaseService(ABC):
             return default
 
     def get_config_value(self, key: str, default: Any = None) -> Any:
-        """Get configuration value with optional default."""
         return self.safe_get_nested(self.config, key, default)

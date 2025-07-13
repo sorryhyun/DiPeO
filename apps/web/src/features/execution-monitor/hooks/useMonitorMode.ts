@@ -11,7 +11,7 @@ import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoad
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
-import type { DomainDiagramType } from '@/__generated__/graphql';
+import { type DomainDiagram, diagramId as createDiagramId } from '@/core/types';
 
 export interface UseMonitorModeOptions {
   autoStart?: boolean;
@@ -78,16 +78,13 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
     const personsArray = Array.from(persons.values());
     const handlesArray = Array.from(handles.values());
     
-    const diagram: DomainDiagramType = {
+    const diagram: DomainDiagram = {
       nodes: nodesArray,
       arrows: arrowsArray,
       persons: personsArray,
       handles: handlesArray,
-      nodeCount: nodesArray.length,
-      arrowCount: arrowsArray.length,
-      personCount: personsArray.length,
       metadata: {
-        id: diagramId || diagramName || 'temp-execution',
+        id: createDiagramId(diagramId || diagramName || 'temp-execution'),
         name: diagramName || 'Untitled Diagram',
         version: '1.0',
         created: new Date().toISOString(),

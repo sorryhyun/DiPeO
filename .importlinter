@@ -29,7 +29,6 @@ forbidden_modules =
     dipeo.application
     dipeo.infra
     dipeo.container
-    dipeo.diagram
 
 [importlinter:contract:4]
 name = Diagram module should not depend on Application or Infrastructure
@@ -48,5 +47,18 @@ layers =
     dipeo.application
     dipeo.infra
     dipeo.domain
-    dipeo.diagram
     dipeo.core
+    dipeo.diagram
+    dipeo.models
+
+[importlinter:contract:6]
+name = Models are at the base layer
+type = forbidden
+source_modules = 
+    dipeo.models
+forbidden_modules = 
+    dipeo.domain
+    dipeo.application
+    dipeo.infra
+    dipeo.container
+    dipeo.diagram

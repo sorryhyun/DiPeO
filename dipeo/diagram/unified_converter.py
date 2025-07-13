@@ -1,9 +1,10 @@
-"""Unified converter that uses format strategies."""
+# Unified converter that uses format strategies
 
 import logging
 from typing import Any
 
-from dipeo.domain import (
+from dipeo.models import (
+    ContentType,
     DataType,
     DomainArrow,
     DomainDiagram,
@@ -11,15 +12,16 @@ from dipeo.domain import (
     DomainNode,
     HandleDirection,
     HandleLabel,
+    NodeType,
+    parse_handle_id,
 )
 
-# Ensure models are rebuilt to resolve forward references
 DomainDiagram.model_rebuild()
 
 from .base import DiagramConverter, FormatStrategy
 from .conversion_utils import backend_to_graphql, BackendDiagram
-from dipeo.domain.conversions import node_kind_to_domain_type
-from dipeo.domain import create_handle_id
+from dipeo.models.conversions import node_kind_to_domain_type
+from dipeo.models import create_handle_id
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
@@ -31,11 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class UnifiedDiagramConverter(DiagramConverter):
-    """
-    Universal converter that uses strategy pattern for different formats.
-    This replaces individual converter classes with a single converter
-    that switches strategies based on format.
-    """
+    # Universal converter using strategy pattern for different formats
 
     def __init__(self):
         self.strategies: dict[str, FormatStrategy] = {}
@@ -211,7 +209,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         arrows_list = strategy.extract_arrows(data, node_data_list)
         arrows_dict = {}
         for _index, arrow_data in enumerate(arrows_list):
-            arrow = self._create_arrow(arrow_data)
+            arrow = self._create_arrow(arrow_data, nodes_dict)
             if arrow:
                 arrows_dict[arrow.id] = arrow
 
@@ -251,7 +249,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                     if arrow.source in diagram_dict.handles:
                         continue
                     else:
-                        logger.warning(f"Referenced handle ID not found: {arrow.source}")
                         continue
                 
                 # Otherwise, parse as light format (nodeLabel_handleName)
@@ -341,7 +338,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                     if arrow.target in diagram_dict.handles:
                         continue
                     else:
-                        logger.warning(f"Referenced handle ID not found: {arrow.target}")
                         continue
                 
                 # Otherwise, parse as light format (nodeLabel_handleName)
@@ -448,7 +444,7 @@ class UnifiedDiagramConverter(DiagramConverter):
             id=node_id, type=node_type, position=position, data=properties
         )
 
-    def _create_arrow(self, arrow_data: dict[str, Any]) -> DomainArrow | None:
+    def _create_arrow(self, arrow_data: dict[str, Any], nodes_dict: dict[str, DomainNode]) -> DomainArrow | None:
         """Create a domain arrow from arrow data."""
         source = arrow_data.get("source")
         target = arrow_data.get("target")
@@ -463,6 +459,28 @@ class UnifiedDiagramConverter(DiagramConverter):
         # Extract contentType and label from arrow_data (they may be at the top level, not in data)
         content_type = arrow_data.get("content_type")
         label = arrow_data.get("label")
+
+        # Automatically set content_type for arrows from condition nodes
+        if content_type is None and source:
+            try:
+                # Parse the source handle to get node ID and handle label
+                node_id, handle_label, direction = parse_handle_id(source)
+                source_node = nodes_dict.get(node_id)
+                
+                # If source is from a condition node's condtrue/condfalse output
+                if (source_node and 
+                    source_node.type == NodeType.condition and 
+                    handle_label.value in ["condtrue", "condfalse"]):
+                    # Automatically set content_type to variable
+                    content_type = ContentType.variable
+                    logger.debug(
+                        f"Auto-setting content_type to 'variable' for arrow from "
+                        f"condition node {node_id} output {handle_label.value}"
+                    )
+            except Exception as e:
+                # If parsing fails, just continue without auto-setting
+                logger.debug(f"Failed to parse handle {source}: {e}")
+                pass
 
         return DomainArrow(
             id=arrow_id, 

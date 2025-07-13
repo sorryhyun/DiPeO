@@ -6,7 +6,7 @@
 help:
 	@echo "DiPeO Commands:"
 	@echo "  make install      - Install all dependencies"
-	@echo "  make codegen      - Generate code from domain models (Python, GraphQL, CLI)"
+	@echo "  make codegen      - Generate code from domain models (Python, GraphQL)"
 	@echo "  make dev-all      - Run both backend and frontend servers"
 	@echo "  make dev-server   - Run backend server"
 	@echo "  make dev-web      - Run frontend server"
@@ -32,8 +32,6 @@ codegen:
 	make graphql-schema
 	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen
-	@echo "🔄 Generating GraphQL operations for CLI..."
-	cd apps/cli && python scripts/generate_graphql_operations.py
 	@echo "✅ All code generation completed!"
 
 # Development servers
@@ -58,7 +56,7 @@ graphql-schema:
 	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
 
 # Python directories
-PY_DIRS := apps/server apps/cli packages/python/dipeo_*
+PY_DIRS := apps/server apps/cli dipeo
 
 # Linting
 lint-web:

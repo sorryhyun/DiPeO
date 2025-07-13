@@ -61,7 +61,7 @@ importers:
         version: 3.13.8(@types/react@19.1.8)(graphql-ws@6.0.5(graphql@16.11.0)(ws@8.18.3))(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@dipeo/domain-models':
         specifier: workspace:*
-        version: link:../../packages/domain-models
+        version: link:../../dipeo/models
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.1.1(react-hook-form@7.59.0(react@19.1.0))
@@ -205,7 +205,7 @@ importers:
         specifier: ^5.4.19
         version: 5.4.19(@types/node@22.16.0)(terser@5.43.1)
 
-  packages/domain-models:
+  dipeo/models:
     dependencies:
       zod:
         specifier: ^3.25.42

@@ -2,26 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { gql } from '@apollo/client';
 import { ExecutionID, NodeID } from '@/core/types';
 import { ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
-import { createEntityQuery } from '@/graphql/hooks';
+import { createEntityQuery } from '@/lib/graphql/hooks';
 
-// TODO: Implement executionOrder query in GraphQL schema
-// For now, using execution query to get basic execution state
 const EXECUTION_ORDER_QUERY = gql`
   query ExecutionOrder($executionId: ExecutionID!) {
-    execution(id: $executionId) {
-      id
-      status
-      started_at
-      ended_at
-      node_states
-      node_outputs
-      token_usage {
-        input
-        output
-        cached
-        total
-      }
-    }
+    execution_order(execution_id: $executionId)
   }
 `;
 
@@ -50,44 +35,25 @@ export interface ExecutionOrderData {
   totalNodes: number;
 }
 
-// Transform raw execution data to ExecutionOrderData
-const transformExecutionData = (
-  execution: any,
-  executionId: ExecutionID
-): ExecutionOrderData => {
-  const executionData: ExecutionOrderData = {
-    executionId,
-    status: execution.status,
-    startedAt: execution.started_at,
-    endedAt: execution.ended_at,
-    nodes: [],
-    totalNodes: 0,
-  };
-  
-  // Parse nodeStates if available
-  if (execution.node_states) {
+// The executionOrder query returns data directly in the correct format
+const transformExecutionData = (data: any): ExecutionOrderData => {
+  // Handle case where data might be a string (JSONScalar)
+  if (typeof data === 'string') {
     try {
-      const nodeStates = typeof execution.node_states === 'string' 
-        ? JSON.parse(execution.node_states) 
-        : execution.node_states;
-      
-      executionData.nodes = Object.entries(nodeStates).map(([nodeId, state]: [string, any]) => ({
-        nodeId: nodeId as NodeID,
-        nodeName: state.nodeName || nodeId,
-        status: state.status || 'pending',
-        startedAt: state.startedAt,
-        endedAt: state.endedAt,
-        duration: state.duration,
-        error: state.error,
-        tokenUsage: state.tokenUsage,
-      }));
-      executionData.totalNodes = executionData.nodes.length;
+      return JSON.parse(data);
     } catch (e) {
-      console.error('Failed to parse nodeStates:', e);
+      console.error('Failed to parse executionOrder data:', e);
+      return {
+        executionId: '' as ExecutionID,
+        status: 'error',
+        nodes: [],
+        totalNodes: 0,
+      };
     }
   }
   
-  return executionData;
+  // Data is already in the correct format
+  return data;
 };
 
 // Create the query hook using the factory pattern
@@ -116,8 +82,8 @@ export const useExecutionOrder = (executionId?: ExecutionID) => {
       skip: !executionId,
       pollInterval,
       onCompleted: (data) => {
-        if (data?.execution && executionId) {
-          const transformedData = transformExecutionData(data.execution, executionId);
+        if (data?.executionOrder) {
+          const transformedData = transformExecutionData(data.executionOrder);
           setExecutionOrder(transformedData);
         }
       },
@@ -128,8 +94,8 @@ export const useExecutionOrder = (executionId?: ExecutionID) => {
     if (executionId) {
       try {
         const result = await refetch({ executionId });
-        if (result.data?.execution) {
-          const transformedData = transformExecutionData(result.data.execution, executionId);
+        if (result.data?.executionOrder) {
+          const transformedData = transformExecutionData(result.data.executionOrder);
           setExecutionOrder(transformedData);
         }
       } catch (err) {

@@ -166,9 +166,8 @@ export const createExecutionSlice: StateCreator<
       nodeStates: new Map(),
       context: {}
     };
-    state.activeView = 'execution';
-    state.activeCanvas = 'execution';
-    state.executionReadOnly = true;
+    // NOTE: UI state changes should be handled by UI slice listening to execution state changes
+    // This maintains proper slice isolation
   }),
   
   stopExecution: () => set(state => {
@@ -176,7 +175,7 @@ export const createExecutionSlice: StateCreator<
     state.execution.isPaused = false;
     state.execution.runningNodes.clear();
     state.execution.nodeStates.clear(); // Clear all node highlights
-    state.executionReadOnly = false;
+    // NOTE: UI state changes should be handled by UI slice listening to execution state changes
   }),
   
   pauseExecution: () => set(state => {

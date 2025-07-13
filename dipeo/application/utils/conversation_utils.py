@@ -1,101 +1,30 @@
-"""Utility methods for conversation handling."""
+# Conversation handling utilities
 
-from typing import Optional, Any
-from dipeo.domain.models import DomainDiagram, DomainPerson, ContentType
-from dipeo.domain.handle_utils import extract_node_id_from_handle
-from dipeo.domain.domains.ports.execution_context import ExecutionContextPort
+from typing import Any, TYPE_CHECKING
 from dipeo.core.utils import is_conversation as core_is_conversation, has_nested_conversation as core_has_nested_conversation, contains_conversation as core_contains_conversation
+from dipeo.models import Message, PersonID
 
-
-class ConversationUtils:
-    """Utility methods for conversation and person handling."""
-    
-    @staticmethod
-    def find_person(diagram: Optional[DomainDiagram], person_id: str) -> Optional[DomainPerson]:
-        """Find person in diagram."""
-        if not diagram:
-            return None
-        return next((p for p in diagram.persons if p.id == person_id), None)
-    
-    @staticmethod
-    def get_person_label(person_id: str, diagram: Optional[DomainDiagram]) -> str:
-        """Get the label for a person from the diagram."""
-        if not diagram or not person_id:
-            return person_id or "Person"
-        
-        person = ConversationUtils.find_person(diagram, person_id)
-        return person.label if person else person_id
-    
-    @staticmethod
-    def has_conversation_state_input(
-        context: ExecutionContextPort, 
-        diagram: Optional[DomainDiagram]
-    ) -> bool:
-        """Check if this node has incoming conversation state."""
-        if not diagram:
-            return False
-        
-        # Use legacy methods if available (through adapter)
-        if hasattr(context, 'edges') and hasattr(context, 'current_node_id'):
-            for edge in context.edges:
-                if edge.get("target", "").startswith(context.current_node_id):
-                    source_node_id = ConversationUtils._extract_node_id_from_handle(
-                        edge.get("source", "")
-                    )
-                    
-                    for arrow in diagram.arrows:
-                        if (arrow.source.startswith(source_node_id) and 
-                            arrow.target.startswith(context.current_node_id) and
-                            arrow.content_type == ContentType.conversation_state):
-                            return True
-        return False
-    
-    @staticmethod
-    def needs_conversation_output(
-        node_id: str, 
-        diagram: Optional[DomainDiagram]
-    ) -> bool:
-        """Check if any outgoing edge needs conversation data."""
-        if not diagram:
-            return False
-            
-        for arrow in diagram.arrows:
-            # Check if arrow source belongs to this node
-            arrow_source_node_id = extract_node_id_from_handle(arrow.source)
-            if arrow_source_node_id == node_id and arrow.content_type == ContentType.conversation_state:
-                return True
-        return False
-    
-    @staticmethod
-    def _extract_node_id_from_handle(handle: str) -> str:
-        """Extract node ID from handle format: nodeId_handleName_direction."""
-        node_id = extract_node_id_from_handle(handle) if handle else None
-        return node_id or handle or ""
+if TYPE_CHECKING:
+    from dipeo.core.dynamic.conversation_manager import ConversationManager
 
 
 class InputDetector:
-    """Simplified input detection utilities."""
     
     @staticmethod
     def is_conversation(value: Any) -> bool:
-        """Check if value is a conversation (list of messages)."""
         return core_is_conversation(value)
     
     @staticmethod
     def has_nested_conversation(inputs: dict[str, Any]) -> bool:
-        """Check if inputs contain nested conversation structures."""
         for key, value in inputs.items():
-            # Direct conversation
             if InputDetector.is_conversation(value):
                 return True
                 
-            # Single-nested
             if isinstance(value, dict) and 'default' in value:
                 nested = value['default']
                 if InputDetector.is_conversation(nested):
                     return True
                 
-                # Double-nested
                 if isinstance(nested, dict) and 'default' in nested:
                     double_nested = nested['default']
                     if InputDetector.is_conversation(double_nested):
@@ -105,41 +34,57 @@ class InputDetector:
     
     @staticmethod
     def contains_conversation(inputs: dict[str, Any]) -> bool:
-        """Check if the inputs contain any conversation data."""
         return core_contains_conversation(inputs)
 
 
 class MessageBuilder:
-    """Builder pattern for cleaner message handling."""
     
-    def __init__(self, conversation_service: Any, person_id: str, execution_id: str):
+    def __init__(self, conversation_service: "ConversationManager", person_id: str, execution_id: str):
         self.service = conversation_service
         self.person_id = person_id
         self.execution_id = execution_id
     
     def add(self, role: str, content: str) -> 'MessageBuilder':
-        """Add a message and return self for chaining."""
-        self.service.add_message_to_conversation(
-            person_id=self.person_id,
-            execution_id=self.execution_id,
-            role=role,
+        # Create message based on role
+        if role == "system":
+            from_person_id = "system"
+            to_person_id = PersonID(self.person_id)
+            message_type = "system_to_person"
+        elif role == "assistant":
+            from_person_id = PersonID(self.person_id)
+            to_person_id = "system"  # Assistant messages typically go to system
+            message_type = "person_to_system"
+        elif role == "user":
+            from_person_id = "system"  # User messages come from system context
+            to_person_id = PersonID(self.person_id)
+            message_type = "system_to_person"
+        else:  # external or other
+            from_person_id = "system"
+            to_person_id = PersonID(self.person_id)
+            message_type = "system_to_person"
+        
+        message = Message(
+            from_person_id=from_person_id,
+            to_person_id=to_person_id,
             content=content,
-            current_person_id=self.person_id
+            message_type=message_type,  # type: ignore
+            metadata={"role": role}
+        )
+        
+        self.service.add_message(
+            message=message,
+            execution_id=self.execution_id
         )
         return self
     
     def user(self, content: str) -> 'MessageBuilder':
-        """Add user message."""
         return self.add("user", content)
     
     def assistant(self, content: str) -> 'MessageBuilder':
-        """Add assistant message."""
         return self.add("assistant", content)
     
     def external(self, key: str, value: str) -> 'MessageBuilder':
-        """Add external input message."""
         return self.add("external", f"[Input from {key}]: {value}")
     
     def developer(self, prompt: str) -> 'MessageBuilder':
-        """Add developer prompt."""
         return self.add("user", f"[developer]: {prompt}")

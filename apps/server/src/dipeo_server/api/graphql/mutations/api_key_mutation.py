@@ -3,7 +3,7 @@
 import logging
 
 import strawberry
-from dipeo.domain import DomainApiKey
+from dipeo.models import DomainApiKey
 
 from ..context import GraphQLContext
 from ..types import (
@@ -19,16 +19,15 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class ApiKeyMutations:
-    """Handles API key CRUD operations."""
+    # Handles API key CRUD operations
 
     @strawberry.mutation
     async def create_api_key(self, input: CreateApiKeyInput, info) -> ApiKeyResult:
-        """Creates new API key."""
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
-            api_key_data = api_key_service.create_api_key(
+            api_key_data = await api_key_service.create_api_key(
                 label=input.label,
                 service=input.service.value,
                 key=input.key,
@@ -38,7 +37,7 @@ class ApiKeyMutations:
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=input.service,
-                key=input.key,  # Use the actual key, not masked_key
+                key=input.key,  # Use the actual key
             )
 
             return ApiKeyResult(
@@ -56,11 +55,10 @@ class ApiKeyMutations:
 
     @strawberry.mutation
     async def test_api_key(self, id: ApiKeyID, info) -> TestApiKeyResult:
-        """Tests API key validity."""
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
-            llm_service = context.llm_service
+            api_key_service = context.get_service("api_key_service")
+            llm_service = context.get_service("llm_service")
 
             api_key_data = api_key_service.get_api_key(id)
             if not api_key_data:
@@ -95,16 +93,15 @@ class ApiKeyMutations:
 
     @strawberry.mutation
     async def delete_api_key(self, id: ApiKeyID, info) -> DeleteResult:
-        """Removes API key."""
         try:
             context: GraphQLContext = info.context
-            api_key_service = context.api_key_service
+            api_key_service = context.get_service("api_key_service")
 
             api_key_data = api_key_service.get_api_key(id)
             if not api_key_data:
                 return DeleteResult(success=False, error=f"API key {id} not found")
 
-            api_key_service.delete_api_key(id)
+            await api_key_service.delete_api_key(id)
 
             return DeleteResult(
                 success=True, deleted_id=id, message=f"Deleted API key {id}"

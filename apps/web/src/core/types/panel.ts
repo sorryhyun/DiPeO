@@ -1,3 +1,9 @@
+// Import PanelFormData from type-factories to avoid duplication
+import type { PanelFormData } from './type-factories';
+
+// Re-export PanelFormData for external consumers
+export type { PanelFormData };
+
 export const FIELD_TYPES = {
   TEXT: 'text',
   NUMBER: 'number',
@@ -70,9 +76,7 @@ export interface PanelLayoutConfig<T = unknown> {
   validate?: (formData: T) => ValidationResult;
 }
 
-export type PanelFormData<T extends Record<string, unknown>> = Partial<T> & {
-  [key: string]: unknown;
-};
+// PanelFormData type is imported from type-factories above
 
 export type FieldChangeHandler<T = unknown> = (
   name: keyof T & string,

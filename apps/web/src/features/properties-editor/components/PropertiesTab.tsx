@@ -1,85 +1,103 @@
-import React, { Suspense, useCallback } from 'react';
-import { useCanvas } from '@/features/diagram-editor/hooks';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { LoadingFallback } from '@/shared/components/ui/feedback';
+import React, { Suspense, useMemo } from 'react';
+import { useCanvasState } from '@/shared/contexts/CanvasContext';
+import { LoadingFallback } from '@/shared/components/feedback';
 
 // Lazy load the property panel
 const PropertyPanel = React.lazy(() => import('./PropertyPanel').then(module => ({ default: module.PropertyPanel })));
 
+/**
+ * PropertiesTab - Refactored to use unified canvas hooks
+ * Demonstrates the simplified data access pattern
+ */
 export const PropertiesTab: React.FC = () => {
-  const { nodes, arrows, personsArray } = useCanvas();
-  const { selectedId, selectedType } = useUnifiedStore();
+  // Use the unified canvas state hook - much simpler!
+  const canvasState = useCanvasState();
+  const { 
+    selectedNodeId, 
+    selectedArrowId, 
+    selectedPersonId,
+    nodes,
+    arrows,
+    personsWithUsage 
+  } = canvasState;
   
-  // Find person data
-  const personData = selectedType === 'person' && selectedId && personsArray 
-    ? personsArray.find(p => p.id === selectedId)
-    : null;
-
-  // Find and process arrow data
-  const arrowData = (() => {
-    if (selectedType !== 'arrow' || !selectedId || !arrows) return null;
-    const arrow = arrows.find(a => a.id === selectedId);
-    if (!arrow?.data) return null;
-    
-    // Parse handle ID to get source node ID
-    const [sourceNodeId, ...sourceHandleParts] = arrow.source.split(':');
-    const sourceHandleName = sourceHandleParts.join(':');
-    
-    // Find source node to determine if this is a special arrow
-    const sourceNode = nodes?.find(n => n.id === sourceNodeId);
-    const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
-    
-    // Ensure we have a valid id from arrow data
-    return { 
-      ...arrow.data,
-      content_type: arrow.content_type,  // Include direct property
-      label: arrow.label,                 // Include direct property
-      id: arrow.id, // Use arrow's id directly
-      type: 'arrow' as const,
-      _sourceNodeType: sourceNode?.type,
-      _isFromConditionBranch: isFromConditionBranch
-    };
-  })();
-
-  const getPropertiesContent = useCallback(() => {
-    let content = <p className="p-4 text-sm text-gray-500">Select a block, arrow, or person to see its properties.</p>;
-    let title = "Properties";
-
-    if (selectedType === 'person' && selectedId && personData) {
-      title = `${personData.label || 'Person'} Properties`;
-      content = (
-        <Suspense fallback={<LoadingFallback />}>
-          <PropertyPanel entityId={selectedId} data={{ ...personData, type: 'person' as const }} />
-        </Suspense>
-      );
-    } else if (selectedType === 'node' && selectedId) {
-      const node = nodes?.find(n => n.id === selectedId);
-      if (node) {
-        // Safely access node.data which might be null
-        const nodeData = node.data || {};
-        const label = nodeData.label || 'Block';
-        title = `${label} Properties`;
-        content = (
-          <Suspense fallback={<LoadingFallback />}>
-            <PropertyPanel entityId={selectedId} data={{ ...nodeData, type: node.type || 'unknown' }} />
-          </Suspense>
-        );
-      }
-    } else if (selectedType === 'arrow' && selectedId && arrowData) {
-      title = `Arrow Properties`;
-      content = (
-        <Suspense fallback={<LoadingFallback />}>
-          <PropertyPanel entityId={selectedId} data={arrowData} />
-        </Suspense>
-      );
+  // Get the selected entity
+  const selectedPerson = selectedPersonId ? canvasState.persons.get(selectedPersonId) : null;
+  const selectedNode = selectedNodeId ? nodes.get(selectedNodeId) : null;
+  const selectedArrow = selectedArrowId ? arrows.get(selectedArrowId) : null;
+  
+  // Memoize entity data separately to ensure stability
+  const entityData = useMemo(() => {
+    if (selectedPerson) {
+      return { ...selectedPerson, type: 'person' as const };
     }
-
-    return { title, content };
-  }, [selectedType, selectedId, personData, nodes, arrowData]);
-
-  const { title, content } = getPropertiesContent();
-  const showWrapperHeader = !selectedId;
-
+    
+    if (selectedNode) {
+      const nodeData = selectedNode.data || {};
+      return { ...nodeData, type: selectedNode.type || 'unknown' };
+    }
+    
+    if (selectedArrow) {
+      // Parse handle ID to get source node ID
+      const [sourceNodeId, ...sourceHandleParts] = selectedArrow.source.split(':');
+      const sourceHandleName = sourceHandleParts.join(':');
+      
+      // Find source node to determine if this is a special arrow
+      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as any) : undefined;
+      const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
+      
+      return {
+        ...selectedArrow.data,
+        content_type: selectedArrow.content_type,
+        label: selectedArrow.label,
+        id: selectedArrow.id,
+        type: 'arrow' as const,
+        _sourceNodeType: sourceNode?.type,
+        _isFromConditionBranch: isFromConditionBranch
+      };
+    }
+    
+    return null;
+  }, [selectedPerson, selectedNode, selectedArrow, nodes]);
+  
+  // Determine selected entity with stable references
+  const selectedEntity = useMemo(() => {
+    if (!entityData) return null;
+    
+    if (selectedPersonId && entityData.type === 'person') {
+      return {
+        type: 'person' as const,
+        id: selectedPersonId,
+        data: entityData,
+        title: `${selectedPerson?.label || 'Person'} Properties`
+      };
+    }
+    
+    if (selectedNodeId && selectedNode) {
+      return {
+        type: 'node' as const,
+        id: selectedNodeId,
+        data: entityData,
+        title: `${selectedNode.data?.label || 'Block'} Properties`
+      };
+    }
+    
+    if (selectedArrowId) {
+      return {
+        type: 'arrow' as const,
+        id: selectedArrowId,
+        data: entityData,
+        title: 'Arrow Properties'
+      };
+    }
+    
+    return null;
+  }, [selectedPersonId, selectedNodeId, selectedArrowId, entityData, selectedPerson, selectedNode]);
+  
+  // Simplified rendering logic
+  const showWrapperHeader = !selectedEntity;
+  const title = selectedEntity?.title || 'Properties';
+  
   return (
     <div className="h-full flex flex-col">
       {showWrapperHeader && (
@@ -88,7 +106,18 @@ export const PropertiesTab: React.FC = () => {
         </div>
       )}
       <div className="flex-1 overflow-y-auto">
-        {content}
+        {selectedEntity ? (
+          <Suspense fallback={<LoadingFallback />}>
+            <PropertyPanel 
+              entityId={selectedEntity.id} 
+              data={selectedEntity.data} 
+            />
+          </Suspense>
+        ) : (
+          <p className="p-4 text-sm text-gray-500">
+            Select a block, arrow, or person to see its properties.
+          </p>
+        )}
       </div>
     </div>
   );

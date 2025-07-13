@@ -5,7 +5,7 @@ import {
   TestApiKeyDocument,
   GetAvailableModelsDocument
 } from '@/__generated__/graphql';
-import { createEntityQuery, createEntityMutation, createResponseHandler } from '@/graphql/hooks';
+import { createEntityQuery, createEntityMutation, createResponseHandler } from '@/lib/graphql/hooks';
 
 /**
  * Refactored API Key operations using the GraphQL factory pattern

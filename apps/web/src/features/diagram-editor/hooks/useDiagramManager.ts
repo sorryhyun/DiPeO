@@ -2,11 +2,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvas } from './ui/useCanvas';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
-import { useFileOperations } from '@/shared/hooks/useFileOperations';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useFileOperations } from '@/features/diagram-editor/hooks';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useDebouncedSave } from '@/shared/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';
-import type { ExecutionOptions } from '@/features/execution-monitor/types';
+import type { ExecutionOptions } from '@/features/execution-monitor/types/execution';
 import { DiagramFormat } from '@dipeo/domain-models';
 
 export interface DiagramMetadata {
@@ -306,17 +306,22 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       return;
     }
     
+    // Skip updates during initial diagram load
     if (hasDiagramParam && dataVersion <= initialDataVersion.current + 2) {
       initialDataVersion.current = dataVersion;
       return;
     }
     
-    setIsDirty(true);
-    
-    if (autoSave && !execution.isRunning) {
-      debouncedSave('quicksave.json');
+    // Update the data version reference to prevent infinite loops
+    if (dataVersion !== initialDataVersion.current) {
+      initialDataVersion.current = dataVersion;
+      setIsDirty(true);
+      
+      if (autoSave && !execution.isRunning) {
+        debouncedSave('quicksave.json');
+      }
     }
-  }, [canvas.nodesArray, canvas.arrowsArray, canvas.personsArray, dataVersion, hasDiagramParam, autoSave, execution.isRunning, debouncedSave]);
+  }, [dataVersion, hasDiagramParam, autoSave, execution.isRunning, debouncedSave]);
   
   useEffect(() => {
     return () => {

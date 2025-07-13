@@ -3,9 +3,10 @@ name = "dipeo-server"
 version = "0.1.0"
 description = "DiPeO Backend API Server"
 authors = [
-    {name = "DiPeO Team", email = "team@dipeo.org"},
+    {name = "sorryhyun", email = "standingbehindnv@gmail.com"},
 ]
 readme = "README.md"
+license = {text = "Apache-2.0"}
 requires-python = ">=3.13"
 dependencies = [
     "aiofiles>=24.1.0",

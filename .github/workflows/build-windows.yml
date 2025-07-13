@@ -80,15 +80,6 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
           
-          # Install DiPeO packages
-          pip install -e ../../packages/python/dipeo_core
-          pip install -e ../../packages/python/dipeo_domain
-          pip install -e ../../packages/python/dipeo_diagram
-          pip install -e ../../packages/python/dipeo_application
-          pip install -e ../../packages/python/dipeo_infra
-          pip install -e ../../packages/python/dipeo_container
-          pip install -e .
-          
           # Build executable
           pyinstaller build.spec --clean --noconfirm
           

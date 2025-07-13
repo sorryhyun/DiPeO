@@ -7,18 +7,13 @@ from enum import Enum
 
 
 class Environment(str, Enum):
-    """Supported environments."""
-
     DEVELOPMENT = "development"
     TESTING = "testing"
     PRODUCTION = "production"
 
 
 class Settings:
-    """Centralized configuration settings with validation."""
-
     def __init__(self):
-        """Initialize settings from environment variables."""
         self.environment = self._get_environment()
         self.base_dir = self._get_base_dir()
 
@@ -46,6 +41,8 @@ class Settings:
         self.default_llm_model = os.getenv("DIPEO_DEFAULT_LLM_MODEL", "gpt-4.1-nano")
         self.llm_timeout = int(os.getenv("DIPEO_LLM_TIMEOUT", "300"))
         self.llm_max_retries = int(os.getenv("DIPEO_LLM_MAX_RETRIES", "3"))
+        self.llm_retry_min_wait = float(os.getenv("DIPEO_LLM_RETRY_MIN_WAIT", "4.0"))
+        self.llm_retry_max_wait = float(os.getenv("DIPEO_LLM_RETRY_MAX_WAIT", "10.0"))
 
         # API settings
         self.api_max_retries = int(os.getenv("DIPEO_API_MAX_RETRIES", "3"))
@@ -58,6 +55,8 @@ class Settings:
         self.parallel_execution = (
             os.getenv("DIPEO_PARALLEL_EXECUTION", "true").lower() == "true"
         )
+        self.node_ready_poll_interval = float(os.getenv("DIPEO_NODE_READY_POLL_INTERVAL", "0.01"))
+        self.node_ready_max_polls = int(os.getenv("DIPEO_NODE_READY_MAX_POLLS", "100"))
 
         # Security settings
         self.cors_origins = self._parse_list(os.getenv("DIPEO_CORS_ORIGINS", "*"))
@@ -81,7 +80,6 @@ class Settings:
         self._validate()
 
     def _get_environment(self) -> Environment:
-        """Get the current environment."""
         env = os.getenv("DIPEO_ENV", "development").lower()
         try:
             return Environment(env)
@@ -89,7 +87,6 @@ class Settings:
             return Environment.DEVELOPMENT
 
     def _get_base_dir(self) -> Path:
-        """Get the base directory for the project."""
         # Try environment variable first
         if base_dir := os.getenv("DIPEO_BASE_DIR"):
             return Path(base_dir)
@@ -105,13 +102,11 @@ class Settings:
         return Path.cwd()
 
     def _parse_list(self, value: str) -> list[str]:
-        """Parse comma-separated list from string."""
         if not value or value == "*":
             return ["*"]
         return [item.strip() for item in value.split(",") if item.strip()]
 
     def _validate(self):
-        """Validate configuration settings."""
         # Ensure directories exist
         for dir_path in [
             self.files_dir,
@@ -151,7 +146,6 @@ class Settings:
             )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert settings to dictionary for logging/debugging."""
         return {
             "environment": self.environment.value,
             "base_dir": str(self.base_dir),
@@ -171,6 +165,8 @@ class Settings:
                 "default_model": self.default_llm_model,
                 "timeout": self.llm_timeout,
                 "max_retries": self.llm_max_retries,
+                "retry_min_wait": self.llm_retry_min_wait,
+                "retry_max_wait": self.llm_retry_max_wait,
             },
             "api": {
                 "max_retries": self.api_max_retries,
@@ -181,6 +177,8 @@ class Settings:
                 "timeout": self.execution_timeout,
                 "node_timeout": self.node_timeout,
                 "parallel": self.parallel_execution,
+                "node_ready_poll_interval": self.node_ready_poll_interval,
+                "node_ready_max_polls": self.node_ready_max_polls,
             },
             "security": {
                 "cors_origins": self.cors_origins,
@@ -194,7 +192,6 @@ class Settings:
         }
 
     def get_environment_config(self) -> Dict[str, Any]:
-        """Get environment-specific configuration overrides."""
         if self.environment == Environment.PRODUCTION:
             return {
                 "log_level": "WARNING",
@@ -222,11 +219,9 @@ settings = Settings()
 
 
 def get_settings() -> Settings:
-    """Get the global settings instance."""
     return settings
 
 
 def reload_settings():
-    """Reload settings from environment variables."""
     global settings
     settings = Settings()

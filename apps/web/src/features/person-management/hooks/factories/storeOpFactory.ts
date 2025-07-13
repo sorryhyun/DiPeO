@@ -6,7 +6,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 import type { UnifiedStore } from '@/core/store/unifiedStore.types';
 
 // Base configuration for operation hooks

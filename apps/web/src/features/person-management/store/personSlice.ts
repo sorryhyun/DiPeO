@@ -7,7 +7,6 @@ import { UnifiedStore } from '@/core/store/unifiedStore.types';
 export interface PersonSlice {
   // Core data
   persons: Map<PersonID, DomainPerson>;
-  personsArray: DomainPerson[];
   
   // Person operations
   addPerson: (label: string, service: string, model: string) => PersonID;
@@ -17,18 +16,14 @@ export interface PersonSlice {
   // Batch operations
   batchUpdatePersons: (updates: Array<{id: PersonID, updates: Partial<DomainPerson>}>) => void;
   importPersons: (persons: DomainPerson[]) => void;
+  
+  // Clear and restore operations
+  clearPersons: () => void;
+  restorePersons: (persons: Map<PersonID, DomainPerson>) => void;
+  restorePersonsSilently: (persons: Map<PersonID, DomainPerson>) => void;
 }
 
-// Helper function to sync array with map
-const syncPersonsArray = (state: UnifiedStore) => {
-  state.personsArray = Array.from(state.persons.values());
-};
 
-// Helper to handle post-change operations
-const afterChange = (state: UnifiedStore) => {
-  state.dataVersion += 1;
-  syncPersonsArray(state);
-};
 
 export const createPersonSlice: StateCreator<
   UnifiedStore,
@@ -38,9 +33,6 @@ export const createPersonSlice: StateCreator<
 > = (set, _get) => ({
     // Initialize data
     persons: new Map(),
-    
-    // Array property - synced with Map for React components
-    personsArray: [],
   
     // Person operations
     addPerson: (label, service, model) => {
@@ -53,13 +45,12 @@ export const createPersonSlice: StateCreator<
           model,
           system_prompt: ''
         },
-        type: 'person',
-        masked_api_key: null
+        type: 'person'
       };
       
       set(state => {
         state.persons.set(person.id as PersonID, person);
-        afterChange(state);
+        state.triggerArraySync();
       });
       
       return person.id as PersonID;
@@ -96,37 +87,46 @@ export const createPersonSlice: StateCreator<
         }
         
         state.persons.set(id, updatedPerson);
-        afterChange(state);
+        state.triggerArraySync();
       }
     }),
     
     deletePerson: (id) => set(state => {
-      const deleted = state.persons.delete(id);
-      if (deleted) {
-        afterChange(state);
-      }
+      state.persons.delete(id);
+      state.triggerArraySync();
     }),
   
     // Batch operations
     batchUpdatePersons: (updates) => set(state => {
-      let hasChanges = false;
       updates.forEach(({ id, updates: personUpdates }) => {
         const person = state.persons.get(id);
         if (person) {
           state.persons.set(id, { ...person, ...personUpdates });
-          hasChanges = true;
         }
       });
-      
-      if (hasChanges) {
-        afterChange(state);
-      }
+      state.triggerArraySync();
     }),
     
     importPersons: (persons) => set(state => {
       persons.forEach(person => {
         state.persons.set(person.id as PersonID, person);
       });
-      afterChange(state);
+      state.triggerArraySync();
+    }),
+    
+    // Clear and restore operations
+    clearPersons: () => set(state => {
+      state.persons.clear();
+      state.triggerArraySync();
+    }),
+    
+    restorePersons: (persons) => set(state => {
+      state.persons = new Map(persons);
+      state.triggerArraySync();
+    }),
+    
+    restorePersonsSilently: (persons) => set(state => {
+      state.persons = new Map(persons);
+      // No markPersonsChanged call - dataVersion not incremented
     })
 });

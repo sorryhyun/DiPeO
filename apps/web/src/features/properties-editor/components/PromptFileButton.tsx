@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@/shared/components/ui';
+import { Button } from '@/shared/components/forms/buttons';
 import { FileText } from 'lucide-react';
 import { PromptFilePicker } from './PromptFilePicker';
 

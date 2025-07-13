@@ -7,7 +7,7 @@ from .graphql.schema import create_unified_graphql_router as create_graphql_rout
 
 
 def setup_routes(app: FastAPI):
-    """Configure all API routes for the application."""
+    # Configure all API routes for the application
 
     # GraphQL router
     graphql_router = create_graphql_router(context_getter=get_graphql_context)

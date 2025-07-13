@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 import strawberry
-from dipeo.domain import (
+from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
 )
@@ -22,16 +22,15 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class DiagramMutations:
-    """Handles diagram CRUD operations."""
+    # Handles diagram CRUD operations
 
     @strawberry.mutation
     async def create_diagram(self, input: CreateDiagramInput, info) -> DiagramResult:
-        """Creates new empty diagram."""
         try:
             context: GraphQLContext = info.context
 
             # Try new services first
-            storage_service = context.diagram_storage_service
+            storage_service = context.get_service("diagram_storage_domain_service")
 
             # Create metadata directly from input
             metadata = DiagramMetadata(
@@ -78,10 +77,9 @@ class DiagramMutations:
 
     @strawberry.mutation
     async def delete_diagram(self, id: DiagramID, info) -> DeleteResult:
-        """Removes diagram file."""
         try:
             context: GraphQLContext = info.context
-            storage_service = context.diagram_storage_service
+            storage_service = context.get_service("diagram_storage_domain_service")
 
             # Use new service
             path = await storage_service.find_by_id(id)

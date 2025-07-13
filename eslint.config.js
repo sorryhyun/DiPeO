@@ -129,4 +129,55 @@ export default [
       'prefer-template': 'warn',
     },
   },
+
+  // Import restrictions to enforce module boundaries
+  {
+    files: ['apps/web/src/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          // Prevent direct imports from feature internals
+          {
+            group: ['@features/*/components/*', '@features/*/hooks/*', '@features/*/store/*', '@features/*/services/*', '@features/*/utils/*', '@features/*/types/*'],
+            message: 'Import from the feature\'s public API instead (e.g., @features/diagram-editor instead of @features/diagram-editor/components/...)',
+          },
+          // Prevent features from importing other features
+          {
+            group: ['@features/*'],
+            message: 'Features cannot import from other features directly. Use the global store or events for inter-feature communication.',
+          },
+        ],
+      }],
+    },
+  },
+
+  // Core and shared modules cannot import from features
+  {
+    files: ['apps/web/src/core/**/*.{js,jsx,ts,tsx}', 'apps/web/src/shared/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            group: ['@features/*', '../features/*', '../../features/*'],
+            message: 'Core and shared modules cannot import from features. Move shared logic to core or shared instead.',
+          },
+        ],
+      }],
+    },
+  },
+
+  // Library modules cannot import from app modules
+  {
+    files: ['apps/web/src/lib/**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            group: ['@core/*', '@shared/*', '@features/*', '../core/*', '../shared/*', '../features/*'],
+            message: 'Library modules cannot import from app modules. Library should only contain generic utilities.',
+          },
+        ],
+      }],
+    },
+  },
 ];

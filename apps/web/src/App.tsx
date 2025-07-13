@@ -3,9 +3,10 @@ import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './shared/components/layout';
 import { GlobalKeyboardHandler } from './shared/components/GlobalKeyboardHandler';
-import { CanvasProvider, useCanvasOperationsContext, useCanvasUIState } from './shared/contexts/CanvasContext';
+import { CanvasProvider, useCanvasState, useCanvasOperations } from './shared/contexts/CanvasContext';
 import { useDiagramLoader } from './features/diagram-editor/hooks/useDiagramLoader';
-import { useUnifiedStore } from './core/store/unifiedStore';
+import { useUIOperations } from './core/store/hooks';
+import { setupExecutionUISync } from './core/store/middleware/executionUISync';
 
 // Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/DiagramCanvas'));
@@ -15,13 +16,18 @@ const LazyInteractivePromptModal = React.lazy(() => import('./features/execution
 
 // Inner component that uses React Flow hooks
 function AppContent() {
-  const { activeCanvas } = useCanvasUIState();
-  const { setReadOnly, executionOps: execution } = useCanvasOperationsContext();
+  const { activeCanvas } = useCanvasState();
+  const { setReadOnly, executionOps } = useCanvasOperations();
+  const { setActiveCanvas } = useUIOperations();
   
   // Load diagram from URL parameter
   const { isLoading: isDiagramLoading } = useDiagramLoader();
   
-  // Don't create another connection - use the existing execution instance from context
+  // Set up execution UI synchronization
+  useEffect(() => {
+    const unsubscribe = setupExecutionUISync();
+    return unsubscribe;
+  }, []);
   
   useEffect(() => {
     const checkMonitorMode = () => {
@@ -35,7 +41,7 @@ function AppContent() {
         
         // Automatically switch to execution view when in monitor mode
         if (diagramName) {
-          useUnifiedStore.getState().setActiveCanvas('execution');
+          setActiveCanvas('execution');
         }
       } else {
         document.title = 'DiPeO';
@@ -52,7 +58,7 @@ function AppContent() {
     return () => {
       window.removeEventListener('popstate', handleUrlChange);
     };
-  }, [setReadOnly]);
+  }, [setReadOnly, setActiveCanvas]);
 
   // Don't create another connection - use the existing execution instance
   
@@ -113,15 +119,15 @@ function AppContent() {
         
         
         {/* Interactive Prompt Modal */}
-        {execution?.interactivePrompt && (
+        {executionOps?.interactivePrompt && (
           <Suspense fallback={null}>
             <LazyInteractivePromptModal
-              prompt={execution.interactivePrompt}
+              prompt={executionOps.interactivePrompt}
               onResponse={(nodeId: string, response: string) => {
-                execution.respondToPrompt(response);
+                executionOps.respondToPrompt(response);
               }}
               onCancel={() => {
-                execution.respondToPrompt('');
+                executionOps.respondToPrompt('');
               }}
             />
           </Suspense>

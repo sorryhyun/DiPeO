@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo.domain import DomainDiagram, NodeID, HandleDirection, HandleLabel, create_handle_id
-from dipeo.domain.handle_utils import parse_handle_id
+from dipeo.models import DomainDiagram, HandleDirection, create_handle_id
+from dipeo.models import HandleLabel, NodeID, parse_handle_id
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
 from ..conversion_utils import _YamlMixin, _node_id_map
@@ -83,6 +83,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Ensure language field exists
             if "code_type" in props and "language" not in props:
                 props["language"] = props.pop("code_type")
+        elif node_type == "db":
+            # Map source_details to file for DB nodes
+            if "source_details" in props and "file" not in props:
+                props["file"] = props.pop("source_details")
 
         return build_node(
             id=self._create_node_id(index),
@@ -105,28 +109,52 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Parse source label and handle
             src_label = src_raw
             src_handle_from_split = None
-            if "_" in src_raw:
+            
+            # First check if the entire string is a valid node label
+            if src_raw not in label2id and "_" in src_raw:
                 # Try to find the node label by checking all possible splits
                 # This handles cases where node labels contain spaces or underscores
                 # We need to find the longest matching label in label2id
                 parts = src_raw.split("_")
+                
+                # Also check for labels with spaces by replacing underscores
                 for i in range(len(parts) - 1, 0, -1):
+                    # Try with underscores
                     potential_label = "_".join(parts[:i])
                     if potential_label in label2id:
                         src_label = potential_label
+                        src_handle_from_split = "_".join(parts[i:])
+                        break
+                    
+                    # Try with spaces instead of underscores
+                    potential_label_with_spaces = " ".join(parts[:i])
+                    if potential_label_with_spaces in label2id:
+                        src_label = potential_label_with_spaces
                         src_handle_from_split = "_".join(parts[i:])
                         break
             
             # Parse destination label and handle
             dst_label = dst_raw
             dst_handle_from_split = None
-            if "_" in dst_raw:
+            
+            # First check if the entire string is a valid node label
+            if dst_raw not in label2id and "_" in dst_raw:
                 # Try to find the node label by checking all possible splits
                 parts = dst_raw.split("_")
+                
+                # Also check for labels with spaces by replacing underscores
                 for i in range(len(parts) - 1, 0, -1):
+                    # Try with underscores
                     potential_label = "_".join(parts[:i])
                     if potential_label in label2id:
                         dst_label = potential_label
+                        dst_handle_from_split = "_".join(parts[i:])
+                        break
+                    
+                    # Try with spaces instead of underscores
+                    potential_label_with_spaces = " ".join(parts[:i])
+                    if potential_label_with_spaces in label2id:
+                        dst_label = potential_label_with_spaces
                         dst_handle_from_split = "_".join(parts[i:])
                         break
                     
@@ -155,7 +183,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
             # Handle target handle
             if dst_handle_from_split:
-                dst_handle = dst_handle_from_split
+                # Convert "_first" to "first" for proper HandleLabel enum mapping
+                if dst_handle_from_split == "_first":
+                    dst_handle = "first"
+                else:
+                    dst_handle = dst_handle_from_split
             else:
                 dst_handle = "default"
 
@@ -242,6 +274,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Map language back to code_type for code_job nodes (for backward compatibility)
             elif node_type == "code_job" and "language" in props:
                 props["code_type"] = props.pop("language")
+            # Map file back to source_details for DB nodes
+            elif node_type == "db" and "file" in props:
+                props["source_details"] = props.pop("file")
             if props:
                 node_dict["props"] = props
             nodes_out.append(node_dict)
@@ -288,8 +323,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 person_data["system_prompt"] = p.llm_config.system_prompt
             if p.llm_config.api_key_id:
                 person_data["api_key_id"] = p.llm_config.api_key_id
-            # Store the original ID for round-trip conversion
-            person_data["id"] = p.id
             persons_out[p.label] = person_data
 
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}

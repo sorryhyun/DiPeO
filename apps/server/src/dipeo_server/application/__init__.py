@@ -4,33 +4,28 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .app_context import AppContext, get_app_context, lifespan
-    from .execution_context import ExecutionContext
+    from .app_context import get_container, initialize_container
+    from .container import ServerContainer
 
 __all__ = [
-    "AppContext",
-    "ExecutionContext",
-    "get_app_context",
-    "lifespan",
+    "get_container",
+    "initialize_container",
+    "ServerContainer",
 ]
 
 
 def __getattr__(name):
     """Lazy import to avoid circular dependencies."""
-    if name == "AppContext":
-        from .app_context import AppContext
+    if name == "get_container":
+        from .app_context import get_container
 
-        return AppContext
-    if name == "ExecutionContext":
-        from .execution_context import ExecutionContext
+        return get_container
+    if name == "initialize_container":
+        from .app_context import initialize_container
 
-        return ExecutionContext
-    if name == "get_app_context":
-        from .app_context import get_app_context
+        return initialize_container
+    if name == "ServerContainer":
+        from .container import ServerContainer
 
-        return get_app_context
-    if name == "lifespan":
-        from .app_context import lifespan
-
-        return lifespan
+        return ServerContainer
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

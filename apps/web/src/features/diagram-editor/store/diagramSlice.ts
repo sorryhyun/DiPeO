@@ -1,21 +1,18 @@
 import { StateCreator } from 'zustand';
 import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/core/types';
 import { generateArrowId } from '@/core/types/utilities';
+import { ConversionService } from '@/core/services/ConversionService';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
+import { NODE_CONFIGS_MAP } from '../config/nodes';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
-import { updateHandleIndex } from '@/core/store/helpers/handleIndexHelper';
-import { NodeType, Vec2, parseHandleId } from '@dipeo/domain-models';
+import { NodeType, Vec2 } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
 
 export interface DiagramSlice {
   // Core data structures
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
-  
-  // Array getters for React components
-  nodesArray: DomainNode[];
-  arrowsArray: DomainArrow[];
   
   // Data version for tracking changes
   dataVersion: number;
@@ -47,19 +44,17 @@ export interface DiagramSlice {
   
   // Utility
   clearDiagram: () => void;
+  restoreDiagram: (nodes: Map<NodeID, DomainNode>, arrows: Map<ArrowID, DomainArrow>) => void;
+  restoreDiagramSilently: (nodes: Map<NodeID, DomainNode>, arrows: Map<ArrowID, DomainArrow>) => void;
+  triggerArraySync: () => void;
   validateDiagram: () => { isValid: boolean; errors: string[] };
 }
 
-// Helper function to sync arrays with maps
-const syncArrays = (state: UnifiedStore) => {
-  state.nodesArray = Array.from(state.nodes.values());
-  state.arrowsArray = Array.from(state.arrows.values());
-};
 
 // Helper to handle post-change operations
 const afterChange = (state: UnifiedStore) => {
   state.dataVersion += 1;
-  syncArrays(state);
+  // Arrays are now synced via middleware to avoid cross-slice violations
   recordHistory(state);
 };
 
@@ -73,19 +68,20 @@ export const createDiagramSlice: StateCreator<
   nodes: new Map(),
   arrows: new Map(),
   dataVersion: 0,
-  nodesArray: [],
-  arrowsArray: [],
   diagramName: 'Untitled',
   diagramId: null,
 
   // Node operations
   addNode: (type, position, initialData) => {
-    const node = createNode(type, position, initialData);
+    const nodeConfig = NODE_CONFIGS_MAP[type];
+    const nodeDefaults = nodeConfig ? { ...nodeConfig.defaults } : {};
+    const mergedData = { ...nodeDefaults, ...initialData };
+    const node = createNode(type, position, mergedData);
     set(state => {
-      state.nodes.set(node.id as NodeID, node);
+      state.nodes.set(ConversionService.toNodeId(node.id), node);
       afterChange(state);
     });
-    return node.id as NodeID;
+    return ConversionService.toNodeId(node.id);
   },
 
   updateNode: (id, updates) => {
@@ -105,8 +101,8 @@ export const createDiagramSlice: StateCreator<
       if (node) {
         const updatedNode = { ...node, ...updates };
         state.nodes.set(id, updatedNode);
-        syncArrays(state);
         // No version increment or history for silent updates
+        // Arrays will be recomputed automatically when accessed
       }
     });
   },
@@ -115,26 +111,11 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       const deleted = state.nodes.delete(id);
       if (deleted) {
-        // Remove handles associated with this node
-        const handleIdsToDelete: HandleID[] = [];
-        state.handles.forEach((handle, handleId) => {
-          if (handle.node_id === id) {
-            handleIdsToDelete.push(handleId);
-          }
-        });
-        
-        handleIdsToDelete.forEach(handleId => {
-          state.handles.delete(handleId);
-        });
-        
-        // Update handle index
-        state.handleIndex.delete(id);
-        
         // Remove connected arrows
         const arrowsToDelete = Array.from(state.arrows.entries())
           .filter(([_, arrow]) => {
-            const sourceNodeId = (arrow.source as string).split(':')[0];
-            const targetNodeId = (arrow.target as string).split(':')[0];
+            const sourceNodeId = ConversionService.parseHandleId(arrow.source).node_id;
+            const targetNodeId = ConversionService.parseHandleId(arrow.target).node_id;
             return sourceNodeId === id || targetNodeId === id;
           })
           .map(([arrowId]) => arrowId);
@@ -150,6 +131,9 @@ export const createDiagramSlice: StateCreator<
         afterChange(state);
       }
     });
+    
+    // Call the unified store's handle cleanup method
+    get().cleanupNodeHandles(id);
   },
 
   getNode: (id) => get().nodes.get(id),
@@ -210,11 +194,10 @@ export const createDiagramSlice: StateCreator<
       let targetNodeId: NodeID;
       
       try {
-        const sourceParsed = parseHandleId(normalizedSource as HandleID);
-        const targetParsed = parseHandleId(normalizedTarget as HandleID);
+        const sourceParsed = ConversionService.parseHandleId(ConversionService.toHandleId(normalizedSource));
+        const targetParsed = ConversionService.parseHandleId(ConversionService.toHandleId(normalizedTarget));
         sourceNodeId = sourceParsed.node_id;
         targetNodeId = targetParsed.node_id;
-        console.log('Parsed node IDs:', { sourceNodeId, targetNodeId });
       } catch (e) {
         console.error('Failed to parse handle IDs:', e);
         throw new Error(`Invalid handle ID format: ${normalizedSource} or ${normalizedTarget}`);
@@ -228,11 +211,11 @@ export const createDiagramSlice: StateCreator<
         throw new Error(`Target node ${targetNodeId} not found`);
       }
       
-      state.arrows.set(arrow.id as ArrowID, arrow);
+      state.arrows.set(ConversionService.toArrowId(arrow.id), arrow);
       afterChange(state);
     });
     
-    return arrow.id as ArrowID;
+    return ConversionService.toArrowId(arrow.id);
   },
 
   updateArrow: (id, updates) => {
@@ -286,37 +269,16 @@ export const createDiagramSlice: StateCreator<
         if (state.nodes.delete(id)) {
           hasChanges = true;
           
-          // Remove handles associated with this node
-          const handleIdsToDelete: HandleID[] = [];
-          state.handles.forEach((handle, handleId) => {
-            if (handle.node_id === id) {
-              handleIdsToDelete.push(handleId);
-            }
-          });
-          
-          handleIdsToDelete.forEach(handleId => {
-            state.handles.delete(handleId);
-          });
-          
-          // Update handle index
-          state.handleIndex.delete(id);
-          
           // Remove connected arrows
           const arrowsToDelete = Array.from(state.arrows.entries())
             .filter(([_, arrow]) => {
-              const sourceNodeId = (arrow.source as string).split(':')[0];
-              const targetNodeId = (arrow.target as string).split(':')[0];
+              const sourceNodeId = ConversionService.parseHandleId(arrow.source).node_id;
+              const targetNodeId = ConversionService.parseHandleId(arrow.target).node_id;
               return sourceNodeId === id || targetNodeId === id;
             })
             .map(([arrowId]) => arrowId);
           
           arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
-          
-          // Clear selection if deleted
-          if (state.selectedId === id) {
-            state.selectedId = null;
-            state.selectedType = null;
-          }
         }
       });
       
@@ -324,6 +286,9 @@ export const createDiagramSlice: StateCreator<
         afterChange(state);
       }
     });
+    
+    // Clean up handles for all deleted nodes
+    ids.forEach(id => get().cleanupNodeHandles(id));
   },
   
   // Diagram metadata operations
@@ -345,9 +310,31 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       state.nodes.clear();
       state.arrows.clear();
-      state.handles.clear();
-      state.handleIndex.clear();
+      // Arrays will be updated by afterChange
       afterChange(state);
+    });
+  },
+  
+  restoreDiagram: (nodes, arrows) => {
+    set(state => {
+      state.nodes = new Map(nodes);
+      state.arrows = new Map(arrows);
+      // Arrays will be updated by afterChange
+      afterChange(state);
+    });
+  },
+  
+  restoreDiagramSilently: (nodes, arrows) => {
+    set(state => {
+      state.nodes = new Map(nodes);
+      state.arrows = new Map(arrows);
+      // No afterChange call - dataVersion not incremented
+    });
+  },
+  
+  triggerArraySync: () => {
+    set(state => {
+      state.dataVersion += 1;
     });
   },
 
@@ -362,7 +349,8 @@ export const createDiagramSlice: StateCreator<
     }
     
     // Check for start node
-    const hasStartNode = Array.from(state.nodes.values()).some(
+    const nodeArray = Array.from(state.nodes.values());
+    const hasStartNode = nodeArray.some(
       node => node.type === NodeType.START
     );
     if (!hasStartNode) {
@@ -370,7 +358,7 @@ export const createDiagramSlice: StateCreator<
     }
     
     // Check for endpoint node
-    const hasEndpoint = Array.from(state.nodes.values()).some(
+    const hasEndpoint = nodeArray.some(
       node => node.type === NodeType.ENDPOINT
     );
     if (!hasEndpoint) {
@@ -380,13 +368,13 @@ export const createDiagramSlice: StateCreator<
     // Check for unconnected nodes
     const connectedNodes = new Set<string>();
     state.arrows.forEach(arrow => {
-      const sourceNodeId = arrow.source.split(':')[0];
-      const targetNodeId = arrow.target.split(':')[0];
+      const sourceNodeId = ConversionService.parseHandleId(arrow.source).node_id;
+      const targetNodeId = ConversionService.parseHandleId(arrow.target).node_id;
       if (sourceNodeId) connectedNodes.add(sourceNodeId);
       if (targetNodeId) connectedNodes.add(targetNodeId);
     });
     
-    const unconnectedNodes = Array.from(state.nodes.values()).filter(
+    const unconnectedNodes = nodeArray.filter(
       node => !connectedNodes.has(node.id) && node.type !== NodeType.START
     );
     

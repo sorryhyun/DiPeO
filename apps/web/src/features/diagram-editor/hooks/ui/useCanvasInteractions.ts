@@ -7,19 +7,16 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node } from '@xyflow/react';
-import { useUnifiedStore } from '@/shared/hooks/useUnifiedStore';
-import { useNodeData } from '@/shared/hooks/selectors/useDiagramData';
-import { NodeID, PersonID, ArrowID, nodeId, personId } from '@/core/types';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useNodeData, useNodeOperations, useArrowOperations, usePersonOperations } from '@/core/store/hooks';
+import { NodeID, PersonID, ArrowID, nodeId, personId, arrowId } from '@/core/types';
 import { Vec2, NodeType } from '@dipeo/domain-models';
-import { useNodeOperations } from '../operations/useNodeOperations';
-import { useArrowOperations } from '../operations/useArrowOperations';
-import { usePersonOperations } from '../operations/usePersonOperations';
 
 // Types
 export interface ContextMenuState {
   position: { x: number; y: number } | null;
   target: 'pane' | 'node' | 'edge';
-  targetId?: NodeID;
+  targetId?: NodeID | ArrowID;
 }
 
 export interface DragState {
@@ -51,7 +48,7 @@ export interface UseCanvasInteractionsReturn {
   // Context Menu
   contextMenu: ContextMenuState;
   isContextMenuOpen: boolean;
-  openContextMenu: (x: number, y: number, target: 'pane' | 'node' | 'edge', targetId?: NodeID) => void;
+  openContextMenu: (x: number, y: number, target: 'pane' | 'node' | 'edge', targetId?: NodeID | ArrowID) => void;
   closeContextMenu: () => void;
   
   // Drag & Drop
@@ -85,7 +82,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   
   // Store access for operations
   const store = useUnifiedStore;
-  const isMonitorMode = useUnifiedStore(state => state.readOnly || state.executionReadOnly === true);
+  const isMonitorMode = useUnifiedStore(state => state.readOnly || state.executionReadOnly);
   const selectedId = useUnifiedStore(state => state.selectedId);
   const selectedType = useUnifiedStore(state => state.selectedType);
   
@@ -117,7 +114,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     x: number, 
     y: number, 
     target: 'pane' | 'node' | 'edge',
-    targetId?: NodeID
+    targetId?: NodeID | ArrowID
   ) => {
     if (!enabled || isMonitorMode) return;
     
@@ -162,7 +159,9 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
         { ...selectedNode.data }
       );
       
-      store.getState().select(newNodeId, 'node');
+      if (newNodeId) {
+        store.getState().select(newNodeId as NodeID, 'node');
+      }
     }
     closeContextMenu();
   }, [enabled, isMonitorMode, selectedId, selectedType, selectedNode, nodeOps, store, closeContextMenu]);
@@ -418,7 +417,7 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
   const onEdgeContextMenu = useCallback((event: React.MouseEvent, edgeIdStr: string) => {
     event.preventDefault();
     event.stopPropagation();
-    openContextMenu(event.clientX, event.clientY, 'edge', nodeId(edgeIdStr));
+    openContextMenu(event.clientX, event.clientY, 'edge', arrowId(edgeIdStr));
   }, [openContextMenu]);
   
   return {

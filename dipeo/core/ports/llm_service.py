@@ -1,6 +1,9 @@
 """LLM Service port interface."""
 
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from dipeo.models import ChatResult, TokenUsage
 
 
 @runtime_checkable
@@ -17,7 +20,7 @@ class LLMServicePort(Protocol):
         model: str,
         api_key_id: str,
         **kwargs,  # Provider-specific options (temperature, max_tokens, etc.)
-    ) -> Any:  # Returns ChatResult
+    ) -> "ChatResult":
         """Execute a chat completion with the specified model.
         
         Args:
@@ -44,7 +47,7 @@ class LLMServicePort(Protocol):
 
     def get_token_counts(
         self, client_name: str, usage: Any
-    ) -> Any:  # Returns TokenUsage
+    ) -> "TokenUsage":
         """Extract token usage information from provider response.
         
         Args:

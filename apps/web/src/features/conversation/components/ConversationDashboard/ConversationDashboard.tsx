@@ -3,17 +3,19 @@ import {
   User, MessageSquare,
   Search, Filter, Download, DollarSign, List
 } from 'lucide-react';
-import { Button, Input, Select } from '@/shared/components/ui';
-import { downloadFile } from '@/shared/utils/file';
+import { Button } from '@/shared/components/forms/buttons';
+import { Input, Select } from '@/shared/components/forms';
+import { downloadFile } from '@/lib/utils/file';
 import { toast } from 'sonner';
 import { useConversationData } from '../../hooks';
-import { useUIState, usePersonsData } from '@/shared/hooks/selectors';
+import { useUIState } from '@/core/store/hooks/state';
+import { usePersonsData } from '@/features/person-management/hooks';
 import { MessageList } from '../MessageList';
 import { ExecutionOrderView } from '@/features/execution-monitor/components';
 import { useExecution } from '@/features/execution-monitor/hooks';
-import { ConversationFilters, ConversationMessage } from '@/core/types/conversation';
+import { ConversationFilters, UIConversationMessage } from '@/core/types/conversation';
 import { PersonID, executionId, personId } from '@/core/types';
-import { debounce, throttle } from '@/shared/utils/math';
+import { debounce, throttle } from '@/lib/utils/math';
 import { stringify } from 'yaml';
 
 const ConversationDashboard: React.FC = () => {
@@ -152,19 +154,18 @@ const ConversationDashboard: React.FC = () => {
       .reduce((sum: number, msg) => sum + (msg.tokenCount || 0), 0);
   }, [dashboardSelectedPerson, conversationData]);
 
-  // Memoize whole conversation data with stable dependency
-  const conversationDataKeys = Object.keys(conversationData).sort().join(',');
+  // Memoize whole conversation data
   const wholeConversationData = useMemo(() => {
     if (dashboardSelectedPerson !== 'whole') {
       return { allMessages: [], totalTokens: 0 };
     }
 
-    const messages: ConversationMessage[] = [];
+    const messages: UIConversationMessage[] = [];
     Object.entries(conversationData).forEach(([key, personData]) => {
       const messagesWithPersonId = personData.messages.map((msg) => ({
         ...msg,
         personId: personId(key)
-      } as ConversationMessage));
+      } as UIConversationMessage));
       messages.push(...messagesWithPersonId);
     });
     
@@ -177,7 +178,7 @@ const ConversationDashboard: React.FC = () => {
     
     const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
     return { allMessages: messages, totalTokens: tokens };
-  }, [dashboardSelectedPerson, conversationDataKeys]); // Use stable dependency
+  }, [dashboardSelectedPerson, conversationData]);
 
   // Handle whole conversation button click
   const handleWholeConversation = () => {
@@ -256,13 +257,13 @@ const ConversationDashboard: React.FC = () => {
           type="text"
           placeholder="Search messages..."
           value={filters.searchTerm}
-          onChange={(e) => debouncedSetSearchTerm(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => debouncedSetSearchTerm(e.target.value)}
           className="flex-1 h-8"
         />
       </div>
       <Select
         value={filters.executionId}
-        onValueChange={(value) => setFilters(prev => ({ ...prev, executionId: executionId(value) }))}
+        onValueChange={(value: string) => setFilters(prev => ({ ...prev, executionId: executionId(value) }))}
       >
         <option value="">All Executions</option>
       </Select>

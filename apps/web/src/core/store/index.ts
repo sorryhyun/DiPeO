@@ -1,6 +1,9 @@
 // Store exports
 export { useUnifiedStore } from './unifiedStore';
 
+// Standardized store access hooks
+export * from './hooks';
+
 // Type exports
 export type { 
   UnifiedStore,

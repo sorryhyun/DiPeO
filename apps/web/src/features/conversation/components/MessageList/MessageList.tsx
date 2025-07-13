@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { Hash } from 'lucide-react';
 import { DomainPerson } from '@/core/types';
-import { ConversationMessage } from '@/core/types/conversation';
+import { UIConversationMessage } from '@/core/types/conversation';
 
 interface MessageListProps {
-  messages: ConversationMessage[];
+  messages: UIConversationMessage[];
   currentPersonId: string | null;
   persons: DomainPerson[];
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
@@ -13,7 +13,7 @@ interface MessageListProps {
 }
 
 interface MessageItemProps {
-  message: ConversationMessage;
+  message: UIConversationMessage;
   isFromSelectedPerson: boolean;
   senderPerson: DomainPerson | undefined;
 }

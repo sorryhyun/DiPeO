@@ -1,84 +1,95 @@
-// Import and re-export branded types from domain models
-import type {
-  NodeID,
-  HandleID,
-  ArrowID,
-  PersonID,
-  ApiKeyID,
-  DiagramID,
-  ExecutionID
-} from '@dipeo/domain-models';
+/**
+ * UI-specific branded types and utilities
+ * Domain branded types are imported from './domain'
+ */
 
-export type {
-  NodeID,
-  HandleID,
-  ArrowID,
-  PersonID,
-  ApiKeyID,
-  DiagramID,
-  ExecutionID
-};
+import { 
+  parseHandleId as domainParseHandleId,
+  type NodeID,
+  type HandleID,
+  type ArrowID,
+  type PersonID,
+  type ApiKeyID,
+  type ExecutionID,
+  type DiagramID
+} from './domain';
 
-// Re-export handle utilities from domain models
+// Re-export all branded types and utilities from domain
 export {
+  // Branded types
+  type NodeID,
+  type HandleID,
+  type ArrowID,
+  type PersonID,
+  type ApiKeyID,
+  type DiagramID,
+  type ExecutionID,
+  // ID creation functions
+  nodeId,
+  handleId,
+  arrowId,
+  personId,
+  apiKeyId,
+  diagramId,
+  executionId,
+  // Handle utilities
   createHandleId,
   parseHandleId,
   HandleDirection
-} from '@dipeo/domain-models';
+} from './domain';
 
-// Generic brand type utility
+// Generic brand type utility for UI-specific types
 export type Brand<K, T> = K & { __brand: T };
 
 // UI-specific branded type not in domain models
 export type MessageID = Brand<string, 'MessageID'>;
 
-
-// UI-specific helper functions for creating branded IDs
-// Note: These are not exported from domain-models as they're implementation details
-export const nodeId = (id: string): NodeID => id as NodeID;
-export const handleId = (id: string): HandleID => id as HandleID;
-export const arrowId = (id: string): ArrowID => id as ArrowID;
-export const personId = (id: string): PersonID => id as PersonID;
-export const apiKeyId = (id: string): ApiKeyID => id as ApiKeyID;
-export const executionId = (id: string): ExecutionID => id as ExecutionID;
+// UI-specific ID creation function
 export const messageId = (id: string): MessageID => id as MessageID;
-export const diagramId = (id: string): DiagramID => id as DiagramID;
 
-// Additional handle validation not provided by domain models
+// Handle validation using domain utility
 export const isValidHandleIdFormat = (id: string): boolean => {
-  // Handle ID format: [nodeId]_[handleLabel]_[direction]
-  // We need at least 3 parts when split by underscore
-  const parts = id.split('_');
-  if (parts.length < 3) return false;
-  
-  // The last part should be a valid direction
-  const direction = parts[parts.length - 1];
-  return direction === 'input' || direction === 'output';
+  try {
+    const parsed = domainParseHandleId(id as HandleID);
+    return parsed !== null && 
+           'nodeId' in parsed && 
+           'label' in parsed && 
+           'direction' in parsed;
+  } catch {
+    return false;
+  }
 };
 
-// UI-specific type guards with validation
-// Note: These validation rules are specific to the frontend implementation
-export const isNodeId = (id: string): id is NodeID => {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
+// UI-specific type guards for branded IDs
+// These provide runtime validation for ID formats
+export const isNodeId = (id: unknown): id is NodeID => {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id);
 };
-export const isHandleId = (id: string): id is HandleID => {
-  return isValidHandleIdFormat(id);
+
+export const isHandleId = (id: unknown): id is HandleID => {
+  return typeof id === 'string' && isValidHandleIdFormat(id);
 };
-export const isArrowId = (id: string): id is ArrowID => {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
+
+export const isArrowId = (id: unknown): id is ArrowID => {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id);
 };
-export const isPersonId = (id: string): id is PersonID => {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
+
+export const isPersonId = (id: unknown): id is PersonID => {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id);
 };
-export const isApiKeyId = (id: string): id is ApiKeyID => {
-  return /^APIKEY_[a-zA-Z0-9]+$/.test(id);
+
+export const isApiKeyId = (id: unknown): id is ApiKeyID => {
+  return typeof id === 'string' && /^APIKEY_[a-zA-Z0-9]+$/.test(id);
 };
-export const isExecutionId = (id: string): id is ExecutionID => {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
+
+export const isExecutionId = (id: unknown): id is ExecutionID => {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id);
 };
-export const isMessageId = (id: string): id is MessageID => {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
+
+export const isMessageId = (id: unknown): id is MessageID => {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id);
 };
-export const isDiagramId = (id: string): id is DiagramID => {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
+
+export const isDiagramId = (id: unknown): id is DiagramID => {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id);
 };

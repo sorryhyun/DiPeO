@@ -3,9 +3,9 @@ import { GetDiagramDocument } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
 import { diagramId } from '@/core/types';
-import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/graphql/types';
+import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/lib/graphql/types';
 import { rebuildHandleIndex } from '@/core/store/helpers/handleIndexHelper';
-import { createEntityQuery } from '@/graphql/hooks';
+import { createEntityQuery } from '@/lib/graphql/hooks';
 
 /**
  * Refactored diagram loader using the GraphQL factory pattern
@@ -127,18 +127,14 @@ export function useDiagramLoader() {
             // First clear existing data
             store.clearAll();
             
-            // Then set all new data in one atomic update
-            useUnifiedStore.setState(state => ({
+            // Then restore the snapshot which properly updates all slices
+            store.restoreSnapshot({
               nodes,
-              handles,
-              handleIndex: rebuildHandleIndex(handles),  // Rebuild index for O(1) lookups
               arrows,
               persons,
-              nodesArray: diagramWithCounts.nodes || [],
-              arrowsArray: diagramWithCounts.arrows || [],
-              personsArray: diagramWithCounts.persons || [],
-              dataVersion: state.dataVersion + 1  // Single increment
-            }));
+              handles,
+              timestamp: Date.now()
+            });
           });
 
           // Mark as loaded after store is updated

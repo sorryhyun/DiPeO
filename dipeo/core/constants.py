@@ -4,9 +4,9 @@ import os
 from pathlib import Path
 
 # Project Base Directory
-# Go up from dipeo.core/src/dipeo_core to project root
+# Go up from dipeo/core/constants.py to project root
 BASE_DIR: Path = Path(
-    os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[5].as_posix())
+    os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[2].as_posix())
 ).resolve()
 
 # Unified file storage directories (no mkdir here - let apps create as needed)
@@ -26,9 +26,7 @@ VALID_LLM_SERVICES = {
     "openai",
     "anthropic",
     "gemini",
-    "grok",
     "google",
-    "x",
 }
 
 # Timeouts
@@ -83,9 +81,6 @@ def normalize_service_name(service: str) -> str:
         "gpt-4": "openai",
         "gpt-3.5": "openai",
         "google": "gemini",
-        "x": "grok",
-        "xai": "grok",
-        "x-ai": "grok",
     }
 
     return aliases.get(normalized, normalized)

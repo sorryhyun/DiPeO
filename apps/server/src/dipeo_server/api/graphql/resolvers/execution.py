@@ -24,7 +24,7 @@ class ExecutionResolver:
         """Returns execution by ID."""
         try:
             context: GraphQLContext = info.context
-            state_store = context.state_store
+            state_store = context.get_service("state_store")
 
             execution_state = await state_store.get_state(execution_id)
 
@@ -44,7 +44,7 @@ class ExecutionResolver:
         """Returns filtered execution list."""
         try:
             context: GraphQLContext = info.context
-            state_store = context.state_store
+            state_store = context.get_service("state_store")
 
             executions = await state_store.list_executions(limit=limit + offset)
 

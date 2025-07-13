@@ -31,21 +31,15 @@ export interface UISlice {
   // Mode state
   readOnly: boolean;
   executionReadOnly: boolean;
-  isDragging: boolean;
-  isConnecting: boolean;
   isMonitorMode: boolean;
   
-  // Modal state
-  showApiKeysModal: boolean;
-  showExecutionModal: boolean;
-  showSettingsModal: boolean;
-  showPersonModal: boolean;
-  activeModal: string | null;
+  // NOTE: Modal state has been moved to local component state
+  // to reduce global store complexity
   
-  // Canvas settings
-  showGrid: boolean;
-  showMinimap: boolean;
-  showDebugInfo: boolean;
+  // NOTE: Canvas settings (showGrid, showMinimap, showDebugInfo) and
+  // temporary states (isDragging, isConnecting) have been moved to local
+  // component state to reduce global store complexity
+  
   canvasMode: CanvasMode;
   
   // Selection operations
@@ -70,19 +64,12 @@ export interface UISlice {
   
   // Mode operations
   setReadOnly: (readOnly: boolean) => void;
-  setDraggingState: (isDragging: boolean) => void;
-  setConnectingState: (isConnecting: boolean) => void;
   setCanvasMode: (mode: CanvasMode) => void;
   
-  // Canvas settings operations
-  setShowGrid: (show: boolean) => void;
-  setShowMinimap: (show: boolean) => void;
-  setShowDebugInfo: (show: boolean) => void;
+  // Clear operation
+  clearUIState: () => void;
   
-  // Modal operations
-  openModal: (modal: 'apikeys' | 'execution' | 'settings' | 'person') => void;
-  closeModal: (modal: 'apikeys' | 'execution' | 'settings' | 'person') => void;
-  closeAllModals: () => void;
+  // NOTE: Modal operations removed - use local component state instead
 }
 
 // Helper to auto-switch dashboard tab based on selection
@@ -115,19 +102,8 @@ export const createUISlice: StateCreator<
   
   readOnly: false,
   executionReadOnly: false,
-  isDragging: false,
-  isConnecting: false,
   isMonitorMode: false,
   
-  showApiKeysModal: false,
-  showExecutionModal: false,
-  showSettingsModal: false,
-  showPersonModal: false,
-  activeModal: null,
-  
-  showGrid: true,
-  showMinimap: false,
-  showDebugInfo: false,
   canvasMode: 'select',
   
   // Selection operations
@@ -212,75 +188,32 @@ export const createUISlice: StateCreator<
     state.readOnly = readOnly;
   }),
   
-  setDraggingState: (isDragging) => set(state => {
-    state.isDragging = isDragging;
-  }),
-  
-  setConnectingState: (isConnecting) => set(state => {
-    state.isConnecting = isConnecting;
-  }),
-  
   setCanvasMode: (mode) => set(state => {
     state.canvasMode = mode;
   }),
   
-  // Canvas settings operations
-  setShowGrid: (show) => set(state => {
-    state.showGrid = show;
+  // Clear operation
+  clearUIState: () => set(state => {
+    // Reset selection state
+    state.selectedId = null;
+    state.selectedType = null;
+    state.multiSelectedIds.clear();
+    state.highlightedPersonId = null;
+    
+    // Reset view state to defaults
+    state.activeView = 'diagram';
+    state.activeCanvas = 'main';
+    state.dashboardTab = 'properties';
+    
+    // Reset viewport state
+    state.zoom = 1;
+    state.position = { x: 0, y: 0 };
+    
+    // Reset mode state
+    state.readOnly = false;
+    state.executionReadOnly = false;
+    state.isMonitorMode = false;
+    state.canvasMode = 'select';
   }),
   
-  setShowMinimap: (show) => set(state => {
-    state.showMinimap = show;
-  }),
-  
-  setShowDebugInfo: (show) => set(state => {
-    state.showDebugInfo = show;
-  }),
-  
-  // Modal operations
-  openModal: (modal) => set(state => {
-    state.activeModal = modal;
-    switch (modal) {
-      case 'apikeys':
-        state.showApiKeysModal = true;
-        break;
-      case 'execution':
-        state.showExecutionModal = true;
-        break;
-      case 'settings':
-        state.showSettingsModal = true;
-        break;
-      case 'person':
-        state.showPersonModal = true;
-        break;
-    }
-  }),
-  
-  closeModal: (modal) => set(state => {
-    if (state.activeModal === modal) {
-      state.activeModal = null;
-    }
-    switch (modal) {
-      case 'apikeys':
-        state.showApiKeysModal = false;
-        break;
-      case 'execution':
-        state.showExecutionModal = false;
-        break;
-      case 'settings':
-        state.showSettingsModal = false;
-        break;
-      case 'person':
-        state.showPersonModal = false;
-        break;
-    }
-  }),
-  
-  closeAllModals: () => set(state => {
-    state.activeModal = null;
-    state.showApiKeysModal = false;
-    state.showExecutionModal = false;
-    state.showSettingsModal = false;
-    state.showPersonModal = false;
-  })
 });

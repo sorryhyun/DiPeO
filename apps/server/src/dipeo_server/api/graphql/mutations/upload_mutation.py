@@ -13,16 +13,20 @@ from dipeo.diagram import (
     backend_to_graphql,
     converter_registry,
 )
-from dipeo.domain import (
+from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
 )
-from dipeo.domain.domains.apikey import APIKeyDomainService
+from dipeo.application.services.apikey_service import APIKeyService
 from strawberry.file_uploads import Upload
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
-from config import BASE_DIR, FILES_DIR, UPLOAD_DIR
+from dipeo_server.shared.constants import BASE_DIR
+
+# Get FILES_DIR and UPLOAD_DIR from BASE_DIR
+FILES_DIR = Path(BASE_DIR) / "files"
+UPLOAD_DIR = FILES_DIR / "uploads"
 
 from ..context import GraphQLContext
 from ..types import (
@@ -35,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_diagram(
-    diagram: DomainDiagram, api_key_service: APIKeyDomainService | None = None
+    diagram: DomainDiagram, api_key_service: APIKeyService | None = None
 ) -> list[str]:
     """Validates diagram structure, returns error list."""
     errors = []
@@ -219,10 +223,11 @@ class UploadMutations:
                 )
 
             # Validate diagram
+            api_key_service = context.get_service("api_key_service")
             validation_errors = validate_diagram(
                 domain_diagram,
-                context.api_key_service
-                if isinstance(context.api_key_service, APIKeyDomainService)
+                api_key_service
+                if isinstance(api_key_service, APIKeyService)
                 else None,
             )
 
@@ -297,7 +302,9 @@ class UploadMutations:
                 )
 
             # Use the converter registry's serialize method, not the strategy directly
-            content_str = converter_registry.serialize(domain_diagram, target_format.value)
+            content_str = converter_registry.serialize(
+                domain_diagram, target_format.value
+            )
 
             diagram_name = content.get("metadata", {}).get("name", "diagram")
             extension = format_info.get("extension", ".yaml")
