@@ -103,7 +103,8 @@ class ArrowTransformer:
             metadata={
                 "arrow_data": arrow.data or {},
                 "source_type": source_node.type.value,
-                "target_type": target_node.type.value
+                "target_type": target_node.type.value,
+                "label": arrow.label
             }
         )
     

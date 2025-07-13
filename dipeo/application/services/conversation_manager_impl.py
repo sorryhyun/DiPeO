@@ -36,7 +36,8 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         self._global_conversation = Conversation()
     
     def get_conversation(self, person_id: str = "") -> Conversation:
-        """Get the global conversation. person_id parameter is ignored (backward compatibility)."""
+        """Get the global conversation."""
+        # person_id parameter is ignored - all persons share the same conversation
         return self._global_conversation
     
     
@@ -46,50 +47,18 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         execution_id: str,
         node_id: str | None = None
     ) -> None:
-        """Add a message to the global conversation and route to relevant persons."""
+        """Add a message to the global conversation."""
         self._current_execution_id = execution_id
         
         # Add to global conversation
         self._global_conversation.add_message(message)
         
-        # Route to sender (if not system)
-        if message.from_person_id != "system":
-            self._add_to_person_conversation(
-                str(message.from_person_id), 
-                message, 
-                execution_id, 
-                node_id
-            )
-        
-        # Route to recipient (if not system and different from sender)
-        if message.to_person_id != "system" and message.to_person_id != message.from_person_id:
-            self._add_to_person_conversation(
-                str(message.to_person_id), 
-                message, 
-                execution_id, 
-                node_id
-            )
-    
-    def _add_to_person_conversation(
-        self,
-        person_id: str,
-        message: Message,
-        execution_id: str,
-        node_id: str | None = None
-    ) -> None:
-        """Route message to person's memory view."""
-        person_id_obj = PersonID(person_id)
-        if not self.person_manager.person_exists(person_id_obj):
-            return
-        
-        person = self.person_manager.get_person(person_id_obj)
-        person.add_message(message)
-        
         # Log for persistence
         if execution_id not in self._conversation_logs:
             self._conversation_logs[execution_id] = []
+        
         self._conversation_logs[execution_id].append({
-            "person_id": person_id,
+            "person_id": str(message.from_person_id),
             "role": self._get_role_from_message(message),
             "content": message.content,
             "from_person_id": str(message.from_person_id),
@@ -97,6 +66,8 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             "node_id": node_id,
             "timestamp": message.timestamp
         })
+    
+    # Removed _add_to_person_conversation - no longer needed
     
     def apply_forgetting(
         self,
@@ -198,19 +169,12 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             # Set conversation manager on the newly created person
             person._conversation_manager = self
     
-    def get_person_config(self, person_id: str) -> dict[str, Any] | None:
+    def get_person_config(self, person_id: str) -> PersonLLMConfig | None:
         person_id_obj = PersonID(person_id)
         if self.person_manager.person_exists(person_id_obj):
             person = self.person_manager.get_person(person_id_obj)
             if person.llm_config:
-                return {
-                    'service': person.llm_config.service.value,
-                    'model': person.llm_config.model,
-                    'api_key_id': str(person.llm_config.api_key_id),
-                    'system_prompt': person.llm_config.system_prompt,
-                    'temperature': person.llm_config.temperature,
-                    'max_tokens': person.llm_config.max_tokens
-                }
+                return person.llm_config
         return None
     
     
@@ -249,9 +213,10 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         # Clear global conversation
         self._global_conversation.clear()
         
-        # Clear each person's memory view
+        # Reset each person's memory limits
         for person_id, person in self.person_manager.get_all_persons().items():
-            person.clear_conversation()
+            # Reset memory configuration
+            person.set_memory_limit(-1)  # Remove limit
         
         # Clear logs
         self._conversation_logs.clear()
@@ -276,26 +241,11 @@ class ConversationManagerImpl(BaseService, ConversationManager):
                 "timestamp": msg.timestamp
             })
         
-        # Also create per-person views for backward compatibility
-        conversations = {}
-        for person_id, person in self.person_manager.get_all_persons().items():
-            messages = []
-            for msg in person.get_messages():
-                messages.append({
-                    "role": self._get_role_from_message(msg),
-                    "content": msg.content,
-                    "from_person_id": str(msg.from_person_id),
-                    "to_person_id": str(msg.to_person_id),
-                    "timestamp": msg.timestamp
-                })
-            conversations[str(person_id)] = messages
-        
         with open(filepath, 'w') as f:
             json.dump({
                 "execution_id": execution_id,
                 "timestamp": datetime.now().isoformat(),
-                "global_conversation": global_messages,
-                "conversations": conversations  # Backward compatibility
+                "global_conversation": global_messages
             }, f, indent=2)
         
         return str(filepath)

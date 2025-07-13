@@ -20,6 +20,8 @@ from typing import Dict, Any, Optional
 import requests
 import yaml
 
+from dipeo.core.constants import BASE_DIR, FILES_DIR
+
 
 class ServerManager:
     """Manages the backend server process."""
@@ -46,9 +48,7 @@ class ServerManager:
         print("🚀 Starting backend server...")
 
         # Find server directory
-        server_path = (
-            Path(__file__).parent.parent.parent.parent.parent / "apps" / "server"
-        )
+        server_path = BASE_DIR / "apps" / "server"
         if not server_path.exists():
             print(f"❌ Server directory not found: {server_path}")
             return False
@@ -160,9 +160,9 @@ class DiPeOCLI:
                 ("light", ".yaml"),
                 ("readable", ".yaml"),
             ]:
-                path = f"files/diagrams/{fmt}/{diagram}{ext}"
-                if Path(path).exists():
-                    return path
+                path = FILES_DIR / "diagrams" / fmt / f"{diagram}{ext}"
+                if path.exists():
+                    return str(path)
             raise FileNotFoundError(f"Diagram '{diagram}' not found in any format")
 
         # Use specified format
@@ -173,7 +173,7 @@ class DiPeOCLI:
         }
 
         fmt_dir, ext = format_map[format_type]
-        return f"files/diagrams/{fmt_dir}/{diagram}{ext}"
+        return str(FILES_DIR / "diagrams" / fmt_dir / f"{diagram}{ext}")
 
     def load_diagram(self, file_path: str) -> Dict[str, Any]:
         """Load diagram from file (JSON or YAML)."""

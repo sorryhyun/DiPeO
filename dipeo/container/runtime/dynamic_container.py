@@ -28,8 +28,8 @@ def _create_person_manager():
 
 def _create_stateful_diagram(diagram):
     """Create stateful diagram wrapper."""
-    from dipeo.application.execution.stateful_diagram import StatefulExecutableDiagram
-    return StatefulExecutableDiagram(diagram)
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    return TypedStatefulExecution(diagram)
 
 
 # UnifiedExecutionCoordinator removed - functionality merged into TypedStatefulExecution

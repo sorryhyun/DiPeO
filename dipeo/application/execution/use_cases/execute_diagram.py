@@ -25,15 +25,25 @@ class ExecuteDiagramUseCase(BaseService):
     def __init__(
         self,
         service_registry: "UnifiedServiceRegistry",
-        state_store: "StateStorePort",
-        message_router: "MessageRouterPort",
-        diagram_storage_service: "DiagramStorageAdapter",
+        state_store: Optional["StateStorePort"] = None,
+        message_router: Optional["MessageRouterPort"] = None,
+        diagram_storage_service: Optional["DiagramStorageAdapter"] = None,
     ):
         super().__init__()
         self.service_registry = service_registry
-        self.state_store = state_store
-        self.message_router = message_router
-        self.diagram_storage_service = diagram_storage_service
+        
+        # Get services from registry if not provided directly (for backward compatibility)
+        self.state_store = state_store or service_registry.get("state_store")
+        self.message_router = message_router or service_registry.get("message_router")
+        self.diagram_storage_service = diagram_storage_service or service_registry.get("diagram_storage_service")
+        
+        # Validate required services
+        if not self.state_store:
+            raise ValueError("state_store is required but not found in service registry")
+        if not self.message_router:
+            raise ValueError("message_router is required but not found in service registry")
+        if not self.diagram_storage_service:
+            raise ValueError("diagram_storage_service is required but not found in service registry")
 
     async def initialize(self):
         """Initialize the service."""
@@ -91,7 +101,6 @@ class ExecuteDiagramUseCase(BaseService):
                     await self.state_store.save_state(state)
                 
                 async for _ in engine.execute(
-                    typed_diagram,
                     typed_execution,
                     execution_id,
                     options,

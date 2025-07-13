@@ -6,8 +6,17 @@ import sys
 from pathlib import Path
 
 # Add project root to path
-project_root = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(project_root))
+# This file is at apps/cli/dipeo/commands/profile_container.py
+# Going up 4 levels to reach project root
+try:
+    from dipeo.core.constants import BASE_DIR
+    project_root = BASE_DIR
+except ImportError:
+    # Fallback if dipeo is not in path yet
+    project_root = Path(__file__).resolve().parents[4]
+    sys.path.insert(0, str(project_root))
+    from dipeo.core.constants import BASE_DIR
+    project_root = BASE_DIR
 
 from dipeo.container import Container
 from dipeo.container.utilities import init_resources, shutdown_resources

@@ -180,7 +180,7 @@ class UnifiedExecutionContext(ExecutionContext):
                 
                 # Business services
                 'text_processing_service': lambda: self._container.business.text_processing_service(),
-                'input_resolution_service': lambda: self._container.business.input_resolution_service(),
+                # 'input_resolution_service' removed - using typed version directly
                 
                 # Dynamic services
                 'conversation_service': lambda: self._container.dynamic.conversation_manager(),

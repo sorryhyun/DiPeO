@@ -28,8 +28,6 @@ class Person:
         self.name = name
         self.llm_config = llm_config
         self._conversation_manager = conversation_manager
-        # For backward compatibility, maintain a local conversation if no manager provided
-        self._local_conversation: Optional[Conversation] = Conversation() if not conversation_manager else None
         
         # Memory management
         self.memory_view = memory_view
@@ -37,25 +35,27 @@ class Person:
         self._memory_limiter: Optional[MemoryLimiter] = None
     
     def add_message(self, message: Message) -> None:
-        if self._conversation_manager:
-            # Add to global conversation via manager
-            self._conversation_manager.add_message(
-                message=message,
-                execution_id=getattr(self._conversation_manager, '_current_execution_id', ''),
-                node_id=None
-            )
-        elif self._local_conversation:
-            # Fallback to local conversation for backward compatibility
-            self._local_conversation.add_message(message)
+        if not self._conversation_manager:
+            raise RuntimeError("Person requires ConversationManager for message handling")
+        
+        self._conversation_manager.add_message(
+            message=message,
+            execution_id=getattr(self._conversation_manager, '_current_execution_id', ''),
+            node_id=None
+        )
     
     def get_context(self) -> ConversationContext:
-        conversation = self._get_conversation()
-        return conversation.get_context() if conversation else ConversationContext(messages=[], metadata=None, context={})
+        if not self._conversation_manager:
+            return ConversationContext(messages=[], metadata=None, context={})
+        
+        conversation = self._conversation_manager.get_conversation()
+        return conversation.get_context()
     
     def get_messages(self, memory_view: Optional[MemoryView] = None) -> List[Message]:
-        conversation = self._get_conversation()
-        if not conversation:
+        if not self._conversation_manager:
             return []
+        
+        conversation = self._conversation_manager.get_conversation()
         
         # Use specified view or default view
         view = memory_view or self.memory_view
@@ -75,17 +75,13 @@ class Person:
         return messages[-1] if messages else None
     
     def clear_conversation(self) -> None:
-        """Clear this person's memory (backward compatibility only)."""
-        if self._conversation_manager:
-            # In new architecture, apply forgetting mode to clear person's view
-            # This maintains the global conversation but clears this person's memory
-            self._conversation_manager.apply_forgetting(
-                str(self.id), 
-                ForgettingMode.upon_request,
-                getattr(self._conversation_manager, '_current_execution_id', None)
-            )
-        elif self._local_conversation:
-            self._local_conversation.clear()
+        """Clear this person's memory view.
+        
+        Note: In the global conversation model, this doesn't delete messages
+        but can reset the person's memory filters or limits.
+        """
+        # Reset memory limiter to effectively "forget" messages
+        self._memory_limiter = MemoryLimiter(0, preserve_system=False)
     
     def get_message_count(self) -> int:
         return len(self.get_messages())
@@ -112,38 +108,37 @@ class Person:
         }
     
     def update_context(self, context_updates: Dict[str, Any]) -> None:
-        conversation = self._get_conversation()
-        if conversation:
+        if self._conversation_manager:
+            conversation = self._conversation_manager.get_conversation()
             conversation.update_context(context_updates)
     
     def _get_conversation(self) -> Optional[Conversation]:
-        if self._conversation_manager:
-            # Get global conversation from manager (no person_id needed)
-            return self._conversation_manager.get_conversation("")
-        return self._local_conversation
+        if not self._conversation_manager:
+            return None
+        return self._conversation_manager.get_conversation()
     
     @property
     def conversation(self) -> Conversation:
-        """Get conversation for backward compatibility."""
+        """Get the global conversation."""
         conv = self._get_conversation()
         if not conv:
             raise RuntimeError("No conversation available")
         return conv
     
-    async def chat(
+    async def complete(
         self,
-        message: str,
+        prompt: str,
         llm_service: "LLMServicePort",
         from_person_id: Union[PersonID, str] = "system",
         memory_config: Optional[MemoryConfig] = None,
         **llm_options: Any
     ) -> ChatResult:
-        """Send message to this person and get LLM response."""
+        """Complete a prompt using this person's LLM."""
         # Create the incoming message
         incoming = Message(
             from_person_id=from_person_id,  # type: ignore[arg-type]
             to_person_id=self.id,
-            content=message,
+            content=prompt,
             message_type="person_to_person" if from_person_id != "system" else "system_to_person"
         )
         self.add_message(incoming)
@@ -176,20 +171,6 @@ class Person:
         
         return result
     
-    async def complete(
-        self,
-        prompt: str,
-        llm_service: "LLMServicePort",
-        **llm_options: Any
-    ) -> ChatResult:
-        """Complete a prompt using this person's LLM."""
-        return await self.chat(
-            message=prompt,
-            llm_service=llm_service,
-            from_person_id=PersonID("system"),
-            **llm_options
-        )
-    
     def apply_memory_management(self, memory_config: MemoryConfig) -> int:
         """Apply memory management rules including forgetting and limits.
         
@@ -213,38 +194,27 @@ class Person:
                 memory_config.forget_mode,
                 getattr(self._conversation_manager, '_current_execution_id', None)
             )
-        elif self._local_conversation:
-            # Backward compatibility: apply forgetting locally
+        else:
+            # Without conversation manager, apply forgetting through memory limits
             if memory_config.forget_mode == ForgettingMode.on_every_turn:
-                # Keep only system messages and last exchange
-                original_count = len(self._local_conversation.messages)
-                messages = self._local_conversation.messages
-                self._local_conversation.clear()
-                
-                # Keep system messages
-                for msg in messages:
-                    if msg.from_person_id == PersonID("system"):
-                        self._local_conversation.add_message(msg)
-                
-                # Keep last exchange if any
-                if messages:
-                    self._local_conversation.add_message(messages[-1])
-                
-                affected_count = original_count - len(self._local_conversation.messages)
+                # Keep only last message by setting very restrictive memory limit
+                self.set_memory_limit(1, preserve_system=True)
+                affected_count = 1  # Approximate
             
             elif memory_config.forget_mode == ForgettingMode.upon_request:
-                affected_count = len(self._local_conversation.messages)
-                self._local_conversation.clear()
+                # Clear all messages by setting limit to 0
+                self.set_memory_limit(0, preserve_system=False)
+                affected_count = 1  # Approximate
         
         return affected_count
     
-    def forget(self, memory_config: MemoryConfig) -> List[Message]:
+    def forget(self, memory_config: MemoryConfig) -> int:
         """Apply memory management rules to forget old messages.
         
-        Deprecated: Use apply_memory_management() instead.
+        Returns:
+            Number of messages affected by memory management
         """
-        self.apply_memory_management(memory_config)
-        return []  # Can't return forgotten messages in new architecture
+        return self.apply_memory_management(memory_config)
     
     def _prepare_messages_for_llm(self) -> List[Dict[str, str]]:
         llm_messages = []
@@ -274,7 +244,8 @@ class Person:
         
         return llm_messages
     
-    def can_see_conversation_of(self, other_person: "Person") -> bool:
+    @staticmethod
+    def can_see_conversation_of(other_person: "Person") -> bool:
         """Check if this person can see another person's conversation."""
         # In new architecture, persons share a global conversation
         # Visibility rules can be configured based on requirements

@@ -75,6 +75,8 @@ class StateRegistry:
 
     async def _execute(self, *args, **kwargs):
         """Execute a database operation in the dedicated thread."""
+        if self._conn is None:
+            raise RuntimeError("StateRegistry not initialized. Call initialize() first.")
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self._executor, self._conn.execute, *args, **kwargs
@@ -527,10 +529,3 @@ class StateRegistry:
         # Remove from cache after persisting
         await self._execution_cache.remove(state.id)
 
-
-state_store = StateRegistry()
-
-import logging
-
-logger = logging.getLogger(__name__)
-logger.info(f"Created state_store singleton: {state_store}")

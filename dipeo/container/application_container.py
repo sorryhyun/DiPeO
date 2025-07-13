@@ -26,7 +26,6 @@ def _create_service_registry(
     db_operations_service,
     person_job_services,
     condition_evaluation_service,
-    input_resolution_service,
     template_service,
     # New infrastructure services
     api_service,
@@ -76,7 +75,7 @@ def _create_service_registry(
     
     # Execution services - Primary registration with _service suffix
     registry.register("condition_evaluation_service", condition_evaluation_service)
-    registry.register("input_resolution_service", input_resolution_service)
+    # input_resolution_service removed - using typed version directly
     
     # New infrastructure services
     registry.register("api_service", api_service)
@@ -152,7 +151,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         condition_evaluation_service=business.condition_evaluator,  # Note: renamed
         api_business_logic=business.api_business_logic,
         file_domain_service=business.file_business_logic,
-        input_resolution_service=business.input_resolution_service,
         
         # From Static Container (was domain)
         template_service=static.template_processor,  # Note: renamed

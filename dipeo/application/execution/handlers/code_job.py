@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from io import StringIO
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import warnings
 
 from dipeo.application import register_handler
@@ -14,6 +14,9 @@ from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
 from dipeo.core.static.generated_nodes import CodeJobNode
 from pydantic import BaseModel
 from dipeo.utils.template import TemplateProcessor
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 
 
@@ -51,6 +54,18 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     def description(self) -> str:
         return "Executes Python, JavaScript, or Bash code with enhanced capabilities"
 
+    async def pre_execute(
+        self,
+        node: CodeJobNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for CodeJobNode."""
+        return {
+            "language": node.language.value if hasattr(node.language, 'value') else node.language,
+            "code": node.code,
+            "timeout": node.timeout
+        }
+    
     async def execute_typed(
         self,
         node: CodeJobNode,

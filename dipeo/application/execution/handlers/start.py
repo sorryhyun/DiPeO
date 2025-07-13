@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from dipeo.application import register_handler
 from dipeo.application.execution.typed_handler_base import TypedNodeHandler
@@ -6,6 +6,9 @@ from dipeo.application.execution.context.unified_execution_context import Unifie
 from dipeo.models import NodeOutput, StartNodeData, HookTriggerMode, NodeType
 from dipeo.core.static.generated_nodes import StartNode
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 
 @register_handler
@@ -30,6 +33,20 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     def description(self) -> str:
         return "Kick-off node: can start manually or via hook trigger"
 
+    async def pre_execute(
+        self,
+        node: StartNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for StartNode."""
+        return {
+            "custom_data": node.custom_data,
+            "output_data_structure": node.output_data_structure,
+            "trigger_mode": node.trigger_mode,
+            "hook_event": node.hook_event,
+            "hook_filters": node.hook_filters
+        }
+    
     async def execute_typed(
         self,
         node: StartNode,

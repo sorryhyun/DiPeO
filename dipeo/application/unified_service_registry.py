@@ -35,6 +35,8 @@ class UnifiedServiceRegistry(DynamicRegistry):
             
             # Infrastructure services
             "diagram_loader": "diagram_loader",
+            "state_store": "state_store",
+            "message_router": "message_router",
             
             # Domain services
             "diagram_storage_service": "diagram_storage_service",
@@ -45,7 +47,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
             
             # Execution domain services
             "execution_flow_service": "execution_flow_service",
-            "input_resolution_service": "input_resolution_service",
+            # "input_resolution_service" removed - using typed version directly
         }
         
         # Register services from context

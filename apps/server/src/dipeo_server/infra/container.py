@@ -7,7 +7,7 @@ from dipeo.container.runtime.integration_container import IntegrationServicesCon
 from dipeo.infra import MessageRouter, NotionAPIService
 from dipeo.infra.persistence.file import ModularFileService
 from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
-from dipeo_server.infra.persistence.state_registry import state_store
+from dipeo_server.infra.persistence.state_registry import StateRegistry
 from dipeo_server.shared.constants import BASE_DIR
 
 
@@ -15,7 +15,7 @@ class ServerInfrastructureContainer(IntegrationServicesContainer):
     # Server-specific infrastructure container with proper overrides
 
     # Override state_store with server implementation
-    state_store = providers.Singleton(lambda: state_store)
+    state_store = providers.Singleton(StateRegistry)
 
     # Override message_router with actual implementation
     message_router = providers.Singleton(MessageRouter)

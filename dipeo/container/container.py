@@ -1,12 +1,10 @@
 """Main dependency injection container for DiPeO."""
 
-import os
-from pathlib import Path
 from dependency_injector import containers, providers
 
+from dipeo.core.constants import BASE_DIR
 from .application_container import ApplicationContainer
 from .utilities import (
-    get_project_base_dir,
     init_resources,
     shutdown_resources,
     validate_protocol_compliance,
@@ -39,7 +37,7 @@ class Container(containers.DeclarativeContainer):
 
     # Base directory configuration
     base_dir = providers.Factory(
-        lambda: Path(os.environ.get("DIPEO_BASE_DIR", get_project_base_dir()))
+        lambda: BASE_DIR
     )
 
     # ===== NEW CONTAINER STRUCTURE =====
@@ -116,5 +114,4 @@ __all__ = [
     'init_resources', 
     'shutdown_resources',
     'validate_protocol_compliance',
-    'get_project_base_dir',
 ]

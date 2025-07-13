@@ -1,6 +1,6 @@
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from dipeo.application import register_handler
 from dipeo.application.execution.typed_handler_base import TypedNodeHandler
@@ -17,6 +17,9 @@ from dipeo.models import (
 from dipeo.core.static.generated_nodes import PersonJobNode
 from dipeo.core.dynamic import Person
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,28 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             
         return service
 
+    async def pre_execute(
+        self,
+        node: PersonJobNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for PersonJobNode."""
+        exec_count = execution.get_node_execution_count(node.id)
+        
+        # Determine which prompt to use
+        if exec_count == 0 and node.first_only_prompt:
+            prompt = node.first_only_prompt
+        else:
+            prompt = node.default_prompt
+        
+        return {
+            "prompt": prompt,
+            "exec_count": exec_count,
+            "should_continue": exec_count < node.max_iteration,
+            "memory_config": node.memory_config,
+            "tools": node.tools
+        }
+    
     async def execute_typed(
         self,
         node: PersonJobNode,
@@ -169,8 +194,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             
             # Execute LLM call
             # Only pass tools if they are configured
-            chat_kwargs = {
-                "message": built_prompt,
+            complete_kwargs = {
+                "prompt": built_prompt,
                 "llm_service": llm_service,
                 "from_person_id": "system",
                 "memory_config": None,
@@ -180,9 +205,9 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             
             # Add tools only if they exist
             if node.tools:
-                chat_kwargs["tools"] = node.tools
+                complete_kwargs["tools"] = node.tools
                 
-            result = await person.chat(**chat_kwargs)
+            result = await person.complete(**complete_kwargs)
             
             # Build and return output
             return self._build_node_output(

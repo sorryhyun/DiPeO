@@ -3,7 +3,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import aiohttp
 from pydantic import BaseModel
@@ -14,6 +14,9 @@ from dipeo.application.execution.context.unified_execution_context import Unifie
 from dipeo.core.errors import NodeExecutionError, InvalidDiagramError
 from dipeo.models import HookNodeData, HookType, NodeOutput, NodeType
 from dipeo.core.static.generated_nodes import HookNode
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 
 @register_handler
@@ -39,6 +42,14 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     @property
     def description(self) -> str:
         return "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
+    
+    async def pre_execute(
+        self,
+        node: HookNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for HookNode."""
+        return {}
     
     async def execute_typed(
         self,

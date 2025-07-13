@@ -9,7 +9,7 @@ from dipeo.application.execution.iterators import AsyncExecutionIterator
 from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
 from dipeo.infra.config.settings import get_settings
-from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
+from dipeo.core.static.executable_diagram import ExecutableNode
 
 from .node_executor import NodeExecutor
 
@@ -38,7 +38,6 @@ class TypedExecutionEngine:
     
     async def execute(
         self,
-        executable_diagram: "ExecutableDiagram",
         stateful_execution: TypedStatefulExecution,
         execution_id: str,
         options: dict[str, Any],
@@ -156,15 +155,6 @@ class TypedExecutionEngine:
                 raise
         
         return execute_node
-    def _check_endpoint_executed(
-        self, 
-        diagram: "ExecutableDiagram", 
-        stateful_execution: TypedStatefulExecution
-    ) -> bool:
-        for node in diagram.get_end_nodes():
-            if stateful_execution.get_node_state(node.id).status == NodeExecutionStatus.COMPLETED:
-                return True
-        return False
 
 
 # Backward compatibility alias

@@ -19,16 +19,23 @@ class APIKeyService(BaseService, SupportsAPIKey):
         super().__init__()
         self.storage = storage
         self._store: dict[str, dict] = {}
+        import logging
+        self._logger = logging.getLogger(__name__)
+        self._logger.info(f"APIKeyService.__init__ called with storage: {storage}")
     
     async def initialize(self) -> None:
         self._store = await self.storage.load_all()
         print(f"[APIKeyService] Loaded {len(self._store)} keys")
+        self._logger.info(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
     
     async def _save_store(self) -> None:
         await self.storage.save_all(self._store)
     
     def get_api_key(self, key_id: str) -> dict:
         if key_id not in self._store:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"API key '{key_id}' not found. Available keys: {list(self._store.keys())}")
             raise APIKeyError(f"API key '{key_id}' not found")
         
         info = self._store[key_id]

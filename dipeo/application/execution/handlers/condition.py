@@ -1,5 +1,5 @@
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import logging
 
 from pydantic import BaseModel
@@ -9,6 +9,9 @@ from dipeo.application import register_handler
 from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.models import ConditionNodeData, NodeOutput, NodeType
 from dipeo.core.static.generated_nodes import ConditionNode
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,18 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             service = services.get(service_name)
         return service
 
+    async def pre_execute(
+        self,
+        node: ConditionNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for ConditionNode."""
+        return {
+            "condition_type": node.condition_type,
+            "expression": node.expression,
+            "node_indices": node.node_indices
+        }
+    
     async def execute_typed(
         self,
         node: ConditionNode,

@@ -24,26 +24,9 @@ def initialize_container() -> ServerContainer:
         ServerContainer.set_profile(profile)
         print(f"Initializing server with container profile: {profile}")
 
+        # Create container - ServerContainer already uses ServerPersistenceContainer
+        # which has the proper state_store, message_router, and api_key_storage overrides
         _container = ServerContainer()
-
-        # Override specific providers in the persistence container
-        from dependency_injector import providers
-        from dipeo_server.infra.persistence_container import (
-            _create_initialized_state_store,
-            _create_server_api_key_storage,
-        )
-        from dipeo.infra import MessageRouter
-
-        # Override specific providers instead of the whole container
-        _container.persistence.state_store.override(
-            providers.Singleton(_create_initialized_state_store)
-        )
-        _container.persistence.message_router.override(
-            providers.Singleton(MessageRouter)
-        )
-        _container.persistence.api_key_storage.override(
-            providers.Singleton(_create_server_api_key_storage)
-        )
 
         # Wire the container to necessary modules
         _container.wire(

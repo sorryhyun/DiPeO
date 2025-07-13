@@ -99,6 +99,14 @@ class TypedNodeHandler(Generic[T], ABC):
         
         raise ValueError("TypedStatefulExecution not found in context")
     
+    async def pre_execute(
+        self,
+        node: T,
+        execution: "TypedStatefulExecution"
+    ) -> Dict[str, Any]:
+        """Pre-execution logic for the node. Override in subclasses."""
+        return {}
+    
     def _build_output(
         self,
         value: Any,

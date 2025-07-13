@@ -46,10 +46,6 @@ def _create_prompt_builder():
     return PromptBuilder()
 
 
-def _create_input_resolution_service(arrow_processor):
-    """Create input resolution service."""
-    from dipeo.application.execution.input import InputResolutionService
-    return InputResolutionService(arrow_processor=arrow_processor)
 
 
 def _create_conversation_processor():
@@ -195,10 +191,7 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     prompt_builder = providers.Singleton(_create_prompt_builder)
     
     # Execution services (pure logic only)
-    input_resolution_service = providers.Singleton(
-        _create_input_resolution_service,
-        arrow_processor=static.arrow_processor,
-    )
+    # input_resolution_service removed - using typed version directly
     
     # Person job services (pure processing logic)
     conversation_processor = providers.Singleton(_create_conversation_processor)

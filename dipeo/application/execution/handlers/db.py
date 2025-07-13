@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -12,6 +12,9 @@ from dipeo.application.execution.context.unified_execution_context import (
 from dipeo.application.execution.typed_handler_base import TypedNodeHandler
 from dipeo.core.static.generated_nodes import DBNode
 from dipeo.models import DBNodeData, NodeOutput, NodeType
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +81,21 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     #  Typed execution                                                      #
     # ---------------------------------------------------------------------#
 
+    async def pre_execute(
+        self,
+        node: DBNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for DBNode."""
+        return {
+            "file": node.file,
+            "collection": node.collection,
+            "sub_type": node.sub_type.value if hasattr(node.sub_type, 'value') else node.sub_type,
+            "operation": node.operation,
+            "query": node.query,
+            "data": node.data
+        }
+    
     async def execute_typed(  # noqa: D401
         self,
         node: DBNode,

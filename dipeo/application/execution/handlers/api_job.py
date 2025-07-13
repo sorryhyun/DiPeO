@@ -1,6 +1,6 @@
 
 import json
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from dipeo.application import register_handler
 from dipeo.application.execution.typed_handler_base import TypedNodeHandler
@@ -8,6 +8,9 @@ from dipeo.application.execution.context.unified_execution_context import Unifie
 from dipeo.models import ApiJobNodeData, NodeOutput, HttpMethod, NodeType
 from dipeo.core.static.generated_nodes import ApiJobNode
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 
 @register_handler
@@ -37,6 +40,23 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
+    async def pre_execute(
+        self,
+        node: ApiJobNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for ApiJobNode."""
+        return {
+            "url": node.url,
+            "method": node.method.value if hasattr(node.method, 'value') else node.method,
+            "headers": node.headers,
+            "params": node.params,
+            "body": node.body,
+            "timeout": node.timeout,
+            "auth_type": node.auth_type,
+            "auth_config": node.auth_config
+        }
+    
     async def execute_typed(
         self,
         node: ApiJobNode,

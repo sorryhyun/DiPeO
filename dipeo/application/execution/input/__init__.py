@@ -1,5 +1,5 @@
 """Input resolution services for execution."""
 
-from .input_resolution_service import InputResolutionService
+from .typed_input_resolution import TypedInputResolutionService
 
-__all__ = ["InputResolutionService"]
+__all__ = ["TypedInputResolutionService"]

@@ -1,5 +1,5 @@
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from dipeo.application import register_handler
 from dipeo.application.execution.typed_handler_base import TypedNodeHandler
@@ -7,6 +7,9 @@ from dipeo.application.execution.context.unified_execution_context import Unifie
 from dipeo.models import EndpointNodeData, NodeOutput, NodeType
 from dipeo.core.static.generated_nodes import EndpointNode
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 
 
 @register_handler
@@ -37,6 +40,21 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     def description(self) -> str:
         return "Endpoint node – pass through data and optionally save to file"
 
+    async def pre_execute(
+        self,
+        node: EndpointNode,
+        execution: "TypedStatefulExecution"
+    ) -> dict[str, Any]:
+        """Pre-execute logic for EndpointNode."""
+        save_config = None
+        if node.save_to_file:
+            save_config = {
+                "save": True,
+                "filename": node.file_name or f"output_{node.id}.json"
+            }
+        
+        return {"save_config": save_config}
+    
     async def execute_typed(
         self,
         node: EndpointNode,

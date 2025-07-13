@@ -1,7 +1,6 @@
 """Utility functions for container management."""
 
 import os
-from pathlib import Path
 from dipeo.application.protocols import (
     SupportsAPIKey,
 )
@@ -13,21 +12,6 @@ from dipeo.core.ports import (
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.core.dynamic.conversation_manager import ConversationManager
 from .profiling import get_profiler
-from .core.container_profiles import ContainerProfile
-
-
-def get_project_base_dir():
-    """Get the project base directory."""
-    # Try to import from config if available
-    try:
-        from config import BASE_DIR
-
-        return BASE_DIR
-    except ImportError:
-        # Fall back to finding the project root
-        # This file is in dipeo/container
-        # Project root is 2 levels up
-        return Path(__file__).resolve().parents[2]
 
 
 async def init_resources(container) -> None:

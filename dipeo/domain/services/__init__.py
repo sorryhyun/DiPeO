@@ -12,10 +12,8 @@ to their proper domain locations during the architectural refactoring.
 # - Database services: dipeo.domain.db.services
 
 # For backward compatibility, maintain empty references
-InputResolutionService = None  # Moved to application layer
 PersonJobOrchestrator = None  # Moved to application layer
 
 __all__ = [
-    "InputResolutionService",
     "PersonJobOrchestrator",
 ]

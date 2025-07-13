@@ -77,7 +77,8 @@ class TypedInputResolutionService:
                     continue
             
             # Get the input key where this should be placed
-            input_key = edge.target_input or "default"
+            # Use label from metadata if available, otherwise use target_input
+            input_key = edge.metadata.get("label") or edge.target_input or "default"
             
             # Apply any transformations if specified
             if edge.data_transform:
@@ -101,11 +102,11 @@ class TypedInputResolutionService:
             node_id = str(edge.target_node_id)
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
             
-            # On first execution, only process "first" inputs
-            if exec_count == 0 and edge.target_input == "first":
+            # On first execution, only process inputs ending with "_first" or exactly "first"
+            if exec_count == 0 and edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first")):
                 return True
-            # On subsequent executions, skip "first" inputs
-            elif exec_count > 0 and edge.target_input != "first":
+            # On subsequent executions, skip "_first" inputs
+            elif exec_count > 0 and edge.target_input and not (edge.target_input == "first" or edge.target_input.endswith("_first")):
                 return True
             else:
                 return False

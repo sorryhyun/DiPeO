@@ -83,6 +83,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Ensure language field exists
             if "code_type" in props and "language" not in props:
                 props["language"] = props.pop("code_type")
+        elif node_type == "db":
+            # Map source_details to file for DB nodes
+            if "source_details" in props and "file" not in props:
+                props["file"] = props.pop("source_details")
 
         return build_node(
             id=self._create_node_id(index),
@@ -266,6 +270,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Map language back to code_type for code_job nodes (for backward compatibility)
             elif node_type == "code_job" and "language" in props:
                 props["code_type"] = props.pop("language")
+            # Map file back to source_details for DB nodes
+            elif node_type == "db" and "file" in props:
+                props["source_details"] = props.pop("file")
             if props:
                 node_dict["props"] = props
             nodes_out.append(node_dict)

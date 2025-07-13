@@ -8,10 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage, NodeID
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.application.execution.input.typed_input_resolution import TypedInputResolutionService
-from dipeo.core.static.generated_nodes import (
-    PersonJobNode, ConditionNode, StartNode, EndpointNode,
-    CodeJobNode, ApiJobNode, DBNode, HookNode, UserResponseNode, NotionNode
-)
+from dipeo.core.static.generated_nodes import PersonJobNode
 
 if TYPE_CHECKING:
     from dipeo.application.execution.context import UnifiedExecutionContext
@@ -37,20 +34,6 @@ class NodeExecutor:
     ):
         self.service_registry = service_registry
         self.observers = observers or []
-        
-        # Type-specific pre-execution handlers
-        self.pre_execution_handlers = {
-            PersonJobNode: self._pre_execute_person_job,
-            EndpointNode: self._pre_execute_endpoint,
-            CodeJobNode: self._pre_execute_code_job,
-            ApiJobNode: self._pre_execute_api_job,
-            ConditionNode: self._pre_execute_condition,
-            DBNode: self._pre_execute_db,
-            HookNode: self._pre_execute_hook,
-            StartNode: self._pre_execute_start,
-            UserResponseNode: self._pre_execute_user_response,
-            NotionNode: self._pre_execute_notion
-        }
     
     async def execute_node(
         self,
@@ -155,149 +138,9 @@ class NodeExecutor:
         execution: "TypedStatefulExecution"
     ) -> Dict[str, Any]:
         """Type-specific pre-execution logic."""
-        # Get the handler for this node type
-        handler = self.pre_execution_handlers.get(type(node))
-        if handler:
-            return await handler(node, execution)
-        return {}
-    
-    async def _pre_execute_person_job(
-        self, 
-        node: PersonJobNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for PersonJobNode."""
-        exec_count = execution.get_node_execution_count(node.id)
-        
-        # Determine which prompt to use
-        if exec_count == 0 and node.first_only_prompt:
-            prompt = node.first_only_prompt
-        else:
-            prompt = node.default_prompt
-        
-        return {
-            "prompt": prompt,
-            "exec_count": exec_count,
-            "should_continue": exec_count < node.max_iteration,
-            "memory_config": node.memory_config,
-            "tools": node.tools
-        }
-    
-    async def _pre_execute_endpoint(
-        self, 
-        node: EndpointNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for EndpointNode."""
-        save_config = None
-        if node.save_to_file:
-            save_config = {
-                "save": True,
-                "filename": node.file_name or f"output_{node.id}.json"
-            }
-        
-        return {"save_config": save_config}
-    
-    async def _pre_execute_code_job(
-        self, 
-        node: CodeJobNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for CodeJobNode."""
-        return {
-            "language": node.language.value if hasattr(node.language, 'value') else node.language,
-            "code": node.code,
-            "timeout": node.timeout
-        }
-    
-    async def _pre_execute_api_job(
-        self, 
-        node: ApiJobNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for ApiJobNode."""
-        return {
-            "url": node.url,
-            "method": node.method.value if hasattr(node.method, 'value') else node.method,
-            "headers": node.headers,
-            "params": node.params,
-            "body": node.body,
-            "timeout": node.timeout,
-            "auth_type": node.auth_type,
-            "auth_config": node.auth_config
-        }
-    
-    async def _pre_execute_condition(
-        self, 
-        node: ConditionNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for ConditionNode."""
-        return {
-            "condition_type": node.condition_type,
-            "expression": node.expression,
-            "node_indices": node.node_indices
-        }
-    
-    async def _pre_execute_db(
-        self, 
-        node: DBNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for DBNode."""
-        return {
-            "file": node.file,
-            "collection": node.collection,
-            "sub_type": node.sub_type.value if hasattr(node.sub_type, 'value') else node.sub_type,
-            "operation": node.operation,
-            "query": node.query,
-            "data": node.data
-        }
-    
-    async def _pre_execute_hook(
-        self, 
-        node: HookNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for HookNode."""
-        return {}
-    
-    async def _pre_execute_start(
-        self, 
-        node: StartNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for StartNode."""
-        return {
-            "custom_data": node.custom_data,
-            "output_data_structure": node.output_data_structure,
-            "trigger_mode": node.trigger_mode,
-            "hook_event": node.hook_event,
-            "hook_filters": node.hook_filters
-        }
-    
-    async def _pre_execute_user_response(
-        self, 
-        node: UserResponseNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for UserResponseNode."""
-        return {
-            "prompt": node.prompt,
-            "timeout": node.timeout
-        }
-    
-    async def _pre_execute_notion(
-        self, 
-        node: NotionNode, 
-        execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
-        """Pre-execute logic for NotionNode."""
-        return {
-            "operation": node.operation.value if hasattr(node.operation, 'value') else node.operation,
-            "page_id": node.page_id,
-            "database_id": node.database_id
-        }
+        # Get the handler for this node type and call its pre_execute method
+        handler = await self._get_typed_handler(node)
+        return await handler.pre_execute(node, execution)
     
     def _create_typed_context(
         self,

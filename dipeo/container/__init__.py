@@ -5,7 +5,6 @@ from .container import (
     init_resources,
     shutdown_resources,
     validate_protocol_compliance,
-    get_project_base_dir,
 )
 
 __all__ = [
@@ -13,5 +12,4 @@ __all__ = [
     "init_resources",
     "shutdown_resources",
     "validate_protocol_compliance",
-    "get_project_base_dir",
 ]
