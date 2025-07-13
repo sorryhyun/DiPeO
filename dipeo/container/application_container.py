@@ -1,6 +1,7 @@
 """Application layer container - Use cases and orchestration."""
 
 from dependency_injector import containers, providers
+
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 
 
@@ -56,15 +57,12 @@ def _create_service_registry(
     registry.register("template_service", template_service)
     
     # Person job services - Register orchestrator as the main service
-    registry.register("conversation_processor", person_job_services["conversation_processor"])
-    registry.register("output_builder", person_job_services["output_builder"])
     
     # New focused services
     registry.register("prompt_builder", person_job_services["prompt_builder"])
     registry.register("conversation_state_manager", person_job_services["conversation_state_manager"])
     
     # Handle Factory providers by calling them to get instances
-    from dependency_injector import providers
     
     # person_job_orchestrator removed - using direct services instead
     # person_job_orchestrator_provider = person_job_services["person_job_orchestrator"]
@@ -158,8 +156,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         # From Dynamic Container (was domain) - person job services unpacked
         conversation_service=dynamic.conversation_manager,
         person_job_services={
-            "conversation_processor": business.conversation_processor,
-            "output_builder": business.output_builder,
             "prompt_builder": business.prompt_builder,
             "conversation_state_manager": business.conversation_state_manager,
             # "person_job_orchestrator": dynamic.person_job_orchestrator,  # Removed - using direct services

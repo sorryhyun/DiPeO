@@ -1,6 +1,7 @@
 """Immutable pure business logic services."""
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
+
 from ..base import ImmutableBaseContainer
 
 
@@ -46,18 +47,6 @@ def _create_prompt_builder():
     return PromptBuilder()
 
 
-
-
-def _create_conversation_processor():
-    """Create conversation processing service."""
-    from dipeo.application.execution.person_job import ConversationProcessingService
-    return ConversationProcessingService()
-
-
-def _create_output_builder():
-    """Create person job output builder."""
-    from dipeo.application.execution.person_job import PersonJobOutputBuilder
-    return PersonJobOutputBuilder()
 
 
 def _create_conversation_state_manager():
@@ -192,10 +181,6 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     
     # Execution services (pure logic only)
     # input_resolution_service removed - using typed version directly
-    
-    # Person job services (pure processing logic)
-    conversation_processor = providers.Singleton(_create_conversation_processor)
-    output_builder = providers.Singleton(_create_output_builder)
     
     # Conversation domain
     conversation_state_manager = providers.Singleton(_create_conversation_state_manager)
