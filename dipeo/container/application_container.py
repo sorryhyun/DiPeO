@@ -2,10 +2,15 @@
 
 from dependency_injector import containers, providers
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from dipeo.container.base import ImmutableBaseContainer
 
 
-def _create_execution_preparation_service(storage_service, validator, api_key_service):
+def _create_execution_preparation_use_case(storage_service, validator, api_key_service):
+    """Factory for PrepareDiagramForExecutionUseCase.
+    
+    This use case validates and prepares diagrams before execution,
+    ensuring all required resources and configurations are available.
+    """
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
 
     return PrepareDiagramForExecutionUseCase(
@@ -15,162 +20,159 @@ def _create_execution_preparation_service(storage_service, validator, api_key_se
     )
 
 
-def _create_service_registry(
-    llm_service,
-    api_key_service,
-    file_service,
-    conversation_service,
-    notion_service,
-    diagram_storage_domain_service,
-    text_processing_service,
-    validation_service,
-    db_operations_service,
-    person_job_services,
-    condition_evaluation_service,
-    template_service,
-    # New infrastructure services
-    api_service,
-    diagram_loader,
-    # Pure business logic utilities
-    api_business_logic,
-    file_domain_service,
-    # Additional services for PersonJobNodeHandler
-    conversation_manager,
-    # Core infrastructure services
+def _create_execute_diagram_use_case(
     state_store,
     message_router,
+    diagram_storage_service,
+    service_registry,
 ):
-    """Factory for UnifiedServiceRegistry with explicit dependencies."""
-    # Create registry and register all services dynamically
-    registry = UnifiedServiceRegistry()
+    """Factory for ExecuteDiagramUseCase.
     
-    # Core services - Primary registration with _service suffix
-    registry.register("llm_service", llm_service)
-    registry.register("api_key_service", api_key_service)
-    registry.register("file_service", file_service)
-    registry.register("conversation_service", conversation_service)
-    registry.register("notion_service", notion_service)
-    
-    # Domain services - Primary registration with _service suffix
-    registry.register("diagram_storage_domain_service", diagram_storage_domain_service)
-    registry.register("text_processing_service", text_processing_service)
-    registry.register("validation_service", validation_service)
-    registry.register("db_operations_service", db_operations_service)
-    registry.register("template_service", template_service)
-    
-    # Person job services - Register orchestrator as the main service
-    
-    # New focused services
-    registry.register("prompt_builder", person_job_services["prompt_builder"])
-    registry.register("conversation_state_utils", person_job_services["conversation_state_utils"])
-    
-    # Handle Factory providers by calling them to get instances
-    
-    # person_job_orchestrator removed - using direct services instead
-    # person_job_orchestrator_provider = person_job_services["person_job_orchestrator"]
-    # if isinstance(person_job_orchestrator_provider, providers.Factory) or isinstance(person_job_orchestrator_provider, providers.Singleton):
-    #     registry.register("person_job_orchestrator", person_job_orchestrator_provider())
-    # else:
-    #     registry.register("person_job_orchestrator", person_job_orchestrator_provider)
-    
-    # Execution services - Primary registration with _service suffix
-    registry.register("condition_evaluation_service", condition_evaluation_service)
-    # input_resolution_service removed - using typed version directly
-    
-    # New infrastructure services
-    registry.register("api_service", api_service)
-    registry.register("diagram_loader", diagram_loader)
-    
-    # Pure business logic utilities
-    registry.register("api_business_logic", api_business_logic)
-    registry.register("file_domain_service", file_domain_service)
-    
-    # Additional services for PersonJobNodeHandler
-    registry.register("conversation_manager", conversation_manager)
-    # Core infrastructure services
-    registry.register("state_store", state_store)
-    registry.register("message_router", message_router)
-
-    
-    # Aliases for handlers that use short names
-    registry.register("file", file_service)  # Used by endpoint.py
-    registry.register("template", template_service)  # Used by code_job.py
-    
-    return registry
-
-
-def _create_execute_diagram_use_case(
-    service_registry, diagram_storage_service
-):
-    """Factory for ExecuteDiagramUseCase with explicit dependencies."""
+    This use case orchestrates the complete diagram execution flow,
+    including compilation, state management, and node execution.
+    """
     from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
 
     return ExecuteDiagramUseCase(
         service_registry=service_registry,
+        state_store=state_store,
+        message_router=message_router,
         diagram_storage_service=diagram_storage_service,
     )
 
 
-class ApplicationContainer(containers.DeclarativeContainer):
-    """Application layer container - Use cases and orchestration."""
+def _create_unified_service_registry(
+    # Integration services
+    llm_service,
+    notion_service,
+    api_service,
+    # Persistence services
+    file_service,
+    diagram_loader,
+    api_key_service,
+    diagram_storage_service,
+    db_operations_service,
+    state_store,
+    message_router,
+    # Business logic services
+    text_processing_service,
+    validation_service,
+    condition_evaluator,
+    api_business_logic,
+    file_business_logic,
+    prompt_builder,
+    conversation_state_utils,
+    # Static services
+    template_processor,
+    # Dynamic services
+    conversation_manager,
+):
+    """Factory for UnifiedServiceRegistry.
+    
+    Creates a registry containing all services required by node handlers
+    during diagram execution. This provides a unified interface for
+    dependency injection in the execution context.
+    """
+    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    
+    registry = UnifiedServiceRegistry()
+    
+    # Integration services
+    registry.register("llm_service", llm_service)
+    registry.register("notion_service", notion_service)
+    registry.register("api_service", api_service)
+    
+    # Persistence services
+    registry.register("file_service", file_service)
+    registry.register("diagram_loader", diagram_loader)
+    registry.register("api_key_service", api_key_service)
+    registry.register("diagram_storage_service", diagram_storage_service)
+    registry.register("db_operations_service", db_operations_service)
+    registry.register("state_store", state_store)
+    registry.register("message_router", message_router)
+    
+    # Business logic services
+    registry.register("text_processing_service", text_processing_service)
+    registry.register("validation_service", validation_service)
+    registry.register("condition_evaluation_service", condition_evaluator)
+    registry.register("api_business_logic", api_business_logic)
+    registry.register("file_domain_service", file_business_logic)
+    registry.register("prompt_builder", prompt_builder)
+    registry.register("conversation_state_utils", conversation_state_utils)
+    
+    # Static services
+    registry.register("template_service", template_processor)
+    
+    # Dynamic services
+    registry.register("conversation_service", conversation_manager)
+    registry.register("conversation_manager", conversation_manager)
+    
+    # Legacy aliases for backward compatibility
+    registry.register("file", file_service)  # Used by endpoint.py
+    registry.register("template", template_processor)  # Used by code_job.py
+    
+    return registry
+
+
+class ApplicationContainer(ImmutableBaseContainer):
+    """Application layer container - Use cases and orchestration.
+    
+    This container provides high-level use cases that orchestrate
+    the execution of diagrams using services from all other layers.
+    All services are stateless and can be safely shared.
+    """
     
     config = providers.Configuration()
-    # New container dependencies
+    
+    # Dependencies from other containers
     static = providers.DependenciesContainer()
     business = providers.DependenciesContainer()
     dynamic = providers.DependenciesContainer()
     persistence = providers.DependenciesContainer()
     integration = providers.DependenciesContainer()
     
-    # Execution preparation
+    # Service registry for node handlers
+    service_registry = providers.Singleton(
+        _create_unified_service_registry,
+        # Integration services
+        llm_service=integration.llm_service,
+        notion_service=integration.notion_service,
+        api_service=integration.api_service,
+        # Persistence services
+        file_service=persistence.file_service,
+        diagram_loader=persistence.diagram_loader,
+        api_key_service=persistence.api_key_service,
+        diagram_storage_service=persistence.diagram_storage_service,
+        db_operations_service=persistence.db_operations_service,
+        state_store=persistence.state_store,
+        message_router=persistence.message_router,
+        # Business logic services
+        text_processing_service=business.text_processing_service,
+        validation_service=business.validation_service,
+        condition_evaluator=business.condition_evaluator,
+        api_business_logic=business.api_business_logic,
+        file_business_logic=business.file_business_logic,
+        prompt_builder=business.prompt_builder,
+        conversation_state_utils=business.conversation_state_utils,
+        # Static services
+        template_processor=static.template_processor,
+        # Dynamic services
+        conversation_manager=dynamic.conversation_manager,
+    )
+    
+    # Use case: Prepare diagram for execution
     execution_preparation_service = providers.Singleton(
-        _create_execution_preparation_service,
+        _create_execution_preparation_use_case,
         storage_service=persistence.diagram_storage_service,
         validator=static.diagram_validator,
         api_key_service=persistence.api_key_service,
     )
     
-    # Service Registry with explicit dependencies from all layers
-    service_registry = providers.Singleton(
-        _create_service_registry,
-        # From Integration Container (was infra)
-        llm_service=integration.llm_service,
-        notion_service=integration.notion_service,
-        api_service=integration.api_service,
-        
-        # From Persistence Container (was infra/domain)
-        file_service=persistence.file_service,
-        diagram_loader=persistence.diagram_loader,
-        api_key_service=persistence.api_key_service,
-        diagram_storage_domain_service=persistence.diagram_storage_domain_service,
-        db_operations_service=persistence.db_operations_service,
-        
-        # From Business Container (was domain)
-        text_processing_service=business.text_processing_service,
-        validation_service=business.validation_service,
-        condition_evaluation_service=business.condition_evaluator,  # Note: renamed
-        api_business_logic=business.api_business_logic,
-        file_domain_service=business.file_business_logic,
-        
-        # From Static Container (was domain)
-        template_service=static.template_processor,  # Note: renamed
-        # From Dynamic Container (was domain) - person job services unpacked
-        conversation_service=dynamic.conversation_manager,
-        person_job_services={
-            "prompt_builder": business.prompt_builder,
-            "conversation_state_utils": business.conversation_state_utils,
-            # "person_job_orchestrator": dynamic.person_job_orchestrator,  # Removed - using direct services
-        },
-        # Additional services for PersonJobNodeHandler
-        conversation_manager=dynamic.conversation_manager,
-# Core infrastructure services
-        state_store=persistence.state_store,
-        message_router=persistence.message_router,
-    )
-    
-    # Execute Diagram Use Case
+    # Use case: Execute diagram
     execution_service = providers.Singleton(
         _create_execute_diagram_use_case,
-        service_registry=service_registry,
+        state_store=persistence.state_store,
+        message_router=persistence.message_router,
         diagram_storage_service=persistence.diagram_storage_service,
+        service_registry=service_registry,
     )

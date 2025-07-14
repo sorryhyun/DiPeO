@@ -200,16 +200,19 @@ export function serializeDiagram(): SerializedDiagram {
   // Get current timestamp
   const now = new Date();
   
+  // Get diagram metadata from store
+  const state = useUnifiedStore.getState();
+  
   // Create metadata
   const metadata = {
-    name: 'Untitled Diagram',
-    description: null,
+    name: state.diagramName || 'Untitled Diagram',
+    description: state.diagramDescription || null,
     author: null,
     tags: null,
     created: now.toISOString(),
     modified: now.toISOString(),
     version: '1.0.0',
-    id: null
+    id: state.diagramId || null
   };
   
   // Get store state with properly typed Maps

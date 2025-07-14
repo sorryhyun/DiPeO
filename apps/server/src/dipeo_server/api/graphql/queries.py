@@ -111,7 +111,7 @@ class Query:
     async def execution_capabilities(self, info) -> JSONScalar:
         context = info.context
 
-        storage_service = context.get_service("diagram_storage_domain_service")
+        storage_service = context.get_service("diagram_storage_service")
         persons_list = []
 
         file_infos = await storage_service.list_files()

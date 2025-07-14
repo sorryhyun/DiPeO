@@ -35,7 +35,7 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_domain_service")
+            diagram_service = context.get_service("diagram_storage_service")
 
             # Use input directly without conversion
 
@@ -94,7 +94,7 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_domain_service")
+            diagram_service = context.get_service("diagram_storage_service")
 
             # Use input directly without conversion
 
@@ -250,7 +250,7 @@ class PersonMutations:
     ) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_domain_service")
+            diagram_service = context.get_service("diagram_storage_service")
 
             diagrams = await diagram_service.list_files()
             diagram_id = None

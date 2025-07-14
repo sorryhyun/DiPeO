@@ -53,12 +53,6 @@ def _create_diagram_storage_adapter(storage_service, diagram_domain_service):
     )
 
 
-def _create_diagram_storage_domain_service(storage_service):
-    """Create diagram domain service."""
-    from dipeo.application.services.diagram_service import DiagramService
-    
-    return DiagramService(storage_service=storage_service)
-
 
 def _create_diagram_loader(file_service):
     """Create diagram loader adapter."""
@@ -150,12 +144,7 @@ class PersistenceServicesContainer(MutableBaseContainer):
         storage_service=diagram_storage_service,
         diagram_domain_service=business.diagram_business_logic,
     )
-    
-    diagram_storage_domain_service = providers.Singleton(
-        _create_diagram_storage_domain_service,
-        storage_service=diagram_storage_service,
-    )
-    
+
     diagram_loader = providers.Singleton(
         _create_diagram_loader,
         file_service=file_service,
