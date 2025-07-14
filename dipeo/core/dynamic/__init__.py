@@ -2,9 +2,9 @@
 
 from .conversation import Conversation, ConversationContext
 from .person import Person
-from .execution_context import ExecutionContext, ExecutionCoordinator
-from .conversation_manager import ConversationManager, ConversationPersistence
-from .person_manager import PersonManager, PersonPersistence
+from .execution_context import ExecutionContext
+from .conversation_manager import ConversationManager
+from .person_manager import PersonManager
 
 __all__ = [
     # Dynamic objects
@@ -14,9 +14,6 @@ __all__ = [
     
     # Protocols
     "ExecutionContext",
-    "ExecutionCoordinator",
     "ConversationManager",
-    "ConversationPersistence",
     "PersonManager",
-    "PersonPersistence",
 ]

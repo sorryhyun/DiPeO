@@ -18,7 +18,7 @@ from .constants import (
     normalize_service_name,
 )
 # use ApplicationExecutionContext
-from .errors.taxonomy import (
+from .base.exceptions import (
     APIKeyError,
     APIKeyNotFoundError,
     DependencyError,

@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 import warnings
 
 from dipeo.utils.template import TemplateProcessor
-from dipeo.utils.arrow import unwrap_inputs
 
 
 class PromptBuilder:
@@ -19,6 +18,7 @@ class PromptBuilder:
         execution_count: int = 0,
         template_values: Optional[Dict[str, Any]] = None,
         raw_inputs: Optional[Dict[str, Any]] = None,
+        auto_prepend_conversation: bool = True,
     ) -> str:
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
         
@@ -28,14 +28,64 @@ class PromptBuilder:
             else:
                 template_values = self.prepare_template_values(raw_inputs)
         
+        # Check if auto-prepend is enabled via parameter or settings
+        should_prepend = auto_prepend_conversation
+        if should_prepend is True:  # Only check settings if explicitly True (default)
+            try:
+                from dipeo.infra.config.settings import get_settings
+                should_prepend = get_settings().auto_prepend_conversation
+            except:
+                pass  # Keep default True if settings not available
+        
+        # Auto-prepend conversation if enabled and available
+        if should_prepend and template_values:
+            selected_prompt = self._prepend_conversation_context(selected_prompt, template_values)
+        
         return self._processor.process_simple(selected_prompt, template_values)
     
-    def prepare_template_values(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_template_values(self, inputs: Dict[str, Any], conversation_manager=None, person_id=None) -> Dict[str, Any]:
 
-        unwrapped_inputs = unwrap_inputs(inputs)
-
-
+        # Use inputs directly - no unwrapping needed
+        unwrapped_inputs = inputs
         template_values = {}
+        
+        # Add global conversation if manager is available
+        if conversation_manager:
+            global_conversation = conversation_manager.get_conversation()
+            if global_conversation:
+                messages = global_conversation.messages
+                template_values['global_conversation'] = [
+                    {
+                        'from': str(msg.from_person_id) if msg.from_person_id else '',
+                        'to': str(msg.to_person_id) if msg.to_person_id else '',
+                        'content': msg.content,
+                        'type': msg.message_type
+                    } for msg in messages
+                ]
+                template_values['global_message_count'] = len(messages)
+                
+                # Also add person-specific conversations
+                person_conversations = {}
+                for msg in messages:
+                    # Add to sender's view
+                    if msg.from_person_id != "system":
+                        if msg.from_person_id not in person_conversations:
+                            person_conversations[msg.from_person_id] = []
+                        person_conversations[msg.from_person_id].append({
+                            'role': 'assistant',
+                            'content': msg.content
+                        })
+                    
+                    # Add to recipient's view
+                    if msg.to_person_id != "system":
+                        if msg.to_person_id not in person_conversations:
+                            person_conversations[msg.to_person_id] = []
+                        person_conversations[msg.to_person_id].append({
+                            'role': 'user',
+                            'content': msg.content
+                        })
+                
+                template_values['person_conversations'] = person_conversations
         
         for key, value in unwrapped_inputs.items():
             if isinstance(value, (str, int, float, bool, type(None))):
@@ -104,3 +154,48 @@ class PromptBuilder:
             )
         
         return result.content
+    
+    def _prepend_conversation_context(self, prompt: str, template_values: Dict[str, Any]) -> str:
+        # Check if conversation data is available
+        if 'global_conversation' not in template_values:
+            return prompt
+        
+        # Check if prompt already references conversation variables
+        conversation_vars = ['global_conversation', 'global_message_count', 'person_conversations']
+        if any(f'{{{{{var}' in prompt or f'{{#{var}' in prompt for var in conversation_vars):
+            # Prompt already uses conversation variables, don't prepend
+            return prompt
+        
+        # Check if there are any messages to prepend
+        global_conversation = template_values.get('global_conversation', [])
+        if not global_conversation:
+            return prompt
+        
+        # Get context limit from settings
+        try:
+            from dipeo.infra.config.settings import get_settings
+            context_limit = get_settings().conversation_context_limit
+        except:
+            context_limit = 10  # Default fallback
+        
+        # Build conversation context
+        conversation_context = []
+        conversation_context.append(f"[Previous conversation with {len(global_conversation)} messages]")
+        
+        # Include recent messages (limit to configured amount for context)
+        recent_messages = global_conversation[-context_limit:] if len(global_conversation) > context_limit else global_conversation
+        
+        for msg in recent_messages:
+            from_person = msg.get('from', 'unknown')
+            content = msg.get('content', '')
+            if content:  # Only include non-empty messages
+                conversation_context.append(f"{from_person}: {content}")
+        
+        if len(global_conversation) > context_limit:
+            conversation_context.append(f"... ({len(global_conversation) - context_limit} earlier messages omitted)")
+        
+        conversation_context.append("")  # Empty line separator
+        
+        # Prepend to prompt
+        conversation_text = "\n".join(conversation_context)
+        return f"{conversation_text}\n{prompt}"

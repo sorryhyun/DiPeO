@@ -4,7 +4,7 @@ import os
 from typing import Dict, Optional
 from pathlib import Path
 
-from dipeo.core.errors import APIKeyError
+from dipeo.core.base.exceptions import APIKeyError
 from .file_apikey_storage import FileAPIKeyStorage
 
 

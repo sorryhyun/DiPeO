@@ -2,7 +2,7 @@
 from typing import Any, TYPE_CHECKING
 
 from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.models import EndpointNodeData, NodeOutput, NodeType
 from dipeo.core.static.generated_nodes import EndpointNode
@@ -55,7 +55,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         return {"save_config": save_config}
     
-    async def execute_typed(
+    async def execute(
         self,
         node: EndpointNode,
         context: UnifiedExecutionContext,

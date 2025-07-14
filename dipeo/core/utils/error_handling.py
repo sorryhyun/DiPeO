@@ -263,8 +263,8 @@ def safe_parse(content: str, format: Literal['json', 'yaml'] = 'json') -> Union[
         return content
 
 
-# Import existing exceptions from error taxonomy
-from ..errors.taxonomy import FileOperationError, APIKeyError
+# Import existing exceptions from base exceptions
+from ..base.exceptions import FileOperationError, APIKeyError
 
 
 def format_error_response(

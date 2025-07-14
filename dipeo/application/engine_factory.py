@@ -3,7 +3,7 @@
 import warnings
 from typing import Any, Optional
 
-from dipeo.application.protocols import ExecutionObserver
+from dipeo.core.ports import ExecutionObserver
 from .engine.typed_execution_engine import TypedExecutionEngine
 
 

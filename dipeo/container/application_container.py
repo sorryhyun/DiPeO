@@ -31,13 +31,11 @@ def _create_service_registry(
     # New infrastructure services
     api_service,
     diagram_loader,
-    arrow_processor,
     # Pure business logic utilities
     api_business_logic,
     file_domain_service,
     # Additional services for PersonJobNodeHandler
     conversation_manager,
-    memory_transformer,
     # Core infrastructure services
     state_store,
     message_router,
@@ -64,7 +62,7 @@ def _create_service_registry(
     
     # New focused services
     registry.register("prompt_builder", person_job_services["prompt_builder"])
-    registry.register("conversation_state_manager", person_job_services["conversation_state_manager"])
+    registry.register("conversation_state_utils", person_job_services["conversation_state_utils"])
     
     # Handle Factory providers by calling them to get instances
     
@@ -89,15 +87,10 @@ def _create_service_registry(
     
     # Additional services for PersonJobNodeHandler
     registry.register("conversation_manager", conversation_manager)
-    registry.register("memory_transformer", memory_transformer)
-    
     # Core infrastructure services
     registry.register("state_store", state_store)
     registry.register("message_router", message_router)
 
-    
-    # Arrow processor for input resolution
-    registry.register("arrow_processor", arrow_processor)
     
     # Aliases for handlers that use short names
     registry.register("file", file_service)  # Used by endpoint.py
@@ -161,19 +154,16 @@ class ApplicationContainer(containers.DeclarativeContainer):
         
         # From Static Container (was domain)
         template_service=static.template_processor,  # Note: renamed
-        arrow_processor=static.arrow_processor,
-        
         # From Dynamic Container (was domain) - person job services unpacked
         conversation_service=dynamic.conversation_manager,
         person_job_services={
             "prompt_builder": business.prompt_builder,
-            "conversation_state_manager": business.conversation_state_manager,
+            "conversation_state_utils": business.conversation_state_utils,
             # "person_job_orchestrator": dynamic.person_job_orchestrator,  # Removed - using direct services
         },
         # Additional services for PersonJobNodeHandler
         conversation_manager=dynamic.conversation_manager,
-        memory_transformer=static.memory_transformer,
-        # Core infrastructure services
+# Core infrastructure services
         state_store=persistence.state_store,
         message_router=persistence.message_router,
     )

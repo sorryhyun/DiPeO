@@ -13,9 +13,9 @@ from dipeo.core.static.generated_nodes import PersonJobNode
 if TYPE_CHECKING:
     from dipeo.application.execution.context import UnifiedExecutionContext
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.application.protocols import ExecutionObserver
+    from dipeo.core.ports import ExecutionObserver
     from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
-    from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+    from dipeo.application.execution.types import TypedNodeHandler
     from dipeo.models import NodeOutput
 
 log = logging.getLogger(__name__)
@@ -72,23 +72,15 @@ class NodeExecutor:
             if not handler:
                 handler = await self._get_typed_handler(node)
             
-            # Prepare services with typed node
+            # Prepare services
             services = await self._prepare_typed_services(node, execution, handler)
-            services["typed_node"] = node
             services["execution_context"] = {
                 "interactive_handler": interactive_handler
             }
             
-            # Execute handler with typed data
-            node_data = node.to_dict()
-            
-            # Add type-specific defaults
-            if isinstance(node, PersonJobNode):
-                node_data.setdefault("first_only_prompt", "")
-                node_data.setdefault("max_iteration", 1)
-            
+            # Execute handler with typed node directly
             output = await handler.execute(
-                props=handler.schema.model_validate(node_data),
+                node=node,
                 context=context,
                 inputs=inputs,
                 services=services,
@@ -176,15 +168,8 @@ class NodeExecutor:
     ) -> Dict[str, Any]:
         """Resolve inputs using typed node information."""
         
-        # Get arrow processor for the typed input resolution
-        arrow_processor = self.service_registry.get('arrow_processor')
-        if not arrow_processor:
-            log.error("arrow_processor not found in service registry!")
-            # Fallback to empty inputs if no arrow processor
-            return {}
-        
         # Create typed input resolution service
-        typed_input_service = TypedInputResolutionService(arrow_processor)
+        typed_input_service = TypedInputResolutionService()
         
         # Get current state for input resolution
         node_outputs = execution.state.node_outputs

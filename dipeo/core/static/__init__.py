@@ -16,7 +16,7 @@ from .nodes import (
     HookNode,
     create_executable_node
 )
-from .diagram_compiler import DiagramCompiler, DiagramValidator
+from .diagram_compiler import DiagramCompiler
 from .node_handler import TypedNodeHandler
 
 __all__ = [
@@ -42,8 +42,7 @@ __all__ = [
     # Factory
     "create_executable_node",
     
-    # Protocols
+    # Protocols and base classes
     "DiagramCompiler",
-    "DiagramValidator",
     "TypedNodeHandler"
 ]

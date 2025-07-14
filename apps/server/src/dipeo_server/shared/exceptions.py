@@ -16,7 +16,7 @@ from dipeo.core.base.exceptions import (  # noqa: F401
 )
 
 # Re-export core exceptions for backward compatibility
-from dipeo.core.errors import (  # noqa: F401
+from dipeo.core.base.exceptions import (  # noqa: F401
     APIKeyError,
     DependencyError,
     FileOperationError,

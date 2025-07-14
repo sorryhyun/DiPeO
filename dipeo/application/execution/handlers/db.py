@@ -9,7 +9,7 @@ from dipeo.application import register_handler
 from dipeo.application.execution.context.unified_execution_context import (
     UnifiedExecutionContext,
 )
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.core.static.generated_nodes import DBNode
 from dipeo.models import DBNodeData, NodeOutput, NodeType
 
@@ -96,7 +96,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             "data": node.data
         }
     
-    async def execute_typed(  # noqa: D401
+    async def execute(  # noqa: D401
         self,
         node: DBNode,
         context: UnifiedExecutionContext,

@@ -75,6 +75,14 @@ class Settings:
             os.getenv("DIPEO_ENABLE_MONITORING", "false").lower() == "true"
         )
         self.enable_debug_mode = os.getenv("DIPEO_DEBUG", "false").lower() == "true"
+        
+        # Conversation settings
+        self.auto_prepend_conversation = (
+            os.getenv("DIPEO_AUTO_PREPEND_CONVERSATION", "true").lower() == "true"
+        )
+        self.conversation_context_limit = int(
+            os.getenv("DIPEO_CONVERSATION_CONTEXT_LIMIT", "10")
+        )
 
         # Validate configuration
         self._validate()
@@ -188,6 +196,10 @@ class Settings:
             "features": {
                 "monitoring": self.enable_monitoring,
                 "debug_mode": self.enable_debug_mode,
+            },
+            "conversation": {
+                "auto_prepend": self.auto_prepend_conversation,
+                "context_limit": self.conversation_context_limit,
             },
         }
 

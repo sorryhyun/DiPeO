@@ -120,8 +120,6 @@ class ExecutableDiagram:
     def get_start_nodes(self) -> List[ExecutableNode]:
         return self.get_nodes_by_type(NodeType.start)
     
-    def get_end_nodes(self) -> List[ExecutableNode]:
-        return self.get_nodes_by_type(NodeType.endpoint)
     
     def get_next_nodes(self, node_id: NodeID) -> List[ExecutableNode]:
         edges = self.get_outgoing_edges(node_id)
@@ -129,39 +127,7 @@ class ExecutableDiagram:
                 for edge in edges 
                 if self.get_node(edge.target_node_id) is not None]
     
-    def get_previous_nodes(self, node_id: NodeID) -> List[ExecutableNode]:
-        edges = self.get_incoming_edges(node_id)
-        return [self.get_node(edge.source_node_id) 
-                for edge in edges 
-                if self.get_node(edge.source_node_id) is not None]
     
-    def validate(self) -> List[str]:
-        errors = []
-        
-        # Check for at least one start node
-        if not self.get_start_nodes():
-            errors.append("Diagram must have at least one start node")
-        
-        # Check execution order includes all nodes
-        order_set = set(self.execution_order)
-        node_ids = {node.id for node in self.nodes}
-        
-        if order_set != node_ids:
-            missing = node_ids - order_set
-            extra = order_set - node_ids
-            if missing:
-                errors.append(f"Nodes missing from execution order: {missing}")
-            if extra:
-                errors.append(f"Unknown nodes in execution order: {extra}")
-        
-        # Check all edges reference valid nodes
-        for edge in self.edges:
-            if edge.source_node_id not in node_ids:
-                errors.append(f"Edge {edge.id} references unknown source: {edge.source_node_id}")
-            if edge.target_node_id not in node_ids:
-                errors.append(f"Edge {edge.id} references unknown target: {edge.target_node_id}")
-        
-        return errors
     
     def get_execution_hints(self) -> Dict[str, Any]:
         """Get execution hints with start nodes, person nodes, and dependencies."""

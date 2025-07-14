@@ -3,7 +3,7 @@ import logging
 from typing import Any, Optional, TYPE_CHECKING
 
 from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.models import (
     NodeOutput,
@@ -58,8 +58,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             "conversation_service",
             "conversation_manager",
             "prompt_builder",
-            "conversation_state_manager", 
-            "memory_transformer"
+            "conversation_state_utils", 
         ]
 
     @property
@@ -101,7 +100,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             "tools": node.tools
         }
     
-    async def execute_typed(
+    async def execute(
         self,
         node: PersonJobNode,
         context: UnifiedExecutionContext,
@@ -117,16 +116,14 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         conversation_service = self._resolve_service(context, services, "conversation_service")
         conversation_manager = self._resolve_service(context, services, "conversation_manager")
         prompt_builder = self._resolve_service(context, services, "prompt_builder")
-        conversation_state_manager = self._resolve_service(context, services, "conversation_state_manager")
-        memory_transformer = self._resolve_service(context, services, "memory_transformer")
-        
+        conversation_state_utils = self._resolve_service(context, services, "conversation_state_utils")
         # Get current node ID and execution info
         node_id = self._extract_node_id(context)
         execution_count = self._extract_execution_count(context)
         execution_id = getattr(context.execution_state, 'id', None) if hasattr(context, 'execution_state') else None
         
         # Check if max_iteration is reached
-        if execution_count >= node.max_iteration:
+        if execution_count > node.max_iteration:
             logger.debug(f"Person {person_id} reached max_iteration ({node.max_iteration}), skipping execution")
             return NodeOutput(
                 value={"default": ""},
@@ -155,24 +152,20 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 # Direct property access - no dict lookups!
                 forget_mode = node.memory_config.forget_mode
             
-            # Apply memory transformation
+            # Use inputs directly - memory management happens at conversation level
             transformed_inputs = inputs
-            if memory_transformer:
-                from dipeo.utils.arrow import unwrap_inputs
-                transformed_inputs = memory_transformer.transform_input(
-                    inputs, "person_job", execution_count, 
-                    {"forget_mode": forget_mode.value}
-                )
-            else:
-                from dipeo.utils.arrow import unwrap_inputs
-                transformed_inputs = unwrap_inputs(inputs)
             
             # Handle conversation inputs
             if self._has_conversation_input(transformed_inputs):
                 self._rebuild_conversation(person, transformed_inputs, forget_mode)
             
             # Build prompt BEFORE applying memory management
-            template_values = prompt_builder.prepare_template_values(transformed_inputs)
+            template_values = prompt_builder.prepare_template_values(
+                transformed_inputs, 
+                conversation_manager=conversation_manager,
+                person_id=person_id
+            )
+            logger.debug(f"[PERSON_JOB] Template values for {person_id}: {list(template_values.keys())}")
             built_prompt = prompt_builder.build(
                 prompt=node.default_prompt if node.default_prompt is not None else node.first_only_prompt,
                 first_only_prompt=node.first_only_prompt,
@@ -181,7 +174,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             )
             
             # Apply memory management AFTER building the prompt
-            if conversation_manager and execution_count > 0 and conversation_state_manager.should_forget_messages(execution_count, forget_mode):
+            if conversation_manager and execution_count > 0 and conversation_state_utils.should_forget_messages(execution_count, forget_mode):
                 if node.memory_config:
                     # Direct typed access to max_messages
                     mem_config = MemoryConfig(
@@ -318,7 +311,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             return
         
         if forget_mode == ForgettingMode.on_every_turn:
-            person.clear_conversation()
+            person.forget_all_messages()
         
         for msg_dict in all_messages:
             message = Message(

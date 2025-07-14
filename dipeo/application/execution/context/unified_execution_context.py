@@ -91,8 +91,7 @@ class UnifiedExecutionContext(ExecutionContext):
         registry.register("api_integration_service", container.integration.api_service())
         registry.register("text_processing_service", container.business.text_processing_service())
         registry.register("prompt_builder", container.business.prompt_builder())
-        registry.register("conversation_state_manager", container.business.conversation_state_manager())
-        registry.register("memory_transformer", container.static.memory_transformer())
+        registry.register("conversation_state_utils", container.business.conversation_state_utils())
         
         return cls(
             execution_state=execution_state,
@@ -179,7 +178,7 @@ class UnifiedExecutionContext(ExecutionContext):
     def get_node_output(self, node_id: str) -> Any:
         """Get the output of a specific node.
         
-        Compatible with ApplicationExecutionContext interface.
+        Convenience method that extracts the value from node results.
         """
         result = self.get_node_result(NodeID(node_id))
         if result:
@@ -194,36 +193,36 @@ class UnifiedExecutionContext(ExecutionContext):
     def get_variable(self, key: str) -> Any:
         """Get a variable from the execution context.
         
-        Compatible with ApplicationExecutionContext interface.
+        Implementation of ExecutionContext protocol method.
         """
         return self._global_context.get(key)
     
     def get_service(self, service_name: str) -> Any:
-        """Get a service by name.
+        """Get a service by name from the registry.
         
-        Compatible with ApplicationExecutionContext interface.
+        Application-specific method for service access.
         """
         return self._service_registry.get(service_name)
     
-    def get_node_execution_count(self, node_id: str) -> int:
+    def get_node_execution_count(self, node_id: NodeID) -> int:
         """Get the execution count for a specific node.
         
-        Compatible with ApplicationExecutionContext interface.
+        Implementation of ExecutionContext protocol method.
         """
         # First check the execution state for the most up-to-date count
         if hasattr(self, '_execution_state') and self._execution_state:
-            node_state = self._execution_state.node_states.get(node_id)
+            node_state = self._execution_state.node_states.get(str(node_id))
             if node_state:
                 # Use extra fields instead of metadata
                 return getattr(node_state, "exec_count", 0)
         # Fall back to cached exec counts
-        return self._exec_counts.get(node_id, 0)
+        return self._exec_counts.get(str(node_id), 0)
     
     @property
     def current_node_id(self) -> str:
         """Get the ID of the currently executing node.
         
-        Compatible with ApplicationExecutionContext interface.
+        Convenience property for backward compatibility.
         """
         return str(self._current_node) if self._current_node else ""
     
@@ -231,15 +230,23 @@ class UnifiedExecutionContext(ExecutionContext):
     def executed_nodes(self) -> List[str]:
         """Get the list of node IDs that have been executed.
         
-        Compatible with ApplicationExecutionContext interface.
+        Convenience property for backward compatibility.
         """
         return self._executed_nodes
+    
+    @property
+    def service_registry(self) -> Any:
+        """Get the service registry for accessing application services.
+        
+        Provides access to the service registry for application-layer handlers.
+        """
+        return self._service_registry
     
     @property
     def diagram_id(self) -> str:
         """Get the current diagram ID.
         
-        Compatible with ApplicationExecutionContext interface.
+        Convenience property for accessing diagram information.
         """
         # Need to store execution state reference
         if hasattr(self, '_execution_state'):
@@ -250,7 +257,7 @@ class UnifiedExecutionContext(ExecutionContext):
     def execution_state(self) -> ExecutionState:
         """Get the underlying execution state (read-only).
         
-        Compatible with ApplicationExecutionContext interface.
+        Application-specific property for state access.
         """
         # Need to store execution state reference
         if hasattr(self, '_execution_state'):
@@ -276,7 +283,7 @@ class UnifiedExecutionContext(ExecutionContext):
         """Create a view of the context for a specific node.
         
         This creates a new context instance that shares the same state
-        but has a different current node. Compatible with ApplicationExecutionContext.
+        but has a different current node.
         """
         view = UnifiedExecutionContext(
             execution_state=self._execution_state,
@@ -334,10 +341,12 @@ class UnifiedExecutionContext(ExecutionContext):
         else:
             status = ExecutionStatus.COMPLETED
         
+        from dipeo.models import DiagramID
+        
         return ExecutionState(
             id=ExecutionID(self._execution_id),
             status=status,
-            diagram_id=diagram_id,
+            diagram_id=DiagramID(diagram_id) if diagram_id else None,
             started_at=datetime.now().isoformat(),
             node_states={str(k): v for k, v in self._node_states.items()},
             node_outputs=node_outputs,

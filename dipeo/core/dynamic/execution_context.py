@@ -121,74 +121,29 @@ class ExecutionContext(Protocol):
             True if the node has completed, False otherwise
         """
         ...
+    
+    @abstractmethod
+    def get_variable(self, key: str) -> Any:
+        """Get a variable from the execution context.
+        
+        Args:
+            key: The variable key
+            
+        Returns:
+            The variable value, or None if not found
+        """
+        ...
+    
+    @abstractmethod
+    def get_node_execution_count(self, node_id: NodeID) -> int:
+        """Get the execution count for a specific node.
+        
+        Args:
+            node_id: The ID of the node
+            
+        Returns:
+            The number of times this node has been executed
+        """
+        ...
 
 
-class ExecutionCoordinator(Protocol):
-    """Coordinates the execution flow of a diagram."""
-    
-    @abstractmethod
-    async def start_execution(
-        self,
-        diagram_id: str,
-        options: Dict[str, Any]
-    ) -> ExecutionContext:
-        """Start a new diagram execution.
-        
-        Args:
-            diagram_id: The ID of the diagram to execute
-            options: Execution options (e.g., max_parallel_nodes)
-            
-        Returns:
-            The execution context for this run
-        """
-        ...
-    
-    @abstractmethod
-    async def execute_node(
-        self,
-        node_id: NodeID,
-        context: ExecutionContext
-    ) -> Dict[str, Any]:
-        """Execute a specific node within the context.
-        
-        Args:
-            node_id: The ID of the node to execute
-            context: The current execution context
-            
-        Returns:
-            The result of the node execution
-        """
-        ...
-    
-    @abstractmethod
-    async def complete_execution(
-        self,
-        context: ExecutionContext,
-        success: bool,
-        error: Optional[Exception] = None
-    ) -> None:
-        """Mark an execution as complete.
-        
-        Args:
-            context: The execution context
-            success: Whether the execution completed successfully
-            error: Optional error if execution failed
-        """
-        ...
-    
-    @abstractmethod
-    def can_execute_node(
-        self,
-        node_id: NodeID,
-        context: ExecutionContext
-    ) -> bool:
-        """Check if a node is ready to execute based on dependencies.
-        
-        Args:
-            node_id: The ID of the node to check
-            context: The current execution context
-            
-        Returns:
-            True if the node can be executed, False otherwise
-        """
-        ...

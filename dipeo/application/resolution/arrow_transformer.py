@@ -8,8 +8,7 @@ from dipeo.models import (
     DomainNode,
     NodeID,
     NodeType,
-    ContentType,
-    ForgettingMode
+    ContentType
 )
 from dipeo.core.static import ExecutableEdge
 from dipeo.application.resolution.handle_resolver import ResolvedConnection
@@ -18,8 +17,6 @@ from dipeo.application.resolution.handle_resolver import ResolvedConnection
 @dataclass
 class TransformationMetadata:
     content_type: ContentType
-    forgetting_mode: Optional[ForgettingMode] = None
-    include_in_memory: bool = True
     transformation_rules: Dict[str, Any] = None
     
     def __post_init__(self):
@@ -103,8 +100,6 @@ class ArrowTransformer:
             target_input=connection.target_handle_label.value if connection.target_handle_label else None,
             data_transform={
                 "content_type": transform_metadata.content_type.value,
-                "forgetting_mode": transform_metadata.forgetting_mode.value if transform_metadata.forgetting_mode else None,
-                "include_in_memory": transform_metadata.include_in_memory,
                 "rules": transform_metadata.transformation_rules
             },
             metadata=edge_metadata
@@ -120,30 +115,11 @@ class ArrowTransformer:
         # Default content type based on source node
         content_type = self._determine_content_type(source_node, arrow)
         
-        # Forgetting mode from arrow data
-        forgetting_mode = None
-        if arrow.data and "forgettingMode" in arrow.data:
-            try:
-                forgetting_mode = ForgettingMode(arrow.data["forgettingMode"])
-            except ValueError:
-                self._errors.append(
-                    f"Invalid forgetting mode in arrow {arrow.id}: {arrow.data['forgettingMode']}"
-                )
-        
-        # Include in memory based on node types and settings
-        include_in_memory = self._should_include_in_memory(
-            source_node, 
-            target_node,
-            arrow
-        )
-        
         # Custom transformation rules
         rules = self._extract_transformation_rules(arrow, source_node, target_node)
         
         return TransformationMetadata(
             content_type=content_type,
-            forgetting_mode=forgetting_mode,
-            include_in_memory=include_in_memory,
             transformation_rules=rules
         )
     
@@ -174,29 +150,6 @@ class ArrowTransformer:
             return ContentType.variable
         else:
             return ContentType.raw_text
-    
-    def _should_include_in_memory(
-        self,
-        source_node: DomainNode,
-        target_node: DomainNode,
-        arrow: DomainArrow
-    ) -> bool:
-        # Check for explicit override in arrow data
-        if arrow.data and "includeInMemory" in arrow.data:
-            return bool(arrow.data["includeInMemory"])
-        
-        # Default rules based on node types
-        # Don't include condition outputs or internal job data
-        if source_node.type == NodeType.condition:
-            return False
-        
-        # Include person outputs going to other persons
-        if (source_node.type == NodeType.person_job and 
-            target_node.type == NodeType.person_job):
-            return True
-        
-        # Default to including
-        return True
     
     def _extract_transformation_rules(
         self,

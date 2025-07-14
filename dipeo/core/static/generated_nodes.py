@@ -269,7 +269,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             save_to_file=data.get("save_to_file", False),
-            file_name=data.get("file_name") or data.get("file_path"),
+            file_name=data.get("file_name"),
         )
     
     if node_type == NodeType.person_job:

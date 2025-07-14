@@ -5,7 +5,7 @@ from .handle_resolver import HandleResolver
 from .arrow_transformer import ArrowTransformer
 from .execution_order_calculator import ExecutionOrderCalculator
 from .validation_rules import ValidationRules
-from .static_diagram_compiler import StaticDiagramCompiler, StaticDiagramValidator
+from .static_diagram_compiler import StaticDiagramCompiler
 
 __all__ = [
     "HandleResolver",
@@ -13,5 +13,4 @@ __all__ = [
     "ExecutionOrderCalculator",
     "ValidationRules",
     "StaticDiagramCompiler",
-    "StaticDiagramValidator",
 ]

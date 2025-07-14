@@ -6,6 +6,7 @@ They enable the core and domain layers to depend on abstractions rather than con
 """
 
 from .apikey_port import APIKeyPort, SupportsAPIKey
+from .execution_observer import ExecutionObserver
 from .file_service import FileServicePort
 from .llm_service import LLMServicePort
 from .message_router import MessageRouterPort
@@ -14,6 +15,7 @@ from .state_store import StateStorePort
 
 __all__ = [
     "APIKeyPort",
+    "ExecutionObserver",
     "FileServicePort",
     "LLMServicePort",
     "MessageRouterPort",

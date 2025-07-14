@@ -94,75 +94,6 @@ class UponRequestStrategy:
         return "Forget only when explicitly requested"
 
 
-class SlidingWindowStrategy:
-    """Maintain a sliding window of recent messages."""
-    
-    def __init__(self, window_size: int = 20):
-        self.window_size = window_size
-    
-    def apply(self, person: "Person", memory_config: MemoryConfig, execution_count: int) -> int:
-        original_count = person.get_message_count()
-        
-        # Use all involved view but with sliding window
-        person.set_memory_view(MemoryView.ALL_INVOLVED)
-        
-        # Apply window size as memory limit
-        window = memory_config.max_messages or self.window_size
-        person.set_memory_limit(int(window), preserve_system=True)
-        
-        return original_count - person.get_message_count()
-    
-    def describe(self) -> str:
-        return f"Sliding window of {self.window_size} messages"
-
-
-class ContextAwareForgettingStrategy:
-    """Forget based on message relevance and context."""
-    
-    def __init__(self, base_view: MemoryView = MemoryView.DIRECT_ONLY):
-        self.base_view = base_view
-    
-    def apply(self, person: "Person", memory_config: MemoryConfig, execution_count: int) -> int:
-        original_count = person.get_message_count()
-        
-        # For early turns, use full context
-        if execution_count < 3:
-            person.set_memory_view(MemoryView.ALL_INVOLVED)
-        else:
-            # Later turns focus on direct messages
-            person.set_memory_view(self.base_view)
-        
-        # Apply adaptive memory limit
-        if memory_config.max_messages:
-            person.set_memory_limit(int(memory_config.max_messages), preserve_system=True)
-        
-        return original_count - person.get_message_count()
-    
-    def describe(self) -> str:
-        return "Context-aware forgetting based on message relevance"
-
-
-class HybridForgettingStrategy:
-    """Combines multiple strategies based on execution state."""
-    
-    def __init__(self):
-        self.early_strategy = NoForgetStrategy()
-        self.mid_strategy = SlidingWindowStrategy(window_size=15)
-        self.late_strategy = OnEveryTurnStrategy(keep_last_n_exchanges=1)
-    
-    def apply(self, person: "Person", memory_config: MemoryConfig, execution_count: int) -> int:
-        # Choose strategy based on execution count
-        if execution_count < 3:
-            return self.early_strategy.apply(person, memory_config, execution_count)
-        elif execution_count < 10:
-            return self.mid_strategy.apply(person, memory_config, execution_count)
-        else:
-            return self.late_strategy.apply(person, memory_config, execution_count)
-    
-    def describe(self) -> str:
-        return "Hybrid strategy: full → sliding window → minimal"
-
-
 class ForgettingStrategyFactory:
     """Factory for creating forgetting strategies."""
     
@@ -172,11 +103,6 @@ class ForgettingStrategyFactory:
         ForgettingMode.upon_request: UponRequestStrategy,
     }
     
-    _advanced_strategies = {
-        "sliding_window": SlidingWindowStrategy,
-        "context_aware": ContextAwareForgettingStrategy,
-        "hybrid": HybridForgettingStrategy,
-    }
     
     @classmethod
     def create(
@@ -192,32 +118,3 @@ class ForgettingStrategyFactory:
         # Pass any kwargs to the strategy constructor
         return strategy_class(**kwargs)
     
-    @classmethod
-    def create_advanced(
-        cls,
-        strategy_name: str,
-        **kwargs
-    ) -> ForgettingStrategy:
-        """Create an advanced forgetting strategy by name."""
-        strategy_class = cls._advanced_strategies.get(strategy_name)
-        if not strategy_class:
-            raise ValueError(f"Unknown advanced strategy: {strategy_name}")
-        
-        return strategy_class(**kwargs)
-    
-    @classmethod
-    def list_strategies(cls) -> Dict[str, str]:
-        """List all available strategies with descriptions."""
-        result = {}
-        
-        # Standard strategies
-        for mode in ForgettingMode:
-            strategy = cls.create(mode)
-            result[mode.value] = strategy.describe()
-        
-        # Advanced strategies
-        for name, strategy_class in cls._advanced_strategies.items():
-            strategy = strategy_class()
-            result[name] = strategy.describe()
-        
-        return result

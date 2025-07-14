@@ -125,8 +125,7 @@ async def init_resources(container) -> None:
     if missing_services:
         logger.warning(f"Missing required services: {missing_services}")
     
-    # Log service health status
-    health_status = service_registry.get_health_status()
+    # Service health status logging removed - method not implemented
 
 
 async def shutdown_resources(container) -> None:

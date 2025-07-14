@@ -86,23 +86,6 @@ class UnifiedServiceRegistry(DynamicRegistry):
         
         return services
     
-    def merge(self, other: "UnifiedServiceRegistry") -> None:
-        # Merge another registry into this one.
-        for name in other._items:
-            if name not in self._items:
-                self.register(name, other._items[name])
-        
-        for alias, target in other._aliases.items():
-            if alias not in self._aliases and target in self._items:
-                self.create_alias(alias, target)
-    
-    def clone(self) -> "UnifiedServiceRegistry":
-        # Create a copy of this registry.
-        clone = UnifiedServiceRegistry()
-        clone._items = self._items.copy()
-        clone._aliases = self._aliases.copy()
-        return clone
-    
     def validate_required_services(self, required_services: list[str]) -> dict[str, bool]:
         # Validate that required services are registered and available.
         validation_results = {}
@@ -110,17 +93,6 @@ class UnifiedServiceRegistry(DynamicRegistry):
             service = self.get(service_name)
             validation_results[service_name] = service is not None
         return validation_results
-    
-    def get_health_status(self) -> dict[str, dict]:
-        # Get health status of all registered services.
-        health_status = {}
-        for service_name, service in self._items.items():
-            health_status[service_name] = {
-                "registered": True,
-                "type": type(service).__name__,
-                "healthy": True  # Could be extended to check actual health
-            }
-        return health_status
     
     def __repr__(self) -> str:
         # String representation of the registry.

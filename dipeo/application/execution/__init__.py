@@ -5,14 +5,12 @@ from .handler_factory import (
     get_global_registry,
     register_handler,
 )
-from .typed_handler_base import TypedNodeHandler
+from .types import TypedNodeHandler
 from .use_cases import ExecuteDiagramUseCase
 from .context import UnifiedExecutionContext
 from .types import (
     ExecutionContext,
     ExecutionOptions,
-    NodeDefinition,
-    NodeHandler,
 )
 
 __all__ = [
@@ -23,8 +21,6 @@ __all__ = [
     # Types
     "ExecutionContext",
     "ExecutionOptions",
-    "NodeDefinition",
-    "NodeHandler",
     # Handlers
     "TypedNodeHandler",
     "HandlerRegistry",

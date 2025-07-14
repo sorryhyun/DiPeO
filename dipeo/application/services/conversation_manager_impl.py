@@ -58,7 +58,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             self._conversation_logs[execution_id] = []
         
         self._conversation_logs[execution_id].append({
-            "person_id": str(message.from_person_id),
             "role": self._get_role_from_message(message),
             "content": message.content,
             "from_person_id": str(message.from_person_id),
@@ -99,36 +98,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         # Apply the strategy
         return strategy.apply(person, memory_config, execution_count)
     
-    
-    
-    
-    
-    
-    def _dict_to_message(self, msg_dict: dict[str, Any], person_id: str) -> Message | None:
-        if self._current_execution_id and msg_dict.get("execution_id") != self._current_execution_id:
-            return None
-        
-        from_person_id = msg_dict.get("from_person_id", msg_dict.get("current_person_id", person_id))
-        to_person_id = msg_dict.get("to_person_id", person_id)
-        
-        role = msg_dict.get("role", "user")
-        if role == "system":
-            from_person_id = "system"
-            message_type = "system_to_person"
-        elif role == "external":
-            message_type = "person_to_person"
-        else:
-            message_type = "person_to_person"
-        
-        return Message(
-            from_person_id=PersonID(from_person_id) if from_person_id != "system" else "system",  # type: ignore
-            to_person_id=PersonID(to_person_id) if to_person_id != "system" else "system",  # type: ignore
-            content=msg_dict.get("content", ""),
-            timestamp=msg_dict.get("timestamp"),
-            message_type=message_type,  # type: ignore
-            metadata={"role": role, "node_id": msg_dict.get("node_id")}
-        )
-    
     @staticmethod
     def _get_role_from_message(message: Message) -> str:
         if message.from_person_id == "system":
@@ -137,10 +106,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             return "assistant"
         else:
             return "user"
-    
-    def set_execution_id(self, execution_id: str) -> None:
-        self._current_execution_id = execution_id
-    
     
     async def initialize(self) -> None:
         """Initialize the conversation manager and set it on all persons."""
@@ -253,10 +218,3 @@ class ConversationManagerImpl(BaseService, ConversationManager):
     @staticmethod
     def is_conversation(value: Any) -> bool:
         return is_conversation(value)
-    
-    
-    
-    
-    
-    
-    

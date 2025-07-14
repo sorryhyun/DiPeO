@@ -9,9 +9,9 @@ import aiohttp
 from pydantic import BaseModel
 
 from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.core.errors import NodeExecutionError, InvalidDiagramError
+from dipeo.core.base.exceptions import NodeExecutionError, InvalidDiagramError
 from dipeo.models import HookNodeData, HookType, NodeOutput, NodeType
 from dipeo.core.static.generated_nodes import HookNode
 
@@ -51,7 +51,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         """Pre-execute logic for HookNode."""
         return {}
     
-    async def execute_typed(
+    async def execute(
         self,
         node: HookNode,
         context: UnifiedExecutionContext,

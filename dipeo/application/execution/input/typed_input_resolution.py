@@ -6,14 +6,13 @@ from dipeo.models import NodeOutput, NodeType
 
 if TYPE_CHECKING:
     from dipeo.core.static.executable_diagram import ExecutableDiagram
-    from dipeo.utils.arrow.arrow_processor import ArrowProcessor
 
 
 class TypedInputResolutionService:
     """Input resolution service that works with typed ExecutableDiagram."""
     
-    def __init__(self, arrow_processor: "ArrowProcessor"):
-        self.arrow_processor = arrow_processor
+    def __init__(self):
+        pass
     
     def resolve_inputs_for_node(
         self,
@@ -35,16 +34,11 @@ class TypedInputResolutionService:
             edge for edge in diagram.edges 
             if str(edge.target_node_id) == node_id
         ]
-        
-        log.debug(f"[INPUT_RESOLUTION] Node {node_id} ({node_type}) has {len(incoming_edges)} incoming edges")
-        if node_exec_counts:
-            log.debug(f"[INPUT_RESOLUTION] Node {node_id} exec_count: {node_exec_counts.get(node_id, 0)}")
-        
+
         for edge in incoming_edges:
             # Check if we should process this edge
             should_process = self._should_process_edge(edge, node_type, node_exec_counts)
-            log.debug(f"[INPUT_RESOLUTION] Edge {edge.source_node_id} -> {edge.target_node_id} (target_input={edge.target_input}): should_process={should_process}")
-            
+
             if not should_process:
                 continue
             
@@ -104,30 +98,12 @@ class TypedInputResolutionService:
                     else:
                         inputs[input_key] = output_value
                 else:
-                    # Wrap the input with memory configuration from edge
-                    wrapped_input = {
-                        "value": node_output.value[output_key],
-                        "arrow_metadata": {
-                            "arrow_id": edge.id,
-                            "source_node_id": str(edge.source_node_id),
-                            "target_node_id": str(edge.target_node_id),
-                        }
-                    }
-                    
-                    # Add memory hints from edge data_transform
-                    if "forgetting_mode" in edge.data_transform and edge.data_transform["forgetting_mode"]:
-                        wrapped_input["memory_hints"] = {
-                            "forget_mode": edge.data_transform["forgetting_mode"],
-                            "should_apply": edge.data_transform.get("include_in_memory", True),
-                        }
-                    
-                    # Store the wrapped input
-                    inputs[input_key] = wrapped_input
+                    # Pass the value directly without memory configuration
+                    inputs[input_key] = node_output.value[output_key]
             else:
                 # Store the input directly
                 inputs[input_key] = node_output.value[output_key]
         
-        log.debug(f"[INPUT_RESOLUTION] Resolved inputs for node {node_id}: {list(inputs.keys())}")
         return inputs
     
     def _should_process_edge(
@@ -148,6 +124,12 @@ class TypedInputResolutionService:
             # On first execution (exec_count == 1 because it's incremented before execution),
             # only process inputs ending with "_first" or exactly "first"
             if exec_count == 1:
+                # Special case: Always process conversation_state inputs from condition nodes
+                # These provide context for judging/decision-making
+                if hasattr(edge, 'data_transform') and edge.data_transform:
+                    if edge.data_transform.get('content_type') == 'conversation_state':
+                        return True
+                
                 # Process only _first inputs on first execution
                 return edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
             # On subsequent executions, process all non-_first inputs

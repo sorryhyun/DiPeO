@@ -15,7 +15,7 @@ from dipeo.models import DiagramMetadata, DomainDiagram
 from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
 from dipeo.application.services.diagram_service import DiagramService as DiagramStorageDomainService
 
-from ..validators import DiagramValidator
+from dipeo.domain.diagram.services import DiagramValidator
 from ...resolution import StaticDiagramCompiler
 from dipeo.core.static import ExecutableDiagram
 
@@ -89,11 +89,11 @@ class PrepareDiagramForExecutionUseCase(BaseService):
             backend_model = graphql_to_backend(domain_diagram)
             backend_data = backend_model.model_dump(by_alias=True)
             
-            errors = self.validator._validate_backend_format(
-                backend_data, context="execution"
-            )
-            if errors:
-                raise ValidationError(f"Diagram validation failed: {'; '.join(errors)}")
+            # Validate using domain validator
+            result = self.validator.validate(backend_data)
+            if not result.is_valid:
+                error_messages = [str(error) for error in result.errors]
+                raise ValidationError(f"Diagram validation failed: {'; '.join(error_messages)}")
 
         # Step 3: Fix API keys and extract them
         # Work with backend format for API key handling

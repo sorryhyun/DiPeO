@@ -15,7 +15,7 @@ from .node_executor import NodeExecutor
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.application.protocols import ExecutionObserver
+    from dipeo.core.ports import ExecutionObserver
 
 log = logging.getLogger(__name__)
 

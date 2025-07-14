@@ -12,15 +12,9 @@ class MemoryView(Enum):
     ALL_INVOLVED = "all_involved"  # Messages where person is sender or recipient (current default)
     SENT_BY_ME = "sent_by_me"  # Messages I sent
     SENT_TO_ME = "sent_to_me"  # Messages sent to me
-    WITNESSED = "witnessed"  # Messages between others that I can see
-    
-    # Combined views
-    DIRECT_ONLY = "direct_only"  # Only direct messages (sent by me or to me)
-    GROUP_CONTEXT = "group_context"  # All messages in my execution context
     
     # Specialized views
     SYSTEM_AND_ME = "system_and_me"  # System messages and my interactions
-    LAST_EXCHANGE = "last_exchange"  # Last message to me and my response
     CONVERSATION_PAIRS = "conversation_pairs"  # Messages grouped as request/response pairs
 
 
@@ -69,54 +63,6 @@ class SentToMeFilter:
         return "Messages sent to me"
 
 
-class WitnessedFilter:
-    """Filter for messages between others that this person can witness."""
-    
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
-        return [
-            msg for msg in messages
-            if msg.from_person_id != person_id and msg.to_person_id != person_id
-        ]
-    
-    def describe(self) -> str:
-        return "Messages between others"
-
-
-class DirectOnlyFilter:
-    """Filter for only direct messages (sent by or to this person)."""
-    
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
-        return [
-            msg for msg in messages
-            if (msg.from_person_id == person_id or msg.to_person_id == person_id)
-            and msg.from_person_id != PersonID("system")
-        ]
-    
-    def describe(self) -> str:
-        return "Direct messages only (excluding system)"
-
-
-class GroupContextFilter:
-    """Filter for all messages in the same execution context."""
-    
-    def __init__(self, execution_id: Optional[str] = None):
-        self.execution_id = execution_id
-    
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
-        if not self.execution_id:
-            # Without execution context, return all messages
-            return messages
-        
-        # Filter by execution context
-        return [
-            msg for msg in messages
-            if msg.execution_id == self.execution_id
-        ]
-    
-    def describe(self) -> str:
-        return f"All messages in execution context {self.execution_id or 'current'}"
-
-
 class SystemAndMeFilter:
     """Filter for system messages and this person's interactions."""
     
@@ -129,36 +75,6 @@ class SystemAndMeFilter:
     
     def describe(self) -> str:
         return "System messages to me and my responses"
-
-
-class LastExchangeFilter:
-    """Filter for the last message to this person and their response."""
-    
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
-        # Find all messages to this person
-        to_me = [(i, msg) for i, msg in enumerate(messages) if msg.to_person_id == person_id]
-        
-        if not to_me:
-            return []
-        
-        # Get the last message to this person
-        last_to_me_idx, last_to_me = to_me[-1]
-        
-        # Look for the response from this person after that message
-        response = None
-        for i in range(last_to_me_idx + 1, len(messages)):
-            if messages[i].from_person_id == person_id:
-                response = messages[i]
-                break
-        
-        result = [last_to_me]
-        if response:
-            result.append(response)
-        
-        return result
-    
-    def describe(self) -> str:
-        return "Last message to me and my response"
 
 
 class ConversationPairsFilter:
@@ -185,36 +101,6 @@ class ConversationPairsFilter:
         return "Messages grouped as request/response pairs"
 
 
-class CompositeFilter:
-    """Combines multiple filters with AND/OR logic."""
-    
-    def __init__(self, filters: List[MemoryFilter], combine_mode: str = "AND"):
-        self.filters = filters
-        self.combine_mode = combine_mode
-    
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
-        if self.combine_mode == "AND":
-            # All filters must match
-            result = messages
-            for f in self.filters:
-                result = f.filter(result, person_id)
-            return result
-        else:  # OR
-            # Any filter can match
-            seen: Set[str] = set()
-            result = []
-            for f in self.filters:
-                for msg in f.filter(messages, person_id):
-                    if msg.id not in seen:
-                        seen.add(msg.id)
-                        result.append(msg)
-            return result
-    
-    def describe(self) -> str:
-        descriptions = [f.describe() for f in self.filters]
-        return f" {self.combine_mode} ".join(descriptions)
-
-
 class MemoryFilterFactory:
     """Factory for creating memory filters."""
     
@@ -222,11 +108,7 @@ class MemoryFilterFactory:
         MemoryView.ALL_INVOLVED: AllInvolvedFilter,
         MemoryView.SENT_BY_ME: SentByMeFilter,
         MemoryView.SENT_TO_ME: SentToMeFilter,
-        MemoryView.WITNESSED: WitnessedFilter,
-        MemoryView.DIRECT_ONLY: DirectOnlyFilter,
-        MemoryView.GROUP_CONTEXT: GroupContextFilter,
         MemoryView.SYSTEM_AND_ME: SystemAndMeFilter,
-        MemoryView.LAST_EXCHANGE: LastExchangeFilter,
         MemoryView.CONVERSATION_PAIRS: ConversationPairsFilter,
     }
     
@@ -237,22 +119,7 @@ class MemoryFilterFactory:
         if not filter_class:
             raise ValueError(f"Unknown memory view: {view}")
         
-        # Handle filters that need constructor arguments
-        if view == MemoryView.GROUP_CONTEXT:
-            return filter_class(execution_id=kwargs.get("execution_id"))
-        
         return filter_class()
-    
-    @classmethod
-    def create_composite(
-        cls, 
-        views: List[MemoryView], 
-        combine_mode: str = "AND",
-        **kwargs
-    ) -> MemoryFilter:
-        """Create a composite filter combining multiple views."""
-        filters = [cls.create(view, **kwargs) for view in views]
-        return CompositeFilter(filters, combine_mode)
 
 
 class MemoryLimiter:

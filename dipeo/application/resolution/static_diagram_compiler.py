@@ -1,7 +1,7 @@
 """Static diagram compiler implementation using strongly-typed nodes."""
 
 from typing import List, Dict, Any, Tuple, Optional
-from dipeo.core.static.diagram_compiler import DiagramCompiler, DiagramValidator
+from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
 from dipeo.core.static.generated_nodes import (
     create_executable_node, ExecutableNode, BaseExecutableNode,
@@ -155,13 +155,18 @@ class StaticDiagramCompiler(DiagramCompiler):
                     )
                     continue
             
+            # Merge existing data_transform with node-type-based transforms
+            existing_transform = edge.data_transform if hasattr(edge, 'data_transform') else {}
+            type_based_transform = self._get_data_transform(source_node, target_node) if source_node and target_node else {}
+            merged_transform = {**existing_transform, **type_based_transform}
+            
             typed_edge = ExecutableEdge(
                 id=edge.id,
                 source_node_id=edge.source_node_id,
                 target_node_id=edge.target_node_id,
                 source_output=edge.source_output,
                 target_input=edge.target_input,
-                data_transform=self._get_data_transform(source_node, target_node) if source_node and target_node else {},
+                data_transform=merged_transform,
                 metadata=edge.metadata if hasattr(edge, 'metadata') else {}
             )
             typed_edges.append(typed_edge)
@@ -249,19 +254,3 @@ class StaticDiagramCompiler(DiagramCompiler):
         )
 
 
-class StaticDiagramValidator(DiagramValidator):
-    """Validator for static diagram compilation."""
-    
-    def validate(self, diagram: DomainDiagram) -> List[str]:
-        """Validate domain diagram for static compilation."""
-        errors = []
-        compiler = StaticDiagramCompiler()
-        
-        try:
-            # Attempt compilation to gather validation errors
-            compiler.compile(diagram)
-            errors.extend(compiler.validation_errors)
-        except Exception as e:
-            errors.append(f"Validation failed: {str(e)}")
-        
-        return errors

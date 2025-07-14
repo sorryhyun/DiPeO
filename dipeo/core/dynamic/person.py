@@ -70,15 +70,16 @@ class Person:
         
         return filtered_messages
     
+    
     def get_latest_message(self) -> Optional[Message]:
         messages = self.get_messages()
         return messages[-1] if messages else None
     
-    def clear_conversation(self) -> None:
-        """Clear this person's memory view.
+    def forget_all_messages(self) -> None:
+        """Apply extreme forgetting by setting memory limit to 0.
         
         Note: In the global conversation model, this doesn't delete messages
-        but can reset the person's memory filters or limits.
+        but makes the person unable to see any messages.
         """
         # Reset memory limiter to effectively "forget" messages
         self._memory_limiter = MemoryLimiter(0, preserve_system=False)
@@ -244,12 +245,6 @@ class Person:
         
         return llm_messages
     
-    @staticmethod
-    def can_see_conversation_of(other_person: "Person") -> bool:
-        """Check if this person can see another person's conversation."""
-        # In new architecture, persons share a global conversation
-        # Visibility rules can be configured based on requirements
-        return True
     
     def __repr__(self) -> str:
         return (f"Person(id={self.id}, name={self.name}, "

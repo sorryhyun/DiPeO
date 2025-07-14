@@ -49,10 +49,10 @@ def _create_prompt_builder():
 
 
 
-def _create_conversation_state_manager():
-    """Create conversation state manager."""
-    from dipeo.domain.conversation.services import ConversationStateManager
-    return ConversationStateManager()
+def _create_conversation_state_utils():
+    """Create conversation state utilities module."""
+    from dipeo.domain.conversation.services import state_utils
+    return state_utils
 
 
 def _create_message_formatter():
@@ -183,7 +183,7 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     # input_resolution_service removed - using typed version directly
     
     # Conversation domain
-    conversation_state_manager = providers.Singleton(_create_conversation_state_manager)
+    conversation_state_utils = providers.Singleton(_create_conversation_state_utils)
     message_formatter = providers.Singleton(_create_message_formatter)
     memory_strategy_factory = providers.Singleton(_create_memory_strategy_factory)
     

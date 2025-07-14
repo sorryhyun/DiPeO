@@ -1,17 +1,6 @@
-# Application-level service protocols.
+"""Execution observer protocol for monitoring diagram execution events."""
 
-from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncIterator,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Protocol,
-    runtime_checkable,
-)
+from typing import Optional, Protocol
 
 from dipeo.models import NodeState
 
@@ -36,6 +25,3 @@ class ExecutionObserver(Protocol):
     async def on_execution_complete(self, execution_id: str) -> None: ...
     
     async def on_execution_error(self, execution_id: str, error: str) -> None: ...
-
-
-

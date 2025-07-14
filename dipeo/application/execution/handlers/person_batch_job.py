@@ -3,7 +3,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.core.utils import is_conversation
 from dipeo.application.utils.conversation_utils import MessageBuilder
@@ -64,7 +64,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
     def description(self) -> str:
         return "Execute prompts across multiple persons in batch"
 
-    async def execute_typed(
+    async def execute(
         self,
         node: PersonBatchJobNode,
         context: UnifiedExecutionContext,

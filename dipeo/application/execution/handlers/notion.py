@@ -3,7 +3,7 @@ from typing import Any, TYPE_CHECKING
 
 from dipeo.application import register_handler
 from dipeo.domain.notion.services import NotionValidator
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
 from dipeo.models import NodeOutput, NotionNodeData, NotionOperation, NodeType
 from dipeo.core.static.generated_nodes import NotionNode
@@ -55,7 +55,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
             "database_id": node.database_id
         }
     
-    async def execute_typed(
+    async def execute(
         self,
         node: NotionNode,
         context: UnifiedExecutionContext,

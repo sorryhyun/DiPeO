@@ -1,23 +1,23 @@
-"""Protocol for typed node handlers in the execution system."""
+"""Base implementation for typed node handlers in the execution system."""
 
-from typing import Protocol, Type, TypeVar, List, Dict, Any, TYPE_CHECKING, runtime_checkable
-from abc import abstractmethod
+from typing import Type, TypeVar, List, Dict, Any, TYPE_CHECKING, Generic
+from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from dipeo.core.static.executable_diagram import ExecutableNode
-    from dipeo.models import BaseModel, NodeOutput
+    from dipeo.models import NodeOutput
 
 # Type variable for node types
 T = TypeVar('T', bound='ExecutableNode')
 
 
-@runtime_checkable
-class TypedNodeHandler(Protocol[T]):
-    """Protocol for type-safe node handlers using generics.
+class TypedNodeHandler(ABC, Generic[T]):
+    """Base implementation for type-safe node handlers.
     
-    Each node type implements this protocol to define how it should be executed
-    within a diagram. The handler is parameterized by the specific node type
-    to ensure type safety.
+    Each node type implements this abstract class to define how it should be executed
+    within a diagram. This provides the common execution pattern where typed nodes are
+    extracted from services and passed to execute_typed.
     """
     
     @property
@@ -34,7 +34,7 @@ class TypedNodeHandler(Protocol[T]):
     
     @property
     @abstractmethod
-    def schema(self) -> Type['BaseModel']:
+    def schema(self) -> Type[BaseModel]:
         """The Pydantic schema for validation."""
         ...
     
@@ -49,14 +49,14 @@ class TypedNodeHandler(Protocol[T]):
         return f"Typed handler for {self.node_type} nodes"
     
     @abstractmethod
-    async def execute_typed(
+    async def execute(
         self,
         node: T,
         context: Any,
         inputs: Dict[str, Any],
         services: Dict[str, Any]
     ) -> 'NodeOutput':
-        """Execute with strongly-typed node.
+        """Execute the handler with strongly-typed node.
         
         Args:
             node: The typed node instance
