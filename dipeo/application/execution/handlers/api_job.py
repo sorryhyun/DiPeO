@@ -11,7 +11,7 @@ from dipeo.core.static.generated_nodes import ApiJobNode
 from dipeo.models import ApiJobNodeData, HttpMethod, NodeOutput, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 
 @register_handler
@@ -44,7 +44,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     async def pre_execute(
         self,
         node: ApiJobNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for ApiJobNode."""
         return {

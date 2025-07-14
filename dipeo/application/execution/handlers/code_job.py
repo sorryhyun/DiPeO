@@ -17,7 +17,7 @@ from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
 from dipeo.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 
 
@@ -58,7 +58,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     async def pre_execute(
         self,
         node: CodeJobNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for CodeJobNode."""
         return {

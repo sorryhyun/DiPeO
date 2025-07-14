@@ -13,6 +13,11 @@ from .types import (
 from .unified_execution_context import UnifiedExecutionContext
 from .use_cases import ExecuteDiagramUseCase
 
+# Compatibility imports for migration
+from .simple_execution import SimpleExecution
+from .simple_execution import SimpleExecution as TypedStatefulExecution
+from .simple_execution import SimpleExecution as StatefulExecution
+
 __all__ = [
     "UnifiedExecutionContext",
     # Use cases
@@ -25,4 +30,8 @@ __all__ = [
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
+    # Compatibility exports during migration
+    "SimpleExecution",
+    "TypedStatefulExecution",
+    "StatefulExecution",
 ]

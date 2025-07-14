@@ -90,6 +90,9 @@ export interface ExecutionState {
   variables: Record<string, any>;
   duration_seconds?: number | null; // Computed field
   is_active?: boolean; // Computed field
+  // Execution tracking for loops and iterations
+  exec_counts: Record<string, number>; // Number of times each node has been executed
+  executed_nodes: string[]; // List of node IDs that have been executed
 }
 
 
@@ -168,7 +171,9 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
     token_usage: { input: 0, output: 0, cached: null, total: 0 },
     error: null,
     variables: {},
-    is_active: true
+    is_active: true,
+    exec_counts: {},
+    executed_nodes: []
   };
 }
 

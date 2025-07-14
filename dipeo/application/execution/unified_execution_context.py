@@ -185,6 +185,111 @@ class UnifiedExecutionContext(ExecutionContext):
     
     
     
+    def increment_execution_count(self, node_id: NodeID) -> None:
+        """Increment and track execution count for a node.
+        
+        Args:
+            node_id: The ID of the node to increment count for
+        """
+        current = self.get_node_execution_count(node_id)
+        self._exec_counts[str(node_id)] = current + 1
+        
+        # Update execution state
+        if hasattr(self, '_execution_state') and self._execution_state:
+            self._execution_state.exec_counts[str(node_id)] = current + 1
+        
+        # Track executed nodes
+        if str(node_id) not in self._executed_nodes:
+            self._executed_nodes.append(str(node_id))
+            if hasattr(self, '_execution_state') and self._execution_state:
+                if str(node_id) not in self._execution_state.executed_nodes:
+                    self._execution_state.executed_nodes.append(str(node_id))
+    
+    def resolve_inputs(self, node: "ExecutableNode", diagram: "ExecutableDiagram") -> dict[str, Any]:
+        """Resolve all inputs for a node based on edges and outputs.
+        
+        Args:
+            node: The node to resolve inputs for
+            diagram: The diagram containing edge information
+            
+        Returns:
+            Dictionary of resolved inputs
+        """
+        from dipeo.application.execution.input.typed_input_resolution import TypedInputResolutionService
+        from dipeo.core.static.generated_nodes import PersonJobNode
+        
+        # Create typed input resolution service
+        typed_input_service = TypedInputResolutionService()
+        
+        # Get memory config if this is a PersonJobNode
+        node_memory_config = None
+        if isinstance(node, PersonJobNode) and node.memory_config:
+            node_memory_config = node.memory_config
+        
+        # Resolve inputs using the typed ExecutableDiagram
+        inputs = typed_input_service.resolve_inputs_for_node(
+            node_id=str(node.id),
+            node_type=node.type,
+            diagram=diagram,
+            node_outputs=self.node_outputs,
+            node_exec_counts=self._exec_counts.copy(),
+            node_memory_config=node_memory_config
+        )
+        
+        return inputs
+    
+    def complete_node(self, node_id: NodeID, output: Any | None = None) -> None:
+        """Mark node complete with output in one operation.
+        
+        Args:
+            node_id: The ID of the node to complete
+            output: The output value from the node execution
+        """
+        # Update node state to completed
+        node_state = self.get_node_state(node_id) or NodeState(status=NodeExecutionStatus.PENDING)
+        node_state.status = NodeExecutionStatus.COMPLETED
+        self.set_node_state(node_id, node_state)
+        
+        # Store output if provided
+        if output is not None:
+            # Convert to result dict format
+            if isinstance(output, NodeOutput):
+                result = {"value": output.value}
+                if output.metadata:
+                    result["metadata"] = output.metadata
+            else:
+                result = {"value": output}
+            self._node_results[node_id] = result
+            
+            # Also update in execution state
+            if hasattr(self, '_execution_state') and self._execution_state:
+                if not isinstance(output, NodeOutput):
+                    output = NodeOutput(node_id=node_id, value=output)
+                self._execution_state.node_outputs[str(node_id)] = output
+    
+    def reset_node(self, node_id: NodeID) -> None:
+        """Reset node state for loops.
+        
+        Args:
+            node_id: The ID of the node to reset
+        """
+        # Reset state to pending
+        node_state = self.get_node_state(node_id) or NodeState(status=NodeExecutionStatus.COMPLETED)
+        node_state.status = NodeExecutionStatus.PENDING
+        node_state.started_at = None
+        node_state.ended_at = None
+        node_state.error = None
+        self.set_node_state(node_id, node_state)
+        
+        # Clear any previous output
+        if node_id in self._node_results:
+            del self._node_results[node_id]
+        
+        # Clear from execution state
+        if hasattr(self, '_execution_state') and self._execution_state:
+            if str(node_id) in self._execution_state.node_outputs:
+                del self._execution_state.node_outputs[str(node_id)]
+    
     def to_execution_state(self, diagram_id: str) -> ExecutionState:
         """Convert this context to an ExecutionState for persistence.
         
@@ -238,5 +343,7 @@ class UnifiedExecutionContext(ExecutionContext):
             node_outputs=node_outputs,
             token_usage=TokenUsage(input=total_input, output=total_output),
             variables=self._global_context,
-            is_active=has_running
+            is_active=has_running,
+            exec_counts=self._exec_counts.copy(),
+            executed_nodes=self._executed_nodes.copy()
         )

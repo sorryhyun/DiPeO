@@ -1,9 +1,12 @@
 # Unified prompt building service
 
+import logging
 import warnings
 from typing import Any
 
 from dipeo.utils.template import TemplateProcessor
+
+logger = logging.getLogger(__name__)
 
 
 class PromptBuilder:
@@ -30,7 +33,8 @@ class PromptBuilder:
         
         # Check if auto-prepend is enabled via parameter or settings
         should_prepend = auto_prepend_conversation
-        if should_prepend is True:  # Only check settings if explicitly True (default)
+        # If explicitly False, respect that. Otherwise check settings.
+        if auto_prepend_conversation is not False:
             try:
                 from dipeo.infra.config.settings import get_settings
                 should_prepend = get_settings().auto_prepend_conversation
@@ -129,8 +133,16 @@ class PromptBuilder:
         first_only_prompt: str | None,
         execution_count: int,
     ) -> str:
+        # Debug logging
+        logger.debug(f"_select_prompt - default_prompt: {repr(default_prompt)}")
+        logger.debug(f"_select_prompt - first_only_prompt: {repr(first_only_prompt)}")
+        logger.debug(f"_select_prompt - execution_count: {execution_count}")
+        logger.debug(f"_select_prompt - should_use_first_only_prompt: {self.should_use_first_only_prompt(first_only_prompt, execution_count)}")
+        
         if self.should_use_first_only_prompt(first_only_prompt, execution_count):
+            logger.debug(f"_select_prompt - returning first_only_prompt: {repr(first_only_prompt)}")
             return first_only_prompt
+        logger.debug(f"_select_prompt - returning default_prompt: {repr(default_prompt)}")
         return default_prompt
     
     def build_with_context(
@@ -165,6 +177,29 @@ class PromptBuilder:
         if any(f'{{{{{var}' in prompt or f'{{#{var}' in prompt for var in conversation_vars):
             # Prompt already uses conversation variables, don't prepend
             return prompt
+        
+        # Check if conversation input is already provided (e.g., from conversation_state edges)
+        # This avoids double-prepending when conversation is passed as input
+        has_conversation_input = any(
+            key.endswith('_messages') and isinstance(value, list) 
+            for key, value in template_values.items()
+        )
+        if has_conversation_input:
+            logger.debug("Skipping conversation prepend - conversation input already provided")
+            # Log which keys triggered this
+            conv_keys = [k for k, v in template_values.items() if k.endswith('_messages') and isinstance(v, list)]
+            logger.debug(f"Conversation input keys found: {conv_keys}")
+            logger.debug(f"Template values keys: {list(template_values.keys())}")
+            return prompt
+        
+        # Check if the prompt or any conversation messages already contain "[Previous conversation"
+        # This prevents nested repetition when conversations are passed through loops
+        global_conversation = template_values.get('global_conversation', [])
+        for msg in global_conversation:
+            content = msg.get('content', '')
+            if '[Previous conversation' in content:
+                logger.debug("Skipping conversation prepend - detected existing conversation context in messages")
+                return prompt
         
         # Check if there are any messages to prepend
         global_conversation = template_values.get('global_conversation', [])

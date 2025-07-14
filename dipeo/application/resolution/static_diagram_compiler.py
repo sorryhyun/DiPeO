@@ -3,7 +3,7 @@
 from typing import Any
 
 from dipeo.application.resolution.arrow_transformer import ArrowTransformer, ExecutableNodeImpl
-from dipeo.application.resolution.execution_order_calculator import ExecutionOrderCalculator
+from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalculator
 from dipeo.application.resolution.handle_resolver import HandleResolver
 from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
@@ -26,7 +26,7 @@ class StaticDiagramCompiler(DiagramCompiler):
     def __init__(self):
         self.handle_resolver = HandleResolver()
         self.arrow_transformer = ArrowTransformer()
-        self.order_calculator = ExecutionOrderCalculator()
+        self.order_calculator = SimpleOrderCalculator()
         self.validation_errors: list[str] = []
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:

@@ -427,6 +427,8 @@ class ExecutionState(BaseModel):
     variables: Dict[str, Any]
     duration_seconds: Optional[float] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
+    exec_counts: Dict[str, float]
+    executed_nodes: List[str]
 
 class ExecutionOptions(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)

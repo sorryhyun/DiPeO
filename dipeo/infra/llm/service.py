@@ -75,8 +75,12 @@ class LLMInfraService(BaseService, LLMServicePort):
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
-        # client.chat is a sync method, not async
-        return client.chat(messages=messages, **kwargs)
+        # Check if the adapter has an async chat method
+        if hasattr(client, 'chat_async'):
+            return await client.chat_async(messages=messages, **kwargs)
+        else:
+            # Fall back to sync method
+            return client.chat(messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
         self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs

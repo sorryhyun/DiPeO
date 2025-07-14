@@ -11,7 +11,7 @@ from dipeo.core.static.generated_nodes import ConditionNode
 from dipeo.models import ConditionNodeData, NodeExecutionStatus, NodeOutput, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     async def pre_execute(
         self,
         node: ConditionNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for ConditionNode."""
         return {

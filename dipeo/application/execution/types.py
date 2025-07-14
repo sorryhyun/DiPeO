@@ -8,7 +8,7 @@ from dipeo.core.static.node_handler import TypedNodeHandler as CoreTypedHandler
 from dipeo.models import NodeOutput
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 
 ExecutionContext = Any
@@ -37,33 +37,33 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
     and output building helpers.
     """
     
-    def _get_execution(self, context: Any) -> "TypedStatefulExecution":
+    def _get_execution(self, context: Any) -> "SimpleExecution":
         """Get typed execution from context."""
         # The context should have access to the typed execution
         # This is a helper method to ensure type safety
-        from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+        from dipeo.application.execution.simple_execution import SimpleExecution
         
-        # The execution state in context is managed by TypedStatefulExecution
+        # The execution state in context is managed by SimpleExecution
         # Try to get from execution_state first
         execution_state = getattr(context, 'execution_state', None)
         if execution_state:
             stateful_execution = getattr(execution_state, '_stateful_execution', None)
-            if isinstance(stateful_execution, TypedStatefulExecution):
+            if isinstance(stateful_execution, SimpleExecution):
                 return stateful_execution
         
         # Fall back to service registry
         service_registry = getattr(context, 'service_registry', None)
         if service_registry:
             execution = service_registry.get('typed_execution')
-            if isinstance(execution, TypedStatefulExecution):
+            if isinstance(execution, SimpleExecution):
                 return execution
         
-        raise ValueError("TypedStatefulExecution not found in context")
+        raise ValueError("SimpleExecution not found in context")
     
     async def pre_execute(
         self,
         node: T,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execution logic for the node. Override in subclasses."""
         return {}

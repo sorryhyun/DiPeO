@@ -16,7 +16,7 @@ from dipeo.core.static.generated_nodes import HookNode
 from dipeo.models import HookNodeData, HookType, NodeOutput, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 
 @register_handler
@@ -46,7 +46,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     async def pre_execute(
         self,
         node: HookNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for HookNode."""
         return {}

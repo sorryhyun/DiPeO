@@ -10,7 +10,7 @@ from dipeo.core.static.generated_nodes import UserResponseNode
 from dipeo.models import NodeOutput, NodeType, UserResponseNodeData
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 
 @register_handler
@@ -40,7 +40,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     async def pre_execute(
         self,
         node: UserResponseNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for UserResponseNode."""
         return {

@@ -14,7 +14,7 @@ from dipeo.core.static.generated_nodes import DBNode
 from dipeo.models import DBNodeData, NodeOutput, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     async def pre_execute(
         self,
         node: DBNode,
-        execution: TypedStatefulExecution
+        execution: SimpleExecution
     ) -> dict[str, Any]:
         """Pre-execute logic for DBNode."""
         return {

@@ -10,7 +10,7 @@ from dipeo.core.static.generated_nodes import EndpointNode
 from dipeo.models import EndpointNodeData, NodeOutput, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 
 @register_handler
@@ -44,7 +44,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     async def pre_execute(
         self,
         node: EndpointNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for EndpointNode."""
         save_config = None

@@ -64,8 +64,8 @@ def _create_node_executor(service_registry, observers=None):
 
 def _create_execution_iterator(execution_id, state_store):
     """Create execution iterator for traversing execution."""
-    from dipeo.application.execution.iterators import ExecutionIterator
-    return ExecutionIterator(
+    from dipeo.application.execution.iterators.simple_iterator import SimpleExecutionIterator
+    return SimpleExecutionIterator(
         execution_id=execution_id,
         state_store=state_store
     )

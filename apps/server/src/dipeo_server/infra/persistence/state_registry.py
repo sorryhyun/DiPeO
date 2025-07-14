@@ -196,6 +196,8 @@ class StateRegistry:
             error=None,
             variables=variables or {},
             is_active=True,
+            exec_counts={},
+            executed_nodes=[],
         )
 
         await self.save_state(state)
@@ -297,6 +299,8 @@ class StateRegistry:
             else TokenUsage(input=0, output=0, cached=None),
             error=row[8],
             variables=json.loads(row[9]),
+            exec_counts={},
+            executed_nodes=[],
         )
 
     async def update_status(
@@ -547,6 +551,8 @@ class StateRegistry:
                 ended_at=row[3],
                 token_usage=token_usage,
                 error=row[8],
+                exec_counts={},
+                executed_nodes=[],
             )
 
             executions.append(execution_state)
@@ -593,6 +599,8 @@ class StateRegistry:
             error=None,
             variables=variables or {},
             is_active=True,
+            exec_counts={},
+            executed_nodes=[],
         )
 
         # Only store in cache, not in database

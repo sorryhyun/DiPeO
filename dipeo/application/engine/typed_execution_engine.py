@@ -5,8 +5,8 @@ import logging
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.iterators import AsyncExecutionIterator
-from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+from dipeo.application.execution.iterators.simple_iterator import SimpleAsyncIterator
+from dipeo.application.execution.simple_execution import SimpleExecution
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.infra.config.settings import get_settings
 
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 class TypedExecutionEngine:
-    """Execution engine that works directly with typed ExecutableDiagram and TypedStatefulExecution.
+    """Execution engine that works directly with typed ExecutableDiagram and SimpleExecution.
     
     This is the simplified engine from Phase 6 that leverages static typing throughout.
     """
@@ -37,7 +37,7 @@ class TypedExecutionEngine:
     
     async def execute(
         self,
-        stateful_execution: TypedStatefulExecution,
+        stateful_execution: SimpleExecution,
         execution_id: str,
         options: dict[str, Any],
         interactive_handler: Any | None = None,
@@ -53,14 +53,11 @@ class TypedExecutionEngine:
             max_parallel = options.get("max_parallel_nodes", 10)
             
             # Create iterator with typed execution
-            iterator = AsyncExecutionIterator(
-                stateful_execution=stateful_execution,
-                max_parallel_nodes=max_parallel,
+            iterator = SimpleAsyncIterator(
+                execution=stateful_execution,
                 node_executor=self._create_node_executor_wrapper(
-                    stateful_execution, options, interactive_handler
-                ),
-                node_ready_poll_interval=self._settings.node_ready_poll_interval,
-                max_poll_retries=self._settings.node_ready_max_polls
+                    stateful_execution, options, interactive_handler, execution_id
+                )
             )
             
             # Execute using iterator pattern
@@ -115,9 +112,10 @@ class TypedExecutionEngine:
     
     def _create_node_executor_wrapper(
         self,
-        stateful_execution: TypedStatefulExecution,
+        stateful_execution: SimpleExecution,
         options: dict[str, Any],
-        interactive_handler: Any | None
+        interactive_handler: Any | None,
+        execution_id: str
     ):
         async def execute_node(node: "ExecutableNode") -> dict[str, Any]:
             # For the stateful execution to work properly, we need to ensure
@@ -130,7 +128,7 @@ class TypedExecutionEngine:
                     node=node,
                     execution=stateful_execution,
                     handler=None,  # Will be resolved by executor
-                    execution_id=stateful_execution.execution_id,
+                    execution_id=execution_id,
                     options=options,
                     interactive_handler=interactive_handler
                 )

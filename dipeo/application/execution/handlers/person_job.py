@@ -19,7 +19,7 @@ from dipeo.models import (
 )
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 logger = logging.getLogger(__name__)
 
@@ -58,16 +58,14 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     def description(self) -> str:
         return "Execute person job with conversation memory"
     
-    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Any | None:
-        return context.get_service(service_name) or services.get(service_name)
-
     async def pre_execute(
         self,
         node: PersonJobNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for PersonJobNode."""
-        exec_count = execution.get_node_execution_count(node.id)
+        # Use context from execution
+        exec_count = execution.context.get_node_execution_count(node.id)
         
         # Determine which prompt to use
         # exec_count is 1 on first run because it's incremented before execution
@@ -87,27 +85,37 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         self,
         node: PersonJobNode,
         context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
+        inputs: dict[str, Any] | None = None,
+        services: dict[str, Any] | None = None,
     ) -> NodeOutput:
+        # Resolve inputs from context if not provided
+        if inputs is None:
+            # Get diagram from context or services for input resolution
+            diagram = context.get_service("diagram") or (services.get("diagram") if services else None)
+            if diagram:
+                inputs = context.resolve_inputs(node, diagram)
+            else:
+                inputs = {}
+        
         # Direct typed access to person_id
         person_id = node.person_id
         logger.debug(f"Raw inputs for person {person_id}: {inputs}")
-        # Resolve services
-        llm_service = self._resolve_service(context, services, "llm_service")
-        diagram = self._resolve_service(context, services, "diagram")
-        conversation_manager = self._resolve_service(context, services, "conversation_manager")
-        prompt_builder = self._resolve_service(context, services, "prompt_builder")
+        
+        # Get services directly from context
+        llm_service = context.get_service("llm_service")
+        diagram = context.get_service("diagram") or (services.get("diagram") if services else None)
+        conversation_manager = context.get_service("conversation_manager")
+        prompt_builder = context.get_service("prompt_builder")
+        
         # Get execution count for iteration check
-        execution_count = context.get_node_execution_count(context.current_node_id)
+        execution_count = context.get_node_execution_count(node.id)
         
         # Check if max_iteration is reached
-        if execution_count > node.max_iteration:
+        if execution_count >= node.max_iteration:
             return NodeOutput(
                 value={"default": ""},
                 metadata={"skipped": True, "reason": f"Max iteration ({node.max_iteration}) reached"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                node_id=node.id
             )
         
         # Only log in debug mode if explicitly enabled
@@ -117,8 +125,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             return NodeOutput(
                 value={"default": ""}, 
                 metadata={"error": "No person specified"},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                node_id=node.id
             )
         
         try:
@@ -133,7 +140,9 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             transformed_inputs = inputs
             
             # Handle conversation inputs
-            if self._has_conversation_input(transformed_inputs):
+            has_conversation_input = self._has_conversation_input(transformed_inputs)
+            if has_conversation_input:
+                logger.debug(f"PersonJob {node.id} - detected conversation input, will rebuild conversation")
                 self._rebuild_conversation(person, transformed_inputs)
             
             # Build prompt BEFORE applying memory management
@@ -142,12 +151,22 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 conversation_manager=conversation_manager,
                 person_id=person_id
             )
+            
+            # Debug logging to check prompt values
+            logger.debug(f"PersonJob {node.id} - execution_count: {execution_count}")
+            logger.debug(f"PersonJob {node.id} - default_prompt: {repr(node.default_prompt)}")
+            logger.debug(f"PersonJob {node.id} - first_only_prompt: {repr(node.first_only_prompt)}")
+            
+            # Disable auto-prepend if we have conversation input (to avoid duplication)
+            logger.debug(f"PersonJob {node.id} - auto_prepend_conversation: {not has_conversation_input}")
             built_prompt = prompt_builder.build(
-                prompt=node.default_prompt if node.default_prompt is not None else node.first_only_prompt,
+                prompt=node.default_prompt,
                 first_only_prompt=node.first_only_prompt,
                 execution_count=execution_count,
                 template_values=template_values,
+                auto_prepend_conversation=not has_conversation_input
             )
+            logger.debug(f"PersonJob {node.id} - built_prompt: {repr(built_prompt[:100])}...")
 
             # Skip if no prompt
             if not built_prompt:
@@ -155,8 +174,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 return NodeOutput(
                     value={"default": ""},
                     metadata={"skipped": True, "reason": "No prompt available"},
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
+                    node_id=node.id
                 )
             
             # Execute LLM call
@@ -179,7 +197,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             return self._build_node_output(
                 result=result,
                 person=person,
-                context=context,
+                node=node,
                 diagram=diagram,
                 model=person.llm_config.model
             )
@@ -190,8 +208,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 return NodeOutput(
                     value={"default": ""},
                     metadata={"error": str(e)},
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
+                    node_id=node.id
                 )
         except Exception as e:
             # Unexpected errors
@@ -199,8 +216,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             return NodeOutput(
                 value={"default": ""}, 
                 metadata={"error": str(e)},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+                node_id=node.id
             )
     
     # _execute_with_props removed - logic integrated into execute method
@@ -248,7 +264,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         return person
     
     def _has_conversation_input(self, inputs: dict[str, Any]) -> bool:
-        for value in inputs.values():
+        # Check for conversation inputs in the same way the prompt builder does
+        for key, value in inputs.items():
+            # Check if key ends with _messages (like the prompt builder)
+            if key.endswith('_messages') and isinstance(value, list):
+                return True
+            # Also check the original structure for backwards compatibility
             if isinstance(value, dict) and "messages" in value:
                 return True
         return False
@@ -264,11 +285,18 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if not all_messages:
             return
         
-        for msg_dict in all_messages:
+        logger.debug(f"Rebuilding conversation with {len(all_messages)} messages")
+        for i, msg_dict in enumerate(all_messages):
+            content = msg_dict.get("content", "")
+            # Skip messages that contain the "[Previous conversation" marker to avoid duplication
+            if "[Previous conversation" in content:
+                logger.debug(f"Skipping message {i} - contains conversation marker")
+                continue
+                
             message = Message(
                 from_person_id=msg_dict.get("from_person_id", person.id),
                 to_person_id=msg_dict.get("to_person_id", person.id),
-                content=msg_dict.get("content", ""),
+                content=content,
                 message_type="person_to_person",
                 timestamp=msg_dict.get("timestamp"),
             )
@@ -288,11 +316,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         logger.debug(f"[CONVERSATION_OUTPUT] Node {node_id} does not need conversation output")
         return False
     
-    def _build_node_output(self, result: Any, person: Person, context: UnifiedExecutionContext, diagram: Any, model: str) -> NodeOutput:
+    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutput:
         output_value = {"default": result.text}
         
         # Add conversation if needed
-        if self._needs_conversation_output(context.current_node_id, diagram):
+        if self._needs_conversation_output(str(node.id), diagram):
             output_value["conversation"] = []
             for msg in person.get_messages():
                 output_value["conversation"].append({
@@ -302,13 +330,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                     "person_label": person.name,
                 })
 
-        # Build metadata - token usage is now handled by UnifiedExecutionContext
+        # Build metadata
         metadata = {"model": model}
         
         return NodeOutput(
             value=output_value, 
             metadata=metadata,
-            node_id=context.current_node_id,
-            executed_nodes=context.executed_nodes
+            node_id=node.id
         )
     

@@ -35,9 +35,19 @@ class TypedInputResolutionService:
             if str(edge.target_node_id) == node_id
         ]
 
+        # For PersonJob nodes on first execution, check if any "first" inputs exist
+        has_first_inputs = False
+        if node_type == NodeType.person_job:
+            exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
+            if exec_count == 1:
+                has_first_inputs = any(
+                    edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
+                    for edge in incoming_edges
+                )
+
         for edge in incoming_edges:
             # Check if we should process this edge
-            should_process = self._should_process_edge(edge, node_type, node_exec_counts)
+            should_process = self._should_process_edge(edge, node_type, node_exec_counts, has_first_inputs)
 
             if not should_process:
                 continue
@@ -110,7 +120,8 @@ class TypedInputResolutionService:
         self,
         edge,
         node_type: NodeType,
-        node_exec_counts: dict[str, int] | None = None
+        node_exec_counts: dict[str, int] | None = None,
+        has_first_inputs: bool = False
     ) -> bool:
         """Check if an edge should be processed based on node type and execution state."""
         import logging
@@ -122,7 +133,7 @@ class TypedInputResolutionService:
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
 
             # On first execution (exec_count == 1 because it's incremented before execution),
-            # only process inputs ending with "_first" or exactly "first"
+            # handle "first" inputs specially
             if exec_count == 1:
                 # Special case: Always process conversation_state inputs from condition nodes
                 # These provide context for judging/decision-making
@@ -130,8 +141,13 @@ class TypedInputResolutionService:
                     if edge.data_transform.get('content_type') == 'conversation_state':
                         return True
                 
-                # Process only _first inputs on first execution
-                return edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
+                # If there are "first" inputs, only process those
+                if has_first_inputs:
+                    return edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
+                # If no "first" inputs exist, fall back to processing default inputs
+                else:
+                    # Process edges without target_input (default) or explicitly "default"
+                    return not edge.target_input or edge.target_input == "default"
             # On subsequent executions, process all non-_first inputs
             else:
                 # Process edges without target_input (regular edges) or non-_first inputs

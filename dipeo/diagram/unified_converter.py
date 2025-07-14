@@ -221,6 +221,38 @@ class UnifiedDiagramConverter(DiagramConverter):
             "persons": persons_dict,
             "metadata": data.get("metadata"),
         }
+        
+        # Second pass: Update content types for arrows from condition nodes
+        # to preserve the content type from their inputs
+        for arrow_id, arrow in arrows_dict.items():
+            if arrow.source:
+                try:
+                    # Parse the source handle to get node ID and handle label
+                    node_id, handle_label, direction = parse_handle_id(arrow.source)
+                    source_node = nodes_dict.get(node_id)
+                    
+                    # If source is from a condition node's condtrue/condfalse output
+                    if (source_node and 
+                        source_node.type == NodeType.condition and 
+                        handle_label.value in ["condtrue", "condfalse"]):
+                        # Find arrows feeding into this condition node
+                        input_content_types = []
+                        for other_arrow in arrows_dict.values():
+                            if other_arrow.target and node_id in other_arrow.target:
+                                # This arrow feeds into the condition node
+                                if other_arrow.content_type:
+                                    input_content_types.append(other_arrow.content_type)
+                        
+                        # If we found input content types and they're all the same, preserve it
+                        if input_content_types and all(ct == input_content_types[0] for ct in input_content_types):
+                            arrow.content_type = input_content_types[0]
+                            logger.debug(
+                                f"Preserving content_type '{input_content_types[0].value}' from input "
+                                f"for arrow from condition node {node_id} output {handle_label.value}"
+                            )
+                except Exception as e:
+                    # If parsing fails, keep the existing content type
+                    logger.debug(f"Failed to update content type for arrow from {arrow.source}: {e}")
 
         # Generate default handles for nodes that don't have any handles
         for node_id, node in nodes_dict.items():
@@ -461,27 +493,13 @@ class UnifiedDiagramConverter(DiagramConverter):
         content_type = arrow_data.get("content_type")
         label = arrow_data.get("label")
 
-        # Automatically set content_type for arrows from condition nodes
-        if content_type is None and source:
-            try:
-                # Parse the source handle to get node ID and handle label
-                node_id, handle_label, direction = parse_handle_id(source)
-                source_node = nodes_dict.get(node_id)
-                
-                # If source is from a condition node's condtrue/condfalse output
-                if (source_node and 
-                    source_node.type == NodeType.condition and 
-                    handle_label.value in ["condtrue", "condfalse"]):
-                    # Automatically set content_type to variable
-                    content_type = ContentType.variable
-                    logger.debug(
-                        f"Auto-setting content_type to 'variable' for arrow from "
-                        f"condition node {node_id} output {handle_label.value}"
-                    )
-            except Exception as e:
-                # If parsing fails, just continue without auto-setting
-                logger.debug(f"Failed to parse handle {source}: {e}")
-                pass
+        # Automatically set content_type for empty arrows
+        if content_type is None:
+            # Default to raw_text for all empty arrows
+            content_type = ContentType.raw_text
+            logger.debug(
+                f"Auto-setting content_type to '{content_type.value}' for arrow from {source} to {target}"
+            )
 
         return DomainArrow(
             id=arrow_id, 

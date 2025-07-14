@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from dipeo.models import DomainDiagram
 
     from ...unified_service_registry import UnifiedServiceRegistry
-    from ..stateful_execution_typed import TypedStatefulExecution
+    from ..simple_execution import SimpleExecution
 
 class ExecuteDiagramUseCase(BaseService):
 
@@ -220,9 +220,9 @@ class ExecuteDiagramUseCase(BaseService):
         typed_diagram: "ExecutableDiagram", 
         options: dict[str, Any],
         execution_id: str
-    ) -> "TypedStatefulExecution":
+    ) -> "SimpleExecution":
         """Create typed execution with single source of truth."""
-        from ..stateful_execution_typed import TypedStatefulExecution
+        from ..simple_execution import SimpleExecution
         
         # Service registry validation
         if not hasattr(self.service_registry, 'get'):
@@ -234,11 +234,22 @@ class ExecuteDiagramUseCase(BaseService):
             # Should have been initialized by _initialize_typed_execution_state
             raise ValueError(f"Execution state not found for {execution_id}")
         
-        # Create typed stateful execution - single source of truth for state management
-        typed_execution = TypedStatefulExecution(
-            diagram=typed_diagram,
+        # Create unified execution context
+        from dipeo.application.execution import UnifiedExecutionContext
+        
+        # Use exec_counts and executed_nodes directly from execution_state
+        context = UnifiedExecutionContext(
             execution_state=execution_state,
-            max_global_iterations=options.get("max_iterations", 100)
+            service_registry=self.service_registry,
+            current_node_id="",
+            executed_nodes=list(execution_state.executed_nodes),  # Make a copy
+            exec_counts=dict(execution_state.exec_counts)  # Make a copy
+        )
+        
+        # Create typed stateful execution - single source of truth for state management
+        typed_execution = SimpleExecution(
+            diagram=typed_diagram,
+            context=context
         )
         
         # Store stateful_execution reference in execution_state for later access
@@ -331,6 +342,8 @@ class ExecuteDiagramUseCase(BaseService):
             variables=options.get("variables", {}),
             is_active=True,
             token_usage=TokenUsage(input=0, output=0),
+            exec_counts={},
+            executed_nodes=[],
         )
         
         # Store initial state

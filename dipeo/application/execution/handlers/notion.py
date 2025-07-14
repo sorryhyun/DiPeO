@@ -11,7 +11,7 @@ from dipeo.domain.notion.services import NotionValidator
 from dipeo.models import NodeOutput, NodeType, NotionNodeData, NotionOperation
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
 
 
 @register_handler
@@ -47,7 +47,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     async def pre_execute(
         self,
         node: NotionNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Pre-execute logic for NotionNode."""
         return {

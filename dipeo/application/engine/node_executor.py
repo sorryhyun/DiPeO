@@ -12,7 +12,7 @@ from dipeo.models import NodeExecutionStatus, NodeID, NodeState, TokenUsage
 
 if TYPE_CHECKING:
     from dipeo.application.execution import UnifiedExecutionContext
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.simple_execution import SimpleExecution
     from dipeo.application.execution.types import TypedNodeHandler
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
     from dipeo.core.ports import ExecutionObserver
@@ -38,7 +38,7 @@ class NodeExecutor:
     async def execute_node(
         self,
         node: ExecutableNode,
-        execution: "TypedStatefulExecution",
+        execution: "SimpleExecution",
         handler: Optional["TypedNodeHandler"] = None,
         execution_id: str = "",
         options: dict[str, Any] | None = None,
@@ -48,6 +48,7 @@ class NodeExecutor:
         # Track start time
         start_time = datetime.utcnow()
         node_id_str = str(node.id)
+        log.debug(f"NodeExecutor: Starting execution of node {node_id_str} (type: {node.type})")
         
         # Notify observers
         for observer in self.observers:
@@ -127,7 +128,7 @@ class NodeExecutor:
     async def _pre_execute_typed(
         self, 
         node: ExecutableNode, 
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Type-specific pre-execution logic."""
         # Get the handler for this node type and call its pre_execute method
@@ -137,58 +138,33 @@ class NodeExecutor:
     def _create_typed_context(
         self,
         node: ExecutableNode,
-        execution: "TypedStatefulExecution",
+        execution: "SimpleExecution",
         pre_execution_data: dict[str, Any],
         options: dict[str, Any]
     ) -> "UnifiedExecutionContext":
-        """Create context with typed node information."""
-        from dipeo.application.execution import UnifiedExecutionContext
+        """Get context from execution and update current node."""
+        # Use the context from execution
+        context = execution.context
         
-        # Create context with typed execution state
-        context = UnifiedExecutionContext(
-            execution_state=execution.state,
-            service_registry=self.service_registry,
-            current_node_id=str(node.id),
-            executed_nodes=execution.executed_nodes,
-            exec_counts={
-                str(node_id): execution.get_node_execution_count(NodeID(node_id))
-                for node_id in execution.state.node_states
-            },
-        )
+        # Update current node
+        context._current_node = node.id
         
         # Add pre-execution data to context
         context.pre_execution_data = pre_execution_data
+        
+        # Register diagram as a service for handlers
+        context._service_registry.register("diagram", execution.diagram)
         
         return context
     
     async def _resolve_typed_inputs(
         self,
         node: ExecutableNode,
-        execution: "TypedStatefulExecution"
+        execution: "SimpleExecution"
     ) -> dict[str, Any]:
         """Resolve inputs using typed node information."""
-        
-        # Create typed input resolution service
-        typed_input_service = TypedInputResolutionService()
-        
-        # Get current state for input resolution
-        node_outputs = execution.state.node_outputs
-        node_exec_counts = {
-            str(node_id): execution.get_node_execution_count(NodeID(node_id))
-            for node_id in execution.state.node_states
-        }
-        
-        # Resolve inputs using the typed ExecutableDiagram
-        inputs = typed_input_service.resolve_inputs_for_node(
-            node_id=str(node.id),
-            node_type=node.type,
-            diagram=execution.diagram,  # Use ExecutableDiagram directly
-            node_outputs=node_outputs,
-            node_exec_counts=node_exec_counts,
-            node_memory_config=self._get_typed_memory_config(node)
-        )
-        
-        return inputs
+        # Use context's resolve_inputs method
+        return execution.context.resolve_inputs(node, execution.diagram)
     
     def _get_typed_memory_config(self, node: ExecutableNode) -> dict[str, Any] | None:
         """Extract memory config from typed node."""
@@ -215,7 +191,7 @@ class NodeExecutor:
     async def _prepare_typed_services(
         self,
         node: ExecutableNode,
-        execution: "TypedStatefulExecution",
+        execution: "SimpleExecution",
         handler: "TypedNodeHandler"
     ) -> dict[str, Any]:
         """Prepare services with typed node information."""
@@ -232,13 +208,13 @@ class NodeExecutor:
     async def _update_typed_state(
         self,
         node: ExecutableNode,
-        execution: "TypedStatefulExecution",
+        execution: "SimpleExecution",
         output: "NodeOutput"
     ) -> None:
         """Update execution state using typed node information."""
         # Type-specific state updates
         if isinstance(node, PersonJobNode):
-            exec_count = execution.get_node_execution_count(node.id)
+            exec_count = execution.context.get_node_execution_count(node.id)
             
             # Check if max iterations reached
             if exec_count >= node.max_iteration:
@@ -246,15 +222,11 @@ class NodeExecutor:
                 if output and output.metadata and output.metadata.get("skipped") and "Max iteration" in output.metadata.get("reason", ""):
                     execution.set_node_state(node.id, NodeExecutionStatus.MAXITER_REACHED)
                 else:
-                    execution.mark_node_complete(node.id)
+                    execution.context.complete_node(node.id, output)
             else:
                 # Not at max iteration yet, mark as complete then reset to pending
-                execution.mark_node_complete(node.id)
-                execution.set_node_state(node.id, NodeExecutionStatus.PENDING)
+                execution.context.complete_node(node.id, output)
+                execution.context.reset_node(node.id)
         else:
             # For non-PersonJobNode types, just mark as complete
-            execution.mark_node_complete(node.id)
-        
-        # Store output
-        if output:
-            execution.set_node_output(node.id, output)
+            execution.context.complete_node(node.id, output)

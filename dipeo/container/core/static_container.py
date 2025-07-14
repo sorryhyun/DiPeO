@@ -39,8 +39,8 @@ def _create_validation_rules():
 
 def _create_execution_order_calculator():
     """Create the execution order calculator."""
-    from dipeo.application.resolution import ExecutionOrderCalculator
-    return ExecutionOrderCalculator()
+    from dipeo.application.resolution import SimpleOrderCalculator
+    return SimpleOrderCalculator()
 
 
 def _create_arrow_transformer():
