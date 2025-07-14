@@ -1,9 +1,9 @@
 """Value objects for the domain layer."""
 
-from typing import Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -35,9 +35,9 @@ class ExecutionResult:
     """Immutable result of an execution."""
     success: bool
     value: Any
-    error: Optional[str] = None
+    error: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
-    duration_ms: Optional[float] = None
+    duration_ms: float | None = None
     
     @property
     def failed(self) -> bool:
@@ -100,7 +100,7 @@ class MemoryEntry:
     value: Any
     scope: MemoryScope
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    ttl_seconds: Optional[int] = None
+    ttl_seconds: int | None = None
     
     @property
     def is_expired(self) -> bool:
@@ -118,7 +118,7 @@ class APIRequest:
     url: str
     method: str
     headers: dict[str, str] = field(default_factory=dict)
-    body: Optional[Any] = None
+    body: Any | None = None
     timeout_seconds: int = 30
     retry_count: int = 0
     
@@ -141,7 +141,7 @@ class ConversationTurn:
     """Immutable conversation turn."""
     role: str
     content: str
-    name: Optional[str] = None
+    name: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.utcnow)
     

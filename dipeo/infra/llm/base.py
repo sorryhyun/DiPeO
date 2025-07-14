@@ -3,8 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo.models import ChatResult, LLMRequestOptions
-from dipeo.models import ToolConfig, TokenUsage
+from dipeo.models import ChatResult, LLMRequestOptions, TokenUsage
 
 
 class BaseLLMAdapter(ABC):
@@ -27,7 +26,7 @@ class BaseLLMAdapter(ABC):
         if messages is None:
             messages = []
         
-        options = kwargs.get('options', None)
+        options = kwargs.get('options')
         if isinstance(options, LLMRequestOptions):
             if options.tools and self.supports_tools():
                 kwargs['tools'] = options.tools

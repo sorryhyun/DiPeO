@@ -1,6 +1,6 @@
 """Execution observer protocol for monitoring diagram execution events."""
 
-from typing import Optional, Protocol
+from typing import Protocol
 
 from dipeo.models import NodeState
 
@@ -9,7 +9,7 @@ class ExecutionObserver(Protocol):
     """Observers for execution events."""
 
     async def on_execution_start(
-        self, execution_id: str, diagram_id: Optional[str]
+        self, execution_id: str, diagram_id: str | None
     ) -> None: ...
     
     async def on_node_start(self, execution_id: str, node_id: str) -> None: ...

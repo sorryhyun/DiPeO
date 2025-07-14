@@ -3,7 +3,7 @@
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from dipeo.core import ValidationError
 from dipeo.domain.file.value_objects import FileExtension, FileSize

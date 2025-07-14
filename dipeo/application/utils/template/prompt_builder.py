@@ -1,23 +1,23 @@
 # Unified prompt building service
 
-from typing import Any, Dict, Optional
 import warnings
+from typing import Any
 
 from dipeo.utils.template import TemplateProcessor
 
 
 class PromptBuilder:
     
-    def __init__(self, template_processor: Optional[TemplateProcessor] = None):
+    def __init__(self, template_processor: TemplateProcessor | None = None):
         self._processor = template_processor or TemplateProcessor()
     
     def build(
         self,
         prompt: str,
-        first_only_prompt: Optional[str] = None,
+        first_only_prompt: str | None = None,
         execution_count: int = 0,
-        template_values: Optional[Dict[str, Any]] = None,
-        raw_inputs: Optional[Dict[str, Any]] = None,
+        template_values: dict[str, Any] | None = None,
+        raw_inputs: dict[str, Any] | None = None,
         auto_prepend_conversation: bool = True,
     ) -> str:
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
@@ -43,7 +43,7 @@ class PromptBuilder:
         
         return self._processor.process_simple(selected_prompt, template_values)
     
-    def prepare_template_values(self, inputs: Dict[str, Any], conversation_manager=None, person_id=None) -> Dict[str, Any]:
+    def prepare_template_values(self, inputs: dict[str, Any], conversation_manager=None, person_id=None) -> dict[str, Any]:
 
         # Use inputs directly - no unwrapping needed
         unwrapped_inputs = inputs
@@ -117,7 +117,7 @@ class PromptBuilder:
     
     def should_use_first_only_prompt(
         self,
-        first_only_prompt: Optional[str],
+        first_only_prompt: str | None,
         execution_count: int
     ) -> bool:
         # execution_count is 1 on first run because it's incremented before execution
@@ -126,7 +126,7 @@ class PromptBuilder:
     def _select_prompt(
         self,
         default_prompt: str,
-        first_only_prompt: Optional[str],
+        first_only_prompt: str | None,
         execution_count: int,
     ) -> str:
         if self.should_use_first_only_prompt(first_only_prompt, execution_count):
@@ -136,8 +136,8 @@ class PromptBuilder:
     def build_with_context(
         self,
         prompt: str,
-        context: Dict[str, Any],
-        first_only_prompt: Optional[str] = None,
+        context: dict[str, Any],
+        first_only_prompt: str | None = None,
         execution_count: int = 0,
     ) -> str:
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
@@ -155,7 +155,7 @@ class PromptBuilder:
         
         return result.content
     
-    def _prepend_conversation_context(self, prompt: str, template_values: Dict[str, Any]) -> str:
+    def _prepend_conversation_context(self, prompt: str, template_values: dict[str, Any]) -> str:
         # Check if conversation data is available
         if 'global_conversation' not in template_values:
             return prompt

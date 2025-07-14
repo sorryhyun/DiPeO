@@ -1,9 +1,9 @@
 """Dynamic objects that maintain state during diagram execution."""
 
 from .conversation import Conversation, ConversationContext
-from .person import Person
-from .execution_context import ExecutionContext
 from .conversation_manager import ConversationManager
+from .execution_context import ExecutionContext
+from .person import Person
 from .person_manager import PersonManager
 
 __all__ = [

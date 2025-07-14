@@ -5,18 +5,18 @@ This version uses the strongly-typed node classes for better type safety and
 more efficient execution logic.
 """
 
-from typing import Dict, Any, Optional, List, Set, cast
 from datetime import datetime
+from typing import Any
 
-from dipeo.models import (
-    NodeID, ExecutionState, NodeState, NodeOutput, NodeExecutionStatus,
-    ExecutionStatus, TokenUsage, ExecutionID, DiagramID, NodeType
-)
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.static.generated_nodes import (
-    PersonJobNode, ConditionNode, StartNode, EndpointNode,
-    CodeJobNode, ApiJobNode, DBNode, HookNode
+    CodeJobNode,
+    ConditionNode,
+    EndpointNode,
+    PersonJobNode,
+    StartNode,
 )
+from dipeo.models import ExecutionState, NodeExecutionStatus, NodeID, NodeOutput, NodeState
 
 
 class TypedStatefulExecution:
@@ -37,15 +37,15 @@ class TypedStatefulExecution:
         self.max_global_iterations: int = max_global_iterations
         
         # Cache for ready nodes
-        self._ready_nodes_cache: Optional[List[ExecutableNode]] = None
+        self._ready_nodes_cache: list[ExecutableNode] | None = None
         
         # Track current node and execution history
-        self._current_node: Optional[NodeID] = None
-        self._executed_nodes: List[str] = []
-        self._exec_counts: Dict[str, int] = {}
+        self._current_node: NodeID | None = None
+        self._executed_nodes: list[str] = []
+        self._exec_counts: dict[str, int] = {}
         
         # Build typed node index for fast lookup
-        self._typed_nodes: Dict[NodeID, ExecutableNode] = {
+        self._typed_nodes: dict[NodeID, ExecutableNode] = {
             node.id: node for node in diagram.nodes
         }
         
@@ -61,16 +61,16 @@ class TypedStatefulExecution:
                     node_id=node.id
                 )
                 # Initialize extra fields
-                setattr(node_state, "exec_count", 0)
-                setattr(node_state, "max_iterations", 1)
-                setattr(node_state, "node_type", str(node.type))
+                node_state.exec_count = 0
+                node_state.max_iterations = 1
+                node_state.node_type = str(node.type)
                 self.state.node_states[str(node.id)] = node_state
     
-    def get_typed_node(self, node_id: NodeID) -> Optional[ExecutableNode]:
+    def get_typed_node(self, node_id: NodeID) -> ExecutableNode | None:
         """Get a strongly-typed node by ID."""
         return self._typed_nodes.get(node_id)
     
-    def get_ready_nodes(self) -> List[ExecutableNode]:
+    def get_ready_nodes(self) -> list[ExecutableNode]:
         """Get all nodes that are ready to execute using type-aware logic."""
         if self._ready_nodes_cache is not None:
             return self._ready_nodes_cache
@@ -171,7 +171,7 @@ class TypedStatefulExecution:
         # Use the typed property directly
         return exec_count < node.max_iteration
     
-    def get_person_job_prompt(self, node_id: NodeID) -> Optional[str]:
+    def get_person_job_prompt(self, node_id: NodeID) -> str | None:
         """Get the appropriate prompt for a PersonJobNode based on execution count."""
         node = self.get_typed_node(node_id)
         if not isinstance(node, PersonJobNode):
@@ -185,7 +185,7 @@ class TypedStatefulExecution:
         else:
             return node.default_prompt
     
-    def get_endpoint_save_config(self, node_id: NodeID) -> Optional[Dict[str, Any]]:
+    def get_endpoint_save_config(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get save configuration for an EndpointNode."""
         node = self.get_typed_node(node_id)
         if not isinstance(node, EndpointNode):
@@ -199,7 +199,7 @@ class TypedStatefulExecution:
             }
         return None
     
-    def get_code_job_config(self, node_id: NodeID) -> Optional[Dict[str, Any]]:
+    def get_code_job_config(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get execution configuration for a CodeJobNode."""
         node = self.get_typed_node(node_id)
         if not isinstance(node, CodeJobNode):
@@ -250,8 +250,8 @@ class TypedStatefulExecution:
         if isinstance(node, StartNode):
             return True
         
-        visited: Set[NodeID] = set()
-        queue: List[NodeID] = []
+        visited: set[NodeID] = set()
+        queue: list[NodeID] = []
         
         # Start from completed or running nodes
         for check_node in self.diagram.nodes:
@@ -298,7 +298,7 @@ class TypedStatefulExecution:
             node_id=node_id
         ))
     
-    def set_node_state(self, node_id: NodeID, status: NodeExecutionStatus, error: Optional[str] = None) -> None:
+    def set_node_state(self, node_id: NodeID, status: NodeExecutionStatus, error: str | None = None) -> None:
         """Set the execution state of a node."""
         node_state = self.state.node_states.get(str(node_id), NodeState(
             status=status,
@@ -353,7 +353,7 @@ class TypedStatefulExecution:
         """Set a variable in the global context."""
         self.state.variables[key] = value
     
-    def update_variables(self, updates: Dict[str, Any]) -> None:
+    def update_variables(self, updates: dict[str, Any]) -> None:
         """Update multiple variables in the global context."""
         self.state.variables.update(updates)
     
@@ -374,7 +374,7 @@ class TypedStatefulExecution:
         node_state = self.get_node_state(node_id)
         if node_state:
             # Set exec_count on the node state object
-            setattr(node_state, "exec_count", self._exec_counts[node_id_str])
+            node_state.exec_count = self._exec_counts[node_id_str]
     
     def mark_node_complete(self, node_id: NodeID) -> None:
         """Mark a node as completed."""
@@ -389,7 +389,7 @@ class TypedStatefulExecution:
         """Mark a node as failed with error."""
         self.set_node_state(node_id, NodeExecutionStatus.FAILED, error)
     
-    def get_completed_nodes(self) -> List[NodeID]:
+    def get_completed_nodes(self) -> list[NodeID]:
         """Get list of all completed node IDs."""
         completed = []
         for node_id, state in self.state.node_states.items():
@@ -397,7 +397,7 @@ class TypedStatefulExecution:
                 completed.append(NodeID(node_id))
         return completed
     
-    def get_progress(self) -> Dict[str, Any]:
+    def get_progress(self) -> dict[str, Any]:
         """Get execution progress statistics."""
         total_nodes = len(self.diagram.nodes)
         completed = sum(
@@ -439,7 +439,7 @@ class TypedStatefulExecution:
         return str(self._current_node) if self._current_node else ""
     
     @property
-    def executed_nodes(self) -> List[str]:
+    def executed_nodes(self) -> list[str]:
         """Get the list of node IDs that have been executed."""
         return self._executed_nodes
     

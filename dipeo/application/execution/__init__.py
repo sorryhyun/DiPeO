@@ -5,19 +5,18 @@ from .handler_factory import (
     get_global_registry,
     register_handler,
 )
-from .types import TypedNodeHandler
-from .use_cases import ExecuteDiagramUseCase
-from .context import UnifiedExecutionContext
 from .types import (
     ExecutionContext,
     ExecutionOptions,
+    TypedNodeHandler,
 )
+from .unified_execution_context import UnifiedExecutionContext
+from .use_cases import ExecuteDiagramUseCase
 
 __all__ = [
+    "UnifiedExecutionContext",
     # Use cases
     "ExecuteDiagramUseCase",
-    # Context
-    "UnifiedExecutionContext",
     # Types
     "ExecutionContext",
     "ExecutionOptions",

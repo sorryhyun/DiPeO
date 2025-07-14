@@ -1,6 +1,6 @@
 """Shared utility for conversation detection logic."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 def is_conversation(value: Any) -> bool:
@@ -22,7 +22,7 @@ def is_conversation(value: Any) -> bool:
                 "content" in item for item in value))
 
 
-def has_nested_conversation(inputs: Dict[str, Any]) -> bool:
+def has_nested_conversation(inputs: dict[str, Any]) -> bool:
     """Check if inputs contain a nested conversation in default key.
     
     Args:
@@ -36,7 +36,7 @@ def has_nested_conversation(inputs: Dict[str, Any]) -> bool:
             is_conversation(inputs.get("default")))
 
 
-def contains_conversation(inputs: Dict[str, Any]) -> bool:
+def contains_conversation(inputs: dict[str, Any]) -> bool:
     """Check if any value in inputs is a conversation.
     
     Args:

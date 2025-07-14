@@ -1,6 +1,6 @@
 # Typed input resolution for ExecutableDiagram
 
-from typing import Dict, Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from dipeo.models import NodeOutput, NodeType
 
@@ -19,10 +19,10 @@ class TypedInputResolutionService:
         node_id: str,
         node_type: NodeType,
         diagram: "ExecutableDiagram",
-        node_outputs: Dict[str, Any],
-        node_exec_counts: Optional[Dict[str, int]] = None,
-        node_memory_config: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        node_outputs: dict[str, Any],
+        node_exec_counts: dict[str, int] | None = None,
+        node_memory_config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Resolve inputs for a node using ExecutableDiagram edges."""
         import logging
         log = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ class TypedInputResolutionService:
         self,
         edge,
         node_type: NodeType,
-        node_exec_counts: Optional[Dict[str, int]] = None
+        node_exec_counts: dict[str, int] | None = None
     ) -> bool:
         """Check if an edge should be processed based on node type and execution state."""
         import logging

@@ -7,11 +7,11 @@ from datetime import UTC, datetime
 
 import yaml
 from dipeo.diagram import converter_registry
-from dipeo.models import DomainDiagram
-from dipeo.models import DiagramMetadata
 from dipeo.infra.persistence.diagram import DiagramFileRepository
+from dipeo.models import DiagramMetadata, DomainDiagram
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
+
 from ..types import (
     DiagramFilterInput,
     DiagramID,

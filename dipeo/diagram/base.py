@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class DiagramConverter(ABC):
     @abstractmethod
-    def serialize(self, diagram: Dict[str, Any]) -> str:
+    def serialize(self, diagram: dict[str, Any]) -> str:
         pass
 
     @abstractmethod
-    def deserialize(self, content: str) -> Dict[str, Any]:
+    def deserialize(self, content: str) -> dict[str, Any]:
         pass
 
     def validate(self, content: str) -> tuple[bool, list[str]]:
@@ -46,7 +46,7 @@ class FormatStrategy(ABC):
         pass
 
     @abstractmethod
-    def build_export_data(self, diagram: Dict[str, Any]) -> dict[str, Any]:
+    def build_export_data(self, diagram: dict[str, Any]) -> dict[str, Any]:
         pass
 
     @abstractmethod

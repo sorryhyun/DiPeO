@@ -8,21 +8,18 @@ from pathlib import Path
 from typing import Any
 
 import strawberry
+from dipeo.application.services.apikey_service import APIKeyService
 from dipeo.diagram import (
-    BackendDiagram,
-    backend_to_graphql,
     converter_registry,
+    dict_to_domain_diagram,
 )
 from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
 )
-from dipeo.application.services.apikey_service import APIKeyService
 from strawberry.file_uploads import Upload
 
-from dipeo_server.shared.constants import DIAGRAM_VERSION
-
-from dipeo_server.shared.constants import BASE_DIR
+from dipeo_server.shared.constants import BASE_DIR, DIAGRAM_VERSION
 
 # Get FILES_DIR and UPLOAD_DIR from BASE_DIR
 FILES_DIR = Path(BASE_DIR) / "files"
@@ -215,8 +212,7 @@ class UploadMutations:
 
             # Create domain diagram from content
             try:
-                backend_diagram = BackendDiagram(**diagram_content)
-                domain_diagram = backend_to_graphql(backend_diagram)
+                domain_diagram = dict_to_domain_diagram(diagram_content)
             except Exception as e:
                 return DiagramValidationResult(
                     is_valid=False, errors=[f"Invalid diagram structure: {e!s}"]
@@ -288,8 +284,7 @@ class UploadMutations:
                             item["id"]: item for item in converted_content[field]
                         }
 
-                backend_diagram = BackendDiagram(**converted_content)
-                domain_diagram = backend_to_graphql(backend_diagram)
+                domain_diagram = dict_to_domain_diagram(converted_content)
             except Exception as e:
                 return DiagramConvertResult(
                     success=False, error=f"Invalid diagram structure: {e!s}"

@@ -1,10 +1,12 @@
 """Protocol for managing conversation flow and memory during execution."""
 
-from typing import Protocol, List, Dict, Any, Optional, runtime_checkable
 from abc import abstractmethod
-from dipeo.models import Message, ConversationMetadata, ForgettingMode
+from typing import Any, Protocol, runtime_checkable
+
+from dipeo.models import Message
+
 from .conversation import Conversation
-from pathlib import Path
+
 
 @runtime_checkable
 class ConversationManager(Protocol):
@@ -28,7 +30,7 @@ class ConversationManager(Protocol):
         self,
         message: Message,
         execution_id: str,
-        node_id: Optional[str] = None
+        node_id: str | None = None
     ) -> None:
         """Add a message to relevant conversations based on from/to fields.
         
@@ -44,7 +46,7 @@ class ConversationManager(Protocol):
         ...
     
     @abstractmethod
-    def get_conversation_history(self, person_id: str) -> List[Dict[str, Any]]:
+    def get_conversation_history(self, person_id: str) -> list[dict[str, Any]]:
         """Get conversation history as a list of message dictionaries.
         
         Args:
@@ -54,27 +56,6 @@ class ConversationManager(Protocol):
             List of message dictionaries with role and content
         """
         ...
-    
-    @abstractmethod
-    def apply_forgetting(
-        self,
-        person_id: str,
-        mode: ForgettingMode,
-        execution_id: Optional[str] = None,
-        execution_count: int = 0
-    ) -> int:
-        """Apply a forgetting strategy to a person's conversation.
-        
-        Args:
-            person_id: The ID of the person
-            mode: The forgetting mode to apply
-            execution_id: Optional execution ID to scope the forgetting
-            
-        Returns:
-            Number of messages forgotten
-        """
-        ...
-    
     
     @abstractmethod
     def clear_all_conversations(self) -> None:

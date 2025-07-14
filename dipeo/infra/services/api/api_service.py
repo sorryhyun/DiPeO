@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 import aiohttp
+
 from dipeo.core import ServiceError
 from dipeo.core.ports import FileServicePort
 from dipeo.domain.api.services import APIBusinessLogic
@@ -96,7 +97,7 @@ class APIService:
                 response_headers = dict(response.headers)
                 return response.status, response_data, response_headers
                 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise ServiceError(f"Request timed out after {timeout}s")
         except aiohttp.ClientError as e:
             raise ServiceError(f"HTTP client error: {e}")

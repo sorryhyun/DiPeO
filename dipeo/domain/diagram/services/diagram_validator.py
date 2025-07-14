@@ -1,16 +1,22 @@
 """Unified diagram validation service."""
 
-from typing import Any, Optional, Set
+from typing import Any
 
 from dipeo.core.base.exceptions import ValidationError
-from dipeo.models import DomainDiagram, DomainNode, NodeType, parse_handle_id, extract_node_id_from_handle
-from dipeo.domain.shared.services import ValidationResult, ValidationWarning, BaseValidator
+from dipeo.domain.shared.services import BaseValidator, ValidationResult, ValidationWarning
+from dipeo.models import (
+    DomainDiagram,
+    DomainNode,
+    NodeType,
+    extract_node_id_from_handle,
+    parse_handle_id,
+)
 
 
 class DiagramValidator(BaseValidator):
     """Unified diagram validator combining structural and business logic validation."""
     
-    def __init__(self, api_key_service: Optional[Any] = None):
+    def __init__(self, api_key_service: Any | None = None):
         self.api_key_service = api_key_service
     
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:
@@ -24,7 +30,7 @@ class DiagramValidator(BaseValidator):
                     diagram = DomainDiagram.model_validate(target)
                     self._validate_diagram(diagram, result)
                 except Exception as e:
-                    result.add_error(ValidationError(f"Invalid diagram format: {str(e)}"))
+                    result.add_error(ValidationError(f"Invalid diagram format: {e!s}"))
         elif isinstance(target, DomainDiagram):
             self._validate_diagram(target, result)
         else:
@@ -199,7 +205,7 @@ class DiagramValidator(BaseValidator):
             if "condfalse" not in handle_values:
                 result.add_warning(ValidationWarning(f"Condition node '{node.id}' missing false branch"))
     
-    def _find_unreachable_nodes(self, diagram: DomainDiagram) -> Set[str]:
+    def _find_unreachable_nodes(self, diagram: DomainDiagram) -> set[str]:
         """Find nodes that cannot be reached from any start node."""
         # Build adjacency list
         graph = {}
@@ -232,7 +238,7 @@ class DiagramValidator(BaseValidator):
 
 
 # Convenience methods for backward compatibility
-def validate_or_raise(diagram: DomainDiagram | dict[str, Any], api_key_service: Optional[Any] = None) -> None:
+def validate_or_raise(diagram: DomainDiagram | dict[str, Any], api_key_service: Any | None = None) -> None:
     """Validate diagram and raise ValidationError if invalid."""
     validator = DiagramValidator(api_key_service)
     result = validator.validate(diagram)
@@ -241,7 +247,7 @@ def validate_or_raise(diagram: DomainDiagram | dict[str, Any], api_key_service: 
         raise ValidationError("; ".join(errors))
 
 
-def is_valid(diagram: DomainDiagram | dict[str, Any], api_key_service: Optional[Any] = None) -> bool:
+def is_valid(diagram: DomainDiagram | dict[str, Any], api_key_service: Any | None = None) -> bool:
     """Check if diagram is valid."""
     validator = DiagramValidator(api_key_service)
     result = validator.validate(diagram)

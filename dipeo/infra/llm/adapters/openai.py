@@ -1,12 +1,10 @@
 # openai_adapter.py
 
-import base64
 import logging
-from typing import Any
 
-from dipeo.models import ChatResult
-from dipeo.models import ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
 from openai import OpenAI
+
+from dipeo.models import ChatResult, ImageGenerationResult, ToolOutput, ToolType, WebSearchResult
 
 from ..base import BaseLLMAdapter
 
@@ -90,7 +88,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
             
             response = self.client.responses.create(**create_params)
         except Exception as e:
-            logger.error(f"Error calling OpenAI responses API: {type(e).__name__}: {str(e)}")
+            logger.error(f"Error calling OpenAI responses API: {type(e).__name__}: {e!s}")
             return ChatResult(text='', raw_response=None)
         
         # Extract text output

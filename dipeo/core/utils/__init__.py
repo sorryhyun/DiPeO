@@ -1,6 +1,15 @@
 """Utility functions for DiPeO Core."""
 
 # Export error handling utilities
+# Export conversation detection utilities
+from .conversation_detection import (
+    contains_conversation,
+    has_nested_conversation,
+    is_conversation,
+)
+
+# Export dynamic registry utilities
+from .dynamic_registry import DynamicRegistry, TypedDynamicRegistry
 from .error_handling import (
     ErrorResponse,
     format_error_response,
@@ -9,16 +18,6 @@ from .error_handling import (
     handle_file_operation,
     retry_with_backoff,
     safe_parse,
-)
-
-# Export dynamic registry utilities
-from .dynamic_registry import DynamicRegistry, TypedDynamicRegistry
-
-# Export conversation detection utilities
-from .conversation_detection import (
-    is_conversation,
-    has_nested_conversation,
-    contains_conversation,
 )
 
 __all__ = [

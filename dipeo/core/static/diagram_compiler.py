@@ -1,7 +1,9 @@
 """Protocol for compiling between different diagram representations."""
 
-from typing import Protocol, Dict, Any, List
+from typing import Protocol
+
 from dipeo.models import DomainDiagram
+
 from .executable_diagram import ExecutableDiagram
 
 

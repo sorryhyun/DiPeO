@@ -27,6 +27,7 @@ import {
 export const HandleDirectionSchema = z.enum(['input', 'output']);
 export const HandleLabelSchema = z.enum(['default', 'first', 'condtrue', 'condfalse']);
 export const DataTypeSchema = z.enum(['any', 'string', 'number', 'boolean', 'object', 'array']);
+export const MemoryViewSchema = z.enum(['all_involved', 'sent_by_me', 'sent_to_me', 'system_and_me', 'conversation_pairs']);
 export const DiagramFormatSchema = z.enum(['native', 'light', 'readable']);
 
 // Node data schemas
@@ -44,6 +45,7 @@ export const NODE_DATA_SCHEMAS = {
     default_prompt: z.string().optional(),
     max_iteration: z.number(),
     memory_config: z.any().optional().nullable(),
+    memory_settings: z.any().optional().nullable(),
     tools: z.array(z.any()).optional().nullable()
   }),
   'condition': z.object({

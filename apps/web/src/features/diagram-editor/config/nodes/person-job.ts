@@ -1,4 +1,4 @@
-import { HandleLabel } from '@dipeo/domain-models';
+import { HandleLabel } from '@/core/types';
 import type { PersonJobNodeData } from '@/core/types';
 import { createNodeConfig } from './createNodeConfig';
 

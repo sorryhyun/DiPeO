@@ -1,7 +1,7 @@
 """Shared type definitions used across the DiPeO system."""
 
 from dataclasses import dataclass
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 E = TypeVar("E")
@@ -11,8 +11,8 @@ E = TypeVar("E")
 class Result(Generic[T, E]):
     """A result type that can contain either a success value or an error."""
 
-    value: Optional[T] = None
-    error: Optional[E] = None
+    value: T | None = None
+    error: E | None = None
 
     @property
     def is_ok(self) -> bool:
@@ -49,7 +49,7 @@ class Error:
 
     code: str
     message: str
-    details: Optional[dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
     def __str__(self) -> str:
         """String representation of the error."""
@@ -62,9 +62,9 @@ JsonList = list[Any]
 JsonValue = Any
 
 __all__ = [
-    "Result",
     "Error",
     "JsonDict",
     "JsonList",
     "JsonValue",
+    "Result",
 ]

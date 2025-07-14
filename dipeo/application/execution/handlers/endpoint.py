@@ -1,12 +1,13 @@
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from dipeo.application import register_handler
-from dipeo.application.execution.types import TypedNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.models import EndpointNodeData, NodeOutput, NodeType
-from dipeo.core.static.generated_nodes import EndpointNode
 from pydantic import BaseModel
+
+from dipeo.application.execution import UnifiedExecutionContext
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.core.static.generated_nodes import EndpointNode
+from dipeo.models import EndpointNodeData, NodeOutput, NodeType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution

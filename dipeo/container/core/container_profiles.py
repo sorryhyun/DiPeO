@@ -1,7 +1,7 @@
 """Container profile definitions for different usage contexts."""
 
 from dataclasses import dataclass
-from typing import Set, Dict, Any
+from typing import Any
 
 
 @dataclass
@@ -25,7 +25,7 @@ class ContainerProfile:
     lazy_load_integrations: bool = False
     
     # Additional config
-    config_overrides: Dict[str, Any] = None
+    config_overrides: dict[str, Any] = None
     
     def __post_init__(self):
         if self.config_overrides is None:
@@ -104,6 +104,6 @@ def get_profile(name: str) -> ContainerProfile:
     return PROFILES[name]
 
 
-def list_profiles() -> Dict[str, str]:
+def list_profiles() -> dict[str, str]:
     """List available profiles with descriptions."""
     return {name: profile.description for name, profile in PROFILES.items()}

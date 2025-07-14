@@ -3,10 +3,9 @@
 import hashlib
 import json
 import logging
-import shutil
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from dipeo.core import (
     BaseService,
@@ -14,11 +13,12 @@ from dipeo.core import (
     handle_file_operation,
 )
 from dipeo.core.ports.file_service import FileServicePort
-from dipeo.domain.file.services import BackupService, FileValidator as DomainFileValidator
+from dipeo.domain.file.services import BackupService
+from dipeo.domain.file.services import FileValidator as DomainFileValidator
 
-from .handlers.registry import FormatHandlerRegistry
 from .async_adapter import AsyncFileAdapter
 from .file_info import FileInfo
+from .handlers.registry import FormatHandlerRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +27,11 @@ class ModularFileService(BaseService, FileServicePort):
     
     def __init__(
         self,
-        base_dir: Optional[Union[str, Path]] = None,
-        format_registry: Optional[FormatHandlerRegistry] = None,
-        async_adapter: Optional[AsyncFileAdapter] = None,
-        backup_service: Optional[BackupService] = None,
-        validator: Optional[DomainFileValidator] = None,
+        base_dir: str | Path | None = None,
+        format_registry: FormatHandlerRegistry | None = None,
+        async_adapter: AsyncFileAdapter | None = None,
+        backup_service: BackupService | None = None,
+        validator: DomainFileValidator | None = None,
     ):
         super().__init__()
         
@@ -54,9 +54,9 @@ class ModularFileService(BaseService, FileServicePort):
     def read(
         self,
         file_id: str,
-        person_id: Optional[str] = None,
-        directory: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        person_id: str | None = None,
+        directory: str | None = None,
+    ) -> dict[str, Any]:
         """Read a file synchronously.
         
         Args:
@@ -100,10 +100,10 @@ class ModularFileService(BaseService, FileServicePort):
     async def write(
         self,
         file_id: str,
-        person_id: Optional[str] = None,
-        directory: Optional[str] = None,
-        content: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        person_id: str | None = None,
+        directory: str | None = None,
+        content: str | None = None,
+    ) -> dict[str, Any]:
         """Write content to a file asynchronously.
         
         Args:
@@ -136,8 +136,8 @@ class ModularFileService(BaseService, FileServicePort):
         }
     
     async def save_file(
-        self, content: bytes, filename: str, target_path: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, content: bytes, filename: str, target_path: str | None = None
+    ) -> dict[str, Any]:
         """Save binary content to a file.
         
         Args:
@@ -184,7 +184,7 @@ class ModularFileService(BaseService, FileServicePort):
     async def read_with_validation(
         self,
         path: str,
-        allowed_extensions: Optional[List[str]] = None,
+        allowed_extensions: list[str] | None = None,
         max_size_mb: float = 10.0,
         encoding: str = "utf-8",
     ) -> str:
@@ -284,7 +284,7 @@ class ModularFileService(BaseService, FileServicePort):
             return file_path.stat().st_size
         raise FileOperationError(f"File not found: {path}")
     
-    async def list_files(self, directory: Optional[str] = None) -> List[FileInfo]:
+    async def list_files(self, directory: str | None = None) -> list[FileInfo]:
         """List files with detailed information.
         
         Args:
@@ -471,7 +471,7 @@ class ModularFileService(BaseService, FileServicePort):
         self,
         file_path: str,
         encoding: str = "utf-8",
-    ) -> Dict[str, Any] | List[Any]:
+    ) -> dict[str, Any] | list[Any]:
         """Read and parse JSON file.
         
         Args:
@@ -503,7 +503,7 @@ class ModularFileService(BaseService, FileServicePort):
     async def write_json(
         self,
         file_path: str,
-        data: Dict[str, Any] | List[Any],
+        data: dict[str, Any] | list[Any],
         indent: int = 2,
         sort_keys: bool = True,
         encoding: str = "utf-8",
@@ -543,7 +543,7 @@ class ModularFileService(BaseService, FileServicePort):
     async def get_file_info(
         self,
         file_path: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get detailed file metadata.
         
         Args:
@@ -590,8 +590,8 @@ class ModularFileService(BaseService, FileServicePort):
     def _resolve_path(
         self,
         file_id: str,
-        person_id: Optional[str] = None,
-        directory: Optional[str] = None,
+        person_id: str | None = None,
+        directory: str | None = None,
     ) -> Path:
         """Resolve the full file path.
         
@@ -623,7 +623,7 @@ class ModularFileService(BaseService, FileServicePort):
             path = Path(path)
         return path / file_id
     
-    async def _create_backup_if_exists(self, file_path: Path) -> Optional[Path]:
+    async def _create_backup_if_exists(self, file_path: Path) -> Path | None:
         """Create backup of existing file.
         
         Args:

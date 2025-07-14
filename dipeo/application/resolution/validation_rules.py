@@ -2,15 +2,15 @@
 
 # Re-export from domain for convenience
 from dipeo.domain.diagram.services import (
-    ValidationRules,
+    NodeValidator,
     ValidationIssue,
+    ValidationRules,
     ValidationSeverity,
-    NodeValidator
 )
 
 __all__ = [
-    "ValidationRules",
+    "NodeValidator",
     "ValidationIssue",
-    "ValidationSeverity",
-    "NodeValidator"
+    "ValidationRules",
+    "ValidationSeverity"
 ]

@@ -1,21 +1,20 @@
 # Execution order calculation using topological sort.
 
-from typing import List, Dict, Set, Tuple, Optional
 from collections import deque
 from dataclasses import dataclass
 
-from dipeo.models import NodeID, NodeType, DomainNode
 from dipeo.core.static import ExecutableEdge
+from dipeo.models import DomainNode, NodeID, NodeType
 
 
 @dataclass
 class ExecutionGroup:
     level: int
-    nodes: List[NodeID]
+    nodes: list[NodeID]
 
 
 class CycleDetectedError(Exception):
-    def __init__(self, cycle_nodes: Set[NodeID]):
+    def __init__(self, cycle_nodes: set[NodeID]):
         self.cycle_nodes = cycle_nodes
         super().__init__(f"Cycle detected involving nodes: {cycle_nodes}")
 
@@ -23,14 +22,14 @@ class CycleDetectedError(Exception):
 class ExecutionOrderCalculator:
     
     def __init__(self):
-        self._errors: List[str] = []
-        self._warnings: List[str] = []
+        self._errors: list[str] = []
+        self._warnings: list[str] = []
     
     def calculate_order(
         self,
-        nodes: List[DomainNode],
-        edges: List[ExecutableEdge]
-    ) -> Tuple[List[NodeID], List[ExecutionGroup], List[str]]:
+        nodes: list[DomainNode],
+        edges: list[ExecutableEdge]
+    ) -> tuple[list[NodeID], list[ExecutionGroup], list[str]]:
         self._errors = []
         self._warnings = []
         
@@ -42,7 +41,7 @@ class ExecutionOrderCalculator:
             self._detect_cycles(graph, {node.id for node in nodes})
         except CycleDetectedError as e:
             # For iterative diagrams, cycles are expected - treat as warning
-            self._warnings.append(f"{str(e)} - Using best-effort topological ordering")
+            self._warnings.append(f"{e!s} - Using best-effort topological ordering")
             # Continue with best-effort ordering instead of failing
         
         # Perform topological sort with level tracking
@@ -56,16 +55,16 @@ class ExecutionOrderCalculator:
         
         return order, groups, self._errors
     
-    def get_warnings(self) -> List[str]:
+    def get_warnings(self) -> list[str]:
         return self._warnings
     
     def _build_graph(
         self,
-        nodes: List[DomainNode],
-        edges: List[ExecutableEdge]
-    ) -> Tuple[Dict[NodeID, List[NodeID]], Dict[NodeID, int]]:
-        graph: Dict[NodeID, List[NodeID]] = {node.id: [] for node in nodes}
-        in_degree: Dict[NodeID, int] = {node.id: 0 for node in nodes}
+        nodes: list[DomainNode],
+        edges: list[ExecutableEdge]
+    ) -> tuple[dict[NodeID, list[NodeID]], dict[NodeID, int]]:
+        graph: dict[NodeID, list[NodeID]] = {node.id: [] for node in nodes}
+        in_degree: dict[NodeID, int] = {node.id: 0 for node in nodes}
         
         for edge in edges:
             if edge.source_node_id in graph:
@@ -77,17 +76,17 @@ class ExecutionOrderCalculator:
     
     def _detect_cycles(
         self,
-        graph: Dict[NodeID, List[NodeID]],
-        node_ids: Set[NodeID]
+        graph: dict[NodeID, list[NodeID]],
+        node_ids: set[NodeID]
     ) -> None:
         WHITE = 0  # Not visited
         GRAY = 1   # Currently visiting
         BLACK = 2  # Visited
         
         colors = {node_id: WHITE for node_id in node_ids}
-        cycle_nodes: Set[NodeID] = set()
+        cycle_nodes: set[NodeID] = set()
         
-        def dfs(node: NodeID, path: List[NodeID]) -> bool:
+        def dfs(node: NodeID, path: list[NodeID]) -> bool:
             colors[node] = GRAY
             path.append(node)
             
@@ -116,10 +115,10 @@ class ExecutionOrderCalculator:
     
     def _topological_sort_with_levels(
         self,
-        nodes: List[DomainNode],
-        graph: Dict[NodeID, List[NodeID]],
-        in_degree: Dict[NodeID, int]
-    ) -> Tuple[List[NodeID], List[ExecutionGroup]]:
+        nodes: list[DomainNode],
+        graph: dict[NodeID, list[NodeID]],
+        in_degree: dict[NodeID, int]
+    ) -> tuple[list[NodeID], list[ExecutionGroup]]:
         # Make a copy of in_degree to avoid modifying the original
         in_degree_copy = in_degree.copy()
         
@@ -129,15 +128,15 @@ class ExecutionOrderCalculator:
             if in_degree_copy[node.id] == 0:
                 queue.append(node.id)
         
-        order: List[NodeID] = []
-        groups: List[ExecutionGroup] = []
+        order: list[NodeID] = []
+        groups: list[ExecutionGroup] = []
         level = 0
         processed_nodes = set()
         
         while queue:
             # Process all nodes at current level
             level_size = len(queue)
-            level_nodes: List[NodeID] = []
+            level_nodes: list[NodeID] = []
             
             for _ in range(level_size):
                 node_id = queue.popleft()
@@ -170,7 +169,7 @@ class ExecutionOrderCalculator:
                 
                 for node_id in remaining_nodes:
                     # Count actual remaining dependencies
-                    remaining_deps = sum(1 for dep_node in graph.keys()
+                    remaining_deps = sum(1 for dep_node in graph
                                        if node_id in graph.get(dep_node, [])
                                        and dep_node in remaining_nodes)
                     if remaining_deps < min_degree:
@@ -193,9 +192,9 @@ class ExecutionOrderCalculator:
     
     def optimize_for_parallelism(
         self,
-        groups: List[ExecutionGroup],
-        nodes: Dict[NodeID, DomainNode]
-    ) -> List[ExecutionGroup]:
+        groups: list[ExecutionGroup],
+        nodes: dict[NodeID, DomainNode]
+    ) -> list[ExecutionGroup]:
         optimized_groups = []
         
         for group in groups:

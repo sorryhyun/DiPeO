@@ -1,9 +1,9 @@
 """Diagram Loader adapter implementation."""
 
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from dipeo.core.ports import FileServicePort
-from dipeo.diagram import BackendDiagram, backend_to_graphql
+from dipeo.diagram import dict_to_domain_diagram
 from dipeo.diagram.unified_converter import UnifiedDiagramConverter
 from dipeo.models import DiagramFormat, DomainDiagram
 
@@ -56,7 +56,7 @@ class DiagramLoaderAdapter:
     def load_diagram(
         self,
         content: str,
-        format: Optional[DiagramFormat] = None,
+        format: DiagramFormat | None = None,
     ) -> DomainDiagram:
         # Load a diagram from content
         if format is None:
@@ -68,7 +68,7 @@ class DiagramLoaderAdapter:
     async def load_from_file(
         self,
         file_path: str,
-        format: Optional[DiagramFormat] = None,
+        format: DiagramFormat | None = None,
     ) -> DomainDiagram:
         # Load a diagram from a file
         # Read file using file service
@@ -82,7 +82,7 @@ class DiagramLoaderAdapter:
     
     def prepare_diagram(
         self,
-        diagram_ref: Union[str, Dict[str, Any], DomainDiagram],
+        diagram_ref: str | dict[str, Any] | DomainDiagram,
     ) -> DomainDiagram:
         # Prepare a diagram from various input types
         import yaml
@@ -98,11 +98,10 @@ class DiagramLoaderAdapter:
         
         # If it's a dictionary, process it
         if isinstance(diagram_ref, dict):
-            # Check if diagram is in backend format (dict of dicts)
+            # Check if diagram is in dict format (dict of dicts)
             if isinstance(diagram_ref.get("nodes"), dict):
-                # Convert from backend format to domain format
-                backend_diagram = BackendDiagram(**diagram_ref)
-                return backend_to_graphql(backend_diagram)
+                # Convert from dict format to domain format
+                return dict_to_domain_diagram(diagram_ref)
             
             # Check if this is light format
             if (diagram_ref.get("version") == "light" or 

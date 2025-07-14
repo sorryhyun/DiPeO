@@ -1,12 +1,13 @@
 import asyncio
 import base64
-import json
 import logging
 import time
-from io import BytesIO
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from google import genai
+from google.genai import types
+
 from dipeo.models import (
     ChatResult,
     ImageGenerationResult,
@@ -14,8 +15,6 @@ from dipeo.models import (
     ToolType,
     WebSearchResult,
 )
-from google.genai import types
-from PIL import Image
 
 from ..base import BaseLLMAdapter
 

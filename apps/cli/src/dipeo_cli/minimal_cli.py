@@ -15,7 +15,7 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 
 import requests
 import yaml
@@ -28,7 +28,7 @@ class ServerManager:
 
     def __init__(self, port: int = 8000):
         self.port = port
-        self.process: Optional[subprocess.Popen] = None
+        self.process: subprocess.Popen | None = None
         self.base_url = f"http://localhost:{port}"
 
     def is_running(self) -> bool:
@@ -82,7 +82,7 @@ class ServerManager:
             self.process.wait()
             self.process = None
 
-    def execute_diagram(self, diagram_data: Dict[str, Any]) -> Dict[str, Any]:
+    def execute_diagram(self, diagram_data: dict[str, Any]) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
         mutation ExecuteDiagram($diagramData: JSONScalar) {
@@ -108,7 +108,7 @@ class ServerManager:
 
         return result["data"]["execute_diagram"]
 
-    def get_execution_result(self, execution_id: str) -> Dict[str, Any]:
+    def get_execution_result(self, execution_id: str) -> dict[str, Any]:
         """Get execution result by ID."""
         query = """
         query GetExecutionResult($id: ExecutionID!) {
@@ -145,7 +145,7 @@ class DiPeOCLI:
         self.server = ServerManager()
 
     def resolve_diagram_path(
-        self, diagram: str, format_type: Optional[str] = None
+        self, diagram: str, format_type: str | None = None
     ) -> str:
         """Resolve diagram path based on format type."""
         # If it looks like a full path (contains / or .), use as-is
@@ -175,20 +175,19 @@ class DiPeOCLI:
         fmt_dir, ext = format_map[format_type]
         return str(FILES_DIR / "diagrams" / fmt_dir / f"{diagram}{ext}")
 
-    def load_diagram(self, file_path: str) -> Dict[str, Any]:
+    def load_diagram(self, file_path: str) -> dict[str, Any]:
         """Load diagram from file (JSON or YAML)."""
         path = Path(file_path)
         if not path.exists():
             raise FileNotFoundError(f"Diagram file not found: {file_path}")
 
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             content = f.read()
 
         # Parse based on extension
         if path.suffix in [".yaml", ".yml"]:
             return yaml.safe_load(content)
-        else:
-            return json.loads(content)
+        return json.loads(content)
 
     def run(
         self,
@@ -196,7 +195,7 @@ class DiPeOCLI:
         debug: bool = False,
         no_browser: bool = False,
         timeout: int = 300,
-        format_type: Optional[str] = None,
+        format_type: str | None = None,
     ):
         """Run a diagram via server."""
         # Resolve diagram path
@@ -252,12 +251,12 @@ class DiPeOCLI:
                     if status == "COMPLETED":
                         print("✅ Execution completed successfully!")
                         break
-                    elif status == "FAILED":
+                    if status == "FAILED":
                         print(
                             f"❌ Execution failed: {exec_result.get('error', 'Unknown error')}"
                         )
                         return False
-                    elif status is None:
+                    if status is None:
                         print(f"⏳ Waiting for execution to start... ({int(elapsed)}s)")
                     else:
                         print(f"⏳ Status: {status} ({int(elapsed)}s)")
@@ -318,7 +317,7 @@ class DiPeOCLI:
             for node_type, count in sorted(node_types.items()):
                 print(f"  {node_type}: {count}")
 
-    def monitor(self, diagram_name: Optional[str] = None):
+    def monitor(self, diagram_name: str | None = None):
         """Open browser monitor."""
         url = "http://localhost:3000/"
         if diagram_name:

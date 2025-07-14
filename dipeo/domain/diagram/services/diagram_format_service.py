@@ -1,8 +1,8 @@
 """Domain service for diagram format detection and validation."""
 
 import json
+
 import yaml
-from typing import Optional
 
 from dipeo.models import DiagramFormat
 
@@ -64,9 +64,9 @@ class DiagramFormatService:
                 )
             return True
         except Exception as e:
-            raise ValueError(f"Invalid {format.value} format: {str(e)}")
+            raise ValueError(f"Invalid {format.value} format: {e!s}")
 
-    def determine_format_from_filename(self, filename: str) -> Optional[DiagramFormat]:
+    def determine_format_from_filename(self, filename: str) -> DiagramFormat | None:
         """
         Determine the likely format based on filename patterns.
         This is a business rule about naming conventions.
@@ -96,7 +96,7 @@ class DiagramFormatService:
             return ".yaml"  # Default
 
     def construct_search_patterns(
-        self, diagram_id: str, formats: Optional[list] = None
+        self, diagram_id: str, formats: list | None = None
     ) -> list:
         """
         Construct search patterns for finding a diagram by ID.

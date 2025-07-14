@@ -1,8 +1,8 @@
 """Unified validation framework for the domain layer."""
 
-from typing import Any, Protocol, Optional
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Protocol
 
 from dipeo.core.base.exceptions import ValidationError
 
@@ -18,7 +18,7 @@ class Severity(Enum):
 class ValidationWarning:
     """Represents a validation warning."""
     message: str
-    field_name: Optional[str] = None
+    field_name: str | None = None
     details: dict[str, Any] = field(default_factory=dict)
     severity: Severity = Severity.WARNING
 

@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 
 import strawberry
-from dipeo.models import ExecutionStatus, NodeExecutionStatus, NodeType
+from dipeo.models import ExecutionStatus, NodeType
 
 from .context import GraphQLContext
 from .types import (
@@ -267,17 +267,10 @@ class Subscription:
                         if node_types and node_type not in node_types:
                             continue
 
-                        # Map state to status string
+                        # Use state directly without mapping to lowercase
                         state = data.get("state", "")
-                        status_map = {
-                            NodeExecutionStatus.PENDING.value: "pending",
-                            NodeExecutionStatus.RUNNING.value: "running",
-                            NodeExecutionStatus.COMPLETED.value: "completed",
-                            NodeExecutionStatus.FAILED.value: "failed",
-                            NodeExecutionStatus.SKIPPED.value: "skipped",
-                            NodeExecutionStatus.PAUSED.value: "paused",
-                        }
-                        status = status_map.get(state, state)
+                        # Just pass through the uppercase status
+                        status = state
 
                         # Extract output and tokens
                         output_data = data.get("output")

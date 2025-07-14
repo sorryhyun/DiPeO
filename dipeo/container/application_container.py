@@ -1,6 +1,6 @@
 """Application layer container - Use cases and orchestration."""
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
 
 from dipeo.container.base import ImmutableBaseContainer
 

@@ -4,7 +4,11 @@ from typing import NewType
 import strawberry
 
 # Import domain models directly instead of DTOs
+# Import enums and basic types from domain
 from dipeo.models import (
+    APIServiceType,
+    DataType,
+    DiagramFormat,
     DiagramMetadata,
     DomainApiKey,
     DomainArrow,
@@ -12,26 +16,19 @@ from dipeo.models import (
     DomainHandle,
     DomainNode,
     DomainPerson,
-    PersonLLMConfig,
-    ExecutionState,
-    NodeOutput,
-    NodeState,
-    TokenUsage,
-    Vec2,
-)
-
-# Import enums and basic types from domain
-from dipeo.models import (
-    APIServiceType,
-    DataType,
-    DiagramFormat,
     EventType,
+    ExecutionState,
     ExecutionStatus,
     ForgettingMode,
     HandleDirection,
     LLMService,
     NodeExecutionStatus,
+    NodeOutput,
+    NodeState,
     NodeType,
+    PersonLLMConfig,
+    TokenUsage,
+    Vec2,
 )
 
 # SCALAR TYPES - Keep these for GraphQL-specific type safety

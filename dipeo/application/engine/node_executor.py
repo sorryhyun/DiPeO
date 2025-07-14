@@ -3,19 +3,19 @@
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage, NodeID
-from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.application.execution.input.typed_input_resolution import TypedInputResolutionService
+from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.core.static.generated_nodes import PersonJobNode
+from dipeo.models import NodeExecutionStatus, NodeID, NodeState, TokenUsage
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.context import UnifiedExecutionContext
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.core.ports import ExecutionObserver
+    from dipeo.application.execution import UnifiedExecutionContext
     from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
     from dipeo.application.execution.types import TypedNodeHandler
+    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.core.ports import ExecutionObserver
     from dipeo.models import NodeOutput
 
 log = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class NodeExecutor:
     def __init__(
         self,
         service_registry: "UnifiedServiceRegistry",
-        observers: Optional[List["ExecutionObserver"]] = None
+        observers: list["ExecutionObserver"] | None = None
     ):
         self.service_registry = service_registry
         self.observers = observers or []
@@ -41,8 +41,8 @@ class NodeExecutor:
         execution: "TypedStatefulExecution",
         handler: Optional["TypedNodeHandler"] = None,
         execution_id: str = "",
-        options: Optional[Dict[str, Any]] = None,
-        interactive_handler: Optional[Any] = None
+        options: dict[str, Any] | None = None,
+        interactive_handler: Any | None = None
     ) -> None:
         """Execute a typed node with type-specific logic."""
         # Track start time
@@ -128,7 +128,7 @@ class NodeExecutor:
         self, 
         node: ExecutableNode, 
         execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Type-specific pre-execution logic."""
         # Get the handler for this node type and call its pre_execute method
         handler = await self._get_typed_handler(node)
@@ -138,11 +138,11 @@ class NodeExecutor:
         self,
         node: ExecutableNode,
         execution: "TypedStatefulExecution",
-        pre_execution_data: Dict[str, Any],
-        options: Dict[str, Any]
+        pre_execution_data: dict[str, Any],
+        options: dict[str, Any]
     ) -> "UnifiedExecutionContext":
         """Create context with typed node information."""
-        from dipeo.application.execution.context import UnifiedExecutionContext
+        from dipeo.application.execution import UnifiedExecutionContext
         
         # Create context with typed execution state
         context = UnifiedExecutionContext(
@@ -165,7 +165,7 @@ class NodeExecutor:
         self,
         node: ExecutableNode,
         execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Resolve inputs using typed node information."""
         
         # Create typed input resolution service
@@ -190,7 +190,7 @@ class NodeExecutor:
         
         return inputs
     
-    def _get_typed_memory_config(self, node: ExecutableNode) -> Optional[Dict[str, Any]]:
+    def _get_typed_memory_config(self, node: ExecutableNode) -> dict[str, Any] | None:
         """Extract memory config from typed node."""
         if isinstance(node, PersonJobNode) and node.memory_config:
             return node.memory_config
@@ -217,7 +217,7 @@ class NodeExecutor:
         node: ExecutableNode,
         execution: "TypedStatefulExecution",
         handler: "TypedNodeHandler"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Prepare services with typed node information."""
         # Get required services
         services = self.service_registry.get_handler_services(
@@ -236,17 +236,25 @@ class NodeExecutor:
         output: "NodeOutput"
     ) -> None:
         """Update execution state using typed node information."""
-        # Mark node as complete
-        execution.mark_node_complete(node.id)
+        # Type-specific state updates
+        if isinstance(node, PersonJobNode):
+            exec_count = execution.get_node_execution_count(node.id)
+            
+            # Check if max iterations reached
+            if exec_count >= node.max_iteration:
+                # Check if output indicates max iteration was hit
+                if output and output.metadata and output.metadata.get("skipped") and "Max iteration" in output.metadata.get("reason", ""):
+                    execution.set_node_state(node.id, NodeExecutionStatus.MAXITER_REACHED)
+                else:
+                    execution.mark_node_complete(node.id)
+            else:
+                # Not at max iteration yet, mark as complete then reset to pending
+                execution.mark_node_complete(node.id)
+                execution.set_node_state(node.id, NodeExecutionStatus.PENDING)
+        else:
+            # For non-PersonJobNode types, just mark as complete
+            execution.mark_node_complete(node.id)
         
         # Store output
         if output:
             execution.set_node_output(node.id, output)
-        
-        # Type-specific state updates
-        if isinstance(node, PersonJobNode):
-            # Check if we should reset to pending for iteration
-            exec_count = execution.get_node_execution_count(node.id)
-            if exec_count < node.max_iteration:
-                # Reset to pending for next iteration
-                execution.set_node_state(node.id, NodeExecutionStatus.PENDING)

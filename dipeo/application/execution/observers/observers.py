@@ -3,14 +3,12 @@
 import asyncio
 from datetime import datetime
 
+from dipeo.core.ports import ExecutionObserver
 from dipeo.models import (
     ExecutionStatus,
     NodeExecutionStatus,
-    NodeOutput,
     NodeState,
-    TokenUsage,
 )
-from dipeo.core.ports import ExecutionObserver
 
 
 class StateStoreObserver(ExecutionObserver):

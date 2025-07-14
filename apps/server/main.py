@@ -33,21 +33,15 @@ logging.getLogger("python_multipart").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Use consolidated app context
-from dipeo_server.api.graphql.schema import (
-    create_unified_graphql_router as create_graphql_router,
-)
+from dipeo_server.api.middleware import setup_middleware
+from dipeo_server.api.router import setup_routes
 from dipeo_server.application.app_context import (
-    get_container,
     initialize_container,
 )
 from dipeo_server.application.container import (
     init_server_resources,
     shutdown_server_resources,
 )
-
-
-from dipeo_server.api.graphql.context import get_graphql_context
-from dipeo_server.api.middleware import setup_middleware
 
 
 @asynccontextmanager
@@ -66,9 +60,7 @@ app = FastAPI(
 )
 
 setup_middleware(app)
-
-graphql_router = create_graphql_router(context_getter=get_graphql_context)
-app.include_router(graphql_router, prefix="")
+setup_routes(app)
 
 
 @app.get("/health")

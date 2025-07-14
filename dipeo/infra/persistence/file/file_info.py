@@ -1,6 +1,7 @@
 """File information model."""
 
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -9,7 +10,7 @@ class FileInfo(BaseModel):
     id: str
     name: str
     path: str
-    format: Optional[str] = None
+    format: str | None = None
     extension: str
     modified: str
     size: int

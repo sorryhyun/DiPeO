@@ -54,6 +54,14 @@ export enum ForgettingMode {
   UPON_REQUEST = 'upon_request'
 }
 
+export enum MemoryView {
+  ALL_INVOLVED = 'all_involved',  // Messages where person is sender or recipient
+  SENT_BY_ME = 'sent_by_me',      // Messages I sent
+  SENT_TO_ME = 'sent_to_me',      // Messages sent to me
+  SYSTEM_AND_ME = 'system_and_me', // System messages and my interactions
+  CONVERSATION_PAIRS = 'conversation_pairs', // Request/response pairs
+}
+
 export enum DiagramFormat {
   NATIVE = 'native',
   LIGHT = 'light',
@@ -146,6 +154,12 @@ export interface MemoryConfig {
   temperature?: number;
 }
 
+export interface MemorySettings {
+  view: MemoryView;
+  max_messages?: number | null;
+  preserve_system?: boolean;
+}
+
 export interface PersonLLMConfig {
   service: LLMService;
   model: string;
@@ -214,7 +228,8 @@ export interface PersonJobNodeData extends BaseNodeData {
   first_only_prompt: string;
   default_prompt?: string;
   max_iteration: number;
-  memory_config?: MemoryConfig | null;
+  memory_config?: MemoryConfig | null;  // Deprecated - use memory_settings
+  memory_settings?: MemorySettings | null;  // New unified memory configuration
   tools?: ToolConfig[] | null;
 }
 

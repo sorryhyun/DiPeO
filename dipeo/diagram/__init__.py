@@ -1,7 +1,7 @@
 """DiPeO diagram converters and utilities."""
 
 from .base import DiagramConverter, FormatStrategy
-from .conversion_utils import backend_to_graphql, graphql_to_backend, BackendDiagram
+from .conversion_utils import dict_to_domain_diagram, domain_diagram_to_dict
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
@@ -13,8 +13,8 @@ from .shared_components import (
 )
 from .strategies import (
     BaseConversionStrategy,
-    NativeJsonStrategy,
     LightYamlStrategy,
+    NativeJsonStrategy,
     ReadableYamlStrategy,
 )
 from .unified_converter import UnifiedDiagramConverter, converter_registry
@@ -36,11 +36,9 @@ __all__ = [
     "HandleGenerator",
     "PositionCalculator",
     "ArrowBuilder",
-    # Models
-    "BackendDiagram",
     # Utils
-    "backend_to_graphql",
-    "graphql_to_backend",
+    "dict_to_domain_diagram",
+    "domain_diagram_to_dict",
     "build_node",
     "coerce_to_dict",
     "ensure_position",

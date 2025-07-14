@@ -1,6 +1,7 @@
 """Immutable services for static analysis, compilation, and validation."""
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
+
 from ..base import ImmutableBaseContainer
 
 

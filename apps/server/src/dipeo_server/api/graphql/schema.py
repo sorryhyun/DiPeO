@@ -2,8 +2,8 @@
 
 import strawberry
 from strawberry.fastapi import GraphQLRouter
-from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 from strawberry.schema.config import StrawberryConfig
+from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 
 from .mutations import Mutation
 from .queries import Query

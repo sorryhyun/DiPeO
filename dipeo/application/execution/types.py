@@ -1,7 +1,8 @@
 # Core execution types for DiPeO
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Generic, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypeVar
+
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.core.static.node_handler import TypedNodeHandler as CoreTypedHandler
 from dipeo.models import NodeOutput
@@ -17,11 +18,11 @@ ExecutionContext = Any
 class ExecutionOptions:
 
     debug: bool = False
-    timeout: Optional[float] = None
-    max_iterations: Optional[int] = None
+    timeout: float | None = None
+    max_iterations: int | None = None
     monitor: bool = False
     interactive: bool = False
-    variables: Dict[str, Any] = field(default_factory=dict)
+    variables: dict[str, Any] = field(default_factory=dict)
 
 
 # Type variable for node types
@@ -63,7 +64,7 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         self,
         node: T,
         execution: "TypedStatefulExecution"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Pre-execution logic for the node. Override in subclasses."""
         return {}
     
@@ -71,7 +72,7 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         self,
         value: Any,
         context: Any,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: dict[str, Any] | None = None
     ) -> NodeOutput:
         """Build a standard node output."""
         return NodeOutput(

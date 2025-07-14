@@ -18,16 +18,17 @@ from dipeo.models import (
 
 DomainDiagram.model_rebuild()
 
-from .base import DiagramConverter, FormatStrategy
-from .conversion_utils import backend_to_graphql, BackendDiagram
-from dipeo.models.conversions import node_kind_to_domain_type
 from dipeo.models import create_handle_id
+from dipeo.models.conversions import node_kind_to_domain_type
+
+from .base import DiagramConverter, FormatStrategy
+from .conversion_utils import dict_to_domain_diagram
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
     PositionCalculator,
 )
-from .strategies import NativeJsonStrategy, LightYamlStrategy, ReadableYamlStrategy
+from .strategies import LightYamlStrategy, NativeJsonStrategy, ReadableYamlStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -213,13 +214,13 @@ class UnifiedDiagramConverter(DiagramConverter):
             if arrow:
                 arrows_dict[arrow.id] = arrow
 
-        diagram_dict = BackendDiagram(
-            nodes=nodes_dict,
-            handles=handles_dict,
-            arrows=arrows_dict,
-            persons=persons_dict,
-            metadata=data.get("metadata"),
-        )
+        diagram_dict = {
+            "nodes": nodes_dict,
+            "handles": handles_dict,
+            "arrows": arrows_dict,
+            "persons": persons_dict,
+            "metadata": data.get("metadata"),
+        }
 
         # Generate default handles for nodes that don't have any handles
         for node_id, node in nodes_dict.items():
@@ -246,7 +247,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 if len(parts) >= 3 and parts[-1] in ["input", "output"]:
                     # This is already a full handle ID, don't parse it
                     # Verify it exists in handles
-                    if arrow.source in diagram_dict.handles:
+                    if arrow.source in diagram_dict["handles"]:
                         continue
                     else:
                         continue
@@ -288,7 +289,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
-                actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
+                actual_node_id = next((n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), node_id)
                 
                 # Validate handle_name is not a direction value
                 if handle_name in ["input", "output"]:
@@ -304,20 +305,20 @@ class UnifiedDiagramConverter(DiagramConverter):
                     
                 expected_handle_id = create_handle_id(actual_node_id, handle_label, HandleDirection.output)
                 
-                if expected_handle_id in diagram_dict.handles:
-                    handle = diagram_dict.handles[expected_handle_id]
+                if expected_handle_id in diagram_dict["handles"]:
+                    handle = diagram_dict["handles"][expected_handle_id]
                     if handle.direction == HandleDirection.output:
                         handle_exists = True
                         # Update arrow to use the existing handle ID
                         arrow.source = expected_handle_id
                 
                 # Check if node exists (case-insensitive)
-                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
+                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict)
                 if not handle_exists and node_exists:
                     # Create handle with normalized ID, including direction for new format
                     normalized_handle_id = create_handle_id(actual_node_id, HandleLabel(handle_name), HandleDirection.output)
                     # Create output handle
-                    diagram_dict.handles[normalized_handle_id] = DomainHandle(
+                    diagram_dict["handles"][normalized_handle_id] = DomainHandle(
                         id=normalized_handle_id,
                         node_id=actual_node_id,
                         label=handle_name,
@@ -335,7 +336,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 if len(parts) >= 3 and parts[-1] in ["input", "output"]:
                     # This is already a full handle ID, don't parse it
                     # Verify it exists in handles
-                    if arrow.target in diagram_dict.handles:
+                    if arrow.target in diagram_dict["handles"]:
                         continue
                     else:
                         continue
@@ -378,7 +379,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
-                actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
+                actual_node_id = next((n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), node_id)
                 
                 # Validate handle_name is not a direction value
                 if handle_name in ["input", "output"]:
@@ -394,20 +395,20 @@ class UnifiedDiagramConverter(DiagramConverter):
                     
                 expected_handle_id = create_handle_id(actual_node_id, handle_label, HandleDirection.input)
                 
-                if expected_handle_id in diagram_dict.handles:
-                    handle = diagram_dict.handles[expected_handle_id]
+                if expected_handle_id in diagram_dict["handles"]:
+                    handle = diagram_dict["handles"][expected_handle_id]
                     if handle.direction == HandleDirection.input:
                         handle_exists = True
                         # Update arrow to use the existing handle ID
                         arrow.target = expected_handle_id
                 
                 # Check if node exists (case-insensitive)
-                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
+                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict)
                 if not handle_exists and node_exists:
                     # Create handle with normalized ID, including direction for new format
                     normalized_handle_id = create_handle_id(actual_node_id, HandleLabel(handle_name), HandleDirection.input)
                     # Create input handle
-                    diagram_dict.handles[normalized_handle_id] = DomainHandle(
+                    diagram_dict["handles"][normalized_handle_id] = DomainHandle(
                         id=normalized_handle_id,
                         node_id=actual_node_id,
                         label=handle_name,
@@ -418,7 +419,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                     # Update arrow to use the normalized handle ID
                     arrow.target = normalized_handle_id
 
-        return backend_to_graphql(diagram_dict)
+        return dict_to_domain_diagram(diagram_dict)
 
     def _create_node(self, node_data: dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""

@@ -1,13 +1,12 @@
 # Unified template processor combining all template features
 
-from typing import Dict, Any, List, Optional, Tuple, Protocol
-import re
 import json
+import re
 import warnings
 from datetime import datetime
-from dataclasses import dataclass
+from typing import Any
 
-from .types import TemplateResult, TemplateContext
+from .types import TemplateResult
 
 
 class TemplateProcessor:
@@ -23,7 +22,7 @@ class TemplateProcessor:
     def process(
         self,
         template: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         safe: bool = True,
         track_usage: bool = True
     ) -> TemplateResult:
@@ -57,7 +56,7 @@ class TemplateProcessor:
                 errors=errors
             )
         except Exception as e:
-            errors.append(f"Template processing error: {str(e)}")
+            errors.append(f"Template processing error: {e!s}")
             return TemplateResult(
                 content=template if safe else "",
                 missing_keys=missing_keys,
@@ -65,7 +64,7 @@ class TemplateProcessor:
                 errors=errors
             )
     
-    def process_simple(self, template: str, context: Dict[str, Any]) -> str:
+    def process_simple(self, template: str, context: dict[str, Any]) -> str:
         # Simple processing that returns just the content
         result = self.process(template, context)
         return result.content
@@ -73,9 +72,9 @@ class TemplateProcessor:
     def _process_variables(
         self,
         template: str,
-        context: Dict[str, Any],
-        missing_keys: List[str],
-        used_keys: List[str],
+        context: dict[str, Any],
+        missing_keys: list[str],
+        used_keys: list[str],
         safe: bool,
         track_usage: bool
     ) -> str:
@@ -100,7 +99,7 @@ class TemplateProcessor:
     def _process_single_brace_variables(
         self,
         template: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         safe: bool = True
     ) -> str:
         # Process single brace variables for arrow transformations
@@ -126,7 +125,7 @@ class TemplateProcessor:
         else:
             return str(value)
     
-    def _get_nested_value(self, obj: Dict[str, Any], path: str) -> Any:
+    def _get_nested_value(self, obj: dict[str, Any], path: str) -> Any:
         # Get nested value from dict using dot notation
         keys = path.split('.')
         value = obj
@@ -142,9 +141,9 @@ class TemplateProcessor:
     def _process_conditionals(
         self,
         template: str,
-        context: Dict[str, Any],
-        used_keys: List[str],
-        errors: List[str],
+        context: dict[str, Any],
+        used_keys: list[str],
+        errors: list[str],
         track_usage: bool
     ) -> str:
         # Process conditional blocks
@@ -160,19 +159,17 @@ class TemplateProcessor:
                 # Evaluate condition
                 condition_value = self._evaluate_condition(condition_expr, context)
                 
-                if condition_type == 'if' and condition_value:
-                    return block_content
-                elif condition_type == 'unless' and not condition_value:
+                if (condition_type == 'if' and condition_value) or (condition_type == 'unless' and not condition_value):
                     return block_content
                 else:
                     return ''
             except Exception as e:
-                errors.append(f"Conditional error in {condition_type} {condition_expr}: {str(e)}")
+                errors.append(f"Conditional error in {condition_type} {condition_expr}: {e!s}")
                 return match.group(0)
         
         return self.CONDITIONAL_PATTERN.sub(replace_conditional, template)
     
-    def _evaluate_condition(self, expr: str, context: Dict[str, Any]) -> bool:
+    def _evaluate_condition(self, expr: str, context: dict[str, Any]) -> bool:
         # Safely evaluate a condition expression
         value = self._get_nested_value(context, expr)
         
@@ -193,9 +190,9 @@ class TemplateProcessor:
     def _process_loops(
         self,
         template: str,
-        context: Dict[str, Any],
-        used_keys: List[str],
-        errors: List[str],
+        context: dict[str, Any],
+        used_keys: list[str],
+        errors: list[str],
         track_usage: bool
     ) -> str:
         # Process loop blocks
@@ -236,7 +233,7 @@ class TemplateProcessor:
         
         return self.LOOP_PATTERN.sub(replace_loop, template)
     
-    def extract_variables(self, template: str) -> List[str]:
+    def extract_variables(self, template: str) -> list[str]:
         # Extract all variable names from a template
         variables = []
         
@@ -259,7 +256,7 @@ class TemplateProcessor:
         # Clean and deduplicate
         return sorted(list(set(variables)))
     
-    def validate_template(self, template: str) -> List[str]:
+    def validate_template(self, template: str) -> list[str]:
         # Validate template syntax and return any errors
         errors = []
         
@@ -291,9 +288,9 @@ class TemplateProcessor:
     
     def create_context(
         self,
-        variables: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        variables: dict[str, Any],
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         # Create a context dictionary for template processing
         context = variables.copy()
         
@@ -310,30 +307,30 @@ class TemplateProcessor:
 _default_processor = TemplateProcessor()
 
 
-def process_template(template: str, context: Dict[str, Any], safe: bool = True) -> str:
+def process_template(template: str, context: dict[str, Any], safe: bool = True) -> str:
     # Process a template string with context values
     return _default_processor.process(template, context, safe=safe).content
 
 
-def process_conditional_template(template: str, context: Dict[str, Any]) -> str:
+def process_conditional_template(template: str, context: dict[str, Any]) -> str:
     # Process template with conditional sections
     return _default_processor.process(template, context).content
 
 
-def extract_variables(template: str) -> List[str]:
+def extract_variables(template: str) -> list[str]:
     # Extract all variable names from a template
     return _default_processor.extract_variables(template)
 
 
-def validate_template(template: str) -> List[str]:
+def validate_template(template: str) -> list[str]:
     # Validate template syntax
     return _default_processor.validate_template(template)
 
 
 def create_template_context(
-    variables: Dict[str, Any],
-    metadata: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    variables: dict[str, Any],
+    metadata: dict[str, Any] | None = None
+) -> dict[str, Any]:
     # Create a context dictionary
     return _default_processor.create_context(variables, metadata)
 
@@ -346,8 +343,8 @@ class TemplateService:
         self._processor = TemplateProcessor()
         self._deprecation_warned = False
         # Legacy state tracking
-        self.missing_keys: List[str] = []
-        self.used_keys: List[str] = []
+        self.missing_keys: list[str] = []
+        self.used_keys: list[str] = []
     
     def _warn_deprecation(self):
         if not self._deprecation_warned:
@@ -361,7 +358,7 @@ class TemplateService:
     def substitute(
         self,
         template: str,
-        values: Dict[str, Any],
+        values: dict[str, Any],
         track_usage: bool = True
     ) -> str:
         # Legacy substitute method
@@ -374,6 +371,6 @@ class TemplateService:
         
         return result.content
     
-    def process_template(self, template: str, values: Dict[str, Any]) -> str:
+    def process_template(self, template: str, values: dict[str, Any]) -> str:
         # Alternative legacy method name
         return self.substitute(template, values)

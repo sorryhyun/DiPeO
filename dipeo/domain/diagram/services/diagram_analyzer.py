@@ -1,16 +1,15 @@
 # Graph analysis functions for diagrams
 
-from typing import List, Dict, Set, Tuple, Optional
 from collections import defaultdict, deque
-from dipeo.models import DomainDiagram, DomainNode, NodeType
-from dipeo.models import extract_node_id_from_handle
+
+from dipeo.models import DomainDiagram, NodeType, extract_node_id_from_handle
 
 
 class DiagramAnalyzer:
     # Pure functions for diagram analysis
     
     @staticmethod
-    def find_cycles(diagram: DomainDiagram) -> List[List[str]]:
+    def find_cycles(diagram: DomainDiagram) -> list[list[str]]:
         # Find all cycles in the diagram
         # Build adjacency list
         graph = defaultdict(list)
@@ -24,7 +23,7 @@ class DiagramAnalyzer:
         rec_stack = set()
         cycles = []
         
-        def dfs(node: str, path: List[str]) -> None:
+        def dfs(node: str, path: list[str]) -> None:
             visited.add(node)
             rec_stack.add(node)
             path.append(node)
@@ -48,7 +47,7 @@ class DiagramAnalyzer:
         return cycles
     
     @staticmethod
-    def find_critical_path(diagram: DomainDiagram) -> List[str]:
+    def find_critical_path(diagram: DomainDiagram) -> list[str]:
         # Find the longest path from start to endpoint
         # Build adjacency list
         graph = defaultdict(list)
@@ -63,7 +62,7 @@ class DiagramAnalyzer:
         
         longest_path = []
         
-        def dfs_paths(node: str, path: List[str], visited: Set[str]):
+        def dfs_paths(node: str, path: list[str], visited: set[str]):
             if node in endpoint_nodes:
                 if len(path) > len(longest_path):
                     longest_path.clear()
@@ -81,7 +80,7 @@ class DiagramAnalyzer:
         return longest_path
     
     @staticmethod
-    def calculate_node_depths(diagram: DomainDiagram) -> Dict[str, int]:
+    def calculate_node_depths(diagram: DomainDiagram) -> dict[str, int]:
         # Calculate the depth of each node from start nodes
         # Build adjacency list
         graph = defaultdict(list)
@@ -121,7 +120,7 @@ class DiagramAnalyzer:
         return depths
     
     @staticmethod
-    def find_bottlenecks(diagram: DomainDiagram) -> List[str]:
+    def find_bottlenecks(diagram: DomainDiagram) -> list[str]:
         # Find nodes that all paths must go through
         # Find nodes that lie on all paths from start to endpoint
         start_nodes = [n.id for n in diagram.nodes if n.type == NodeType.start]
@@ -140,7 +139,7 @@ class DiagramAnalyzer:
         # Find all paths
         all_paths = []
         
-        def find_paths(current: str, target: str, path: List[str], visited: Set[str]):
+        def find_paths(current: str, target: str, path: list[str], visited: set[str]):
             if current == target:
                 all_paths.append(path.copy())
                 return
@@ -166,7 +165,7 @@ class DiagramAnalyzer:
         return list(common_nodes)
     
     @staticmethod
-    def calculate_node_fanout(diagram: DomainDiagram) -> Dict[str, int]:
+    def calculate_node_fanout(diagram: DomainDiagram) -> dict[str, int]:
         # Calculate the fanout (number of outgoing connections) for each node
         fanout = defaultdict(int)
         
@@ -182,7 +181,7 @@ class DiagramAnalyzer:
         return dict(fanout)
     
     @staticmethod
-    def find_parallel_paths(diagram: DomainDiagram) -> List[Tuple[str, str, List[List[str]]]]:
+    def find_parallel_paths(diagram: DomainDiagram) -> list[tuple[str, str, list[list[str]]]]:
         # Find nodes that have multiple paths between them
         graph = defaultdict(list)
         for arrow in diagram.arrows:
@@ -198,7 +197,7 @@ class DiagramAnalyzer:
             for target in node_ids[i+1:]:
                 paths = []
                 
-                def find_paths(current: str, dest: str, path: List[str], visited: Set[str]):
+                def find_paths(current: str, dest: str, path: list[str], visited: set[str]):
                     if current == dest:
                         paths.append(path.copy())
                         return

@@ -1,6 +1,6 @@
 """Generic dynamic registry pattern for service management."""
 
-from typing import Any, Dict, Optional, Set, Type, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar('T')
 
@@ -13,16 +13,16 @@ class DynamicRegistry:
     """
     
     def __init__(self):
-        self._items: Dict[str, Any] = {}
-        self._aliases: Dict[str, str] = {}
-        self._reserved_attrs: Set[str] = {
+        self._items: dict[str, Any] = {}
+        self._aliases: dict[str, str] = {}
+        self._reserved_attrs: set[str] = {
             '_items', '_aliases', '_reserved_attrs', 
             'register', 'unregister', 'get', 'has', 
             'list_items', 'create_alias', '__getattr__',
             '__setattr__', '__delattr__', '__dir__'
         }
     
-    def register(self, name: str, item: Any, aliases: Optional[list[str]] = None) -> None:
+    def register(self, name: str, item: Any, aliases: list[str] | None = None) -> None:
         # Register item with optional aliases
         if name in self._reserved_attrs:
             raise ValueError(f"Cannot register reserved attribute name: {name}")
@@ -89,7 +89,7 @@ class DynamicRegistry:
         
         self._aliases[alias] = target
     
-    def list_items(self) -> Dict[str, str]:
+    def list_items(self) -> dict[str, str]:
         # List all items and aliases
         result = {}
         
@@ -157,9 +157,9 @@ class TypedDynamicRegistry(DynamicRegistry):
     Override item_type in subclasses for type safety.
     """
     
-    item_type: Type[T] = object  # Override in subclasses
+    item_type: type[T] = object  # Override in subclasses
     
-    def register(self, name: str, item: T, aliases: Optional[list[str]] = None) -> None:
+    def register(self, name: str, item: T, aliases: list[str] | None = None) -> None:
         # Register with type validation
         if not isinstance(item, self.item_type):
             raise TypeError(

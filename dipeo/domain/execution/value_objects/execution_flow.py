@@ -1,7 +1,6 @@
 """Execution flow value objects."""
 
 from dataclasses import dataclass, field
-from typing import List, Set, Dict, Optional
 from enum import Enum
 
 
@@ -21,9 +20,9 @@ class FlowIssue:
     """Represents a single flow validation issue."""
     
     issue_type: FlowIssueType
-    node_id: Optional[str] = None
+    node_id: str | None = None
     message: str = ""
-    related_nodes: Set[str] = field(default_factory=set)
+    related_nodes: set[str] = field(default_factory=set)
     
     @property
     def severity(self) -> str:
@@ -41,15 +40,15 @@ class FlowValidationResult:
     """Result of flow validation."""
     
     is_valid: bool
-    issues: List[FlowIssue] = field(default_factory=list)
+    issues: list[FlowIssue] = field(default_factory=list)
     
     @property
-    def critical_issues(self) -> List[FlowIssue]:
+    def critical_issues(self) -> list[FlowIssue]:
         """Get only critical issues."""
         return [issue for issue in self.issues if issue.severity == "critical"]
     
     @property
-    def warnings(self) -> List[FlowIssue]:
+    def warnings(self) -> list[FlowIssue]:
         """Get only warnings."""
         return [issue for issue in self.issues if issue.severity == "warning"]
     
@@ -64,10 +63,10 @@ class FlowValidationResult:
 class ExecutionFlow:
     """Represents the flow structure of a diagram."""
     
-    nodes: Dict[str, str]  # node_id -> node_type
-    connections: Dict[str, Set[str]]  # source_id -> {target_ids}
-    start_nodes: Set[str] = field(default_factory=set)
-    endpoint_nodes: Set[str] = field(default_factory=set)
+    nodes: dict[str, str]  # node_id -> node_type
+    connections: dict[str, set[str]]  # source_id -> {target_ids}
+    start_nodes: set[str] = field(default_factory=set)
+    endpoint_nodes: set[str] = field(default_factory=set)
     
     def __post_init__(self):
         """Validate flow structure."""
@@ -78,7 +77,7 @@ class ExecutionFlow:
         # rather than directly to nodes. This is valid, so we skip strict validation
         # of connection endpoints against node IDs.
     
-    def get_dependencies(self, node_id: str) -> Set[str]:
+    def get_dependencies(self, node_id: str) -> set[str]:
         """Get all nodes that must complete before this node."""
         dependencies = set()
         for source, targets in self.connections.items():
@@ -86,7 +85,7 @@ class ExecutionFlow:
                 dependencies.add(source)
         return dependencies
     
-    def get_descendants(self, node_id: str) -> Set[str]:
+    def get_descendants(self, node_id: str) -> set[str]:
         """Get all nodes downstream from this node."""
         descendants = set()
         to_visit = self.connections.get(node_id, set()).copy()
@@ -99,13 +98,13 @@ class ExecutionFlow:
         
         return descendants
     
-    def find_cycles(self) -> List[List[str]]:
+    def find_cycles(self) -> list[list[str]]:
         """Find circular dependencies in the flow."""
         cycles = []
         visited = set()
         rec_stack = set()
         
-        def dfs(node: str, path: List[str]) -> None:
+        def dfs(node: str, path: list[str]) -> None:
             visited.add(node)
             rec_stack.add(node)
             path.append(node)
@@ -126,7 +125,7 @@ class ExecutionFlow:
         
         return cycles
     
-    def find_unreachable_nodes(self) -> Set[str]:
+    def find_unreachable_nodes(self) -> set[str]:
         """Find nodes not reachable from start nodes."""
         if not self.start_nodes:
             return set(self.nodes.keys())

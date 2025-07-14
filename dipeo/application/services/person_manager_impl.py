@@ -1,16 +1,16 @@
 """Simple in-memory implementation of PersonManager protocol."""
 
-from typing import Dict, List, Optional
+
 from dipeo.core.dynamic.person import Person
 from dipeo.core.dynamic.person_manager import PersonManager
-from dipeo.models import PersonID, LLMService, PersonLLMConfig
+from dipeo.models import LLMService, PersonID, PersonLLMConfig
 
 
 class PersonManagerImpl(PersonManager):
     """Simple in-memory implementation of PersonManager."""
     
     def __init__(self):
-        self._persons: Dict[PersonID, Person] = {}
+        self._persons: dict[PersonID, Person] = {}
     
     def get_person(self, person_id: PersonID) -> Person:
         if person_id not in self._persons:
@@ -22,7 +22,7 @@ class PersonManagerImpl(PersonManager):
         person_id: PersonID,
         name: str,
         llm_config: PersonLLMConfig,
-        role: Optional[str] = None
+        role: str | None = None
     ) -> Person:
         person = Person(
             id=person_id, 
@@ -36,17 +36,17 @@ class PersonManagerImpl(PersonManager):
     def update_person_config(
         self,
         person_id: PersonID,
-        llm_config: Optional[PersonLLMConfig] = None,
-        role: Optional[str] = None
+        llm_config: PersonLLMConfig | None = None,
+        role: str | None = None
     ) -> None:
         person = self.get_person(person_id)
         if llm_config:
             person.llm_config = llm_config
     
-    def get_all_persons(self) -> Dict[PersonID, Person]:
+    def get_all_persons(self) -> dict[PersonID, Person]:
         return self._persons.copy()
     
-    def get_persons_by_service(self, service: LLMService) -> List[Person]:
+    def get_persons_by_service(self, service: LLMService) -> list[Person]:
         return [
             person for person in self._persons.values()
             if person.llm_config.service == service

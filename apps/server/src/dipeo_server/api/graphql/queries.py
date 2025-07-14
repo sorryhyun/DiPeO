@@ -3,9 +3,8 @@
 from datetime import datetime
 
 import strawberry
-from dipeo.models import NodeType
-from dipeo.models import LLMService
 from dipeo.core.constants import FILES_DIR
+from dipeo.models import LLMService, NodeType
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
@@ -155,7 +154,6 @@ class Query:
         checks["redis"] = False
 
         try:
-            import os
 
             (FILES_DIR / "diagrams").exists()
             checks["file_system"] = True

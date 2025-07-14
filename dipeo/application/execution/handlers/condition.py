@@ -1,14 +1,14 @@
 
-from typing import Any, TYPE_CHECKING
 import logging
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application import register_handler
+from dipeo.application.execution import UnifiedExecutionContext
+from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
-from dipeo.models import ConditionNodeData, NodeOutput, NodeType
 from dipeo.core.static.generated_nodes import ConditionNode
+from dipeo.models import ConditionNodeData, NodeExecutionStatus, NodeOutput, NodeType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
@@ -176,6 +176,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     def _aggregate_conversation_states(self, context: UnifiedExecutionContext, diagram: Any) -> dict[str, Any]:
         """Aggregate conversation states from all person_job nodes that have executed."""
         import logging
+
         from dipeo.models import NodeOutput
         logger = logging.getLogger(__name__)
         
@@ -249,21 +250,36 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             # Check if this node has been executed
             if node.id in executed_nodes:
                 found_executed = True
-                exec_count = context.get_node_execution_count(node.id)
                 
-                # Handle typed nodes from ExecutableDiagram
-                if hasattr(node, 'max_iteration'):
-                    # Direct property access for typed nodes
-                    max_iter = node.max_iteration
+                # Check node status for MAXITER_REACHED
+                if hasattr(context.execution_state, 'node_states'):
+                    node_state = context.execution_state.node_states.get(str(node.id))
+                    if node_state and hasattr(node_state, 'status'):
+                        # Use the MAXITER_REACHED status
+                        if node_state.status != NodeExecutionStatus.MAXITER_REACHED:
+                            all_reached_max = False
+                            break
+                    else:
+                        # No state found, can't be at max
+                        all_reached_max = False
+                        break
                 else:
-                    # Fallback for dict-based nodes
-                    max_iter = int(node.data.get("max_iteration", 1)) if hasattr(node, 'data') else 1
-                
-                # Debug logging
-                logger.debug(f"[CONDITION] Node {node.id} exec_count={exec_count}, max_iter={max_iter}")
-                if exec_count <= max_iter:
-                    all_reached_max = False
-                    break
+                    # Fallback to old method if node_states not available
+                    exec_count = context.get_node_execution_count(node.id)
+                    
+                    # Handle typed nodes from ExecutableDiagram
+                    if hasattr(node, 'max_iteration'):
+                        # Direct property access for typed nodes
+                        max_iter = node.max_iteration
+                    else:
+                        # Fallback for dict-based nodes
+                        max_iter = int(node.data.get("max_iteration", 1)) if hasattr(node, 'data') else 1
+                    
+                    # Debug logging
+                    logger.debug(f"[CONDITION] Node {node.id} exec_count={exec_count}, max_iter={max_iter}")
+                    if exec_count <= max_iter:
+                        all_reached_max = False
+                        break
 
         result = found_executed and all_reached_max
         logger.debug(f"[CONDITION] detect_max_iterations result: {result} (found_executed={found_executed}, all_reached_max={all_reached_max})")

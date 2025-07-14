@@ -3,22 +3,22 @@
 from .processor import (
     TemplateProcessor,
     TemplateService,  # Legacy compatibility
-    process_template,
-    process_conditional_template,
-    extract_variables,
-    validate_template,
     create_template_context,
+    extract_variables,
+    process_conditional_template,
+    process_template,
+    validate_template,
 )
-from .types import TemplateResult, TemplateContext
+from .types import TemplateContext, TemplateResult
 
 __all__ = [
-    'TemplateProcessor',
-    'TemplateService',
-    'TemplateResult',
     'TemplateContext',
-    'process_template',
-    'process_conditional_template',
-    'extract_variables',
-    'validate_template',
+    'TemplateProcessor',
+    'TemplateResult',
+    'TemplateService',
     'create_template_context',
+    'extract_variables',
+    'process_conditional_template',
+    'process_template',
+    'validate_template',
 ]

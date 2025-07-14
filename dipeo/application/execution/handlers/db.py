@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application import register_handler
-from dipeo.application.execution.context.unified_execution_context import (
+from dipeo.application.execution import (
     UnifiedExecutionContext,
 )
+from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.core.static.generated_nodes import DBNode
 from dipeo.models import DBNodeData, NodeOutput, NodeType
@@ -35,15 +35,15 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         self.db_operations_service = db_operations_service
 
     @property
-    def node_class(self) -> type[DBNode]:  # noqa: D401
+    def node_class(self) -> type[DBNode]:
         return DBNode
 
     @property
-    def node_type(self) -> str:  # noqa: D401
+    def node_type(self) -> str:
         return NodeType.db.value
 
     @property
-    def schema(self) -> type[BaseModel]:  # noqa: D401
+    def schema(self) -> type[BaseModel]:
         return DBNodeData
 
     @property
@@ -84,7 +84,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     async def pre_execute(
         self,
         node: DBNode,
-        execution: "TypedStatefulExecution"
+        execution: TypedStatefulExecution
     ) -> dict[str, Any]:
         """Pre-execute logic for DBNode."""
         return {
@@ -96,7 +96,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             "data": node.data
         }
     
-    async def execute(  # noqa: D401
+    async def execute(
         self,
         node: DBNode,
         context: UnifiedExecutionContext,
@@ -132,7 +132,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 context,
             )
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("DB operation failed: %s", exc)
             return self._build_output(
                 {"default": f"DB operation failed: {exc}"},

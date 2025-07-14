@@ -2,14 +2,14 @@
 
 import os
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
-from dipeo.models import DiagramFormat, DomainDiagram
 from dipeo.domain.diagram.services import (
+    DiagramFormatService,
     DiagramOperationsService,
     DiagramValidator,
-    DiagramFormatService
 )
+from dipeo.models import DiagramFormat
 
 if TYPE_CHECKING:
     from dipeo.core.ports.diagram_port import DiagramPort
@@ -25,7 +25,7 @@ class DiagramService:
         self._format_service = DiagramFormatService()
 
     async def clone_diagram(
-        self, source_id: str, new_name: str, new_description: Optional[str] = None
+        self, source_id: str, new_name: str, new_description: str | None = None
     ) -> dict[str, Any]:
         """Clone a diagram using domain service for business logic."""
         try:

@@ -1,16 +1,16 @@
 """Rich domain entity for Diagram with business behavior."""
 
-from typing import Any, Optional, Set
+from typing import Any
 
 from dipeo.core import ValidationError
 from dipeo.domain.diagram.services import DiagramValidator
-from dipeo.domain.models.value_objects import ValidationResult, TransformationResult
+from dipeo.domain.models.value_objects import TransformationResult, ValidationResult
 from dipeo.models import (
+    DiagramFormat,
+    DomainArrow,
     DomainDiagram,
     DomainNode,
-    DomainArrow,
     NodeID,
-    DiagramFormat,
     NodeType,
 )
 
@@ -88,7 +88,7 @@ class Diagram:
         
         self._data.arrows.append(arrow)
     
-    def get_node_by_id(self, node_id: NodeID) -> Optional[DomainNode]:
+    def get_node_by_id(self, node_id: NodeID) -> DomainNode | None:
         """Get a node by its ID."""
         return next((n for n in self._data.nodes if n.id == node_id), None)
     
@@ -104,7 +104,7 @@ class Diagram:
         """Get all endpoint nodes."""
         return self.get_nodes_by_type(NodeType.endpoint)
     
-    def get_connected_nodes(self, node_id: NodeID) -> Set[NodeID]:
+    def get_connected_nodes(self, node_id: NodeID) -> set[NodeID]:
         """Get all nodes connected to a given node (incoming and outgoing)."""
         connected = set()
         
@@ -119,7 +119,7 @@ class Diagram:
         
         return connected
     
-    def get_incoming_nodes(self, node_id: NodeID) -> Set[NodeID]:
+    def get_incoming_nodes(self, node_id: NodeID) -> set[NodeID]:
         """Get nodes with arrows pointing to the given node."""
         incoming = set()
         
@@ -131,7 +131,7 @@ class Diagram:
         
         return incoming
     
-    def get_outgoing_nodes(self, node_id: NodeID) -> Set[NodeID]:
+    def get_outgoing_nodes(self, node_id: NodeID) -> set[NodeID]:
         """Get nodes that the given node points to."""
         outgoing = set()
         

@@ -170,9 +170,9 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       await graphql.controlExecution({
         variables: {
           data: {
-            executionId: executionIdRef.current,
+            execution_id: executionIdRef.current,
             action,
-            nodeId: nodeIdStr
+            node_id: nodeIdStr
           }
         }
       });

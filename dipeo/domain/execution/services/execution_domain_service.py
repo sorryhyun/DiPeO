@@ -1,9 +1,15 @@
 """Execution Domain Service - Core business logic for diagram execution."""
 
-from typing import List, Set, Dict, Any, Optional, Tuple
+from typing import Any
+
 from ..value_objects import (
-    ExecutionPlan, ExecutionStep, ExecutionMode,
-    ExecutionFlow, FlowValidationResult, FlowIssue, FlowIssueType
+    ExecutionFlow,
+    ExecutionMode,
+    ExecutionPlan,
+    ExecutionStep,
+    FlowIssue,
+    FlowIssueType,
+    FlowValidationResult,
 )
 
 
@@ -119,7 +125,7 @@ class ExecutionDomainService:
         
         return result
     
-    def calculate_execution_order(self, nodes: List[Any]) -> List[str]:
+    def calculate_execution_order(self, nodes: list[Any]) -> list[str]:
         """
         Calculate the execution order for nodes using topological sort.
         
@@ -167,7 +173,7 @@ class ExecutionDomainService:
         
         return result
     
-    def determine_parallelization(self, nodes: List[Any], arrows: List[Any] = None) -> ExecutionPlan:
+    def determine_parallelization(self, nodes: list[Any], arrows: list[Any] = None) -> ExecutionPlan:
         """
         Determine which nodes can be executed in parallel.
         
@@ -265,7 +271,7 @@ class ExecutionDomainService:
             parallel_groups=parallel_groups
         )
     
-    def _calculate_levels(self, dependencies: Dict[str, Set[str]]) -> Dict[int, List[str]]:
+    def _calculate_levels(self, dependencies: dict[str, set[str]]) -> dict[int, list[str]]:
         """Calculate execution levels for nodes."""
         levels = {}
         node_level = {}
@@ -296,9 +302,9 @@ class ExecutionDomainService:
     def validate_node_inputs(
         self,
         node_type: str,
-        inputs: Dict[str, Any],
-        required_inputs: Dict[str, str]
-    ) -> Tuple[bool, Optional[str]]:
+        inputs: dict[str, Any],
+        required_inputs: dict[str, str]
+    ) -> tuple[bool, str | None]:
         """
         Validate that a node has all required inputs with correct types.
         
@@ -333,7 +339,7 @@ class ExecutionDomainService:
     def calculate_execution_timeout(
         self,
         node_type: str,
-        node_config: Dict[str, Any]
+        node_config: dict[str, Any]
     ) -> int:
         """
         Calculate appropriate timeout for node execution.

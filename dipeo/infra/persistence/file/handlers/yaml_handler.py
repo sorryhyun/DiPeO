@@ -1,10 +1,10 @@
 """YAML file format handler."""
 
-from typing import Any
 from pathlib import Path
+from typing import Any
 
-import yaml
 import aiofiles
+import yaml
 
 
 class YamlHandler:

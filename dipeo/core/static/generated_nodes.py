@@ -78,6 +78,7 @@ class PersonJobNode(BaseExecutableNode):
     default_prompt: str = None
     max_iteration: int = 1
     memory_config: Optional[MemoryConfig] = None
+    memory_settings: Optional[MemorySettings] = None
     tools: Optional[List[ToolConfig]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -88,6 +89,7 @@ class PersonJobNode(BaseExecutableNode):
         data["default_prompt"] = self.default_prompt
         data["max_iteration"] = self.max_iteration
         data["memory_config"] = self.memory_config
+        data["memory_settings"] = self.memory_settings
         data["tools"] = self.tools
         return data
 
@@ -284,6 +286,7 @@ def create_executable_node(
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
             memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
+            memory_settings=data.get("memory_settings"),
             tools=data.get("tools"),
         )
     

@@ -84,6 +84,12 @@ export const GENERATED_FIELD_CONFIGS: GeneratedFieldConfigs = {
       required: false,
     },
     {
+      name: 'memory_settings',
+      type: 'text',
+      label: 'Memory Settings',
+      required: false,
+    },
+    {
       name: 'tools',
       type: 'textarea',
       label: 'Tools',

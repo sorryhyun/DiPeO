@@ -1,8 +1,7 @@
 """Domain service for managing file backups with a standardized strategy."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 
 class BackupService:
@@ -20,7 +19,7 @@ class BackupService:
         """
         self.backup_suffix = backup_suffix
     
-    def create_backup_name(self, original: Path, timestamp: Optional[datetime] = None) -> Path:
+    def create_backup_name(self, original: Path, timestamp: datetime | None = None) -> Path:
         """Create a standardized backup filename for the given path.
         
         Args:
@@ -35,7 +34,7 @@ class BackupService:
             backup: /path/to/file.txt.20241225_120000.bak
         """
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
         
         timestamp_str = timestamp.strftime("%Y%m%d_%H%M%S")
         backup_name = f"{original.name}.{timestamp_str}{self.backup_suffix}"
@@ -59,7 +58,7 @@ class BackupService:
         backup_name = f"{original.name}.v{version}{self.backup_suffix}"
         return original.parent / backup_name
     
-    def create_legacy_backup_name(self, original: Path, timestamp: Optional[datetime] = None) -> Path:
+    def create_legacy_backup_name(self, original: Path, timestamp: datetime | None = None) -> Path:
         """Create a backup filename using the legacy format.
         
         This method is provided for backward compatibility with existing
@@ -77,7 +76,7 @@ class BackupService:
             backup: /path/to/file.backup.20241225_120000.txt
         """
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
         
         timestamp_str = timestamp.strftime("%Y%m%d_%H%M%S")
         extension = original.suffix
@@ -86,7 +85,7 @@ class BackupService:
         backup_name = f"{stem}.backup.{timestamp_str}{extension}"
         return original.parent / backup_name
     
-    def extract_backup_timestamp(self, backup_path: Path) -> Optional[datetime]:
+    def extract_backup_timestamp(self, backup_path: Path) -> datetime | None:
         """Extract timestamp from a backup filename.
         
         Args:
@@ -105,7 +104,7 @@ class BackupService:
                     # Look for timestamp pattern YYYYMMDD_HHMMSS
                     if len(part) == 15 and '_' in part:
                         dt = datetime.strptime(part, "%Y%m%d_%H%M%S")
-                        return dt.replace(tzinfo=timezone.utc)
+                        return dt.replace(tzinfo=UTC)
                 except ValueError:
                     continue
         
@@ -139,7 +138,7 @@ class BackupService:
         
         return False
     
-    def get_original_filename(self, backup_path: Path) -> Optional[str]:
+    def get_original_filename(self, backup_path: Path) -> str | None:
         """Extract the original filename from a backup path.
         
         Args:

@@ -1,10 +1,7 @@
 """DOCX file format handler."""
 
-from typing import Any
 from pathlib import Path
-
-import aiofiles
-
+from typing import Any
 
 try:
     from docx import Document

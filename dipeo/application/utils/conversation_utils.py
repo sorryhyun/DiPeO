@@ -1,7 +1,9 @@
 # Conversation handling utilities
 
-from typing import Any, TYPE_CHECKING
-from dipeo.core.utils import is_conversation as core_is_conversation, has_nested_conversation as core_has_nested_conversation, contains_conversation as core_contains_conversation
+from typing import TYPE_CHECKING, Any
+
+from dipeo.core.utils import contains_conversation as core_contains_conversation
+from dipeo.core.utils import is_conversation as core_is_conversation
 from dipeo.models import Message, PersonID
 
 if TYPE_CHECKING:

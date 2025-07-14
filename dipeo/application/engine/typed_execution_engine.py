@@ -3,13 +3,12 @@
 import asyncio
 import logging
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.iterators import AsyncExecutionIterator
 from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
-from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
-from dipeo.infra.config.settings import get_settings
 from dipeo.core.static.executable_diagram import ExecutableNode
+from dipeo.infra.config.settings import get_settings
 
 from .node_executor import NodeExecutor
 
@@ -117,10 +116,10 @@ class TypedExecutionEngine:
     def _create_node_executor_wrapper(
         self,
         stateful_execution: TypedStatefulExecution,
-        options: Dict[str, Any],
-        interactive_handler: Optional[Any]
+        options: dict[str, Any],
+        interactive_handler: Any | None
     ):
-        async def execute_node(node: "ExecutableNode") -> Dict[str, Any]:
+        async def execute_node(node: "ExecutableNode") -> dict[str, Any]:
             # For the stateful execution to work properly, we need to ensure
             # that nodes are executed and their results are properly tracked.
             

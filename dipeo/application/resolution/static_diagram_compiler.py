@@ -1,18 +1,23 @@
 """Static diagram compiler implementation using strongly-typed nodes."""
 
-from typing import List, Dict, Any, Tuple, Optional
+from typing import Any
+
+from dipeo.application.resolution.arrow_transformer import ArrowTransformer, ExecutableNodeImpl
+from dipeo.application.resolution.execution_order_calculator import ExecutionOrderCalculator
+from dipeo.application.resolution.handle_resolver import HandleResolver
 from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
 from dipeo.core.static.generated_nodes import (
-    create_executable_node, ExecutableNode, BaseExecutableNode,
-    PersonJobNode, ConditionNode, StartNode, EndpointNode, 
-    CodeJobNode, ApiJobNode, HookNode, DBNode, NotionNode,
-    UserResponseNode, PersonBatchJobNode
+    ApiJobNode,
+    CodeJobNode,
+    ConditionNode,
+    EndpointNode,
+    ExecutableNode,
+    PersonJobNode,
+    StartNode,
+    create_executable_node,
 )
-from dipeo.models import DomainDiagram, NodeType, NodeID
-from dipeo.application.resolution.handle_resolver import HandleResolver
-from dipeo.application.resolution.arrow_transformer import ArrowTransformer, ExecutableNodeImpl
-from dipeo.application.resolution.execution_order_calculator import ExecutionOrderCalculator
+from dipeo.models import DomainDiagram, NodeID
 
 
 class StaticDiagramCompiler(DiagramCompiler):
@@ -22,7 +27,7 @@ class StaticDiagramCompiler(DiagramCompiler):
         self.handle_resolver = HandleResolver()
         self.arrow_transformer = ArrowTransformer()
         self.order_calculator = ExecutionOrderCalculator()
-        self.validation_errors: List[str] = []
+        self.validation_errors: list[str] = []
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
         """Compile domain diagram with static type safety."""
@@ -76,7 +81,7 @@ class StaticDiagramCompiler(DiagramCompiler):
             }
         )
     
-    def _create_typed_nodes(self, domain_nodes) -> List[ExecutableNode]:
+    def _create_typed_nodes(self, domain_nodes) -> list[ExecutableNode]:
         """Create strongly-typed nodes with compile-time validation."""
         typed_nodes = []
         
@@ -137,9 +142,9 @@ class StaticDiagramCompiler(DiagramCompiler):
     
     def _create_typed_edges(
         self, 
-        edges: List[Any],
-        node_map: Dict[NodeID, ExecutableNode]
-    ) -> List[ExecutableEdge]:
+        edges: list[Any],
+        node_map: dict[NodeID, ExecutableNode]
+    ) -> list[ExecutableEdge]:
         """Convert edges to typed ExecutableEdge."""
         typed_edges = []
         
@@ -192,7 +197,7 @@ class StaticDiagramCompiler(DiagramCompiler):
         self, 
         source: ExecutableNode, 
         target: ExecutableNode
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Define data transformations based on node types."""
         transforms = {}
         

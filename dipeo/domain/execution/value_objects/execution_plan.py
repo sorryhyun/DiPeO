@@ -1,7 +1,6 @@
 """Execution plan value objects."""
 
 from dataclasses import dataclass, field
-from typing import List, Set, Dict, Optional
 from enum import Enum
 
 
@@ -17,9 +16,9 @@ class ExecutionStep:
     """Represents a single step in the execution plan."""
     
     node_id: str
-    dependencies: Set[str] = field(default_factory=set)
+    dependencies: set[str] = field(default_factory=set)
     execution_mode: ExecutionMode = ExecutionMode.SEQUENTIAL
-    condition: Optional[str] = None  # For conditional nodes
+    condition: str | None = None  # For conditional nodes
     
     def __post_init__(self):
         """Validate execution step."""
@@ -28,7 +27,7 @@ class ExecutionStep:
         if self.execution_mode == ExecutionMode.CONDITIONAL and not self.condition:
             raise ValueError("Conditional execution requires a condition")
     
-    def can_execute_after(self, completed_nodes: Set[str]) -> bool:
+    def can_execute_after(self, completed_nodes: set[str]) -> bool:
         """Check if this step can execute given completed nodes."""
         return self.dependencies.issubset(completed_nodes)
 
@@ -37,9 +36,9 @@ class ExecutionStep:
 class ExecutionPlan:
     """Represents a complete execution plan for a diagram."""
     
-    steps: List[ExecutionStep]
-    entry_points: Set[str] = field(default_factory=set)
-    parallel_groups: Dict[int, Set[str]] = field(default_factory=dict)
+    steps: list[ExecutionStep]
+    entry_points: set[str] = field(default_factory=set)
+    parallel_groups: dict[int, set[str]] = field(default_factory=dict)
     
     def __post_init__(self):
         """Validate execution plan."""
@@ -56,7 +55,7 @@ class ExecutionPlan:
             if not group_nodes.issubset(step_ids):
                 raise ValueError("Parallel group nodes must exist in execution steps")
     
-    def get_next_steps(self, completed_nodes: Set[str]) -> List[ExecutionStep]:
+    def get_next_steps(self, completed_nodes: set[str]) -> list[ExecutionStep]:
         """Get the next steps that can be executed."""
         return [
             step for step in self.steps
@@ -64,19 +63,19 @@ class ExecutionPlan:
             and step.can_execute_after(completed_nodes)
         ]
     
-    def get_parallel_group(self, node_id: str) -> Optional[int]:
+    def get_parallel_group(self, node_id: str) -> int | None:
         """Get the parallel group for a node, if any."""
         for group_id, nodes in self.parallel_groups.items():
             if node_id in nodes:
                 return group_id
         return None
     
-    def is_complete(self, completed_nodes: Set[str]) -> bool:
+    def is_complete(self, completed_nodes: set[str]) -> bool:
         """Check if execution plan is complete."""
         all_nodes = {step.node_id for step in self.steps}
         return all_nodes.issubset(completed_nodes)
     
-    def get_execution_order(self) -> List[List[str]]:
+    def get_execution_order(self) -> list[list[str]]:
         """Get execution order as layers (nodes in same layer can run in parallel)."""
         layers = []
         completed = set()

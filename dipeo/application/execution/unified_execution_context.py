@@ -6,9 +6,10 @@ with the core protocols, replacing the existing ApplicationExecutionContext with
 cleaner, more maintainable version.
 """
 
-from typing import Dict, Any, Optional, List
-from dipeo.models import NodeID, NodeState, ExecutionState, NodeOutput, NodeExecutionStatus
+from typing import Any
+
 from dipeo.core.dynamic.execution_context import ExecutionContext
+from dipeo.models import ExecutionState, NodeExecutionStatus, NodeID, NodeOutput, NodeState
 
 
 class UnifiedExecutionContext(ExecutionContext):
@@ -23,8 +24,8 @@ class UnifiedExecutionContext(ExecutionContext):
         execution_state: ExecutionState,
         service_registry: Any,
         current_node_id: str = "",
-        executed_nodes: Optional[List[str]] = None,
-        exec_counts: Optional[Dict[str, int]] = None,
+        executed_nodes: list[str] | None = None,
+        exec_counts: dict[str, int] | None = None,
     ):
         """Initialize the unified execution context.
         
@@ -38,68 +39,18 @@ class UnifiedExecutionContext(ExecutionContext):
         self._execution_id = execution_state.id
         self._execution_state = execution_state  # Store for compatibility
         self._service_registry = service_registry
-        self._current_node: Optional[NodeID] = NodeID(current_node_id) if current_node_id else None
+        self._current_node: NodeID | None = NodeID(current_node_id) if current_node_id else None
         self._executed_nodes = executed_nodes or []
         self._exec_counts = exec_counts or {}
         
         # Initialize state tracking
-        self._node_states: Dict[NodeID, NodeState] = {}
-        self._node_results: Dict[NodeID, Dict[str, Any]] = {}
-        self._global_context: Dict[str, Any] = {}
+        self._node_states: dict[NodeID, NodeState] = {}
+        self._node_results: dict[NodeID, dict[str, Any]] = {}
+        self._global_context: dict[str, Any] = {}
         
         # Populate from execution state
         self._populate_from_state(execution_state)
     
-    @classmethod
-    def from_container(
-        cls,
-        execution_state: ExecutionState,
-        container: Any,
-        current_node_id: str = "",
-        executed_nodes: Optional[List[str]] = None,
-        exec_counts: Optional[Dict[str, int]] = None,
-    ) -> "UnifiedExecutionContext":
-        """Factory method to create context from a DI container.
-        
-        This provides backward compatibility for code that uses containers directly.
-        
-        Args:
-            execution_state: The execution state
-            container: DI container with all services
-            current_node_id: ID of the currently executing node
-            executed_nodes: List of node IDs that have been executed
-            exec_counts: Dictionary of node execution counts
-            
-        Returns:
-            A new UnifiedExecutionContext with services registered from the container
-        """
-        from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-        
-        # Create a registry and populate it from the container
-        registry = UnifiedServiceRegistry()
-        
-        # Register services from container
-        registry.register("llm_service", container.integration.llm_service())
-        registry.register("api_key_service", container.persistence.api_key_service())
-        registry.register("file_service", container.persistence.file_service())
-        registry.register("diagram_loader", container.persistence.diagram_loader())
-        registry.register("diagram_storage_service", container.persistence.diagram_storage_service())
-        registry.register("db_operations_service", container.persistence.db_operations_service())
-        registry.register("conversation_service", container.dynamic.conversation_manager())
-        registry.register("conversation_manager", container.dynamic.conversation_manager())
-        registry.register("notion_service", container.integration.notion_service())
-        registry.register("api_integration_service", container.integration.api_service())
-        registry.register("text_processing_service", container.business.text_processing_service())
-        registry.register("prompt_builder", container.business.prompt_builder())
-        registry.register("conversation_state_utils", container.business.conversation_state_utils())
-        
-        return cls(
-            execution_state=execution_state,
-            service_registry=registry,
-            current_node_id=current_node_id,
-            executed_nodes=executed_nodes,
-            exec_counts=exec_counts,
-        )
     
     def _populate_from_state(self, state: ExecutionState) -> None:
         """Populate context from an existing execution state.
@@ -124,19 +75,10 @@ class UnifiedExecutionContext(ExecutionContext):
     
     # ExecutionContext Protocol Implementation
     
-    def get_execution_id(self) -> str:
-        """Get the unique identifier for this execution."""
-        return self._execution_id
     
-    def get_current_node(self) -> Optional[NodeID]:
-        """Get the currently executing node."""
-        return self._current_node
     
-    def set_current_node(self, node_id: NodeID) -> None:
-        """Set the currently executing node."""
-        self._current_node = node_id
     
-    def get_node_state(self, node_id: NodeID) -> Optional[NodeState]:
+    def get_node_state(self, node_id: NodeID) -> NodeState | None:
         """Get the execution state of a specific node."""
         return self._node_states.get(node_id)
     
@@ -144,23 +86,13 @@ class UnifiedExecutionContext(ExecutionContext):
         """Set the execution state of a node."""
         self._node_states[node_id] = state
     
-    def get_node_result(self, node_id: NodeID) -> Optional[Dict[str, Any]]:
+    def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get the execution result of a completed node."""
         return self._node_results.get(node_id)
     
-    def set_node_result(self, node_id: NodeID, result: Dict[str, Any]) -> None:
-        """Store the result of a node execution."""
-        self._node_results[node_id] = result
     
-    def get_global_context(self) -> Dict[str, Any]:
-        """Get the global execution context shared across all nodes."""
-        return self._global_context.copy()
     
-    def update_global_context(self, updates: Dict[str, Any]) -> None:
-        """Update the global execution context."""
-        self._global_context.update(updates)
-    
-    def get_completed_nodes(self) -> List[NodeID]:
+    def get_completed_nodes(self) -> list[NodeID]:
         """Get list of all completed node IDs."""
         completed = []
         for node_id, state in self._node_states.items():
@@ -168,10 +100,6 @@ class UnifiedExecutionContext(ExecutionContext):
                 completed.append(node_id)
         return completed
     
-    def is_node_complete(self, node_id: NodeID) -> bool:
-        """Check if a node has completed execution."""
-        state = self._node_states.get(node_id)
-        return state is not None and state.status == NodeExecutionStatus.COMPLETED
     
     # Additional methods for compatibility with existing code
     
@@ -227,31 +155,14 @@ class UnifiedExecutionContext(ExecutionContext):
         return str(self._current_node) if self._current_node else ""
     
     @property
-    def executed_nodes(self) -> List[str]:
+    def executed_nodes(self) -> list[str]:
         """Get the list of node IDs that have been executed.
         
         Convenience property for backward compatibility.
         """
         return self._executed_nodes
     
-    @property
-    def service_registry(self) -> Any:
-        """Get the service registry for accessing application services.
-        
-        Provides access to the service registry for application-layer handlers.
-        """
-        return self._service_registry
     
-    @property
-    def diagram_id(self) -> str:
-        """Get the current diagram ID.
-        
-        Convenience property for accessing diagram information.
-        """
-        # Need to store execution state reference
-        if hasattr(self, '_execution_state'):
-            return self._execution_state.diagram_id or ""
-        return ""
     
     @property
     def execution_state(self) -> ExecutionState:
@@ -266,39 +177,13 @@ class UnifiedExecutionContext(ExecutionContext):
         return self.to_execution_state("")
     
     @property
-    def node_outputs(self) -> Dict[str, NodeOutput]:
+    def node_outputs(self) -> dict[str, NodeOutput]:
         """Get all node outputs from the execution state."""
         if hasattr(self, '_execution_state') and self._execution_state:
             return self._execution_state.node_outputs.copy()
         return {}
     
-    def get_service_registry(self) -> Any:
-        """Get the service registry.
-        
-        Returns the existing service registry used by this context.
-        """
-        return self._service_registry
     
-    def create_node_view(self, node_id: str) -> "UnifiedExecutionContext":
-        """Create a view of the context for a specific node.
-        
-        This creates a new context instance that shares the same state
-        but has a different current node.
-        """
-        view = UnifiedExecutionContext(
-            execution_state=self._execution_state,
-            service_registry=self._service_registry,
-            current_node_id=node_id,
-            executed_nodes=self._executed_nodes,
-            exec_counts=self._exec_counts,
-        )
-        
-        # Share state references
-        view._node_states = self._node_states
-        view._node_results = self._node_results
-        view._global_context = self._global_context
-        
-        return view
     
     def to_execution_state(self, diagram_id: str) -> ExecutionState:
         """Convert this context to an ExecutionState for persistence.
@@ -309,8 +194,9 @@ class UnifiedExecutionContext(ExecutionContext):
         Returns:
             An ExecutionState instance with current context data
         """
-        from dipeo.models import ExecutionID, ExecutionStatus, TokenUsage
         from datetime import datetime
+
+        from dipeo.models import ExecutionID, ExecutionStatus, TokenUsage
         
         # Convert results back to NodeOutput format
         node_outputs = {}

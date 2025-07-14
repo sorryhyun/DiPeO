@@ -1,11 +1,11 @@
 # Graph utility functions for diagram traversal and analysis
 
-from typing import Any, List, Union, Dict
-from dipeo.models import DomainArrow
-from dipeo.models import extract_node_id_from_handle
+from typing import Any
+
+from dipeo.models import DomainArrow, extract_node_id_from_handle
 
 
-def find_edges_from(edges: List[Union[Dict[str, Any], DomainArrow]], node_id: str) -> List[Union[Dict[str, Any], DomainArrow]]:
+def find_edges_from(edges: list[dict[str, Any] | DomainArrow], node_id: str) -> list[dict[str, Any] | DomainArrow]:
     # Find all edges originating from a specific node
     result = []
     for edge in edges:
@@ -17,7 +17,7 @@ def find_edges_from(edges: List[Union[Dict[str, Any], DomainArrow]], node_id: st
     return result
 
 
-def find_edges_to(edges: List[Union[Dict[str, Any], DomainArrow]], node_id: str) -> List[Union[Dict[str, Any], DomainArrow]]:
+def find_edges_to(edges: list[dict[str, Any] | DomainArrow], node_id: str) -> list[dict[str, Any] | DomainArrow]:
     # Find all edges targeting a specific node
     result = []
     for edge in edges:
@@ -29,7 +29,7 @@ def find_edges_to(edges: List[Union[Dict[str, Any], DomainArrow]], node_id: str)
     return result
 
 
-def find_connected_nodes(edges: List[Union[Dict[str, Any], DomainArrow]], node_id: str) -> Dict[str, List[str]]:
+def find_connected_nodes(edges: list[dict[str, Any] | DomainArrow], node_id: str) -> dict[str, list[str]]:
     # Find all nodes connected to a specific node
     incoming = []
     outgoing = []
@@ -56,7 +56,7 @@ def find_connected_nodes(edges: List[Union[Dict[str, Any], DomainArrow]], node_i
     }
 
 
-def count_node_connections(edges: List[Union[Dict[str, Any], DomainArrow]]) -> Dict[str, Dict[str, int]]:
+def count_node_connections(edges: list[dict[str, Any] | DomainArrow]) -> dict[str, dict[str, int]]:
     # Count incoming and outgoing connections for all nodes in the graph
     connection_counts = {}
     
@@ -79,7 +79,7 @@ def count_node_connections(edges: List[Union[Dict[str, Any], DomainArrow]]) -> D
     return connection_counts
 
 
-def find_orphan_nodes(nodes: List[Union[Dict[str, Any], Any]], edges: List[Union[Dict[str, Any], DomainArrow]]) -> List[str]:
+def find_orphan_nodes(nodes: list[dict[str, Any] | Any], edges: list[dict[str, Any] | DomainArrow]) -> list[str]:
     # Find nodes that have no connections
     node_ids = set()
     for node in nodes:
@@ -98,7 +98,7 @@ def find_orphan_nodes(nodes: List[Union[Dict[str, Any], Any]], edges: List[Union
     return orphans
 
 
-def is_dag(nodes: List[Union[Dict[str, Any], Any]], edges: List[Union[Dict[str, Any], DomainArrow]]) -> bool:
+def is_dag(nodes: list[dict[str, Any] | Any], edges: list[dict[str, Any] | DomainArrow]) -> bool:
     # Check if the graph is a Directed Acyclic Graph using DFS
     adjacency = {}
     for edge in edges:

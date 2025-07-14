@@ -1,16 +1,22 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
-from typing import Dict, Any, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.models import (
-    PersonLLMConfig, Message, PersonID, ChatResult, 
-    MemoryConfig, ForgettingMode
+    ChatResult,
+    MemorySettings,
+    MemoryView as MemoryViewEnum,
+    Message,
+    PersonID,
+    PersonLLMConfig,
 )
+
 from .conversation import Conversation, ConversationContext
-from .memory_filters import MemoryView, MemoryFilterFactory, MemoryLimiter
+from .memory_filters import MemoryFilterFactory, MemoryLimiter, MemoryView
 
 if TYPE_CHECKING:
     from dipeo.core.ports import LLMServicePort
+
     from .conversation_manager import ConversationManager
 
 
@@ -32,7 +38,7 @@ class Person:
         # Memory management
         self.memory_view = memory_view
         self._memory_filter = MemoryFilterFactory.create(memory_view)
-        self._memory_limiter: Optional[MemoryLimiter] = None
+        self._memory_limiter: MemoryLimiter | None = None
     
     def add_message(self, message: Message) -> None:
         if not self._conversation_manager:
@@ -51,7 +57,7 @@ class Person:
         conversation = self._conversation_manager.get_conversation()
         return conversation.get_context()
     
-    def get_messages(self, memory_view: Optional[MemoryView] = None) -> List[Message]:
+    def get_messages(self, memory_view: MemoryView | None = None) -> list[Message]:
         if not self._conversation_manager:
             return []
         
@@ -71,7 +77,7 @@ class Person:
         return filtered_messages
     
     
-    def get_latest_message(self) -> Optional[Message]:
+    def get_latest_message(self) -> Message | None:
         messages = self.get_messages()
         return messages[-1] if messages else None
     
@@ -99,7 +105,7 @@ class Person:
         else:
             self._memory_limiter = MemoryLimiter(max_messages, preserve_system)
     
-    def get_memory_config(self) -> Dict[str, Any]:
+    def get_memory_config(self) -> dict[str, Any]:
         """Get current memory configuration."""
         return {
             "view": self.memory_view.value,
@@ -108,12 +114,12 @@ class Person:
             "preserve_system": self._memory_limiter.preserve_system if self._memory_limiter else None
         }
     
-    def update_context(self, context_updates: Dict[str, Any]) -> None:
+    def update_context(self, context_updates: dict[str, Any]) -> None:
         if self._conversation_manager:
             conversation = self._conversation_manager.get_conversation()
             conversation.update_context(context_updates)
     
-    def _get_conversation(self) -> Optional[Conversation]:
+    def _get_conversation(self) -> Conversation | None:
         if not self._conversation_manager:
             return None
         return self._conversation_manager.get_conversation()
@@ -130,11 +136,14 @@ class Person:
         self,
         prompt: str,
         llm_service: "LLMServicePort",
-        from_person_id: Union[PersonID, str] = "system",
-        memory_config: Optional[MemoryConfig] = None,
+        from_person_id: PersonID | str = "system",
         **llm_options: Any
     ) -> ChatResult:
-        """Complete a prompt using this person's LLM."""
+        """Complete a prompt using this person's LLM.
+        
+        Note: Memory settings should be applied before calling this method,
+        typically by the handler at the appropriate time.
+        """
         # Create the incoming message
         incoming = Message(
             from_person_id=from_person_id,  # type: ignore[arg-type]
@@ -143,10 +152,6 @@ class Person:
             message_type="person_to_person" if from_person_id != "system" else "system_to_person"
         )
         self.add_message(incoming)
-        
-        # Apply forgetting rules if configured
-        if memory_config:
-            self.forget(memory_config)
         
         # Prepare messages for LLM
         messages = self._prepare_messages_for_llm()
@@ -172,52 +177,34 @@ class Person:
         
         return result
     
-    def apply_memory_management(self, memory_config: MemoryConfig) -> int:
-        """Apply memory management rules including forgetting and limits.
+    def apply_memory_settings(self, settings: MemorySettings) -> None:
+        """Apply unified memory settings - view and limit.
         
-        Returns:
-            Number of messages affected by memory management
+        This is the main method for configuring person memory.
+        It replaces the complex forgetting strategies with a simple view + limit approach.
         """
-        affected_count = 0
+        # Convert from models.MemoryView to memory_filters.MemoryView
+        view_mapping = {
+            MemoryViewEnum.all_involved: MemoryView.ALL_INVOLVED,
+            MemoryViewEnum.sent_by_me: MemoryView.SENT_BY_ME,
+            MemoryViewEnum.sent_to_me: MemoryView.SENT_TO_ME,
+            MemoryViewEnum.system_and_me: MemoryView.SYSTEM_AND_ME,
+            MemoryViewEnum.conversation_pairs: MemoryView.CONVERSATION_PAIRS,
+        }
         
-        # Apply memory limit if specified
-        if memory_config.max_messages and memory_config.max_messages > 0:
-            self.set_memory_limit(int(memory_config.max_messages))
+        memory_view = view_mapping.get(settings.view, MemoryView.ALL_INVOLVED)
+        self.set_memory_view(memory_view)
         
-        # Apply forgetting mode
-        if memory_config.forget_mode == ForgettingMode.no_forget:
-            return 0
-        
-        if self._conversation_manager:
-            # Delegate to ConversationManager
-            affected_count = self._conversation_manager.apply_forgetting(
-                str(self.id), 
-                memory_config.forget_mode,
-                getattr(self._conversation_manager, '_current_execution_id', None)
+        if settings.max_messages and settings.max_messages > 0:
+            self.set_memory_limit(
+                int(settings.max_messages), 
+                preserve_system=settings.preserve_system if settings.preserve_system is not None else True
             )
         else:
-            # Without conversation manager, apply forgetting through memory limits
-            if memory_config.forget_mode == ForgettingMode.on_every_turn:
-                # Keep only last message by setting very restrictive memory limit
-                self.set_memory_limit(1, preserve_system=True)
-                affected_count = 1  # Approximate
-            
-            elif memory_config.forget_mode == ForgettingMode.upon_request:
-                # Clear all messages by setting limit to 0
-                self.set_memory_limit(0, preserve_system=False)
-                affected_count = 1  # Approximate
-        
-        return affected_count
+            self._memory_limiter = None
     
-    def forget(self, memory_config: MemoryConfig) -> int:
-        """Apply memory management rules to forget old messages.
-        
-        Returns:
-            Number of messages affected by memory management
-        """
-        return self.apply_memory_management(memory_config)
     
-    def _prepare_messages_for_llm(self) -> List[Dict[str, str]]:
+    def _prepare_messages_for_llm(self) -> list[dict[str, str]]:
         llm_messages = []
         
         # Add system prompt as first message if present

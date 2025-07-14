@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .exceptions import ValidationError
 
@@ -10,7 +10,7 @@ from .exceptions import ValidationError
 class BaseService(ABC):
     """Base service class with common functionality for DiPeO services."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
 
     @abstractmethod
@@ -18,7 +18,7 @@ class BaseService(ABC):
         pass
 
     def validate_required_fields(
-        self, data: Dict[str, Any], required_fields: list[str]
+        self, data: dict[str, Any], required_fields: list[str]
     ) -> None:
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -27,7 +27,7 @@ class BaseService(ABC):
             )
 
     def validate_file_path(
-        self, file_path: str, allowed_base: Optional[Path] = None
+        self, file_path: str, allowed_base: Path | None = None
     ) -> Path:
         # Validate file path for security
         rel_path = Path(file_path)

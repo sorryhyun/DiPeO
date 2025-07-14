@@ -2,15 +2,12 @@
 
 import logging
 
-from dipeo.models import LLMService, DomainPerson
-from dipeo.models import APIServiceType, DomainApiKey
+from dipeo.models import APIServiceType, DomainApiKey, DomainPerson
 
 from ..context import GraphQLContext
 from ..types import (
     ApiKeyID,
     PersonID,
-    DomainApiKeyType,
-    DomainPersonType,
 )
 
 logger = logging.getLogger(__name__)

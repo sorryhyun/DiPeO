@@ -1,13 +1,14 @@
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from dipeo.application import register_handler
-from dipeo.domain.notion.services import NotionValidator
-from dipeo.application.execution.types import TypedNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.models import NodeOutput, NotionNodeData, NotionOperation, NodeType
-from dipeo.core.static.generated_nodes import NotionNode
 from pydantic import BaseModel
+
+from dipeo.application.execution import UnifiedExecutionContext
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.core.static.generated_nodes import NotionNode
+from dipeo.domain.notion.services import NotionValidator
+from dipeo.models import NodeOutput, NodeType, NotionNodeData, NotionOperation
 
 if TYPE_CHECKING:
     from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
@@ -109,7 +110,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
             # Extract page data from inputs
             parent = inputs.get("parent", {})
             properties = inputs.get("properties", {})
-            children = inputs.get("children", None)
+            children = inputs.get("children")
             result = await notion_service.create_page(
                 parent=parent,
                 properties=properties,
@@ -126,8 +127,8 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
                 raise ValueError("UPDATE_PAGE requires blocks to append")
                 
         elif node.operation == NotionOperation.QUERY_DATABASE:
-            filter_query = inputs.get("filter", None)
-            sorts = inputs.get("sorts", None)
+            filter_query = inputs.get("filter")
+            sorts = inputs.get("sorts")
             result = await notion_service.query_database(
                 database_id=node.database_id,
                 filter=filter_query,

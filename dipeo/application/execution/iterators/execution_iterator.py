@@ -1,8 +1,9 @@
 # Iterator pattern implementation for diagram execution flow control
 
 import asyncio
+from collections.abc import AsyncIterator, Callable, Iterator
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Callable, Dict, Iterator, List, Optional, Set
+from typing import Any
 
 from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
 from dipeo.core.static.executable_diagram import ExecutableNode
@@ -12,11 +13,11 @@ from dipeo.models import NodeExecutionStatus, NodeID
 @dataclass
 class ExecutionStep:
     # Represents a single step in the execution flow
-    nodes: List[ExecutableNode]  # Nodes to execute in this step
+    nodes: list[ExecutableNode]  # Nodes to execute in this step
     is_parallel: bool = False  # Whether nodes can be executed in parallel
     
     @property
-    def node_ids(self) -> List[NodeID]:
+    def node_ids(self) -> list[NodeID]:
         return [node.id for node in self.nodes]
 
 
@@ -31,7 +32,7 @@ class ExecutionIterator(Iterator[ExecutionStep]):
         self,
         stateful_execution: TypedStatefulExecution,
         max_parallel_nodes: int = 1,
-        node_executor: Optional[Callable[[ExecutableNode], Dict[str, Any]]] = None
+        node_executor: Callable[[ExecutableNode], dict[str, Any]] | None = None
     ):
         """Initialize the execution iterator.
         
@@ -111,7 +112,7 @@ class ExecutionIterator(Iterator[ExecutionStep]):
             is_parallel=can_parallel
         )
     
-    def advance_node(self, node_id: NodeID, result: Optional[Dict[str, Any]] = None) -> None:
+    def advance_node(self, node_id: NodeID, result: dict[str, Any] | None = None) -> None:
         """Mark a node as completed with its result.
         
         Args:
@@ -135,7 +136,7 @@ class ExecutionIterator(Iterator[ExecutionStep]):
         """Cancel the execution."""
         self._cancelled = True
     
-    def get_progress(self) -> Dict[str, Any]:
+    def get_progress(self) -> dict[str, Any]:
         """Get execution progress information.
         
         Returns:
@@ -168,7 +169,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         self,
         stateful_execution: TypedStatefulExecution,
         max_parallel_nodes: int = 10,
-        node_executor: Optional[Callable[[ExecutableNode], Any]] = None,  # Can be sync or async
+        node_executor: Callable[[ExecutableNode], Any] | None = None,  # Can be sync or async
         node_ready_poll_interval: float = 0.01,  # Reduced from 0.1 for more responsive execution
         max_poll_retries: int = 100  # Increased to maintain same total wait time (1s)
     ):
@@ -186,7 +187,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         self._node_executor = node_executor
         self._cancelled = False
         self._current_step = 0
-        self._running_tasks: Set[asyncio.Task] = set()
+        self._running_tasks: set[asyncio.Task] = set()
         self._node_ready_poll_interval = node_ready_poll_interval
         self._max_poll_retries = max_poll_retries
     
@@ -255,7 +256,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             is_parallel=can_parallel
         )
     
-    async def execute_step(self, step: ExecutionStep) -> Dict[NodeID, Dict[str, Any]]:
+    async def execute_step(self, step: ExecutionStep) -> dict[NodeID, dict[str, Any]]:
         """Execute all nodes in a step, handling parallelism.
         
         Args:
@@ -301,7 +302,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
         
         return results
     
-    async def _execute_node(self, node: ExecutableNode) -> Dict[str, Any]:
+    async def _execute_node(self, node: ExecutableNode) -> dict[str, Any]:
         """Execute a single node.
         
         Args:
@@ -317,7 +318,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None, self._node_executor, node)
     
-    def advance_node(self, node_id: NodeID, result: Optional[Dict[str, Any]] = None) -> None:
+    def advance_node(self, node_id: NodeID, result: dict[str, Any] | None = None) -> None:
         """Mark a node as completed with its result.
         
         Args:
@@ -352,7 +353,7 @@ class AsyncExecutionIterator(AsyncIterator[ExecutionStep]):
             await asyncio.gather(*self._running_tasks, return_exceptions=True)
             self._running_tasks.clear()
     
-    def get_progress(self) -> Dict[str, Any]:
+    def get_progress(self) -> dict[str, Any]:
         """Get execution progress information.
         
         Returns:

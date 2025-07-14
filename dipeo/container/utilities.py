@@ -1,15 +1,11 @@
 """Utility functions for container management."""
 
-import os
 import logging
-from dipeo.core.ports import (
-    FileServicePort,
-    LLMServicePort,
-    NotionServicePort,
-    SupportsAPIKey
-)
-from dipeo.core.ports.diagram_port import DiagramPort
+
 from dipeo.core.dynamic.conversation_manager import ConversationManager
+from dipeo.core.ports import FileServicePort, LLMServicePort, NotionServicePort, SupportsAPIKey
+from dipeo.core.ports.diagram_port import DiagramPort
+
 from .profiling import get_profiler
 
 logger = logging.getLogger(__name__)

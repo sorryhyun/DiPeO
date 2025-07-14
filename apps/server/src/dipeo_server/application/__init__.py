@@ -8,9 +8,9 @@ if TYPE_CHECKING:
     from .container import ServerContainer
 
 __all__ = [
+    "ServerContainer",
     "get_container",
     "initialize_container",
-    "ServerContainer",
 ]
 
 

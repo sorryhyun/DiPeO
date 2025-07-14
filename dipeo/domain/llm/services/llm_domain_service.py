@@ -1,7 +1,8 @@
 """LLM Domain Service - Core business logic for LLM operations."""
 
-from typing import Dict, Any, Optional, Tuple
-from ..value_objects import ModelConfig, TokenLimits, RetryStrategy, RetryType
+from typing import Any
+
+from ..value_objects import ModelConfig, RetryStrategy, RetryType, TokenLimits
 
 
 class LLMDomainService:
@@ -53,7 +54,7 @@ class LLMDomainService:
         },
     }
     
-    def validate_model_config(self, provider: str, model: str, config: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    def validate_model_config(self, provider: str, model: str, config: dict[str, Any]) -> tuple[bool, str | None]:
         """
         Validate model configuration against provider rules.
         
@@ -88,7 +89,7 @@ class LLMDomainService:
         
         return True, None
     
-    def calculate_token_limits(self, provider: str, model: str) -> Optional[TokenLimits]:
+    def calculate_token_limits(self, provider: str, model: str) -> TokenLimits | None:
         """
         Calculate token limits for a given provider and model.
         
@@ -171,16 +172,14 @@ class LLMDomainService:
         """
         # Rough estimation: ~4 characters per token for English
         # Different providers may count differently
-        if provider.lower() == "openai":
-            return len(text) // 4
-        elif provider.lower() == "anthropic":
+        if provider.lower() == "openai" or provider.lower() == "anthropic":
             return len(text) // 4
         elif provider.lower() == "google":
             return len(text) // 3  # Google tends to count more tokens
         else:
             return len(text) // 4  # Default estimation
     
-    def validate_prompt_size(self, prompt: str, provider: str, model: str) -> Tuple[bool, Optional[str]]:
+    def validate_prompt_size(self, prompt: str, provider: str, model: str) -> tuple[bool, str | None]:
         """
         Validate if prompt fits within model's context window.
         
@@ -205,8 +204,8 @@ class LLMDomainService:
         self,
         provider: str,
         model: str,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
         **kwargs
     ) -> ModelConfig:
         """Create a validated ModelConfig instance."""

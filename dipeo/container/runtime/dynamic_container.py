@@ -1,12 +1,13 @@
 """Mutable services for runtime execution state."""
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
+
 from ..base import MutableBaseContainer
 
 
 def _create_execution_context(diagram_compiler, conversation_manager=None):
     """Create execution context for a diagram execution."""
-    from dipeo.application.execution.context import UnifiedExecutionContext
+    from dipeo.application.execution import UnifiedExecutionContext
     
     return UnifiedExecutionContext(
         compiler=diagram_compiler,

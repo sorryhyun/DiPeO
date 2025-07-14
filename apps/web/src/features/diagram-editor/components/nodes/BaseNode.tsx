@@ -7,7 +7,7 @@ import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/core/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/core/store/hooks';
-import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
+import { NodeType, NodeExecutionStatus } from '@/core/types';
 import { nodeId, personId } from '@/core/types';
 import './BaseNode.css';
 
@@ -36,6 +36,7 @@ function useNodeStatus(nodeIdStr: string) {
     isSkipped: nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || hookNodeState?.status === 'skipped',
     isCompleted: nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || hookNodeState?.status === 'completed',
     hasError: nodeExecutionState?.status === NodeExecutionStatus.FAILED || hookNodeState?.status === 'error',
+    isMaxIterReached: nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED,
     progress: hookNodeState?.progress,
     error: nodeExecutionState?.error || hookNodeState?.error,
   }), [nodeExecutionState, hookNodeState]);
@@ -161,6 +162,14 @@ const StatusIndicator = React.memo(({ status }: { status: ReturnType<typeof useN
           SKIP
         </div>
       </>
+    );
+  }
+  
+  if (status.isMaxIterReached) {
+    return (
+      <div className="absolute -top-2 -right-2 w-4 h-4 bg-orange-500 rounded-full">
+        <span className="absolute inset-0 text-white text-xs flex items-center justify-center">∞</span>
+      </div>
     );
   }
   

@@ -1,24 +1,23 @@
 # Use case for executing a complete diagram.
 
 import asyncio
-from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Optional, Callable, Dict
+from collections.abc import AsyncGenerator, Callable
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.application.execution.observers import StreamingObserver
 from dipeo.core import BaseService
 from dipeo.models import ExecutionStatus
 
-from dipeo.application.execution.observers import StreamingObserver
-
 if TYPE_CHECKING:
-    from dipeo.core.ports.state_store import StateStorePort
     from dipeo.core.ports.message_router import MessageRouterPort
-    from dipeo.infra.persistence.diagram import DiagramStorageAdapter
-    from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
-    from ...unified_service_registry import UnifiedServiceRegistry
-    from dipeo.models import DomainDiagram
-    from ..stateful_execution_typed import TypedStatefulExecution
+    from dipeo.core.ports.state_store import StateStorePort
     from dipeo.core.static.executable_diagram import ExecutableDiagram
+    from dipeo.infra.persistence.diagram import DiagramStorageAdapter
+    from dipeo.models import DomainDiagram
+
+    from ...unified_service_registry import UnifiedServiceRegistry
+    from ..stateful_execution_typed import TypedStatefulExecution
 
 class ExecuteDiagramUseCase(BaseService):
 
@@ -51,11 +50,11 @@ class ExecuteDiagramUseCase(BaseService):
 
     async def execute_diagram(  # type: ignore[override]
         self,
-        diagram: Dict[str, Any],
-        options: Dict[str, Any],
+        diagram: dict[str, Any],
+        options: dict[str, Any],
         execution_id: str,
-        interactive_handler: Optional[Callable] = None,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        interactive_handler: Callable | None = None,
+    ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
         # Step 1: Compile to typed diagram
@@ -96,7 +95,7 @@ class ExecuteDiagramUseCase(BaseService):
                 state = await self.state_store.get_state(execution_id)
                 if state:
                     state.status = ExecutionStatus.RUNNING
-                    state.started_at = datetime.now(timezone.utc).isoformat()
+                    state.started_at = datetime.now(UTC).isoformat()
                     state.is_active = True
                     await self.state_store.save_state(state)
                 
@@ -144,7 +143,7 @@ class ExecuteDiagramUseCase(BaseService):
             if update.get("type") in ["execution_complete", "execution_error"]:
                 break
     
-    async def _compile_typed_diagram(self, diagram: Dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
+    async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""
         # Get the diagram loader from service registry
         from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
@@ -165,7 +164,7 @@ class ExecuteDiagramUseCase(BaseService):
             if critical_issues:
                 # Raise error for critical issues
                 error_messages = [f"- {issue.message}" for issue in critical_issues]
-                raise ValueError(f"Diagram validation failed:\n" + "\n".join(error_messages))
+                raise ValueError("Diagram validation failed:\n" + "\n".join(error_messages))
             else:
                 # Log warnings for non-critical issues
                 import logging
@@ -219,7 +218,7 @@ class ExecuteDiagramUseCase(BaseService):
     async def _create_typed_execution(
         self, 
         typed_diagram: "ExecutableDiagram", 
-        options: Dict[str, Any],
+        options: dict[str, Any],
         execution_id: str
     ) -> "TypedStatefulExecution":
         """Create typed execution with single source of truth."""
@@ -249,8 +248,9 @@ class ExecuteDiagramUseCase(BaseService):
     
     async def _register_typed_person_configs(self, typed_diagram: "ExecutableDiagram") -> None:  # type: ignore
         """Register person configurations from typed diagram."""
-        from dipeo.core.static.generated_nodes import PersonJobNode
         import logging
+
+        from dipeo.core.static.generated_nodes import PersonJobNode
         
         log = logging.getLogger(__name__)
 
@@ -313,11 +313,12 @@ class ExecuteDiagramUseCase(BaseService):
         self,
         execution_id: str,
         typed_diagram: "ExecutableDiagram",  # type: ignore
-        options: Dict[str, Any]
+        options: dict[str, Any]
     ) -> None:
         """Initialize execution state for typed diagram."""
+        from datetime import datetime
+
         from dipeo.models import ExecutionState, ExecutionStatus, TokenUsage
-        from datetime import datetime, timezone
         
         # Create initial execution state
         initial_state = ExecutionState(
@@ -339,7 +340,7 @@ class ExecuteDiagramUseCase(BaseService):
         self,
         execution_id: str,
         status: "ExecutionStatus",
-        error: Optional[str] = None
+        error: str | None = None
     ) -> None:
         """Finalize execution state in persistence layer."""
         from dipeo.models import ExecutionStatus
@@ -349,24 +350,24 @@ class ExecuteDiagramUseCase(BaseService):
         if state:
             if status == ExecutionStatus.COMPLETED:
                 state.status = ExecutionStatus.COMPLETED
-                state.ended_at = datetime.now(timezone.utc).isoformat()
+                state.ended_at = datetime.now(UTC).isoformat()
                 state.is_active = False
                 
                 # Calculate duration
                 if state.started_at:
                     start = datetime.fromisoformat(state.started_at.replace('Z', '+00:00'))
-                    end = datetime.now(timezone.utc)
+                    end = datetime.now(UTC)
                     state.duration_seconds = (end - start).total_seconds()
             elif status == ExecutionStatus.FAILED:
                 state.status = ExecutionStatus.FAILED
-                state.ended_at = datetime.now(timezone.utc).isoformat()
+                state.ended_at = datetime.now(UTC).isoformat()
                 state.is_active = False
                 state.error = error or "Unknown error"
             
             # Save final state
             await self.state_store.save_state(state)
     
-    def _extract_api_keys_for_typed_diagram(self, diagram: "DomainDiagram", api_key_service) -> Dict[str, str]:
+    def _extract_api_keys_for_typed_diagram(self, diagram: "DomainDiagram", api_key_service) -> dict[str, str]:
         """Extract API keys needed by the diagram.
         
         Args:

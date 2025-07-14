@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+from dipeo.core.constants import STATE_DB_PATH
 from dipeo.models import (
     DiagramID,
     ExecutionID,
@@ -22,8 +23,6 @@ from dipeo.models import (
 
 from .execution_cache import ExecutionCache
 from .message_store import MessageStore
-
-from dipeo.core.constants import STATE_DB_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +63,11 @@ class StateRegistry:
                     # Executor already shutdown
                     pass
                 self._conn = None
-            
+
             # Don't shutdown executor immediately - let pending operations complete
             if not self._executor._shutdown:
                 self._executor.shutdown(wait=False)
-            
+
             self._initialized = False
 
     async def _connect(self):
@@ -89,7 +88,7 @@ class StateRegistry:
         # Ensure executor is available
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
-        
+
         try:
             self._conn = await loop.run_in_executor(self._executor, _connect_sync)
         except RuntimeError as e:
@@ -104,11 +103,11 @@ class StateRegistry:
         """Execute a database operation in the dedicated thread."""
         if self._conn is None:
             raise RuntimeError("StateRegistry not initialized. Call initialize() first.")
-        
+
         # Ensure executor is available
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
-        
+
         loop = asyncio.get_event_loop()
         try:
             return await loop.run_in_executor(
@@ -122,12 +121,12 @@ class StateRegistry:
                     self._executor, self._conn.execute, *args, **kwargs
                 )
             raise
-    
+
     async def _ensure_initialized(self):
         """Ensure the registry is initialized, initializing if necessary."""
         if not self._initialized:
             await self.initialize()
-        
+
         # Check if executor was shutdown and recreate if needed
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
@@ -155,7 +154,7 @@ class StateRegistry:
         # Ensure executor is available
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
-        
+
         try:
             await asyncio.get_event_loop().run_in_executor(
                 self._executor, self._conn.executescript, schema
@@ -177,13 +176,13 @@ class StateRegistry:
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
         await self._ensure_initialized()
-        
+
         # Handle both str and ExecutionID types
         exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
         diag_id = None
         if diagram_id:
             diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
-        
+
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(exec_id),
@@ -247,7 +246,7 @@ class StateRegistry:
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
         await self._ensure_initialized()
-        
+
         # Check cache first
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
@@ -304,7 +303,7 @@ class StateRegistry:
         self, execution_id: str, status: ExecutionStatus, error: str | None = None
     ):
         await self._ensure_initialized()
-        
+
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -580,7 +579,7 @@ class StateRegistry:
         diag_id = None
         if diagram_id:
             diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
-        
+
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(exec_id),

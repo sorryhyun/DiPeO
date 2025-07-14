@@ -1,12 +1,10 @@
 """File-based implementation of API key storage."""
 
 import json
-from pathlib import Path
-from typing import Dict
 import logging
+from pathlib import Path
 
 from dipeo.core.ports.apikey_port import APIKeyPort
-
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +21,7 @@ class FileAPIKeyStorage(APIKeyPort):
         self.file_path = file_path
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
     
-    async def load_all(self) -> Dict[str, Dict]:
+    async def load_all(self) -> dict[str, dict]:
         """Load all API keys from file storage.
         
         Returns:
@@ -33,13 +31,13 @@ class FileAPIKeyStorage(APIKeyPort):
             return {}
         
         try:
-            with open(self.file_path, 'r') as f:
+            with open(self.file_path) as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             log.error(f"Failed to load API keys from {self.file_path}: {e}")
             return {}
     
-    async def save_all(self, store: Dict[str, Dict]) -> None:
+    async def save_all(self, store: dict[str, dict]) -> None:
         """Save all API keys to file storage.
         
         Args:
@@ -48,7 +46,7 @@ class FileAPIKeyStorage(APIKeyPort):
         try:
             with open(self.file_path, 'w') as f:
                 json.dump(store, f, indent=2)
-        except IOError as e:
+        except OSError as e:
             log.error(f"Failed to save API keys to {self.file_path}: {e}")
             raise
     

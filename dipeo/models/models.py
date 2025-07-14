@@ -45,6 +45,13 @@ class ForgettingMode(str, Enum):
     on_every_turn = "on_every_turn"
     upon_request = "upon_request"
 
+class MemoryView(str, Enum):
+    all_involved = "all_involved"
+    sent_by_me = "sent_by_me"
+    sent_to_me = "sent_to_me"
+    system_and_me = "system_and_me"
+    conversation_pairs = "conversation_pairs"
+
 class DiagramFormat(str, Enum):
     native = "native"
     light = "light"
@@ -100,6 +107,7 @@ class NodeExecutionStatus(str, Enum):
     FAILED = "FAILED"
     ABORTED = "ABORTED"
     SKIPPED = "SKIPPED"
+    MAXITER_REACHED = "MAXITER_REACHED"
 
 class EventType(str, Enum):
     EXECUTION_STATUS_CHANGED = "EXECUTION_STATUS_CHANGED"
@@ -230,6 +238,13 @@ class MemoryConfig(BaseModel):
     max_messages: Optional[float] = Field(default=None)
     temperature: Optional[float] = Field(default=None)
 
+class MemorySettings(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    view: MemoryView
+    max_messages: Optional[float] = Field(default=None)
+    preserve_system: Optional[bool] = Field(default=None)
+
 class PersonLLMConfig(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
@@ -305,6 +320,7 @@ class PersonJobNodeData(BaseNodeData):
     default_prompt: Optional[str] = Field(default=None)
     max_iteration: float
     memory_config: Optional[MemoryConfig] = Field(default=None)
+    memory_settings: Optional[MemorySettings] = Field(default=None)
     tools: Optional[List[ToolConfig]] = Field(default=None)
 
 class EndpointNodeData(BaseNodeData):

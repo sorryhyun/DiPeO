@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+
 from dipeo.models import DomainDiagram
+
+from ..conversion_utils import _JsonMixin
 from ..shared_components import build_node, coerce_to_dict
 from .base_strategy import BaseConversionStrategy
-from ..conversion_utils import _JsonMixin
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +41,7 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
         )
 
     # ---- export ----------------------------------------------------------- #
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         return {
             "nodes": {
                 n.id: {
@@ -71,9 +73,9 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
         }
 
     # ---- heuristics ------------------------------------------------------- #
-    def detect_confidence(self, data: dict[str, Any]) -> float:  # noqa: D401
+    def detect_confidence(self, data: dict[str, Any]) -> float:
         return 0.95 if {"nodes", "arrows"}.issubset(data) else 0.1
 
-    def quick_match(self, content: str) -> bool:  # noqa: D401
+    def quick_match(self, content: str) -> bool:
         return content.lstrip().startswith("{") and '"nodes"' in content
 

@@ -1,19 +1,19 @@
 """Shared domain services."""
 
 from .validation_service import (
+    BaseValidator,
+    CompositeValidator,
+    Severity,
     ValidationResult,
     ValidationWarning,
     Validator,
-    CompositeValidator,
-    BaseValidator,
-    Severity,
 )
 
 __all__ = [
+    "BaseValidator",
+    "CompositeValidator",
+    "Severity",
     "ValidationResult",
     "ValidationWarning",
     "Validator",
-    "CompositeValidator",
-    "BaseValidator",
-    "Severity",
 ]

@@ -3,8 +3,8 @@
 import os
 
 from dipeo.core import APIKeyError, BaseService, ValidationError
-from dipeo.core.ports.apikey_port import SupportsAPIKey
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.core.ports.apikey_port import SupportsAPIKey
 
 
 class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):

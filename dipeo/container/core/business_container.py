@@ -61,11 +61,6 @@ def _create_message_formatter():
     return MessageFormatter()
 
 
-def _create_memory_strategy_factory():
-    """Create memory strategy factory."""
-    from dipeo.domain.conversation.services.memory_strategies import MemoryStrategyFactory
-    return MemoryStrategyFactory()
-
 
 def _create_diagram_analyzer():
     """Create diagram analyzer service."""
@@ -185,7 +180,6 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     # Conversation domain
     conversation_state_utils = providers.Singleton(_create_conversation_state_utils)
     message_formatter = providers.Singleton(_create_message_formatter)
-    memory_strategy_factory = providers.Singleton(_create_memory_strategy_factory)
     
     # Integration services
     data_transformer = providers.Singleton(_create_data_transformer)

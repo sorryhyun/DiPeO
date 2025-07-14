@@ -1,9 +1,10 @@
 import logging
 from typing import Any
 
+from notion_client import Client
+
 from dipeo.core import BaseService, ExecutionError
 from dipeo.core.ports import NotionServicePort
-from notion_client import Client
 
 logger = logging.getLogger(__name__)
 

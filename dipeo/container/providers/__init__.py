@@ -3,6 +3,6 @@
 from .utilities import MockServiceFactory, create_provider_overrides
 
 __all__ = [
-    "create_provider_overrides",
     "MockServiceFactory",
+    "create_provider_overrides",
 ]

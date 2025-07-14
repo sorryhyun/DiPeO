@@ -2,10 +2,11 @@
 
 import asyncio
 import shutil
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import aiofiles
 
@@ -13,7 +14,7 @@ import aiofiles
 class AsyncFileAdapter:
     """Adapts between sync and async file operations."""
     
-    def __init__(self, executor: Optional[ThreadPoolExecutor] = None):
+    def __init__(self, executor: ThreadPoolExecutor | None = None):
         """Initialize with optional thread pool executor."""
         self._executor = executor
     
@@ -34,7 +35,7 @@ class AsyncFileAdapter:
     
     async def read_text_async(self, file_path: Path) -> str:
         """Read text file asynchronously."""
-        async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
+        async with aiofiles.open(file_path, encoding='utf-8') as f:
             return await f.read()
     
     async def write_text_async(self, file_path: Path, content: str) -> None:

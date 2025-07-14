@@ -1,11 +1,11 @@
 """Judge-specific utility functions for preparing context from conversations."""
 
-from typing import Any, Dict
+from typing import Any
 
 from dipeo.core.utils import is_conversation
 
 
-def prepare_judge_context(inputs: Dict[str, Any], diagram: Any) -> str:
+def prepare_judge_context(inputs: dict[str, Any], diagram: Any) -> str:
     """Prepare context for judge nodes from conversation inputs."""
     # Handle nested conversation data from condition nodes
     conversations = None

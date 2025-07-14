@@ -2,8 +2,8 @@
 
 import csv
 import io
-from typing import Any, Dict, List
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 
@@ -27,7 +27,7 @@ class CsvHandler:
         """
         return file_path.suffix.lower() == ".csv"
     
-    def read(self, file_path: Path) -> tuple[List[Dict[str, Any]], str]:
+    def read(self, file_path: Path) -> tuple[list[dict[str, Any]], str]:
         """Read CSV file and return (parsed_content, raw_content).
         
         Args:

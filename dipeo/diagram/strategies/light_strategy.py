@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo.models import DomainDiagram, HandleDirection, create_handle_id
-from dipeo.models import HandleLabel, NodeID, parse_handle_id
+
+from dipeo.models import (
+    DomainDiagram,
+    HandleDirection,
+    HandleLabel,
+    NodeID,
+    create_handle_id,
+    parse_handle_id,
+)
+
+from ..conversion_utils import _node_id_map, _YamlMixin
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
-from ..conversion_utils import _YamlMixin, _node_id_map
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +53,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         }
         
         # Handle dot notation keys (e.g., "memory_config.forget_mode")
-        dotted_keys = [k for k in props.keys() if '.' in k]
+        dotted_keys = [k for k in props if '.' in k]
         for key in dotted_keys:
             value = props.pop(key)
             parts = key.split('.')
@@ -56,11 +64,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 current = current[part]
             current[parts[-1]] = value
 
-        # Convert legacy forgetting_mode to proper memory_config structure
-        if "forgetting_mode" in props:
-            props["memory_config"] = {
-                "forget_mode": props.pop("forgetting_mode")
-            }
 
         # Add required fields for specific node types
         node_type = n.get("type", "job")
@@ -98,7 +101,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
     def extract_arrows(
             self, data: dict[str, Any], nodes: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:  # noqa: D401
+    ) -> list[dict[str, Any]]:
         arrows: list[dict[str, Any]] = []
         label2id = _node_id_map(nodes)
         for idx, c in enumerate(data.get("connections", [])):
@@ -231,7 +234,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         return arrows
 
     # ---- export ----------------------------------------------------------- #
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
         
@@ -333,8 +336,8 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         return out
 
     # ---- heuristics ------------------------------------------------------- #
-    def detect_confidence(self, data: dict[str, Any]) -> float:  # noqa: D401
+    def detect_confidence(self, data: dict[str, Any]) -> float:
         return 0.8 if isinstance(data.get("nodes"), list) else 0.1
 
-    def quick_match(self, content: str) -> bool:  # noqa: D401
+    def quick_match(self, content: str) -> bool:
         return "nodes:" in content and not content.lstrip().startswith(("{", "["))

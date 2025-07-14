@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence, TYPE_CHECKING
-from dipeo.models import (DataType, HandleLabel, HandleDirection, NodeType,
-                          create_handle_id, NodeID)
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
+from dipeo.models import DataType, HandleDirection, HandleLabel, NodeID, NodeType, create_handle_id
 
 if TYPE_CHECKING:
-    from .conversion_utils import BackendDiagram
+    pass
 
 __all__ = (
+    "ArrowBuilder",
     "HandleGenerator",
     "PositionCalculator",
-    "ArrowBuilder",
-    "coerce_to_dict",
     "build_node",
+    "coerce_to_dict",
     "ensure_position",
     "extract_common_arrows",
 )
@@ -197,7 +197,7 @@ class PositionCalculator:
 class ArrowBuilder:
 
     @staticmethod
-    def create_arrow_id(source_handle: str, target_handle: str) -> str:  # noqa: D401
+    def create_arrow_id(source_handle: str, target_handle: str) -> str:
         return f"{source_handle}->{target_handle}"
 
     @staticmethod

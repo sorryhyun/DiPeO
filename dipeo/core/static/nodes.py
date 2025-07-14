@@ -7,44 +7,41 @@ consistency across the codebase.
 
 # Re-export everything from the generated module
 from dipeo.core.static.generated_nodes import (
+    ApiJobNode,
     # Base class
     BaseExecutableNode,
-    
-    # Node types
-    StartNode,
-    EndpointNode,
-    PersonJobNode,
-    PersonJobNode as PersonNode,  # Alias for compatibility
-    ConditionNode,
     CodeJobNode,
-    ApiJobNode,
+    ConditionNode,
     DBNode,
-    UserResponseNode,
-    NotionNode,
-    PersonBatchJobNode,
-    HookNode,
-    
+    EndpointNode,
     # Union type
     ExecutableNode,
-    
+    HookNode,
+    NotionNode,
+    PersonBatchJobNode,
+    PersonJobNode,
+    # Node types
+    StartNode,
+    UserResponseNode,
     # Factory function
-    create_executable_node
+    create_executable_node,
 )
+from dipeo.core.static.generated_nodes import PersonJobNode as PersonNode  # Alias for compatibility
 
 __all__ = [
-    'BaseExecutableNode',
-    'StartNode',
-    'EndpointNode',
-    'PersonJobNode',
-    'PersonNode',  # Aliased from PersonJobNode
-    'ConditionNode',
-    'CodeJobNode',
     'ApiJobNode',
+    'BaseExecutableNode',
+    'CodeJobNode',
+    'ConditionNode',
     'DBNode',
-    'UserResponseNode',
+    'EndpointNode',
+    'ExecutableNode',
+    'HookNode',
     'NotionNode',
     'PersonBatchJobNode',
-    'HookNode',
-    'ExecutableNode',
+    'PersonJobNode',
+    'PersonNode',  # Aliased from PersonJobNode
+    'StartNode',
+    'UserResponseNode',
     'create_executable_node'
 ]

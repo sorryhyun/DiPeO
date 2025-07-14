@@ -4,8 +4,8 @@ import ast
 import operator
 from typing import Any
 
-from dipeo.utils.template import TemplateProcessor
 from dipeo.models import DomainDiagram, NodeType
+from dipeo.utils.template import TemplateProcessor
 
 
 class ConditionEvaluator:

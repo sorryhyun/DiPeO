@@ -1,23 +1,17 @@
 # Arrow transformation for converting domain arrows to executable edges.
 
-from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
+from typing import Any
 
-from dipeo.models import (
-    DomainArrow,
-    DomainNode,
-    NodeID,
-    NodeType,
-    ContentType
-)
-from dipeo.core.static import ExecutableEdge
 from dipeo.application.resolution.handle_resolver import ResolvedConnection
+from dipeo.core.static import ExecutableEdge
+from dipeo.models import ContentType, DomainArrow, DomainNode, NodeID, NodeType
 
 
 @dataclass
 class TransformationMetadata:
     content_type: ContentType
-    transformation_rules: Dict[str, Any] = None
+    transformation_rules: dict[str, Any] = None
     
     def __post_init__(self):
         if self.transformation_rules is None:
@@ -32,14 +26,14 @@ class ArrowTransformer:
     """
     
     def __init__(self):
-        self._errors: List[str] = []
+        self._errors: list[str] = []
     
     def transform_arrows(
         self,
-        arrows: List[DomainArrow],
-        resolved_connections: List[ResolvedConnection],
-        nodes: Dict[NodeID, DomainNode]
-    ) -> Tuple[List[ExecutableEdge], List[str]]:
+        arrows: list[DomainArrow],
+        resolved_connections: list[ResolvedConnection],
+        nodes: dict[NodeID, DomainNode]
+    ) -> tuple[list[ExecutableEdge], list[str]]:
         self._errors = []
         
         # Create arrow lookup
@@ -63,8 +57,8 @@ class ArrowTransformer:
         self,
         connection: ResolvedConnection,
         arrow: DomainArrow,
-        nodes: Dict[NodeID, DomainNode]
-    ) -> Optional[ExecutableEdge]:
+        nodes: dict[NodeID, DomainNode]
+    ) -> ExecutableEdge | None:
         # Get source and target nodes
         source_node = nodes.get(connection.source_node_id)
         target_node = nodes.get(connection.target_node_id)
@@ -156,7 +150,7 @@ class ArrowTransformer:
         arrow: DomainArrow,
         source_node: DomainNode,
         target_node: DomainNode
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         rules = {}
         
         # Extract from arrow data
@@ -193,14 +187,14 @@ class ExecutableNodeImpl:
         id: NodeID,
         type: NodeType,
         position: Any,
-        data: Dict[str, Any]
+        data: dict[str, Any]
     ):
         self.id = id
         self.type = type
         self.position = position
         self.data = data
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": self.type.value,

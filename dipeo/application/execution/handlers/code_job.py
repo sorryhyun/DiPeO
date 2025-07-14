@@ -3,16 +3,17 @@ import asyncio
 import json
 import os
 import sys
-from io import StringIO
-from typing import Any, TYPE_CHECKING
 import warnings
+from io import StringIO
+from typing import TYPE_CHECKING, Any
 
-from dipeo.application import register_handler
-from dipeo.application.execution.types import TypedNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
-from dipeo.core.static.generated_nodes import CodeJobNode
 from pydantic import BaseModel
+
+from dipeo.application.execution import UnifiedExecutionContext
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.core.static.generated_nodes import CodeJobNode
+from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
 from dipeo.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
@@ -111,7 +112,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 {"language": language, "success": True}
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self._build_output(
                 {"default": ""}, 
                 context,
@@ -285,7 +286,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         try:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             raise
@@ -325,7 +326,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         try:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             raise

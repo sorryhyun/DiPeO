@@ -1,7 +1,8 @@
 """Base implementation for typed node handlers in the execution system."""
 
-from typing import Type, TypeVar, List, Dict, Any, TYPE_CHECKING, Generic
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
+
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
@@ -22,7 +23,7 @@ class TypedNodeHandler(ABC, Generic[T]):
     
     @property
     @abstractmethod
-    def node_class(self) -> Type[T]:
+    def node_class(self) -> type[T]:
         """The typed node class this handler handles."""
         ...
     
@@ -34,12 +35,12 @@ class TypedNodeHandler(ABC, Generic[T]):
     
     @property
     @abstractmethod
-    def schema(self) -> Type[BaseModel]:
+    def schema(self) -> type[BaseModel]:
         """The Pydantic schema for validation."""
         ...
     
     @property
-    def requires_services(self) -> List[str]:
+    def requires_services(self) -> list[str]:
         """List of services required by this handler."""
         return []
     
@@ -53,8 +54,8 @@ class TypedNodeHandler(ABC, Generic[T]):
         self,
         node: T,
         context: Any,
-        inputs: Dict[str, Any],
-        services: Dict[str, Any]
+        inputs: dict[str, Any],
+        services: dict[str, Any]
     ) -> 'NodeOutput':
         """Execute the handler with strongly-typed node.
         

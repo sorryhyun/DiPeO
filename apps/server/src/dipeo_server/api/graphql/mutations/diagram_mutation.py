@@ -52,10 +52,9 @@ class DiagramMutations:
             )
 
             # Use new services - convert to storage format
-            from dipeo.diagram import graphql_to_backend
+            from dipeo.diagram import domain_diagram_to_dict
 
-            backend_model = graphql_to_backend(diagram_model)
-            storage_dict = backend_model.model_dump(by_alias=True)
+            storage_dict = domain_diagram_to_dict(diagram_model)
             path = f"{input.name}.json"
             await storage_service.write_file(path, storage_dict)
 

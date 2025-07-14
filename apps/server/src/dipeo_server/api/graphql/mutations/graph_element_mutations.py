@@ -4,7 +4,7 @@ import logging
 import uuid
 
 import strawberry
-from dipeo.diagram import BackendDiagram, backend_to_graphql
+from dipeo.diagram import dict_to_domain_diagram
 from dipeo.models import (
     ArrowID as DomainArrowID,
 )
@@ -83,8 +83,7 @@ class GraphElementMutations:
             # Save diagram using new service
             await storage_service.write_file(path, diagram_data)
 
-            backend_diagram = BackendDiagram(**diagram_data)
-            graphql_diagram = backend_to_graphql(backend_diagram)
+            graphql_diagram = dict_to_domain_diagram(diagram_data)
 
             return DiagramResult(
                 success=True,

@@ -3,17 +3,18 @@ Auto-generated conversions. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 
-from typing import Dict, Any, TypedDict
+from typing import TypedDict
+
 from .models import (
-    NodeType,
     HandleDirection,
-    NodeID,
     HandleID,
+    NodeID,
+    NodeType,
 )
 
 # ---------------------------------------------------------------------------
 
-NODE_TYPE_MAP: Dict[str, NodeType] = {
+NODE_TYPE_MAP: dict[str, NodeType] = {
     "job": NodeType.job,
     "code_job": NodeType.code_job,
     "api_job": NodeType.api_job,
@@ -28,7 +29,7 @@ NODE_TYPE_MAP: Dict[str, NodeType] = {
     "hook": NodeType.hook,
 }
 
-NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.items()}
+NODE_TYPE_REVERSE_MAP: dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.items()}
 
 def node_kind_to_domain_type(kind: str) -> NodeType:
     try:
@@ -48,7 +49,7 @@ def domain_type_to_node_kind(node_type: NodeType) -> str:
 # Handle helpers – kept trivial and logic-aligned with TypeScript.
 # ---------------------------------------------------------------------------
 
-def normalize_node_id(node_id: str) -> NodeID:  # noqa: D401
+def normalize_node_id(node_id: str) -> NodeID:
     """Return the node ID unchanged (placeholder for future logic)."""
     return node_id  # type: ignore[return-value]
 
@@ -116,11 +117,11 @@ def diagram_maps_to_arrays(
 __all__ = [
     "NODE_TYPE_MAP",
     "NODE_TYPE_REVERSE_MAP",
-    "node_kind_to_domain_type",
-    "domain_type_to_node_kind",
-    "normalize_node_id",
     "create_handle_id",
-    "parse_handle_id",
     "diagram_arrays_to_maps",
     "diagram_maps_to_arrays",
+    "domain_type_to_node_kind",
+    "node_kind_to_domain_type",
+    "normalize_node_id",
+    "parse_handle_id",
 ]

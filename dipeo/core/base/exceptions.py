@@ -1,12 +1,12 @@
 """Base exception classes for DiPeO core."""
 
-from typing import Any, List, Optional
+from typing import Any
 
 
 class DiPeOError(Exception):
     """Base exception class for all DiPeO errors."""
 
-    def __init__(self, message: str, details: Optional[dict[str, Any]] = None):
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -44,7 +44,7 @@ class NodeExecutionError(ExecutionError):
         node_id: str,
         node_type: str,
         message: str,
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ):
         self.node_id = node_id
         self.node_type = node_type
@@ -59,8 +59,8 @@ class DependencyError(ExecutionError):
     def __init__(
         self,
         node_id: str,
-        missing_dependencies: List[str],
-        details: Optional[dict[str, Any]] = None,
+        missing_dependencies: list[str],
+        details: dict[str, Any] | None = None,
     ):
         self.node_id = node_id
         self.missing_dependencies = missing_dependencies
@@ -79,7 +79,7 @@ class MaxIterationsError(ExecutionError):
         self,
         node_id: str,
         max_iterations: int,
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ):
         self.node_id = node_id
         self.max_iterations = max_iterations
@@ -96,8 +96,8 @@ class TimeoutError(ExecutionError):
     def __init__(
         self,
         message: str = "Execution timed out",
-        timeout: Optional[float] = None,
-        details: Optional[dict[str, Any]] = None,
+        timeout: float | None = None,
+        details: dict[str, Any] | None = None,
     ):
         self.timeout = timeout
         if timeout:
@@ -116,7 +116,7 @@ class APIKeyNotFoundError(APIKeyError):
 
     error_code = "API_KEY_NOT_FOUND"
 
-    def __init__(self, key_id: str, details: Optional[dict[str, Any]] = None):
+    def __init__(self, key_id: str, details: dict[str, Any] | None = None):
         self.key_id = key_id
         super().__init__(f"API key not found: {key_id}", details)
 
@@ -130,8 +130,8 @@ class LLMServiceError(ServiceError):
         self,
         service: str,
         message: str,
-        model: Optional[str] = None,
-        details: Optional[dict[str, Any]] = None,
+        model: str | None = None,
+        details: dict[str, Any] | None = None,
     ):
         self.service = service
         self.model = model
@@ -152,7 +152,7 @@ class FileOperationError(DiPeOError):
         operation: str,
         path: str,
         message: str,
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ):
         self.operation = operation
         self.path = path
@@ -170,7 +170,7 @@ class DiagramNotFoundError(DiagramError):
 
     error_code = "DIAGRAM_NOT_FOUND"
 
-    def __init__(self, diagram_id: str, details: Optional[dict[str, Any]] = None):
+    def __init__(self, diagram_id: str, details: dict[str, Any] | None = None):
         self.diagram_id = diagram_id
         super().__init__(f"Diagram not found: {diagram_id}", details)
 
@@ -183,8 +183,8 @@ class InvalidDiagramError(DiagramError):
     def __init__(
         self,
         reason: str,
-        diagram_id: Optional[str] = None,
-        details: Optional[dict[str, Any]] = None,
+        diagram_id: str | None = None,
+        details: dict[str, Any] | None = None,
     ):
         self.reason = reason
         self.diagram_id = diagram_id

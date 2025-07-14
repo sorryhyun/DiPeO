@@ -1,14 +1,8 @@
 """LLM infrastructure service implementation."""
 
 import time
-from typing import Any, Optional
+from typing import Any
 
-from dipeo.core import APIKeyError, BaseService, LLMServiceError
-from dipeo.core.ports import LLMServicePort
-from dipeo.core.ports.apikey_port import SupportsAPIKey
-from dipeo.models import ChatResult
-from dipeo.models import LLMService as LLMServiceEnum
-from dipeo.domain.llm import LLMDomainService, ModelConfig, RetryStrategy
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -16,15 +10,20 @@ from tenacity import (
     wait_exponential,
 )
 
+from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.core.ports import LLMServicePort
+from dipeo.core.ports.apikey_port import SupportsAPIKey
+from dipeo.domain.llm import LLMDomainService
 from dipeo.infra.config.settings import get_settings
+from dipeo.models import ChatResult
 
 from .factory import create_adapter
 
 
 class LLMInfraService(BaseService, LLMServicePort):
 
-    def __init__(self, api_key_service: SupportsAPIKey, llm_domain_service: Optional[LLMDomainService] = None):
+    def __init__(self, api_key_service: SupportsAPIKey, llm_domain_service: LLMDomainService | None = None):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
@@ -121,8 +120,8 @@ class LLMInfraService(BaseService, LLMServicePort):
             except Exception as inner_e:
                 # Log the actual error for debugging if logger is available
                 if hasattr(self, 'logger'):
-                    self.logger.error(f"LLM call failed: {type(inner_e).__name__}: {str(inner_e)}")
-                raise LLMServiceError(service="llm", message=f"LLM service {service} failed: {str(inner_e)}")
+                    self.logger.error(f"LLM call failed: {type(inner_e).__name__}: {inner_e!s}")
+                raise LLMServiceError(service="llm", message=f"LLM service {service} failed: {inner_e!s}")
 
         except Exception as e:
             raise LLMServiceError(service="llm", message=str(e))

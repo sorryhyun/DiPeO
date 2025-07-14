@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from dipeo.core import ValidationError
 from dipeo.core.ports import FileServicePort
@@ -27,7 +27,7 @@ class DBOperationsAdapter:
 
     async def execute_operation(
         self, db_name: str, operation: str, value: Any = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute a database operation."""
         # Delegate validation to domain services
         self.validation_service.validate_operation(operation, self.domain_service.ALLOWED_OPERATIONS)
@@ -70,7 +70,7 @@ class DBOperationsAdapter:
         log.debug(f"Constructed db_path: '{db_path}'")
         return db_path
 
-    async def _read_db(self, file_path: str) -> Dict[str, Any]:
+    async def _read_db(self, file_path: str) -> dict[str, Any]:
         """Read database file and return formatted response."""
         import logging
         log = logging.getLogger(__name__)
@@ -118,11 +118,11 @@ class DBOperationsAdapter:
             raise
         except Exception as e:
             raise ValidationError(
-                f"Failed to read database: {str(e)}",
+                f"Failed to read database: {e!s}",
                 details={"file_path": file_path}
             )
 
-    async def _write_db(self, file_path: str, value: Any) -> Dict[str, Any]:
+    async def _write_db(self, file_path: str, value: Any) -> dict[str, Any]:
         """Write data to database file."""
         try:
             # Use domain service to prepare data
@@ -151,11 +151,11 @@ class DBOperationsAdapter:
             )
         except Exception as e:
             raise ValidationError(
-                f"Failed to write database: {str(e)}",
+                f"Failed to write database: {e!s}",
                 details={"file_path": file_path}
             )
 
-    async def _append_db(self, file_path: str, value: Any) -> Dict[str, Any]:
+    async def _append_db(self, file_path: str, value: Any) -> dict[str, Any]:
         """Append data to database file."""
         try:
             # Read existing data
@@ -178,6 +178,6 @@ class DBOperationsAdapter:
             )
         except Exception as e:
             raise ValidationError(
-                f"Failed to append to database: {str(e)}",
+                f"Failed to append to database: {e!s}",
                 details={"file_path": file_path}
             )

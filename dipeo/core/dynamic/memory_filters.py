@@ -1,7 +1,8 @@
 """Memory filter system for managing different views of the global conversation."""
 
-from typing import List, Callable, Optional, Protocol, Set
 from enum import Enum
+from typing import Protocol
+
 from dipeo.models import Message, PersonID
 
 
@@ -21,7 +22,7 @@ class MemoryView(Enum):
 class MemoryFilter(Protocol):
     """Protocol for memory filters."""
     
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
+    def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         """Filter messages based on the person's perspective."""
         ...
     
@@ -33,7 +34,7 @@ class MemoryFilter(Protocol):
 class AllInvolvedFilter:
     """Filter for messages where person is sender or recipient."""
     
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
+    def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [
             msg for msg in messages
             if msg.from_person_id == person_id or msg.to_person_id == person_id
@@ -46,7 +47,7 @@ class AllInvolvedFilter:
 class SentByMeFilter:
     """Filter for messages sent by this person."""
     
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
+    def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [msg for msg in messages if msg.from_person_id == person_id]
     
     def describe(self) -> str:
@@ -56,7 +57,7 @@ class SentByMeFilter:
 class SentToMeFilter:
     """Filter for messages sent to this person."""
     
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
+    def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [msg for msg in messages if msg.to_person_id == person_id]
     
     def describe(self) -> str:
@@ -66,7 +67,7 @@ class SentToMeFilter:
 class SystemAndMeFilter:
     """Filter for system messages and this person's interactions."""
     
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
+    def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [
             msg for msg in messages
             if (msg.from_person_id == PersonID("system") and msg.to_person_id == person_id)
@@ -80,7 +81,7 @@ class SystemAndMeFilter:
 class ConversationPairsFilter:
     """Filter that groups messages as request/response pairs."""
     
-    def filter(self, messages: List[Message], person_id: PersonID) -> List[Message]:
+    def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         result = []
         
         # Track messages to this person and look for responses
@@ -129,7 +130,7 @@ class MemoryLimiter:
         self.max_messages = max_messages
         self.preserve_system = preserve_system
     
-    def limit(self, messages: List[Message]) -> List[Message]:
+    def limit(self, messages: list[Message]) -> list[Message]:
         """Apply memory limit to messages, preserving system messages if configured."""
         if len(messages) <= self.max_messages:
             return messages

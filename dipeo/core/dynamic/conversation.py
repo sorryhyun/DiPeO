@@ -1,16 +1,16 @@
 """Conversation dynamic object for managing dialogue history and context."""
 
-from typing import Dict, Any, List, Optional, TypedDict
 from datetime import datetime
+from typing import Any, TypedDict
 
-from dipeo.models import Message, ConversationMetadata
+from dipeo.models import ConversationMetadata, Message
 
 
 class ConversationContext(TypedDict):
     """Context structure returned by conversation.get_context()."""
-    messages: List[Message]
-    metadata: Optional[ConversationMetadata]
-    context: Dict[str, Any]
+    messages: list[Message]
+    metadata: ConversationMetadata | None
+    context: dict[str, Any]
 
 
 class Conversation:
@@ -20,9 +20,9 @@ class Conversation:
     """
     
     def __init__(self):
-        self.messages: List[Message] = []
-        self.context: Dict[str, Any] = {}
-        self.metadata: Optional[ConversationMetadata] = None
+        self.messages: list[Message] = []
+        self.context: dict[str, Any] = {}
+        self.metadata: ConversationMetadata | None = None
     
     def add_message(self, message: Message) -> None:
         # Add message with timestamp if missing
@@ -40,12 +40,12 @@ class Conversation:
             context=self.context.copy()
         )
     
-    def get_latest_message(self) -> Optional[Message]:
+    def get_latest_message(self) -> Message | None:
         # Get most recent message
         return self.messages[-1] if self.messages else None
     
     
-    def update_context(self, updates: Dict[str, Any]) -> None:
+    def update_context(self, updates: dict[str, Any]) -> None:
         # Update context with new values
         self.context.update(updates)
     

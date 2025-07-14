@@ -35,6 +35,7 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
       { tsName: 'default_prompt', pyName: 'default_prompt' },
       { tsName: 'max_iteration', pyName: 'max_iteration', defaultValue: '1' },
       { tsName: 'memory_config', pyName: 'memory_config' },
+      { tsName: 'memory_settings', pyName: 'memory_settings' },
       { tsName: 'tools', pyName: 'tools' }
     ]
   },
@@ -112,6 +113,7 @@ const TS_TO_PY_TYPE: Record<string, string> = {
   'boolean': 'bool',
   'PersonID': 'Optional[PersonID]',
   'MemoryConfig': 'Optional[MemoryConfig]',
+  'MemorySettings': 'Optional[MemorySettings]',
   'ToolConfig[]': 'Optional[List[ToolConfig]]',
   'string[]': 'Optional[List[str]]',
   'Record<string, any>': 'Dict[str, Any]',

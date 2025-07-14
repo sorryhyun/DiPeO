@@ -174,13 +174,13 @@ export function useExecutionUpdates({
   useEffect(() => {
     if (!nodeUpdates) return;
     
-    const status = (nodeUpdates.status || '').toLowerCase();
+    const status = nodeUpdates.status || '';
 
-    if (status === 'running') {
+    if (status === 'RUNNING') {
       handleNodeStart(nodeUpdates.node_id, nodeUpdates.node_type);
-    } else if (status === 'completed') {
+    } else if (status === 'COMPLETED') {
       handleNodeComplete(nodeUpdates.node_id, nodeUpdates.tokens_used || undefined, nodeUpdates.output);
-    } else if (status === 'failed') {
+    } else if (status === 'FAILED') {
       updateNodeState(nodeUpdates.node_id, {
         status: 'error',
         endTime: new Date(),
@@ -205,7 +205,7 @@ export function useExecutionUpdates({
         status: NodeExecutionStatus.FAILED, 
         timestamp: new Date().toISOString() 
       });
-    } else if (status === 'skipped') {
+    } else if (status === 'SKIPPED') {
       incrementCompletedNodes();
       
       updateNodeState(nodeUpdates.node_id, {
@@ -226,7 +226,7 @@ export function useExecutionUpdates({
         status: NodeExecutionStatus.SKIPPED, 
         timestamp: new Date().toISOString() 
       });
-    } else if (status === 'paused') {
+    } else if (status === 'PAUSED') {
       updateNodeState(nodeUpdates.node_id, {
         status: 'paused'
       });

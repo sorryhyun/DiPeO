@@ -28,7 +28,8 @@ export enum NodeExecutionStatus {
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   ABORTED = 'ABORTED',      // Added for consistency
-  SKIPPED = 'SKIPPED'
+  SKIPPED = 'SKIPPED',
+  MAXITER_REACHED = 'MAXITER_REACHED'  // Node hit its max iteration limit
 }
 
 export enum EventType {
