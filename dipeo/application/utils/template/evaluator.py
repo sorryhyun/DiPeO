@@ -12,46 +12,7 @@ class ConditionEvaluator:
     
     def __init__(self):
         self._processor = TemplateProcessor()
-    
-    def evaluate_max_iterations(
-        self,
-        diagram: DomainDiagram,
-        execution_states: dict[str, dict[str, Any]],
-        node_exec_counts: dict[str, int] | None = None,
-    ) -> bool:
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        if not diagram:
-            return False
-        
-        found_person_job = False
-        all_reached_max = True
-        
-        logger.debug(f"Evaluating max iterations. Node exec counts: {node_exec_counts}")
-        
-        for node in diagram.nodes:
-            if node.type == NodeType.person_job.value:
-                exec_count = 0
-                
-                node_state = execution_states.get(node.id)
-                if node_state and node_state.get('status', 'pending') != 'pending':
-                    exec_count = 1
-                    
-                    if node_exec_counts and node.id in node_exec_counts:
-                        exec_count = node_exec_counts[node.id]
-                
-                if exec_count > 0:
-                    found_person_job = True
-                    max_iter = int((node.data or {}).get("max_iteration", 1))
-                    logger.debug(f"Node {node.id}: exec_count={exec_count}, max_iter={max_iter}")
-                    if exec_count < max_iter:
-                        all_reached_max = False
-                        break
-        
-        logger.debug(f"Max iterations result: found_person_job={found_person_job}, all_reached_max={all_reached_max}")
-        
-        return found_person_job and all_reached_max
+
     
     def check_nodes_executed(
         self,
@@ -67,35 +28,7 @@ class ConditionEvaluator:
                 all_executed.update(output.executed_nodes)
         
         return all(node_id in all_executed for node_id in target_node_ids)
-    
-    def evaluate_max_iterations_from_outputs(
-        self,
-        diagram: DomainDiagram,
-        node_outputs: dict[str, Any],
-        exec_counts: dict[str, int],
-    ) -> bool:
-        if not diagram or not node_outputs:
-            return False
-        
-        all_executed = set()
-        for output in node_outputs.values():
-            if hasattr(output, 'executed_nodes') and output.executed_nodes:
-                all_executed.update(output.executed_nodes)
-        
-        found_person_job = False
-        all_reached_max = True
-        
-        for node in diagram.nodes:
-            if node.type == NodeType.person_job.value and node.id in all_executed:
-                found_person_job = True
-                exec_count = exec_counts.get(node.id, 0)
-                max_iter = int((node.data or {}).get("max_iteration", 1))
-                
-                if exec_count < max_iter:
-                    all_reached_max = False
-                    break
-        
-        return found_person_job and all_reached_max
+
     
     def evaluate_custom_expression(
         self,

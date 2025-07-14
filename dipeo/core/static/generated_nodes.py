@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List, Union, Literal
 
 from dipeo.models.models import (
-    NodeType, Vec2, NodeID, PersonID, MemoryConfig, ToolConfig,
+    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
     NotionOperation, HookType, PersonLLMConfig, LLMService
 )
@@ -286,7 +286,7 @@ def create_executable_node(
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
             memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
-            memory_settings=data.get("memory_settings"),
+            memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
             tools=data.get("tools"),
         )
     
@@ -395,6 +395,7 @@ def create_executable_node(
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
             memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
+            memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
             tools=data.get("tools")
         )
     

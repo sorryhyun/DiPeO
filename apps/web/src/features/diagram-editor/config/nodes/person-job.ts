@@ -30,6 +30,12 @@ export const PersonJobNodeConfig = createNodeConfig<PersonJobNodeData>({
     first_only_prompt: '', 
     default_prompt: '',
     tools: '',
+    memory_profile: 'FULL',
+    memory_settings: {
+      view: 'all_involved',
+      max_messages: null,
+      preserve_system: true
+    },
     memory_config: {
       forget_mode: 'no_forget'
     }
@@ -37,5 +43,5 @@ export const PersonJobNodeConfig = createNodeConfig<PersonJobNodeData>({
   
   // Panel layout configuration
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_config.forget_mode', 'default_prompt', 'first_only_prompt']
+  panelFieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_profile', 'default_prompt', 'first_only_prompt']
 });

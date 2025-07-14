@@ -61,7 +61,6 @@ def _create_unified_service_registry(
     api_business_logic,
     file_business_logic,
     prompt_builder,
-    conversation_state_utils,
     # Static services
     template_processor,
     # Dynamic services
@@ -98,8 +97,7 @@ def _create_unified_service_registry(
     registry.register("api_business_logic", api_business_logic)
     registry.register("file_domain_service", file_business_logic)
     registry.register("prompt_builder", prompt_builder)
-    registry.register("conversation_state_utils", conversation_state_utils)
-    
+
     # Static services
     registry.register("template_service", template_processor)
     
@@ -153,7 +151,6 @@ class ApplicationContainer(ImmutableBaseContainer):
         api_business_logic=business.api_business_logic,
         file_business_logic=business.file_business_logic,
         prompt_builder=business.prompt_builder,
-        conversation_state_utils=business.conversation_state_utils,
         # Static services
         template_processor=static.template_processor,
         # Dynamic services

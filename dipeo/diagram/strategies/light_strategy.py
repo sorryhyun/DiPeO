@@ -90,6 +90,14 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Map source_details to file for DB nodes
             if "source_details" in props and "file" not in props:
                 props["file"] = props.pop("source_details")
+        elif node_type == "person_job":
+            # Remove legacy memory_config on import
+            if "memory_config" in props:
+                props.pop("memory_config")
+            
+            # Remove memory_settings if memory_profile is present
+            if "memory_profile" in props and "memory_settings" in props:
+                props.pop("memory_settings")
 
         return build_node(
             id=self._create_node_id(index),
@@ -270,6 +278,14 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 person_id = props["person"]
                 if person_id in person_id_to_label:
                     props["person"] = person_id_to_label[person_id]
+                
+                # Remove legacy memory_config
+                if "memory_config" in props:
+                    props.pop("memory_config")
+                
+                # Remove memory_settings if memory_profile is present
+                if "memory_profile" in props and "memory_settings" in props:
+                    props.pop("memory_settings")
             
             # Map fileName back to filePath for endpoint nodes
             if node_type == "endpoint" and "file_name" in props:

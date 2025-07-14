@@ -4,7 +4,7 @@ from typing import Any
 
 from dipeo.core import ValidationError
 from dipeo.domain.diagram.services import DiagramValidator
-from dipeo.domain.models.value_objects import TransformationResult, ValidationResult
+from dipeo.domain.diagram.value_objects import TransformationResult, ValidationResult
 from dipeo.models import (
     DiagramFormat,
     DomainArrow,

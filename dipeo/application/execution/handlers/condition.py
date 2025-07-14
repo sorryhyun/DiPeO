@@ -81,24 +81,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         
         # Evaluate condition based on type
         if condition_type == "detect_max_iterations":
-            logger.debug(f"Detect max iterations: has node_outputs={hasattr(context, 'node_outputs')}, executed_nodes={context.executed_nodes if hasattr(context, 'executed_nodes') else 'N/A'}")
-            
-            # Use new approach with NodeOutput data if available
-            if hasattr(context, 'node_outputs') and context.executed_nodes:
-                # New approach: Use executed_nodes and node outputs
-                result = self._evaluate_max_iterations_with_outputs(
-                    evaluation_service, diagram, context, node
-                )
-            else:
-                # Fallback to old approach for backward compatibility
-                execution_states = self._extract_execution_states(context)
-                node_exec_counts = self._extract_node_exec_counts(context)
-                
-                result = evaluation_service.evaluate_max_iterations(
-                    diagram=diagram,
-                    execution_states=execution_states,
-                    node_exec_counts=node_exec_counts,
-                )
+            result = self._evaluate_max_iterations_with_outputs(
+                evaluation_service, diagram, context, node
+            )
         elif condition_type == "check_nodes_executed":
             # New condition type using executed_nodes field
             target_nodes = node_indices or []

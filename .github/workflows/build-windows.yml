@@ -69,7 +69,6 @@ jobs:
           }
       
       - name: Build Python Backend
-        working-directory: apps/server
         run: |
           # Create virtual environment
           python -m venv .venv
@@ -96,7 +95,8 @@ jobs:
 
       - name: Build Frontend
         run: |
-          pnpm build:web
+          pnpm --filter @dipeo/domain-models build
+          pnpm --filter web build
 
       
       - name: Build Tauri Application

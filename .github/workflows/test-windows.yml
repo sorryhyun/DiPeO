@@ -49,7 +49,8 @@ jobs:
       
       - name: Build Frontend (smoke test)
         run: |
-          pnpm build:web
+          pnpm --filter @dipeo/domain-models build
+          pnpm --filter web build
       
       - name: Test CLI execution
         run: |

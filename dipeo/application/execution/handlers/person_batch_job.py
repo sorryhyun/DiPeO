@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from dipeo.application.execution import UnifiedExecutionContext
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
-from dipeo.application.utils.conversation_utils import MessageBuilder
 from dipeo.core.static.generated_nodes import PersonBatchJobNode
 from dipeo.core.utils import is_conversation
 from dipeo.models import (
@@ -64,6 +63,9 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
     @property
     def description(self) -> str:
         return "Execute prompts across multiple persons in batch"
+
+    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Any | None:
+        return context.get_service(service_name) or services.get(service_name)
 
     async def execute(
         self,
@@ -185,6 +187,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         diagram: DomainDiagram | None,
         conversation_service: "ConversationManager",
         llm_service: Any,
+        services: dict[str, Any],
     ) -> dict[str, Any]:
         # Find person
         person = self._find_person(diagram, person_id)
@@ -193,7 +196,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
 
         # Create message builder
         execution_id = context.execution_state.id if hasattr(context, 'execution_state') else getattr(context, 'execution_id', 'unknown')
-        message_builder = MessageBuilder(conversation_service, person_id, execution_id)
+        prompt_builder = self._resolve_service(context, services, "prompt_builder")
         
         # Apply memory settings if configured
         if node.memory_settings:
@@ -269,18 +272,18 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
             # Add as a single user message
             if combined_content_parts:
                 combined_content = "\n".join(combined_content_parts)
-                message_builder.user(combined_content)
+                prompt_builder.user(combined_content)
         else:
             # Original behavior for non-conversation-state inputs
             if inputs:
                 for key, value in inputs.items():
                     if value and key != "conversation":
                         # Format the external input with its source
-                        message_builder.external(key, str(value))
+                        prompt_builder.external(key, str(value))
 
             # Add prompt to conversation separately only if not conversation state
             if prompt:
-                message_builder.user(prompt)
+                prompt_builder.user(prompt)
 
         # Build messages list
         messages = []
@@ -324,7 +327,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         )
 
         # Store response
-        message_builder.assistant(result.text)
+        prompt_builder.assistant(result.text)
 
         return {
             "text": result.text,
