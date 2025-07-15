@@ -13,14 +13,15 @@ echo      DiPeO Windows Build Script
 echo         Version: %VERSION%
 echo ========================================
 echo.
+echo.
 
 REM Get the root directory
 set SCRIPT_DIR=%~dp0
 set ROOT_DIR=%SCRIPT_DIR%..
 cd /d "%ROOT_DIR%"
 
-REM Step 1: Build Python Backend
-echo [1/3] Building Python Backend...
+REM Step 1: Build Python Backend and CLI
+echo [1/4] Building Python Backend...
 cd apps\server
 
 REM Check if virtual environment exists
@@ -40,12 +41,7 @@ pip install pyinstaller >nul 2>&1
 
 REM Install local packages
 echo Installing DiPeO packages...
-pip install -e "%ROOT_DIR%\packages\python\dipeo_core" >nul 2>&1
-pip install -e "%ROOT_DIR%\packages\python\dipeo_domain" >nul 2>&1
-pip install -e "%ROOT_DIR%\packages\python\dipeo_diagram" >nul 2>&1
-pip install -e "%ROOT_DIR%\packages\python\dipeo_application" >nul 2>&1
-pip install -e "%ROOT_DIR%\packages\python\dipeo_infra" >nul 2>&1
-pip install -e "%ROOT_DIR%\packages\python\dipeo_container" >nul 2>&1
+pip install -e "%ROOT_DIR%" >nul 2>&1
 pip install -e . >nul 2>&1
 
 REM Build executable
@@ -62,8 +58,45 @@ if exist "dist\dipeo-server.exe" (
 cd "%ROOT_DIR%"
 echo.
 
-REM Step 2: Build Frontend
-echo [2/3] Building Frontend...
+REM Step 2: Build CLI
+echo [2/4] Building CLI Tool...
+cd apps\cli
+
+REM Check if virtual environment exists
+if not exist ".venv" (
+    echo Creating virtual environment...
+    python -m venv .venv
+)
+
+REM Activate virtual environment
+call .venv\Scripts\activate.bat
+
+REM Install dependencies
+echo Installing CLI dependencies...
+pip install --upgrade pip setuptools wheel >nul 2>&1
+pip install -r requirements.txt >nul 2>&1
+pip install pyinstaller >nul 2>&1
+
+REM Install DiPeO core package
+pip install -e "%ROOT_DIR%" >nul 2>&1
+pip install -e . >nul 2>&1
+
+REM Build CLI executable
+echo Building CLI executable...
+pyinstaller --onefile --name dipeo --distpath dist src\dipeo_cli\minimal_cli.py
+
+if exist "dist\dipeo.exe" (
+    echo CLI build complete
+) else (
+    echo ERROR: CLI build failed
+    exit /b 1
+)
+
+cd "%ROOT_DIR%"
+echo.
+
+REM Step 3: Build Frontend
+echo [3/4] Building Frontend...
 cd apps\web
 
 REM Install dependencies if needed
@@ -86,13 +119,19 @@ if exist "dist\index.html" (
 cd "%ROOT_DIR%"
 echo.
 
-REM Step 3: Build Tauri Installer
-echo [3/3] Building Windows Installer...
+REM Step 4: Build Tauri Installer
+echo [4/4] Building Windows Installer...
 cd apps\desktop
 
 REM Check if backend executable exists
 if not exist "%ROOT_DIR%\apps\server\dist\dipeo-server.exe" (
     echo ERROR: Backend executable not found
+    exit /b 1
+)
+
+REM Check if CLI executable exists
+if not exist "%ROOT_DIR%\apps\cli\dist\dipeo.exe" (
+    echo ERROR: CLI executable not found
     exit /b 1
 )
 
@@ -123,6 +162,10 @@ if exist "src-tauri\target\release\bundle\nsis\*.exe" (
         echo.
         echo Installer copied to: dist\DiPeO-Setup-%VERSION%-x64.exe
     )
+    
+    REM Copy CLI executable to dist
+    copy "%ROOT_DIR%\apps\cli\dist\dipeo.exe" "%ROOT_DIR%\dist\" >nul
+    echo CLI executable copied to: dist\dipeo.exe
     
     echo.
     echo Next steps:
