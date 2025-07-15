@@ -46,7 +46,8 @@ pip install -e . >nul 2>&1
 
 REM Build executable
 echo Building executable with PyInstaller...
-pyinstaller build.spec --clean --noconfirm
+set BUILD_TYPE=SERVER
+pyinstaller "%ROOT_DIR%\dipeo\build-windows.spec" --clean --noconfirm --distpath dist
 
 if exist "dist\dipeo-server.exe" (
     echo Backend build complete
@@ -83,7 +84,8 @@ pip install -e . >nul 2>&1
 
 REM Build CLI executable
 echo Building CLI executable...
-pyinstaller --onefile --name dipeo --distpath dist src\dipeo_cli\minimal_cli.py
+set BUILD_TYPE=CLI
+pyinstaller "%ROOT_DIR%\dipeo\build-windows.spec" --clean --noconfirm --distpath dist --name dipeo
 
 if exist "dist\dipeo.exe" (
     echo CLI build complete

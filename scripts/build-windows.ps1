@@ -73,7 +73,8 @@ if (-not $SkipBackend) {
     
     # Build executable
     Write-Output "Building executable with PyInstaller..."
-    pyinstaller build.spec --clean --noconfirm
+    $env:BUILD_TYPE = "SERVER"
+    pyinstaller "$RootDir\dipeo\build-windows.spec" --clean --noconfirm --distpath dist
     
     if (Test-Path "dist\dipeo-server.exe") {
         Write-ColorOutput Green "✓ Backend build complete"
@@ -113,7 +114,8 @@ if (-not $SkipCLI) {
     
     # Build CLI executable
     Write-Output "Building CLI executable..."
-    pyinstaller --onefile --name dipeo --distpath dist src\dipeo_cli\minimal_cli.py
+    $env:BUILD_TYPE = "CLI"
+    pyinstaller "$RootDir\dipeo\build-windows.spec" --clean --noconfirm --distpath dist --name dipeo
     
     if (Test-Path "dist\dipeo.exe") {
         Write-ColorOutput Green "✓ CLI build complete"

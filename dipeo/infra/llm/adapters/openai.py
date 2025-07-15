@@ -50,7 +50,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
 
-        
+        print(f"[OPENAI DEBUG] Input text: {input_messages}")
         # Convert tools to API format
         api_tools = []
         if tools:
@@ -81,7 +81,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
             if api_tools and self.supports_tools():
                 create_params["tools"] = api_tools
                 logger.debug(f"Using tools with responses API: {api_tools}")
-            
+
             response = self.client.responses.create(**create_params)
         except Exception as e:
             logger.error(f"Error calling OpenAI responses API: {type(e).__name__}: {e!s}")
@@ -89,7 +89,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         
         # Extract text output
         text = getattr(response, 'output_text', '')
-        logger.info(f"Output text: {text}")
         print(f"[OPENAI DEBUG] Output text: {text}")
         
         # Process tool outputs

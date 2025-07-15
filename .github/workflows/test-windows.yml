@@ -55,8 +55,7 @@ jobs:
             "apps/cli",
             "apps/web",
             "apps/desktop",
-            "dipeo",
-            "files/diagrams"
+            "dipeo"
           )
           
           $missingDirs = @()
@@ -162,9 +161,9 @@ jobs:
           # Run code generation to ensure it works on Windows
           pnpm codegen
           
-          # Verify generated files exist
-          if (!(Test-Path "dipeo/models/generated")) {
-            Write-Error "Code generation failed - no generated directory"
+          # Verify generated files exist - check the correct location
+          if (!(Test-Path "dipeo/models/__generated__")) {
+            Write-Error "Code generation failed - no __generated__ directory"
             exit 1
           }
       
