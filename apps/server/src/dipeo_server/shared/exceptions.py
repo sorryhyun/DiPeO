@@ -7,22 +7,19 @@ and defines server-specific exceptions that extend the core taxonomy.
 from typing import Any
 
 # Re-export base exceptions
-from dipeo.core.base.exceptions import (  # noqa: F401
+# Re-export core exceptions for backward compatibility
+from dipeo.core.base.exceptions import (  # noqa: F401  # noqa: F401
+    APIKeyError,
     ConfigurationError,
+    DependencyError,
     DiPeOError,
     ExecutionError,
-    ServiceError,
-    ValidationError,
-)
-
-# Re-export core exceptions for backward compatibility
-from dipeo.core.errors import (  # noqa: F401
-    APIKeyError,
-    DependencyError,
     FileOperationError,
     LLMServiceError,
     MaxIterationsError,
     NodeExecutionError,
+    ServiceError,
+    ValidationError,
 )
 
 

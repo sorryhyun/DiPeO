@@ -16,10 +16,8 @@ from typing import TYPE_CHECKING
 __version__ = "0.1.0"
 
 # Import sub-modules
-from . import core
-from . import domain
+from . import core, diagram, domain
 from . import domain as models  # Alias for backward compatibility
-from . import diagram
 
 # Track what we successfully imported
 _imported_modules = ["core", "domain", "models", "diagram"]
@@ -28,11 +26,11 @@ _imported_modules = ["core", "domain", "models", "diagram"]
 try:
     from .core import (
         BaseService,
-        Result,
-        Error,
         DiPeOError,
-        ValidationError,
+        Error,
         NodeExecutionError,
+        Result,
+        ValidationError,
     )
     _imported_modules.extend([
         "BaseService", "Result", "Error",
@@ -44,18 +42,18 @@ except ImportError as e:
 
 # For convenience, re-export commonly used models from domain
 try:
-    from .domain.models import (
-        DomainPerson,
-        DomainDiagram,
-        NodeType,
-        Arrow,
-        Edge,
-        NodeArrow,
-    )
     from .domain import (
         HandleReference,
         create_handle_id,
         parse_handle_id,
+    )
+    from .domain.models import (
+        Arrow,
+        DomainDiagram,
+        DomainPerson,
+        Edge,
+        NodeArrow,
+        NodeType,
     )
     # Create aliases for cleaner API
     Person = DomainPerson
@@ -72,9 +70,9 @@ except ImportError as e:
 # For convenience, re-export commonly used items from diagram
 try:
     from .diagram import (
-        UnifiedDiagramConverter,
         DiagramConverter,
         FormatStrategy,
+        UnifiedDiagramConverter,
         converter_registry,
     )
     _imported_modules.extend([

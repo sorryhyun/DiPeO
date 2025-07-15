@@ -49,10 +49,11 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
   },
   
   person_job: {
-    excludeFields: ['person', 'memory_config'], // Handled by labelPersonRow and nested field
+    excludeFields: ['person', 'memory_config', 'memory_settings'], // person handled by labelPersonRow, memory fields excluded
     fieldOverrides: {
       tools: {
-        placeholder: 'Optional tools configuration'
+        placeholder: 'Optional tools configuration',
+        rows: 2
       },
       first_only_prompt: {
         required: true,
@@ -88,18 +89,21 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         personPlaceholder: 'Select a person'
       },
       {
-        name: 'memory_config.forget_mode',
+        name: 'memory_profile',
         type: 'select',
-        label: 'Forget Mode',
+        label: 'Memory Profile',
         options: [
-          { value: 'no_forget', label: 'No Forget (Keep all history)' },
-          { value: 'on_every_turn', label: 'On Every Turn' },
-          { value: 'upon_request', label: 'Upon Request' }
+          { value: 'FULL', label: 'Full (No limits, see everything)' },
+          { value: 'FOCUSED', label: 'Focused (Last 20 messages, conversation pairs)' },
+          { value: 'MINIMAL', label: 'Minimal (Last 5 messages, system + direct)' },
+          { value: 'GOLDFISH', label: 'Goldfish (Last 2 exchanges only)' },
+          { value: 'CUSTOM', label: 'Custom (Configure manually)' }
         ],
-        defaultValue: 'no_forget'
+        defaultValue: 'FULL',
+        description: 'Predefined memory configurations for different use cases'
       }
     ],
-    fieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_config.forget_mode', 'default_prompt', 'first_only_prompt']
+    fieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_profile', 'default_prompt', 'first_only_prompt']
   },
   
   condition: {

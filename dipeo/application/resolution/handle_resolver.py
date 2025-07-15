@@ -1,17 +1,9 @@
 # Handle resolution for converting handle references to concrete node IDs.
 
-from typing import Dict, List, Tuple, Set, Optional
 from dataclasses import dataclass
 
-from dipeo.models import (
-    DomainArrow, 
-    DomainNode, 
-    NodeID, 
-    HandleID,
-    HandleDirection,
-    HandleLabel
-)
-from dipeo.models.handle_utils import parse_handle_id_safe, ParsedHandle
+from dipeo.models import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
+from dipeo.models.handle_utils import parse_handle_id_safe
 
 
 @dataclass
@@ -19,20 +11,20 @@ class ResolvedConnection:
     arrow_id: str
     source_node_id: NodeID
     target_node_id: NodeID
-    source_handle_label: Optional[HandleLabel] = None
-    target_handle_label: Optional[HandleLabel] = None
+    source_handle_label: HandleLabel | None = None
+    target_handle_label: HandleLabel | None = None
 
 
 class HandleResolver:
     
     def __init__(self):
-        self._errors: List[str] = []
+        self._errors: list[str] = []
     
     def resolve_arrows(
         self, 
-        arrows: List[DomainArrow], 
-        nodes: List[DomainNode]
-    ) -> Tuple[List[ResolvedConnection], List[str]]:
+        arrows: list[DomainArrow], 
+        nodes: list[DomainNode]
+    ) -> tuple[list[ResolvedConnection], list[str]]:
         self._errors = []
         
         # Create node lookup for validation
@@ -50,8 +42,8 @@ class HandleResolver:
     def _resolve_arrow(
         self, 
         arrow: DomainArrow, 
-        valid_nodes: Set[NodeID]
-    ) -> Optional[ResolvedConnection]:
+        valid_nodes: set[NodeID]
+    ) -> ResolvedConnection | None:
         # Parse source handle
         source_parsed = parse_handle_id_safe(arrow.source)
         if not source_parsed:
@@ -104,9 +96,9 @@ class HandleResolver:
     
     def build_connection_map(
         self, 
-        resolved: List[ResolvedConnection]
-    ) -> Dict[NodeID, List[ResolvedConnection]]:
-        connection_map: Dict[NodeID, List[ResolvedConnection]] = {}
+        resolved: list[ResolvedConnection]
+    ) -> dict[NodeID, list[ResolvedConnection]]:
+        connection_map: dict[NodeID, list[ResolvedConnection]] = {}
         
         for connection in resolved:
             if connection.source_node_id not in connection_map:
@@ -117,9 +109,9 @@ class HandleResolver:
     
     def build_reverse_connection_map(
         self, 
-        resolved: List[ResolvedConnection]
-    ) -> Dict[NodeID, List[ResolvedConnection]]:
-        reverse_map: Dict[NodeID, List[ResolvedConnection]] = {}
+        resolved: list[ResolvedConnection]
+    ) -> dict[NodeID, list[ResolvedConnection]]:
+        reverse_map: dict[NodeID, list[ResolvedConnection]] = {}
         
         for connection in resolved:
             if connection.target_node_id not in reverse_map:
@@ -130,9 +122,9 @@ class HandleResolver:
     
     def find_disconnected_nodes(
         self,
-        nodes: List[DomainNode],
-        resolved: List[ResolvedConnection]
-    ) -> Set[NodeID]:
+        nodes: list[DomainNode],
+        resolved: list[ResolvedConnection]
+    ) -> set[NodeID]:
         connected_nodes = set()
         
         for connection in resolved:

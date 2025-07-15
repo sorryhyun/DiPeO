@@ -3,20 +3,23 @@ import asyncio
 import json
 import os
 import sys
-from io import StringIO
-from typing import Any, TYPE_CHECKING
 import warnings
+from io import StringIO
+from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
-from dipeo.core.static.generated_nodes import CodeJobNode
 from pydantic import BaseModel
+
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.core.static.generated_nodes import CodeJobNode
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.models import CodeJobNodeData, NodeType
 from dipeo.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 
@@ -54,49 +57,49 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     def description(self) -> str:
         return "Executes Python, JavaScript, or Bash code with enhanced capabilities"
 
-    async def pre_execute(
-        self,
-        node: CodeJobNode,
-        execution: "TypedStatefulExecution"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for CodeJobNode."""
-        return {
-            "language": node.language.value if hasattr(node.language, 'value') else node.language,
-            "code": node.code,
-            "timeout": node.timeout
-        }
+    def validate(self, request: ExecutionRequest[CodeJobNode]) -> Optional[str]:
+        """Validate the code job configuration."""
+        node = request.node
+        
+        # Validate code is provided
+        if not node.code:
+            return "No code provided"
+        
+        # Validate language is supported
+        supported_languages = ["python", "javascript", "bash"]
+        language = node.language.value if hasattr(node.language, 'value') else node.language
+        if language not in supported_languages:
+            return f"Unsupported language: {language}. Supported: {', '.join(supported_languages)}"
+        
+        return None
     
-    async def execute_typed(
-        self,
-        node: CodeJobNode,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[CodeJobNode]) -> NodeOutputProtocol:
+        """Execute the code job."""
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        # Store execution metadata
+        language = node.language.value if hasattr(node.language, 'value') else node.language
+        request.add_metadata("language", language)
+        request.add_metadata("code", node.code)
+        request.add_metadata("timeout", node.timeout)
+        
         # Direct typed access to node properties
-        language = node.language
         code = node.code
         timeout = node.timeout or 30  # Default 30 seconds
 
-        if not code:
-            return self._build_output(
-                {"default": ""}, 
-                context,
-                {"error": "No code provided"}
-            )
-
         try:
             if language == "python":
-                result = await self._execute_python(code, inputs, timeout)
+                result = await self._execute_python(code, inputs, timeout, context)
             elif language == "javascript":
                 result = await self._execute_javascript(code, inputs, timeout)
             elif language == "bash":
                 result = await self._execute_bash(code, inputs, timeout)
             else:
-                return self._build_output(
-                    {"default": ""}, 
-                    context,
-                    {"error": f"Unsupported language: {language}"}
+                return ErrorOutput(
+                    value=f"Unsupported language: {language}",
+                    node_id=node.id,
+                    error_type="UnsupportedLanguageError"
                 )
 
             # Convert result to string if needed
@@ -105,26 +108,60 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             else:
                 output = str(result)
 
-            return self._build_output(
-                {"default": output},
-                context,
-                {"language": language, "success": True}
+            return TextOutput(
+                value=output,
+                node_id=node.id,
+                metadata={"language": language, "success": True}
             )
 
-        except asyncio.TimeoutError:
-            return self._build_output(
-                {"default": ""}, 
-                context,
-                {"error": f"Code execution timed out after {timeout} seconds", "language": language, "success": False}
+        except TimeoutError:
+            return ErrorOutput(
+                value=f"Code execution timed out after {timeout} seconds",
+                node_id=node.id,
+                error_type="TimeoutError",
+                metadata={"language": language}
             )
         except Exception as e:
-            return self._build_output(
-                {"default": ""}, 
-                context,
-                {"error": str(e), "language": language, "success": False}
+            return ErrorOutput(
+                value=str(e),
+                node_id=node.id,
+                error_type=type(e).__name__,
+                metadata={"language": language}
             )
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[CodeJobNode],
+        output: NodeOutputProtocol
+    ) -> NodeOutputProtocol:
+        """Post-execution hook to log code execution details."""
+        # Log execution details if in debug mode
+        if request.metadata.get("debug"):
+            language = request.metadata.get("language")
+            success = output.metadata.get("success", False)
+            print(f"[CodeJobNode] Executed {language} code - Success: {success}")
+            if not success and output.metadata.get("error"):
+                print(f"[CodeJobNode] Error: {output.metadata['error']}")
+        
+        return output
+    
+    async def on_error(
+        self,
+        request: ExecutionRequest[CodeJobNode],
+        error: Exception
+    ) -> Optional[NodeOutputProtocol]:
+        """Handle execution errors with better error messages."""
+        language = request.metadata.get("language", "unknown")
+        
+        # Create error output with language information
+        return ErrorOutput(
+            value=f"Code execution failed: {str(error)}",
+            node_id=request.node.id,
+            error_type=type(error).__name__,
+            metadata={"language": language}
+        )
 
-    async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
+    async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int, context: Optional["ExecutionContext"] = None) -> Any:
         if "{{" in code and inputs:
             # Create a namespace with all inputs
             template_vars = {}
@@ -198,6 +235,16 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 "__import__": __import__,
             }
         }
+        
+        # Load variables from context if available
+        if context:
+            # Get all variables from the execution context
+            # We'll need to introspect the context to get all variables
+            # For now, let's load common variable names
+            for var_name in ['a', 'b', 'c', 'x', 'y', 'z', 'result', 'output', 'data']:
+                var_value = context.get_variable(var_name)
+                if var_value is not None:
+                    namespace[var_name] = var_value
 
         # Capture stdout
         old_stdout = sys.stdout
@@ -226,6 +273,21 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                     # Get the printed output
                     printed_output = sys.stdout.getvalue()
                     result = printed_output.strip() if printed_output else "Code executed successfully"
+            
+            # Save variables back to context if available
+            if context:
+                # List of built-in names to exclude
+                builtins_to_exclude = {
+                    '__builtins__', 'input_data', 'inputs', 'json', 'math', 
+                    'random', 'datetime', '_execute', '_result'
+                }
+                
+                # Save user-defined variables back to context
+                for name, value in namespace.items():
+                    if name not in builtins_to_exclude and not name.startswith('__'):
+                        # Only save simple types that can be serialized
+                        if isinstance(value, (str, int, float, bool, list, dict, type(None))):
+                            context.set_variable(name, value)
             
             return result
         finally:
@@ -285,7 +347,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         try:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             raise
@@ -325,7 +387,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         try:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             raise

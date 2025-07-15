@@ -1,12 +1,10 @@
 # openai_adapter.py
 
-import base64
 import logging
-from typing import Any
 
-from dipeo.models import ChatResult
-from dipeo.models import ToolOutput, ToolType, WebSearchResult, ImageGenerationResult
 from openai import OpenAI
+
+from dipeo.models import ChatResult, ImageGenerationResult, ToolOutput, ToolType, WebSearchResult
 
 from ..base import BaseLLMAdapter
 
@@ -20,8 +18,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
     
     def supports_tools(self) -> bool:
-        # gpt-4.1-nano uses responses API which doesn't support tools
-        supported_models = ['gpt-4o', 'gpt-4o-mini']
+        # Models that support tools including websearch via responses API
+        supported_models = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini']
         return any(model in self.model_name for model in supported_models)
     
     def supports_response_api(self) -> bool:
@@ -51,11 +49,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         # Add other messages
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
-        
-        # Log input messages
-        logger.info(f"OpenAI API Call - Model: {self.model_name}")
-        logger.info(f"Input messages: {input_messages}")
-        
+
+        print(f"[OPENAI DEBUG] Input text: {input_messages}")
         # Convert tools to API format
         api_tools = []
         if tools:
@@ -82,20 +77,18 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 **api_params
             }
             
-            # Only add tools if they exist and are supported
-            # Note: responses API may not support tools parameter
+            # Add tools if they exist and are supported
             if api_tools and self.supports_tools():
-                # For now, skip tools for responses API as it doesn't accept them
-                logger.debug(f"Tools requested but not supported by responses API: {api_tools}")
-            
+                create_params["tools"] = api_tools
+                logger.debug(f"Using tools with responses API: {api_tools}")
+
             response = self.client.responses.create(**create_params)
         except Exception as e:
-            logger.error(f"Error calling OpenAI responses API: {type(e).__name__}: {str(e)}")
+            logger.error(f"Error calling OpenAI responses API: {type(e).__name__}: {e!s}")
             return ChatResult(text='', raw_response=None)
         
         # Extract text output
         text = getattr(response, 'output_text', '')
-        logger.info(f"Output text: {text}")
         print(f"[OPENAI DEBUG] Output text: {text}")
         
         # Process tool outputs

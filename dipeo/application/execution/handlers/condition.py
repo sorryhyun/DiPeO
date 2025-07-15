@@ -1,17 +1,25 @@
 
-from typing import Any, TYPE_CHECKING
 import logging
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
-from dipeo.models import ConditionNodeData, NodeOutput, NodeType
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.unified_service_registry import (
+    DIAGRAM,
+    CONDITION_EVALUATION_SERVICE,
+    NODE_EXEC_COUNTS,
+)
+from dipeo.core.static.executable_diagram import ExecutableDiagram
 from dipeo.core.static.generated_nodes import ConditionNode
+from dipeo.core.execution.node_output import ConditionOutput, NodeOutputProtocol
+from dipeo.models import ConditionNodeData, NodeExecutionStatus, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +53,22 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     def description(self) -> str:
         return "Condition node: supports detect_max_iterations and custom expressions"
     
-    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Any | None:
-        service = context.get_service(service_name)
-        if not service:
-            service = services.get(service_name)
-        return service
+    def validate(self, request: ExecutionRequest[ConditionNode]) -> Optional[str]:
+        """Validate the execution request."""
+        # Check for required services
+        if not request.services.get(CONDITION_EVALUATION_SERVICE.name):
+            return "Condition evaluation service not available"
+        
+        if not request.services.get(DIAGRAM.name):
+            return "Diagram service not available"
+            
+        return None
+    
 
     async def pre_execute(
         self,
         node: ConditionNode,
-        execution: "TypedStatefulExecution"
+        execution: "ExecutionRuntime"
     ) -> dict[str, Any]:
         """Pre-execute logic for ConditionNode."""
         return {
@@ -63,16 +77,22 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "node_indices": node.node_indices
         }
     
-    async def execute_typed(
-        self,
-        node: ConditionNode,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        # Resolve services
-        evaluation_service = self._resolve_service(context, services, "condition_evaluation_service")
-        diagram = self._resolve_service(context, services, "diagram")
+    async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> NodeOutputProtocol:
+        """Execute the condition with the unified request object."""
+        # Get node and context from request
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        
+        # Get services from services dict
+        evaluation_service = (
+            self.condition_evaluation_service or 
+            request.services.get(CONDITION_EVALUATION_SERVICE.name)
+        )
+        diagram = request.services.get(DIAGRAM.name)
+        
+        if not evaluation_service or not diagram:
+            raise ValueError("Required services not available")
         
         # Direct typed access to node properties
         condition_type = node.condition_type
@@ -81,36 +101,39 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         
         # Evaluate condition based on type
         if condition_type == "detect_max_iterations":
-            logger.debug(f"Detect max iterations: has node_outputs={hasattr(context, 'node_outputs')}, executed_nodes={context.executed_nodes if hasattr(context, 'executed_nodes') else 'N/A'}")
-            
-            # Use new approach with NodeOutput data if available
-            if hasattr(context, 'node_outputs') and context.executed_nodes:
-                # New approach: Use executed_nodes and node outputs
-                result = self._evaluate_max_iterations_with_outputs(
-                    evaluation_service, diagram, context, node
-                )
-            else:
-                # Fallback to old approach for backward compatibility
-                logger.debug("Using fallback approach")
-                execution_states = self._extract_execution_states(context)
-                node_exec_counts = self._extract_node_exec_counts(context)
-                
-                result = evaluation_service.evaluate_max_iterations(
-                    diagram=diagram,
-                    execution_states=execution_states,
-                    node_exec_counts=node_exec_counts,
-                )
+            result = self._evaluate_max_iterations_with_outputs(
+                evaluation_service, diagram, context, node
+            )
         elif condition_type == "check_nodes_executed":
             # New condition type using executed_nodes field
             target_nodes = node_indices or []
+            # Build node_outputs dict from context
+            node_outputs = {}
+            for node in diagram.nodes:
+                node_result = context.get_node_result(node.id)
+                if node_result and 'value' in node_result:
+                    # Create a simple dict with node_id and value for the service
+                    node_outputs[str(node.id)] = {
+                        'node_id': node.id,
+                        'value': node_result['value']
+                    }
             result = evaluation_service.check_nodes_executed(
                 target_node_ids=target_nodes,
-                node_outputs=context.node_outputs if hasattr(context, 'node_outputs') else {}
+                node_outputs=node_outputs
             )
         elif condition_type == "custom":
+            # Merge context variables with inputs for evaluation
+            eval_context = inputs.copy() if inputs else {}
+            
+            # Add common variables from execution context
+            for var_name in ['a', 'b', 'c', 'x', 'y', 'z', 'result', 'output', 'data']:
+                var_value = context.get_variable(var_name)
+                if var_value is not None:
+                    eval_context[var_name] = var_value
+            
             result = evaluation_service.evaluate_custom_expression(
                 expression=expression or "",
-                context_values=inputs,
+                context_values=eval_context,
             )
         else:
             # Default to false for unknown condition types
@@ -119,53 +142,129 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Only create output for the active branch to prevent execution of the inactive branch
         if result:
             # When condition is true, output goes to "true" branch only
-            output_value = {"condtrue": inputs if inputs else {}}
+            # For detect_max_iterations, aggregate conversation states from all person_job nodes
+            if condition_type == "detect_max_iterations":
+                aggregated_conversations = self._aggregate_conversation_states(context, diagram)
+                output_value = {"condtrue": aggregated_conversations if aggregated_conversations else inputs}
+            else:
+                output_value = {"condtrue": inputs if inputs else {}}
         else:
             # When condition is false, output goes to "false" branch only
-            output_value = {"condfalse": inputs if inputs else {}}
+            # For detect_max_iterations, we need to pass the conversation state back
+            if condition_type == "detect_max_iterations":
+                # Get the latest conversation state from the Pessimist node (or any person_job node)
+                latest_conversation = None
+                for node in diagram.nodes:
+                    if hasattr(node, 'type') and node.type == 'person_job':
+                        node_result = context.get_node_result(node.id)
+                        if node_result:
+                            # Handle result dict
+                            value = node_result.get('value')
+                            # Check if value is a list (ConversationOutput) or dict with 'conversation' key
+                            if isinstance(value, list) and len(value) > 0:
+                                # Direct list of messages from ConversationOutput
+                                latest_conversation = {"messages": value}
+                            elif isinstance(value, dict) and 'conversation' in value:
+                                # Legacy format
+                                latest_conversation = {"messages": value['conversation']}
+                
+                # Pass conversation state if found, otherwise pass inputs
+                output_value = {"condfalse": latest_conversation if latest_conversation else inputs}
+            else:
+                output_value = {"condfalse": inputs if inputs else {}}
 
-        return self._build_output(
-            output_value, 
-            context,
-            {"condition_result": result}
+        # Extract true/false outputs from the output_value
+        true_output = output_value.get("condtrue") if result else None
+        false_output = output_value.get("condfalse") if not result else None
+        
+        return ConditionOutput(
+            value=result,
+            node_id=node.id,
+            true_output=true_output,
+            false_output=false_output,
+            metadata={"condition_type": condition_type}
         )
     
     
-    def _extract_execution_states(self, context: UnifiedExecutionContext) -> dict[str, dict[str, Any]]:
+    def _extract_execution_states(self, context: "ExecutionContext", diagram: "ExecutableDiagram") -> dict[str, dict[str, Any]]:
         execution_states = {}
         
-        if hasattr(context.execution_state, 'node_states'):
-            for node_id, node_state in context.execution_state.node_states.items():
+        # Get state for each node in the diagram
+        for node in diagram.nodes:
+            node_state = context.get_node_state(node.id)
+            if node_state:
                 state_dict = {
                     'status': getattr(node_state, 'status', 'pending')
                 }
                 if hasattr(node_state, 'status'):
                     state_dict['status'] = str(node_state.status.value) if hasattr(node_state.status, 'value') else str(node_state.status)
-                execution_states[node_id] = state_dict
+                execution_states[str(node.id)] = state_dict
         
         return execution_states
     
-    def _extract_node_exec_counts(self, context: UnifiedExecutionContext) -> dict[str, int] | None:
-        # Try to get exec counts from UnifiedExecutionContext
+    def _aggregate_conversation_states(self, context: "ExecutionContext", diagram: Any) -> dict[str, Any]:
+        """Aggregate conversation states from all person_job nodes that have executed."""
+        
+        aggregated = {"messages": []}
+        
+        # Find all person_job nodes that have executed (have outputs)
+        person_job_nodes = []
+        for node in diagram.nodes:
+            if hasattr(node, 'type') and node.type == 'person_job':
+                # Only include nodes that have already executed (have outputs)
+                node_result = context.get_node_result(node.id)
+                if node_result:
+                    person_job_nodes.append(node)
+        
+        logger.debug(f"_aggregate_conversation_states: Found {len(person_job_nodes)} person_job nodes with outputs")
+
+        # Collect conversations from each person_job node's output
+        for node in person_job_nodes:
+            node_result = context.get_node_result(node.id)
+            if not node_result:
+                continue
+            # Handle result dict from protocol
+            value = node_result.get('value')
+            # Check if value is a list (ConversationOutput) or dict with 'conversation' key
+            is_conversation_list = isinstance(value, list) and all(
+                isinstance(msg, (dict, object)) and (
+                    (isinstance(msg, dict) and 'role' in msg and 'content' in msg) or
+                    hasattr(msg, 'role') or hasattr(msg, 'content')
+                ) for msg in value[:1]  # Just check first message for efficiency
+            ) if isinstance(value, list) and len(value) > 0 else False
+            
+            logger.debug(f"  Node {node.id} ({getattr(node, 'label', 'unlabeled')}): value type={type(value)}, is_conversation_list={is_conversation_list}, has conversation dict={isinstance(value, dict) and 'conversation' in value}")
+            
+            if is_conversation_list:
+                # Direct list of messages from ConversationOutput
+                messages = value
+                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (direct list)")
+                aggregated["messages"].extend(messages)
+            elif isinstance(value, dict) and 'conversation' in value:
+                # Legacy format with conversation key
+                messages = value['conversation']
+                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (dict format)")
+                aggregated["messages"].extend(messages)
+        
+        logger.debug(f"_aggregate_conversation_states: Total aggregated messages: {len(aggregated['messages'])}")
+        return aggregated
+    
+    def _extract_node_exec_counts(self, context: "ExecutionContext") -> dict[str, int] | None:
+        # Try to get exec counts from ExecutionContext
         if hasattr(context, '_exec_counts'):
             return context._exec_counts
         
-        # Fallback: try to get from service (for backward compatibility)
-        exec_info_service = context.get_service('node_exec_counts')
-        if exec_info_service:
-            return exec_info_service
+        # NODE_EXEC_COUNTS should be passed in services dict
+        # No fallback to context.get_service()
         return None
     
     def _evaluate_max_iterations_with_outputs(
         self, 
         evaluation_service: Any, 
         diagram: Any, 
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         node: ConditionNode
     ) -> bool:
-        
-        # Get executed nodes list
-        executed_nodes = set(context.executed_nodes) if context.executed_nodes else set()
         
         # Find all person_job nodes
         person_job_nodes = [
@@ -181,23 +280,27 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         found_executed = False
         
         for node in person_job_nodes:
-            # Check if this node has been executed
-            if node.id in executed_nodes:
+            # Check if this node has been executed at least once
+            exec_count = context.get_node_execution_count(node.id)
+            if exec_count > 0:
                 found_executed = True
-                exec_count = context.get_node_execution_count(node.id)
                 
-                # Handle typed nodes from ExecutableDiagram
-                if hasattr(node, 'max_iteration'):
-                    # Direct property access for typed nodes
-                    max_iter = node.max_iteration
+                # Check node status for MAXITER_REACHED
+                node_state = context.get_node_state(node.id)
+                if node_state and hasattr(node_state, 'status'):
+                    # Use the MAXITER_REACHED status
+                    if node_state.status != NodeExecutionStatus.MAXITER_REACHED:
+                        all_reached_max = False
+                        break
                 else:
-                    # Fallback for dict-based nodes
-                    max_iter = int(node.data.get("max_iteration", 1)) if hasattr(node, 'data') else 1
-                
-                # Debug logging
-
-                if exec_count < max_iter:
+                    # No state found, can't be at max
                     all_reached_max = False
                     break
 
-        return found_executed and all_reached_max
+        result = found_executed and all_reached_max
+        logger.debug(f"_evaluate_max_iterations_with_outputs: found_executed={found_executed}, all_reached_max={all_reached_max}, result={result}")
+        for node in person_job_nodes:
+            exec_count = context.get_node_execution_count(node.id)
+            node_state = context.get_node_state(node.id)
+            logger.debug(f"  Node {node.id}: exec_count={exec_count}, status={node_state.status if node_state else 'None'}")
+        return result

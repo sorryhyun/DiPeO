@@ -3,7 +3,7 @@
 import json
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 from dipeo.core import ServiceError, ValidationError
 from dipeo.domain.api.value_objects import URL, RetryPolicy, RetryStrategy
@@ -19,7 +19,7 @@ class APIBusinessLogic:
         self,
         status_code: int,
         response_data: Any,
-        expected_status_codes: Optional[list[int]] = None
+        expected_status_codes: list[int] | None = None
     ) -> None:
         """Validate an API response against expected status codes."""
         if expected_status_codes is None:
@@ -36,7 +36,7 @@ class APIBusinessLogic:
         status_code: int,
         attempt: int,
         retry_policy: RetryPolicy,
-        retryable_status_codes: Optional[list[int]] = None
+        retryable_status_codes: list[int] | None = None
     ) -> bool:
         """Determine if request should be retried based on policy."""
         if retryable_status_codes is None:
@@ -49,7 +49,7 @@ class APIBusinessLogic:
         self,
         attempt: int,
         retry_policy: RetryPolicy,
-        retry_after: Optional[float] = None
+        retry_after: float | None = None
     ) -> float:
         """Calculate retry delay using retry policy."""
         if retry_after is not None:
@@ -64,7 +64,7 @@ class APIBusinessLogic:
         status_code: int,
         attempt: int,
         max_retries: int,
-        retryable_status_codes: Optional[list[int]] = None
+        retryable_status_codes: list[int] | None = None
     ) -> bool:
         """Legacy method - determine if request should be retried."""
         if attempt >= max_retries - 1:
@@ -80,7 +80,7 @@ class APIBusinessLogic:
         attempt: int,
         base_delay: float = 1.0,
         max_delay: float = 60.0,
-        retry_after: Optional[float] = None
+        retry_after: float | None = None
     ) -> float:
         """Legacy method - calculate exponential backoff delay."""
         if retry_after is not None:
@@ -171,7 +171,7 @@ class APIBusinessLogic:
         response_data: Any,
         format: str = "json",
         include_metadata: bool = False,
-        metadata: Optional[dict[str, Any]] = None
+        metadata: dict[str, Any] | None = None
     ) -> str:
         """Format API response data."""
         if include_metadata and metadata:
@@ -217,10 +217,10 @@ class APIBusinessLogic:
         self,
         method: str,
         url: str,
-        data: Optional[dict[str, Any]] = None,
-        headers: Optional[dict[str, str]] = None,
+        data: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
         timeout: float = 30.0,
-        auth: Optional[dict[str, str]] = None
+        auth: dict[str, str] | None = None
     ) -> dict[str, Any]:
         """Build request configuration."""
         # Validate method

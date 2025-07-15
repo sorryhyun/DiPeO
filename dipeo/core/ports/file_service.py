@@ -1,6 +1,6 @@
 """File Service port interface."""
 
-from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -14,21 +14,21 @@ class FileServicePort(Protocol):
     def read(
         self,
         file_id: str,
-        person_id: Optional[str] = None,
-        directory: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        person_id: str | None = None,
+        directory: str | None = None,
+    ) -> dict[str, Any]:
         ...
 
     async def write(
         self,
         file_id: str,
-        person_id: Optional[str] = None,
-        directory: Optional[str] = None,
-        content: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        person_id: str | None = None,
+        directory: str | None = None,
+        content: str | None = None,
+    ) -> dict[str, Any]:
         ...
 
     async def save_file(
-        self, content: bytes, filename: str, target_path: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, content: bytes, filename: str, target_path: str | None = None
+    ) -> dict[str, Any]:
         ...

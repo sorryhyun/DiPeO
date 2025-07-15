@@ -1,25 +1,16 @@
 """Integrated infrastructure service for diagram operations."""
 
-import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-import yaml
 from dipeo.core.constants import BASE_DIR
+from dipeo.core.ports import FileServicePort
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.diagram.unified_converter import UnifiedDiagramConverter
-from dipeo.domain.diagram.services import (
-    DiagramBusinessLogic as DiagramDomainService,
-    DiagramFormatService
-)
-from typing import Any, Dict, Optional, Union
-
-from dipeo.core.ports import FileServicePort
-from dipeo.diagram import BackendDiagram, backend_to_graphql
-from dipeo.diagram.unified_converter import UnifiedDiagramConverter
+from dipeo.domain.diagram.services import DiagramBusinessLogic as DiagramDomainService
+from dipeo.domain.diagram.services import DiagramFormatService
 from dipeo.models import DiagramFormat, DomainDiagram
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +30,7 @@ class IntegratedDiagramService(DiagramPort):
     def load_diagram(
             self,
             content: str,
-            format: Optional[DiagramFormat] = None,
+            format: DiagramFormat | None = None,
     ) -> DomainDiagram:
         if format is None:
             format = self.format_service.detect_format(content)
@@ -49,7 +40,7 @@ class IntegratedDiagramService(DiagramPort):
     async def load_from_file(
             self,
             file_path: str,
-            format: Optional[DiagramFormat] = None,
+            format: DiagramFormat | None = None,
     ) -> DomainDiagram:
         result = self.file_service.read(file_path)
         content = result.get("content", "")
@@ -61,10 +52,10 @@ class IntegratedDiagramService(DiagramPort):
 
 
     
-    def list_diagrams(self, directory: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
         return self.list_diagram_files(directory)
     
-    def list_diagram_files(self, directory: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_diagram_files(self, directory: str | None = None) -> list[dict[str, Any]]:
         files = []
         
         if directory:
@@ -99,7 +90,7 @@ class IntegratedDiagramService(DiagramPort):
         return files
     
 
-    def save_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
+    def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
         file_path = self.diagrams_dir / path
         file_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -121,7 +112,7 @@ class IntegratedDiagramService(DiagramPort):
         else:
             raise ValueError(f"Unsupported file format: {file_path.suffix}")
     
-    def create_diagram(self, name: str, diagram: Dict[str, Any], format: str = "json") -> str:
+    def create_diagram(self, name: str, diagram: dict[str, Any], format: str = "json") -> str:
         # Determine format based on requested format
         if format == "json":
             diagram_format = DiagramFormat.native
@@ -139,7 +130,7 @@ class IntegratedDiagramService(DiagramPort):
         self.save_diagram(path, diagram)
         return path
     
-    def update_diagram(self, path: str, diagram: Dict[str, Any]) -> None:
+    def update_diagram(self, path: str, diagram: dict[str, Any]) -> None:
         if not (self.diagrams_dir / path).exists():
             raise FileNotFoundError(f"Diagram file not found: {path}")
         
@@ -153,7 +144,7 @@ class IntegratedDiagramService(DiagramPort):
         
         file_path.unlink()
     
-    async def save_diagram_with_id(self, diagram_dict: Dict[str, Any], filename: str) -> str:
+    async def save_diagram_with_id(self, diagram_dict: dict[str, Any], filename: str) -> str:
         # Determine format from filename
         detected_format = self.format_service.determine_format_from_filename(filename)
         if detected_format:
@@ -166,7 +157,7 @@ class IntegratedDiagramService(DiagramPort):
         
         return diagram_dict.get("id", filename)
     
-    async def get_diagram(self, diagram_id: str) -> Optional[Dict[str, Any]]:
+    async def get_diagram(self, diagram_id: str) -> dict[str, Any] | None:
         # Use format service to construct search patterns
         search_paths = self.format_service.construct_search_patterns(diagram_id)
         

@@ -1,8 +1,7 @@
 """Domain service for database operations."""
 
 import json
-from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from dipeo.core import ValidationError
 
@@ -57,7 +56,7 @@ class DBOperationsDomainService:
 
         return f"dbs/{safe_db_name}"
 
-    def prepare_prompt_response(self, db_name: str) -> Dict[str, Any]:
+    def prepare_prompt_response(self, db_name: str) -> dict[str, Any]:
         """Prepare response for prompt operation."""
         return {
             "value": db_name,
@@ -69,7 +68,7 @@ class DBOperationsDomainService:
 
     def prepare_read_response(
         self, data: Any, file_path: str, size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Prepare response for read operation."""
         return {
             "value": data,
@@ -82,7 +81,7 @@ class DBOperationsDomainService:
 
     def prepare_write_response(
         self, data: Any, file_path: str, size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Prepare response for write operation."""
         return {
             "value": data,
@@ -95,7 +94,7 @@ class DBOperationsDomainService:
 
     def prepare_append_response(
         self, data: Any, file_path: str, items_count: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Prepare response for append operation."""
         return {
             "value": data,
@@ -108,7 +107,7 @@ class DBOperationsDomainService:
 
     def ensure_json_serializable(
         self, value: Any
-    ) -> Union[Dict, List, str, int, float, bool, None]:
+    ) -> dict | list | str | int | float | bool | None:
         """
         Ensure a value is JSON serializable.
         This is a business rule about what data types we accept.
@@ -122,7 +121,7 @@ class DBOperationsDomainService:
         else:
             return str(value)
 
-    def prepare_data_for_append(self, existing_data: Any, new_value: Any) -> List:
+    def prepare_data_for_append(self, existing_data: Any, new_value: Any) -> list:
         """
         Prepare data for append operation according to business rules.
         If existing data is not a list, convert it to a list.
@@ -147,6 +146,6 @@ class DBOperationsDomainService:
             return json.loads(content) if content else {}
         except json.JSONDecodeError as e:
             raise ValidationError(
-                f"Invalid JSON in database file: {str(e)}",
+                f"Invalid JSON in database file: {e!s}",
                 details={"file_path": file_path}
             )

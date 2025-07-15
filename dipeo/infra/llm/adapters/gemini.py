@@ -1,21 +1,21 @@
 import asyncio
 import base64
-import json
 import logging
 import time
-from io import BytesIO
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from google import genai
+from google.genai import types
+
 from dipeo.models import (
     ChatResult,
     ImageGenerationResult,
+    LLMRequestOptions,
     ToolOutput,
     ToolType,
     WebSearchResult,
 )
-from google.genai import types
-from PIL import Image
 
 from ..base import BaseLLMAdapter
 
@@ -171,6 +171,102 @@ class GeminiAdapter(BaseLLMAdapter):
                 raw_response=function_call
             )
         return None
+    
+    async def chat_async(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
+        """Async version of chat method."""
+        if messages is None:
+            messages = []
+        
+        options = kwargs.get('options')
+        if isinstance(options, LLMRequestOptions):
+            if options.tools and self.supports_tools():
+                kwargs['tools'] = options.tools
+            if options.temperature is not None:
+                kwargs['temperature'] = options.temperature
+            if options.max_tokens is not None:
+                kwargs['max_tokens'] = options.max_tokens
+            if options.top_p is not None:
+                kwargs['top_p'] = options.top_p
+            if options.response_format is not None:
+                kwargs['response_format'] = options.response_format
+        
+        return await self._make_api_call_async(messages, **kwargs)
+    
+    async def _make_api_call_async(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
+        """Make async API call to Gemini and return ChatResult."""
+        # Check if we should handle tools
+        tools = kwargs.pop('tools', None)
+        
+        # Handle special cases: image generation
+        if tools and any(tool.type == ToolType.IMAGE_GENERATION or 
+                        (hasattr(tool.type, 'value') and tool.type.value == "image_generation") 
+                        for tool in tools):
+            return await self._make_image_generation_call_async(messages, **kwargs)
+        
+        # Use base method to extract system prompt and messages
+        system_prompt, processed_messages = self._extract_system_and_messages(messages)
+        
+        # Convert messages to Gemini format
+        gemini_messages = []
+        for msg in processed_messages:
+            role = msg["role"]
+            content = msg["content"]
+            
+            # Convert role names and content format
+            parts = self._convert_content_to_parts(content)
+            if role == "assistant":
+                gemini_messages.append({"role": "model", "parts": parts})
+            else:  # user role
+                gemini_messages.append({"role": "user", "parts": parts})
+
+        # Convert tools to Gemini function declarations if provided
+        gemini_tools = None
+        if tools and self.supports_tools():
+            gemini_tools = self._convert_tools_to_gemini_format(tools)
+        
+        # Get the model with system instruction
+        model = self.client.GenerativeModel(
+            model_name=self.model_name,
+            system_instruction=system_prompt,
+            tools=gemini_tools,
+        )
+
+        # Use base method to extract allowed parameters
+        api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature"])
+
+        generation_config = self.client.GenerationConfig(
+            max_output_tokens=api_params.get("max_tokens"),
+            temperature=api_params.get("temperature"),
+        )
+
+        # Make the API call with retry logic
+        response = await self._make_api_call_with_retry_async(
+            model=model,
+            contents=gemini_messages,
+            generation_config=generation_config,
+            safety_settings=kwargs.get("gemini_safety_settings"),
+        )
+
+        # Process response and handle function calls
+        text = ""
+        tool_outputs = []
+        
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.text is not None:
+                    text += part.text
+                elif hasattr(part, 'function_call') and part.function_call is not None:
+                    # Handle function call
+                    function_output = self._handle_function_call(part.function_call)
+                    if function_output:
+                        tool_outputs.append(function_output)
+
+        return ChatResult(
+            text=text,
+            token_usage=self._create_token_usage(response),
+            raw_response=response,
+            tool_outputs=tool_outputs if tool_outputs else None
+        )
     
     def _make_image_generation_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
         """Handle image generation requests."""
@@ -464,3 +560,121 @@ class GeminiAdapter(BaseLLMAdapter):
                 self.function_call = None
         
         return MockResponse(message)
+    
+    async def _make_image_generation_call_async(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
+        """Async version of handle image generation requests."""
+        # Extract the prompt from messages
+        prompt = ""
+        for msg in messages:
+            if msg.get("role") == "user":
+                prompt = msg.get("content", "")
+                break
+        
+        if not prompt:
+            raise ValueError("No prompt found for image generation")
+            
+        # Extract the model with system instruction if present
+        system_prompt, _ = self._extract_system_and_messages(messages)
+        
+        # Create the model with imagen capabilities
+        model = self.client.GenerativeModel(
+            model_name='gemini-2.0-flash-exp',
+            system_instruction=system_prompt,
+        )
+        
+        # Try multiple times with exponential backoff
+        last_exception = None
+        for attempt in range(self.max_retries):
+            try:
+                response = model.generate_content(
+                    prompt,
+                    generation_config=self.client.GenerationConfig(
+                        response_modalities=['TEXT', 'IMAGE']
+                    )
+                )
+                break  # Success, exit retry loop
+            except Exception as e:
+                last_exception = e
+                if attempt < self.max_retries - 1:
+                    delay = self.retry_delay * (2 ** attempt)
+                    logger.warning(f"Image generation failed, retrying in {delay}s: {e}")
+                    await asyncio.sleep(delay)  # Use async sleep
+                    continue
+                raise
+        
+        text = ""
+        tool_outputs = []
+        
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.text is not None:
+                    text += part.text
+                elif part.inline_data is not None:
+                    # Extract image data
+                    image_data = base64.b64encode(part.inline_data.data).decode('utf-8')
+                    tool_outputs.append(ToolOutput(
+                        type=ToolType.IMAGE_GENERATION,
+                        result=ImageGenerationResult(
+                            image_data=image_data,
+                            format='png',
+                            width=1024,  # Default values
+                            height=1024
+                        ),
+                        raw_response=part.inline_data
+                    ))
+        
+        return ChatResult(
+            text=text,
+            token_usage=None,  # Image generation doesn't provide token usage
+            raw_response=response,
+            tool_outputs=tool_outputs if tool_outputs else None
+        )
+    
+    async def _make_api_call_with_retry_async(self, **kwargs) -> Any:
+        """Make async API call with exponential backoff retry logic."""
+        last_exception = None
+        
+        for attempt in range(self.max_retries):
+            try:
+                # Try to make the API call
+                model = kwargs.pop('model')
+                return model.generate_content(**kwargs)
+                
+            except Exception as e:
+                last_exception = e
+                error_msg = str(e)
+                
+                # Check if it's a rate limit error
+                if "Resource has been exhausted" in error_msg or "429" in error_msg:
+                    if attempt < self.max_retries - 1:
+                        # Calculate exponential backoff
+                        delay = self.retry_delay * (2 ** attempt)
+                        logger.warning(f"Rate limit hit, retrying in {delay} seconds... (attempt {attempt + 1}/{self.max_retries})")
+                        await asyncio.sleep(delay)  # Use async sleep
+                        continue
+                
+                # Check if it's a safety filter rejection
+                if "blocked" in error_msg.lower() or "safety" in error_msg.lower():
+                    logger.warning(f"Content blocked by safety filters: {error_msg}")
+                    # Return empty response instead of failing
+                    return self._create_empty_response("Content was blocked by safety filters.")
+                
+                # For other errors, log and re-raise
+                logger.error(f"Gemini API error: {error_msg}")
+                raise
+                
+            except Exception as e:
+                last_exception = e
+                logger.error(f"Unexpected error calling Gemini API: {e}")
+                
+                # Retry for connection errors
+                if attempt < self.max_retries - 1 and self._is_retriable_error(e):
+                    delay = self.retry_delay * (2 ** attempt)
+                    logger.warning(f"Retrying after error: {e} (attempt {attempt + 1}/{self.max_retries})")
+                    await asyncio.sleep(delay)  # Use async sleep
+                    continue
+                    
+                raise
+        
+        # If we've exhausted all retries, raise the last exception
+        raise last_exception

@@ -51,7 +51,7 @@ class ExecutionMutations:
                 diagram_data = data.diagram_data
             elif data.diagram_id:
                 # Use new services
-                storage_service = context.get_service("diagram_storage_domain_service")
+                storage_service = context.get_service("diagram_storage_service")
                 path = await storage_service.find_by_id(data.diagram_id)
                 if path:
                     diagram_data = await storage_service.read_file(path)

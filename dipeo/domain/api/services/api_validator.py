@@ -1,12 +1,12 @@
 """API validation service using unified validation framework."""
 
-import re
 import json
-from typing import Dict, Any, Optional
+import re
+from typing import Any
 from urllib.parse import urlparse
 
 from dipeo.core.base.exceptions import ValidationError
-from dipeo.domain.shared.services import ValidationResult, ValidationWarning, BaseValidator
+from dipeo.domain.shared.services import BaseValidator, ValidationResult, ValidationWarning
 
 
 class APIValidator(BaseValidator):
@@ -22,7 +22,7 @@ class APIValidator(BaseValidator):
         else:
             result.add_error(ValidationError("Target must be an API config dict or URL string"))
     
-    def _validate_api_config(self, config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_api_config(self, config: dict[str, Any], result: ValidationResult) -> None:
         """Validate complete API configuration."""
         # Validate URL
         if 'url' in config:
@@ -84,7 +84,7 @@ class APIValidator(BaseValidator):
                 result.add_warning(ValidationWarning("URL contains potentially problematic characters"))
             
         except Exception as e:
-            result.add_error(ValidationError(f"Invalid URL format: {str(e)}"))
+            result.add_error(ValidationError(f"Invalid URL format: {e!s}"))
     
     def _validate_method(self, method: str, result: ValidationResult) -> None:
         """Validate HTTP method."""
@@ -95,7 +95,7 @@ class APIValidator(BaseValidator):
         elif method.upper() not in valid_methods:
             result.add_error(ValidationError(f"Invalid HTTP method: {method}"))
     
-    def _validate_headers(self, headers: Dict[str, str], result: ValidationResult) -> None:
+    def _validate_headers(self, headers: dict[str, str], result: ValidationResult) -> None:
         """Validate HTTP headers."""
         if not isinstance(headers, dict):
             result.add_error(ValidationError("Headers must be a dictionary"))
@@ -113,7 +113,7 @@ class APIValidator(BaseValidator):
             elif '\n' in value or '\r' in value:
                 result.add_error(ValidationError(f"Header value contains newlines: {name}"))
     
-    def _validate_body(self, body: Any, content_type: Optional[str], method: Optional[str], result: ValidationResult) -> None:
+    def _validate_body(self, body: Any, content_type: str | None, method: str | None, result: ValidationResult) -> None:
         """Validate request body."""
         # GET requests shouldn't have body
         if method and method.upper() == 'GET' and body:
@@ -132,7 +132,7 @@ class APIValidator(BaseValidator):
                     try:
                         json.dumps(body)
                     except Exception as e:
-                        result.add_error(ValidationError(f"Body is not JSON serializable: {str(e)}"))
+                        result.add_error(ValidationError(f"Body is not JSON serializable: {e!s}"))
             
             elif 'application/x-www-form-urlencoded' in content_type:
                 if not isinstance(body, dict):
@@ -147,7 +147,7 @@ class APIValidator(BaseValidator):
                 if not isinstance(body, str):
                     result.add_error(ValidationError("Text body must be a string"))
     
-    def _validate_auth(self, auth_config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_auth(self, auth_config: dict[str, Any], result: ValidationResult) -> None:
         """Validate authentication configuration."""
         if not auth_config:
             return
@@ -198,7 +198,7 @@ class APIValidator(BaseValidator):
         elif timeout > 300:
             result.add_warning(ValidationWarning("Timeout is very high (>300 seconds)"))
     
-    def _validate_retry(self, retry: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_retry(self, retry: dict[str, Any], result: ValidationResult) -> None:
         """Validate retry configuration."""
         if not isinstance(retry, dict):
             result.add_error(ValidationError("Retry must be a dictionary"))

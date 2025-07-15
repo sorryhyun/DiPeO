@@ -5,8 +5,9 @@ This is a manually maintained file, not auto-generated.
 Provides a single source of truth for handle ID parsing and creation.
 """
 
-from typing import Tuple, Optional, NamedTuple, Dict
-from .models import HandleID, NodeID, HandleDirection, HandleLabel
+from typing import NamedTuple
+
+from .models import HandleDirection, HandleID, HandleLabel, NodeID
 
 
 class ParsedHandle(NamedTuple):
@@ -25,13 +26,13 @@ class HandleReference:
     """
     
     # Class-level cache for handle references
-    _cache: Dict[HandleID, 'HandleReference'] = {}
+    _cache: dict[HandleID, 'HandleReference'] = {}
     
     def __init__(self, handle_id: HandleID):
         """Initialize handle reference with cached parsing."""
         self.handle_id = handle_id
-        self._parsed: Optional[ParsedHandle] = None
-        self._parse_error: Optional[str] = None
+        self._parsed: ParsedHandle | None = None
+        self._parse_error: str | None = None
         
         # Parse immediately to cache result
         self._ensure_parsed()
@@ -105,7 +106,7 @@ def create_handle_id(
 
 def parse_handle_id(
     handle_id: HandleID
-) -> Tuple[NodeID, HandleLabel, HandleDirection]:
+) -> tuple[NodeID, HandleLabel, HandleDirection]:
     """Parse a handle ID into its components.
     Returns (node_id, handle_label, direction)
     
@@ -143,7 +144,7 @@ def parse_handle_id(
 
 def parse_handle_id_safe(
     handle_id: HandleID
-) -> Optional[ParsedHandle]:
+) -> ParsedHandle | None:
     """Parse a handle ID safely, returning None on invalid format."""
     try:
         node_id, handle_label, direction = parse_handle_id(handle_id)
@@ -152,7 +153,7 @@ def parse_handle_id_safe(
         return None
 
 
-def extract_node_id_from_handle(handle_id: HandleID) -> Optional[NodeID]:
+def extract_node_id_from_handle(handle_id: HandleID) -> NodeID | None:
     """Extract just the node ID from a handle ID.
     
     This is a convenience function for cases where only the node ID is needed.
@@ -168,11 +169,11 @@ def is_valid_handle_id(handle_id: str) -> bool:
 
 
 __all__ = [
-    'ParsedHandle',
     'HandleReference',
+    'ParsedHandle',
     'create_handle_id',
-    'parse_handle_id',
-    'parse_handle_id_safe',
     'extract_node_id_from_handle',
     'is_valid_handle_id',
+    'parse_handle_id',
+    'parse_handle_id_safe',
 ]

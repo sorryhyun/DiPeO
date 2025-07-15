@@ -1,9 +1,8 @@
 # Pure transformation functions for diagrams
 
-from typing import Dict, Any, List, Optional
 from copy import deepcopy
-from dipeo.models import DomainDiagram, DomainNode, DomainArrow, NodeType
-from dipeo.models import parse_handle_id, extract_node_id_from_handle
+
+from dipeo.models import DomainDiagram, extract_node_id_from_handle, parse_handle_id
 
 
 class DiagramTransformer:
@@ -46,7 +45,7 @@ class DiagramTransformer:
     @staticmethod
     def extract_subgraph(
         diagram: DomainDiagram, 
-        node_ids: List[str]
+        node_ids: list[str]
     ) -> DomainDiagram:
         # Extract a subgraph containing only specified nodes
         node_id_set = set(node_ids)

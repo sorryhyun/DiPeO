@@ -1,6 +1,6 @@
 """Database domain services."""
 
-from .db_validator import DBValidator
 from .db_operations_service import DBOperationsDomainService
+from .db_validator import DBValidator
 
-__all__ = ["DBValidator", "DBOperationsDomainService"]
+__all__ = ["DBOperationsDomainService", "DBValidator"]

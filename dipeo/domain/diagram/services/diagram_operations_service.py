@@ -1,7 +1,7 @@
 """Domain service for diagram operations."""
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 from dipeo.models import DomainDiagram
 
@@ -12,7 +12,7 @@ class DiagramOperationsService:
     This includes cloning, transformations, and batch operations.
     """
 
-    def clone_diagram(self, diagram: DomainDiagram, new_name: str, new_description: Optional[str] = None) -> DomainDiagram:
+    def clone_diagram(self, diagram: DomainDiagram, new_name: str, new_description: str | None = None) -> DomainDiagram:
         """
         Clone a diagram with a new name and optional description.
         This is pure business logic without any persistence operations.
@@ -57,7 +57,7 @@ class DiagramOperationsService:
     def prepare_diagram_update(
         self, 
         diagram: DomainDiagram, 
-        updates: Dict[str, Any]
+        updates: dict[str, Any]
     ) -> DomainDiagram:
         """
         Apply updates to a diagram according to business rules.
@@ -85,9 +85,9 @@ class DiagramOperationsService:
 
     def batch_update_diagrams(
         self, 
-        diagrams: List[DomainDiagram], 
-        updates: Dict[str, Any]
-    ) -> List[DomainDiagram]:
+        diagrams: list[DomainDiagram], 
+        updates: dict[str, Any]
+    ) -> list[DomainDiagram]:
         """
         Apply the same updates to multiple diagrams.
         """
@@ -157,7 +157,7 @@ class DiagramOperationsService:
     def extract_subdiagram(
         self,
         diagram: DomainDiagram,
-        node_ids: List[str],
+        node_ids: list[str],
         subdiagram_name: str
     ) -> DomainDiagram:
         """
@@ -195,7 +195,7 @@ class DiagramOperationsService:
             viewport=diagram.viewport,
         )
 
-    def calculate_diagram_statistics(self, diagram: DomainDiagram) -> Dict[str, Any]:
+    def calculate_diagram_statistics(self, diagram: DomainDiagram) -> dict[str, Any]:
         """
         Calculate various statistics about a diagram.
         This is business logic about what metrics matter.

@@ -1,10 +1,12 @@
 # Infrastructure service for database operations.
 # This is a backward compatibility wrapper.
 
-from typing import Any, Dict
+from typing import Any
 
 from dipeo.core.ports import FileServicePort
-from dipeo.domain.db.services import DBOperationsDomainService as DomainDBService, DBValidator
+from dipeo.domain.db.services import DBOperationsDomainService as DomainDBService
+from dipeo.domain.db.services import DBValidator
+
 from .db_adapter import DBOperationsAdapter
 
 
@@ -32,7 +34,7 @@ class DBOperationsDomainService:
 
     async def execute_operation(
         self, db_name: str, operation: str, value: Any = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute a database operation."""
         return await self.adapter.execute_operation(db_name, operation, value)
 
@@ -41,13 +43,13 @@ class DBOperationsDomainService:
     async def _get_db_file_path(self, db_name: str) -> str:
         return await self.adapter._get_db_file_path(db_name)
 
-    async def _read_db(self, file_path: str) -> Dict[str, Any]:
+    async def _read_db(self, file_path: str) -> dict[str, Any]:
         return await self.adapter._read_db(file_path)
 
-    async def _write_db(self, file_path: str, value: Any) -> Dict[str, Any]:
+    async def _write_db(self, file_path: str, value: Any) -> dict[str, Any]:
         return await self.adapter._write_db(file_path, value)
 
-    async def _append_db(self, file_path: str, value: Any) -> Dict[str, Any]:
+    async def _append_db(self, file_path: str, value: Any) -> dict[str, Any]:
         return await self.adapter._append_db(file_path, value)
 
     def _ensure_json_serializable(self, value: Any):

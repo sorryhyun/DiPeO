@@ -1,17 +1,20 @@
 # Diagram resolution pipeline for transforming DomainDiagram to ExecutableDiagram.
 # Handles resolution, arrow transformation, execution order, and validation.
 
-from .handle_resolver import HandleResolver
 from .arrow_transformer import ArrowTransformer
-from .execution_order_calculator import ExecutionOrderCalculator
+from .handle_resolver import HandleResolver
+from .static_diagram_compiler import StaticDiagramCompiler
 from .validation_rules import ValidationRules
-from .static_diagram_compiler import StaticDiagramCompiler, StaticDiagramValidator
+
+# Compatibility imports for migration
+from .simple_order_calculator import SimpleOrderCalculator
+# Keep old name for compatibility during migration
+ExecutionOrderCalculator = SimpleOrderCalculator
 
 __all__ = [
-    "HandleResolver",
     "ArrowTransformer",
     "ExecutionOrderCalculator",
-    "ValidationRules",
+    "HandleResolver",
     "StaticDiagramCompiler",
-    "StaticDiagramValidator",
+    "ValidationRules",
 ]

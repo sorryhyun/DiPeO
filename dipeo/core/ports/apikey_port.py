@@ -1,12 +1,12 @@
 """Port interface for API key storage operations."""
 
-from typing import Protocol, Dict, List, Optional, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 class APIKeyPort(Protocol):
     """Port interface for persisting and retrieving API keys."""
 
-    async def load_all(self) -> Dict[str, Dict]:
+    async def load_all(self) -> dict[str, dict]:
         """Load all API keys from storage.
 
         Returns:
@@ -14,7 +14,7 @@ class APIKeyPort(Protocol):
         """
         ...
 
-    async def save_all(self, store: Dict[str, Dict]) -> None:
+    async def save_all(self, store: dict[str, dict]) -> None:
         """Save all API keys to storage.
 
         Args:
@@ -37,7 +37,7 @@ class SupportsAPIKey(Protocol):
     def get_api_key(self, key_id: str) -> dict: 
         ...
         
-    def list_api_keys(self) -> List[dict]: 
+    def list_api_keys(self) -> list[dict]: 
         ...
         
     def create_api_key(self, label: str, service: str, key: str) -> dict: 
@@ -49,9 +49,9 @@ class SupportsAPIKey(Protocol):
     def update_api_key(
         self,
         key_id: str,
-        label: Optional[str] = None,
-        service: Optional[str] = None,
-        key: Optional[str] = None,
+        label: str | None = None,
+        service: str | None = None,
+        key: str | None = None,
     ) -> dict: 
         ...
 

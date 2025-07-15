@@ -1,10 +1,9 @@
 """Container initialization profiling utilities."""
 
-import asyncio
 import time
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -12,8 +11,8 @@ class ProfileResult:
     """Result of a profiling operation."""
     name: str
     duration_ms: float
-    children: List['ProfileResult'] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    children: list['ProfileResult'] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def total_duration_ms(self) -> float:
         """Get total duration including children."""
@@ -31,8 +30,8 @@ class ContainerProfiler:
     """Profile container initialization."""
     
     def __init__(self):
-        self._stack: List[ProfileResult] = []
-        self._root: Optional[ProfileResult] = None
+        self._stack: list[ProfileResult] = []
+        self._root: ProfileResult | None = None
 
     @contextmanager
     def profile(self, name: str, **metadata):
@@ -72,7 +71,7 @@ class ContainerProfiler:
             result.duration_ms = (time.perf_counter() - start_time) * 1000
             self._stack.pop()
 
-    def get_results(self) -> Optional[ProfileResult]:
+    def get_results(self) -> ProfileResult | None:
         """Get profiling results."""
         return self._root
 
@@ -87,15 +86,15 @@ class ContainerProfiler:
 
 
 # Global profiler instance
-_profiler: Optional[ContainerProfiler] = None
+_profiler: ContainerProfiler | None = None
 
 
-def get_profiler() -> Optional[ContainerProfiler]:
+def get_profiler() -> ContainerProfiler | None:
     """Get the global profiler instance."""
     return _profiler
 
 
-def set_profiler(profiler: Optional[ContainerProfiler]) -> None:
+def set_profiler(profiler: ContainerProfiler | None) -> None:
     """Set the global profiler instance."""
     global _profiler
     _profiler = profiler

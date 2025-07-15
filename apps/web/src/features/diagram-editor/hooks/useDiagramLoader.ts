@@ -124,8 +124,14 @@ export function useDiagramLoader() {
           // Update store with all data at once in a single transaction
           const store = useUnifiedStore.getState();
           store.transaction(() => {
+            // Preserve the active canvas state before clearing
+            const currentActiveCanvas = store.activeCanvas;
+            
             // First clear existing data
             store.clearAll();
+            
+            // Restore the active canvas state
+            store.setActiveCanvas(currentActiveCanvas);
             
             // Then restore the snapshot which properly updates all slices
             store.restoreSnapshot({
@@ -135,6 +141,13 @@ export function useDiagramLoader() {
               handles,
               timestamp: Date.now()
             });
+            
+            // Set diagram metadata
+            if (diagramWithCounts.metadata) {
+              store.setDiagramName(diagramWithCounts.metadata.name || 'Untitled');
+              store.setDiagramDescription(diagramWithCounts.metadata.description || '');
+            }
+            store.setDiagramId(diagramIdFromUrl);
           });
 
           // Mark as loaded after store is updated

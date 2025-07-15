@@ -1,13 +1,14 @@
 """Mutable services for persistence and storage."""
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
+
 from ..base import MutableBaseContainer
 
 
 def _create_file_service(base_dir, backup_service=None, domain_validator=None):
     """Create modular file service."""
-    from dipeo.infra.persistence.file import ModularFileService
     from dipeo.domain.file.services import BackupService, FileValidator
+    from dipeo.infra.persistence.file import ModularFileService
     
     return ModularFileService(
         base_dir=base_dir,
@@ -18,8 +19,9 @@ def _create_file_service(base_dir, backup_service=None, domain_validator=None):
 
 def _create_api_key_storage(store_file=None):
     """Create API key storage implementation."""
-    from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
     from pathlib import Path
+
+    from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
     
     # Use provided file or default location
     if store_file is None:
@@ -52,12 +54,6 @@ def _create_diagram_storage_adapter(storage_service, diagram_domain_service):
         domain_service=diagram_domain_service
     )
 
-
-def _create_diagram_storage_domain_service(storage_service):
-    """Create diagram domain service."""
-    from dipeo.application.services.diagram_service import DiagramService
-    
-    return DiagramService(storage_service=storage_service)
 
 
 def _create_diagram_loader(file_service):
@@ -150,12 +146,7 @@ class PersistenceServicesContainer(MutableBaseContainer):
         storage_service=diagram_storage_service,
         diagram_domain_service=business.diagram_business_logic,
     )
-    
-    diagram_storage_domain_service = providers.Singleton(
-        _create_diagram_storage_domain_service,
-        storage_service=diagram_storage_service,
-    )
-    
+
     diagram_loader = providers.Singleton(
         _create_diagram_loader,
         file_service=file_service,

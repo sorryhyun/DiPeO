@@ -2,11 +2,20 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from dipeo.models import DomainDiagram, HandleDirection, create_handle_id
-from dipeo.models import HandleLabel, NodeID, parse_handle_id
+
+from dipeo.models import (
+    DomainDiagram,
+    HandleDirection,
+    HandleLabel,
+    NodeID,
+    create_handle_id,
+    parse_handle_id,
+    MemoryView,
+)
+
+from ..conversion_utils import _node_id_map, _YamlMixin
 from ..shared_components import build_node
 from .base_strategy import BaseConversionStrategy
-from ..conversion_utils import _YamlMixin, _node_id_map
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +54,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         }
         
         # Handle dot notation keys (e.g., "memory_config.forget_mode")
-        dotted_keys = [k for k in props.keys() if '.' in k]
+        dotted_keys = [k for k in props if '.' in k]
         for key in dotted_keys:
             value = props.pop(key)
             parts = key.split('.')
@@ -56,11 +65,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 current = current[part]
             current[parts[-1]] = value
 
-        # Convert legacy forgetting_mode to proper memory_config structure
-        if "forgetting_mode" in props:
-            props["memory_config"] = {
-                "forget_mode": props.pop("forgetting_mode")
-            }
 
         # Add required fields for specific node types
         node_type = n.get("type", "job")
@@ -87,6 +91,45 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             # Map source_details to file for DB nodes
             if "source_details" in props and "file" not in props:
                 props["file"] = props.pop("source_details")
+        elif node_type == "person_job":
+            # Remove legacy memory_config on import
+            if "memory_config" in props:
+                props.pop("memory_config")
+            
+            # Convert memory_profile to memory_settings if present
+            if "memory_profile" in props:
+                profile_str = props.get("memory_profile")
+                
+                # Map profile strings to memory settings
+                profile_to_settings = {
+                    "FULL": {
+                        "view": MemoryView.all_messages,
+                        "max_messages": None,
+                        "preserve_system": True
+                    },
+                    "FOCUSED": {
+                        "view": MemoryView.conversation_pairs,
+                        "max_messages": 20,
+                        "preserve_system": True
+                    },
+                    "MINIMAL": {
+                        "view": MemoryView.system_and_me,
+                        "max_messages": 5,
+                        "preserve_system": True
+                    },
+                    "GOLDFISH": {
+                        "view": MemoryView.conversation_pairs,
+                        "max_messages": 2,
+                        "preserve_system": False
+                    }
+                }
+                
+                if profile_str in profile_to_settings:
+                    props["memory_settings"] = profile_to_settings[profile_str]
+                    log.debug(f"Converted memory_profile '{profile_str}' to memory_settings")
+                
+                # Keep memory_profile for UI state
+                # props.pop("memory_profile")  # Don't remove it, frontend might need it
 
         return build_node(
             id=self._create_node_id(index),
@@ -98,7 +141,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
     def extract_arrows(
             self, data: dict[str, Any], nodes: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:  # noqa: D401
+    ) -> list[dict[str, Any]]:
         arrows: list[dict[str, Any]] = []
         label2id = _node_id_map(nodes)
         for idx, c in enumerate(data.get("connections", [])):
@@ -231,7 +274,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         return arrows
 
     # ---- export ----------------------------------------------------------- #
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:  # noqa: D401
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
         
@@ -267,6 +310,14 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 person_id = props["person"]
                 if person_id in person_id_to_label:
                     props["person"] = person_id_to_label[person_id]
+                
+                # Remove legacy memory_config
+                if "memory_config" in props:
+                    props.pop("memory_config")
+                
+                # Remove memory_settings if memory_profile is present
+                if "memory_profile" in props and "memory_settings" in props:
+                    props.pop("memory_settings")
             
             # Map fileName back to filePath for endpoint nodes
             if node_type == "endpoint" and "file_name" in props:
@@ -333,8 +384,8 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         return out
 
     # ---- heuristics ------------------------------------------------------- #
-    def detect_confidence(self, data: dict[str, Any]) -> float:  # noqa: D401
+    def detect_confidence(self, data: dict[str, Any]) -> float:
         return 0.8 if isinstance(data.get("nodes"), list) else 0.1
 
-    def quick_match(self, content: str) -> bool:  # noqa: D401
+    def quick_match(self, content: str) -> bool:
         return "nodes:" in content and not content.lstrip().startswith(("{", "["))

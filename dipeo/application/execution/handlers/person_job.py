@@ -1,25 +1,32 @@
 
 import logging
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.models import (
-    NodeOutput,
-    PersonJobNodeData,
-    ForgettingMode,
-    Message,
-    PersonID,
-    MemoryConfig,
-    NodeType,
-)
-from dipeo.core.static.generated_nodes import PersonJobNode
-from dipeo.core.dynamic import Person
 from pydantic import BaseModel
 
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.unified_service_registry import (
+    LLM_SERVICE,
+    DIAGRAM,
+    CONVERSATION_MANAGER,
+    PROMPT_BUILDER
+)
+from dipeo.core.dynamic import Person
+from dipeo.core.static.generated_nodes import PersonJobNode
+from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
+from dipeo.models import (
+    MemorySettings,
+    Message,
+    NodeType,
+    PersonID,
+    PersonJobNodeData,
+)
+
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +34,7 @@ logger = logging.getLogger(__name__)
 @register_handler
 class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
-    def __init__(self, person_job_execution_service=None, llm_service=None, diagram_storage_service=None, conversation_service=None):
-        self.person_job_execution_service = person_job_execution_service
-        self.llm_service = llm_service
-        self.diagram_storage_service = diagram_storage_service
-        self.conversation_service = conversation_service
+    def __init__(self):
         # Person cache managed at handler level
         self._person_cache: dict[str, Person] = {}
 
@@ -51,43 +54,49 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        # Note: person_job_orchestrator removed - functionality integrated into handler
         return [
             "llm_service", 
             "diagram", 
-            "conversation_service",
             "conversation_manager",
             "prompt_builder",
-            "conversation_state_manager", 
-            "memory_transformer"
         ]
 
     @property
     def description(self) -> str:
         return "Execute person job with conversation memory"
     
-    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Optional[Any]:
-        service = context.get_service(service_name)
-        if not service:
-            service = services.get(service_name)
-
-        # If it's a dependency_injector provider, call it to get the instance
-        from dependency_injector import providers
-        if isinstance(service, (providers.Factory, providers.Singleton, providers.Dependency)):
-            service = service()
+    def validate(self, request: ExecutionRequest[PersonJobNode]) -> Optional[str]:
+        """Validate the execution request."""
+        if not request.node.person_id:
+            return "No person specified"
+        
+        # Check max iteration
+        execution_count = request.context.get_node_execution_count(request.node_id)
+        if execution_count > request.node.max_iteration:
+            return f"Max iteration ({request.node.max_iteration}) reached"
             
-        return service
-
+        return None
+    
     async def pre_execute(
         self,
         node: PersonJobNode,
-        execution: "TypedStatefulExecution"
+        execution: Any
     ) -> dict[str, Any]:
         """Pre-execute logic for PersonJobNode."""
-        exec_count = execution.get_node_execution_count(node.id)
+        # Handle different execution types
+        if hasattr(execution, 'context'):
+            # ExecutionRuntime
+            exec_count = execution.context.get_node_execution_count(node.id)
+        elif hasattr(execution, 'get_node_execution_count'):
+            # SimpleExecution or similar
+            exec_count = execution.get_node_execution_count(node.id)
+        else:
+            # Fallback
+            exec_count = 1
         
         # Determine which prompt to use
-        if exec_count == 0 and node.first_only_prompt:
+        # exec_count is 1 on first run because it's incremented before execution
+        if exec_count == 1 and node.first_only_prompt:
             prompt = node.first_only_prompt
         else:
             prompt = node.default_prompt
@@ -95,105 +104,86 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         return {
             "prompt": prompt,
             "exec_count": exec_count,
-            "should_continue": exec_count < node.max_iteration,
-            "memory_config": node.memory_config,
+            "should_continue": exec_count <= node.max_iteration,
             "tools": node.tools
         }
     
-    async def execute_typed(
-        self,
-        node: PersonJobNode,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
+        """Execute the person job with the unified request object."""
+        # Get node and context from request
+        node = request.node
+        context = request.context
+        
+        # Get inputs from request (already resolved by engine)
+        inputs = request.inputs or {}
+        
         # Direct typed access to person_id
         person_id = node.person_id
-        logger.debug(f"Raw inputs for person {person_id}: {inputs}")
-        # Resolve services
-        llm_service = self._resolve_service(context, services, "llm_service")
-        diagram = self._resolve_service(context, services, "diagram")
-        conversation_service = self._resolve_service(context, services, "conversation_service")
-        conversation_manager = self._resolve_service(context, services, "conversation_manager")
-        prompt_builder = self._resolve_service(context, services, "prompt_builder")
-        conversation_state_manager = self._resolve_service(context, services, "conversation_state_manager")
-        memory_transformer = self._resolve_service(context, services, "memory_transformer")
-        
-        # Get current node ID and execution info
-        node_id = self._extract_node_id(context)
-        execution_count = self._extract_execution_count(context)
-        execution_id = getattr(context.execution_state, 'id', None) if hasattr(context, 'execution_state') else None
-        
-        # Only log in debug mode if explicitly enabled
 
-        # Basic validation using typed property
-        if not person_id:
-            return self._build_output(
-                {"default": ""}, 
-                context,
-                {"error": "No person specified"}
-            )
+        # Get services from services dict
+        llm_service = request.services.get(LLM_SERVICE.name)
+        diagram = request.services.get(DIAGRAM.name)
+        conversation_manager = request.services.get(CONVERSATION_MANAGER.name)
+        prompt_builder = request.services.get(PROMPT_BUILDER.name)
         
+        if not all([llm_service, diagram, conversation_manager, prompt_builder]):
+            raise ValueError("Required services not available")
+        
+
+        execution_count = context.get_node_execution_count(node.id)
+
         try:
             # Get or create person
-            person = self._get_or_create_person(person_id, diagram, conversation_manager)
+            person = self._get_or_create_person(person_id, conversation_manager)
             
-            # Direct typed access to memory_config
-            forget_mode = ForgettingMode.no_forget
-            if node.memory_config:
-                # Direct property access - no dict lookups!
-                forget_mode = node.memory_config.forget_mode
+            # Apply memory settings if configured
+            # Note: We apply memory settings even on first execution because some nodes
+            # (like judge panels) need to see full conversation history from the start
+            if node.memory_settings:
+                person.apply_memory_settings(node.memory_settings)
             
-            # Apply memory transformation
+            # Use inputs directly
             transformed_inputs = inputs
-            if memory_transformer:
-                from dipeo.utils.arrow import unwrap_inputs
-                transformed_inputs = memory_transformer.transform_input(
-                    inputs, "person_job", execution_count, 
-                    {"forget_mode": forget_mode.value}
-                )
-            else:
-                from dipeo.utils.arrow import unwrap_inputs
-                transformed_inputs = unwrap_inputs(inputs)
             
             # Handle conversation inputs
-            if self._has_conversation_input(transformed_inputs):
-                self._rebuild_conversation(person, transformed_inputs, forget_mode)
+            has_conversation_input = self._has_conversation_input(transformed_inputs)
+            if has_conversation_input:
+                logger.debug(f"PersonJob {node.id}: Rebuilding conversation from inputs")
+                self._rebuild_conversation(person, transformed_inputs)
+                logger.debug(f"PersonJob {node.id}: After rebuild, person has {person.get_message_count()} messages")
             
-            # Apply memory management with typed access
-            if conversation_manager and execution_count > 0 and conversation_state_manager.should_forget_messages(execution_count, forget_mode):
-                if node.memory_config:
-                    # Direct typed access to max_messages
-                    mem_config = MemoryConfig(
-                        forget_mode=forget_mode,
-                        max_messages=node.memory_config.max_messages
-                    )
-                    person.apply_memory_management(mem_config)
+            # Build prompt BEFORE applying memory management
+            logger.debug(f"PersonJob {node.id} ({node.label}): transformed_inputs keys: {list(transformed_inputs.keys())}")
+            for key, value in transformed_inputs.items():
+                if isinstance(value, dict) and 'messages' in value:
+                    logger.debug(f"  {key}: dict with {len(value.get('messages', []))} messages")
+                elif isinstance(value, list):
+                    logger.debug(f"  {key}: list with {len(value)} items")
                 else:
-                    conversation_manager.apply_forgetting(
-                        person_id, forget_mode, execution_id, execution_count
-                    )
+                    logger.debug(f"  {key}: {type(value).__name__}")
             
-            # Build prompt
-            logger.debug(f"Transformed inputs for person {person_id}: {transformed_inputs}")
-            template_values = prompt_builder.prepare_template_values(transformed_inputs)
-            logger.debug(f"Template values for person {person_id}: {template_values}")
+            template_values = prompt_builder.prepare_template_values(
+                transformed_inputs, 
+                conversation_manager=conversation_manager,
+                person_id=person_id
+            )
+
+            # Disable auto-prepend if we have conversation input (to avoid duplication)
             built_prompt = prompt_builder.build(
-                prompt=node.default_prompt if node.default_prompt is not None else node.first_only_prompt,
+                prompt=node.default_prompt,
                 first_only_prompt=node.first_only_prompt,
                 execution_count=execution_count,
                 template_values=template_values,
+                auto_prepend_conversation=not has_conversation_input
             )
-            logger.debug(f"Built prompt for person {person_id}: {built_prompt}")
-            
+
             # Skip if no prompt
             if not built_prompt:
                 logger.warning(f"Skipping execution for person {person_id} - no prompt available")
-                return NodeOutput(
-                    value={"default": ""},
-                    metadata={"skipped": True, "reason": "No prompt available"},
-                    node_id=context.current_node_id,
-                    executed_nodes=context.executed_nodes
+                return TextOutput(
+                    value="",
+                    node_id=node.id,
+                    metadata={"skipped": True, "reason": "No prompt available"}
                 )
             
             # Execute LLM call
@@ -202,7 +192,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 "prompt": built_prompt,
                 "llm_service": llm_service,
                 "from_person_id": "system",
-                "memory_config": None,
                 "temperature": 0.7,
                 "max_tokens": 4096,
             }
@@ -217,37 +206,44 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             return self._build_node_output(
                 result=result,
                 person=person,
-                context=context,
+                node=node,
                 diagram=diagram,
                 model=person.llm_config.model
             )
             
-        except ValueError as e:
-            # Domain validation errors - only log if debug enabled
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Validation error in person job: {e}")
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": str(e)},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
-            )
         except Exception as e:
-            # Unexpected errors
-            logger.error(f"Error executing person job: {e}")
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": str(e)},
-                node_id=context.current_node_id,
-                executed_nodes=context.executed_nodes
+            # Let on_error handle it
+            raise
+    
+    async def on_error(
+        self,
+        request: ExecutionRequest[PersonJobNode],
+        error: Exception
+    ) -> Optional[NodeOutputProtocol]:
+        """Handle errors gracefully."""
+        # For ValueError (domain validation), only log in debug mode
+        if isinstance(error, ValueError):
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Validation error in person job: {error}")
+            return ErrorOutput(
+                value=str(error),
+                node_id=request.node.id,
+                error_type="ValidationError"
             )
+        
+        # For other errors, log them
+        logger.error(f"Error executing person job: {error}")
+        return ErrorOutput(
+            value=str(error),
+            node_id=request.node.id,
+            error_type=type(error).__name__
+        )
     
     # _execute_with_props removed - logic integrated into execute method
     
     def _get_or_create_person(
         self,
         person_id: str,
-        diagram: Any,
         conversation_manager: Any
     ) -> Person:
         # Check cache first
@@ -261,15 +257,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if hasattr(conversation_manager, 'get_person_config'):
             person_config = conversation_manager.get_person_config(person_id)
         
-        if not person_config:
-            # Try to get from conversation service if available
-            conversation_service = self.conversation_service
-            if conversation_service and hasattr(conversation_service, 'get_person_config'):
-                person_config = conversation_service.get_person_config(person_id)
         
         if not person_config:
             # Fallback: create minimal config with default LLM
-            from dipeo.models import PersonLLMConfig, LLMService, ApiKeyID
+            from dipeo.models import ApiKeyID, LLMService, PersonLLMConfig
             person_config = PersonLLMConfig(
                 service=LLMService.openai,
                 model="gpt-4.1-nano",
@@ -293,149 +284,90 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         return person
     
     def _has_conversation_input(self, inputs: dict[str, Any]) -> bool:
-        for value in inputs.values():
+        # Check for conversation inputs in the same way the prompt builder does
+        for key, value in inputs.items():
+            # Check if key ends with _messages (like the prompt builder)
+            if key.endswith('_messages') and isinstance(value, list):
+                return True
+            # Also check the original structure for backwards compatibility
             if isinstance(value, dict) and "messages" in value:
                 return True
         return False
     
-    def _rebuild_conversation(self, person: Person, inputs: dict[str, Any], forget_mode: ForgettingMode) -> None:
+    def _rebuild_conversation(self, person: Person, inputs: dict[str, Any]) -> None:
         all_messages = []
-        for value in inputs.values():
+        for key, value in inputs.items():
             if isinstance(value, dict) and "messages" in value:
                 messages = value["messages"]
                 if isinstance(messages, list):
+                    logger.debug(f"_rebuild_conversation: Found {len(messages)} messages in input '{key}'")
                     all_messages.extend(messages)
         
         if not all_messages:
+            logger.debug("_rebuild_conversation: No messages found in inputs")
             return
         
-        if forget_mode == ForgettingMode.on_every_turn:
-            person.clear_conversation()
+        logger.debug(f"_rebuild_conversation: Processing {len(all_messages)} total messages")
         
-        for msg_dict in all_messages:
-            message = Message(
-                from_person_id=msg_dict.get("from_person_id", person.id),
-                to_person_id=msg_dict.get("to_person_id", person.id),
-                content=msg_dict.get("content", ""),
-                message_type="person_to_person",
-                timestamp=msg_dict.get("timestamp"),
-            )
-            person.add_message(message)
+        for i, msg in enumerate(all_messages):
+            # Handle both Message objects and dict formats
+            if isinstance(msg, Message):
+                # Already a Message object - check content and add directly
+                if "[Previous conversation" not in msg.content:
+                    person.add_message(msg)
+                    logger.debug(f"  Added Message object {i}: from={msg.from_person_id}, to={msg.to_person_id}")
+            elif isinstance(msg, dict):
+                # Dictionary format - convert to Message
+                content = msg.get("content", "")
+                # Skip messages that contain the "[Previous conversation" marker to avoid duplication
+                if "[Previous conversation" in content:
+                    logger.debug(f"  Skipped message {i} with '[Previous conversation' marker")
+                    continue
+                    
+                message = Message(
+                    from_person_id=msg.get("from_person_id", person.id),
+                    to_person_id=msg.get("to_person_id", person.id),
+                    content=content,
+                    message_type="person_to_person",
+                    timestamp=msg.get("timestamp"),
+                )
+                person.add_message(message)
+                logger.debug(f"  Added dict message {i}: from={message.from_person_id}, to={message.to_person_id}, content_length={len(content)}")
     
     def _needs_conversation_output(self, node_id: str, diagram: Any) -> bool:
         # Check if any edge from this node expects conversation output
         for edge in diagram.edges:
-            if edge.source == node_id and edge.source_output == "conversation":
-                return True
+            if str(edge.source_node_id) == node_id:
+                # Check for explicit conversation output
+                if edge.source_output == "conversation":
+                    return True
+                # Check data_transform for content_type = conversation_state
+                if hasattr(edge, 'data_transform') and edge.data_transform:
+                    if edge.data_transform.get('content_type') == 'conversation_state':
+                        return True
         return False
     
-    def _build_node_output(self, result: Any, person: Person, context: UnifiedExecutionContext, diagram: Any, model: str) -> NodeOutput:
-        output_value = {"default": result.text}
-        
-        # Add conversation if needed
-        if self._needs_conversation_output(context.current_node_id, diagram):
-            output_value["conversation"] = []
-            for msg in person.get_messages():
-                output_value["conversation"].append({
-                    "role": "assistant" if msg.from_person_id == person.id else "user",
-                    "content": msg.content,
-                    "person_id": person.id,
-                    "person_label": person.name,
-                })
-        
+    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
         # Build metadata
         metadata = {"model": model}
-        if result.token_usage:
-            if isinstance(result.token_usage, dict):
-                metadata["tokens_used"] = result.token_usage.get("total", 0)
-                metadata["token_usage"] = result.token_usage
-            else:
-                metadata["tokens_used"] = getattr(result.token_usage, "total", 0)
-                metadata["token_usage"] = {
-                    "input": getattr(result.token_usage, "input", 0),
-                    "output": getattr(result.token_usage, "output", 0),
-                    "cached": getattr(result.token_usage, "cached", 0)
-                }
         
-        return NodeOutput(
-            value=output_value, 
-            metadata=metadata,
-            node_id=context.current_node_id,
-            executed_nodes=context.executed_nodes
-        )
-    
-    def _extract_node_id(self, context: UnifiedExecutionContext) -> str:
-        return context.current_node_id
-    
-    def _extract_execution_count(self, context: UnifiedExecutionContext) -> int:
-        return context.get_node_execution_count(context.current_node_id)
-    
-    def _transform_result_to_output(self, result: Any, context: UnifiedExecutionContext) -> NodeOutput:
-        output_value = {"default": result.content}
-        
-        # Add conversation if present
-        if result.conversation_state:
-            # conversation_state is now a dictionary with 'messages' key
-            messages = result.conversation_state.get("messages", [])
-            output_value["conversation"] = []
+        # Check if conversation output is needed
+        if self._needs_conversation_output(str(node.id), diagram):
+            # Return ConversationOutput with messages
+            messages = []
+            for msg in person.get_messages():
+                messages.append(msg)
             
-            for msg in messages:
-                if isinstance(msg, dict):
-                    # Handle dictionary format (backward compatibility)
-                    output_value["conversation"].append({
-                        "role": msg.get("role"),
-                        "content": msg.get("content"),
-                        "tool_calls": msg.get("tool_calls"),
-                        "tool_call_id": msg.get("tool_call_id"),
-                        "person_label": result.metadata.get("person") if result.metadata else None,
-                    })
-                elif isinstance(msg, Message):
-                    # Handle Message object format
-                    # Convert Message to dictionary format for output
-                    role = "system" if msg.from_person_id == "system" else "user"
-                    if msg.message_type == "person_to_system":
-                        role = "assistant"
-                    
-                    output_value["conversation"].append({
-                        "role": role,
-                        "content": msg.content,
-                        "tool_calls": msg.metadata.get("tool_calls") if msg.metadata else None,
-                        "tool_call_id": msg.metadata.get("tool_call_id") if msg.metadata else None,
-                        "person_label": result.metadata.get("person") if result.metadata else None,
-                    })
-        
-        # Build metadata
-        metadata = {}
-        if result.usage:
-            # Handle both dict and object formats for usage
-            if isinstance(result.usage, dict):
-                metadata["tokens_used"] = result.usage.get("total", 0)
-                metadata["token_usage"] = result.usage
-            else:
-                # Assume it's a TokenUsage object with attributes
-                metadata["tokens_used"] = getattr(result.usage, "total", 0)
-                metadata["token_usage"] = {
-                    "input": getattr(result.usage, "input", getattr(result.usage, "prompt", 0)),
-                    "output": getattr(result.usage, "output", getattr(result.usage, "completion", 0)),
-                    "cached": getattr(result.usage, "cached", 0)
-                }
-            metadata["model"] = result.metadata.get("model") if result.metadata else "gpt-4.1-nano"
-        if result.metadata:
-            metadata.update(result.metadata)
-        if result.tool_outputs:
-            metadata["tool_outputs"] = result.tool_outputs
-            
-            # Add tool outputs to output value for downstream nodes
-            for tool_output in result.tool_outputs:
-                if isinstance(tool_output, dict):
-                    if tool_output.get("type") == "web_search_preview":
-                        output_value["web_search_results"] = tool_output.get("result")
-                    elif tool_output.get("type") == "image_generation":
-                        output_value["generated_image"] = tool_output.get("result")
-        
-        return NodeOutput(
-            value=output_value, 
-            metadata=metadata,
-            node_id=context.current_node_id,
-            executed_nodes=context.executed_nodes
-        )
+            return ConversationOutput(
+                value=messages,
+                node_id=node.id,
+                metadata=metadata
+            )
+        else:
+            # Return TextOutput with just the text
+            return TextOutput(
+                value=result.text,
+                node_id=node.id,
+                metadata=metadata
+            )
+    

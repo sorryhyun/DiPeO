@@ -1,8 +1,10 @@
 """Protocol for managing person instances during diagram execution."""
 
-from typing import Protocol, Dict, List, Optional
 from abc import abstractmethod
-from dipeo.models import PersonID, LLMService, PersonLLMConfig
+from typing import Protocol
+
+from dipeo.models import LLMService, PersonID, PersonLLMConfig
+
 from .person import Person
 
 
@@ -30,7 +32,7 @@ class PersonManager(Protocol):
         person_id: PersonID,
         name: str,
         llm_config: PersonLLMConfig,
-        role: Optional[str] = None
+        role: str | None = None
     ) -> Person:
         """Create a new person instance.
         
@@ -49,8 +51,8 @@ class PersonManager(Protocol):
     def update_person_config(
         self,
         person_id: PersonID,
-        llm_config: Optional[PersonLLMConfig] = None,
-        role: Optional[str] = None
+        llm_config: PersonLLMConfig | None = None,
+        role: str | None = None
     ) -> None:
         """Update a person's configuration.
         
@@ -62,7 +64,7 @@ class PersonManager(Protocol):
         ...
     
     @abstractmethod
-    def get_all_persons(self) -> Dict[PersonID, Person]:
+    def get_all_persons(self) -> dict[PersonID, Person]:
         """Get all active person instances.
         
         Returns:
@@ -71,7 +73,7 @@ class PersonManager(Protocol):
         ...
     
     @abstractmethod
-    def get_persons_by_service(self, service: LLMService) -> List[Person]:
+    def get_persons_by_service(self, service: LLMService) -> list[Person]:
         """Get all persons using a specific LLM service.
         
         Args:
@@ -109,54 +111,3 @@ class PersonManager(Protocol):
         ...
 
 
-class PersonPersistence(Protocol):
-    """Protocol for persisting person configurations."""
-    
-    @abstractmethod
-    async def save_persons(
-        self,
-        execution_id: str,
-        persons: Dict[PersonID, Person]
-    ) -> str:
-        """Save all person configurations from an execution.
-        
-        Args:
-            execution_id: The execution ID
-            persons: Map of person_id to Person objects
-            
-        Returns:
-            Path or identifier where persons were saved
-        """
-        ...
-    
-    @abstractmethod
-    async def load_persons(
-        self,
-        execution_id: str
-    ) -> Dict[PersonID, Person]:
-        """Load person configurations from a previous execution.
-        
-        Args:
-            execution_id: The execution ID to load
-            
-        Returns:
-            Map of person_id to Person objects
-        """
-        ...
-    
-    @abstractmethod
-    async def export_person_config(
-        self,
-        person: Person,
-        format: str = "json"
-    ) -> str:
-        """Export a person's configuration.
-        
-        Args:
-            person: The person to export
-            format: Export format (json, yaml, etc.)
-            
-        Returns:
-            Serialized configuration string
-        """
-        ...

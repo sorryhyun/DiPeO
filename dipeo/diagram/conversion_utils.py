@@ -1,41 +1,31 @@
 """Conversion utilities for diagram formats."""
 
-from collections.abc import Mapping
+import json
 from typing import Any
 
-from pydantic import BaseModel, Field
+import yaml
+
 from dipeo.models import DomainDiagram
 from dipeo.models.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
-import json
-import yaml
-from .base import FormatStrategy
-from .shared_components import extract_common_arrows
 
 DomainDiagram.model_rebuild()
 
 
-class BackendDiagram(BaseModel):
-    # Backend representation of a diagram (dict of dicts)
-    # Simple wrapper around dict format for storage and execution
-
-    nodes: dict[str, Any] = Field(default_factory=dict)
-    arrows: dict[str, Any] = Field(default_factory=dict)
-    persons: dict[str, Any] = Field(default_factory=dict)
-    handles: dict[str, Any] = Field(default_factory=dict)
-    metadata: dict[str, Any] | None = None
-
-    class Config:
-        extra = "allow"
-
-
-def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
-    # Convert backend dict representation to GraphQL domain model
+def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> DomainDiagram:
+    """Convert dict-based diagram representation to DomainDiagram.
+    
+    Args:
+        diagram_dict: Dict with keys as IDs (e.g. {"nodes": {"node_0": {...}}})
+        
+    Returns:
+        DomainDiagram with array-based structure
+    """
     arrays_dict = diagram_maps_to_arrays(
-        nodes=backend_dict.nodes or {},
-        arrows=backend_dict.arrows or {},
-        handles=backend_dict.handles or {},
-        persons=backend_dict.persons or {},
-        api_keys=None  # Not used in BackendDiagram
+        nodes=diagram_dict.get("nodes", {}),
+        arrows=diagram_dict.get("arrows", {}),
+        handles=diagram_dict.get("handles", {}),
+        persons=diagram_dict.get("persons", {}),
+        api_keys=None
     )
 
     handles_list = []
@@ -49,7 +39,7 @@ def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
         "arrows": arrays_dict["arrows"],
         "handles": handles_list,
         "persons": arrays_dict["persons"],
-        "metadata": backend_dict.metadata,
+        "metadata": diagram_dict.get("metadata"),
     }
 
     result_dict = {k: v for k, v in result_dict.items() if v is not None}
@@ -57,13 +47,20 @@ def backend_to_graphql(backend_dict: BackendDiagram) -> DomainDiagram:
     return DomainDiagram(**result_dict)
 
 
-def graphql_to_backend(graphql_diagram: DomainDiagram) -> dict[str, dict[str, Any]]:
-    # Convert GraphQL domain model to backend dict representation
+def domain_diagram_to_dict(domain_diagram: DomainDiagram) -> dict[str, Any]:
+    """Convert DomainDiagram to dict-based representation.
+    
+    Args:
+        domain_diagram: DomainDiagram with array-based structure
+        
+    Returns:
+        Dict with keys as IDs for efficient lookups
+    """
     maps_dict = diagram_arrays_to_maps(
-        nodes=graphql_diagram.nodes or [],
-        arrows=graphql_diagram.arrows or [],
-        handles=graphql_diagram.handles or [],
-        persons=graphql_diagram.persons or [],
+        nodes=domain_diagram.nodes or [],
+        arrows=domain_diagram.arrows or [],
+        handles=domain_diagram.handles or [],
+        persons=domain_diagram.persons or [],
         api_keys=None
     )
 
@@ -72,8 +69,8 @@ def graphql_to_backend(graphql_diagram: DomainDiagram) -> dict[str, dict[str, An
         "arrows": maps_dict["arrows"],
         "handles": maps_dict["handles"],
         "persons": maps_dict["persons"],
-        "metadata": graphql_diagram.metadata.model_dump()
-        if graphql_diagram.metadata
+        "metadata": domain_diagram.metadata.model_dump()
+        if domain_diagram.metadata
         else {},
     }
 
@@ -118,7 +115,8 @@ class _YamlMixin:
 
         def str_representer(dumper, data):
             if '\n' in data:
-                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+                # Use literal style without strip indicator
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
         CustomDumper.add_representer(dict, position_representer)

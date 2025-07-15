@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application import register_handler
-from dipeo.application.execution.context.unified_execution_context import (
-    UnifiedExecutionContext,
-)
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.unified_service_registry import DB_OPERATIONS_SERVICE
 from dipeo.core.static.generated_nodes import DBNode
-from dipeo.models import DBNodeData, NodeOutput, NodeType
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.models import DBNodeData, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +35,15 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         self.db_operations_service = db_operations_service
 
     @property
-    def node_class(self) -> type[DBNode]:  # noqa: D401
+    def node_class(self) -> type[DBNode]:
         return DBNode
 
     @property
-    def node_type(self) -> str:  # noqa: D401
+    def node_type(self) -> str:
         return NodeType.db.value
 
     @property
-    def schema(self) -> type[BaseModel]:  # noqa: D401
+    def schema(self) -> type[BaseModel]:
         return DBNodeData
 
     @property
@@ -58,15 +58,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     #  Helpers                                                              #
     # ---------------------------------------------------------------------#
 
-    @staticmethod
-    def _resolve_service(
-        context: UnifiedExecutionContext,
-        services: dict[str, Any],
-        service_name: str,
-    ) -> Any | None:
-        """Try context first, fall back to the services mapping."""
-        service = context.get_service(service_name)
-        return service or services.get(service_name)
 
     @staticmethod
     def _first_non_empty(inputs: dict[str, Any] | None) -> Any | None:
@@ -84,7 +75,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     async def pre_execute(
         self,
         node: DBNode,
-        execution: "TypedStatefulExecution"
+        execution: ExecutionRuntime
     ) -> dict[str, Any]:
         """Pre-execute logic for DBNode."""
         return {
@@ -96,15 +87,16 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             "data": node.data
         }
     
-    async def execute_typed(  # noqa: D401
+    async def execute(
         self,
         node: DBNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         """Run the DB operation with a strongly-typed `DBNode` instance."""
-        db_service = self._resolve_service(context, services, "db_operations_service")
+        # Get service from services dict
+        db_service = services.get(DB_OPERATIONS_SERVICE.name)
         if db_service is None:  # Hard failure early
             raise RuntimeError("db_operations_service not available")
 
@@ -127,15 +119,16 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 )
 
             logger.debug("DB node output_value: %s", repr(output_value))
-            return self._build_output(
-                {"default": output_value},
-                context,
+            return TextOutput(
+                value=str(output_value),
+                node_id=node.id,
+                metadata={}
             )
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("DB operation failed: %s", exc)
-            return self._build_output(
-                {"default": f"DB operation failed: {exc}"},
-                context,
-                {"error": str(exc), "status": "failed"},
+            return ErrorOutput(
+                value=f"DB operation failed: {exc}",
+                node_id=node.id,
+                error_type=type(exc).__name__
             )

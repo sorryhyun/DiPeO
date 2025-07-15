@@ -3,13 +3,11 @@ Utility functions for working with service types
 These utilities help distinguish between LLM and non-LLM services
 """
 
-from typing import List, Set
 
-from dipeo.models import LLMService, APIServiceType
-
+from dipeo.models import APIServiceType, LLMService
 
 # Set of APIServiceType values that are LLM services
-LLM_SERVICE_TYPES: Set[APIServiceType] = {
+LLM_SERVICE_TYPES: set[APIServiceType] = {
     APIServiceType.openai,
     APIServiceType.anthropic,
     APIServiceType.google,
@@ -49,12 +47,12 @@ def llm_service_to_api_service_type(service: LLMService) -> APIServiceType:
     return APIServiceType(service.value)
 
 
-def get_llm_service_types() -> List[APIServiceType]:
+def get_llm_service_types() -> list[APIServiceType]:
     """Get all LLM service types"""
     return list(LLM_SERVICE_TYPES)
 
 
-def get_non_llm_service_types() -> List[APIServiceType]:
+def get_non_llm_service_types() -> list[APIServiceType]:
     """Get all non-LLM service types"""
     return [service for service in APIServiceType if service not in LLM_SERVICE_TYPES]
 

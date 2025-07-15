@@ -2,7 +2,6 @@
 import hashlib
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union
 
 
 class ChecksumAlgorithm(Enum):
@@ -47,7 +46,7 @@ class Checksum:
             )
     
     @classmethod
-    def compute(cls, data: Union[bytes, str], algorithm: ChecksumAlgorithm) -> 'Checksum':
+    def compute(cls, data: bytes | str, algorithm: ChecksumAlgorithm) -> 'Checksum':
         """Compute checksum for given data."""
         if isinstance(data, str):
             data = data.encode('utf-8')
@@ -67,7 +66,7 @@ class Checksum:
         
         return cls(value=hasher.hexdigest(), algorithm=algorithm)
     
-    def verify(self, data: Union[bytes, str]) -> bool:
+    def verify(self, data: bytes | str) -> bool:
         """Verify if data matches this checksum."""
         computed = self.compute(data, self.algorithm)
         return computed.value.lower() == self.value.lower()

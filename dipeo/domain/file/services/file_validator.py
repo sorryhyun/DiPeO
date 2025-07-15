@@ -1,17 +1,17 @@
 """File validation service using unified validation framework."""
 
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 from dipeo.core.base.exceptions import ValidationError
-from dipeo.domain.shared.services import ValidationResult, ValidationWarning, BaseValidator
+from dipeo.domain.shared.services import BaseValidator, ValidationResult, ValidationWarning
 
 
 class FileValidator(BaseValidator):
     """Validates files using the unified validation framework."""
     
     def __init__(self, 
-                 allowed_extensions: Optional[list[str]] = None,
+                 allowed_extensions: list[str] | None = None,
                  max_size_mb: float = 10.0,
                  min_size_bytes: int = 0):
         """Initialize file validator with constraints.
@@ -26,7 +26,7 @@ class FileValidator(BaseValidator):
         self.min_size_bytes = min_size_bytes
     
     # Convenience methods for backward compatibility
-    def validate_extension(self, file_path: Path, allowed_extensions: Optional[list[str]] = None) -> None:
+    def validate_extension(self, file_path: Path, allowed_extensions: list[str] | None = None) -> None:
         """Validate file extension (raises exception).
         
         Args:
@@ -49,7 +49,7 @@ class FileValidator(BaseValidator):
                 f"Allowed extensions: {extensions}"
             )
     
-    def validate_size(self, file_size: int, max_size_mb: Optional[float] = None) -> None:
+    def validate_size(self, file_size: int, max_size_mb: float | None = None) -> None:
         """Validate file size (raises exception).
         
         Args:
@@ -183,7 +183,7 @@ class FileValidator(BaseValidator):
 class PathValidator(BaseValidator):
     """Validates file paths for security and correctness."""
     
-    def __init__(self, base_dir: Optional[Path] = None, allow_absolute: bool = False):
+    def __init__(self, base_dir: Path | None = None, allow_absolute: bool = False):
         """Initialize path validator.
         
         Args:
@@ -222,7 +222,7 @@ class PathValidator(BaseValidator):
                     resolved.relative_to(base_resolved)
                 except ValueError:
                     result.add_error(ValidationError(
-                        f"Path is outside allowed base directory",
+                        "Path is outside allowed base directory",
                         details={
                             "path": str(path),
                             "base_dir": str(self.base_dir)
@@ -231,7 +231,7 @@ class PathValidator(BaseValidator):
             
         except Exception as e:
             result.add_error(ValidationError(
-                f"Invalid path: {str(e)}",
+                f"Invalid path: {e!s}",
                 details={"path": str(target)}
             ))
         

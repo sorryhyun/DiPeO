@@ -1,10 +1,10 @@
 # Validation rules for diagram resolution and execution
 
-from typing import List, Set, Dict, Any, Optional, Protocol
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Protocol
 
-from dipeo.models import NodeType, NodeID, HandleLabel
+from dipeo.models import HandleLabel, NodeID, NodeType
 
 
 class ValidationSeverity(Enum):
@@ -20,14 +20,14 @@ class ValidationIssue:
     severity: ValidationSeverity
     category: str
     message: str
-    node_id: Optional[NodeID] = None
-    details: Optional[Dict[str, Any]] = None
+    node_id: NodeID | None = None
+    details: dict[str, Any] | None = None
 
 
 class NodeValidator(Protocol):
     # Protocol for node-specific validators
     
-    def validate(self, node: Any) -> List[ValidationIssue]:
+    def validate(self, node: Any) -> list[ValidationIssue]:
         # Validate a node and return any issues found
         ...
 
@@ -90,7 +90,7 @@ class ValidationRules:
         node_type: NodeType,
         incoming_count: int,
         outgoing_count: int
-    ) -> List[ValidationIssue]:
+    ) -> list[ValidationIssue]:
         # Validate node connection counts
         issues = []
         rules = cls.NODE_CONNECTION_RULES.get(node_type, {})
@@ -134,8 +134,8 @@ class ValidationRules:
     def validate_node_handles(
         cls,
         node_type: NodeType,
-        available_handles: Set[HandleLabel]
-    ) -> List[ValidationIssue]:
+        available_handles: set[HandleLabel]
+    ) -> list[ValidationIssue]:
         # Validate that a node has required handles
         issues = []
         rules = cls.NODE_CONNECTION_RULES.get(node_type, {})
@@ -166,7 +166,7 @@ class ValidationRules:
         cls,
         source_type: NodeType,
         target_type: NodeType
-    ) -> List[ValidationIssue]:
+    ) -> list[ValidationIssue]:
         # Validate that a connection between node types is allowed
         issues = []
         source_rules = cls.NODE_CONNECTION_RULES.get(source_type, {})
@@ -195,8 +195,8 @@ class ValidationRules:
     @classmethod
     def validate_execution_groups(
         cls,
-        groups: List[Any]
-    ) -> List[ValidationIssue]:
+        groups: list[Any]
+    ) -> list[ValidationIssue]:
         # Validate execution groups for constraints
         issues = []
         
@@ -217,7 +217,7 @@ class ValidationRules:
         cls,
         node_count: int,
         edge_count: int
-    ) -> List[ValidationIssue]:
+    ) -> list[ValidationIssue]:
         # Validate overall diagram size constraints
         issues = []
         
@@ -246,7 +246,7 @@ class ValidationRules:
         return issues
     
     @classmethod
-    def validate_person_node(cls, node_data: Dict[str, Any]) -> List[ValidationIssue]:
+    def validate_person_node(cls, node_data: dict[str, Any]) -> list[ValidationIssue]:
         # Validate person node specific requirements
         issues = []
         
@@ -280,7 +280,7 @@ class ValidationRules:
         return issues
     
     @classmethod
-    def validate_condition_node(cls, node_data: Dict[str, Any]) -> List[ValidationIssue]:
+    def validate_condition_node(cls, node_data: dict[str, Any]) -> list[ValidationIssue]:
         # Validate condition node specific requirements
         issues = []
         

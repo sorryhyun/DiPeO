@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Export GraphQL schema from the server."""
 
-import sys
 import os
+import sys
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -15,7 +15,7 @@ from dipeo_server.api.graphql.schema import unified_schema
 
 if __name__ == "__main__":
     schema_str = unified_schema.as_str()
-    
+
     if len(sys.argv) > 1:
         output_path = sys.argv[1]
         with open(output_path, 'w') as f:

@@ -26,6 +26,8 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
         return <Pause className="h-5 w-5 text-yellow-500" />;
       case NodeExecutionStatus.SKIPPED:
         return <AlertCircle className="h-5 w-5 text-gray-400" />;
+      case NodeExecutionStatus.MAXITER_REACHED:
+        return <RefreshCw className="h-5 w-5 text-orange-500" />;
       default:
         return <Clock className="h-5 w-5 text-gray-400" />;
     }
@@ -43,6 +45,8 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
         return 'bg-yellow-50 border-yellow-200';
       case NodeExecutionStatus.SKIPPED:
         return 'bg-gray-50 border-gray-200';
+      case NodeExecutionStatus.MAXITER_REACHED:
+        return 'bg-orange-50 border-orange-200';
       default:
         return 'bg-gray-50 border-gray-200';
     }

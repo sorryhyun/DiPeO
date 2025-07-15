@@ -1,15 +1,11 @@
 """Utility functions for container management."""
 
-import os
 import logging
-from dipeo.core.ports import (
-    FileServicePort,
-    LLMServicePort,
-    NotionServicePort,
-    SupportsAPIKey
-)
-from dipeo.core.ports.diagram_port import DiagramPort
+
 from dipeo.core.dynamic.conversation_manager import ConversationManager
+from dipeo.core.ports import FileServicePort, LLMServicePort, NotionServicePort, SupportsAPIKey
+from dipeo.core.ports.diagram_port import DiagramPort
+
 from .profiling import get_profiler
 
 logger = logging.getLogger(__name__)
@@ -125,8 +121,7 @@ async def init_resources(container) -> None:
     if missing_services:
         logger.warning(f"Missing required services: {missing_services}")
     
-    # Log service health status
-    health_status = service_registry.get_health_status()
+    # Service health status logging removed - method not implemented
 
 
 async def shutdown_resources(container) -> None:

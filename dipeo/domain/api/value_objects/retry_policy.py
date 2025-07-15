@@ -1,8 +1,6 @@
 """Retry policy value object."""
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Callable
-import math
 
 
 class RetryStrategy(Enum):

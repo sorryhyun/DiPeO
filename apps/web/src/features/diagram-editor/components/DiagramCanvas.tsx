@@ -80,6 +80,8 @@ interface CommonFlowPropsParams {
   clearSelection: () => void;
   highlightPerson: (personId: PersonID | null) => void;
   setDashboardTab: (tab: 'properties' | 'persons' | 'settings' | 'history') => void;
+  readOnly: boolean;
+  isExecuting: boolean;
 }
 
 function useCommonFlowProps({
@@ -101,6 +103,8 @@ function useCommonFlowProps({
   clearSelection,
   highlightPerson,
   setDashboardTab,
+  readOnly,
+  isExecuting,
 }: CommonFlowPropsParams) {
   return useMemo(() => {
     // Convert handle-based arrows to ReactFlow edges
@@ -125,9 +129,9 @@ function useCommonFlowProps({
       },
       onDragOver: onDragOver ?? undefined,
       onDrop,
-      // Enable node dragging (we'll control which button in the node component)
-      nodesDraggable: true,
-      nodesConnectable: true,
+      // Control interactivity based on read-only state
+      nodesDraggable: !readOnly && !isExecuting,
+      nodesConnectable: !readOnly && !isExecuting,
       nodesFocusable: true,
       elementsSelectable: true,
       panOnDrag: true, // Use left mouse button with space/cmd key for panning
@@ -211,6 +215,8 @@ function useCommonFlowProps({
     onNodeDragStop,
     highlightPerson,
     setDashboardTab,
+    readOnly,
+    isExecuting,
   ]);
 }
 
@@ -245,6 +251,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     selectedNodeId,
     selectedArrowId,
     selectedPersonId,
+    readOnly,
+    isExecuting,
   } = state;
   const {
     selectNode,
@@ -336,6 +344,8 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     clearSelection,
     highlightPerson,
     setDashboardTab,
+    readOnly,
+    isExecuting,
   });
 
   /** --------------------------------------------------

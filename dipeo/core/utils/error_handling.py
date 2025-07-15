@@ -7,9 +7,15 @@ import functools
 import json
 import logging
 import time
+from collections.abc import Callable
+from typing import (
+    Any,
+    Literal,
+    ParamSpec,
+    TypeVar,
+)
+
 import yaml
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union, cast, overload
-from typing import ParamSpec, Literal
 
 P = ParamSpec('P')
 T = TypeVar('T')
@@ -21,12 +27,12 @@ logger = logging.getLogger(__name__)
 class ErrorResponse:
     """Standardized error response structure."""
     
-    def __init__(self, success: bool = False, error: Optional[str] = None, **kwargs: Any):
+    def __init__(self, success: bool = False, error: str | None = None, **kwargs: Any):
         self.success = success
         self.error = error
         self.data = kwargs
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = {"success": self.success}
         if self.error:
             result["error"] = self.error
@@ -37,30 +43,30 @@ class ErrorResponse:
 def handle_exceptions(
     error_message: str = "Operation failed",
     include_details: bool = True,
-    logger_instance: Optional[logging.Logger] = None,
+    logger_instance: logging.Logger | None = None,
     **default_response_data: Any
-) -> Callable[[Callable[P, T]], Callable[P, Union[T, Dict[str, Any]]]]:
+) -> Callable[[Callable[P, T]], Callable[P, T | dict[str, Any]]]:
     # Decorator for exception handling with standardized responses
-    def decorator(func: Callable[P, T]) -> Callable[P, Union[T, Dict[str, Any]]]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T | dict[str, Any]]:
         @functools.wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[T, Dict[str, Any]]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | dict[str, Any]:
             try:
                 return func(*args, **kwargs)
             except Exception as e:
                 log = logger_instance or logger
-                error_detail = f"{error_message}: {str(e)}" if include_details else error_message
+                error_detail = f"{error_message}: {e!s}" if include_details else error_message
                 log.error(error_detail, exc_info=True)
                 
                 response = ErrorResponse(success=False, error=error_detail, **default_response_data)
                 return response.to_dict()
         
         @functools.wraps(func)
-        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[T, Dict[str, Any]]:
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | dict[str, Any]:
             try:
                 return await func(*args, **kwargs)  # type: ignore
             except Exception as e:
                 log = logger_instance or logger
-                error_detail = f"{error_message}: {str(e)}" if include_details else error_message
+                error_detail = f"{error_message}: {e!s}" if include_details else error_message
                 log.error(error_detail, exc_info=True)
                 
                 response = ErrorResponse(success=False, error=error_detail, **default_response_data)
@@ -71,11 +77,11 @@ def handle_exceptions(
     return decorator
 
 
-def handle_file_operation(operation: str, file_path: Optional[str] = None) -> Callable[[Callable[P, T]], Callable[P, Union[T, Dict[str, Any]]]]:
+def handle_file_operation(operation: str, file_path: str | None = None) -> Callable[[Callable[P, T]], Callable[P, T | dict[str, Any]]]:
     # Decorator for file operations with consistent error handling
-    def decorator(func: Callable[P, T]) -> Callable[P, Union[T, Dict[str, Any]]]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T | dict[str, Any]]:
         @functools.wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[T, Dict[str, Any]]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | dict[str, Any]:
             # Try to extract file path from args if not provided
             path = file_path
             if not path and args:
@@ -100,12 +106,12 @@ def handle_file_operation(operation: str, file_path: Optional[str] = None) -> Ca
                 logger.error(error)
                 return {"success": False, "error": error, "operation": operation}
             except Exception as e:
-                error = f"Failed to {operation} file: {str(e)}"
+                error = f"Failed to {operation} file: {e!s}"
                 logger.error(error, exc_info=True)
                 return {"success": False, "error": error, "operation": operation}
         
         @functools.wraps(func)
-        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Union[T, Dict[str, Any]]:
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T | dict[str, Any]:
             # Try to extract file path from args if not provided
             path = file_path
             if not path and args:
@@ -130,7 +136,7 @@ def handle_file_operation(operation: str, file_path: Optional[str] = None) -> Ca
                 logger.error(error)
                 return {"success": False, "error": error, "operation": operation}
             except Exception as e:
-                error = f"Failed to {operation} file: {str(e)}"
+                error = f"Failed to {operation} file: {e!s}"
                 logger.error(error, exc_info=True)
                 return {"success": False, "error": error, "operation": operation}
         
@@ -143,7 +149,7 @@ def handle_api_errors(
     operation: str,
     value_error_prefix: str = "Validation error",
     general_error_prefix: str = "Failed to",
-    result_class: Optional[Type] = None
+    result_class: type | None = None
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     # Decorator for API error handling with consistent logging
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -186,8 +192,8 @@ def retry_with_backoff(
     max_retries: int = 3,
     initial_delay: float = 1.0,
     backoff_factor: float = 2.0,
-    exceptions: tuple[Type[Exception], ...] = (Exception,),
-    logger_instance: Optional[logging.Logger] = None
+    exceptions: tuple[type[Exception], ...] = (Exception,),
+    logger_instance: logging.Logger | None = None
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     # Decorator for retrying operations with exponential backoff
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -246,7 +252,7 @@ def retry_with_backoff(
     return decorator
 
 
-def safe_parse(content: str, format: Literal['json', 'yaml'] = 'json') -> Union[Any, str]:
+def safe_parse(content: str, format: Literal['json', 'yaml'] = 'json') -> Any | str:
     # Safely parse JSON/YAML, returning original content on failure
     try:
         if format == 'json':
@@ -263,8 +269,7 @@ def safe_parse(content: str, format: Literal['json', 'yaml'] = 'json') -> Union[
         return content
 
 
-# Import existing exceptions from error taxonomy
-from ..errors.taxonomy import FileOperationError, APIKeyError
+# Import existing exceptions from base exceptions
 
 
 def format_error_response(
@@ -272,7 +277,7 @@ def format_error_response(
     error: Exception,
     include_type: bool = True,
     **extra_data: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     # Format error into standardized response dictionary
     response = {
         "success": False,

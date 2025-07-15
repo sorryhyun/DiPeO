@@ -91,7 +91,61 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
       } else {
         // Store update logic
         if (entityType === 'node') {
-          updateNode(nodeId(entityId), { data: data as Record<string, unknown> });
+          // Transform memory_profile to memory_settings for person_job nodes
+          const nodeData = data as Record<string, unknown>;
+          if (nodeData.type === 'person_job' && 'memory_profile' in nodeData) {
+            const transformedData = { ...nodeData };
+            const memoryProfile = nodeData.memory_profile as string;
+            
+            // Map memory profile to memory settings
+            switch (memoryProfile) {
+              case 'FULL':
+                transformedData.memory_settings = {
+                  view: 'all_messages',
+                  max_messages: null,
+                  preserve_system: true
+                };
+                break;
+              case 'FOCUSED':
+                transformedData.memory_settings = {
+                  view: 'conversation_pairs',
+                  max_messages: 20,
+                  preserve_system: true
+                };
+                break;
+              case 'MINIMAL':
+                transformedData.memory_settings = {
+                  view: 'system_and_me',
+                  max_messages: 5,
+                  preserve_system: true
+                };
+                break;
+              case 'GOLDFISH':
+                transformedData.memory_settings = {
+                  view: 'conversation_pairs',
+                  max_messages: 2,
+                  preserve_system: false
+                };
+                break;
+              case 'CUSTOM':
+                // Keep existing memory_settings or use defaults
+                if (!transformedData.memory_settings) {
+                  transformedData.memory_settings = {
+                    view: 'all_involved',
+                    max_messages: null,
+                    preserve_system: true
+                  };
+                }
+                break;
+            }
+            
+            // Don't remove memory_profile - it's a UI field that needs to be preserved
+            // The domain model will ignore it, but we need it for the UI
+            
+            updateNode(nodeId(entityId), { data: transformedData });
+          } else {
+            updateNode(nodeId(entityId), { data: nodeData });
+          }
         } else if (entityType === 'arrow') {
           const { content_type, label, ...restData } = data as any;
           const updates: any = { data: restData };

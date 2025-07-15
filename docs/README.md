@@ -26,3 +26,13 @@
 
 * Rather than merely creating diagrams, the inputs and outputs of each diagram can be exposed via API, enabling agent-based tools like Claude Code to leverage the diagrams. We aim to explore visual collaboration in which Claude Code can generate diagrams on its own or a human can modify a diagram created by Claude Code.
 
+## Conversation system
+
+* A conversation is always stored globally to keep track of what kind of dialogues are happening between people, and by default, every person defined in the diagram can listen to all of these conversations. 
+
+* However, how much of the conversation each person can actually remember depends on the memory policy of the person job assigned to them. 
+  * For example, if the policy is no_forget, the person remembers the entire conversation history, 
+  
+  * but if it’s on_every_turn, the person forgets all previous conversations each time a new request comes in. The format in which the existing conversation is included in the prompt depends on the content type delivered by the arrow—if it’s a conversation state, it gets inserted in a specific format, and if it’s raw text, it’s just inserted as plain text. 
+  
+* This inserted text is automatically placed at the beginning of the person job prompt, so you don’t need to set it up separately.

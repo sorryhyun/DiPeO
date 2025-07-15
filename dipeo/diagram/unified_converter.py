@@ -18,16 +18,17 @@ from dipeo.models import (
 
 DomainDiagram.model_rebuild()
 
-from .base import DiagramConverter, FormatStrategy
-from .conversion_utils import backend_to_graphql, BackendDiagram
-from dipeo.models.conversions import node_kind_to_domain_type
 from dipeo.models import create_handle_id
+from dipeo.models.conversions import node_kind_to_domain_type
+
+from .base import DiagramConverter, FormatStrategy
+from .conversion_utils import dict_to_domain_diagram
 from .shared_components import (
     ArrowBuilder,
     HandleGenerator,
     PositionCalculator,
 )
-from .strategies import NativeJsonStrategy, LightYamlStrategy, ReadableYamlStrategy
+from .strategies import LightYamlStrategy, NativeJsonStrategy, ReadableYamlStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -213,13 +214,45 @@ class UnifiedDiagramConverter(DiagramConverter):
             if arrow:
                 arrows_dict[arrow.id] = arrow
 
-        diagram_dict = BackendDiagram(
-            nodes=nodes_dict,
-            handles=handles_dict,
-            arrows=arrows_dict,
-            persons=persons_dict,
-            metadata=data.get("metadata"),
-        )
+        diagram_dict = {
+            "nodes": nodes_dict,
+            "handles": handles_dict,
+            "arrows": arrows_dict,
+            "persons": persons_dict,
+            "metadata": data.get("metadata"),
+        }
+        
+        # Second pass: Update content types for arrows from condition nodes
+        # to preserve the content type from their inputs
+        for arrow_id, arrow in arrows_dict.items():
+            if arrow.source:
+                try:
+                    # Parse the source handle to get node ID and handle label
+                    node_id, handle_label, direction = parse_handle_id(arrow.source)
+                    source_node = nodes_dict.get(node_id)
+                    
+                    # If source is from a condition node's condtrue/condfalse output
+                    if (source_node and 
+                        source_node.type == NodeType.condition and 
+                        handle_label.value in ["condtrue", "condfalse"]):
+                        # Find arrows feeding into this condition node
+                        input_content_types = []
+                        for other_arrow in arrows_dict.values():
+                            if other_arrow.target and node_id in other_arrow.target:
+                                # This arrow feeds into the condition node
+                                if other_arrow.content_type:
+                                    input_content_types.append(other_arrow.content_type)
+                        
+                        # If we found input content types and they're all the same, preserve it
+                        if input_content_types and all(ct == input_content_types[0] for ct in input_content_types):
+                            arrow.content_type = input_content_types[0]
+                            logger.debug(
+                                f"Preserving content_type '{input_content_types[0].value}' from input "
+                                f"for arrow from condition node {node_id} output {handle_label.value}"
+                            )
+                except Exception as e:
+                    # If parsing fails, keep the existing content type
+                    logger.debug(f"Failed to update content type for arrow from {arrow.source}: {e}")
 
         # Generate default handles for nodes that don't have any handles
         for node_id, node in nodes_dict.items():
@@ -246,7 +279,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 if len(parts) >= 3 and parts[-1] in ["input", "output"]:
                     # This is already a full handle ID, don't parse it
                     # Verify it exists in handles
-                    if arrow.source in diagram_dict.handles:
+                    if arrow.source in diagram_dict["handles"]:
                         continue
                     else:
                         continue
@@ -288,7 +321,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
-                actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
+                actual_node_id = next((n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), node_id)
                 
                 # Validate handle_name is not a direction value
                 if handle_name in ["input", "output"]:
@@ -304,20 +337,20 @@ class UnifiedDiagramConverter(DiagramConverter):
                     
                 expected_handle_id = create_handle_id(actual_node_id, handle_label, HandleDirection.output)
                 
-                if expected_handle_id in diagram_dict.handles:
-                    handle = diagram_dict.handles[expected_handle_id]
+                if expected_handle_id in diagram_dict["handles"]:
+                    handle = diagram_dict["handles"][expected_handle_id]
                     if handle.direction == HandleDirection.output:
                         handle_exists = True
                         # Update arrow to use the existing handle ID
                         arrow.source = expected_handle_id
                 
                 # Check if node exists (case-insensitive)
-                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
+                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict)
                 if not handle_exists and node_exists:
                     # Create handle with normalized ID, including direction for new format
                     normalized_handle_id = create_handle_id(actual_node_id, HandleLabel(handle_name), HandleDirection.output)
                     # Create output handle
-                    diagram_dict.handles[normalized_handle_id] = DomainHandle(
+                    diagram_dict["handles"][normalized_handle_id] = DomainHandle(
                         id=normalized_handle_id,
                         node_id=actual_node_id,
                         label=handle_name,
@@ -335,7 +368,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                 if len(parts) >= 3 and parts[-1] in ["input", "output"]:
                     # This is already a full handle ID, don't parse it
                     # Verify it exists in handles
-                    if arrow.target in diagram_dict.handles:
+                    if arrow.target in diagram_dict["handles"]:
                         continue
                     else:
                         continue
@@ -354,7 +387,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                         if arrow.target == f"{node_label}_{possible_handle}":
                             node_id = nid
                             handle_name = possible_handle
-                            logger.debug(f"Matched node label '{node_label}' with handle '{possible_handle}'")
                             break
                     if node_id:
                         break
@@ -378,7 +410,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
                 # Check if a handle with same node_id and label already exists
                 handle_exists = False
-                actual_node_id = next((n_id for n_id in nodes_dict.keys() if n_id.lower() == node_id.lower()), node_id)
+                actual_node_id = next((n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), node_id)
                 
                 # Validate handle_name is not a direction value
                 if handle_name in ["input", "output"]:
@@ -394,20 +426,20 @@ class UnifiedDiagramConverter(DiagramConverter):
                     
                 expected_handle_id = create_handle_id(actual_node_id, handle_label, HandleDirection.input)
                 
-                if expected_handle_id in diagram_dict.handles:
-                    handle = diagram_dict.handles[expected_handle_id]
+                if expected_handle_id in diagram_dict["handles"]:
+                    handle = diagram_dict["handles"][expected_handle_id]
                     if handle.direction == HandleDirection.input:
                         handle_exists = True
                         # Update arrow to use the existing handle ID
                         arrow.target = expected_handle_id
                 
                 # Check if node exists (case-insensitive)
-                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict.keys())
+                node_exists = any(n_id.lower() == node_id.lower() for n_id in nodes_dict)
                 if not handle_exists and node_exists:
                     # Create handle with normalized ID, including direction for new format
                     normalized_handle_id = create_handle_id(actual_node_id, HandleLabel(handle_name), HandleDirection.input)
                     # Create input handle
-                    diagram_dict.handles[normalized_handle_id] = DomainHandle(
+                    diagram_dict["handles"][normalized_handle_id] = DomainHandle(
                         id=normalized_handle_id,
                         node_id=actual_node_id,
                         label=handle_name,
@@ -418,7 +450,7 @@ class UnifiedDiagramConverter(DiagramConverter):
                     # Update arrow to use the normalized handle ID
                     arrow.target = normalized_handle_id
 
-        return backend_to_graphql(diagram_dict)
+        return dict_to_domain_diagram(diagram_dict)
 
     def _create_node(self, node_data: dict[str, Any], index: int) -> DomainNode:
         """Create a domain node from node data."""
@@ -460,27 +492,10 @@ class UnifiedDiagramConverter(DiagramConverter):
         content_type = arrow_data.get("content_type")
         label = arrow_data.get("label")
 
-        # Automatically set content_type for arrows from condition nodes
-        if content_type is None and source:
-            try:
-                # Parse the source handle to get node ID and handle label
-                node_id, handle_label, direction = parse_handle_id(source)
-                source_node = nodes_dict.get(node_id)
-                
-                # If source is from a condition node's condtrue/condfalse output
-                if (source_node and 
-                    source_node.type == NodeType.condition and 
-                    handle_label.value in ["condtrue", "condfalse"]):
-                    # Automatically set content_type to variable
-                    content_type = ContentType.variable
-                    logger.debug(
-                        f"Auto-setting content_type to 'variable' for arrow from "
-                        f"condition node {node_id} output {handle_label.value}"
-                    )
-            except Exception as e:
-                # If parsing fails, just continue without auto-setting
-                logger.debug(f"Failed to parse handle {source}: {e}")
-                pass
+        # Automatically set content_type for empty arrows
+        if content_type is None:
+            # Default to raw_text for all empty arrows
+            content_type = ContentType.raw_text
 
         return DomainArrow(
             id=arrow_id, 

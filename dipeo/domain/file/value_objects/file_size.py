@@ -1,6 +1,5 @@
 """File size value object."""
 from dataclasses import dataclass
-from typing import Literal
 
 
 @dataclass(frozen=True)

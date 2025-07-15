@@ -1,10 +1,12 @@
 """Server-specific persistence container with state store and message router."""
 
 from pathlib import Path
+
 from dependency_injector import providers
 from dipeo.container.runtime.persistence_container import PersistenceServicesContainer
 from dipeo.infra import MessageRouter
 from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
+
 from dipeo_server.shared.constants import BASE_DIR
 
 
@@ -37,9 +39,9 @@ class ServerPersistenceContainer(PersistenceServicesContainer):
 
     # Override message_router with actual implementation
     message_router = providers.Singleton(MessageRouter)
-    
+
     # Override api_key_storage with server-specific path
     api_key_storage = providers.Singleton(_create_server_api_key_storage)
-    
+
     # Override api_key_service to use our storage
     api_key_service = providers.Singleton(_create_server_api_key_service)

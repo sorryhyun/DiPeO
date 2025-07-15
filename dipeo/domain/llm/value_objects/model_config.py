@@ -1,7 +1,7 @@
 """Model configuration value object."""
 
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -10,11 +10,11 @@ class ModelConfig:
     
     provider: str
     model: str
-    temperature: Optional[float] = 0.7
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = 1.0
-    frequency_penalty: Optional[float] = 0.0
-    presence_penalty: Optional[float] = 0.0
+    temperature: float | None = 0.7
+    max_tokens: int | None = None
+    top_p: float | None = 1.0
+    frequency_penalty: float | None = 0.0
+    presence_penalty: float | None = 0.0
     
     def __post_init__(self):
         """Validate configuration values."""
@@ -33,7 +33,7 @@ class ModelConfig:
         if self.presence_penalty is not None and not -2 <= self.presence_penalty <= 2:
             raise ValueError("Presence penalty must be between -2 and 2")
     
-    def to_api_params(self) -> Dict[str, Any]:
+    def to_api_params(self) -> dict[str, Any]:
         """Convert to API parameters."""
         params = {
             "model": self.model,

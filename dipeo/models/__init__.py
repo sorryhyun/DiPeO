@@ -27,7 +27,7 @@ __all__ = [
     "ImageGenerationResult", "InteractivePromptData", "InteractiveResponse", "JobNodeData",
     "LLMRequestOptions", "LLMService", "MemoryConfig", "MemoryState",
     "Message", "NewType", "NodeDefinition", "NodeExecutionStatus",
-    "NodeID", "NodeOutput", "NodeState", "NodeType",
+    "NodeID", "NodeState", "NodeType",
     "NotionNodeData", "NotionOperation", "PersonBatchJobNodeData", "PersonID",
     "PersonJobNodeData", "PersonLLMConfig", "PersonMemoryConfig", "PersonMemoryMessage",
     "PersonMemoryState", "StartNodeData", "StoreDiagram", "SupportedLanguage",

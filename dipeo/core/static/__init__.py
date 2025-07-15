@@ -1,23 +1,23 @@
 """Static objects representing immutable diagram structures."""
 
+from .diagram_compiler import DiagramCompiler
 from .executable_diagram import ExecutableDiagram, ExecutableEdge, ExecutableNode
+from .node_handler import TypedNodeHandler
 from .nodes import (
-    BaseExecutableNode,
-    StartNode,
-    PersonNode,
-    ConditionNode,
-    CodeJobNode,
     ApiJobNode,
-    EndpointNode,
+    BaseExecutableNode,
+    CodeJobNode,
+    ConditionNode,
     DBNode,
-    UserResponseNode,
+    EndpointNode,
+    HookNode,
     NotionNode,
     PersonBatchJobNode,
-    HookNode,
-    create_executable_node
+    PersonNode,
+    StartNode,
+    UserResponseNode,
+    create_executable_node,
 )
-from .diagram_compiler import DiagramCompiler, DiagramValidator
-from .node_handler import TypedNodeHandler
 
 __all__ = [
     # Diagram structures
@@ -42,8 +42,7 @@ __all__ = [
     # Factory
     "create_executable_node",
     
-    # Protocols
+    # Protocols and base classes
     "DiagramCompiler",
-    "DiagramValidator",
     "TypedNodeHandler"
 ]

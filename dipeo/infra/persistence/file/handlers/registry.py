@@ -1,14 +1,14 @@
 """Registry for file format handlers."""
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .base import FileFormatHandler
-from .json_handler import JsonHandler
-from .yaml_handler import YamlHandler
 from .csv_handler import CsvHandler
 from .docx_handler import DocxHandler
+from .json_handler import JsonHandler
 from .text_handler import TextHandler
+from .yaml_handler import YamlHandler
 
 
 class FormatHandlerRegistry:

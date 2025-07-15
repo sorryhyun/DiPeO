@@ -7,11 +7,11 @@ from datetime import UTC, datetime
 
 import yaml
 from dipeo.diagram import converter_registry
-from dipeo.models import DomainDiagram
-from dipeo.models import DiagramMetadata
 from dipeo.infra.persistence.diagram import DiagramFileRepository
+from dipeo.models import DiagramMetadata, DomainDiagram
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
+
 from ..types import (
     DiagramFilterInput,
     DiagramID,
@@ -33,7 +33,7 @@ class DiagramResolver:
 
             # Use storage service to find and load diagram data
             storage_service: DiagramFileRepository = (
-                info.context.get_service("diagram_storage_domain_service")
+                info.context.get_service("diagram_storage_service")
             )
 
             # Find the diagram file
@@ -109,7 +109,7 @@ class DiagramResolver:
         try:
             # Use new storage service
             storage_service: DiagramFileRepository = (
-                info.context.get_service("diagram_storage_domain_service")
+                info.context.get_service("diagram_storage_service")
             )
 
             file_infos = await storage_service.list_files()

@@ -19,6 +19,7 @@ export interface DiagramSlice {
   
   // Diagram metadata
   diagramName: string;
+  diagramDescription: string;
   diagramId: string | null;
   
   // Node operations
@@ -40,6 +41,7 @@ export interface DiagramSlice {
   
   // Diagram metadata operations
   setDiagramName: (name: string) => void;
+  setDiagramDescription: (description: string) => void;
   setDiagramId: (id: string | null) => void;
   
   // Utility
@@ -69,6 +71,7 @@ export const createDiagramSlice: StateCreator<
   arrows: new Map(),
   dataVersion: 0,
   diagramName: 'Untitled',
+  diagramDescription: '',
   diagramId: null,
 
   // Node operations
@@ -299,6 +302,13 @@ export const createDiagramSlice: StateCreator<
     });
   },
   
+  setDiagramDescription: (description) => {
+    set(state => {
+      state.diagramDescription = description;
+      // Don't increment version or record history for metadata changes
+    });
+  },
+  
   setDiagramId: (id) => {
     set(state => {
       state.diagramId = id;
@@ -310,6 +320,9 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       state.nodes.clear();
       state.arrows.clear();
+      state.diagramName = 'Untitled';
+      state.diagramDescription = '';
+      state.diagramId = null;
       // Arrays will be updated by afterChange
       afterChange(state);
     });

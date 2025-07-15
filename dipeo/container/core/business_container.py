@@ -37,22 +37,14 @@ def _create_base_validator():
 
 def _create_condition_evaluator():
     """Create condition evaluation service."""
-    from dipeo.application.utils.template import ConditionEvaluator
+    from dipeo.application.utils import ConditionEvaluator
     return ConditionEvaluator()
 
 
 def _create_prompt_builder():
     """Create prompt builder service."""
-    from dipeo.application.utils.template import PromptBuilder
+    from dipeo.application.utils import PromptBuilder
     return PromptBuilder()
-
-
-
-
-def _create_conversation_state_manager():
-    """Create conversation state manager."""
-    from dipeo.domain.conversation.services import ConversationStateManager
-    return ConversationStateManager()
 
 
 def _create_message_formatter():
@@ -60,11 +52,6 @@ def _create_message_formatter():
     from dipeo.domain.conversation.services import MessageFormatter
     return MessageFormatter()
 
-
-def _create_memory_strategy_factory():
-    """Create memory strategy factory."""
-    from dipeo.domain.conversation.services.memory_strategies import MemoryStrategyFactory
-    return MemoryStrategyFactory()
 
 
 def _create_diagram_analyzer():
@@ -183,9 +170,7 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     # input_resolution_service removed - using typed version directly
     
     # Conversation domain
-    conversation_state_manager = providers.Singleton(_create_conversation_state_manager)
     message_formatter = providers.Singleton(_create_message_formatter)
-    memory_strategy_factory = providers.Singleton(_create_memory_strategy_factory)
     
     # Integration services
     data_transformer = providers.Singleton(_create_data_transformer)

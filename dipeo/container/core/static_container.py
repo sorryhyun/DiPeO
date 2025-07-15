@@ -1,6 +1,7 @@
 """Immutable services for static analysis, compilation, and validation."""
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
+
 from ..base import ImmutableBaseContainer
 
 
@@ -24,18 +25,6 @@ def _create_diagram_validator(api_key_service):
     return DiagramValidator(api_key_service)
 
 
-def _create_arrow_processor():
-    """Create the arrow processor for transformations."""
-    from dipeo.utils.arrow import ArrowProcessor
-    return ArrowProcessor()
-
-
-def _create_memory_transformer():
-    """Create the memory transformer."""
-    from dipeo.utils.arrow import MemoryTransformer
-    return MemoryTransformer()
-
-
 def _create_template_processor():
     """Create the template processor."""
     from dipeo.utils.template import TemplateProcessor
@@ -50,8 +39,8 @@ def _create_validation_rules():
 
 def _create_execution_order_calculator():
     """Create the execution order calculator."""
-    from dipeo.application.resolution import ExecutionOrderCalculator
-    return ExecutionOrderCalculator()
+    from dipeo.application.resolution import SimpleOrderCalculator
+    return SimpleOrderCalculator()
 
 
 def _create_arrow_transformer():
@@ -94,8 +83,6 @@ class StaticServicesContainer(ImmutableBaseContainer):
     validation_rules = providers.Singleton(_create_validation_rules)
     
     # Transformation services
-    arrow_processor = providers.Singleton(_create_arrow_processor)
-    memory_transformer = providers.Singleton(_create_memory_transformer)
     template_processor = providers.Singleton(_create_template_processor)
     
     # Diagram resolution services

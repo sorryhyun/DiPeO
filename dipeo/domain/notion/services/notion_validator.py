@@ -1,9 +1,9 @@
 """Notion operation validation service using unified validation framework."""
 
-from typing import Dict, Any
+from typing import Any
 
 from dipeo.core.base.exceptions import ValidationError
-from dipeo.domain.shared.services import ValidationResult, ValidationWarning, BaseValidator
+from dipeo.domain.shared.services import BaseValidator, ValidationResult, ValidationWarning
 from dipeo.models import NotionOperation
 
 
@@ -17,7 +17,7 @@ class NotionValidator(BaseValidator):
         else:
             result.add_error(ValidationError("Target must be a Notion operation config dict"))
     
-    def _validate_notion_operation(self, config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_notion_operation(self, config: dict[str, Any], result: ValidationResult) -> None:
         """Validate Notion operation configuration."""
         operation = config.get('operation')
         
@@ -39,12 +39,12 @@ class NotionValidator(BaseValidator):
         else:
             result.add_error(ValidationError(f"Unknown operation: {operation}"))
     
-    def _validate_read_page(self, config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_read_page(self, config: dict[str, Any], result: ValidationResult) -> None:
         """Validate READ_PAGE operation."""
         if not config.get('page_id'):
             result.add_error(ValidationError("page_id is required for READ_PAGE operation"))
     
-    def _validate_create_page(self, config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_create_page(self, config: dict[str, Any], result: ValidationResult) -> None:
         """Validate CREATE_PAGE operation."""
         # CREATE_PAGE requires parent and properties from inputs, not config
         # So we just add warnings if they're missing in config
@@ -53,7 +53,7 @@ class NotionValidator(BaseValidator):
         if not config.get('properties') and not config.get('inputs_will_provide_properties'):
             result.add_warning(ValidationWarning("CREATE_PAGE requires 'properties' in inputs"))
     
-    def _validate_update_page(self, config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_update_page(self, config: dict[str, Any], result: ValidationResult) -> None:
         """Validate UPDATE_PAGE operation."""
         if not config.get('page_id'):
             result.add_error(ValidationError("page_id is required for UPDATE_PAGE operation"))
@@ -62,12 +62,12 @@ class NotionValidator(BaseValidator):
         if not config.get('blocks') and not config.get('inputs_will_provide_blocks'):
             result.add_warning(ValidationWarning("UPDATE_PAGE requires 'blocks' in inputs"))
     
-    def _validate_query_database(self, config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_query_database(self, config: dict[str, Any], result: ValidationResult) -> None:
         """Validate QUERY_DATABASE operation."""
         if not config.get('database_id'):
             result.add_error(ValidationError("database_id is required for QUERY_DATABASE operation"))
     
-    def _validate_read_database(self, config: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_read_database(self, config: dict[str, Any], result: ValidationResult) -> None:
         """Validate READ_DATABASE operation."""
         if not config.get('database_id'):
             result.add_error(ValidationError("database_id is required for READ_DATABASE operation"))

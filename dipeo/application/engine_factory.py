@@ -1,9 +1,9 @@
 # Factory for creating execution engines with standard observer configurations.
 
-import warnings
-from typing import Any, Optional
+from typing import Any
 
-from dipeo.application.protocols import ExecutionObserver
+from dipeo.core.ports import ExecutionObserver
+
 from .engine.typed_execution_engine import TypedExecutionEngine
 
 
@@ -14,11 +14,11 @@ class EngineFactory:
     @staticmethod
     def create_engine(
         service_registry: Any,
-        state_store: Optional[Any] = None,
-        message_router: Optional[Any] = None,
+        state_store: Any | None = None,
+        message_router: Any | None = None,
         include_state_observer: bool = True,
         include_streaming_observer: bool = True,
-        custom_observers: Optional[list[ExecutionObserver]] = None,
+        custom_observers: list[ExecutionObserver] | None = None,
     ) -> TypedExecutionEngine:
         # Create a TypedExecutionEngine with standard observers.
         observers = []

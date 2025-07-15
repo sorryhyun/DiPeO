@@ -3,9 +3,9 @@
 import fnmatch
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from dipeo.core import ValidationError
 from dipeo.domain.file.value_objects import (
@@ -35,7 +35,7 @@ class FileBusinessLogic:
     def validate_file_extension(
         self,
         file_path: str,
-        allowed_extensions: Optional[list[str]] = None
+        allowed_extensions: list[str] | None = None
     ) -> None:
         """Validate file extension against allowed list."""
         if not allowed_extensions:
@@ -57,7 +57,7 @@ class FileBusinessLogic:
 
     def create_backup_filename(self, original_path: str, suffix: str = ".bak") -> str:
         """Generate backup filename from original path."""
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         path = Path(original_path)
         extension = FileExtension(path.suffix) if path.suffix else None
         
@@ -94,7 +94,7 @@ class FileBusinessLogic:
             
         return existing_content + new_entry
 
-    def parse_json_safe(self, content: str) -> Union[dict[str, Any], list[Any]]:
+    def parse_json_safe(self, content: str) -> dict[str, Any] | list[Any]:
         """Parse JSON content safely."""
         try:
             return json.loads(content)
@@ -104,7 +104,7 @@ class FileBusinessLogic:
 
     def format_json_pretty(
         self,
-        data: Union[dict[str, Any], list[Any]],
+        data: dict[str, Any] | list[Any],
         indent: int = 2,
         sort_keys: bool = True
     ) -> str:
@@ -114,8 +114,8 @@ class FileBusinessLogic:
     def filter_files_by_criteria(
         self,
         file_paths: list[str],
-        extensions: Optional[list[str]] = None,
-        pattern: Optional[str] = None
+        extensions: list[str] | None = None,
+        pattern: str | None = None
     ) -> list[str]:
         """Filter file paths by extension and pattern."""
         filtered = []
@@ -144,7 +144,7 @@ class FileBusinessLogic:
 
     def calculate_checksum(
         self,
-        content: Union[str, bytes],
+        content: str | bytes,
         algorithm: ChecksumAlgorithm = ChecksumAlgorithm.MD5
     ) -> str:
         """Calculate checksum of content."""
@@ -192,7 +192,7 @@ class FileBusinessLogic:
         path: str,
         size: int,
         modified_time: float,
-        created_time: Optional[float] = None
+        created_time: float | None = None
     ) -> dict[str, Any]:
         """Construct file metadata dictionary."""
         path_obj = Path(path)

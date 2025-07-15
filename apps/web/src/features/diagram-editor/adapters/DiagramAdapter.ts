@@ -170,6 +170,25 @@ export class DiagramAdapter {
       nodeData.tools = ConversionService.toolsArrayToString(nodeData.tools);
     }
 
+    // Convert memory_settings to memory_profile for person_job nodes if memory_profile is missing
+    // This handles nodes loaded from the backend that only have memory_settings
+    if (node.type === 'person_job' && nodeData.memory_settings && !nodeData.memory_profile) {
+      const memorySettings = nodeData.memory_settings as any;
+      
+      // Determine memory profile based on memory settings
+      if (memorySettings.view === 'all_messages' && !memorySettings.max_messages) {
+        nodeData.memory_profile = 'FULL';
+      } else if (memorySettings.view === 'conversation_pairs' && memorySettings.max_messages === 20) {
+        nodeData.memory_profile = 'FOCUSED';
+      } else if (memorySettings.view === 'system_and_me' && memorySettings.max_messages === 5) {
+        nodeData.memory_profile = 'MINIMAL';
+      } else if (memorySettings.view === 'conversation_pairs' && memorySettings.max_messages === 2 && !memorySettings.preserve_system) {
+        nodeData.memory_profile = 'GOLDFISH';
+      } else {
+        nodeData.memory_profile = 'CUSTOM';
+      }
+    }
+
     return {
       id: node.id,
       type: graphQLTypeToNodeKind(node.type),

@@ -4,8 +4,7 @@ import logging
 import uuid
 
 import strawberry
-from dipeo.models import DomainPerson, LLMService
-from dipeo.models import PersonLLMConfig
+from dipeo.models import DomainPerson, LLMService, PersonLLMConfig
 from dipeo.models import PersonID as DomainPersonID
 
 from ..context import GraphQLContext
@@ -35,7 +34,7 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_domain_service")
+            diagram_service = context.get_service("diagram_storage_service")
 
             # Use input directly without conversion
 
@@ -94,7 +93,7 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_domain_service")
+            diagram_service = context.get_service("diagram_storage_service")
 
             # Use input directly without conversion
 
@@ -250,7 +249,7 @@ class PersonMutations:
     ) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_domain_service")
+            diagram_service = context.get_service("diagram_storage_service")
 
             diagrams = await diagram_service.list_files()
             diagram_id = None

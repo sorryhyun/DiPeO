@@ -1,14 +1,13 @@
-import { StateCreator } from 'zustand';
-import { NodeID } from '@/core/types';
-import { UnifiedStore } from '@/core/store/unifiedStore.types';
+import {StateCreator} from 'zustand';
+import {NodeID} from '@/core/types';
+import {UnifiedStore} from '@/core/store/unifiedStore.types';
 import {
-  NodeExecutionStatus,
-  ExecutionStatus,
-  type NodeState as DomainNodeState,
-  type ExecutionState as CanonicalExecutionState,
-  type ExecutionID,
   type DiagramID,
-  type NodeOutput,
+  type ExecutionID,
+  type ExecutionState as CanonicalExecutionState,
+  ExecutionStatus,
+  NodeExecutionStatus,
+  type NodeState as DomainNodeState,
 } from '@dipeo/domain-models';
 
 /**
@@ -80,18 +79,15 @@ export function toCanonicalExecutionState(
     };
   });
   
-  // Convert context to nodeOutputs with proper NodeOutput format
-  const nodeOutputsDict: Record<string, NodeOutput> = {};
+  // Convert context to nodeOutputs as plain objects
+  const nodeOutputsDict: Record<string, Record<string, any>> = {};
   Object.entries(storeState.context).forEach(([nodeId, value]) => {
-    nodeOutputsDict[nodeId] = {
-      value,
-      metadata: {},
-    };
+    nodeOutputsDict[nodeId] = value as Record<string, any>;
   });
   
   return {
     id: (storeState.id || '') as ExecutionID,
-    status,
+    status: status,
     diagram_id: diagramId as DiagramID | null,
     started_at: new Date().toISOString(), // Store doesn't track this, using current time
     node_states: nodeStatesDict,
@@ -101,6 +97,8 @@ export function toCanonicalExecutionState(
     error: null,
     ended_at: status === ExecutionStatus.COMPLETED || status === ExecutionStatus.FAILED ? new Date().toISOString() : null,
     is_active: storeState.isRunning,
+    exec_counts: {},
+    executed_nodes: [],
   };
 }
 

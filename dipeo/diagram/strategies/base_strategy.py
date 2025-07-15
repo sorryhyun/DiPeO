@@ -10,12 +10,8 @@ from dipeo.models import DomainDiagram
 
 from ..base import FormatStrategy
 from ..shared_components import (
-    build_node,
-    coerce_to_dict,
     ensure_position,
     extract_common_arrows,
-    PositionCalculator,
-    ArrowBuilder,
 )
 
 log = logging.getLogger(__name__)

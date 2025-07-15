@@ -7,7 +7,7 @@ import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/core/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/core/store/hooks';
-import { NodeType, NodeExecutionStatus } from '@dipeo/domain-models';
+import { NodeType, NodeExecutionStatus } from '@/core/types';
 import { nodeId, personId } from '@/core/types';
 import './BaseNode.css';
 
@@ -36,6 +36,7 @@ function useNodeStatus(nodeIdStr: string) {
     isSkipped: nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || hookNodeState?.status === 'skipped',
     isCompleted: nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || hookNodeState?.status === 'completed',
     hasError: nodeExecutionState?.status === NodeExecutionStatus.FAILED || hookNodeState?.status === 'error',
+    isMaxIterReached: nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED,
     progress: hookNodeState?.progress,
     error: nodeExecutionState?.error || hookNodeState?.error,
   }), [nodeExecutionState, hookNodeState]);
@@ -164,6 +165,14 @@ const StatusIndicator = React.memo(({ status }: { status: ReturnType<typeof useN
     );
   }
   
+  if (status.isMaxIterReached) {
+    return (
+      <div className="absolute -top-2 -right-2 w-4 h-4 bg-orange-500 rounded-full">
+        <span className="absolute inset-0 text-white text-xs flex items-center justify-center">∞</span>
+      </div>
+    );
+  }
+  
   return null;
 });
 StatusIndicator.displayName = 'StatusIndicator';
@@ -173,18 +182,23 @@ const NodeHeader = React.memo(({
   icon, 
   label, 
   configLabel,
-  _isExecutionMode 
+  _isExecutionMode,
+  memoryEmoji 
 }: { 
   icon: string;
   label?: string;
   configLabel: string;
   _isExecutionMode: boolean;
+  memoryEmoji?: string;
 }) => (
   <div className="flex items-center justify-center gap-2 mb-2">
     <span className="text-xl">{icon}</span>
     <span className="font-medium text-base text-black">
       {label || configLabel}
     </span>
+    {memoryEmoji && (
+      <span className="text-lg" title="Memory Profile">{memoryEmoji}</span>
+    )}
   </div>
 ));
 NodeHeader.displayName = 'NodeHeader';
@@ -217,16 +231,21 @@ const NodeBody = React.memo(({
         );
       }
       
-      // Special handling for forget_mode - use emojis
-      if (key === 'memory_config.forget_mode') {
-        const emoji = value === 'no_forget' ? '🔒' :
-                     value === 'on_every_turn' ? '🔄' :
-                     value === 'upon_request' ? '📍' :
-                     value === 'keep_first' ? '📌' : 
-                     value === 'keep_last' ? '📍' : 
-                     value === 'summarize' ? '📄' : '❓';
+      // Skip memory_profile as it's now shown in the header
+      if (key === 'memory_profile') {
+        return null;
+      }
+      
+      // Special handling for memory_settings.view - use emojis as fallback
+      if (key === 'memory_settings.view' || (key === 'memory_settings' && typeof value === 'object' && value && 'view' in value)) {
+        const viewValue = key === 'memory_settings.view' ? value : (value as any).view;
+        const emoji = viewValue === 'all_involved' ? '🧠' :
+                     viewValue === 'sent_by_me' ? '📤' :
+                     viewValue === 'sent_to_me' ? '📥' :
+                     viewValue === 'system_and_me' ? '💭' :
+                     viewValue === 'conversation_pairs' ? '🎯' : '❓';
         return (
-          <div key={key} className="text-lg text-center" title={`Memory: ${value}`}>
+          <div key={key} className="text-lg text-center" title={`Memory View: ${viewValue}`}>
             {emoji}
           </div>
         );
@@ -377,6 +396,13 @@ export function BaseNode({
           label={String(data.label || data.name || '')}
           configLabel={config?.label || 'Node'}
           _isExecutionMode={isExecutionMode}
+          memoryEmoji={type === 'person_job' && data.memory_profile ? (
+            data.memory_profile === 'FULL' ? '🧠' :
+            data.memory_profile === 'FOCUSED' ? '🎯' :
+            data.memory_profile === 'MINIMAL' ? '💭' :
+            data.memory_profile === 'GOLDFISH' ? '🐠' :
+            data.memory_profile === 'CUSTOM' ? '⚙️' : undefined
+          ) : undefined}
         />
         
         {/* Node data display - only show if there's data to display */}

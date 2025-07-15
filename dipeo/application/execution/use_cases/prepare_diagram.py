@@ -4,20 +4,18 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from dipeo.core import BaseService, ValidationError
-from dipeo.diagram import (
-    BackendDiagram,
-    backend_to_graphql,
-    graphql_to_backend,
-)
-from dipeo.models import DiagramMetadata, DomainDiagram
-
 from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
 from dipeo.application.services.diagram_service import DiagramService as DiagramStorageDomainService
-
-from ..validators import DiagramValidator
-from ...resolution import StaticDiagramCompiler
+from dipeo.core import BaseService, ValidationError
 from dipeo.core.static import ExecutableDiagram
+from dipeo.diagram import (
+    dict_to_domain_diagram,
+    domain_diagram_to_dict,
+)
+from dipeo.domain.diagram.services import DiagramValidator
+from dipeo.models import DiagramMetadata, DomainDiagram
+
+from ...resolution import StaticDiagramCompiler
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +63,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
             backend_data = await self._load_from_storage(diagram_id)
             # Convert to domain model
             if self._is_backend_format(backend_data):
-                backend_diagram = BackendDiagram.model_validate(backend_data)
-                domain_diagram = backend_to_graphql(backend_diagram)
+                domain_diagram = dict_to_domain_diagram(backend_data)
             else:
                 domain_diagram = DomainDiagram.model_validate(backend_data)
         elif isinstance(diagram, DomainDiagram):
@@ -75,8 +72,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         elif isinstance(diagram, dict):
             # Raw dict - could be backend or domain format
             if self._is_backend_format(diagram):
-                backend_diagram = BackendDiagram.model_validate(diagram)
-                domain_diagram = backend_to_graphql(backend_diagram)
+                domain_diagram = dict_to_domain_diagram(diagram)
             else:
                 # Domain format dict
                 domain_diagram = DomainDiagram.model_validate(diagram)
@@ -85,26 +81,23 @@ class PrepareDiagramForExecutionUseCase(BaseService):
 
         # Step 2: Validate if requested
         if validate:
-            # Convert to backend format for validation
-            backend_model = graphql_to_backend(domain_diagram)
-            backend_data = backend_model.model_dump(by_alias=True)
+            # Convert to dict format for validation
+            backend_data = domain_diagram_to_dict(domain_diagram)
             
-            errors = self.validator._validate_backend_format(
-                backend_data, context="execution"
-            )
-            if errors:
-                raise ValidationError(f"Diagram validation failed: {'; '.join(errors)}")
+            # Validate using domain validator
+            result = self.validator.validate(backend_data)
+            if not result.is_valid:
+                error_messages = [str(error) for error in result.errors]
+                raise ValidationError(f"Diagram validation failed: {'; '.join(error_messages)}")
 
         # Step 3: Fix API keys and extract them
-        # Work with backend format for API key handling
-        backend_model = graphql_to_backend(domain_diagram)
-        backend_data = backend_model.model_dump(by_alias=True)
+        # Work with dict format for API key handling
+        backend_data = domain_diagram_to_dict(domain_diagram)
         backend_data = self._fix_api_key_references(backend_data)
         api_keys = self._extract_api_keys(backend_data)
         
         # Convert back to domain model with fixed API keys
-        backend_diagram = BackendDiagram.model_validate(backend_data)
-        domain_diagram = backend_to_graphql(backend_diagram)
+        domain_diagram = dict_to_domain_diagram(backend_data)
 
         # Step 4: Update metadata if needed
         if diagram_id and (

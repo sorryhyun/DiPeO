@@ -1,7 +1,5 @@
 """Base containers for immutable and mutable service separation."""
 
-from abc import ABC
-from typing import Callable, Dict, Any
 from dependency_injector import containers, providers
 
 
@@ -67,7 +65,7 @@ class ContainerValidator:
         pass
     
     @staticmethod
-    def categorize_services(container: containers.DeclarativeContainer) -> Dict[str, str]:
+    def categorize_services(container: containers.DeclarativeContainer) -> dict[str, str]:
         """Categorize services as immutable or mutable based on their characteristics."""
         categories = {}
         

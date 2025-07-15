@@ -1,18 +1,23 @@
 """Static diagram compiler implementation using strongly-typed nodes."""
 
-from typing import List, Dict, Any, Tuple, Optional
-from dipeo.core.static.diagram_compiler import DiagramCompiler, DiagramValidator
+from typing import Any
+
+from dipeo.application.resolution.arrow_transformer import ArrowTransformer, ExecutableNodeImpl
+from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalculator
+from dipeo.application.resolution.handle_resolver import HandleResolver
+from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
 from dipeo.core.static.generated_nodes import (
-    create_executable_node, ExecutableNode, BaseExecutableNode,
-    PersonJobNode, ConditionNode, StartNode, EndpointNode, 
-    CodeJobNode, ApiJobNode, HookNode, DBNode, NotionNode,
-    UserResponseNode, PersonBatchJobNode
+    ApiJobNode,
+    CodeJobNode,
+    ConditionNode,
+    EndpointNode,
+    ExecutableNode,
+    PersonJobNode,
+    StartNode,
+    create_executable_node,
 )
-from dipeo.models import DomainDiagram, NodeType, NodeID
-from dipeo.application.resolution.handle_resolver import HandleResolver
-from dipeo.application.resolution.arrow_transformer import ArrowTransformer, ExecutableNodeImpl
-from dipeo.application.resolution.execution_order_calculator import ExecutionOrderCalculator
+from dipeo.models import DomainDiagram, NodeID
 
 
 class StaticDiagramCompiler(DiagramCompiler):
@@ -21,8 +26,8 @@ class StaticDiagramCompiler(DiagramCompiler):
     def __init__(self):
         self.handle_resolver = HandleResolver()
         self.arrow_transformer = ArrowTransformer()
-        self.order_calculator = ExecutionOrderCalculator()
-        self.validation_errors: List[str] = []
+        self.order_calculator = SimpleOrderCalculator()
+        self.validation_errors: list[str] = []
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
         """Compile domain diagram with static type safety."""
@@ -76,7 +81,7 @@ class StaticDiagramCompiler(DiagramCompiler):
             }
         )
     
-    def _create_typed_nodes(self, domain_nodes) -> List[ExecutableNode]:
+    def _create_typed_nodes(self, domain_nodes) -> list[ExecutableNode]:
         """Create strongly-typed nodes with compile-time validation."""
         typed_nodes = []
         
@@ -137,9 +142,9 @@ class StaticDiagramCompiler(DiagramCompiler):
     
     def _create_typed_edges(
         self, 
-        edges: List[Any],
-        node_map: Dict[NodeID, ExecutableNode]
-    ) -> List[ExecutableEdge]:
+        edges: list[Any],
+        node_map: dict[NodeID, ExecutableNode]
+    ) -> list[ExecutableEdge]:
         """Convert edges to typed ExecutableEdge."""
         typed_edges = []
         
@@ -155,13 +160,18 @@ class StaticDiagramCompiler(DiagramCompiler):
                     )
                     continue
             
+            # Merge existing data_transform with node-type-based transforms
+            existing_transform = edge.data_transform if hasattr(edge, 'data_transform') else {}
+            type_based_transform = self._get_data_transform(source_node, target_node) if source_node and target_node else {}
+            merged_transform = {**existing_transform, **type_based_transform}
+            
             typed_edge = ExecutableEdge(
                 id=edge.id,
                 source_node_id=edge.source_node_id,
                 target_node_id=edge.target_node_id,
                 source_output=edge.source_output,
                 target_input=edge.target_input,
-                data_transform=self._get_data_transform(source_node, target_node) if source_node and target_node else {},
+                data_transform=merged_transform,
                 metadata=edge.metadata if hasattr(edge, 'metadata') else {}
             )
             typed_edges.append(typed_edge)
@@ -187,7 +197,7 @@ class StaticDiagramCompiler(DiagramCompiler):
         self, 
         source: ExecutableNode, 
         target: ExecutableNode
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Define data transformations based on node types."""
         transforms = {}
         
@@ -249,19 +259,3 @@ class StaticDiagramCompiler(DiagramCompiler):
         )
 
 
-class StaticDiagramValidator(DiagramValidator):
-    """Validator for static diagram compilation."""
-    
-    def validate(self, diagram: DomainDiagram) -> List[str]:
-        """Validate domain diagram for static compilation."""
-        errors = []
-        compiler = StaticDiagramCompiler()
-        
-        try:
-            # Attempt compilation to gather validation errors
-            compiler.compile(diagram)
-            errors.extend(compiler.validation_errors)
-        except Exception as e:
-            errors.append(f"Validation failed: {str(e)}")
-        
-        return errors

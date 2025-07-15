@@ -1,9 +1,10 @@
 """Lazy provider implementations for deferred service initialization."""
 
 import asyncio
-from typing import Any, Callable, Optional, TypeVar
-from dependency_injector import providers
+from collections.abc import Callable
+from typing import Any, TypeVar
 
+from dependency_injector import providers
 
 T = TypeVar('T')
 
@@ -15,7 +16,7 @@ class LazyAsyncSingleton(providers.Singleton):
         super().__init__(factory, *args, **kwargs)
         self._initialized = False
         self._initialization_lock = asyncio.Lock()
-        self._instance: Optional[Any] = None
+        self._instance: Any | None = None
     
     async def __call__(self, *args, **kwargs) -> T:
         """Get or create the singleton instance with lazy initialization."""
@@ -44,7 +45,7 @@ class ConditionalProvider(providers.Provider):
     def __init__(self, 
                  condition: Callable[[], bool],
                  when_true: providers.Provider,
-                 when_false: Optional[providers.Provider] = None):
+                 when_false: providers.Provider | None = None):
         self._condition = condition
         self._when_true = when_true
         self._when_false = when_false or providers.Object(None)

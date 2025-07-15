@@ -1,16 +1,15 @@
 """Rich domain entity for Node with business behavior."""
 
-from typing import Any, Optional, Dict
+from typing import Any
 
 from dipeo.core import ValidationError
 from dipeo.models import (
     DomainNode,
-    NodeType,
-    NodeID,
-    HandleID,
     HandleDirection,
+    HandleID,
     HandleLabel,
-    DomainHandle,
+    NodeID,
+    NodeType,
 )
 
 
@@ -37,14 +36,14 @@ class Node:
         return self._data.label or ""
     
     @property
-    def position(self) -> Dict[str, float]:
+    def position(self) -> dict[str, float]:
         """Get node position."""
         if self._data.position:
             return {"x": self._data.position.x, "y": self._data.position.y}
         return {"x": 0, "y": 0}
     
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         """Get node data."""
         return self._data.data or {}
     
@@ -58,7 +57,7 @@ class Node:
             self._data.data = {}
         self._data.data[key] = value
     
-    def update_data(self, updates: Dict[str, Any]) -> None:
+    def update_data(self, updates: dict[str, Any]) -> None:
         """Update multiple data values."""
         if self._data.data is None:
             self._data.data = {}
@@ -95,7 +94,7 @@ class Node:
         
         return required_by_type.get(self.type, [])
     
-    def get_handle_ids(self, direction: Optional[HandleDirection] = None) -> list[HandleID]:
+    def get_handle_ids(self, direction: HandleDirection | None = None) -> list[HandleID]:
         """Get handle IDs for this node, optionally filtered by direction."""
         handles = []
         
@@ -171,11 +170,11 @@ class Node:
         ]
         return self.type in api_requiring_types
     
-    def get_memory_scope(self) -> Optional[str]:
+    def get_memory_scope(self) -> str | None:
         """Get the memory scope for this node if it has one."""
         return self.get_data_value("memory_scope")
     
-    def get_person_id(self) -> Optional[str]:
+    def get_person_id(self) -> str | None:
         """Get the person ID if this is a person-related node."""
         if self.requires_person():
             return self.get_data_value("person_id")

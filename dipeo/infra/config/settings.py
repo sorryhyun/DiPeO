@@ -1,9 +1,9 @@
 """Centralized configuration management for DiPeO infrastructure."""
 
 import os
-from pathlib import Path
-from typing import Any, Dict, Optional
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 
 class Environment(str, Enum):
@@ -75,6 +75,14 @@ class Settings:
             os.getenv("DIPEO_ENABLE_MONITORING", "false").lower() == "true"
         )
         self.enable_debug_mode = os.getenv("DIPEO_DEBUG", "false").lower() == "true"
+        
+        # Conversation settings
+        self.auto_prepend_conversation = (
+            os.getenv("DIPEO_AUTO_PREPEND_CONVERSATION", "true").lower() == "true"
+        )
+        self.conversation_context_limit = int(
+            os.getenv("DIPEO_CONVERSATION_CONTEXT_LIMIT", "10")
+        )
 
         # Validate configuration
         self._validate()
@@ -145,7 +153,7 @@ class Settings:
                 f"max_upload_size must be positive, got {self.max_upload_size}"
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "environment": self.environment.value,
             "base_dir": str(self.base_dir),
@@ -189,9 +197,13 @@ class Settings:
                 "monitoring": self.enable_monitoring,
                 "debug_mode": self.enable_debug_mode,
             },
+            "conversation": {
+                "auto_prepend": self.auto_prepend_conversation,
+                "context_limit": self.conversation_context_limit,
+            },
         }
 
-    def get_environment_config(self) -> Dict[str, Any]:
+    def get_environment_config(self) -> dict[str, Any]:
         if self.environment == Environment.PRODUCTION:
             return {
                 "log_level": "WARNING",

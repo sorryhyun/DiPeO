@@ -3,9 +3,8 @@
 from datetime import datetime
 
 import strawberry
-from dipeo.models import NodeType
-from dipeo.models import LLMService
 from dipeo.core.constants import FILES_DIR
+from dipeo.models import LLMService, NodeType
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
@@ -111,7 +110,7 @@ class Query:
     async def execution_capabilities(self, info) -> JSONScalar:
         context = info.context
 
-        storage_service = context.get_service("diagram_storage_domain_service")
+        storage_service = context.get_service("diagram_storage_service")
         persons_list = []
 
         file_infos = await storage_service.list_files()
@@ -155,7 +154,6 @@ class Query:
         checks["redis"] = False
 
         try:
-            import os
 
             (FILES_DIR / "diagrams").exists()
             checks["file_system"] = True

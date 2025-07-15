@@ -1,16 +1,16 @@
 """Conversation dynamic object for managing dialogue history and context."""
 
-from typing import Dict, Any, List, Optional, TypedDict
 from datetime import datetime
+from typing import Any, TypedDict
 
-from dipeo.models import Message, ConversationMetadata
+from dipeo.models import ConversationMetadata, Message
 
 
 class ConversationContext(TypedDict):
     """Context structure returned by conversation.get_context()."""
-    messages: List[Message]
-    metadata: Optional[ConversationMetadata]
-    context: Dict[str, Any]
+    messages: list[Message]
+    metadata: ConversationMetadata | None
+    context: dict[str, Any]
 
 
 class Conversation:
@@ -20,9 +20,9 @@ class Conversation:
     """
     
     def __init__(self):
-        self.messages: List[Message] = []
-        self.context: Dict[str, Any] = {}
-        self.metadata: Optional[ConversationMetadata] = None
+        self.messages: list[Message] = []
+        self.context: dict[str, Any] = {}
+        self.metadata: ConversationMetadata | None = None
     
     def add_message(self, message: Message) -> None:
         # Add message with timestamp if missing
@@ -40,47 +40,21 @@ class Conversation:
             context=self.context.copy()
         )
     
-    def get_latest_message(self) -> Optional[Message]:
+    def get_latest_message(self) -> Message | None:
         # Get most recent message
         return self.messages[-1] if self.messages else None
     
-    def get_messages_by_person(self, person_id: str) -> List[Message]:
-        # Get messages from specific person
-        return [msg for msg in self.messages if msg.from_person_id == person_id]
     
-    def get_messages_between(self, person1_id: str, person2_id: str) -> List[Message]:
-        # Get messages between two persons
-        return [
-            msg for msg in self.messages
-            if (msg.from_person_id == person1_id and msg.to_person_id == person2_id) or
-               (msg.from_person_id == person2_id and msg.to_person_id == person1_id)
-        ]
-    
-    def update_context(self, updates: Dict[str, Any]) -> None:
+    def update_context(self, updates: dict[str, Any]) -> None:
         # Update context with new values
         self.context.update(updates)
     
-    def set_metadata(self, metadata: ConversationMetadata) -> None:
-        # Set conversation metadata
-        self.metadata = metadata
     
     def clear(self) -> None:
         self.messages.clear()
         self.context.clear()
         self.metadata = None
     
-    def get_token_count(self) -> int:
-        # Calculate total token count
-        return sum(msg.token_count or 0 for msg in self.messages)
-    
-    def truncate_to_recent(self, max_messages: int) -> List[Message]:
-        # Truncate to keep only recent messages
-        if len(self.messages) <= max_messages:
-            return []
-        
-        removed = self.messages[:-max_messages]
-        self.messages = self.messages[-max_messages:]
-        return removed
     
     def __repr__(self) -> str:
         return (f"Conversation(messages={len(self.messages)}, "

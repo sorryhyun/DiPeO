@@ -6,10 +6,10 @@ and infrastructure components.
 """
 
 from .adapters import LLMInfraService, create_adapter
-from .persistence import AsyncFileAdapter, ModularFileService
-from .persistence.keys import EnvironmentAPIKeyService
 from .adapters.notion import NotionAPIService
 from .messaging import MessageRouter
+from .persistence import AsyncFileAdapter, ModularFileService
+from .persistence.keys import EnvironmentAPIKeyService
 
 __all__ = [
     # LLM adapters

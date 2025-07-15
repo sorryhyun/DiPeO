@@ -1,6 +1,7 @@
 """Application context and dependency injection configuration."""
 
 import os
+
 from .container import ServerContainer
 
 # Global container instance

@@ -1,7 +1,6 @@
 """URL value object."""
 from dataclasses import dataclass
-from urllib.parse import ParseResult, urlparse, urljoin
-from typing import Optional
+from urllib.parse import ParseResult, urljoin, urlparse
 
 
 @dataclass(frozen=True)
@@ -37,7 +36,7 @@ class URL:
         return self._parse().hostname or ""
     
     @property
-    def port(self) -> Optional[int]:
+    def port(self) -> int | None:
         """Get the port if specified."""
         return self._parse().port
     

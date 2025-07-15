@@ -9,21 +9,19 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+from dipeo.core.constants import STATE_DB_PATH
 from dipeo.models import (
     DiagramID,
     ExecutionID,
     ExecutionState,
     ExecutionStatus,
     NodeExecutionStatus,
-    NodeOutput,
     NodeState,
     TokenUsage,
 )
 
 from .execution_cache import ExecutionCache
 from .message_store import MessageStore
-
-from dipeo.core.constants import STATE_DB_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +62,11 @@ class StateRegistry:
                     # Executor already shutdown
                     pass
                 self._conn = None
-            
+
             # Don't shutdown executor immediately - let pending operations complete
             if not self._executor._shutdown:
                 self._executor.shutdown(wait=False)
-            
+
             self._initialized = False
 
     async def _connect(self):
@@ -89,7 +87,7 @@ class StateRegistry:
         # Ensure executor is available
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
-        
+
         try:
             self._conn = await loop.run_in_executor(self._executor, _connect_sync)
         except RuntimeError as e:
@@ -104,11 +102,11 @@ class StateRegistry:
         """Execute a database operation in the dedicated thread."""
         if self._conn is None:
             raise RuntimeError("StateRegistry not initialized. Call initialize() first.")
-        
+
         # Ensure executor is available
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
-        
+
         loop = asyncio.get_event_loop()
         try:
             return await loop.run_in_executor(
@@ -122,12 +120,12 @@ class StateRegistry:
                     self._executor, self._conn.execute, *args, **kwargs
                 )
             raise
-    
+
     async def _ensure_initialized(self):
         """Ensure the registry is initialized, initializing if necessary."""
         if not self._initialized:
             await self.initialize()
-        
+
         # Check if executor was shutdown and recreate if needed
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
@@ -145,17 +143,35 @@ class StateRegistry:
             token_usage TEXT NOT NULL,
             error TEXT,
             variables TEXT NOT NULL,
+            exec_counts TEXT NOT NULL DEFAULT '{}',
+            executed_nodes TEXT NOT NULL DEFAULT '[]',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
         CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
+        
+        -- Add columns to existing tables if they don't exist
+        -- SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so we need to check first
         """
+
+        # Check if columns exist
+        cursor = await self._execute("PRAGMA table_info(execution_states)")
+        columns = await asyncio.get_event_loop().run_in_executor(
+            self._executor, cursor.fetchall
+        )
+        column_names = [col[1] for col in columns]
+
+        # Add missing columns
+        if 'exec_counts' not in column_names:
+            await self._execute("ALTER TABLE execution_states ADD COLUMN exec_counts TEXT NOT NULL DEFAULT '{}'")
+        if 'executed_nodes' not in column_names:
+            await self._execute("ALTER TABLE execution_states ADD COLUMN executed_nodes TEXT NOT NULL DEFAULT '[]'")
 
         # Ensure executor is available
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
-        
+
         try:
             await asyncio.get_event_loop().run_in_executor(
                 self._executor, self._conn.executescript, schema
@@ -177,13 +193,13 @@ class StateRegistry:
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
         await self._ensure_initialized()
-        
+
         # Handle both str and ExecutionID types
         exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
         diag_id = None
         if diagram_id:
             diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
-        
+
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(exec_id),
@@ -197,6 +213,8 @@ class StateRegistry:
             error=None,
             variables=variables or {},
             is_active=True,
+            exec_counts={},
+            executed_nodes=[],
         )
 
         await self.save_state(state)
@@ -217,17 +235,17 @@ class StateRegistry:
                 for node_id, node_state in state.node_states.items()
             }
 
-            node_outputs_dict = {
-                node_id: node_output.model_dump()
-                for node_id, node_output in state.node_outputs.items()
-            }
+            # Node outputs are already dicts, no need to call model_dump
+            node_outputs_dict = state.node_outputs
+
 
             await self._execute(
                 """
                 INSERT OR REPLACE INTO execution_states
                 (execution_id, status, diagram_id, started_at, ended_at,
-                 node_states, node_outputs, token_usage, error, variables)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 node_states, node_outputs, token_usage, error, variables,
+                 exec_counts, executed_nodes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     state.id,
@@ -242,12 +260,14 @@ class StateRegistry:
                     ),
                     state.error,
                     json.dumps(state.variables),
+                    json.dumps(state.exec_counts),
+                    json.dumps(state.executed_nodes),
                 ),
             )
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
         await self._ensure_initialized()
-        
+
         # Check cache first
         cached_state = await self._execution_cache.get(execution_id)
         if cached_state:
@@ -257,7 +277,8 @@ class StateRegistry:
         cursor = await self._execute(
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
-                   node_states, node_outputs, token_usage, error, variables
+                   node_states, node_outputs, token_usage, error, variables,
+                   exec_counts, executed_nodes
             FROM execution_states
             WHERE execution_id = ?
             """,
@@ -275,15 +296,25 @@ class StateRegistry:
         node_outputs_dict = json.loads(row[6])
         token_usage_dict = json.loads(row[7])
 
+        # Parse exec_counts and executed_nodes if available
+        exec_counts = {}
+        executed_nodes = []
+        if len(row) > 10:  # Check if new columns exist
+            try:
+                exec_counts = json.loads(row[10]) if row[10] else {}
+                executed_nodes = json.loads(row[11]) if row[11] else []
+            except (IndexError, json.JSONDecodeError):
+                # Handle case where columns don't exist in older databases
+                pass
+
+
         # Convert dicts back to model instances
         node_states = {
             node_id: NodeState(**state_data)
             for node_id, state_data in node_states_dict.items()
         }
-        node_outputs = {
-            node_id: NodeOutput(**output_data)
-            for node_id, output_data in node_outputs_dict.items()
-        }
+        # Node outputs are now stored as dicts (serialized protocol outputs)
+        node_outputs = node_outputs_dict
 
         return ExecutionState(
             id=ExecutionID(row[0]),
@@ -298,13 +329,15 @@ class StateRegistry:
             else TokenUsage(input=0, output=0, cached=None),
             error=row[8],
             variables=json.loads(row[9]),
+            exec_counts=exec_counts,
+            executed_nodes=executed_nodes,
         )
 
     async def update_status(
         self, execution_id: str, status: ExecutionStatus, error: str | None = None
     ):
         await self._ensure_initialized()
-        
+
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
@@ -323,7 +356,7 @@ class StateRegistry:
 
     async def get_node_output(
         self, execution_id: str, node_id: str
-    ) -> NodeOutput | None:
+    ) -> dict[str, Any] | None:
         state = await self.get_state(execution_id)
         if not state:
             return None
@@ -341,37 +374,40 @@ class StateRegistry:
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
 
-        # Convert output to NodeOutput if it isn't already
-        if not isinstance(output, NodeOutput):
-            node_output = NodeOutput(
-                value={"default": str(output)} if is_exception else output,
-                metadata={"is_exception": is_exception} if is_exception else {},
-            )
+        # Convert output to dict format if it isn't already
+        if not isinstance(output, dict):
+            node_output = {
+                "value": {"default": str(output)} if is_exception else output,
+                "metadata": {"is_exception": is_exception} if is_exception else {},
+                "_protocol_type": "BaseNodeOutput",
+                "node_id": node_id
+            }
         else:
             node_output = output
 
         # For PersonJob outputs with conversation history
         if (
-            node_output.metadata
-            and node_output.metadata.get("_type") == "personjob_output"
+            isinstance(node_output, dict)
+            and node_output.get("metadata")
+            and node_output["metadata"].get("_type") == "personjob_output"
         ):
             # Check if execution is active - defer persistence for active executions
             is_active = state.is_active
 
             if not is_active:
                 # Only persist conversation for completed executions
-                conversation = node_output.metadata.get("conversation_history", [])
+                conversation = node_output["metadata"].get("conversation_history", [])
                 if conversation and self.message_store:
                     message_ref = await self.message_store.store_message(
                         execution_id=execution_id,
                         node_id=node_id,
                         content={"conversation": conversation},
-                        person_id=node_output.metadata.get("person_id"),
-                        token_count=node_output.metadata.get("token_count"),
+                        person_id=node_output["metadata"].get("person_id"),
+                        token_count=node_output["metadata"].get("token_count"),
                     )
                     # Replace conversation with reference
-                    node_output.metadata["conversation_ref"] = message_ref
-                    node_output.metadata.pop("conversation_history", None)
+                    node_output["metadata"]["conversation_ref"] = message_ref
+                    node_output["metadata"].pop("conversation_history", None)
 
         # Store the output with reference
         state.node_outputs[node_id] = node_output
@@ -471,7 +507,7 @@ class StateRegistry:
         offset: int = 0,
     ) -> list[ExecutionState]:
         # Build query with optional filters
-        query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables FROM execution_states"
+        query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables, exec_counts, executed_nodes FROM execution_states"
         conditions = []
         params = []
 
@@ -522,19 +558,24 @@ class StateRegistry:
                         token_usage=token_usage,
                     )
 
-            # Convert node outputs to NodeOutput objects
-            node_outputs = {}
-            for node_id, output_data in node_outputs_data.items():
-                if isinstance(output_data, dict):
-                    node_outputs[node_id] = NodeOutput(
-                        value=output_data.get("value", {}),
-                        metadata=output_data.get("metadata", {}),
-                    )
+            # Node outputs are already in dict format (serialized protocol outputs)
+            node_outputs = node_outputs_data
 
             # Convert token usage
             token_usage = None
             if token_usage_data:
                 token_usage = TokenUsage(**token_usage_data)
+
+            # Parse exec_counts and executed_nodes if available
+            exec_counts = {}
+            executed_nodes = []
+            if len(row) > 10:  # Check if new columns exist
+                try:
+                    exec_counts = json.loads(row[10]) if row[10] else {}
+                    executed_nodes = json.loads(row[11]) if row[11] else []
+                except (IndexError, json.JSONDecodeError):
+                    # Handle case where columns don't exist in older databases
+                    pass
 
             # Create ExecutionState object
             execution_state = ExecutionState(
@@ -548,6 +589,8 @@ class StateRegistry:
                 ended_at=row[3],
                 token_usage=token_usage,
                 error=row[8],
+                exec_counts=exec_counts,
+                executed_nodes=executed_nodes,
             )
 
             executions.append(execution_state)
@@ -580,7 +623,7 @@ class StateRegistry:
         diag_id = None
         if diagram_id:
             diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
-        
+
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(exec_id),
@@ -594,6 +637,8 @@ class StateRegistry:
             error=None,
             variables=variables or {},
             is_active=True,
+            exec_counts={},
+            executed_nodes=[],
         )
 
         # Only store in cache, not in database

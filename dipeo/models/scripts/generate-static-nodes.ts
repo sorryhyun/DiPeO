@@ -35,6 +35,7 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
       { tsName: 'default_prompt', pyName: 'default_prompt' },
       { tsName: 'max_iteration', pyName: 'max_iteration', defaultValue: '1' },
       { tsName: 'memory_config', pyName: 'memory_config' },
+      { tsName: 'memory_settings', pyName: 'memory_settings' },
       { tsName: 'tools', pyName: 'tools' }
     ]
   },
@@ -112,6 +113,7 @@ const TS_TO_PY_TYPE: Record<string, string> = {
   'boolean': 'bool',
   'PersonID': 'Optional[PersonID]',
   'MemoryConfig': 'Optional[MemoryConfig]',
+  'MemorySettings': 'Optional[MemorySettings]',
   'ToolConfig[]': 'Optional[List[ToolConfig]]',
   'string[]': 'Optional[List[str]]',
   'Record<string, any>': 'Dict[str, Any]',
@@ -286,6 +288,15 @@ class StaticNodeGenerator {
           lines.push(`            ${field.pyName}=data.get("${field.tsName}"),`);
         } else if (field.pyName === 'config' && dataInterface === 'HookNodeData') {
           lines.push(`            config=data.get("config", {}),`);
+        } else if (field.pyName === 'memory_config') {
+          // Convert dict to MemoryConfig object
+          lines.push(`            ${field.pyName}=MemoryConfig(**data.get("${field.tsName}")) if data.get("${field.tsName}") else None,`);
+        } else if (field.pyName === 'memory_settings') {
+          // Convert dict to MemorySettings object
+          lines.push(`            ${field.pyName}=MemorySettings(**data.get("${field.tsName}")) if data.get("${field.tsName}") else None,`);
+        } else if (field.pyName === 'tools') {
+          // Convert list of dicts to ToolConfig objects
+          lines.push(`            ${field.pyName}=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("${field.tsName}", [])] if data.get("${field.tsName}") else None,`);
         } else if (field.defaultValue && !field.defaultValue.includes('field(')) {
           // For fields with default values (excluding field() defaults), use the default when None
           lines.push(`            ${field.pyName}=data.get("${field.tsName}", ${field.defaultValue}),`);
@@ -310,8 +321,9 @@ class StaticNodeGenerator {
     lines.push('            first_only_prompt=data.get("first_only_prompt", ""),');
     lines.push('            default_prompt=data.get("default_prompt"),');
     lines.push('            max_iteration=data.get("max_iteration", 1),');
-    lines.push('            memory_config=data.get("memory_config"),');
-    lines.push('            tools=data.get("tools")');
+    lines.push('            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,');
+    lines.push('            memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,');
+    lines.push('            tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None');
     lines.push('        )');
     lines.push('    ');
     
@@ -336,7 +348,7 @@ class StaticNodeGenerator {
     lines.push('from typing import Dict, Any, Optional, List, Union, Literal');
     lines.push('');
     lines.push('from dipeo.models.models import (');
-    lines.push('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, ToolConfig,');
+    lines.push('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,');
     lines.push('    HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,');
     lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService');
     lines.push(')');

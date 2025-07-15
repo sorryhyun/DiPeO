@@ -1,7 +1,6 @@
 """Domain Service Registry - Unified access to domain services."""
 
-from typing import Dict, Type, Optional, Any, Protocol
-from abc import ABC, abstractmethod
+from typing import Any, Protocol
 
 
 class BaseValidator(Protocol):
@@ -35,9 +34,9 @@ class DomainServiceRegistry:
     
     def __init__(self):
         """Initialize the registry."""
-        self._validators: Dict[str, BaseValidator] = {}
-        self._business_services: Dict[str, BaseBusinessService] = {}
-        self._value_factories: Dict[str, ValueFactory] = {}
+        self._validators: dict[str, BaseValidator] = {}
+        self._business_services: dict[str, BaseBusinessService] = {}
+        self._value_factories: dict[str, ValueFactory] = {}
         self._initialized = False
     
     def initialize(self) -> None:
@@ -57,17 +56,17 @@ class DomainServiceRegistry:
     
     def _register_file_services(self) -> None:
         """Register file domain services."""
-        from .file.services.file_validator import FileValidator
         from .file.services.file_business_logic import FileBusinessLogic
+        from .file.services.file_validator import FileValidator
         
         self._validators["file"] = FileValidator()
         self._business_services["file"] = FileBusinessLogic()
     
     def _register_diagram_services(self) -> None:
         """Register diagram domain services."""
-        from .diagram.services.diagram_validator import DiagramValidator
-        from .diagram.services.diagram_operations_service import DiagramOperationsService
         from .diagram.services.diagram_format_service import DiagramFormatService
+        from .diagram.services.diagram_operations_service import DiagramOperationsService
+        from .diagram.services.diagram_validator import DiagramValidator
         
         self._validators["diagram"] = DiagramValidator()
         self._business_services["diagram_operations"] = DiagramOperationsService()
@@ -109,7 +108,7 @@ class DomainServiceRegistry:
         # Execution service acts as both validator and business service
         self._validators["execution"] = execution_service  # type: ignore
     
-    def get_validator(self, domain: str) -> Optional[BaseValidator]:
+    def get_validator(self, domain: str) -> BaseValidator | None:
         """
         Get validator for a specific domain.
         
@@ -124,7 +123,7 @@ class DomainServiceRegistry:
         
         return self._validators.get(domain)
     
-    def get_business_service(self, service_name: str) -> Optional[BaseBusinessService]:
+    def get_business_service(self, service_name: str) -> BaseBusinessService | None:
         """
         Get business service by name.
         
@@ -139,7 +138,7 @@ class DomainServiceRegistry:
         
         return self._business_services.get(service_name)
     
-    def get_value_factory(self, factory_name: str) -> Optional[ValueFactory]:
+    def get_value_factory(self, factory_name: str) -> ValueFactory | None:
         """
         Get value object factory by name.
         
@@ -192,7 +191,7 @@ class DomainServiceRegistry:
         """
         self._value_factories[factory_name] = factory
     
-    def list_validators(self) -> Dict[str, str]:
+    def list_validators(self) -> dict[str, str]:
         """List all registered validators."""
         if not self._initialized:
             self.initialize()
@@ -202,7 +201,7 @@ class DomainServiceRegistry:
             for domain, validator in self._validators.items()
         }
     
-    def list_business_services(self) -> Dict[str, str]:
+    def list_business_services(self) -> dict[str, str]:
         """List all registered business services."""
         if not self._initialized:
             self.initialize()
@@ -212,7 +211,7 @@ class DomainServiceRegistry:
             for name, service in self._business_services.items()
         }
     
-    def list_value_factories(self) -> Dict[str, str]:
+    def list_value_factories(self) -> dict[str, str]:
         """List all registered value factories."""
         if not self._initialized:
             self.initialize()
@@ -224,7 +223,7 @@ class DomainServiceRegistry:
 
 
 # Global registry instance
-_registry: Optional[DomainServiceRegistry] = None
+_registry: DomainServiceRegistry | None = None
 
 
 def get_domain_service_registry() -> DomainServiceRegistry:

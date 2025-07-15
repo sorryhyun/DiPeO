@@ -1,16 +1,19 @@
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from dipeo.application import register_handler
-from dipeo.domain.notion.services import NotionValidator
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.models import NodeOutput, NotionNodeData, NotionOperation, NodeType
-from dipeo.core.static.generated_nodes import NotionNode
 from pydantic import BaseModel
 
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.unified_service_registry import NOTION_SERVICE, API_KEY_SERVICE
+from dipeo.core.static.generated_nodes import NotionNode
+from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.domain.notion.services import NotionValidator
+from dipeo.models import NodeType, NotionNodeData, NotionOperation
+
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 @register_handler
@@ -46,7 +49,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     async def pre_execute(
         self,
         node: NotionNode,
-        execution: "TypedStatefulExecution"
+        execution: "ExecutionRuntime"
     ) -> dict[str, Any]:
         """Pre-execute logic for NotionNode."""
         return {
@@ -55,24 +58,30 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
             "database_id": node.database_id
         }
     
-    async def execute_typed(
+    async def execute(
         self,
         node: NotionNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         return await self._execute_notion_operation(node, context, inputs, services)
     
     async def _execute_notion_operation(
         self,
         node: NotionNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
-        notion_service = self.notion_service or services["notion_service"]
-        api_key_service = self.api_key_service or services["api_key_service"]
+    ) -> NodeOutputProtocol:
+        # Get services directly from the services dict
+        notion_service = self.notion_service or services.get(NOTION_SERVICE.name)
+        api_key_service = self.api_key_service or services.get(API_KEY_SERVICE.name)
+        
+        if not notion_service:
+            raise ValueError("Notion service not available")
+        if not api_key_service:
+            raise ValueError("API key service not available")
         
         # Get the Notion API key
         api_keys = api_key_service.list_api_keys()
@@ -109,7 +118,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
             # Extract page data from inputs
             parent = inputs.get("parent", {})
             properties = inputs.get("properties", {})
-            children = inputs.get("children", None)
+            children = inputs.get("children")
             result = await notion_service.create_page(
                 parent=parent,
                 properties=properties,
@@ -126,8 +135,8 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
                 raise ValueError("UPDATE_PAGE requires blocks to append")
                 
         elif node.operation == NotionOperation.QUERY_DATABASE:
-            filter_query = inputs.get("filter", None)
-            sorts = inputs.get("sorts", None)
+            filter_query = inputs.get("filter")
+            sorts = inputs.get("sorts")
             result = await notion_service.query_database(
                 database_id=node.database_id,
                 filter=filter_query,
@@ -139,7 +148,8 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
             # This should have been caught by validation, but just in case
             raise ValueError(f"Unsupported Notion operation: {node.operation}")
             
-        return self._build_output(
-            {"default": result},
-            context
+        return DataOutput(
+            value={"default": result},
+            node_id=node.id,
+            metadata={"operation": node.operation}
         )

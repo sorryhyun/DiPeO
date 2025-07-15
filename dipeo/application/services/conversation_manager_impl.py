@@ -2,26 +2,21 @@
 
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
-from pathlib import Path
+from dipeo.application.services.person_manager_impl import PersonManagerImpl
 from dipeo.core import BaseService
 from dipeo.core.dynamic.conversation import Conversation
 from dipeo.core.dynamic.conversation_manager import ConversationManager
 from dipeo.core.utils import is_conversation
 from dipeo.models import (
     ApiKeyID,
-    ForgettingMode,
     LLMService,
     Message,
     PersonID,
     PersonLLMConfig,
 )
-from dipeo.application.services.person_manager_impl import PersonManagerImpl
-from dipeo.core.dynamic.memory_filters import (
-    MemoryView, MemoryFilterFactory, MemoryLimiter
-)
-from dipeo.core.dynamic.forgetting_strategies import ForgettingStrategyFactory
 
 
 class ConversationManagerImpl(BaseService, ConversationManager):
@@ -58,7 +53,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             self._conversation_logs[execution_id] = []
         
         self._conversation_logs[execution_id].append({
-            "person_id": str(message.from_person_id),
             "role": self._get_role_from_message(message),
             "content": message.content,
             "from_person_id": str(message.from_person_id),
@@ -69,65 +63,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
     
     # Removed _add_to_person_conversation - no longer needed
     
-    def apply_forgetting(
-        self,
-        person_id: str,
-        mode: ForgettingMode,
-        execution_id: str | None = None,
-        execution_count: int = 0
-    ) -> int:
-        """Apply forgetting strategy to a person's memory view.
-        
-        Note: In the global conversation model, forgetting doesn't delete messages
-        from the global conversation. Instead, it changes what the person "remembers"
-        by adjusting their memory view or filters.
-        """
-        person_id_obj = PersonID(person_id)
-        
-        if not self.person_manager.person_exists(person_id_obj):
-            return 0
-        
-        person = self.person_manager.get_person(person_id_obj)
-        
-        # Create forgetting strategy
-        strategy = ForgettingStrategyFactory.create(mode)
-        
-        # Create a minimal memory config if needed
-        from dipeo.models import MemoryConfig
-        memory_config = MemoryConfig(forget_mode=mode)
-        
-        # Apply the strategy
-        return strategy.apply(person, memory_config, execution_count)
-    
-    
-    
-    
-    
-    
-    def _dict_to_message(self, msg_dict: dict[str, Any], person_id: str) -> Message | None:
-        if self._current_execution_id and msg_dict.get("execution_id") != self._current_execution_id:
-            return None
-        
-        from_person_id = msg_dict.get("from_person_id", msg_dict.get("current_person_id", person_id))
-        to_person_id = msg_dict.get("to_person_id", person_id)
-        
-        role = msg_dict.get("role", "user")
-        if role == "system":
-            from_person_id = "system"
-            message_type = "system_to_person"
-        elif role == "external":
-            message_type = "person_to_person"
-        else:
-            message_type = "person_to_person"
-        
-        return Message(
-            from_person_id=PersonID(from_person_id) if from_person_id != "system" else "system",  # type: ignore
-            to_person_id=PersonID(to_person_id) if to_person_id != "system" else "system",  # type: ignore
-            content=msg_dict.get("content", ""),
-            timestamp=msg_dict.get("timestamp"),
-            message_type=message_type,  # type: ignore
-            metadata={"role": role, "node_id": msg_dict.get("node_id")}
-        )
     
     @staticmethod
     def _get_role_from_message(message: Message) -> str:
@@ -137,10 +72,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             return "assistant"
         else:
             return "user"
-    
-    def set_execution_id(self, execution_id: str) -> None:
-        self._current_execution_id = execution_id
-    
     
     async def initialize(self) -> None:
         """Initialize the conversation manager and set it on all persons."""
@@ -222,8 +153,6 @@ class ConversationManagerImpl(BaseService, ConversationManager):
         self._conversation_logs.clear()
     
     async def save_conversation_log(self, execution_id: str, log_dir: Path) -> str:
-        import json
-        from datetime import datetime
         
         log_dir.mkdir(parents=True, exist_ok=True)
         
@@ -253,10 +182,3 @@ class ConversationManagerImpl(BaseService, ConversationManager):
     @staticmethod
     def is_conversation(value: Any) -> bool:
         return is_conversation(value)
-    
-    
-    
-    
-    
-    
-    

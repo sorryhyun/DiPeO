@@ -88,3 +88,4 @@ wsproto==1.2.0
 xxhash==3.5.0
 yarl==1.20.1
 aiosqlite~=0.21.0
+pillow~=11.3.0

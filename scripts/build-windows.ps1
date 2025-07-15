@@ -4,6 +4,7 @@
 param(
     [string]$Version = "0.1.0",
     [switch]$SkipBackend = $false,
+    [switch]$SkipCLI = $false,
     [switch]$SkipFrontend = $false,
     [switch]$SkipInstaller = $false,
     [switch]$Clean = $false
@@ -37,45 +38,44 @@ if ($Clean) {
     Write-ColorOutput Yellow "🧹 Cleaning previous builds..."
     Remove-Item -Path "$RootDir\apps\server\dist" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "$RootDir\apps\server\build" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$RootDir\apps\cli\dist" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$RootDir\apps\cli\build" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "$RootDir\apps\web\dist" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "$RootDir\apps\desktop\src-tauri\target" -Recurse -Force -ErrorAction SilentlyContinue
     Write-ColorOutput Green "✓ Clean complete"
     Write-Output ""
 }
 
-# Step 1: Build Python Backend
+# Step 1: Setup Python Environment and Install Dependencies
+Write-ColorOutput Yellow "🔧 Setting up Python environment..."
+
+# Check if virtual environment exists at root
+if (-not (Test-Path ".venv")) {
+    Write-Output "Creating virtual environment..."
+    python -m venv .venv
+}
+
+# Activate virtual environment
+& ".\.venv\Scripts\Activate.ps1"
+
+# Install all dependencies
+Write-Output "Installing all dependencies..."
+pip install --upgrade pip setuptools wheel | Out-Null
+pip install -r requirements.txt | Out-Null
+pip install pyinstaller | Out-Null
+
+Write-ColorOutput Green "✓ Dependencies installed successfully"
+Write-Output ""
+
+# Step 2: Build Python Backend
 if (-not $SkipBackend) {
     Write-ColorOutput Yellow "🐍 Building Python Backend..."
     Set-Location "$RootDir\apps\server"
     
-    # Check if virtual environment exists
-    if (-not (Test-Path ".venv")) {
-        Write-Output "Creating virtual environment..."
-        python -m venv .venv
-    }
-    
-    # Activate virtual environment
-    & ".\.venv\Scripts\Activate.ps1"
-    
-    # Install dependencies
-    Write-Output "Installing dependencies..."
-    pip install --upgrade pip setuptools wheel | Out-Null
-    pip install -r requirements.txt | Out-Null
-    pip install pyinstaller | Out-Null
-    
-    # Install local packages
-    Write-Output "Installing DiPeO packages..."
-    pip install -e "$RootDir\packages\python\dipeo_core" | Out-Null
-    pip install -e "$RootDir\packages\python\dipeo_domain" | Out-Null
-    pip install -e "$RootDir\packages\python\dipeo_diagram" | Out-Null
-    pip install -e "$RootDir\packages\python\dipeo_application" | Out-Null
-    pip install -e "$RootDir\packages\python\dipeo_infra" | Out-Null
-    pip install -e "$RootDir\packages\python\dipeo_container" | Out-Null
-    pip install -e . | Out-Null
-    
-    # Build executable
-    Write-Output "Building executable with PyInstaller..."
-    pyinstaller build.spec --clean --noconfirm
+    # Build executable using root virtual environment
+    Write-Output "Building server executable with PyInstaller..."
+    $env:BUILD_TYPE = "SERVER"
+    pyinstaller "$RootDir\dipeo\build-windows.spec" --clean --noconfirm --distpath dist
     
     if (Test-Path "dist\dipeo-server.exe") {
         Write-ColorOutput Green "✓ Backend build complete"
@@ -89,7 +89,29 @@ if (-not $SkipBackend) {
     Write-Output ""
 }
 
-# Step 2: Build Frontend
+# Step 3: Build CLI
+if (-not $SkipCLI) {
+    Write-ColorOutput Yellow "🔧 Building CLI Tool..."
+    Set-Location "$RootDir\apps\cli"
+    
+    # Build CLI executable using root virtual environment
+    Write-Output "Building CLI executable..."
+    $env:BUILD_TYPE = "CLI"
+    pyinstaller "$RootDir\dipeo\build-windows.spec" --clean --noconfirm --distpath dist --name dipeo
+    
+    if (Test-Path "dist\dipeo.exe") {
+        Write-ColorOutput Green "✓ CLI build complete"
+        Write-Output "  Size: $((Get-Item dist\dipeo.exe).Length / 1MB)MB"
+    } else {
+        Write-ColorOutput Red "✗ CLI build failed"
+        exit 1
+    }
+    
+    Set-Location $RootDir
+    Write-Output ""
+}
+
+# Step 4: Build Frontend
 if (-not $SkipFrontend) {
     Write-ColorOutput Yellow "⚛️  Building Frontend..."
     Set-Location "$RootDir\apps\web"
@@ -117,7 +139,7 @@ if (-not $SkipFrontend) {
     Write-Output ""
 }
 
-# Step 3: Build Tauri Installer
+# Step 5: Build Tauri Installer
 if (-not $SkipInstaller) {
     Write-ColorOutput Yellow "📦 Building Windows Installer..."
     Set-Location "$RootDir\apps\desktop"
@@ -126,6 +148,13 @@ if (-not $SkipInstaller) {
     $backendExe = "$RootDir\apps\server\dist\dipeo-server.exe"
     if (-not (Test-Path $backendExe)) {
         Write-ColorOutput Red "✗ Backend executable not found. Run with -SkipBackend:$false"
+        exit 1
+    }
+    
+    # Check if CLI executable exists
+    $cliExe = "$RootDir\apps\cli\dist\dipeo.exe"
+    if (-not (Test-Path $cliExe)) {
+        Write-ColorOutput Red "✗ CLI executable not found. Run with -SkipCLI:$false"
         exit 1
     }
     
@@ -164,6 +193,10 @@ if (-not $SkipInstaller) {
         $outputFile = "$outputDir\DiPeO-Setup-$Version-x64.exe"
         Copy-Item -Path $installerPath.FullName -Destination $outputFile
         Write-ColorOutput Green "✓ Installer copied to: $outputFile"
+        
+        # Copy CLI executable to output directory
+        Copy-Item -Path "$RootDir\apps\cli\dist\dipeo.exe" -Destination "$outputDir\dipeo.exe"
+        Write-ColorOutput Green "✓ CLI executable copied to: $outputDir\dipeo.exe"
     } else {
         Write-ColorOutput Red "✗ Installer build failed or installer not found"
         exit 1

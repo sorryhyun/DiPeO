@@ -1,17 +1,11 @@
 """Mutable services for runtime execution state."""
 
-from dependency_injector import containers, providers
+from dependency_injector import providers
+
 from ..base import MutableBaseContainer
 
 
-def _create_execution_context(diagram_compiler, conversation_manager=None):
-    """Create execution context for a diagram execution."""
-    from dipeo.application.execution.context import UnifiedExecutionContext
-    
-    return UnifiedExecutionContext(
-        compiler=diagram_compiler,
-        conversation_manager=conversation_manager
-    )
+# Execution context creation removed - use ExecutionRuntime directly
 
 
 def _create_conversation_manager():
@@ -30,30 +24,19 @@ def _create_person_manager():
 
 
 def _create_execution_engine(
-    context,
     service_registry,
-    state_store,
-    message_router
+    observers=None
 ):
     """Create stateful execution engine."""
     from dipeo.application.engine import TypedExecutionEngine
     
     return TypedExecutionEngine(
-        context=context,
-        service_registry=service_registry,
-        state_store=state_store,
-        message_router=message_router
-    )
-
-
-def _create_node_executor(service_registry, observers=None):
-    """Create node executor for running nodes."""
-    from dipeo.application.engine import NodeExecutor
-    
-    return NodeExecutor(
         service_registry=service_registry,
         observers=observers or []
     )
+
+
+# NodeExecutor removed - using ModernNodeExecutor in TypedExecutionEngine
 
 
 # PersonJobOrchestratorV2 removed - functionality integrated into PersonJobNodeHandler
@@ -63,8 +46,8 @@ def _create_node_executor(service_registry, observers=None):
 
 def _create_execution_iterator(execution_id, state_store):
     """Create execution iterator for traversing execution."""
-    from dipeo.application.execution.iterators import ExecutionIterator
-    return ExecutionIterator(
+    from dipeo.application.execution.iterators.simple_iterator import SimpleExecutionIterator
+    return SimpleExecutionIterator(
         execution_id=execution_id,
         state_store=state_store
     )
@@ -90,12 +73,7 @@ class DynamicServicesContainer(MutableBaseContainer):
     conversation_manager = providers.Singleton(_create_conversation_manager)
     person_manager = providers.Singleton(_create_person_manager)
     
-    # Execution context - Factory for fresh context per execution
-    execution_context = providers.Factory(
-        _create_execution_context,
-        diagram_compiler=static.diagram_compiler,
-        conversation_manager=conversation_manager,
-    )
+    # Execution context removed - use ExecutionRuntime directly in ExecuteDiagramUseCase
     
     # Execution coordination removed - functionality merged into TypedStatefulExecution
     
@@ -104,18 +82,11 @@ class DynamicServicesContainer(MutableBaseContainer):
     # Execution engine - Factory for fresh engine per execution
     execution_engine = providers.Factory(
         _create_execution_engine,
-        context=execution_context,
-        service_registry=providers.Dependency(),  # Injected from application layer
-        state_store=persistence.state_store,
-        message_router=persistence.message_router,
-    )
-    
-    # Node executor - Factory for fresh executor per execution
-    node_executor = providers.Factory(
-        _create_node_executor,
         service_registry=providers.Dependency(),  # Injected from application layer
         observers=providers.List(),  # Optional observers
     )
+    
+    # NodeExecutor removed - ModernNodeExecutor is created directly in TypedExecutionEngine
     
     # LLM executor - Can be singleton as it's stateless
     

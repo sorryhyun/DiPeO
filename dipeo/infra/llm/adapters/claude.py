@@ -1,6 +1,6 @@
 import anthropic
+
 from dipeo.models import ChatResult
-from dipeo.models import TokenUsage
 
 from ..base import BaseLLMAdapter
 

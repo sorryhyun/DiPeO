@@ -1,8 +1,10 @@
 """Protocol for managing execution context during diagram runtime."""
 
-from typing import Protocol, Dict, Any, Optional, List
 from abc import abstractmethod
+from typing import Any, Optional, Protocol
+
 from dipeo.models import NodeID, NodeState
+from dipeo.core.execution.node_output import NodeOutputProtocol
 
 
 class ExecutionContext(Protocol):
@@ -12,35 +14,10 @@ class ExecutionContext(Protocol):
     managing dependencies, and coordinating between nodes.
     """
     
-    @abstractmethod
-    def get_execution_id(self) -> str:
-        """Get the unique identifier for this execution.
-        
-        Returns:
-            The execution ID
-        """
-        ...
+    
     
     @abstractmethod
-    def get_current_node(self) -> Optional[NodeID]:
-        """Get the currently executing node.
-        
-        Returns:
-            The ID of the current node, or None if no node is executing
-        """
-        ...
-    
-    @abstractmethod
-    def set_current_node(self, node_id: NodeID) -> None:
-        """Set the currently executing node.
-        
-        Args:
-            node_id: The ID of the node that is now executing
-        """
-        ...
-    
-    @abstractmethod
-    def get_node_state(self, node_id: NodeID) -> Optional[NodeState]:
+    def get_node_state(self, node_id: NodeID) -> NodeState | None:
         """Get the execution state of a specific node.
         
         Args:
@@ -52,17 +29,7 @@ class ExecutionContext(Protocol):
         ...
     
     @abstractmethod
-    def set_node_state(self, node_id: NodeID, state: NodeState) -> None:
-        """Set the execution state of a node.
-        
-        Args:
-            node_id: The ID of the node
-            state: The new state
-        """
-        ...
-    
-    @abstractmethod
-    def get_node_result(self, node_id: NodeID) -> Optional[Dict[str, Any]]:
+    def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get the execution result of a completed node.
         
         Args:
@@ -73,36 +40,10 @@ class ExecutionContext(Protocol):
         """
         ...
     
-    @abstractmethod
-    def set_node_result(self, node_id: NodeID, result: Dict[str, Any]) -> None:
-        """Store the result of a node execution.
-        
-        Args:
-            node_id: The ID of the node
-            result: The execution result
-        """
-        ...
+    
     
     @abstractmethod
-    def get_global_context(self) -> Dict[str, Any]:
-        """Get the global execution context shared across all nodes.
-        
-        Returns:
-            The global context dictionary
-        """
-        ...
-    
-    @abstractmethod
-    def update_global_context(self, updates: Dict[str, Any]) -> None:
-        """Update the global execution context.
-        
-        Args:
-            updates: Dictionary of values to merge into global context
-        """
-        ...
-    
-    @abstractmethod
-    def get_completed_nodes(self) -> List[NodeID]:
+    def get_completed_nodes(self) -> list[NodeID]:
         """Get list of all completed node IDs.
         
         Returns:
@@ -110,85 +51,106 @@ class ExecutionContext(Protocol):
         """
         ...
     
+    
     @abstractmethod
-    def is_node_complete(self, node_id: NodeID) -> bool:
-        """Check if a node has completed execution.
+    def get_variable(self, key: str) -> Any:
+        """Get a variable from the execution context.
         
         Args:
-            node_id: The ID of the node to check
+            key: The variable key
             
         Returns:
-            True if the node has completed, False otherwise
+            The variable value, or None if not found
+        """
+        ...
+    
+    @abstractmethod
+    def set_variable(self, key: str, value: Any) -> None:
+        """Set a variable in the execution context.
+        
+        Args:
+            key: The variable key
+            value: The variable value
+        """
+        ...
+    
+    @abstractmethod
+    def get_node_execution_count(self, node_id: NodeID) -> int:
+        """Get the execution count for a specific node.
+        
+        Args:
+            node_id: The ID of the node
+            
+        Returns:
+            The number of times this node has been executed
+        """
+        ...
+    
+    # ========== State Transitions ==========
+    # These methods provide standardized state management
+    
+    @abstractmethod
+    def transition_node_to_running(self, node_id: NodeID) -> int:
+        """Transition a node to running state.
+        
+        This should increment execution count and update state atomically.
+        
+        Args:
+            node_id: The ID of the node to transition
+            
+        Returns:
+            The execution number for this run
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_completed(self, node_id: NodeID, output: Any = None) -> None:
+        """Transition a node to completed state with optional output.
+        
+        Args:
+            node_id: The ID of the node to transition
+            output: Optional output from the node execution
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
+        """Transition a node to failed state.
+        
+        Args:
+            node_id: The ID of the node to transition
+            error: Error message describing the failure
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
+        """Transition a node to max iterations reached state.
+        
+        Args:
+            node_id: The ID of the node to transition
+            output: Optional output from the node execution
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_skipped(self, node_id: NodeID) -> None:
+        """Transition a node to skipped state.
+        
+        Args:
+            node_id: The ID of the node to transition
+        """
+        ...
+    
+    @abstractmethod
+    def reset_node(self, node_id: NodeID) -> None:
+        """Reset a node to pending state (for loops).
+        
+        This should clear the node's output and reset its state.
+        
+        Args:
+            node_id: The ID of the node to reset
         """
         ...
 
 
-class ExecutionCoordinator(Protocol):
-    """Coordinates the execution flow of a diagram."""
-    
-    @abstractmethod
-    async def start_execution(
-        self,
-        diagram_id: str,
-        options: Dict[str, Any]
-    ) -> ExecutionContext:
-        """Start a new diagram execution.
-        
-        Args:
-            diagram_id: The ID of the diagram to execute
-            options: Execution options (e.g., max_parallel_nodes)
-            
-        Returns:
-            The execution context for this run
-        """
-        ...
-    
-    @abstractmethod
-    async def execute_node(
-        self,
-        node_id: NodeID,
-        context: ExecutionContext
-    ) -> Dict[str, Any]:
-        """Execute a specific node within the context.
-        
-        Args:
-            node_id: The ID of the node to execute
-            context: The current execution context
-            
-        Returns:
-            The result of the node execution
-        """
-        ...
-    
-    @abstractmethod
-    async def complete_execution(
-        self,
-        context: ExecutionContext,
-        success: bool,
-        error: Optional[Exception] = None
-    ) -> None:
-        """Mark an execution as complete.
-        
-        Args:
-            context: The execution context
-            success: Whether the execution completed successfully
-            error: Optional error if execution failed
-        """
-        ...
-    
-    @abstractmethod
-    def can_execute_node(
-        self,
-        node_id: NodeID,
-        context: ExecutionContext
-    ) -> bool:
-        """Check if a node is ready to execute based on dependencies.
-        
-        Args:
-            node_id: The ID of the node to check
-            context: The current execution context
-            
-        Returns:
-            True if the node can be executed, False otherwise
-        """
-        ...

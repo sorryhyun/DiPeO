@@ -3,20 +3,21 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from pydantic import BaseModel
 
-from dipeo.application import register_handler
-from dipeo.application.execution.typed_handler_base import TypedNodeHandler
-from dipeo.application.execution.context.unified_execution_context import UnifiedExecutionContext
-from dipeo.core.errors import NodeExecutionError, InvalidDiagramError
-from dipeo.models import HookNodeData, HookType, NodeOutput, NodeType
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.core.static.generated_nodes import HookNode
+from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
+from dipeo.models import HookNodeData, HookType, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 @register_handler
@@ -46,35 +47,36 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     async def pre_execute(
         self,
         node: HookNode,
-        execution: "TypedStatefulExecution"
+        execution: "ExecutionRuntime"
     ) -> dict[str, Any]:
         """Pre-execute logic for HookNode."""
         return {}
     
-    async def execute_typed(
+    async def execute(
         self,
         node: HookNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any]
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         return await self._execute_hook_node(node, context, inputs, services)
     
     async def _execute_hook_node(
         self,
         node: HookNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any]
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         try:
             result = await self._execute_hook(node, inputs)
-            return self._build_output(
-                {"default": result},
-                context
+            return TextOutput(
+                value=str(result),
+                node_id=node.id,
+                metadata={"hook_type": node.hook_type}
             )
         except Exception as e:
-            raise NodeExecutionError(f"Hook execution failed: {str(e)}") from e
+            raise NodeExecutionError(f"Hook execution failed: {e!s}") from e
     
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         if node.hook_type == HookType.shell:
@@ -136,7 +138,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             except json.JSONDecodeError:
                 return output
                 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds")
     
     async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
@@ -169,7 +171,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     response.raise_for_status()
                     return await response.json()
             except aiohttp.ClientError as e:
-                raise NodeExecutionError(f"Webhook request failed: {str(e)}")
+                raise NodeExecutionError(f"Webhook request failed: {e!s}")
     
     async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         config = node.config
@@ -212,10 +214,10 @@ print(json.dumps(result))
             
             return json.loads(stdout.decode().strip())
             
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise NodeExecutionError(f"Python script timed out after {timeout} seconds")
         except json.JSONDecodeError as e:
-            raise NodeExecutionError(f"Failed to parse Python script output: {str(e)}")
+            raise NodeExecutionError(f"Failed to parse Python script output: {e!s}")
     
     async def _execute_file_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         config = node.config
@@ -249,4 +251,4 @@ print(json.dumps(result))
             return {"status": "success", "file": str(path)}
             
         except Exception as e:
-            raise NodeExecutionError(f"File operation failed: {str(e)}")
+            raise NodeExecutionError(f"File operation failed: {e!s}")

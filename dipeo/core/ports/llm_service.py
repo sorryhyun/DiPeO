@@ -1,6 +1,6 @@
 """LLM Service port interface."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from dipeo.models import ChatResult, TokenUsage
@@ -16,7 +16,7 @@ class LLMServicePort(Protocol):
 
     async def complete(
         self,
-        messages: List[Dict[str, str]],  # Standard format: [{"role": "user", "content": "..."}]
+        messages: list[dict[str, str]],  # Standard format: [{"role": "user", "content": "..."}]
         model: str,
         api_key_id: str,
         **kwargs,  # Provider-specific options (temperature, max_tokens, etc.)
@@ -34,7 +34,7 @@ class LLMServicePort(Protocol):
         """
         ...
 
-    async def get_available_models(self, api_key_id: str) -> List[str]:
+    async def get_available_models(self, api_key_id: str) -> list[str]:
         """Get list of available models for the given API key.
         
         Args:

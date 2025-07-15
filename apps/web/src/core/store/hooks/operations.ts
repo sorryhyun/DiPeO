@@ -26,6 +26,8 @@ export const useDiagramOperations = () => useUnifiedStore(
     clearDiagram: state.clearDiagram,
     restoreDiagram: state.restoreDiagram,
     setDiagramId: state.setDiagramId,
+    setDiagramName: state.setDiagramName,
+    setDiagramDescription: state.setDiagramDescription,
   }))
 );
 

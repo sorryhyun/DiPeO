@@ -1,18 +1,19 @@
 # Data transformation utilities for converting between different formats
 
-from typing import Dict, Any, List, Optional, Union
-import json
-import yaml
-import xml.etree.ElementTree as ET
-from datetime import datetime, date
 import base64
+import json
+import xml.etree.ElementTree as ET
+from datetime import date, datetime
+from typing import Any
+
+import yaml
 
 
 def transform_to_format(
     data: Any,
     format: str,
-    options: Optional[Dict[str, Any]] = None
-) -> Union[str, bytes, Dict[str, Any]]:
+    options: dict[str, Any] | None = None
+) -> str | bytes | dict[str, Any]:
     # Transform data to specified format
     options = options or {}
     
@@ -33,9 +34,9 @@ def transform_to_format(
 
 
 def transform_from_format(
-    data: Union[str, bytes],
+    data: str | bytes,
     format: str,
-    options: Optional[Dict[str, Any]] = None
+    options: dict[str, Any] | None = None
 ) -> Any:
     # Transform data from specified format
     options = options or {}
@@ -56,7 +57,7 @@ def transform_from_format(
         raise ValueError(f"Unsupported format: {format}")
 
 
-def _to_json(data: Any, options: Dict[str, Any]) -> str:
+def _to_json(data: Any, options: dict[str, Any]) -> str:
     # Convert data to JSON
     indent = options.get('indent', 2) if options.get('pretty', True) else None
     
@@ -74,14 +75,14 @@ def _to_json(data: Any, options: Dict[str, Any]) -> str:
     return json.dumps(data, indent=indent, cls=CustomEncoder)
 
 
-def _from_json(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
+def _from_json(data: str | bytes, options: dict[str, Any]) -> Any:
     # Parse JSON data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
     return json.loads(data)
 
 
-def _to_yaml(data: Any, options: Dict[str, Any]) -> str:
+def _to_yaml(data: Any, options: dict[str, Any]) -> str:
     # Convert data to YAML
     # Simple YAML serialization
     def serialize_value(value, indent=0):
@@ -119,7 +120,7 @@ def _to_yaml(data: Any, options: Dict[str, Any]) -> str:
     return serialize_value(data)
 
 
-def _from_yaml(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
+def _from_yaml(data: str | bytes, options: dict[str, Any]) -> Any:
     # Parse YAML data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
@@ -128,7 +129,7 @@ def _from_yaml(data: Union[str, bytes], options: Dict[str, Any]) -> Any:
     return yaml.safe_load(data) if yaml else json.loads(data)
 
 
-def _to_xml(data: Any, options: Dict[str, Any]) -> str:
+def _to_xml(data: Any, options: dict[str, Any]) -> str:
     # Convert data to XML
     root_tag = options.get('root_tag', 'root')
     
@@ -155,7 +156,7 @@ def _to_xml(data: Any, options: Dict[str, Any]) -> str:
     return ET.tostring(root, encoding='unicode')
 
 
-def _from_xml(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any]:
+def _from_xml(data: str | bytes, options: dict[str, Any]) -> dict[str, Any]:
     # Parse XML data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
@@ -192,7 +193,7 @@ def _from_xml(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any
     return {root.tag: parse_element(root)}
 
 
-def _to_form_data(data: Dict[str, Any], options: Dict[str, Any]) -> str:
+def _to_form_data(data: dict[str, Any], options: dict[str, Any]) -> str:
     # Convert data to form-encoded format
     from urllib.parse import urlencode
     
@@ -215,7 +216,7 @@ def _to_form_data(data: Dict[str, Any], options: Dict[str, Any]) -> str:
     return urlencode(flat_data)
 
 
-def _from_form_data(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[str, Any]:
+def _from_form_data(data: str | bytes, options: dict[str, Any]) -> dict[str, Any]:
     # Parse form-encoded data
     from urllib.parse import parse_qs
     
@@ -231,7 +232,7 @@ def _from_form_data(data: Union[str, bytes], options: Dict[str, Any]) -> Dict[st
     return result
 
 
-def _to_csv(data: List[Dict[str, Any]], options: Dict[str, Any]) -> str:
+def _to_csv(data: list[dict[str, Any]], options: dict[str, Any]) -> str:
     # Convert data to CSV
     if not isinstance(data, list):
         raise ValueError("CSV format requires a list of dictionaries")
@@ -261,7 +262,7 @@ def _to_csv(data: List[Dict[str, Any]], options: Dict[str, Any]) -> str:
     return '\n'.join(lines)
 
 
-def _from_csv(data: Union[str, bytes], options: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _from_csv(data: str | bytes, options: dict[str, Any]) -> list[dict[str, Any]]:
     # Parse CSV data
     if isinstance(data, bytes):
         data = data.decode('utf-8')
@@ -298,14 +299,14 @@ def _from_csv(data: Union[str, bytes], options: Dict[str, Any]) -> List[Dict[str
     return result
 
 
-def _to_base64(data: Union[str, bytes], options: Dict[str, Any]) -> str:
+def _to_base64(data: str | bytes, options: dict[str, Any]) -> str:
     # Convert data to base64
     if isinstance(data, str):
         data = data.encode('utf-8')
     return base64.b64encode(data).decode('ascii')
 
 
-def _from_base64(data: Union[str, bytes], options: Dict[str, Any]) -> bytes:
+def _from_base64(data: str | bytes, options: dict[str, Any]) -> bytes:
     # Decode base64 data
     if isinstance(data, bytes):
         data = data.decode('ascii')
@@ -314,7 +315,7 @@ def _from_base64(data: Union[str, bytes], options: Dict[str, Any]) -> bytes:
 
 def apply_transformation_chain(
     data: Any,
-    transformations: List[Dict[str, Any]]
+    transformations: list[dict[str, Any]]
 ) -> Any:
     # Apply a chain of transformations to data
     result = data

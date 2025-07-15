@@ -1,29 +1,26 @@
-# Refactored execution engine using StatefulExecutableDiagram and iterators.
+# Refactored execution engine using ExecutionRuntime.
 
 import asyncio
 import logging
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.iterators import AsyncExecutionIterator
-from dipeo.application.execution.stateful_execution_typed import TypedStatefulExecution
-from dipeo.models import NodeExecutionStatus, NodeState, NodeType, TokenUsage
-from dipeo.infra.config.settings import get_settings
+from dipeo.application.execution.execution_runtime import ExecutionRuntime
+from dipeo.application.execution.iterators.simple_iterator import SimpleAsyncIterator
 from dipeo.core.static.executable_diagram import ExecutableNode
-
-from .node_executor import NodeExecutor
+from dipeo.infra.config.settings import get_settings
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.application.protocols import ExecutionObserver
+    from dipeo.core.ports import ExecutionObserver
 
 log = logging.getLogger(__name__)
 
 
 class TypedExecutionEngine:
-    """Execution engine that works directly with typed ExecutableDiagram and TypedStatefulExecution.
+    """Execution engine that works directly with typed ExecutableDiagram and ExecutionRuntime.
     
-    This is the simplified engine from Phase 6 that leverages static typing throughout.
+    This simplified engine leverages the consolidated ExecutionRuntime for cleaner architecture.
     """
     
     def __init__(
@@ -33,12 +30,11 @@ class TypedExecutionEngine:
     ):
         self.service_registry = service_registry
         self.observers = observers or []
-        self.node_executor = NodeExecutor(service_registry, observers)
         self._settings = get_settings()
     
     async def execute(
         self,
-        stateful_execution: TypedStatefulExecution,
+        execution_runtime: ExecutionRuntime,
         execution_id: str,
         options: dict[str, Any],
         interactive_handler: Any | None = None,
@@ -46,22 +42,19 @@ class TypedExecutionEngine:
         
         # Notify observers of execution start
         for observer in self.observers:
-            diagram_id = stateful_execution.diagram_id
+            diagram_id = execution_runtime.diagram_id
             await observer.on_execution_start(execution_id, diagram_id)
         
         try:
             # Create async execution iterator
-            max_parallel = options.get("max_parallel_nodes", 10)
+            # max_parallel = options.get("max_parallel_nodes", 10)  # Reserved for future use
             
             # Create iterator with typed execution
-            iterator = AsyncExecutionIterator(
-                stateful_execution=stateful_execution,
-                max_parallel_nodes=max_parallel,
+            iterator = SimpleAsyncIterator(
+                execution=execution_runtime,
                 node_executor=self._create_node_executor_wrapper(
-                    stateful_execution, options, interactive_handler
-                ),
-                node_ready_poll_interval=self._settings.node_ready_poll_interval,
-                max_poll_retries=self._settings.node_ready_max_polls
+                    execution_runtime, options, interactive_handler, execution_id
+                )
             )
             
             # Execute using iterator pattern
@@ -88,7 +81,8 @@ class TypedExecutionEngine:
                 }
                 
                 # Check for completion
-                is_complete = stateful_execution.is_complete()
+                is_complete = execution_runtime.is_complete()
+                ready_nodes = execution_runtime.get_ready_nodes()
                 if is_complete:
                     break
             
@@ -100,7 +94,7 @@ class TypedExecutionEngine:
             yield {
                 "type": "execution_complete",
                 "total_steps": step_count,
-                "execution_path": [str(node_id) for node_id in stateful_execution.get_completed_nodes()],
+                "execution_path": [str(node_id) for node_id in execution_runtime.get_completed_nodes()],
             }
             
         except Exception as e:
@@ -116,51 +110,107 @@ class TypedExecutionEngine:
     
     def _create_node_executor_wrapper(
         self,
-        stateful_execution: TypedStatefulExecution,
-        options: Dict[str, Any],
-        interactive_handler: Optional[Any]
+        execution_runtime: ExecutionRuntime,
+        options: dict[str, Any],
+        interactive_handler: Any | None,
+        execution_id: str
     ):
-        async def execute_node(node: "ExecutableNode") -> Dict[str, Any]:
-            # For the stateful execution to work properly, we need to ensure
-            # that nodes are executed and their results are properly tracked.
+        async def execute_node(node: "ExecutableNode") -> dict[str, Any]:
+            # Track start for observers
+            for observer in self.observers:
+                await observer.on_node_start(execution_id, str(node.id))
             
-
             try:
-                # Execute using the typed node executor with full type safety
-                await self.node_executor.execute_node(
+                # Get handler
+                from dipeo.application import get_global_registry
+                from dipeo.application.execution.handler_factory import HandlerFactory
+                
+                registry = get_global_registry()
+                
+                # Ensure service registry is set
+                if not hasattr(registry, '_service_registry') or registry._service_registry is None:
+                    HandlerFactory(self.service_registry)
+                
+                handler = registry.create_handler(node.type)
+                
+                # Get inputs
+                inputs = execution_runtime.resolve_inputs(node)
+                
+                # Update current node
+                execution_runtime._current_node_id[0] = node.id
+                
+                # Register services
+                execution_runtime._service_registry.register("diagram", execution_runtime.diagram)
+                execution_runtime._service_registry.register("execution_context", {
+                    "interactive_handler": interactive_handler
+                })
+                
+                # Get services dict from handler requirements
+                services_dict = {}
+                if hasattr(handler, 'requires_services'):
+                    for service_name in handler.requires_services:
+                        service = execution_runtime.get_service(service_name)
+                        if service:
+                            services_dict[service_name] = service
+                
+                # Execute handler directly
+                output = await handler.execute(
                     node=node,
-                    execution=stateful_execution,
-                    handler=None,  # Will be resolved by executor
-                    execution_id=stateful_execution.execution_id,
-                    options=options,
-                    interactive_handler=interactive_handler
+                    context=execution_runtime,
+                    inputs=inputs,
+                    services=services_dict
                 )
                 
-
-                # Get the actual node output that was stored by the executor
-                node_output = stateful_execution.state.node_outputs.get(str(node.id))
-                if node_output:
-                    # Return the actual output value
-                    return {
-                        "value": node_output.value,
-                        "metadata": node_output.metadata
-                    }
+                # Handle PersonJobNode special logic BEFORE marking complete
+                from dipeo.core.static.generated_nodes import PersonJobNode, ConditionNode
+                
+                if isinstance(node, PersonJobNode):
+                    exec_count = execution_runtime.get_node_execution_count(node.id)
+                    log.debug(f"PersonJobNode {node.id}: exec_count={exec_count}, max_iteration={node.max_iteration}")
+                    
+                    if exec_count >= node.max_iteration:
+                        # Always set MAXITER_REACHED when we reach max iterations
+                        # Pass the output to save it for downstream nodes
+                        execution_runtime.transition_node_to_maxiter(node.id, output)
+                        log.debug(f"PersonJobNode {node.id}: Transitioned to MAXITER_REACHED")
+                        
+                        # Reset any downstream condition nodes so they can re-evaluate
+                        outgoing_edges = execution_runtime.diagram.get_outgoing_edges(node.id)
+                        for edge in outgoing_edges:
+                            target_node = execution_runtime.diagram.get_node(edge.target_node_id)
+                            if target_node and isinstance(target_node, ConditionNode):
+                                node_state = execution_runtime.get_node_state(target_node.id)
+                                from dipeo.models import NodeExecutionStatus
+                                if node_state and node_state.status == NodeExecutionStatus.COMPLETED:
+                                    execution_runtime.reset_node(target_node.id)
+                                    log.debug(f"Reset ConditionNode {target_node.id} after PersonJobNode {node.id} reached max iterations")
+                    else:
+                        # Not at max iteration yet, mark complete then reset to pending for next iteration
+                        execution_runtime.transition_node_to_completed(node.id, output)
+                        execution_runtime.reset_node(node.id)
+                elif isinstance(node, ConditionNode):
+                    # Mark condition node as completed
+                    execution_runtime.transition_node_to_completed(node.id, output)
                 else:
-                    # Fallback if no output was stored
-                    return {
-                        "value": {"status": "completed", "node_id": str(node.id)},
-                        "metadata": {"node_type": str(node.type)}
-                    }
+                    # For other nodes, just mark as completed
+                    execution_runtime.transition_node_to_completed(node.id, output)
+                
+                # Notify observers of completion
+                node_state = execution_runtime.get_node_state(node.id)
+                for observer in self.observers:
+                    await observer.on_node_complete(execution_id, str(node.id), node_state)
+                
+                # Convert output to dict for iterator
+                if hasattr(output, 'to_dict'):
+                    return output.to_dict()
+                else:
+                    return {"value": output.value, "metadata": output.metadata}
                 
             except Exception as e:
                 log.error(f"Error executing node {node.id}: {e}", exc_info=True)
                 # Notify observers of node error
                 for observer in self.observers:
-                    await observer.on_node_error(
-                        stateful_execution.execution_id,
-                        str(node.id),
-                        str(e)
-                    )
+                    await observer.on_node_error(execution_id, str(node.id), str(e))
                 raise
         
         return execute_node

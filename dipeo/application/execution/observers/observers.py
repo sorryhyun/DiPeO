@@ -3,14 +3,12 @@
 import asyncio
 from datetime import datetime
 
+from dipeo.core.ports import ExecutionObserver
 from dipeo.models import (
     ExecutionStatus,
     NodeExecutionStatus,
-    NodeOutput,
     NodeState,
-    TokenUsage,
 )
-from dipeo.application.protocols import ExecutionObserver
 
 
 class StateStoreObserver(ExecutionObserver):
@@ -125,7 +123,7 @@ class StreamingObserver(ExecutionObserver):
                 "data": {
                     "node_id": node_id,
                     "state": state.status.value,
-                    "output": state.output.model_dump() if state.output else None,
+                    "output": state.output if state.output else None,
                     "started_at": state.started_at,
                     "ended_at": state.ended_at,
                     "token_usage": state.token_usage.model_dump() if state.token_usage else None,

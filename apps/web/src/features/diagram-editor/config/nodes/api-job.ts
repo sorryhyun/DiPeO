@@ -1,4 +1,4 @@
-import { HandleLabel, NodeType } from '@dipeo/domain-models';
+import { HandleLabel, NodeType } from '@/core/types';
 import type { ApiJobNodeData } from '@/core/types';
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 

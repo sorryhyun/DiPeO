@@ -3,20 +3,21 @@
 from dependency_injector import containers, providers
 
 from dipeo.core.constants import BASE_DIR
+
 from .application_container import ApplicationContainer
+from .core.business_container import BusinessLogicContainer
+from .core.container_profiles import ContainerProfile, get_profile
+
+# Import new containers
+from .core.static_container import StaticServicesContainer
+from .runtime.dynamic_container import DynamicServicesContainer
+from .runtime.integration_container import IntegrationServicesContainer
+from .runtime.persistence_container import PersistenceServicesContainer
 from .utilities import (
     init_resources,
     shutdown_resources,
     validate_protocol_compliance,
 )
-from .core.container_profiles import ContainerProfile, get_profile
-
-# Import new containers
-from .core.static_container import StaticServicesContainer
-from .core.business_container import BusinessLogicContainer
-from .runtime.dynamic_container import DynamicServicesContainer
-from .runtime.persistence_container import PersistenceServicesContainer
-from .runtime.integration_container import IntegrationServicesContainer
 
 
 class Container(containers.DeclarativeContainer):

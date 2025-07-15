@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List, Union, Literal
 
 from dipeo.models.models import (
-    NodeType, Vec2, NodeID, PersonID, MemoryConfig, ToolConfig,
+    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
     NotionOperation, HookType, PersonLLMConfig, LLMService
 )
@@ -78,6 +78,7 @@ class PersonJobNode(BaseExecutableNode):
     default_prompt: str = None
     max_iteration: int = 1
     memory_config: Optional[MemoryConfig] = None
+    memory_settings: Optional[MemorySettings] = None
     tools: Optional[List[ToolConfig]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -88,6 +89,7 @@ class PersonJobNode(BaseExecutableNode):
         data["default_prompt"] = self.default_prompt
         data["max_iteration"] = self.max_iteration
         data["memory_config"] = self.memory_config
+        data["memory_settings"] = self.memory_settings
         data["tools"] = self.tools
         return data
 
@@ -273,12 +275,6 @@ def create_executable_node(
         )
     
     if node_type == NodeType.person_job:
-        # Convert memory_config dict to MemoryConfig object if present
-        memory_config_data = data.get("memory_config")
-        memory_config = None
-        if memory_config_data and isinstance(memory_config_data, dict):
-            memory_config = MemoryConfig(**memory_config_data)
-        
         return PersonJobNode(
             id=node_id,
             position=position,
@@ -289,8 +285,9 @@ def create_executable_node(
             first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
-            memory_config=memory_config,
-            tools=data.get("tools"),
+            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
+            memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
+            tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None,
         )
     
     if node_type == NodeType.condition:
@@ -387,12 +384,6 @@ def create_executable_node(
         )
     
     if node_type == NodeType.person_batch_job:
-        # Convert memory_config dict to MemoryConfig object if present
-        memory_config_data = data.get("memory_config")
-        memory_config = None
-        if memory_config_data and isinstance(memory_config_data, dict):
-            memory_config = MemoryConfig(**memory_config_data)
-        
         return PersonBatchJobNode(
             id=node_id,
             position=position,
@@ -403,8 +394,9 @@ def create_executable_node(
             first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
-            memory_config=memory_config,
-            tools=data.get("tools")
+            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
+            memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
+            tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None
         )
     
     raise ValueError(f"Unknown node type: {node_type}")

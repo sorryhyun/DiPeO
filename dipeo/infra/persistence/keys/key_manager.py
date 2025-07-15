@@ -1,18 +1,17 @@
 """API Key Manager for managing credentials and API keys."""
 
 import os
-from typing import Dict, Optional
-from pathlib import Path
 
-from dipeo.core.errors import APIKeyError
+from dipeo.core.base.exceptions import APIKeyError
+
 from .file_apikey_storage import FileAPIKeyStorage
 
 
 class KeyManager:
     
-    def __init__(self, storage: Optional[FileAPIKeyStorage] = None):
+    def __init__(self, storage: FileAPIKeyStorage | None = None):
         self.storage = storage or FileAPIKeyStorage()
-        self._env_cache: Dict[str, str] = {}
+        self._env_cache: dict[str, str] = {}
         self._load_env_keys()
     
     def _load_env_keys(self) -> None:

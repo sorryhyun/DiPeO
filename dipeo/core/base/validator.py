@@ -1,8 +1,8 @@
 """Base validator for the core layer."""
 
-from typing import Any, Dict, List, Optional
-from pathlib import Path
 import os
+from pathlib import Path
+from typing import Any
 
 from .exceptions import ValidationError
 
@@ -11,7 +11,7 @@ class BaseValidator:
     """Base validator with common validation methods."""
     
     def validate_required_fields(
-        self, data: Dict[str, Any], required_fields: List[str]
+        self, data: dict[str, Any], required_fields: list[str]
     ) -> None:
         """Validate that all required fields are present and non-empty."""
         errors = []
@@ -29,7 +29,7 @@ class BaseValidator:
                 details={"errors": errors, "fields": required_fields}
             )
 
-    def validate_operation(self, operation: str, allowed_operations: List[str]) -> None:
+    def validate_operation(self, operation: str, allowed_operations: list[str]) -> None:
         """Validate that an operation is allowed."""
         if operation not in allowed_operations:
             raise ValidationError(
@@ -57,7 +57,7 @@ class BaseValidator:
                 parent.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 raise ValidationError(
-                    f"Cannot create directory for file '{file_path}': {str(e)}",
+                    f"Cannot create directory for file '{file_path}': {e!s}",
                     details={"file_path": file_path, "error": str(e)}
                 )
 
@@ -69,7 +69,7 @@ class BaseValidator:
             )
 
     def validate_input_value(
-        self, value: Any, expected_type: Optional[type] = None, context: str = ""
+        self, value: Any, expected_type: type | None = None, context: str = ""
     ) -> Any:
         """Validate input value and optionally check its type."""
         if value is None:

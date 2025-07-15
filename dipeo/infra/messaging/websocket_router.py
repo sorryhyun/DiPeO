@@ -1,10 +1,10 @@
 import asyncio
 import logging
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-import threading
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 

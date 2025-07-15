@@ -45,6 +45,14 @@ class ForgettingMode(str, Enum):
     on_every_turn = "on_every_turn"
     upon_request = "upon_request"
 
+class MemoryView(str, Enum):
+    all_involved = "all_involved"
+    sent_by_me = "sent_by_me"
+    sent_to_me = "sent_to_me"
+    system_and_me = "system_and_me"
+    conversation_pairs = "conversation_pairs"
+    all_messages = "all_messages"
+
 class DiagramFormat(str, Enum):
     native = "native"
     light = "light"
@@ -100,6 +108,7 @@ class NodeExecutionStatus(str, Enum):
     FAILED = "FAILED"
     ABORTED = "ABORTED"
     SKIPPED = "SKIPPED"
+    MAXITER_REACHED = "MAXITER_REACHED"
 
 class EventType(str, Enum):
     EXECUTION_STATUS_CHANGED = "EXECUTION_STATUS_CHANGED"
@@ -230,6 +239,13 @@ class MemoryConfig(BaseModel):
     max_messages: Optional[float] = Field(default=None)
     temperature: Optional[float] = Field(default=None)
 
+class MemorySettings(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    view: MemoryView
+    max_messages: Optional[float] = Field(default=None)
+    preserve_system: Optional[bool] = Field(default=None)
+
 class PersonLLMConfig(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
@@ -305,6 +321,7 @@ class PersonJobNodeData(BaseNodeData):
     default_prompt: Optional[str] = Field(default=None)
     max_iteration: float
     memory_config: Optional[MemoryConfig] = Field(default=None)
+    memory_settings: Optional[MemorySettings] = Field(default=None)
     tools: Optional[List[ToolConfig]] = Field(default=None)
 
 class EndpointNodeData(BaseNodeData):
@@ -386,15 +403,7 @@ class NodeState(BaseModel):
     ended_at: Optional[str] = Field(default=None)
     error: Optional[str] = Field(default=None)
     token_usage: Optional[TokenUsage] = Field(default=None)
-    output: Optional[NodeOutput] = Field(default=None)
-
-class NodeOutput(BaseModel):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    value: Any
-    metadata: Optional[Dict[str, Any]] = Field(default=None)
-    node_id: Optional[NodeID] = Field(default=None)
-    executed_nodes: Optional[List[NodeID]] = Field(default=None)
+    output: Optional[Dict[str, Any]] = Field(default=None)
 
 class ExecutionState(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -405,12 +414,14 @@ class ExecutionState(BaseModel):
     started_at: str
     ended_at: Optional[str] = Field(default=None)
     node_states: Dict[str, NodeState]
-    node_outputs: Dict[str, NodeOutput]
+    node_outputs: Dict[str, Dict[str, Any]]
     token_usage: TokenUsage
     error: Optional[str] = Field(default=None)
     variables: Dict[str, Any]
     duration_seconds: Optional[float] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
+    exec_counts: Dict[str, float]
+    executed_nodes: List[str]
 
 class ExecutionOptions(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
