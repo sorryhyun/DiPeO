@@ -122,9 +122,18 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 node_outputs=node_outputs
             )
         elif condition_type == "custom":
+            # Merge context variables with inputs for evaluation
+            eval_context = inputs.copy() if inputs else {}
+            
+            # Add common variables from execution context
+            for var_name in ['a', 'b', 'c', 'x', 'y', 'z', 'result', 'output', 'data']:
+                var_value = context.get_variable(var_name)
+                if var_value is not None:
+                    eval_context[var_name] = var_value
+            
             result = evaluation_service.evaluate_custom_expression(
                 expression=expression or "",
-                context_values=inputs,
+                context_values=eval_context,
             )
         else:
             # Default to false for unknown condition types

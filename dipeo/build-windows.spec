@@ -29,6 +29,13 @@ if IS_SERVER_BUILD:
 elif IS_CLI_BUILD:
     sys.path.insert(0, str(ROOT_DIR / "apps" / "cli"))
 
+# Windows-specific workarounds
+if sys.platform == 'win32':
+    # Ensure proper encoding
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+    # Use legacy stdio on Windows
+    os.environ['PYTHONLEGACYWINDOWSSTDIO'] = '1'
+
 block_cipher = None
 
 # Base hidden imports for both server and CLI
@@ -188,6 +195,11 @@ if IS_CLI_BUILD:
 # Remove None values from datas
 datas = [d for d in datas if d is not None]
 
+# Create empty hooks directory to prevent hook discovery issues
+hooks_dir = ROOT_DIR / '.pyinstaller_hooks'
+if not hooks_dir.exists():
+    hooks_dir.mkdir(parents=True, exist_ok=True)
+
 a = Analysis(
     [entry_script],
     pathex=[
@@ -203,7 +215,7 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
-    hookspath=[],
+    hookspath=[str(hooks_dir)],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[

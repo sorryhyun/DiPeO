@@ -176,6 +176,11 @@ class ExecutionRuntime(ExecutionContext):
         """Get a variable from the execution context."""
         return self._variables.get(key)
     
+    def set_variable(self, key: str, value: Any) -> None:
+        """Set a variable in the execution context."""
+        with self._state_lock:
+            self._variables[key] = value
+    
     def get_node_execution_count(self, node_id: NodeID) -> int:
         """Get the execution count for a node."""
         return self._tracker.get_execution_count(node_id)

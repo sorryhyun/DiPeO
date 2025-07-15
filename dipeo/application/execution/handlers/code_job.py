@@ -90,7 +90,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
         try:
             if language == "python":
-                result = await self._execute_python(code, inputs, timeout)
+                result = await self._execute_python(code, inputs, timeout, context)
             elif language == "javascript":
                 result = await self._execute_javascript(code, inputs, timeout)
             elif language == "bash":
@@ -161,7 +161,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             metadata={"language": language}
         )
 
-    async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
+    async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int, context: Optional["ExecutionContext"] = None) -> Any:
         if "{{" in code and inputs:
             # Create a namespace with all inputs
             template_vars = {}
@@ -235,6 +235,16 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 "__import__": __import__,
             }
         }
+        
+        # Load variables from context if available
+        if context:
+            # Get all variables from the execution context
+            # We'll need to introspect the context to get all variables
+            # For now, let's load common variable names
+            for var_name in ['a', 'b', 'c', 'x', 'y', 'z', 'result', 'output', 'data']:
+                var_value = context.get_variable(var_name)
+                if var_value is not None:
+                    namespace[var_name] = var_value
 
         # Capture stdout
         old_stdout = sys.stdout
@@ -263,6 +273,21 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                     # Get the printed output
                     printed_output = sys.stdout.getvalue()
                     result = printed_output.strip() if printed_output else "Code executed successfully"
+            
+            # Save variables back to context if available
+            if context:
+                # List of built-in names to exclude
+                builtins_to_exclude = {
+                    '__builtins__', 'input_data', 'inputs', 'json', 'math', 
+                    'random', 'datetime', '_execute', '_result'
+                }
+                
+                # Save user-defined variables back to context
+                for name, value in namespace.items():
+                    if name not in builtins_to_exclude and not name.startswith('__'):
+                        # Only save simple types that can be serialized
+                        if isinstance(value, (str, int, float, bool, list, dict, type(None))):
+                            context.set_variable(name, value)
             
             return result
         finally:

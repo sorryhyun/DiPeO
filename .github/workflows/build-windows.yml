@@ -38,7 +38,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.12'
           cache: 'pip'
       
       - name: Install Rust
@@ -76,8 +76,21 @@ jobs:
           # Activate and install all dependencies
           & ".\.venv\Scripts\Activate.ps1"
           python -m pip install --upgrade pip setuptools wheel
+          
+          # Pin PyInstaller to a stable version compatible with Python 3.12
+          pip install pyinstaller==6.11.1
+          
+          # Install other dependencies
           pip install -r requirements.txt
-          pip install pyinstaller
+          
+          # Add Windows-specific workarounds
+          pip install --upgrade cffi pycparser
+          
+          # Show installed versions for debugging
+          Write-Host "Installed packages:"
+          pip list
+          Write-Host "Python version: $(python --version)"
+          Write-Host "PyInstaller version: $(pyinstaller --version)"
           
           Write-Host "Python environment setup complete"
       
@@ -93,11 +106,28 @@ jobs:
           $env:PYTHONPATH = "${{ github.workspace }};${{ github.workspace }}\dipeo;${{ github.workspace }}\apps\server"
           $env:BUILD_TYPE = "SERVER"
           
-          # Use centralized Windows build spec
-          pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist
+          # Windows-specific PyInstaller workarounds
+          $env:PYTHONIOENCODING = "utf-8"
+          $env:PYTHONLEGACYWINDOWSSTDIO = "1"
+          
+          # Clear PyInstaller cache to avoid conflicts
+          if (Test-Path "$env:LOCALAPPDATA\pyinstaller") {
+            Remove-Item -Path "$env:LOCALAPPDATA\pyinstaller" -Recurse -Force
+          }
+          
+          try {
+            # Use centralized Windows build spec with verbose output for debugging
+            pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --log-level DEBUG 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
+          } catch {
+            Write-Host "PyInstaller failed. Log contents:"
+            Get-Content "pyinstaller-backend.log" -Tail 100
+            throw
+          }
           
           # Verify executable was created
           if (!(Test-Path "dist/dipeo-server.exe")) {
+            Write-Host "PyInstaller log contents:"
+            Get-Content "pyinstaller-backend.log" -Tail 100
             Write-Error "Backend build failed"
             exit 1
           }
@@ -116,11 +146,28 @@ jobs:
           $env:PYTHONPATH = "${{ github.workspace }};${{ github.workspace }}\dipeo;${{ github.workspace }}\apps\cli"
           $env:BUILD_TYPE = "CLI"
           
-          # Use centralized Windows build spec
-          pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --name dipeo
+          # Windows-specific PyInstaller workarounds
+          $env:PYTHONIOENCODING = "utf-8"
+          $env:PYTHONLEGACYWINDOWSSTDIO = "1"
+          
+          # Clear PyInstaller cache to avoid conflicts
+          if (Test-Path "$env:LOCALAPPDATA\pyinstaller") {
+            Remove-Item -Path "$env:LOCALAPPDATA\pyinstaller" -Recurse -Force
+          }
+          
+          try {
+            # Use centralized Windows build spec with verbose output for debugging
+            pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --name dipeo --log-level DEBUG 2>&1 | Tee-Object -FilePath "pyinstaller-cli.log"
+          } catch {
+            Write-Host "PyInstaller failed. Log contents:"
+            Get-Content "pyinstaller-cli.log" -Tail 100
+            throw
+          }
           
           # Verify executable was created
           if (!(Test-Path "dist/dipeo.exe")) {
+            Write-Host "PyInstaller log contents:"
+            Get-Content "pyinstaller-cli.log" -Tail 100
             Write-Error "CLI build failed"
             exit 1
           }

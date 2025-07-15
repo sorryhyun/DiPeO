@@ -115,7 +115,8 @@ class _YamlMixin:
 
         def str_representer(dumper, data):
             if '\n' in data:
-                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+                # Use literal style without strip indicator
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
         CustomDumper.add_representer(dict, position_representer)
