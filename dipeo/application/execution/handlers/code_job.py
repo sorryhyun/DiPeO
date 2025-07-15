@@ -13,7 +13,8 @@ from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.core.static.generated_nodes import CodeJobNode
-from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.models import CodeJobNodeData, NodeType
 from dipeo.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
@@ -72,7 +73,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[CodeJobNode]) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[CodeJobNode]) -> NodeOutputProtocol:
         """Execute the code job."""
         node = request.node
         context = request.context
@@ -95,10 +96,10 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             elif language == "bash":
                 result = await self._execute_bash(code, inputs, timeout)
             else:
-                return self._build_output(
-                    {"default": ""}, 
-                    context,
-                    {"error": f"Unsupported language: {language}"}
+                return ErrorOutput(
+                    value=f"Unsupported language: {language}",
+                    node_id=node.id,
+                    error_type="UnsupportedLanguageError"
                 )
 
             # Convert result to string if needed
@@ -107,30 +108,32 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             else:
                 output = str(result)
 
-            return self._build_output(
-                {"default": output},
-                context,
-                {"language": language, "success": True}
+            return TextOutput(
+                value=output,
+                node_id=node.id,
+                metadata={"language": language, "success": True}
             )
 
         except TimeoutError:
-            return self._build_output(
-                {"default": ""}, 
-                context,
-                {"error": f"Code execution timed out after {timeout} seconds", "language": language, "success": False}
+            return ErrorOutput(
+                value=f"Code execution timed out after {timeout} seconds",
+                node_id=node.id,
+                error_type="TimeoutError",
+                metadata={"language": language}
             )
         except Exception as e:
-            return self._build_output(
-                {"default": ""}, 
-                context,
-                {"error": str(e), "language": language, "success": False}
+            return ErrorOutput(
+                value=str(e),
+                node_id=node.id,
+                error_type=type(e).__name__,
+                metadata={"language": language}
             )
     
     def post_execute(
         self,
         request: ExecutionRequest[CodeJobNode],
-        output: NodeOutput
-    ) -> NodeOutput:
+        output: NodeOutputProtocol
+    ) -> NodeOutputProtocol:
         """Post-execution hook to log code execution details."""
         # Log execution details if in debug mode
         if request.metadata.get("debug"):
@@ -146,20 +149,16 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         self,
         request: ExecutionRequest[CodeJobNode],
         error: Exception
-    ) -> Optional[NodeOutput]:
+    ) -> Optional[NodeOutputProtocol]:
         """Handle execution errors with better error messages."""
         language = request.metadata.get("language", "unknown")
         
         # Create error output with language information
-        return self._build_output(
-            {"default": ""}, 
-            request.context,
-            {
-                "error": f"Code execution failed: {str(error)}",
-                "language": language,
-                "success": False,
-                "error_type": type(error).__name__
-            }
+        return ErrorOutput(
+            value=f"Code execution failed: {str(error)}",
+            node_id=request.node.id,
+            error_type=type(error).__name__,
+            metadata={"language": language}
         )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:

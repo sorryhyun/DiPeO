@@ -6,7 +6,8 @@ from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.core.static.generated_nodes import StartNode
-from dipeo.models import HookTriggerMode, NodeOutput, NodeType, StartNodeData
+from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
+from dipeo.models import HookTriggerMode, NodeType, StartNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -46,7 +47,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[StartNode]) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[StartNode]) -> NodeOutputProtocol:
         """Execute the start node."""
         node = request.node
         context = request.context
@@ -60,10 +61,10 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         
         if trigger_mode == HookTriggerMode.manual:
             output_data = node.custom_data or {}
-            return self._build_output(
-                {"default": output_data}, 
-                context,
-                {"message": "Manual execution started"}
+            return DataOutput(
+                value={"default": output_data},
+                node_id=node.id,
+                metadata={"message": "Manual execution started"}
             )
         
         elif trigger_mode == HookTriggerMode.hook:
@@ -71,17 +72,17 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
             
             if hook_data:
                 output_data = {**node.custom_data, **hook_data}
-                return self._build_output(
-                    {"default": output_data},
-                    context,
-                    {"message": f"Triggered by hook event: {node.hook_event}"}
+                return DataOutput(
+                    value={"default": output_data},
+                    node_id=node.id,
+                    metadata={"message": f"Triggered by hook event: {node.hook_event}"}
                 )
             else:
                 output_data = node.custom_data or {}
-                return self._build_output(
-                    {"default": output_data},
-                    context,
-                    {"message": "Hook trigger mode but no event data available"}
+                return DataOutput(
+                    value={"default": output_data},
+                    node_id=node.id,
+                    metadata={"message": "Hook trigger mode but no event data available"}
                 )
     
     async def _get_hook_event_data(
@@ -109,8 +110,8 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     def post_execute(
         self,
         request: ExecutionRequest[StartNode],
-        output: NodeOutput
-    ) -> NodeOutput:
+        output: NodeOutputProtocol
+    ) -> NodeOutputProtocol:
         """Post-execution hook to log start node execution."""
         # Log execution details if in debug mode
         if request.metadata.get("debug"):

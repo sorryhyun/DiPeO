@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.core.static.node_handler import TypedNodeHandler as CoreTypedHandler
-from dipeo.models import NodeOutput
+from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
@@ -91,7 +91,7 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         """
         return {}
     
-    async def execute_request(self, request: "ExecutionRequest[T]") -> NodeOutput:
+    async def execute_request(self, request: "ExecutionRequest[T]") -> NodeOutputProtocol:
         """Execute the node with the unified request object.
         
         This is the new execution interface that provides a cleaner API.
@@ -101,7 +101,7 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
             request: The unified execution request
             
         Returns:
-            NodeOutput containing the execution results
+            NodeOutputProtocol containing the execution results
         """
         # Default implementation delegates to execute for backward compatibility
         return await self.execute(
@@ -114,8 +114,8 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
     def post_execute(
         self,
         request: "ExecutionRequest[T]",
-        output: NodeOutput
-    ) -> NodeOutput:
+        output: NodeOutputProtocol
+    ) -> NodeOutputProtocol:
         """Post-execution hook for cleanup or enrichment.
         
         Args:
@@ -132,7 +132,7 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         self,
         request: "ExecutionRequest[T]",
         error: Exception
-    ) -> Optional[NodeOutput]:
+    ) -> Optional[NodeOutputProtocol]:
         """Error recovery hook.
         
         Args:
@@ -150,13 +150,14 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         value: Any,
         context: Any,
         metadata: dict[str, Any] | None = None
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         """Build a standard node output."""
-        return NodeOutput(
+        from dipeo.models import NodeID
+        node_id = getattr(context, 'current_node_id', None)
+        return BaseNodeOutput(
             value=value,
             metadata=metadata or {},
-            node_id=getattr(context, 'current_node_id', None),
-            executed_nodes=getattr(context, 'executed_nodes', [])
+            node_id=NodeID(node_id) if node_id else NodeID("unknown")
         )
     
     async def execute(
@@ -165,7 +166,7 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         context: Any,
         inputs: dict[str, Any],
         services: dict[str, Any]
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         """Execute the handler with lifecycle support.
         
         Always creates ExecutionRequest and uses the lifecycle flow.

@@ -5,9 +5,11 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.unified_service_registry import NOTION_SERVICE, API_KEY_SERVICE
 from dipeo.core.static.generated_nodes import NotionNode
+from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.domain.notion.services import NotionValidator
-from dipeo.models import NodeOutput, NodeType, NotionNodeData, NotionOperation
+from dipeo.models import NodeType, NotionNodeData, NotionOperation
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -62,7 +64,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         return await self._execute_notion_operation(node, context, inputs, services)
     
     async def _execute_notion_operation(
@@ -71,9 +73,15 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
-        notion_service = self.notion_service or services["notion_service"]
-        api_key_service = self.api_key_service or services["api_key_service"]
+    ) -> NodeOutputProtocol:
+        # Get services directly from the services dict
+        notion_service = self.notion_service or services.get(NOTION_SERVICE.name)
+        api_key_service = self.api_key_service or services.get(API_KEY_SERVICE.name)
+        
+        if not notion_service:
+            raise ValueError("Notion service not available")
+        if not api_key_service:
+            raise ValueError("API key service not available")
         
         # Get the Notion API key
         api_keys = api_key_service.list_api_keys()
@@ -140,7 +148,8 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
             # This should have been caught by validation, but just in case
             raise ValueError(f"Unsupported Notion operation: {node.operation}")
             
-        return self._build_output(
-            {"default": result},
-            context
+        return DataOutput(
+            value={"default": result},
+            node_id=node.id,
+            metadata={"operation": node.operation}
         )

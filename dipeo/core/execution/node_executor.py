@@ -41,29 +41,25 @@ class ModernNodeExecutor:
                 "execution_tracker": self.tracker
             })
             
+            # Get services dict from handler requirements
+            services_dict = {}
+            if hasattr(handler, 'requires_services'):
+                for service_name in handler.requires_services:
+                    service = context.get_service(service_name)
+                    if service:
+                        services_dict[service_name] = service
+            
             # Execute handler with proper output typing
             output = await handler.execute(
                 node=node,
                 context=context,
                 inputs=inputs,
-                services=context.service_registry
+                services=services_dict
             )
             
             # Validate output type
             if not isinstance(output, NodeOutputProtocol):
-                # Handle legacy outputs
-                from dipeo.core.execution.node_output import LegacyNodeOutput
-                from dipeo.models import NodeOutput as LegacyModel
-                
-                if isinstance(output, LegacyModel):
-                    # Convert from legacy model
-                    legacy = LegacyNodeOutput(
-                        value=output.value,
-                        metadata=output.metadata or {}
-                    )
-                    output = legacy.to_modern(node.id)
-                else:
-                    raise TypeError(f"Handler returned {type(output)}, expected NodeOutputProtocol")
+                raise TypeError(f"Handler returned {type(output)}, expected NodeOutputProtocol")
             
             # Extract token usage if available
             token_usage = None
@@ -85,7 +81,7 @@ class ModernNodeExecutor:
             error_output = ErrorOutput(
                 value=str(error),
                 node_id=node.id,
-                error_type=type(error).__name__
+                metadata={"error_type": type(error).__name__}
             )
             
             self.tracker.complete_execution(

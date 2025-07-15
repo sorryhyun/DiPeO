@@ -78,7 +78,6 @@ export type {
 export type {
   TokenUsage,
   NodeState,
-  NodeOutput,
   ExecutionState,
   ExecutionOptions,
   InteractivePromptData,

@@ -36,14 +36,7 @@ def _create_execution_engine(
     )
 
 
-def _create_node_executor(service_registry, observers=None):
-    """Create node executor for running nodes."""
-    from dipeo.application.engine import NodeExecutor
-    
-    return NodeExecutor(
-        service_registry=service_registry,
-        observers=observers or []
-    )
+# NodeExecutor removed - using ModernNodeExecutor in TypedExecutionEngine
 
 
 # PersonJobOrchestratorV2 removed - functionality integrated into PersonJobNodeHandler
@@ -93,12 +86,7 @@ class DynamicServicesContainer(MutableBaseContainer):
         observers=providers.List(),  # Optional observers
     )
     
-    # Node executor - Factory for fresh executor per execution
-    node_executor = providers.Factory(
-        _create_node_executor,
-        service_registry=providers.Dependency(),  # Injected from application layer
-        observers=providers.List(),  # Optional observers
-    )
+    # NodeExecutor removed - ModernNodeExecutor is created directly in TypedExecutionEngine
     
     # LLM executor - Can be singleton as it's stateless
     

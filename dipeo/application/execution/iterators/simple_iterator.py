@@ -42,10 +42,7 @@ class SimpleExecutionIterator:
         ready_nodes = self.execution.get_ready_nodes()
         if not ready_nodes:
             # Check if we're stuck
-            running = any(
-                state.status == "RUNNING"
-                for state in self.execution.state.node_states.values()
-            )
+            running = self.execution.has_running_nodes()
             if not running:
                 raise StopIteration("No progress possible")
             
@@ -54,7 +51,7 @@ class SimpleExecutionIterator:
         
         # Mark nodes as running
         for node in ready_nodes:
-            self.execution.mark_node_running(node.id)
+            self.execution.transition_node_to_running(node.id)
         
         return ExecutionStep(nodes=ready_nodes)
     
@@ -91,10 +88,7 @@ class SimpleAsyncIterator:
                 break
             
             # Check if we're stuck
-            running = any(
-                state.status == "RUNNING"
-                for state in self.execution.state.node_states.values()
-            )
+            running = self.execution.has_running_nodes()
             if not running and not ready_nodes:
                 raise StopAsyncIteration("No progress possible")
             
@@ -106,7 +100,7 @@ class SimpleAsyncIterator:
         
         # Mark nodes as running
         for node in ready_nodes:
-            self.execution.mark_node_running(node.id)
+            self.execution.transition_node_to_running(node.id)
         
         return ExecutionStep(nodes=ready_nodes)
     
@@ -160,9 +154,8 @@ class SimpleAsyncIterator:
     def get_progress(self) -> dict[str, Any]:
         """Get execution progress."""
         total = len(self.execution.diagram.nodes)
-        completed = sum(
-            1 for state in self.execution.state.node_states.values()
-            if state.status in ["COMPLETED", "FAILED", "SKIPPED", "MAXITER_REACHED"]
+        completed = self.execution.count_nodes_by_status(
+            ["COMPLETED", "FAILED", "SKIPPED", "MAXITER_REACHED"]
         )
         return {
             "total_nodes": total,

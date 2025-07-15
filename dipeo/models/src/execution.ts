@@ -64,16 +64,9 @@ export interface NodeState {
   ended_at?: string | null;
   error?: string | null;
   token_usage?: TokenUsage | null;
-  output?: NodeOutput | null;  // Optional output field to unify state and output
+  output?: Record<string, any> | null;  // Stores serialized protocol output
 }
 
-// Single output format for ALL nodes
-export interface NodeOutput {
-  value: any;  // The actual output
-  metadata?: Record<string, any>;  // Flexible metadata
-  node_id?: NodeID | null;  // ID of the node that produced this output
-  executed_nodes?: NodeID[] | null;  // List of node IDs executed up to this point (treated as set)
-}
 
 // Simplified execution state
 export interface ExecutionState {
@@ -84,7 +77,7 @@ export interface ExecutionState {
   ended_at?: string | null;
   // Simplified node tracking
   node_states: Record<string, NodeState>;
-  node_outputs: Record<string, NodeOutput>;
+  node_outputs: Record<string, Record<string, any>>;  // Serialized protocol outputs
   token_usage: TokenUsage;
   error?: string | null;
   variables: Record<string, any>;

@@ -1,8 +1,76 @@
 # Unified service registry that works for both server and local execution.
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Generic, Optional, TypeVar, cast, TYPE_CHECKING
 
 from dipeo.core.utils.dynamic_registry import DynamicRegistry
+
+# Type variable for service types
+T = TypeVar('T')
+
+if TYPE_CHECKING:
+    from dipeo.core.ports import LLMServicePort, StateStorePort, FileServicePort, NotionServicePort
+    from dipeo.core.static.executable_diagram import ExecutableDiagram
+    from dipeo.core.dynamic.conversation_manager import ConversationManager
+    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.application.services.apikey_service import APIKeyService
+    from dipeo.application.utils.template import PromptBuilder
+    from dipeo.infra.services.api.api_service import APIService
+    from dipeo.infra.adapters.notion.service import NotionAPIService
+    from dipeo.domain.db.services.db_operations_service import DBOperationsDomainService
+    from dipeo.application.utils.template.evaluator import ConditionEvaluator
+    from dipeo.infra.persistence.diagram.storage_adapter import DiagramStorageAdapter
+    from typing import Dict
+
+
+@dataclass(frozen=True)
+class ServiceKey(Generic[T]):
+    """Type-safe key for service lookup.
+    
+    This provides compile-time type safety for service dependencies.
+    
+    Example:
+        LLM_SERVICE = ServiceKey[LLMServicePort]("llm_service")
+        API_KEY_SERVICE = ServiceKey[ApiKeyService]("api_key_service")
+        
+        # In handler:
+        llm = registry.get(LLM_SERVICE)  # Type: LLMServicePort
+    """
+    
+    name: str
+    description: str = ""
+    
+    def __str__(self) -> str:
+        return self.name
+    
+    def __repr__(self) -> str:
+        return f"ServiceKey[{self.name}]"
+
+
+# Core service keys
+LLM_SERVICE = ServiceKey["LLMServicePort"]("llm_service", "LLM completion service")
+STATE_STORE = ServiceKey["StateStorePort"]("state_store", "Execution state persistence")
+DIAGRAM = ServiceKey["ExecutableDiagram"]("diagram", "Current executable diagram")
+EXECUTION_CONTEXT = ServiceKey["ExecutionContext"]("execution_context", "Current execution context")
+
+# Application service keys
+API_KEY_SERVICE = ServiceKey["APIKeyService"]("api_key_service", "API key management")
+CONVERSATION_MANAGER = ServiceKey["ConversationManager"]("conversation_manager", "Conversation state")
+CONVERSATION_SERVICE = ServiceKey["ConversationManager"]("conversation_service", "Conversation management service")
+PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder", "Prompt template builder")
+CONDITION_EVALUATION_SERVICE = ServiceKey["ConditionEvaluator"]("condition_evaluation_service", "Condition expression evaluator")
+
+# Infrastructure service keys
+FILE_SERVICE = ServiceKey["FileServicePort"]("file_service", "File operations service")
+API_SERVICE = ServiceKey["APIService"]("api_service", "HTTP API client service")
+NOTION_SERVICE = ServiceKey["NotionServicePort"]("notion_service", "Notion API service")
+DIAGRAM_STORAGE_SERVICE = ServiceKey["DiagramStorageAdapter"]("diagram_storage_service", "Diagram file storage and retrieval")
+DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service", "Database operations service")
+
+# Runtime service keys
+MESSAGE_ROUTER = ServiceKey[Any]("message_router", "Message routing service")
+CURRENT_NODE_INFO = ServiceKey["Dict[str, Any]"]("current_node_info", "Current node execution information")
+NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts", "Node execution counter tracking")
 
 
 class UnifiedServiceRegistry(DynamicRegistry):
@@ -71,6 +139,66 @@ class UnifiedServiceRegistry(DynamicRegistry):
         
         return registry
     
+    def get(self, key: ServiceKey[T] | str, default: Optional[T] = None) -> Optional[T]:
+        """Get a service by typed key or string.
+        
+        Args:
+            key: Either a ServiceKey[T] or string name
+            default: Default value if not found
+            
+        Returns:
+            The service instance or default
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        result = super().get(name)
+        
+        if isinstance(key, ServiceKey):
+            return cast(Optional[T], result if result is not None else default)
+        return result if result is not None else default
+    
+    def require(self, key: ServiceKey[T] | str) -> T:
+        """Get a required service, raising error if not found.
+        
+        Args:
+            key: Either a ServiceKey[T] or string name
+            
+        Returns:
+            The service instance
+            
+        Raises:
+            ValueError: If service not found
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        service = self.get(name)
+        
+        if service is None:
+            raise ValueError(f"Required service '{name}' not found")
+            
+        if isinstance(key, ServiceKey):
+            return cast(T, service)
+        return service
+    
+    def has(self, key: ServiceKey[T] | str) -> bool:
+        """Check if a service exists.
+        
+        Args:
+            key: Either a ServiceKey[T] or string name
+            
+        Returns:
+            True if service exists
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        return name in self._items
+    
+    def register_typed(self, key: ServiceKey[T], service: T) -> None:
+        """Register a service with a typed key.
+        
+        Args:
+            key: The service key
+            service: The service instance
+        """
+        self.register(key.name, service)
+    
     def get_handler_services(self, required_services: list[str]) -> dict[str, Any]:
         # Get services required by a handler.
         services = {}
@@ -98,3 +226,27 @@ class UnifiedServiceRegistry(DynamicRegistry):
         # String representation of the registry.
         services = list(self._items.keys())
         return f"UnifiedServiceRegistry({', '.join(services)})"
+
+
+# Re-export common service keys for convenience
+__all__ = [
+    'UnifiedServiceRegistry',
+    'ServiceKey',
+    'LLM_SERVICE',
+    'STATE_STORE',
+    'DIAGRAM',
+    'EXECUTION_CONTEXT',
+    'API_KEY_SERVICE',
+    'CONVERSATION_MANAGER',
+    'CONVERSATION_SERVICE',
+    'PROMPT_BUILDER',
+    'CONDITION_EVALUATION_SERVICE',
+    'FILE_SERVICE',
+    'API_SERVICE',
+    'NOTION_SERVICE',
+    'DIAGRAM_STORAGE_SERVICE',
+    'DB_OPERATIONS_SERVICE',
+    'MESSAGE_ROUTER',
+    'CURRENT_NODE_INFO',
+    'NODE_EXEC_COUNTS',
+]

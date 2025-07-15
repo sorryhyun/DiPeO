@@ -7,19 +7,18 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.service_key import (
+from dipeo.application.unified_service_registry import (
     LLM_SERVICE,
     DIAGRAM,
     CONVERSATION_MANAGER,
-    PROMPT_BUILDER,
-    ServiceKeyAdapter
+    PROMPT_BUILDER
 )
 from dipeo.core.dynamic import Person
 from dipeo.core.static.generated_nodes import PersonJobNode
+from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
 from dipeo.models import (
     MemorySettings,
     Message,
-    NodeOutput,
     NodeType,
     PersonID,
     PersonJobNodeData,
@@ -109,33 +108,26 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             "tools": node.tools
         }
     
-    async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
         """Execute the person job with the unified request object."""
-        # Use ServiceKeyAdapter for type-safe service access
-        service_adapter = ServiceKeyAdapter(request.services)
-        
         # Get node and context from request
         node = request.node
         context = request.context
         
-        # Resolve inputs from request
-        inputs = request.inputs
-        if not inputs:
-            # Get diagram for input resolution
-            diagram = service_adapter.get(DIAGRAM) or context.get_service("diagram")
-            if diagram:
-                inputs = context.resolve_inputs(node, diagram)
-            else:
-                inputs = {}
+        # Get inputs from request (already resolved by engine)
+        inputs = request.inputs or {}
         
         # Direct typed access to person_id
         person_id = node.person_id
 
-        # Get services using ServiceKey
-        llm_service = service_adapter.get(LLM_SERVICE) or context.get_service("llm_service")
-        diagram = service_adapter.get(DIAGRAM) or context.get_service("diagram")
-        conversation_manager = service_adapter.get(CONVERSATION_MANAGER) or context.get_service("conversation_manager")
-        prompt_builder = service_adapter.get(PROMPT_BUILDER) or context.get_service("prompt_builder")
+        # Get services from services dict
+        llm_service = request.services.get(LLM_SERVICE.name)
+        diagram = request.services.get(DIAGRAM.name)
+        conversation_manager = request.services.get(CONVERSATION_MANAGER.name)
+        prompt_builder = request.services.get(PROMPT_BUILDER.name)
+        
+        if not all([llm_service, diagram, conversation_manager, prompt_builder]):
+            raise ValueError("Required services not available")
         
 
         execution_count = context.get_node_execution_count(node.id)
@@ -175,10 +167,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Skip if no prompt
             if not built_prompt:
                 logger.warning(f"Skipping execution for person {person_id} - no prompt available")
-                return NodeOutput(
-                    value={"default": ""},
-                    metadata={"skipped": True, "reason": "No prompt available"},
-                    node_id=node.id
+                return TextOutput(
+                    value="",
+                    node_id=node.id,
+                    metadata={"skipped": True, "reason": "No prompt available"}
                 )
             
             # Execute LLM call
@@ -214,24 +206,24 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         self,
         request: ExecutionRequest[PersonJobNode],
         error: Exception
-    ) -> Optional[NodeOutput]:
+    ) -> Optional[NodeOutputProtocol]:
         """Handle errors gracefully."""
         # For ValueError (domain validation), only log in debug mode
         if isinstance(error, ValueError):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Validation error in person job: {error}")
-            return NodeOutput(
-                value={"default": ""},
-                metadata={"error": str(error)},
-                node_id=request.node.id
+            return ErrorOutput(
+                value=str(error),
+                node_id=request.node.id,
+                error_type="ValidationError"
             )
         
         # For other errors, log them
         logger.error(f"Error executing person job: {error}")
-        return NodeOutput(
-            value={"default": ""}, 
-            metadata={"error": str(error)},
-            node_id=request.node.id
+        return ErrorOutput(
+            value=str(error),
+            node_id=request.node.id,
+            error_type=type(error).__name__
         )
     
     # _execute_with_props removed - logic integrated into execute method
@@ -328,26 +320,27 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                         return True
         return False
     
-    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutput:
-        output_value = {"default": result.text}
-        
-        # Add conversation if needed
-        if self._needs_conversation_output(str(node.id), diagram):
-            output_value["conversation"] = []
-            for msg in person.get_messages():
-                output_value["conversation"].append({
-                    "role": "assistant" if msg.from_person_id == person.id else "user",
-                    "content": msg.content,
-                    "person_id": str(person.id),
-                    "person_label": person.name,
-                })
-
+    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
         # Build metadata
         metadata = {"model": model}
         
-        return NodeOutput(
-            value=output_value, 
-            metadata=metadata,
-            node_id=node.id
-        )
+        # Check if conversation output is needed
+        if self._needs_conversation_output(str(node.id), diagram):
+            # Return ConversationOutput with messages
+            messages = []
+            for msg in person.get_messages():
+                messages.append(msg)
+            
+            return ConversationOutput(
+                value=messages,
+                node_id=node.id,
+                metadata=metadata
+            )
+        else:
+            # Return TextOutput with just the text
+            return TextOutput(
+                value=result.text,
+                node_id=node.id,
+                metadata=metadata
+            )
     

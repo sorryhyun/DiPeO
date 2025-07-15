@@ -19,10 +19,10 @@ from dipeo.core.execution.node_output import (
     ConversationOutput,
     DataOutput,
     ErrorOutput,
-    LegacyNodeOutput,
     NodeOutputProtocol,
-    OutputCompatibilityWrapper,
     TextOutput,
+    serialize_protocol,
+    deserialize_protocol,
 )
 
 __all__ = [
@@ -34,8 +34,8 @@ __all__ = [
     "ConditionOutput",
     "DataOutput",
     "ErrorOutput",
-    "OutputCompatibilityWrapper",
-    "LegacyNodeOutput",
+    "serialize_protocol",
+    "deserialize_protocol",
     # Execution tracking
     "ExecutionTracker",
     "FlowStatus",

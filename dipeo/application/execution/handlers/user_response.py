@@ -5,8 +5,10 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.unified_service_registry import EXECUTION_CONTEXT
 from dipeo.core.static.generated_nodes import UserResponseNode
-from dipeo.models import NodeOutput, NodeType, UserResponseNodeData
+from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
+from dipeo.models import NodeType, UserResponseNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -54,7 +56,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         return await self._execute_user_response(node, context, inputs, services)
     
     async def _execute_user_response(
@@ -63,9 +65,9 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         # Check if we have an interactive handler
-        exec_context = services.get("execution_context")
+        exec_context = services.get(EXECUTION_CONTEXT.name)
         if (
             exec_context
             and hasattr(exec_context, "interactive_handler")
@@ -87,13 +89,14 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
                 }
             )
 
-            return self._build_output(
-                {"default": response, "user_response": response},
-                context
+            return TextOutput(
+                value=response,
+                node_id=node.id,
+                metadata={"user_response": response}
             )
         # If no interactive handler, return empty response
-        return self._build_output(
-            {"default": "", "user_response": ""},
-            context,
-            {"warning": "No interactive handler available"}
+        return TextOutput(
+            value="",
+            node_id=node.id,
+            metadata={"warning": "No interactive handler available", "user_response": ""}
         )

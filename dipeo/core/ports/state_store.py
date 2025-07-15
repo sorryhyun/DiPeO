@@ -9,7 +9,6 @@ if TYPE_CHECKING:
         ExecutionState,
         ExecutionStatus,
         NodeExecutionStatus,
-        NodeOutput,
         TokenUsage,
     )
 
@@ -51,7 +50,7 @@ class StateStorePort(Protocol):
 
     async def get_node_output(
         self, execution_id: str, node_id: str
-    ) -> "NodeOutput | None":
+    ) -> dict[str, Any] | None:
         """Get output for a specific node."""
         ...
 

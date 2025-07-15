@@ -16,15 +16,8 @@ from dipeo.models import (
     ExecutionState,
     ExecutionStatus,
     NodeExecutionStatus,
-    NodeOutput,
     NodeState,
     TokenUsage,
-)
-from dipeo.application.execution.state_migration import (
-    StateMigrator,
-    StateVersion,
-    add_version_to_state,
-    remove_version_from_state,
 )
 
 from .execution_cache import ExecutionCache
@@ -49,7 +42,6 @@ class StateRegistry:
         self.message_store = message_store
         self._execution_cache = ExecutionCache(ttl_minutes=60)
         self._initialized = False
-        self._migrator = StateMigrator()
 
     async def initialize(self):
         async with self._lock:
@@ -162,14 +154,14 @@ class StateRegistry:
         -- Add columns to existing tables if they don't exist
         -- SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so we need to check first
         """
-        
+
         # Check if columns exist
         cursor = await self._execute("PRAGMA table_info(execution_states)")
         columns = await asyncio.get_event_loop().run_in_executor(
             self._executor, cursor.fetchall
         )
         column_names = [col[1] for col in columns]
-        
+
         # Add missing columns
         if 'exec_counts' not in column_names:
             await self._execute("ALTER TABLE execution_states ADD COLUMN exec_counts TEXT NOT NULL DEFAULT '{}'")
@@ -243,19 +235,9 @@ class StateRegistry:
                 for node_id, node_state in state.node_states.items()
             }
 
-            node_outputs_dict = {
-                node_id: node_output.model_dump()
-                for node_id, node_output in state.node_outputs.items()
-            }
-            
-            # Add version information
-            versioned_state = {
-                "node_states": node_states_dict,
-                "node_outputs": node_outputs_dict,
-                "exec_counts": state.exec_counts,
-                "executed_nodes": state.executed_nodes,
-            }
-            versioned_state = add_version_to_state(versioned_state)
+            # Node outputs are already dicts, no need to call model_dump
+            node_outputs_dict = state.node_outputs
+
 
             await self._execute(
                 """
@@ -271,15 +253,15 @@ class StateRegistry:
                     state.diagram_id,
                     state.started_at,
                     state.ended_at,
-                    json.dumps(versioned_state["node_states"]),
-                    json.dumps(versioned_state["node_outputs"]),
+                    json.dumps(node_states_dict),
+                    json.dumps(node_outputs_dict),
                     json.dumps(
                         state.token_usage.model_dump() if state.token_usage else {}
                     ),
                     state.error,
                     json.dumps(state.variables),
-                    json.dumps(versioned_state["exec_counts"]),
-                    json.dumps(versioned_state["executed_nodes"]),
+                    json.dumps(state.exec_counts),
+                    json.dumps(state.executed_nodes),
                 ),
             )
 
@@ -313,7 +295,7 @@ class StateRegistry:
         node_states_dict = json.loads(row[5])
         node_outputs_dict = json.loads(row[6])
         token_usage_dict = json.loads(row[7])
-        
+
         # Parse exec_counts and executed_nodes if available
         exec_counts = {}
         executed_nodes = []
@@ -324,35 +306,15 @@ class StateRegistry:
             except (IndexError, json.JSONDecodeError):
                 # Handle case where columns don't exist in older databases
                 pass
-        
-        # Create combined state data for migration
-        combined_state = {
-            "node_states": node_states_dict,
-            "node_outputs": node_outputs_dict,
-            "exec_counts": exec_counts,
-            "executed_nodes": executed_nodes,
-        }
-        
-        # Migrate to latest version if needed
-        migration_result = self._migrator.migrate(combined_state)
-        if not migration_result.success:
-            logger.warning(f"State migration failed for {execution_id}: {migration_result.errors}")
-            # Fall back to unmigrated data
-        else:
-            node_states_dict = migration_result.data["node_states"]
-            node_outputs_dict = migration_result.data["node_outputs"] 
-            exec_counts = migration_result.data.get("exec_counts", {})
-            executed_nodes = migration_result.data.get("executed_nodes", [])
+
 
         # Convert dicts back to model instances
         node_states = {
             node_id: NodeState(**state_data)
             for node_id, state_data in node_states_dict.items()
         }
-        node_outputs = {
-            node_id: NodeOutput(**output_data)
-            for node_id, output_data in node_outputs_dict.items()
-        }
+        # Node outputs are now stored as dicts (serialized protocol outputs)
+        node_outputs = node_outputs_dict
 
         return ExecutionState(
             id=ExecutionID(row[0]),
@@ -394,7 +356,7 @@ class StateRegistry:
 
     async def get_node_output(
         self, execution_id: str, node_id: str
-    ) -> NodeOutput | None:
+    ) -> dict[str, Any] | None:
         state = await self.get_state(execution_id)
         if not state:
             return None
@@ -412,37 +374,40 @@ class StateRegistry:
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
 
-        # Convert output to NodeOutput if it isn't already
-        if not isinstance(output, NodeOutput):
-            node_output = NodeOutput(
-                value={"default": str(output)} if is_exception else output,
-                metadata={"is_exception": is_exception} if is_exception else {},
-            )
+        # Convert output to dict format if it isn't already
+        if not isinstance(output, dict):
+            node_output = {
+                "value": {"default": str(output)} if is_exception else output,
+                "metadata": {"is_exception": is_exception} if is_exception else {},
+                "_protocol_type": "BaseNodeOutput",
+                "node_id": node_id
+            }
         else:
             node_output = output
 
         # For PersonJob outputs with conversation history
         if (
-            node_output.metadata
-            and node_output.metadata.get("_type") == "personjob_output"
+            isinstance(node_output, dict)
+            and node_output.get("metadata")
+            and node_output["metadata"].get("_type") == "personjob_output"
         ):
             # Check if execution is active - defer persistence for active executions
             is_active = state.is_active
 
             if not is_active:
                 # Only persist conversation for completed executions
-                conversation = node_output.metadata.get("conversation_history", [])
+                conversation = node_output["metadata"].get("conversation_history", [])
                 if conversation and self.message_store:
                     message_ref = await self.message_store.store_message(
                         execution_id=execution_id,
                         node_id=node_id,
                         content={"conversation": conversation},
-                        person_id=node_output.metadata.get("person_id"),
-                        token_count=node_output.metadata.get("token_count"),
+                        person_id=node_output["metadata"].get("person_id"),
+                        token_count=node_output["metadata"].get("token_count"),
                     )
                     # Replace conversation with reference
-                    node_output.metadata["conversation_ref"] = message_ref
-                    node_output.metadata.pop("conversation_history", None)
+                    node_output["metadata"]["conversation_ref"] = message_ref
+                    node_output["metadata"].pop("conversation_history", None)
 
         # Store the output with reference
         state.node_outputs[node_id] = node_output
@@ -593,20 +558,14 @@ class StateRegistry:
                         token_usage=token_usage,
                     )
 
-            # Convert node outputs to NodeOutput objects
-            node_outputs = {}
-            for node_id, output_data in node_outputs_data.items():
-                if isinstance(output_data, dict):
-                    node_outputs[node_id] = NodeOutput(
-                        value=output_data.get("value", {}),
-                        metadata=output_data.get("metadata", {}),
-                    )
+            # Node outputs are already in dict format (serialized protocol outputs)
+            node_outputs = node_outputs_data
 
             # Convert token usage
             token_usage = None
             if token_usage_data:
                 token_usage = TokenUsage(**token_usage_data)
-            
+
             # Parse exec_counts and executed_nodes if available
             exec_counts = {}
             executed_nodes = []

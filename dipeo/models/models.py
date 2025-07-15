@@ -402,15 +402,7 @@ class NodeState(BaseModel):
     ended_at: Optional[str] = Field(default=None)
     error: Optional[str] = Field(default=None)
     token_usage: Optional[TokenUsage] = Field(default=None)
-    output: Optional[NodeOutput] = Field(default=None)
-
-class NodeOutput(BaseModel):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    value: Any
-    metadata: Optional[Dict[str, Any]] = Field(default=None)
-    node_id: Optional[NodeID] = Field(default=None)
-    executed_nodes: Optional[List[NodeID]] = Field(default=None)
+    output: Optional[Dict[str, Any]] = Field(default=None)
 
 class ExecutionState(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -421,7 +413,7 @@ class ExecutionState(BaseModel):
     started_at: str
     ended_at: Optional[str] = Field(default=None)
     node_states: Dict[str, NodeState]
-    node_outputs: Dict[str, NodeOutput]
+    node_outputs: Dict[str, Dict[str, Any]]
     token_usage: TokenUsage
     error: Optional[str] = Field(default=None)
     variables: Dict[str, Any]

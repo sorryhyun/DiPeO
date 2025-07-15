@@ -100,7 +100,6 @@ export type {
 export type {
   ExecutionState,
   NodeState,
-  NodeOutput,
   ExecutionUpdate
 } from '@/core/types/domain';
 

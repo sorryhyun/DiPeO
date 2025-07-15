@@ -7,10 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_runtime import ExecutionRuntime
 from dipeo.application.execution.iterators.simple_iterator import SimpleAsyncIterator
+from dipeo.core.execution.node_executor import ModernNodeExecutor
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.infra.config.settings import get_settings
-
-from .node_executor import NodeExecutor
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
@@ -32,7 +31,7 @@ class TypedExecutionEngine:
     ):
         self.service_registry = service_registry
         self.observers = observers or []
-        self.node_executor = NodeExecutor(service_registry, observers)
+        self._modern_executor: ModernNodeExecutor | None = None
         self._settings = get_settings()
     
     async def execute(
@@ -42,6 +41,10 @@ class TypedExecutionEngine:
         options: dict[str, Any],
         interactive_handler: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
+        
+        # Initialize ModernNodeExecutor with the runtime's tracker
+        if hasattr(execution_runtime, '_tracker'):
+            self._modern_executor = ModernNodeExecutor(execution_runtime._tracker)
         
         # Notify observers of execution start
         for observer in self.observers:
@@ -118,45 +121,83 @@ class TypedExecutionEngine:
         execution_id: str
     ):
         async def execute_node(node: "ExecutableNode") -> dict[str, Any]:
-            # For the execution runtime to work properly, we need to ensure
-            # that nodes are executed and their results are properly tracked.
+            # Use ModernNodeExecutor for cleaner execution flow
+            if not self._modern_executor:
+                raise RuntimeError("ModernNodeExecutor not initialized")
             
-
+            # Track start for observers
+            for observer in self.observers:
+                await observer.on_node_start(execution_id, str(node.id))
+            
             try:
-                # Execute using the typed node executor with full type safety
-                await self.node_executor.execute_node(
+                # Get handler
+                from dipeo.application import get_global_registry
+                from dipeo.application.execution.handler_factory import HandlerFactory
+                
+                registry = get_global_registry()
+                
+                # Ensure service registry is set
+                if not hasattr(registry, '_service_registry') or registry._service_registry is None:
+                    HandlerFactory(self.service_registry)
+                
+                handler = registry.create_handler(node.type)
+                
+                # Get inputs
+                inputs = execution_runtime.resolve_inputs(node)
+                
+                # Update current node
+                execution_runtime._current_node_id = node.id
+                
+                # Register services
+                execution_runtime._service_registry.register("diagram", execution_runtime.diagram)
+                execution_runtime._service_registry.register("execution_context", {
+                    "interactive_handler": interactive_handler
+                })
+                
+                # Execute using ModernNodeExecutor
+                output = await self._modern_executor.execute_node(
                     node=node,
-                    execution=execution_runtime,
-                    handler=None,  # Will be resolved by executor
-                    execution_id=execution_id,
-                    options=options,
-                    interactive_handler=interactive_handler
+                    context=execution_runtime,
+                    inputs=inputs,
+                    handler=handler
                 )
                 
-
-                # Get the actual node output that was stored by the executor
-                node_output = execution_runtime.state.node_outputs.get(str(node.id))
-                if node_output:
-                    # Return the NodeOutput instance directly to avoid double wrapping
-                    return node_output
+                # Update node state without calling tracker (ModernNodeExecutor already did that)
+                # This also stores the output
+                execution_runtime.update_node_state_without_tracker(node.id, output)
+                
+                # Handle PersonJobNode special logic
+                from dipeo.core.static.generated_nodes import PersonJobNode
+                
+                if isinstance(node, PersonJobNode):
+                    exec_count = execution_runtime.get_node_execution_count(node.id)
+                    
+                    if exec_count >= node.max_iteration:
+                        # Check if output indicates max iteration was hit
+                        if output and output.metadata and output.metadata.get("skipped") and "Max iteration" in output.metadata.get("reason", ""):
+                            log.debug(f"[ModernNodeExecutor] Setting node {node.id} to MAXITER_REACHED status")
+                            execution_runtime.transition_node_to_maxiter(node.id)
+                    else:
+                        # Not at max iteration yet, reset to pending for next iteration
+                        log.debug(f"[ModernNodeExecutor] Resetting node {node.id} to PENDING for next iteration")
+                        execution_runtime.reset_node(node.id)
+                
+                # Notify observers of completion
+                node_state = execution_runtime.get_node_state(node.id)
+                for observer in self.observers:
+                    await observer.on_node_complete(execution_id, str(node.id), node_state)
+                
+                # Convert output to dict for iterator
+                if hasattr(output, 'to_dict'):
+                    return output.to_dict()
                 else:
-                    # Fallback if no output was stored - create a proper NodeOutput
-                    from dipeo.models import NodeOutput
-                    return NodeOutput(
-                        value={"status": "completed", "node_id": str(node.id)},
-                        metadata={"node_type": str(node.type)},
-                        node_id=str(node.id)
-                    )
+                    return {"value": output.value, "metadata": output.metadata}
                 
             except Exception as e:
                 log.error(f"Error executing node {node.id}: {e}", exc_info=True)
                 # Notify observers of node error
                 for observer in self.observers:
-                    await observer.on_node_error(
-                        execution_runtime.execution_id,
-                        str(node.id),
-                        str(e)
-                    )
+                    await observer.on_node_error(execution_id, str(node.id), str(e))
                 raise
         
         return execute_node

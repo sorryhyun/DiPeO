@@ -6,7 +6,15 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.unified_service_registry import (
+    CONVERSATION_SERVICE,
+    LLM_SERVICE,
+    DIAGRAM,
+    CURRENT_NODE_INFO,
+    PROMPT_BUILDER,
+)
 from dipeo.core.static.generated_nodes import PersonBatchJobNode
+from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.core.utils import is_conversation
 from dipeo.models import (
     ChatResult,
@@ -14,7 +22,6 @@ from dipeo.models import (
     DomainDiagram,
     DomainPerson,
     Message,
-    NodeOutput,
     NodeType,
     PersonID,
     PersonJobNodeData,
@@ -64,8 +71,6 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
     def description(self) -> str:
         return "Execute prompts across multiple persons in batch"
 
-    def _resolve_service(self, context: "ExecutionContext", services: dict[str, Any], service_name: str) -> Any | None:
-        return context.get_service(service_name) or services.get(service_name)
 
     async def execute(
         self,
@@ -73,7 +78,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         # Note: The current implementation expects fields like person_ids, prompt, parallel_execution, aggregate_results
         # which don't exist in PersonBatchJobNode. For now, we'll pass the node directly.
         return await self._execute_batch(node, context, inputs, services)
@@ -84,11 +89,11 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
-    ) -> NodeOutput:
-        # Get services from context with fallback to services dict
-        conversation_service: ConversationManager = context.get_service("conversation_service") or services.get("conversation_service")
-        llm_service = self.llm_service or services.get("llm_service")
-        diagram: DomainDiagram | None = context.get_service("diagram") or services.get("diagram")
+    ) -> NodeOutputProtocol:
+        # Get services from services dict
+        conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE.name)
+        llm_service = self.llm_service or services.get(LLM_SERVICE.name)
+        diagram: DomainDiagram | None = services.get(DIAGRAM.name)
         
         if not conversation_service or not llm_service:
             raise ValueError("Required services not available")
@@ -158,21 +163,21 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
             aggregated = "\n\n".join(
                 [f"Person {pid}: {result}" for pid, result in results.items()]
             )
-            output = self._build_output(
-                {"default": aggregated, "results": results}, 
-                context,
-                metadata
+            output = DataOutput(
+                value={"default": aggregated, "results": results},
+                node_id=node.id,
+                metadata=metadata
             )
         else:
-            output = self._build_output(
-                {"default": results, "results": results}, 
-                context,
-                metadata
+            output = DataOutput(
+                value={"default": results, "results": results},
+                node_id=node.id,
+                metadata=metadata
             )
 
         # Add token usage if any
         if total_tokens > 0:
-            output.token_usage = {"total": total_tokens}
+            output.metadata["token_usage"] = {"total": total_tokens}
             output.metadata["tokens_used"] = total_tokens
 
         return output
@@ -197,7 +202,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Create message builder
         # TODO: Add method to get execution_id from context protocol
         execution_id = getattr(context, '_execution_id', 'unknown')
-        prompt_builder = self._resolve_service(context, services, "prompt_builder")
+        prompt_builder = services.get(PROMPT_BUILDER.name)
         
         # Apply memory settings if configured
         if node.memory_settings:
@@ -217,10 +222,9 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Check for conversation state in inputs
         # Get current node ID from service
         current_node_id = None
-        if hasattr(context, 'get_service'):
-            node_info = context.get_service('current_node_info')
-            if node_info and 'node_id' in node_info:
-                current_node_id = node_info['node_id']
+        node_info = services.get(CURRENT_NODE_INFO.name)
+        if node_info and 'node_id' in node_info:
+            current_node_id = node_info['node_id']
         
         # Check arrows directly from diagram to determine if we have conversation state inputs
         if diagram and current_node_id:

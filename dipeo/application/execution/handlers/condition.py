@@ -7,10 +7,15 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.service_key import DIAGRAM, ServiceKeyAdapter
+from dipeo.application.unified_service_registry import (
+    DIAGRAM,
+    CONDITION_EVALUATION_SERVICE,
+    NODE_EXEC_COUNTS,
+)
 from dipeo.core.static.executable_diagram import ExecutableDiagram
 from dipeo.core.static.generated_nodes import ConditionNode
-from dipeo.models import ConditionNodeData, NodeExecutionStatus, NodeOutput, NodeType
+from dipeo.core.execution.node_output import ConditionOutput, NodeOutputProtocol
+from dipeo.models import ConditionNodeData, NodeExecutionStatus, NodeType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -51,21 +56,14 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     def validate(self, request: ExecutionRequest[ConditionNode]) -> Optional[str]:
         """Validate the execution request."""
         # Check for required services
-        service_adapter = ServiceKeyAdapter(request.services)
-        
-        if not request.has_service("condition_evaluation_service") and not request.context.get_service("condition_evaluation_service"):
+        if not request.services.get(CONDITION_EVALUATION_SERVICE.name):
             return "Condition evaluation service not available"
         
-        if not service_adapter.has(DIAGRAM) and not request.context.get_service("diagram"):
+        if not request.services.get(DIAGRAM.name):
             return "Diagram service not available"
             
         return None
     
-    def _resolve_service(self, context: "ExecutionContext", services: dict[str, Any], service_name: str) -> Any | None:
-        service = context.get_service(service_name)
-        if not service:
-            service = services.get(service_name)
-        return service
 
     async def pre_execute(
         self,
@@ -79,19 +77,22 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "node_indices": node.node_indices
         }
     
-    async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> NodeOutputProtocol:
         """Execute the condition with the unified request object."""
         # Get node and context from request
         node = request.node
         context = request.context
         inputs = request.inputs
         
-        # Use ServiceKeyAdapter for type-safe service access
-        service_adapter = ServiceKeyAdapter(request.services)
+        # Get services from services dict
+        evaluation_service = (
+            self.condition_evaluation_service or 
+            request.services.get(CONDITION_EVALUATION_SERVICE.name)
+        )
+        diagram = request.services.get(DIAGRAM.name)
         
-        # Resolve services
-        evaluation_service = self._resolve_service(context, request.services, "condition_evaluation_service")
-        diagram = service_adapter.get(DIAGRAM) or context.get_service("diagram")
+        if not evaluation_service or not diagram:
+            raise ValueError("Required services not available")
         
         # Direct typed access to node properties
         condition_type = node.condition_type
@@ -111,7 +112,11 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             for node in diagram.nodes:
                 node_result = context.get_node_result(node.id)
                 if node_result and 'value' in node_result:
-                    node_outputs[str(node.id)] = NodeOutput(node_id=node.id, value=node_result['value'])
+                    # Create a simple dict with node_id and value for the service
+                    node_outputs[str(node.id)] = {
+                        'node_id': node.id,
+                        'value': node_result['value']
+                    }
             result = evaluation_service.check_nodes_executed(
                 target_node_ids=target_nodes,
                 node_outputs=node_outputs
@@ -155,10 +160,16 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             else:
                 output_value = {"condfalse": inputs if inputs else {}}
 
-        return NodeOutput(
-            value=output_value,
-            metadata={"condition_result": result},
-            node_id=node.id
+        # Extract true/false outputs from the output_value
+        true_output = output_value.get("condtrue") if result else None
+        false_output = output_value.get("condfalse") if not result else None
+        
+        return ConditionOutput(
+            value=result,
+            node_id=node.id,
+            true_output=true_output,
+            false_output=false_output,
+            metadata={"condition_type": condition_type}
         )
     
     
@@ -215,10 +226,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         if hasattr(context, '_exec_counts'):
             return context._exec_counts
         
-        # Fallback: try to get from service (for backward compatibility)
-        exec_info_service = context.get_service('node_exec_counts')
-        if exec_info_service:
-            return exec_info_service
+        # NODE_EXEC_COUNTS should be passed in services dict
+        # No fallback to context.get_service()
         return None
     
     def _evaluate_max_iterations_with_outputs(

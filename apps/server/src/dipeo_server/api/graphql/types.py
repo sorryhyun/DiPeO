@@ -23,7 +23,6 @@ from dipeo.models import (
     HandleDirection,
     LLMService,
     NodeExecutionStatus,
-    NodeOutput,
     NodeState,
     NodeType,
     PersonLLMConfig,
@@ -121,9 +120,6 @@ class NodeStateType:
     pass
 
 
-@strawberry.experimental.pydantic.type(NodeOutput, all_fields=True)
-class NodeOutputType:
-    pass
 
 
 @strawberry.experimental.pydantic.type(
@@ -551,7 +547,6 @@ __all__ = [
     "NodeExecutionStatusEnum",
     # Scalar types
     "NodeID",
-    "NodeOutputType",
     "NodeResult",
     "NodeStateType",
     # Enums (re-exported for convenience)

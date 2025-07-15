@@ -12,7 +12,8 @@ from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.core.static.generated_nodes import HookNode
-from dipeo.models import HookNodeData, HookType, NodeOutput, NodeType
+from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
+from dipeo.models import HookNodeData, HookType, NodeType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -57,7 +58,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any]
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         return await self._execute_hook_node(node, context, inputs, services)
     
     async def _execute_hook_node(
@@ -66,12 +67,13 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any]
-    ) -> NodeOutput:
+    ) -> NodeOutputProtocol:
         try:
             result = await self._execute_hook(node, inputs)
-            return self._build_output(
-                {"default": result},
-                context
+            return TextOutput(
+                value=str(result),
+                node_id=node.id,
+                metadata={"hook_type": node.hook_type}
             )
         except Exception as e:
             raise NodeExecutionError(f"Hook execution failed: {e!s}") from e

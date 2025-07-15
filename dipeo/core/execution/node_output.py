@@ -21,41 +21,26 @@ T = TypeVar('T')
 class NodeOutputProtocol(Protocol[T]):
     """Protocol for type-safe node outputs."""
     
-    @property
-    @abstractmethod
-    def value(self) -> T:
-        """The primary output value with specific type."""
-        ...
+    value: T
+    """The primary output value with specific type."""
     
-    @property
-    @abstractmethod
-    def metadata(self) -> dict[str, Any]:
-        """Additional metadata (execution info, tokens, etc)."""
-        ...
+    metadata: dict[str, Any]
+    """Additional metadata (execution info, tokens, etc)."""
     
-    @property
-    @abstractmethod
-    def node_id(self) -> NodeID:
-        """The node that produced this output."""
-        ...
+    node_id: NodeID
+    """The node that produced this output."""
     
-    @property
-    @abstractmethod
-    def timestamp(self) -> datetime:
-        """When this output was generated."""
-        ...
+    timestamp: datetime
+    """When this output was generated."""
     
-    @abstractmethod
     def get_output(self, key: str, default: Any = None) -> Any:
         """Get a specific output by key (for multi-output nodes)."""
         ...
     
-    @abstractmethod
     def has_error(self) -> bool:
         """Check if this output represents an error state."""
         ...
     
-    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary for storage."""
         ...
@@ -63,7 +48,7 @@ class NodeOutputProtocol(Protocol[T]):
 
 # Base implementation
 @dataclass
-class BaseNodeOutput(Generic[T]):
+class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
     """Base implementation of NodeOutput with common functionality."""
     
     value: T
@@ -205,50 +190,84 @@ class ErrorOutput(BaseNodeOutput[str]):
         return True
 
 
-# Compatibility layer
-class OutputCompatibilityWrapper:
-    """Wraps new outputs to look like old ones during migration."""
-    
-    def __init__(self, new_output: NodeOutputProtocol):
-        self._new_output = new_output
-    
-    @property
-    def value(self) -> Any:
-        """Legacy value access."""
-        return self._new_output.value
-    
-    @property
-    def metadata(self) -> dict[str, Any]:
-        """Legacy metadata access."""
-        return self._new_output.metadata
-    
-    def get(self, key: str, default: Any = None) -> Any:
-        """Legacy dict-style access."""
-        return self._new_output.get_output(key, default)
 
 
-class LegacyNodeOutput:
-    """Legacy output class for backward compatibility."""
+
+
+def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
+    """Serialize protocol output for storage.
     
-    def __init__(self, value: Any, metadata: dict[str, Any] | None = None):
-        self.value = value
-        self.metadata = metadata or {}
+    Creates a dictionary representation that can be stored in JSON/database
+    while preserving type information for deserialization.
+    """
+    base_dict = {
+        "_protocol_type": output.__class__.__name__,
+        "value": output.value,
+        "metadata": output.metadata,
+        "node_id": str(output.node_id)
+    }
     
-    def to_modern(self, node_id: NodeID) -> NodeOutputProtocol:
-        """Convert to modern output format."""
-        # Determine appropriate output type based on value
-        if isinstance(self.value, str):
-            return TextOutput(value=self.value, node_id=node_id, metadata=self.metadata)
-        elif isinstance(self.value, bool):
-            return ConditionOutput(
-                value=self.value,
-                node_id=node_id,
-                metadata=self.metadata,
-                true_output=self.metadata.get("condtrue"),
-                false_output=self.metadata.get("condfalse")
-            )
-        elif isinstance(self.value, dict):
-            return DataOutput(value=self.value, node_id=node_id, metadata=self.metadata)
-        else:
-            # Generic fallback
-            return BaseNodeOutput(value=self.value, node_id=node_id, metadata=self.metadata)
+    # Add type-specific fields
+    if isinstance(output, ConditionOutput):
+        base_dict["true_output"] = output.true_output
+        base_dict["false_output"] = output.false_output
+    elif isinstance(output, ErrorOutput):
+        base_dict["error"] = output.error
+        base_dict["error_type"] = output.error_type
+    elif isinstance(output, DataOutput):
+        # DataOutput value is already a dict
+        pass
+    elif isinstance(output, TextOutput):
+        # TextOutput value is already a string
+        pass
+    
+    return base_dict
+
+
+def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
+    """Deserialize stored data to protocol output.
+    
+    Reconstructs the appropriate protocol output type based on
+    stored type information.
+    """
+    protocol_type = data.get("_protocol_type", "BaseNodeOutput")
+    node_id = NodeID(data["node_id"])
+    value = data["value"]
+    metadata = data.get("metadata", {})
+    
+    # Map type to appropriate class
+    if protocol_type == "ConditionOutput":
+        return ConditionOutput(
+            value=bool(value),
+            node_id=node_id,
+            metadata=metadata,
+            true_output=data.get("true_output"),
+            false_output=data.get("false_output")
+        )
+    elif protocol_type == "ErrorOutput":
+        return ErrorOutput(
+            value=str(value),
+            node_id=node_id,
+            metadata=metadata,
+            error=data.get("error", str(value)),
+            error_type=data.get("error_type", "UnknownError")
+        )
+    elif protocol_type == "TextOutput":
+        return TextOutput(
+            value=str(value),
+            node_id=node_id,
+            metadata=metadata
+        )
+    elif protocol_type == "DataOutput":
+        return DataOutput(
+            value=dict(value) if not isinstance(value, dict) else value,
+            node_id=node_id,
+            metadata=metadata
+        )
+    else:
+        # Default to BaseNodeOutput
+        return BaseNodeOutput(
+            value=value,
+            node_id=node_id,
+            metadata=metadata
+        )

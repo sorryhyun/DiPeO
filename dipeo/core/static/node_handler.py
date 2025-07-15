@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from dipeo.core.static.executable_diagram import ExecutableNode
-    from dipeo.models import NodeOutput
+    from dipeo.core.execution.node_output import NodeOutputProtocol
 
 # Type variable for node types
 T = TypeVar('T', bound='ExecutableNode')
@@ -56,7 +56,7 @@ class TypedNodeHandler(ABC, Generic[T]):
         context: Any,
         inputs: dict[str, Any],
         services: dict[str, Any]
-    ) -> 'NodeOutput':
+    ) -> 'NodeOutputProtocol':
         """Execute the handler with strongly-typed node.
         
         Args:
@@ -66,6 +66,6 @@ class TypedNodeHandler(ABC, Generic[T]):
             services: Available services for execution
             
         Returns:
-            NodeOutput containing the execution results
+            NodeOutputProtocol containing the execution results
         """
         ...

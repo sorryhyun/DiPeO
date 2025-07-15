@@ -8,9 +8,10 @@ removing unnecessary indirection layers and consolidating state management.
 import asyncio
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 from dipeo.core.dynamic.execution_context import ExecutionContext
+from dipeo.core.execution.execution_tracker import ExecutionTracker, FlowStatus, CompletionStatus
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.static.generated_nodes import (
     ConditionNode,
@@ -23,13 +24,12 @@ from dipeo.models import (
     ExecutionStatus,
     NodeExecutionStatus,
     NodeID,
-    NodeOutput,
     NodeState,
     TokenUsage,
 )
 
 if TYPE_CHECKING:
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
 
 logger = logging.getLogger(__name__)
 
@@ -71,18 +71,21 @@ class ExecutionRuntime(ExecutionContext):
         self._diagram_id = execution_state.diagram_id
         self._service_registry = service_registry
         
-        # Core state tracking - single source of truth
+        # Core state tracking - NodeState is still needed for persistence
         self._node_states: dict[NodeID, NodeState] = {}
-        self._node_outputs: dict[NodeID, NodeOutput] = {}
-        self._exec_counts: dict[str, int] = {}  # 1-based counting: incremented BEFORE execution
         self._variables: dict[str, Any] = {}
         
         # Runtime tracking
         self._current_node_id: NodeID | None = None
-        self._executed_nodes: list[str] = []
+        
+        # Metadata for handlers
+        self.metadata: dict[str, Any] = {}
         
         # Thread safety
         self._state_lock = asyncio.Lock()
+        
+        # New execution tracker for better state management
+        self._tracker = ExecutionTracker()
         
         # Initialize from existing state
         self._load_from_state(execution_state)
@@ -97,22 +100,37 @@ class ExecutionRuntime(ExecutionContext):
             for node_id_str, node_state in state.node_states.items():
                 self._node_states[NodeID(node_id_str)] = node_state
         
-        # Load node outputs
+        # Load node outputs into tracker (protocol format only)
         if state.node_outputs:
-            for node_id_str, output in state.node_outputs.items():
-                self._node_outputs[NodeID(node_id_str)] = output
+            for node_id_str, output_data in state.node_outputs.items():
+                from dipeo.core.execution.node_output import deserialize_protocol
+                node_id = NodeID(node_id_str)
+                
+                # All outputs should now be in protocol format
+                protocol_output = deserialize_protocol(output_data)
+                
+                # Store in tracker
+                self._tracker._last_outputs[node_id] = protocol_output
         
-        # Load execution counts
+        # Load execution counts into tracker
         if state.exec_counts:
-            self._exec_counts = state.exec_counts.copy()
+            for node_id_str, count in state.exec_counts.items():
+                # Pre-populate tracker counts
+                for _ in range(count):
+                    self._tracker.start_execution(NodeID(node_id_str))
+                    self._tracker.complete_execution(
+                        NodeID(node_id_str),
+                        CompletionStatus.SUCCESS
+                    )
         
         # Load variables
         if state.variables:
             self._variables = state.variables.copy()
         
-        # Load executed nodes list
+        # Load executed nodes list into tracker
         if state.executed_nodes:
-            self._executed_nodes = state.executed_nodes.copy()
+            # Tracker maintains execution order automatically
+            pass
     
     def _initialize_node_states(self) -> None:
         """Initialize states for any nodes not already tracked."""
@@ -149,7 +167,7 @@ class ExecutionRuntime(ExecutionContext):
 
         # Special handling for PersonJobNodes
         if isinstance(node, PersonJobNode):
-            exec_count = self._exec_counts.get(str(node.id), 0)
+            exec_count = self._tracker.get_execution_count(node.id)
             
             # Reached max iterations? Not ready
             if exec_count >= node.max_iteration:
@@ -177,7 +195,7 @@ class ExecutionRuntime(ExecutionContext):
                 return False
             
             # Check if dependency has executed at least once (for looping nodes)
-            dep_exec_count = self._exec_counts.get(str(edge.source_node_id), 0)
+            dep_exec_count = self._tracker.get_execution_count(edge.source_node_id)
             dep_node = self.diagram.get_node(edge.source_node_id)
             
             # For PersonJobNodes that are PENDING but have executed, consider them "complete enough"
@@ -202,37 +220,22 @@ class ExecutionRuntime(ExecutionContext):
     
     def _is_condition_branch_active(self, condition_node_id: NodeID, branch: str) -> bool:
         """Check if a specific branch of a condition node is active."""
-        output = self._node_outputs.get(condition_node_id)
-        if not output:
-            return False
+        # Try tracker first for newer output format
+        tracker_output = self._tracker.get_last_output(condition_node_id)
+        if tracker_output:
+            from dipeo.core.execution.node_output import ConditionOutput
+            if isinstance(tracker_output, ConditionOutput):
+                # Use the proper ConditionOutput methods
+                active_branch, _ = tracker_output.get_branch_output()
+                return branch == active_branch
+            elif hasattr(tracker_output, 'value'):
+                # Handle boolean value directly
+                if isinstance(tracker_output.value, bool):
+                    return (branch == "condtrue" and tracker_output.value) or \
+                           (branch == "condfalse" and not tracker_output.value)
         
-        # Check output format
-        condition_value = None
-        # First check the direct output value
-        if isinstance(output.value, dict):
-            # Handle wrapped output from typed_execution_engine
-            if "value" in output.value and isinstance(output.value["value"], dict):
-                value_dict = output.value["value"]
-                if "condtrue" in value_dict:
-                    condition_value = True
-                elif "condfalse" in value_dict:
-                    condition_value = False
-            # Handle direct output
-            elif "condtrue" in output.value:
-                condition_value = True
-            elif "condfalse" in output.value:
-                condition_value = False
-        
-        # Fallback to metadata
-        if condition_value is None and output.metadata and "condition_result" in output.metadata:
-            condition_value = output.metadata["condition_result"]
-
-        if condition_value is None:
-            return False
-        
-        # Match branch to condition result
-        result = (branch == "condtrue" and condition_value) or (branch == "condfalse" and not condition_value)
-        return result
+        # Should not reach here if tracker has output
+        return False
     
     def is_complete(self) -> bool:
         """Check if execution is complete."""
@@ -268,13 +271,8 @@ class ExecutionRuntime(ExecutionContext):
         - This allows first_only_prompt to trigger when exec_count == 1
         """
         async with self._state_lock:
-            # Increment execution count FIRST (1-based counting)
-            current_count = self._exec_counts.get(str(node_id), 0)
-            self._exec_counts[str(node_id)] = current_count + 1
-            
-            # Track as executed
-            if str(node_id) not in self._executed_nodes:
-                self._executed_nodes.append(str(node_id))
+            # Use ExecutionTracker to start execution
+            execution_number = self._tracker.start_execution(node_id)
             
             # Update state
             state = self._node_states.get(node_id) or NodeState(
@@ -297,9 +295,45 @@ class ExecutionRuntime(ExecutionContext):
         except RuntimeError:
             asyncio.run(self._async_transition_node_to_completed(node_id, output))
     
+    def update_node_state_without_tracker(self, node_id: NodeID, output: Any = None) -> None:
+        """Update node state without calling the tracker (used when tracker already completed)."""
+        # Update state
+        state = self._node_states.get(node_id) or NodeState(
+            status=NodeExecutionStatus.RUNNING,
+            node_id=node_id
+        )
+        state.status = NodeExecutionStatus.COMPLETED
+        state.ended_at = datetime.now()
+        state.error = None
+        self._node_states[node_id] = state
+        
+        # Output is now stored in tracker only
+    
     async def _async_transition_node_to_completed(self, node_id: NodeID, output: Any = None) -> None:
         """Internal async implementation of transition_node_to_completed."""
         async with self._state_lock:
+            # Output should already be NodeOutputProtocol from handlers
+            node_output_protocol = None
+            if output is not None:
+                from dipeo.core.execution.node_output import BaseNodeOutput
+                if hasattr(output, 'value') and hasattr(output, 'metadata'):
+                    # Already a protocol-compliant output
+                    node_output_protocol = output
+                else:
+                    # Wrap raw value (shouldn't happen with proper handlers)
+                    node_output_protocol = BaseNodeOutput(
+                        value=output,
+                        node_id=node_id,
+                        metadata={}
+                    )
+            
+            # Use ExecutionTracker to complete execution
+            self._tracker.complete_execution(
+                node_id=node_id,
+                status=CompletionStatus.SUCCESS,
+                output=node_output_protocol
+            )
+            
             # Update state
             state = self._node_states.get(node_id) or NodeState(
                 status=NodeExecutionStatus.RUNNING,
@@ -310,15 +344,7 @@ class ExecutionRuntime(ExecutionContext):
             state.error = None
             self._node_states[node_id] = state
             
-            # Store output
-            if output is not None:
-                if isinstance(output, NodeOutput):
-                    self._node_outputs[node_id] = output
-                else:
-                    self._node_outputs[node_id] = NodeOutput(
-                        node_id=node_id,
-                        value=output
-                    )
+            # Output is now stored in tracker only
             
             # Clear current node
             if self._current_node_id == node_id:
@@ -339,6 +365,20 @@ class ExecutionRuntime(ExecutionContext):
     async def _async_transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
         """Internal async implementation of transition_node_to_failed."""
         async with self._state_lock:
+            # Use ExecutionTracker to complete with failure
+            from dipeo.core.execution.node_output import ErrorOutput
+            error_output = ErrorOutput(
+                value=error,
+                node_id=node_id,
+                error_type="ExecutionError"
+            )
+            self._tracker.complete_execution(
+                node_id=node_id,
+                status=CompletionStatus.FAILED,
+                output=error_output,
+                error=error
+            )
+            
             state = self._node_states.get(node_id) or NodeState(
                 status=NodeExecutionStatus.RUNNING,
                 node_id=node_id
@@ -364,6 +404,19 @@ class ExecutionRuntime(ExecutionContext):
     async def _async_transition_node_to_maxiter(self, node_id: NodeID) -> None:
         """Internal async implementation of transition_node_to_maxiter."""
         async with self._state_lock:
+            # Mark in tracker as max iterations reached
+            from dipeo.core.execution.node_output import BaseNodeOutput
+            max_iter_output = BaseNodeOutput(
+                value="Maximum iterations reached",
+                node_id=node_id,
+                metadata={"reason": "max_iterations"}
+            )
+            self._tracker.complete_execution(
+                node_id=node_id,
+                status=CompletionStatus.MAX_ITER,
+                output=max_iter_output
+            )
+            
             state = self._node_states.get(node_id) or NodeState(
                 status=NodeExecutionStatus.PENDING,
                 node_id=node_id
@@ -384,6 +437,19 @@ class ExecutionRuntime(ExecutionContext):
     async def _async_transition_node_to_skipped(self, node_id: NodeID) -> None:
         """Internal async implementation of transition_node_to_skipped."""
         async with self._state_lock:
+            # Mark in tracker as skipped
+            from dipeo.core.execution.node_output import BaseNodeOutput
+            skipped_output = BaseNodeOutput(
+                value="Node skipped",
+                node_id=node_id,
+                metadata={"reason": "branch_not_taken"}
+            )
+            self._tracker.complete_execution(
+                node_id=node_id,
+                status=CompletionStatus.SKIPPED,
+                output=skipped_output
+            )
+            
             state = self._node_states.get(node_id) or NodeState(
                 status=NodeExecutionStatus.PENDING,
                 node_id=node_id
@@ -404,6 +470,9 @@ class ExecutionRuntime(ExecutionContext):
     async def _async_reset_node(self, node_id: NodeID) -> None:
         """Internal async implementation of reset_node."""
         async with self._state_lock:
+            # Use tracker to reset for iteration (preserves execution history)
+            self._tracker.reset_for_iteration(node_id)
+            
             state = self._node_states.get(node_id) or NodeState(
                 status=NodeExecutionStatus.COMPLETED,
                 node_id=node_id
@@ -419,9 +488,8 @@ class ExecutionRuntime(ExecutionContext):
             node = self.diagram.get_node(node_id)
             if node and not isinstance(node, PersonJobNode):
                 # Clear output for non-PersonJobNodes
-                if node_id in self._node_outputs:
-                    del self._node_outputs[node_id]
-            
+                # Output is tracked in ExecutionTracker
+                pass
 
     async def _async_reset_downstream_nodes_if_needed(self, node_id: NodeID) -> None:
         """Reset downstream nodes if they're part of a loop (async version)."""
@@ -448,7 +516,7 @@ class ExecutionRuntime(ExecutionContext):
 
             # For PersonJobNodes, check max_iteration
             if isinstance(target_node, PersonJobNode):
-                exec_count = self._exec_counts.get(str(target_node.id), 0)
+                exec_count = self._tracker.get_execution_count(target_node.id)
                 # Fix: Use > instead of >= to match the fixed PersonJobNode logic
                 if exec_count > target_node.max_iteration:
                     can_reset = False
@@ -460,6 +528,11 @@ class ExecutionRuntime(ExecutionContext):
         for node_id_to_reset in nodes_to_reset:
             await self._async_reset_node(node_id_to_reset)
             await self._async_reset_downstream_nodes_if_needed(node_id_to_reset)
+    
+    @property
+    def service_registry(self) -> "UnifiedServiceRegistry":
+        """Get the service registry for dependency injection."""
+        return self._service_registry
     
     # ========== ExecutionContext Protocol Implementation ==========
     
@@ -473,11 +546,12 @@ class ExecutionRuntime(ExecutionContext):
     
     def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get the execution result of a completed node."""
-        output = self._node_outputs.get(node_id)
-        if output:
-            result = {"value": output.value}
-            if output.metadata:
-                result["metadata"] = output.metadata
+        # Get from tracker
+        protocol_output = self._tracker.get_last_output(node_id)
+        if protocol_output:
+            result = {"value": protocol_output.value}
+            if hasattr(protocol_output, 'metadata') and protocol_output.metadata:
+                result["metadata"] = protocol_output.metadata
             return result
         return None
     
@@ -494,18 +568,31 @@ class ExecutionRuntime(ExecutionContext):
     
     def get_node_execution_count(self, node_id: NodeID) -> int:
         """Get the execution count for a node."""
-        return self._exec_counts.get(str(node_id), 0)
+        return self._tracker.get_execution_count(node_id)
     
     # ========== Additional Methods ==========
     
-    def get_service(self, service_name: str) -> Any:
-        """Get a service from the registry."""
-        return self._service_registry.get(service_name)
+    def get_service(self, service_key: Union[str, "ServiceKey"]) -> Any:
+        """Get a service from the registry.
+        
+        Args:
+            service_key: Either a string name (legacy) or ServiceKey instance
+            
+        Returns:
+            The requested service or None if not found
+        """
+        from dipeo.application.unified_service_registry import ServiceKey
+        
+        if isinstance(service_key, ServiceKey):
+            return self._service_registry.get(service_key.name)
+        else:
+            # Legacy string-based access
+            return self._service_registry.get(service_key)
     
     def get_node_output(self, node_id: str) -> Any:
         """Get the output value of a node."""
-        output = self._node_outputs.get(NodeID(node_id))
-        return output.value if output else None
+        protocol_output = self._tracker.get_last_output(NodeID(node_id))
+        return protocol_output.value if protocol_output else None
     
     def get_node(self, node_id: NodeID) -> ExecutableNode | None:
         """Get a node by ID from the diagram."""
@@ -526,11 +613,13 @@ class ExecutionRuntime(ExecutionContext):
         if isinstance(node, PersonJobNode) and node.memory_config:
             node_memory_config = node.memory_config
         
-        # Convert outputs to dict format for input resolution
-        node_outputs_dict = {
-            str(node_id): output
-            for node_id, output in self._node_outputs.items()
-        }
+        # Collect protocol outputs for input resolution
+        node_outputs_dict = {}
+        for node in self.diagram.nodes:
+            protocol_output = self._tracker.get_last_output(node.id)
+            if protocol_output:
+                # Pass protocol output directly
+                node_outputs_dict[str(node.id)] = protocol_output
         
         # Resolve inputs
         return typed_input_service.resolve_inputs_for_node(
@@ -538,7 +627,8 @@ class ExecutionRuntime(ExecutionContext):
             node_type=node.type,
             diagram=self.diagram,
             node_outputs=node_outputs_dict,
-            node_exec_counts=self._exec_counts.copy(),
+            node_exec_counts={str(node_id): self._tracker.get_execution_count(node_id) 
+                            for node_id in self._node_states.keys()},
             node_memory_config=node_memory_config
         )
     
@@ -563,138 +653,72 @@ class ExecutionRuntime(ExecutionContext):
         else:
             status = ExecutionStatus.COMPLETED
         
+        # Serialize protocol outputs for storage
+        from dipeo.core.execution.node_output import serialize_protocol
+        
+        serialized_outputs = {}
+        # Get outputs from tracker
+        for node in self.diagram.nodes:
+            protocol_output = self._tracker.get_last_output(node.id)
+            if protocol_output:
+                serialized_outputs[str(node.id)] = serialize_protocol(protocol_output)
+        
         return ExecutionState(
             id=self._execution_id,
             status=status,
             diagram_id=self._diagram_id,
             started_at=datetime.now().isoformat(),
             node_states={str(k): v for k, v in self._node_states.items()},
-            node_outputs={str(k): v for k, v in self._node_outputs.items()},
+            node_outputs=serialized_outputs,
             token_usage=TokenUsage(input=total_input, output=total_output),
             variables=self._variables.copy(),
             is_active=has_running,
-            exec_counts=self._exec_counts.copy(),
-            executed_nodes=self._executed_nodes.copy()
+            exec_counts={str(node_id): self._tracker.get_execution_count(node_id) 
+                        for node_id in self._node_states.keys()},
+            executed_nodes=[str(node_id) for node_id in self._tracker.get_execution_summary()["execution_order"]]
         )
     
-    # ========== Compatibility Properties ==========
+    # ========== ExecutionTracker Integration Methods ==========
+    
+    def get_tracker_output(self, node_id: NodeID) -> Any:
+        """Get the last output from the execution tracker."""
+        return self._tracker.get_last_output(node_id)
+    
+    def get_tracker_execution_count(self, node_id: NodeID) -> int:
+        """Get execution count from the tracker."""
+        return self._tracker.get_execution_count(node_id)
+    
+    def has_node_executed_in_tracker(self, node_id: NodeID) -> bool:
+        """Check if node has executed according to the tracker."""
+        return self._tracker.has_executed(node_id)
+    
+    def get_execution_summary(self) -> dict[str, Any]:
+        """Get execution summary from the tracker."""
+        return self._tracker.get_execution_summary()
+    
+    def has_running_nodes(self) -> bool:
+        """Check if any nodes are currently running."""
+        return any(
+            state.status == NodeExecutionStatus.RUNNING 
+            for state in self._node_states.values()
+        )
+    
+    def count_nodes_by_status(self, statuses: list[str]) -> int:
+        """Count nodes that have one of the given statuses."""
+        return sum(
+            1 for state in self._node_states.values()
+            if state.status in statuses
+        )
+    
+    # ========== Required Properties ==========
     
     @property
     def diagram_id(self) -> str:
-        """Get diagram ID for compatibility."""
+        """Get diagram ID."""
         return str(self._diagram_id) if self._diagram_id else ""
     
     @property
     def execution_id(self) -> str:
-        """Get execution ID for compatibility."""
+        """Get execution ID."""
         return str(self._execution_id)
-    
-    @property
-    def state(self) -> ExecutionState:
-        """Get execution state for compatibility."""
-        return self.to_execution_state()
-    
-    @property
-    def exec_counts(self) -> dict[str, int]:
-        """Get execution counts for compatibility."""
-        return self._exec_counts
-    
-    @property
-    def executed_nodes(self) -> set[str]:
-        """Get executed nodes set for compatibility."""
-        return set(self._executed_nodes)
-    
-    @property
-    def node_outputs(self) -> dict[str, NodeOutput]:
-        """Get node outputs for compatibility."""
-        return {str(k): v for k, v in self._node_outputs.items()}
-    
-    @property
-    def context(self) -> "ExecutionRuntime":
-        """Self-reference for compatibility with code expecting .context."""
-        return self
-    
-    # ========== Compatibility Methods (from SimpleExecution) ==========
-    
-    def mark_node_running(self, node_id: NodeID) -> None:
-        """Mark a node as running (compatibility method)."""
-        self.transition_node_to_running(node_id)
-    
-    def mark_node_complete(self, node_id: NodeID, output: Any = None) -> None:
-        """Mark a node as completed (compatibility method)."""
-        self.transition_node_to_completed(node_id, output)
-    
-    def mark_node_complete_if_running(self, node_id: NodeID, output: Any = None) -> bool:
-        """Mark a node as completed only if it's currently running.
-        
-        Returns True if the node was marked complete, False otherwise.
-        This method is thread-safe and prevents race conditions.
-        """
-        try:
-            loop = asyncio.get_running_loop()
-            future = asyncio.create_task(self._async_mark_node_complete_if_running(node_id, output))
-            # We need to wait for the result in this case
-            return asyncio.run_coroutine_threadsafe(
-                self._async_mark_node_complete_if_running(node_id, output), 
-                loop
-            ).result()
-        except RuntimeError:
-            return asyncio.run(self._async_mark_node_complete_if_running(node_id, output))
-    
-    async def _async_mark_node_complete_if_running(self, node_id: NodeID, output: Any = None) -> bool:
-        """Internal async implementation of mark_node_complete_if_running."""
-        async with self._state_lock:
-            # Check state under lock
-            state = self._node_states.get(node_id)
-            if not state or state.status != NodeExecutionStatus.RUNNING:
-                logger.debug(f"Not marking {node_id} complete - status is {state.status if state else 'None'}")
-                return False
-            
-            # Update state atomically
-            state.status = NodeExecutionStatus.COMPLETED
-            state.ended_at = datetime.now()
-            state.error = None
-            self._node_states[node_id] = state
-            
-            # Store output
-            if output is not None:
-                if isinstance(output, NodeOutput):
-                    self._node_outputs[node_id] = output
-                else:
-                    self._node_outputs[node_id] = NodeOutput(
-                        node_id=node_id,
-                        value=output
-                    )
-            
-            # Clear current node
-            if self._current_node_id == node_id:
-                self._current_node_id = None
-            
-            logger.debug(f"Transitioned node {node_id} to COMPLETED")
-            
-            # Check for downstream resets (loops) - this is already async
-            await self._async_reset_downstream_nodes_if_needed(node_id)
-            
-            return True
-    
-    def mark_node_failed(self, node_id: NodeID, error: str) -> None:
-        """Mark a node as failed (compatibility method)."""
-        self.transition_node_to_failed(node_id, error)
-    
-    def mark_node_maxiter_reached(self, node_id: NodeID) -> None:
-        """Mark a node as max iterations reached (compatibility method)."""
-        self.transition_node_to_maxiter(node_id)
-    
-    def mark_node_pending(self, node_id: NodeID) -> None:
-        """Mark a node as pending (compatibility method)."""
-        state = self._node_states.get(node_id) or NodeState(
-            status=NodeExecutionStatus.COMPLETED,
-            node_id=node_id
-        )
-        state.status = NodeExecutionStatus.PENDING
-        self._node_states[node_id] = state
-    
-    def mark_node_skipped(self, node_id: NodeID) -> None:
-        """Mark a node as skipped (compatibility method)."""
-        self.transition_node_to_skipped(node_id)
     

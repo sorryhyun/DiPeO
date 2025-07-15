@@ -2,7 +2,8 @@
 
 from typing import TYPE_CHECKING, Any
 
-from dipeo.models import NodeOutput, NodeType
+from dipeo.models import NodeType
+from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 
 if TYPE_CHECKING:
     from dipeo.core.static.executable_diagram import ExecutableDiagram
@@ -59,32 +60,36 @@ class TypedInputResolutionService:
                 continue
             
             # Handle different source_output formats
-            if isinstance(source_output, NodeOutput):
-                node_output = source_output
+            if isinstance(source_output, NodeOutputProtocol):
+                # Protocol output - extract value based on type
+                if isinstance(source_output, ConditionOutput):
+                    # For condition outputs, create dict with branch keys
+                    if source_output.value:  # True branch
+                        output_value = {"condtrue": source_output.true_output or {}}
+                    else:  # False branch
+                        output_value = {"condfalse": source_output.false_output or {}}
+                else:
+                    # Regular protocol output - get value directly
+                    output_value = source_output.value
+                    # Wrap non-dict values
+                    if not isinstance(output_value, dict):
+                        output_value = {"default": output_value}
             elif isinstance(source_output, dict) and "value" in source_output:
-                # Dict with proper structure - convert to NodeOutput
-                node_output = NodeOutput(
-                    value=source_output["value"],
-                    metadata=source_output.get("metadata"),
-                    node_id=source_output.get("node_id", source_node_id),
-                    executed_nodes=source_output.get("executed_nodes")
-                )
+                # Dict with proper structure
+                output_value = source_output["value"]
+                if not isinstance(output_value, dict):
+                    output_value = {"default": output_value}
             else:
-                # Legacy format - wrap as NodeOutput
-                node_output = NodeOutput(
-                    value={"default": source_output},
-                    metadata={},
-                    node_id=source_node_id,
-                    executed_nodes=None
-                )
+                # Raw value - wrap as dict
+                output_value = {"default": source_output}
             
             # Get the specific output key
             output_key = edge.source_output or "default"
             
             # Check if the output has the requested key
-            if output_key not in node_output.value:
+            if output_key not in output_value:
                 # Try default if specific key not found
-                if "default" in node_output.value:
+                if "default" in output_value:
                     output_key = "default"
                 else:
                     # Skip if no matching output
@@ -99,18 +104,18 @@ class TypedInputResolutionService:
                 # Check if this is a conversation_state content type
                 if edge.data_transform.get('content_type') == 'conversation_state':
                     # For conversation_state, pass the conversation data directly
-                    output_value = node_output.value[output_key]
-                    if isinstance(output_value, dict) and 'messages' in output_value:
+                    value = output_value[output_key]
+                    if isinstance(value, dict) and 'messages' in value:
                         # Pass the messages directly to the target node
-                        inputs[input_key] = output_value
+                        inputs[input_key] = value
                     else:
-                        inputs[input_key] = output_value
+                        inputs[input_key] = value
                 else:
                     # Pass the value directly without memory configuration
-                    inputs[input_key] = node_output.value[output_key]
+                    inputs[input_key] = output_value[output_key]
             else:
                 # Store the input directly
-                inputs[input_key] = node_output.value[output_key]
+                inputs[input_key] = output_value[output_key]
         
         return inputs
     

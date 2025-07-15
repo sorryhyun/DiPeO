@@ -6,9 +6,10 @@ from pydantic import BaseModel
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.service_key import FILE_SERVICE, ServiceKeyAdapter
+from dipeo.application.unified_service_registry import FILE_SERVICE
 from dipeo.core.static.generated_nodes import EndpointNode
-from dipeo.models import EndpointNodeData, NodeOutput, NodeType
+from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
+from dipeo.models import EndpointNodeData, NodeType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -49,13 +50,12 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         # Validate file service is available if save_to_file is enabled
         if node.save_to_file:
-            service_adapter = ServiceKeyAdapter(request.services)
-            if not service_adapter.has(FILE_SERVICE) and not self.file_service:
+            if not request.services.get(FILE_SERVICE.name) and not self.file_service:
                 return "File service is required when save_to_file is enabled"
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[EndpointNode]) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[EndpointNode]) -> NodeOutputProtocol:
         """Execute the endpoint node."""
         node = request.node
         context = request.context
@@ -68,11 +68,8 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                 "filename": node.file_name or f"output_{node.id}.json"
             })
         
-        # Get service using ServiceKey
-        service_adapter = ServiceKeyAdapter(services)
-        file_service = self.file_service or service_adapter.get(FILE_SERVICE)
-        if not file_service:
-            file_service = context.get_service("file")  # Fallback for legacy compatibility
+        # Get service from services dict
+        file_service = self.file_service or services.get(FILE_SERVICE.name)
 
         # Endpoint nodes pass through their inputs
         result_data = inputs if inputs else {}
@@ -102,28 +99,29 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
                 await file_service.write(file_name, None, None, content)
 
-                return self._build_output(
-                    {"default": result_data},
-                    context,
-                    {"saved_to": file_name}
+                return DataOutput(
+                    value={"default": result_data},
+                    node_id=node.id,
+                    metadata={"saved_to": file_name}
                 )
             except Exception as exc:
-                return self._build_output(
-                    {"default": result_data},
-                    context,
-                    {"save_error": str(exc)}
+                return DataOutput(
+                    value={"default": result_data},
+                    node_id=node.id,
+                    metadata={"save_error": str(exc)}
                 )
 
-        return self._build_output(
-            {"default": result_data},
-            context
+        return DataOutput(
+            value={"default": result_data},
+            node_id=node.id,
+            metadata={}
         )
     
     def post_execute(
         self,
         request: ExecutionRequest[EndpointNode],
-        output: NodeOutput
-    ) -> NodeOutput:
+        output: NodeOutputProtocol
+    ) -> NodeOutputProtocol:
         """Post-execution hook to log endpoint execution."""
         # Log save details if in debug mode
         if request.metadata.get("debug") and request.metadata.get("save_config"):
