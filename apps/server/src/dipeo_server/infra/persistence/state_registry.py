@@ -20,6 +20,12 @@ from dipeo.models import (
     NodeState,
     TokenUsage,
 )
+from dipeo.application.execution.state_migration import (
+    StateMigrator,
+    StateVersion,
+    add_version_to_state,
+    remove_version_from_state,
+)
 
 from .execution_cache import ExecutionCache
 from .message_store import MessageStore
@@ -43,6 +49,7 @@ class StateRegistry:
         self.message_store = message_store
         self._execution_cache = ExecutionCache(ttl_minutes=60)
         self._initialized = False
+        self._migrator = StateMigrator()
 
     async def initialize(self):
         async with self._lock:
@@ -144,12 +151,30 @@ class StateRegistry:
             token_usage TEXT NOT NULL,
             error TEXT,
             variables TEXT NOT NULL,
+            exec_counts TEXT NOT NULL DEFAULT '{}',
+            executed_nodes TEXT NOT NULL DEFAULT '[]',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
         CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
+        
+        -- Add columns to existing tables if they don't exist
+        -- SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so we need to check first
         """
+        
+        # Check if columns exist
+        cursor = await self._execute("PRAGMA table_info(execution_states)")
+        columns = await asyncio.get_event_loop().run_in_executor(
+            self._executor, cursor.fetchall
+        )
+        column_names = [col[1] for col in columns]
+        
+        # Add missing columns
+        if 'exec_counts' not in column_names:
+            await self._execute("ALTER TABLE execution_states ADD COLUMN exec_counts TEXT NOT NULL DEFAULT '{}'")
+        if 'executed_nodes' not in column_names:
+            await self._execute("ALTER TABLE execution_states ADD COLUMN executed_nodes TEXT NOT NULL DEFAULT '[]'")
 
         # Ensure executor is available
         if self._executor._shutdown:
@@ -222,13 +247,23 @@ class StateRegistry:
                 node_id: node_output.model_dump()
                 for node_id, node_output in state.node_outputs.items()
             }
+            
+            # Add version information
+            versioned_state = {
+                "node_states": node_states_dict,
+                "node_outputs": node_outputs_dict,
+                "exec_counts": state.exec_counts,
+                "executed_nodes": state.executed_nodes,
+            }
+            versioned_state = add_version_to_state(versioned_state)
 
             await self._execute(
                 """
                 INSERT OR REPLACE INTO execution_states
                 (execution_id, status, diagram_id, started_at, ended_at,
-                 node_states, node_outputs, token_usage, error, variables)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 node_states, node_outputs, token_usage, error, variables,
+                 exec_counts, executed_nodes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     state.id,
@@ -236,13 +271,15 @@ class StateRegistry:
                     state.diagram_id,
                     state.started_at,
                     state.ended_at,
-                    json.dumps(node_states_dict),
-                    json.dumps(node_outputs_dict),
+                    json.dumps(versioned_state["node_states"]),
+                    json.dumps(versioned_state["node_outputs"]),
                     json.dumps(
                         state.token_usage.model_dump() if state.token_usage else {}
                     ),
                     state.error,
                     json.dumps(state.variables),
+                    json.dumps(versioned_state["exec_counts"]),
+                    json.dumps(versioned_state["executed_nodes"]),
                 ),
             )
 
@@ -258,7 +295,8 @@ class StateRegistry:
         cursor = await self._execute(
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
-                   node_states, node_outputs, token_usage, error, variables
+                   node_states, node_outputs, token_usage, error, variables,
+                   exec_counts, executed_nodes
             FROM execution_states
             WHERE execution_id = ?
             """,
@@ -275,6 +313,36 @@ class StateRegistry:
         node_states_dict = json.loads(row[5])
         node_outputs_dict = json.loads(row[6])
         token_usage_dict = json.loads(row[7])
+        
+        # Parse exec_counts and executed_nodes if available
+        exec_counts = {}
+        executed_nodes = []
+        if len(row) > 10:  # Check if new columns exist
+            try:
+                exec_counts = json.loads(row[10]) if row[10] else {}
+                executed_nodes = json.loads(row[11]) if row[11] else []
+            except (IndexError, json.JSONDecodeError):
+                # Handle case where columns don't exist in older databases
+                pass
+        
+        # Create combined state data for migration
+        combined_state = {
+            "node_states": node_states_dict,
+            "node_outputs": node_outputs_dict,
+            "exec_counts": exec_counts,
+            "executed_nodes": executed_nodes,
+        }
+        
+        # Migrate to latest version if needed
+        migration_result = self._migrator.migrate(combined_state)
+        if not migration_result.success:
+            logger.warning(f"State migration failed for {execution_id}: {migration_result.errors}")
+            # Fall back to unmigrated data
+        else:
+            node_states_dict = migration_result.data["node_states"]
+            node_outputs_dict = migration_result.data["node_outputs"] 
+            exec_counts = migration_result.data.get("exec_counts", {})
+            executed_nodes = migration_result.data.get("executed_nodes", [])
 
         # Convert dicts back to model instances
         node_states = {
@@ -299,8 +367,8 @@ class StateRegistry:
             else TokenUsage(input=0, output=0, cached=None),
             error=row[8],
             variables=json.loads(row[9]),
-            exec_counts={},
-            executed_nodes=[],
+            exec_counts=exec_counts,
+            executed_nodes=executed_nodes,
         )
 
     async def update_status(
@@ -474,7 +542,7 @@ class StateRegistry:
         offset: int = 0,
     ) -> list[ExecutionState]:
         # Build query with optional filters
-        query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables FROM execution_states"
+        query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables, exec_counts, executed_nodes FROM execution_states"
         conditions = []
         params = []
 
@@ -538,6 +606,17 @@ class StateRegistry:
             token_usage = None
             if token_usage_data:
                 token_usage = TokenUsage(**token_usage_data)
+            
+            # Parse exec_counts and executed_nodes if available
+            exec_counts = {}
+            executed_nodes = []
+            if len(row) > 10:  # Check if new columns exist
+                try:
+                    exec_counts = json.loads(row[10]) if row[10] else {}
+                    executed_nodes = json.loads(row[11]) if row[11] else []
+                except (IndexError, json.JSONDecodeError):
+                    # Handle case where columns don't exist in older databases
+                    pass
 
             # Create ExecutionState object
             execution_state = ExecutionState(
@@ -551,8 +630,8 @@ class StateRegistry:
                 ended_at=row[3],
                 token_usage=token_usage,
                 error=row[8],
-                exec_counts={},
-                executed_nodes=[],
+                exec_counts=exec_counts,
+                executed_nodes=executed_nodes,
             )
 
             executions.append(execution_state)

@@ -49,10 +49,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
         # Add other messages
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
-        
-        # Log input messages
-        logger.info(f"OpenAI API Call - Model: {self.model_name}")
-        logger.info(f"Input messages: {input_messages}")
+
         
         # Convert tools to API format
         api_tools = []

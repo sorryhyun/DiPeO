@@ -56,7 +56,6 @@ class TypedInputResolutionService:
             source_node_id = str(edge.source_node_id)
             source_output = node_outputs.get(source_node_id)
             if not source_output:
-                log.debug(f"[INPUT_RESOLUTION] No output found for source node {source_node_id}")
                 continue
             
             # Handle different source_output formats
@@ -89,7 +88,6 @@ class TypedInputResolutionService:
                     output_key = "default"
                 else:
                     # Skip if no matching output
-                    log.debug(f"No matching output key '{output_key}' in node output: {node_output.value}")
                     continue
             
             # Get the input key where this should be placed

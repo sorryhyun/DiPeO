@@ -28,16 +28,6 @@ class ExecutionContext(Protocol):
         ...
     
     @abstractmethod
-    def set_node_state(self, node_id: NodeID, state: NodeState) -> None:
-        """Set the execution state of a node.
-        
-        Args:
-            node_id: The ID of the node
-            state: The new state
-        """
-        ...
-    
-    @abstractmethod
     def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get the execution result of a completed node.
         
@@ -82,6 +72,69 @@ class ExecutionContext(Protocol):
             
         Returns:
             The number of times this node has been executed
+        """
+        ...
+    
+    # ========== State Transitions ==========
+    # These methods provide standardized state management
+    
+    @abstractmethod
+    def transition_node_to_running(self, node_id: NodeID) -> None:
+        """Transition a node to running state.
+        
+        This should increment execution count and update state atomically.
+        
+        Args:
+            node_id: The ID of the node to transition
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_completed(self, node_id: NodeID, output: Any = None) -> None:
+        """Transition a node to completed state with optional output.
+        
+        Args:
+            node_id: The ID of the node to transition
+            output: Optional output from the node execution
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
+        """Transition a node to failed state.
+        
+        Args:
+            node_id: The ID of the node to transition
+            error: Error message describing the failure
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_maxiter(self, node_id: NodeID) -> None:
+        """Transition a node to max iterations reached state.
+        
+        Args:
+            node_id: The ID of the node to transition
+        """
+        ...
+    
+    @abstractmethod
+    def transition_node_to_skipped(self, node_id: NodeID) -> None:
+        """Transition a node to skipped state.
+        
+        Args:
+            node_id: The ID of the node to transition
+        """
+        ...
+    
+    @abstractmethod
+    def reset_node(self, node_id: NodeID) -> None:
+        """Reset a node to pending state (for loops).
+        
+        This should clear the node's output and reset its state.
+        
+        Args:
+            node_id: The ID of the node to reset
         """
         ...
 

@@ -1,17 +1,19 @@
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution import UnifiedExecutionContext
-from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.service_key import API_SERVICE, ServiceKeyAdapter
 from dipeo.core.static.generated_nodes import ApiJobNode
 from dipeo.models import ApiJobNodeData, HttpMethod, NodeOutput, NodeType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.simple_execution import SimpleExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 @register_handler
@@ -44,7 +46,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     async def pre_execute(
         self,
         node: ApiJobNode,
-        execution: "SimpleExecution"
+        execution: "ExecutionRuntime"
     ) -> dict[str, Any]:
         """Pre-execute logic for ApiJobNode."""
         return {
@@ -58,19 +60,17 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             "auth_config": node.auth_config
         }
     
-    async def execute(
-        self,
-        node: ApiJobNode,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
-        # Use injected service or fall back to old pattern for backward compatibility
-        api_service = self.api_service
+    async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> NodeOutput:
+        """Execute the API request."""
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        services = request.services
+        # Use injected service or get using ServiceKey
+        service_adapter = ServiceKeyAdapter(services)
+        api_service = self.api_service or service_adapter.get(API_SERVICE)
         if not api_service:
-            api_service = context.get_service("api_service")
-            if not api_service:
-                api_service = services.get("api_service")
+            api_service = context.get_service("api_service")  # Fallback for legacy compatibility
             
         if not api_service:
             return self._build_output(
@@ -245,3 +245,42 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 headers[key_name] = key_value
                 
         return headers
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[ApiJobNode],
+        output: NodeOutput
+    ) -> NodeOutput:
+        """Post-execution hook to log API request details."""
+        # Log API call details if in debug mode
+        if request.metadata.get("debug"):
+            method = request.metadata.get("method", "unknown")
+            url = request.metadata.get("url", "unknown")
+            success = output.metadata.get("success", False)
+            print(f"[ApiJobNode] {method} {url} - Success: {success}")
+            if not success and output.metadata.get("error"):
+                print(f"[ApiJobNode] Error: {output.metadata['error']}")
+        
+        return output
+    
+    async def on_error(
+        self,
+        request: ExecutionRequest[ApiJobNode],
+        error: Exception
+    ) -> Optional[NodeOutput]:
+        """Handle API errors with better error messages."""
+        url = request.metadata.get("url", "unknown")
+        method = request.metadata.get("method", "unknown")
+        
+        # Create error output with request information
+        return self._build_output(
+            {"default": ""}, 
+            request.context,
+            {
+                "error": f"API request failed: {str(error)}",
+                "url": url,
+                "method": method,
+                "success": False,
+                "error_type": type(error).__name__
+            }
+        )

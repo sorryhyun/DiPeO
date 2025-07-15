@@ -10,16 +10,16 @@ from .types import (
     ExecutionOptions,
     TypedNodeHandler,
 )
-from .unified_execution_context import UnifiedExecutionContext
+from .execution_runtime import ExecutionRuntime
 from .use_cases import ExecuteDiagramUseCase
 
 # Compatibility imports for migration
-from .simple_execution import SimpleExecution
-from .simple_execution import SimpleExecution as TypedStatefulExecution
-from .simple_execution import SimpleExecution as StatefulExecution
+from .execution_runtime import ExecutionRuntime as SimpleExecution
+from .execution_runtime import ExecutionRuntime as TypedStatefulExecution
+from .execution_runtime import ExecutionRuntime as StatefulExecution
 
 __all__ = [
-    "UnifiedExecutionContext",
+    "ExecutionRuntime",
     # Use cases
     "ExecuteDiagramUseCase",
     # Types

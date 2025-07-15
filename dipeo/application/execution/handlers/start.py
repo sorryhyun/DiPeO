@@ -1,15 +1,16 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution import UnifiedExecutionContext
-from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handler_factory import register_handler
 from dipeo.core.static.generated_nodes import StartNode
 from dipeo.models import HookTriggerMode, NodeOutput, NodeType, StartNodeData
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.simple_execution import SimpleExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 @register_handler
@@ -34,27 +35,26 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     def description(self) -> str:
         return "Kick-off node: can start manually or via hook trigger"
 
-    async def pre_execute(
-        self,
-        node: StartNode,
-        execution: "SimpleExecution"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for StartNode."""
-        return {
-            "custom_data": node.custom_data,
-            "output_data_structure": node.output_data_structure,
-            "trigger_mode": node.trigger_mode,
-            "hook_event": node.hook_event,
-            "hook_filters": node.hook_filters
-        }
+    def validate(self, request: ExecutionRequest[StartNode]) -> Optional[str]:
+        """Validate the start node configuration."""
+        node = request.node
+        
+        # Validate hook configuration
+        if node.trigger_mode == HookTriggerMode.hook:
+            if not node.hook_event:
+                return "Hook event must be specified when using hook trigger mode"
+        
+        return None
     
-    async def execute(
-        self,
-        node: StartNode,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[StartNode]) -> NodeOutput:
+        """Execute the start node."""
+        node = request.node
+        context = request.context
+        # Store node configuration in metadata for debugging
+        request.add_metadata("trigger_mode", node.trigger_mode)
+        request.add_metadata("hook_event", node.hook_event)
+        request.add_metadata("hook_filters", node.hook_filters)
+        
         # Direct typed access to node properties
         trigger_mode = node.trigger_mode or HookTriggerMode.manual
         
@@ -67,7 +67,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
             )
         
         elif trigger_mode == HookTriggerMode.hook:
-            hook_data = await self._get_hook_event_data(node, context, services)
+            hook_data = await self._get_hook_event_data(node, context, request.services)
             
             if hook_data:
                 output_data = {**node.custom_data, **hook_data}
@@ -87,7 +87,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     async def _get_hook_event_data(
         self,
         node: StartNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         services: dict[str, Any]
     ) -> dict[str, Any] | None:
         # Check if hook event data was provided in the execution state
@@ -105,3 +105,15 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         # In a real implementation, we would wait for events here
         # For now, return None to indicate no event data
         return None
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[StartNode],
+        output: NodeOutput
+    ) -> NodeOutput:
+        """Post-execution hook to log start node execution."""
+        # Log execution details if in debug mode
+        if request.metadata.get("debug"):
+            print(f"[StartNode] Executed with trigger mode: {request.metadata.get('trigger_mode')}")
+        
+        return output

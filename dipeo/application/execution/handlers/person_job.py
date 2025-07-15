@@ -1,12 +1,19 @@
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution import UnifiedExecutionContext
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.service_key import (
+    LLM_SERVICE,
+    DIAGRAM,
+    CONVERSATION_MANAGER,
+    PROMPT_BUILDER,
+    ServiceKeyAdapter
+)
 from dipeo.core.dynamic import Person
 from dipeo.core.static.generated_nodes import PersonJobNode
 from dipeo.models import (
@@ -19,7 +26,8 @@ from dipeo.models import (
 )
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.simple_execution import SimpleExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -58,14 +66,34 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     def description(self) -> str:
         return "Execute person job with conversation memory"
     
+    def validate(self, request: ExecutionRequest[PersonJobNode]) -> Optional[str]:
+        """Validate the execution request."""
+        if not request.node.person_id:
+            return "No person specified"
+        
+        # Check max iteration
+        execution_count = request.context.get_node_execution_count(request.node_id)
+        if execution_count > request.node.max_iteration:
+            return f"Max iteration ({request.node.max_iteration}) reached"
+            
+        return None
+    
     async def pre_execute(
         self,
         node: PersonJobNode,
-        execution: "SimpleExecution"
+        execution: Any
     ) -> dict[str, Any]:
         """Pre-execute logic for PersonJobNode."""
-        # Use context from execution
-        exec_count = execution.context.get_node_execution_count(node.id)
+        # Handle different execution types
+        if hasattr(execution, 'context'):
+            # ExecutionRuntime
+            exec_count = execution.context.get_node_execution_count(node.id)
+        elif hasattr(execution, 'get_node_execution_count'):
+            # SimpleExecution or similar
+            exec_count = execution.get_node_execution_count(node.id)
+        else:
+            # Fallback
+            exec_count = 1
         
         # Determine which prompt to use
         # exec_count is 1 on first run because it's incremented before execution
@@ -77,21 +105,24 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         return {
             "prompt": prompt,
             "exec_count": exec_count,
-            "should_continue": exec_count < node.max_iteration,
+            "should_continue": exec_count <= node.max_iteration,
             "tools": node.tools
         }
     
-    async def execute(
-        self,
-        node: PersonJobNode,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any] | None = None,
-        services: dict[str, Any] | None = None,
-    ) -> NodeOutput:
-        # Resolve inputs from context if not provided
-        if inputs is None:
-            # Get diagram from context or services for input resolution
-            diagram = context.get_service("diagram") or (services.get("diagram") if services else None)
+    async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutput:
+        """Execute the person job with the unified request object."""
+        # Use ServiceKeyAdapter for type-safe service access
+        service_adapter = ServiceKeyAdapter(request.services)
+        
+        # Get node and context from request
+        node = request.node
+        context = request.context
+        
+        # Resolve inputs from request
+        inputs = request.inputs
+        if not inputs:
+            # Get diagram for input resolution
+            diagram = service_adapter.get(DIAGRAM) or context.get_service("diagram")
             if diagram:
                 inputs = context.resolve_inputs(node, diagram)
             else:
@@ -99,35 +130,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         
         # Direct typed access to person_id
         person_id = node.person_id
-        logger.debug(f"Raw inputs for person {person_id}: {inputs}")
-        
-        # Get services directly from context
-        llm_service = context.get_service("llm_service")
-        diagram = context.get_service("diagram") or (services.get("diagram") if services else None)
-        conversation_manager = context.get_service("conversation_manager")
-        prompt_builder = context.get_service("prompt_builder")
-        
-        # Get execution count for iteration check
-        execution_count = context.get_node_execution_count(node.id)
-        
-        # Check if max_iteration is reached
-        if execution_count >= node.max_iteration:
-            return NodeOutput(
-                value={"default": ""},
-                metadata={"skipped": True, "reason": f"Max iteration ({node.max_iteration}) reached"},
-                node_id=node.id
-            )
-        
-        # Only log in debug mode if explicitly enabled
 
-        # Basic validation using typed property
-        if not person_id:
-            return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": "No person specified"},
-                node_id=node.id
-            )
+        # Get services using ServiceKey
+        llm_service = service_adapter.get(LLM_SERVICE) or context.get_service("llm_service")
+        diagram = service_adapter.get(DIAGRAM) or context.get_service("diagram")
+        conversation_manager = service_adapter.get(CONVERSATION_MANAGER) or context.get_service("conversation_manager")
+        prompt_builder = service_adapter.get(PROMPT_BUILDER) or context.get_service("prompt_builder")
         
+
+        execution_count = context.get_node_execution_count(node.id)
+
         try:
             # Get or create person
             person = self._get_or_create_person(person_id, conversation_manager)
@@ -142,7 +154,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Handle conversation inputs
             has_conversation_input = self._has_conversation_input(transformed_inputs)
             if has_conversation_input:
-                logger.debug(f"PersonJob {node.id} - detected conversation input, will rebuild conversation")
                 self._rebuild_conversation(person, transformed_inputs)
             
             # Build prompt BEFORE applying memory management
@@ -151,14 +162,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 conversation_manager=conversation_manager,
                 person_id=person_id
             )
-            
-            # Debug logging to check prompt values
-            logger.debug(f"PersonJob {node.id} - execution_count: {execution_count}")
-            logger.debug(f"PersonJob {node.id} - default_prompt: {repr(node.default_prompt)}")
-            logger.debug(f"PersonJob {node.id} - first_only_prompt: {repr(node.first_only_prompt)}")
-            
+
             # Disable auto-prepend if we have conversation input (to avoid duplication)
-            logger.debug(f"PersonJob {node.id} - auto_prepend_conversation: {not has_conversation_input}")
             built_prompt = prompt_builder.build(
                 prompt=node.default_prompt,
                 first_only_prompt=node.first_only_prompt,
@@ -166,7 +171,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 template_values=template_values,
                 auto_prepend_conversation=not has_conversation_input
             )
-            logger.debug(f"PersonJob {node.id} - built_prompt: {repr(built_prompt[:100])}...")
 
             # Skip if no prompt
             if not built_prompt:
@@ -202,22 +206,33 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 model=person.llm_config.model
             )
             
-        except ValueError as e:
-            # Domain validation errors - only log if debug enabled
-            if logger.isEnabledFor(logging.DEBUG):
-                return NodeOutput(
-                    value={"default": ""},
-                    metadata={"error": str(e)},
-                    node_id=node.id
-                )
         except Exception as e:
-            # Unexpected errors
-            logger.error(f"Error executing person job: {e}")
+            # Let on_error handle it
+            raise
+    
+    async def on_error(
+        self,
+        request: ExecutionRequest[PersonJobNode],
+        error: Exception
+    ) -> Optional[NodeOutput]:
+        """Handle errors gracefully."""
+        # For ValueError (domain validation), only log in debug mode
+        if isinstance(error, ValueError):
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Validation error in person job: {error}")
             return NodeOutput(
-                value={"default": ""}, 
-                metadata={"error": str(e)},
-                node_id=node.id
+                value={"default": ""},
+                metadata={"error": str(error)},
+                node_id=request.node.id
             )
+        
+        # For other errors, log them
+        logger.error(f"Error executing person job: {error}")
+        return NodeOutput(
+            value={"default": ""}, 
+            metadata={"error": str(error)},
+            node_id=request.node.id
+        )
     
     # _execute_with_props removed - logic integrated into execute method
     
@@ -285,12 +300,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if not all_messages:
             return
         
-        logger.debug(f"Rebuilding conversation with {len(all_messages)} messages")
         for i, msg_dict in enumerate(all_messages):
             content = msg_dict.get("content", "")
             # Skip messages that contain the "[Previous conversation" marker to avoid duplication
             if "[Previous conversation" in content:
-                logger.debug(f"Skipping message {i} - contains conversation marker")
                 continue
                 
             message = Message(
@@ -313,7 +326,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 if hasattr(edge, 'data_transform') and edge.data_transform:
                     if edge.data_transform.get('content_type') == 'conversation_state':
                         return True
-        logger.debug(f"[CONVERSATION_OUTPUT] Node {node_id} does not need conversation output")
         return False
     
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutput:

@@ -238,6 +238,10 @@ class DiPeOCLI:
                     elapsed = time.time() - start_time
                     if elapsed > timeout:
                         print(f"⏰ Execution timed out after {timeout} seconds")
+                        # Stop the server before returning
+                        if debug:
+                            print("🛑 Stopping server...")
+                            self.server.stop()
                         return False
 
                     time.sleep(2)

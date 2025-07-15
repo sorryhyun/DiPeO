@@ -387,7 +387,6 @@ class UnifiedDiagramConverter(DiagramConverter):
                         if arrow.target == f"{node_label}_{possible_handle}":
                             node_id = nid
                             handle_name = possible_handle
-                            logger.debug(f"Matched node label '{node_label}' with handle '{possible_handle}'")
                             break
                     if node_id:
                         break
@@ -497,9 +496,6 @@ class UnifiedDiagramConverter(DiagramConverter):
         if content_type is None:
             # Default to raw_text for all empty arrows
             content_type = ContentType.raw_text
-            logger.debug(
-                f"Auto-setting content_type to '{content_type.value}' for arrow from {source} to {target}"
-            )
 
         return DomainArrow(
             id=arrow_id, 

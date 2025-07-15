@@ -23,9 +23,9 @@ from .engine import TypedExecutionEngine
 from .execution import (
     ExecutionContext,
     ExecutionOptions,
+    ExecutionRuntime,
     HandlerRegistry,
     TypedNodeHandler,
-    UnifiedExecutionContext,
     get_global_registry,
     register_handler,
 )
@@ -35,7 +35,7 @@ from .execution.use_cases import ExecuteDiagramUseCase
 
 __all__ = [
     # Context
-    "UnifiedExecutionContext",
+    "ExecutionRuntime",
     # Engine
     "TypedExecutionEngine",
     # Execution

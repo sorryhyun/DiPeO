@@ -3,14 +3,14 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution import UnifiedExecutionContext
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.core.static.generated_nodes import UserResponseNode
 from dipeo.models import NodeOutput, NodeType, UserResponseNodeData
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.simple_execution import SimpleExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 @register_handler
@@ -40,7 +40,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     async def pre_execute(
         self,
         node: UserResponseNode,
-        execution: "SimpleExecution"
+        execution: "ExecutionRuntime"
     ) -> dict[str, Any]:
         """Pre-execute logic for UserResponseNode."""
         return {
@@ -51,7 +51,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     async def execute(
         self,
         node: UserResponseNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -60,7 +60,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     async def _execute_user_response(
         self,
         node: UserResponseNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:

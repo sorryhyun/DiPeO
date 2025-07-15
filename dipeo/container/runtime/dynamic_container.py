@@ -5,14 +5,7 @@ from dependency_injector import providers
 from ..base import MutableBaseContainer
 
 
-def _create_execution_context(diagram_compiler, conversation_manager=None):
-    """Create execution context for a diagram execution."""
-    from dipeo.application.execution import UnifiedExecutionContext
-    
-    return UnifiedExecutionContext(
-        compiler=diagram_compiler,
-        conversation_manager=conversation_manager
-    )
+# Execution context creation removed - use ExecutionRuntime directly
 
 
 def _create_conversation_manager():
@@ -31,19 +24,15 @@ def _create_person_manager():
 
 
 def _create_execution_engine(
-    context,
     service_registry,
-    state_store,
-    message_router
+    observers=None
 ):
     """Create stateful execution engine."""
     from dipeo.application.engine import TypedExecutionEngine
     
     return TypedExecutionEngine(
-        context=context,
         service_registry=service_registry,
-        state_store=state_store,
-        message_router=message_router
+        observers=observers or []
     )
 
 
@@ -91,12 +80,7 @@ class DynamicServicesContainer(MutableBaseContainer):
     conversation_manager = providers.Singleton(_create_conversation_manager)
     person_manager = providers.Singleton(_create_person_manager)
     
-    # Execution context - Factory for fresh context per execution
-    execution_context = providers.Factory(
-        _create_execution_context,
-        diagram_compiler=static.diagram_compiler,
-        conversation_manager=conversation_manager,
-    )
+    # Execution context removed - use ExecutionRuntime directly in ExecuteDiagramUseCase
     
     # Execution coordination removed - functionality merged into TypedStatefulExecution
     
@@ -105,10 +89,8 @@ class DynamicServicesContainer(MutableBaseContainer):
     # Execution engine - Factory for fresh engine per execution
     execution_engine = providers.Factory(
         _create_execution_engine,
-        context=execution_context,
         service_registry=providers.Dependency(),  # Injected from application layer
-        state_store=persistence.state_store,
-        message_router=persistence.message_router,
+        observers=providers.List(),  # Optional observers
     )
     
     # Node executor - Factory for fresh executor per execution

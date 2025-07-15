@@ -1,12 +1,12 @@
-# Refactored execution engine using StatefulExecutableDiagram and iterators.
+# Refactored execution engine using ExecutionRuntime.
 
 import asyncio
 import logging
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
+from dipeo.application.execution.execution_runtime import ExecutionRuntime
 from dipeo.application.execution.iterators.simple_iterator import SimpleAsyncIterator
-from dipeo.application.execution.simple_execution import SimpleExecution
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.infra.config.settings import get_settings
 
@@ -20,9 +20,9 @@ log = logging.getLogger(__name__)
 
 
 class TypedExecutionEngine:
-    """Execution engine that works directly with typed ExecutableDiagram and SimpleExecution.
+    """Execution engine that works directly with typed ExecutableDiagram and ExecutionRuntime.
     
-    This is the simplified engine from Phase 6 that leverages static typing throughout.
+    This simplified engine leverages the consolidated ExecutionRuntime for cleaner architecture.
     """
     
     def __init__(
@@ -37,7 +37,7 @@ class TypedExecutionEngine:
     
     async def execute(
         self,
-        stateful_execution: SimpleExecution,
+        execution_runtime: ExecutionRuntime,
         execution_id: str,
         options: dict[str, Any],
         interactive_handler: Any | None = None,
@@ -45,18 +45,18 @@ class TypedExecutionEngine:
         
         # Notify observers of execution start
         for observer in self.observers:
-            diagram_id = stateful_execution.diagram_id
+            diagram_id = execution_runtime.diagram_id
             await observer.on_execution_start(execution_id, diagram_id)
         
         try:
             # Create async execution iterator
-            max_parallel = options.get("max_parallel_nodes", 10)
+            # max_parallel = options.get("max_parallel_nodes", 10)  # Reserved for future use
             
             # Create iterator with typed execution
             iterator = SimpleAsyncIterator(
-                execution=stateful_execution,
+                execution=execution_runtime,
                 node_executor=self._create_node_executor_wrapper(
-                    stateful_execution, options, interactive_handler, execution_id
+                    execution_runtime, options, interactive_handler, execution_id
                 )
             )
             
@@ -84,7 +84,7 @@ class TypedExecutionEngine:
                 }
                 
                 # Check for completion
-                is_complete = stateful_execution.is_complete()
+                is_complete = execution_runtime.is_complete()
                 if is_complete:
                     break
             
@@ -96,7 +96,7 @@ class TypedExecutionEngine:
             yield {
                 "type": "execution_complete",
                 "total_steps": step_count,
-                "execution_path": [str(node_id) for node_id in stateful_execution.get_completed_nodes()],
+                "execution_path": [str(node_id) for node_id in execution_runtime.get_completed_nodes()],
             }
             
         except Exception as e:
@@ -112,13 +112,13 @@ class TypedExecutionEngine:
     
     def _create_node_executor_wrapper(
         self,
-        stateful_execution: SimpleExecution,
+        execution_runtime: ExecutionRuntime,
         options: dict[str, Any],
         interactive_handler: Any | None,
         execution_id: str
     ):
         async def execute_node(node: "ExecutableNode") -> dict[str, Any]:
-            # For the stateful execution to work properly, we need to ensure
+            # For the execution runtime to work properly, we need to ensure
             # that nodes are executed and their results are properly tracked.
             
 
@@ -126,7 +126,7 @@ class TypedExecutionEngine:
                 # Execute using the typed node executor with full type safety
                 await self.node_executor.execute_node(
                     node=node,
-                    execution=stateful_execution,
+                    execution=execution_runtime,
                     handler=None,  # Will be resolved by executor
                     execution_id=execution_id,
                     options=options,
@@ -135,26 +135,25 @@ class TypedExecutionEngine:
                 
 
                 # Get the actual node output that was stored by the executor
-                node_output = stateful_execution.state.node_outputs.get(str(node.id))
+                node_output = execution_runtime.state.node_outputs.get(str(node.id))
                 if node_output:
-                    # Return the actual output value
-                    return {
-                        "value": node_output.value,
-                        "metadata": node_output.metadata
-                    }
+                    # Return the NodeOutput instance directly to avoid double wrapping
+                    return node_output
                 else:
-                    # Fallback if no output was stored
-                    return {
-                        "value": {"status": "completed", "node_id": str(node.id)},
-                        "metadata": {"node_type": str(node.type)}
-                    }
+                    # Fallback if no output was stored - create a proper NodeOutput
+                    from dipeo.models import NodeOutput
+                    return NodeOutput(
+                        value={"status": "completed", "node_id": str(node.id)},
+                        metadata={"node_type": str(node.type)},
+                        node_id=str(node.id)
+                    )
                 
             except Exception as e:
                 log.error(f"Error executing node {node.id}: {e}", exc_info=True)
                 # Notify observers of node error
                 for observer in self.observers:
                     await observer.on_node_error(
-                        stateful_execution.execution_id,
+                        execution_runtime.execution_id,
                         str(node.id),
                         str(e)
                     )

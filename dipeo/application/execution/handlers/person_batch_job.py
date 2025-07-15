@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution import UnifiedExecutionContext
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.core.static.generated_nodes import PersonBatchJobNode
@@ -24,6 +23,7 @@ from dipeo.models import (
 
 if TYPE_CHECKING:
     from dipeo.core.dynamic.conversation_manager import ConversationManager
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 # PersonBatchJobNodeData is a type alias for PersonJobNodeData in TypeScript
 # but not generated in Python, so we create it here
@@ -64,13 +64,13 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
     def description(self) -> str:
         return "Execute prompts across multiple persons in batch"
 
-    def _resolve_service(self, context: UnifiedExecutionContext, services: dict[str, Any], service_name: str) -> Any | None:
+    def _resolve_service(self, context: "ExecutionContext", services: dict[str, Any], service_name: str) -> Any | None:
         return context.get_service(service_name) or services.get(service_name)
 
     async def execute(
         self,
         node: PersonBatchJobNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -81,7 +81,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
     async def _execute_batch(
         self,
         node: PersonBatchJobNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -182,7 +182,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         person_id: str,
         prompt: str,
         node: PersonBatchJobNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         diagram: DomainDiagram | None,
         conversation_service: "ConversationManager",
@@ -195,14 +195,15 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
             raise ValueError(f"Person {person_id} not found")
 
         # Create message builder
-        execution_id = context.execution_state.id if hasattr(context, 'execution_state') else getattr(context, 'execution_id', 'unknown')
+        # TODO: Add method to get execution_id from context protocol
+        execution_id = getattr(context, '_execution_id', 'unknown')
         prompt_builder = self._resolve_service(context, services, "prompt_builder")
         
         # Apply memory settings if configured
         if node.memory_settings:
             execution_count = 0
-            if hasattr(context, 'get_node_execution_count') and hasattr(context, 'current_node_id'):
-                execution_count = context.get_node_execution_count(context.current_node_id)
+            if hasattr(context, 'get_node_execution_count'):
+                execution_count = context.get_node_execution_count(node.id)
             
             if execution_count > 0:
                 # Apply memory settings for subsequent executions

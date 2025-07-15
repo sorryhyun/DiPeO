@@ -5,19 +5,20 @@ import os
 import sys
 import warnings
 from io import StringIO
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution import UnifiedExecutionContext
-from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handler_factory import register_handler
 from dipeo.core.static.generated_nodes import CodeJobNode
 from dipeo.models import CodeJobNodeData, NodeOutput, NodeType
 from dipeo.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.simple_execution import SimpleExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 
@@ -55,36 +56,36 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     def description(self) -> str:
         return "Executes Python, JavaScript, or Bash code with enhanced capabilities"
 
-    async def pre_execute(
-        self,
-        node: CodeJobNode,
-        execution: "SimpleExecution"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for CodeJobNode."""
-        return {
-            "language": node.language.value if hasattr(node.language, 'value') else node.language,
-            "code": node.code,
-            "timeout": node.timeout
-        }
+    def validate(self, request: ExecutionRequest[CodeJobNode]) -> Optional[str]:
+        """Validate the code job configuration."""
+        node = request.node
+        
+        # Validate code is provided
+        if not node.code:
+            return "No code provided"
+        
+        # Validate language is supported
+        supported_languages = ["python", "javascript", "bash"]
+        language = node.language.value if hasattr(node.language, 'value') else node.language
+        if language not in supported_languages:
+            return f"Unsupported language: {language}. Supported: {', '.join(supported_languages)}"
+        
+        return None
     
-    async def execute(
-        self,
-        node: CodeJobNode,
-        context: UnifiedExecutionContext,
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutput:
+    async def execute_request(self, request: ExecutionRequest[CodeJobNode]) -> NodeOutput:
+        """Execute the code job."""
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        # Store execution metadata
+        language = node.language.value if hasattr(node.language, 'value') else node.language
+        request.add_metadata("language", language)
+        request.add_metadata("code", node.code)
+        request.add_metadata("timeout", node.timeout)
+        
         # Direct typed access to node properties
-        language = node.language
         code = node.code
         timeout = node.timeout or 30  # Default 30 seconds
-
-        if not code:
-            return self._build_output(
-                {"default": ""}, 
-                context,
-                {"error": "No code provided"}
-            )
 
         try:
             if language == "python":
@@ -124,6 +125,42 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 context,
                 {"error": str(e), "language": language, "success": False}
             )
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[CodeJobNode],
+        output: NodeOutput
+    ) -> NodeOutput:
+        """Post-execution hook to log code execution details."""
+        # Log execution details if in debug mode
+        if request.metadata.get("debug"):
+            language = request.metadata.get("language")
+            success = output.metadata.get("success", False)
+            print(f"[CodeJobNode] Executed {language} code - Success: {success}")
+            if not success and output.metadata.get("error"):
+                print(f"[CodeJobNode] Error: {output.metadata['error']}")
+        
+        return output
+    
+    async def on_error(
+        self,
+        request: ExecutionRequest[CodeJobNode],
+        error: Exception
+    ) -> Optional[NodeOutput]:
+        """Handle execution errors with better error messages."""
+        language = request.metadata.get("language", "unknown")
+        
+        # Create error output with language information
+        return self._build_output(
+            {"default": ""}, 
+            request.context,
+            {
+                "error": f"Code execution failed: {str(error)}",
+                "language": language,
+                "success": False,
+                "error_type": type(error).__name__
+            }
+        )
 
     async def _execute_python(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
         if "{{" in code and inputs:

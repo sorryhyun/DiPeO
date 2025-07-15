@@ -134,15 +134,9 @@ class PromptBuilder:
         execution_count: int,
     ) -> str:
         # Debug logging
-        logger.debug(f"_select_prompt - default_prompt: {repr(default_prompt)}")
-        logger.debug(f"_select_prompt - first_only_prompt: {repr(first_only_prompt)}")
-        logger.debug(f"_select_prompt - execution_count: {execution_count}")
-        logger.debug(f"_select_prompt - should_use_first_only_prompt: {self.should_use_first_only_prompt(first_only_prompt, execution_count)}")
-        
+
         if self.should_use_first_only_prompt(first_only_prompt, execution_count):
-            logger.debug(f"_select_prompt - returning first_only_prompt: {repr(first_only_prompt)}")
             return first_only_prompt
-        logger.debug(f"_select_prompt - returning default_prompt: {repr(default_prompt)}")
         return default_prompt
     
     def build_with_context(
@@ -185,11 +179,8 @@ class PromptBuilder:
             for key, value in template_values.items()
         )
         if has_conversation_input:
-            logger.debug("Skipping conversation prepend - conversation input already provided")
             # Log which keys triggered this
             conv_keys = [k for k, v in template_values.items() if k.endswith('_messages') and isinstance(v, list)]
-            logger.debug(f"Conversation input keys found: {conv_keys}")
-            logger.debug(f"Template values keys: {list(template_values.keys())}")
             return prompt
         
         # Check if the prompt or any conversation messages already contain "[Previous conversation"
@@ -198,7 +189,6 @@ class PromptBuilder:
         for msg in global_conversation:
             content = msg.get('content', '')
             if '[Previous conversation' in content:
-                logger.debug("Skipping conversation prepend - detected existing conversation context in messages")
                 return prompt
         
         # Check if there are any messages to prepend

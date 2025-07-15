@@ -1,14 +1,15 @@
 # Core execution types for DiPeO
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.core.static.node_handler import TypedNodeHandler as CoreTypedHandler
 from dipeo.models import NodeOutput
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.simple_execution import SimpleExecution
+    from dipeo.application.execution.execution_request import ExecutionRequest
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
 
 
 ExecutionContext = Any
@@ -34,39 +35,115 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
     
     This class extends the core handler base with application-specific
     functionality like service registry access, execution state management,
-    and output building helpers.
+    output building helpers, and lifecycle methods.
+    
+    Lifecycle methods (all optional):
+    - validate: Pre-execution validation
+    - pre_execute: Setup before execution
+    - execute_request: New unified execution interface
+    - post_execute: Post-processing after execution
+    - on_error: Error recovery handling
     """
     
-    def _get_execution(self, context: Any) -> "SimpleExecution":
+    def _get_execution(self, context: Any) -> "ExecutionRuntime":
         """Get typed execution from context."""
-        # The context should have access to the typed execution
-        # This is a helper method to ensure type safety
-        from dipeo.application.execution.simple_execution import SimpleExecution
+        # Get ExecutionRuntime from context
+        if hasattr(context, 'runtime') and context.runtime:
+            return context.runtime
         
-        # The execution state in context is managed by SimpleExecution
-        # Try to get from execution_state first
+        # Try to get from execution_state
         execution_state = getattr(context, 'execution_state', None)
         if execution_state:
-            stateful_execution = getattr(execution_state, '_stateful_execution', None)
-            if isinstance(stateful_execution, SimpleExecution):
-                return stateful_execution
+            runtime = getattr(execution_state, '_runtime', None)
+            if runtime:
+                return runtime
         
         # Fall back to service registry
         service_registry = getattr(context, 'service_registry', None)
         if service_registry:
-            execution = service_registry.get('typed_execution')
-            if isinstance(execution, SimpleExecution):
-                return execution
+            runtime = service_registry.get('execution_runtime')
+            if runtime:
+                return runtime
         
-        raise ValueError("SimpleExecution not found in context")
+        raise ValueError("ExecutionRuntime not found in context")
+    
+    def validate(self, request: "ExecutionRequest[T]") -> Optional[str]:
+        """Validate the execution request before execution.
+        
+        Args:
+            request: The execution request to validate
+            
+        Returns:
+            Error message if validation fails, None if valid
+        """
+        # Default implementation - can be overridden
+        return None
     
     async def pre_execute(
         self,
         node: T,
-        execution: "SimpleExecution"
+        execution: Any  # Accept any type for backward compatibility
     ) -> dict[str, Any]:
-        """Pre-execution logic for the node. Override in subclasses."""
+        """Pre-execution logic for the node. Override in subclasses.
+        
+        Note: This method accepts Any for the execution parameter to maintain
+        backward compatibility with handlers using ExecutionRuntime.
+        """
         return {}
+    
+    async def execute_request(self, request: "ExecutionRequest[T]") -> NodeOutput:
+        """Execute the node with the unified request object.
+        
+        This is the new execution interface that provides a cleaner API.
+        If not overridden, it delegates to the execute method.
+        
+        Args:
+            request: The unified execution request
+            
+        Returns:
+            NodeOutput containing the execution results
+        """
+        # Default implementation delegates to execute for backward compatibility
+        return await self.execute(
+            request.node,
+            request.context,
+            request.inputs,
+            request.services
+        )
+    
+    def post_execute(
+        self,
+        request: "ExecutionRequest[T]",
+        output: NodeOutput
+    ) -> NodeOutput:
+        """Post-execution hook for cleanup or enrichment.
+        
+        Args:
+            request: The execution request
+            output: The output from execution
+            
+        Returns:
+            Modified output (or original if no changes)
+        """
+        # Default implementation - can be overridden
+        return output
+    
+    async def on_error(
+        self,
+        request: "ExecutionRequest[T]",
+        error: Exception
+    ) -> Optional[NodeOutput]:
+        """Error recovery hook.
+        
+        Args:
+            request: The execution request
+            error: The exception that occurred
+            
+        Returns:
+            Recovery output if possible, None to propagate error
+        """
+        # Default implementation - can be overridden
+        return None
     
     def _build_output(
         self,
@@ -81,6 +158,54 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
             node_id=getattr(context, 'current_node_id', None),
             executed_nodes=getattr(context, 'executed_nodes', [])
         )
+    
+    async def execute(
+        self,
+        node: T,
+        context: Any,
+        inputs: dict[str, Any],
+        services: dict[str, Any]
+    ) -> NodeOutput:
+        """Execute the handler with lifecycle support.
+        
+        Always creates ExecutionRequest and uses the lifecycle flow.
+        """
+        # Import here to avoid circular dependency
+        from dipeo.application.execution.execution_request import ExecutionRequest
+        
+        # Always create ExecutionRequest and use lifecycle flow
+        request = ExecutionRequest(
+            node=node,
+            context=context,
+            inputs=inputs,
+            services=services,
+            metadata={},
+            execution_id=getattr(context, 'execution_id', ''),
+            runtime=getattr(context, 'runtime', None)
+        )
+        
+        try:
+            # Validate
+            validation_error = self.validate(request)
+            if validation_error:
+                raise ValueError(validation_error)
+            
+            # Execute
+            output = await self.execute_request(request)
+            
+            # Post-execute
+            output = self.post_execute(request, output)
+            
+            return output
+            
+        except Exception as e:
+            # Try error recovery
+            recovery_output = await self.on_error(request, e)
+            if recovery_output:
+                return recovery_output
+            
+            # No recovery - re-raise
+            raise
 
 
 # Backward compatibility alias

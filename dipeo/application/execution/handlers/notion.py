@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution import UnifiedExecutionContext
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.core.static.generated_nodes import NotionNode
@@ -11,7 +10,8 @@ from dipeo.domain.notion.services import NotionValidator
 from dipeo.models import NodeOutput, NodeType, NotionNodeData, NotionOperation
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.simple_execution import SimpleExecution
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
+    from dipeo.core.dynamic.execution_context import ExecutionContext
 
 
 @register_handler
@@ -47,7 +47,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     async def pre_execute(
         self,
         node: NotionNode,
-        execution: "SimpleExecution"
+        execution: "ExecutionRuntime"
     ) -> dict[str, Any]:
         """Pre-execute logic for NotionNode."""
         return {
@@ -59,7 +59,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     async def execute(
         self,
         node: NotionNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
@@ -68,7 +68,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     async def _execute_notion_operation(
         self,
         node: NotionNode,
-        context: UnifiedExecutionContext,
+        context: "ExecutionContext",
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutput:
