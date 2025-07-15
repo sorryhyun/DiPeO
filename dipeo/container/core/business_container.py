@@ -37,13 +37,13 @@ def _create_base_validator():
 
 def _create_condition_evaluator():
     """Create condition evaluation service."""
-    from dipeo.application.utils.template import ConditionEvaluator
+    from dipeo.application.utils import ConditionEvaluator
     return ConditionEvaluator()
 
 
 def _create_prompt_builder():
     """Create prompt builder service."""
-    from dipeo.application.utils.template import PromptBuilder
+    from dipeo.application.utils import PromptBuilder
     return PromptBuilder()
 
 

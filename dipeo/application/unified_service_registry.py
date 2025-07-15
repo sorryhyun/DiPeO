@@ -9,18 +9,7 @@ from dipeo.core.utils.dynamic_registry import DynamicRegistry
 T = TypeVar('T')
 
 if TYPE_CHECKING:
-    from dipeo.core.ports import LLMServicePort, StateStorePort, FileServicePort, NotionServicePort
-    from dipeo.core.static.executable_diagram import ExecutableDiagram
-    from dipeo.core.dynamic.conversation_manager import ConversationManager
-    from dipeo.core.dynamic.execution_context import ExecutionContext
-    from dipeo.application.services.apikey_service import APIKeyService
-    from dipeo.application.utils.template import PromptBuilder
-    from dipeo.infra.services.api.api_service import APIService
-    from dipeo.infra.adapters.notion.service import NotionAPIService
-    from dipeo.domain.db.services.db_operations_service import DBOperationsDomainService
-    from dipeo.application.utils.template.evaluator import ConditionEvaluator
-    from dipeo.infra.persistence.diagram.storage_adapter import DiagramStorageAdapter
-    from typing import Dict
+    pass
 
 
 @dataclass(frozen=True)

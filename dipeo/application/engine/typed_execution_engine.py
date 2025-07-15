@@ -146,7 +146,7 @@ class TypedExecutionEngine:
                 inputs = execution_runtime.resolve_inputs(node)
                 
                 # Update current node
-                execution_runtime._current_node_id = node.id
+                execution_runtime._current_node_id[0] = node.id
                 
                 # Register services
                 execution_runtime._service_registry.register("diagram", execution_runtime.diagram)

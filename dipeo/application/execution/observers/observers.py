@@ -123,7 +123,7 @@ class StreamingObserver(ExecutionObserver):
                 "data": {
                     "node_id": node_id,
                     "state": state.status.value,
-                    "output": state.output.model_dump() if state.output else None,
+                    "output": state.output if state.output else None,
                     "started_at": state.started_at,
                     "ended_at": state.ended_at,
                     "token_usage": state.token_usage.model_dump() if state.token_usage else None,

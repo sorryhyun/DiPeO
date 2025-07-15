@@ -79,13 +79,16 @@ class ExecutionContext(Protocol):
     # These methods provide standardized state management
     
     @abstractmethod
-    def transition_node_to_running(self, node_id: NodeID) -> None:
+    def transition_node_to_running(self, node_id: NodeID) -> int:
         """Transition a node to running state.
         
         This should increment execution count and update state atomically.
         
         Args:
             node_id: The ID of the node to transition
+            
+        Returns:
+            The execution number for this run
         """
         ...
     
