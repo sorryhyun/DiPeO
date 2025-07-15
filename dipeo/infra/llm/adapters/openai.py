@@ -18,8 +18,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
     
     def supports_tools(self) -> bool:
-        # gpt-4.1-nano uses responses API which doesn't support tools
-        supported_models = ['gpt-4o', 'gpt-4o-mini']
+        # Models that support tools including websearch via responses API
+        supported_models = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini']
         return any(model in self.model_name for model in supported_models)
     
     def supports_response_api(self) -> bool:
@@ -77,11 +77,10 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 **api_params
             }
             
-            # Only add tools if they exist and are supported
-            # Note: responses API may not support tools parameter
+            # Add tools if they exist and are supported
             if api_tools and self.supports_tools():
-                # For now, skip tools for responses API as it doesn't accept them
-                logger.debug(f"Tools requested but not supported by responses API: {api_tools}")
+                create_params["tools"] = api_tools
+                logger.debug(f"Using tools with responses API: {api_tools}")
             
             response = self.client.responses.create(**create_params)
         except Exception as e:

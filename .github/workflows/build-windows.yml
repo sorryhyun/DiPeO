@@ -69,15 +69,20 @@ jobs:
           }
       
       - name: Build Python Backend
+        working-directory: apps/server
         run: |
           # Create virtual environment
           python -m venv .venv
           
           # Activate and install dependencies
-          .\.venv\Scripts\Activate.ps1
+          & ".\.venv\Scripts\Activate.ps1"
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
           pip install pyinstaller
+          
+          # Install DiPeO packages in editable mode
+          pip install -e "${{ github.workspace }}"
+          pip install -e .
           
           # Build executable
           pyinstaller build.spec --clean --noconfirm
@@ -87,16 +92,50 @@ jobs:
             Write-Error "Backend build failed"
             exit 1
           }
+          
+          Write-Host "Backend build complete: $(Get-Item dist/dipeo-server.exe).Length bytes"
+      
+      - name: Build CLI Tool
+        working-directory: apps/cli
+        run: |
+          # Create virtual environment
+          python -m venv .venv
+          
+          # Activate and install dependencies
+          & ".\.venv\Scripts\Activate.ps1"
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install pyinstaller
+          
+          # Install DiPeO core package in editable mode
+          pip install -e "${{ github.workspace }}"
+          pip install -e .
+          
+          # Build CLI executable
+          pyinstaller --onefile --name dipeo --distpath dist src/dipeo_cli/minimal_cli.py
+          
+          # Verify executable was created
+          if (!(Test-Path "dist/dipeo.exe")) {
+            Write-Error "CLI build failed"
+            exit 1
+          }
+          
+          Write-Host "CLI build complete: $(Get-Item dist/dipeo.exe).Length bytes"
       
       - name: Install all dependencies
         run: |
           pnpm install --frozen-lockfile
       
-
       - name: Build Frontend
+        working-directory: apps/web
         run: |
-          pnpm --filter @dipeo/domain-models build
-          pnpm --filter web build
+          pnpm build
+          
+          # Verify build output
+          if (!(Test-Path "dist/index.html")) {
+            Write-Error "Frontend build failed"
+            exit 1
+          }
 
       
       - name: Build Tauri Application
@@ -105,6 +144,18 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
+          # Verify backend and CLI executables exist
+          if (!(Test-Path "${{ github.workspace }}/apps/server/dist/dipeo-server.exe")) {
+            Write-Error "Backend executable not found"
+            exit 1
+          }
+          
+          if (!(Test-Path "${{ github.workspace }}/apps/cli/dist/dipeo.exe")) {
+            Write-Error "CLI executable not found"
+            exit 1
+          }
+          
+          # Build Tauri application
           pnpm tauri build --target x86_64-pc-windows-msvc
       
       - name: Prepare artifacts
@@ -115,26 +166,35 @@ jobs:
           # Find and copy installers
           $version = "${{ github.event.inputs.version || '0.1.0' }}"
           
-          # Copy NSIS installer
-          $nsisInstaller = Get-ChildItem -Path "apps/desktop/src-tauri/target/release/bundle/nsis" -Filter "*.exe" | Select-Object -First 1
-          if ($nsisInstaller) {
-            Copy-Item $nsisInstaller.FullName -Destination "./dist/DiPeO-Setup-$version-x64.exe"
+          # Find installer (could be in nsis or other bundle directories)
+          $installerPath = Get-ChildItem -Path "apps/desktop/src-tauri/target/release/bundle" -Recurse -Include "*.msi", "*.exe" | 
+                           Where-Object { $_.Name -like "*setup*" -or $_.Name -like "*installer*" -or $_.Directory.Name -eq "nsis" } | 
+                           Select-Object -First 1
+          
+          if ($installerPath) {
+            $outputFile = "./dist/DiPeO-Setup-$version-x64$($installerPath.Extension)"
+            Copy-Item -Path $installerPath.FullName -Destination $outputFile
+            Write-Host "Installer copied to: $outputFile"
           }
           
-          # Copy MSI installer
+          # Copy MSI installer separately if exists
           $msiInstaller = Get-ChildItem -Path "apps/desktop/src-tauri/target/release/bundle/msi" -Filter "*.msi" | Select-Object -First 1
           if ($msiInstaller) {
             Copy-Item $msiInstaller.FullName -Destination "./dist/DiPeO-$version-x64.msi"
           }
           
+          # Copy CLI executable
+          Copy-Item -Path "apps/cli/dist/dipeo.exe" -Destination "./dist/dipeo.exe"
+          Write-Host "CLI executable copied to: ./dist/dipeo.exe"
+          
           # List artifacts
           Get-ChildItem -Path "./dist"
       
-      - name: Upload NSIS Installer
+      - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: dipeo-windows-nsis
-          path: dist/DiPeO-Setup-*.exe
+          name: dipeo-windows-installer
+          path: dist/DiPeO-Setup-*
           retention-days: 30
       
       - name: Upload MSI Installer
@@ -142,6 +202,13 @@ jobs:
         with:
           name: dipeo-windows-msi
           path: dist/DiPeO-*.msi
+          retention-days: 30
+      
+      - name: Upload CLI Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: dipeo-cli-windows
+          path: dist/dipeo.exe
           retention-days: 30
       
       - name: Create Release (if tagged)

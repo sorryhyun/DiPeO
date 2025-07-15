@@ -38,7 +38,7 @@ class LLMDomainService:
     # Provider-specific validation rules
     _PROVIDER_RULES = {
         "openai": {
-            "allowed_params": ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty", "stop"],
+            "allowed_params": ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty", "stop", "tools"],
             "temperature_range": (0, 2),
             "requires_api_key": True,
         },

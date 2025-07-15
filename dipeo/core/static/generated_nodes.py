@@ -287,7 +287,7 @@ def create_executable_node(
             max_iteration=data.get("max_iteration", 1),
             memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
             memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
-            tools=data.get("tools"),
+            tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None,
         )
     
     if node_type == NodeType.condition:
@@ -396,7 +396,7 @@ def create_executable_node(
             max_iteration=data.get("max_iteration", 1),
             memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
             memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
-            tools=data.get("tools")
+            tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None
         )
     
     raise ValueError(f"Unknown node type: {node_type}")
