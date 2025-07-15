@@ -32,7 +32,7 @@ from .constants import (
 
 # Execution framework has been moved to application layer
 # Import from dipeo.application instead
-from .types import (
+from .type_defs import (
     Error,
     JsonDict,
     JsonList,
