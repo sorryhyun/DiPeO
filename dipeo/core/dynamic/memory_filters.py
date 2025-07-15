@@ -17,6 +17,7 @@ class MemoryView(Enum):
     # Specialized views
     SYSTEM_AND_ME = "system_and_me"  # System messages and my interactions
     CONVERSATION_PAIRS = "conversation_pairs"  # Messages grouped as request/response pairs
+    ALL_MESSAGES = "all_messages"  # All messages in the conversation (for judges/observers)
 
 
 class MemoryFilter(Protocol):
@@ -102,6 +103,17 @@ class ConversationPairsFilter:
         return "Messages grouped as request/response pairs"
 
 
+class AllMessagesFilter:
+    """Filter that shows all messages in the conversation (for judges/observers)."""
+    
+    def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
+        # Return all messages unfiltered
+        return messages
+    
+    def describe(self) -> str:
+        return "All messages in the conversation"
+
+
 class MemoryFilterFactory:
     """Factory for creating memory filters."""
     
@@ -111,6 +123,7 @@ class MemoryFilterFactory:
         MemoryView.SENT_TO_ME: SentToMeFilter,
         MemoryView.SYSTEM_AND_ME: SystemAndMeFilter,
         MemoryView.CONVERSATION_PAIRS: ConversationPairsFilter,
+        MemoryView.ALL_MESSAGES: AllMessagesFilter,
     }
     
     @classmethod

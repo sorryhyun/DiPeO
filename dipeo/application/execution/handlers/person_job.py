@@ -136,8 +136,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Get or create person
             person = self._get_or_create_person(person_id, conversation_manager)
             
-            # Apply memory settings if configured and not the first execution
-            if execution_count > 0 and node.memory_settings:
+            # Apply memory settings if configured
+            # Note: We apply memory settings even on first execution because some nodes
+            # (like judge panels) need to see full conversation history from the start
+            if node.memory_settings:
                 person.apply_memory_settings(node.memory_settings)
             
             # Use inputs directly
@@ -146,9 +148,20 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Handle conversation inputs
             has_conversation_input = self._has_conversation_input(transformed_inputs)
             if has_conversation_input:
+                logger.debug(f"PersonJob {node.id}: Rebuilding conversation from inputs")
                 self._rebuild_conversation(person, transformed_inputs)
+                logger.debug(f"PersonJob {node.id}: After rebuild, person has {person.get_message_count()} messages")
             
             # Build prompt BEFORE applying memory management
+            logger.debug(f"PersonJob {node.id} ({node.label}): transformed_inputs keys: {list(transformed_inputs.keys())}")
+            for key, value in transformed_inputs.items():
+                if isinstance(value, dict) and 'messages' in value:
+                    logger.debug(f"  {key}: dict with {len(value.get('messages', []))} messages")
+                elif isinstance(value, list):
+                    logger.debug(f"  {key}: list with {len(value)} items")
+                else:
+                    logger.debug(f"  {key}: {type(value).__name__}")
+            
             template_values = prompt_builder.prepare_template_values(
                 transformed_inputs, 
                 conversation_manager=conversation_manager,
@@ -283,29 +296,43 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
     def _rebuild_conversation(self, person: Person, inputs: dict[str, Any]) -> None:
         all_messages = []
-        for value in inputs.values():
+        for key, value in inputs.items():
             if isinstance(value, dict) and "messages" in value:
                 messages = value["messages"]
                 if isinstance(messages, list):
+                    logger.debug(f"_rebuild_conversation: Found {len(messages)} messages in input '{key}'")
                     all_messages.extend(messages)
         
         if not all_messages:
+            logger.debug("_rebuild_conversation: No messages found in inputs")
             return
         
-        for i, msg_dict in enumerate(all_messages):
-            content = msg_dict.get("content", "")
-            # Skip messages that contain the "[Previous conversation" marker to avoid duplication
-            if "[Previous conversation" in content:
-                continue
-                
-            message = Message(
-                from_person_id=msg_dict.get("from_person_id", person.id),
-                to_person_id=msg_dict.get("to_person_id", person.id),
-                content=content,
-                message_type="person_to_person",
-                timestamp=msg_dict.get("timestamp"),
-            )
-            person.add_message(message)
+        logger.debug(f"_rebuild_conversation: Processing {len(all_messages)} total messages")
+        
+        for i, msg in enumerate(all_messages):
+            # Handle both Message objects and dict formats
+            if isinstance(msg, Message):
+                # Already a Message object - check content and add directly
+                if "[Previous conversation" not in msg.content:
+                    person.add_message(msg)
+                    logger.debug(f"  Added Message object {i}: from={msg.from_person_id}, to={msg.to_person_id}")
+            elif isinstance(msg, dict):
+                # Dictionary format - convert to Message
+                content = msg.get("content", "")
+                # Skip messages that contain the "[Previous conversation" marker to avoid duplication
+                if "[Previous conversation" in content:
+                    logger.debug(f"  Skipped message {i} with '[Previous conversation' marker")
+                    continue
+                    
+                message = Message(
+                    from_person_id=msg.get("from_person_id", person.id),
+                    to_person_id=msg.get("to_person_id", person.id),
+                    content=content,
+                    message_type="person_to_person",
+                    timestamp=msg.get("timestamp"),
+                )
+                person.add_message(message)
+                logger.debug(f"  Added dict message {i}: from={message.from_person_id}, to={message.to_person_id}, content_length={len(content)}")
     
     def _needs_conversation_output(self, node_id: str, diagram: Any) -> bool:
         # Check if any edge from this node expects conversation output

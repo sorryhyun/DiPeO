@@ -190,6 +190,7 @@ class Person:
             MemoryViewEnum.sent_to_me: MemoryView.SENT_TO_ME,
             MemoryViewEnum.system_and_me: MemoryView.SYSTEM_AND_ME,
             MemoryViewEnum.conversation_pairs: MemoryView.CONVERSATION_PAIRS,
+            MemoryViewEnum.all_messages: MemoryView.ALL_MESSAGES,
         }
         
         memory_view = view_mapping.get(settings.view, MemoryView.ALL_INVOLVED)

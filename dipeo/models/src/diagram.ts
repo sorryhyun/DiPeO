@@ -60,6 +60,7 @@ export enum MemoryView {
   SENT_TO_ME = 'sent_to_me',      // Messages sent to me
   SYSTEM_AND_ME = 'system_and_me', // System messages and my interactions
   CONVERSATION_PAIRS = 'conversation_pairs', // Request/response pairs
+  ALL_MESSAGES = 'all_messages',  // All messages in conversation (for judges/observers)
 }
 
 export enum DiagramFormat {

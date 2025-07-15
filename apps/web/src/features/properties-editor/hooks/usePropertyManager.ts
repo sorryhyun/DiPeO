@@ -101,7 +101,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
             switch (memoryProfile) {
               case 'FULL':
                 transformedData.memory_settings = {
-                  view: 'all_involved',
+                  view: 'all_messages',
                   max_messages: null,
                   preserve_system: true
                 };

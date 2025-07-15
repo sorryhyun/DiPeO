@@ -20,7 +20,7 @@ class MemoryProfileFactory:
     
     _profiles = {
         MemoryProfile.FULL: MemorySettings(
-            view=MemoryViewEnum.all_involved,
+            view=MemoryViewEnum.all_messages,
             max_messages=None,
             preserve_system=True
         ),

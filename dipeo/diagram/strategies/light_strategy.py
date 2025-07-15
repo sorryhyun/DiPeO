@@ -10,6 +10,7 @@ from dipeo.models import (
     NodeID,
     create_handle_id,
     parse_handle_id,
+    MemoryView,
 )
 
 from ..conversion_utils import _node_id_map, _YamlMixin
@@ -95,9 +96,40 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if "memory_config" in props:
                 props.pop("memory_config")
             
-            # Remove memory_settings if memory_profile is present
-            if "memory_profile" in props and "memory_settings" in props:
-                props.pop("memory_settings")
+            # Convert memory_profile to memory_settings if present
+            if "memory_profile" in props:
+                profile_str = props.get("memory_profile")
+                
+                # Map profile strings to memory settings
+                profile_to_settings = {
+                    "FULL": {
+                        "view": MemoryView.all_messages,
+                        "max_messages": None,
+                        "preserve_system": True
+                    },
+                    "FOCUSED": {
+                        "view": MemoryView.conversation_pairs,
+                        "max_messages": 20,
+                        "preserve_system": True
+                    },
+                    "MINIMAL": {
+                        "view": MemoryView.system_and_me,
+                        "max_messages": 5,
+                        "preserve_system": True
+                    },
+                    "GOLDFISH": {
+                        "view": MemoryView.conversation_pairs,
+                        "max_messages": 2,
+                        "preserve_system": False
+                    }
+                }
+                
+                if profile_str in profile_to_settings:
+                    props["memory_settings"] = profile_to_settings[profile_str]
+                    log.debug(f"Converted memory_profile '{profile_str}' to memory_settings")
+                
+                # Keep memory_profile for UI state
+                # props.pop("memory_profile")  # Don't remove it, frontend might need it
 
         return build_node(
             id=self._create_node_id(index),

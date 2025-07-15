@@ -68,21 +68,26 @@ jobs:
             # For now, we'll skip this step and assume icons are committed
           }
       
-      - name: Build Python Backend
-        working-directory: apps/server
+      - name: Setup Python Environment
         run: |
-          # Create virtual environment
+          # Create virtual environment at root
           python -m venv .venv
           
-          # Activate and install dependencies
+          # Activate and install all dependencies
           & ".\.venv\Scripts\Activate.ps1"
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
           pip install pyinstaller
           
-          # Install DiPeO packages in editable mode
-          pip install -e "${{ github.workspace }}"
-          pip install -e .
+          Write-Host "Python environment setup complete"
+      
+      - name: Build Python Backend
+        run: |
+          # Activate root virtual environment
+          & ".\.venv\Scripts\Activate.ps1"
+          
+          # Set working directory
+          Set-Location "apps/server"
           
           # Set PYTHONPATH and BUILD_TYPE for the build
           $env:PYTHONPATH = "${{ github.workspace }};${{ github.workspace }}\dipeo;${{ github.workspace }}\apps\server"
@@ -100,20 +105,12 @@ jobs:
           Write-Host "Backend build complete: $(Get-Item dist/dipeo-server.exe).Length bytes"
       
       - name: Build CLI Tool
-        working-directory: apps/cli
         run: |
-          # Create virtual environment
-          python -m venv .venv
-          
-          # Activate and install dependencies
+          # Activate root virtual environment
           & ".\.venv\Scripts\Activate.ps1"
-          python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
-          pip install pyinstaller
           
-          # Install DiPeO core package in editable mode
-          pip install -e "${{ github.workspace }}"
-          pip install -e .
+          # Set working directory
+          Set-Location "apps/cli"
           
           # Set PYTHONPATH and BUILD_TYPE for the build
           $env:PYTHONPATH = "${{ github.workspace }};${{ github.workspace }}\dipeo;${{ github.workspace }}\apps\cli"

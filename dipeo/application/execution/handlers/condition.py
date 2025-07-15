@@ -151,7 +151,12 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                         if node_result:
                             # Handle result dict
                             value = node_result.get('value')
-                            if isinstance(value, dict) and 'conversation' in value:
+                            # Check if value is a list (ConversationOutput) or dict with 'conversation' key
+                            if isinstance(value, list) and len(value) > 0:
+                                # Direct list of messages from ConversationOutput
+                                latest_conversation = {"messages": value}
+                            elif isinstance(value, dict) and 'conversation' in value:
+                                # Legacy format
                                 latest_conversation = {"messages": value['conversation']}
                 
                 # Pass conversation state if found, otherwise pass inputs
@@ -202,6 +207,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 if node_result:
                     person_job_nodes.append(node)
         
+        logger.debug(f"_aggregate_conversation_states: Found {len(person_job_nodes)} person_job nodes with outputs")
 
         # Collect conversations from each person_job node's output
         for node in person_job_nodes:
@@ -210,9 +216,28 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 continue
             # Handle result dict from protocol
             value = node_result.get('value')
-            if isinstance(value, dict) and 'conversation' in value:
-                aggregated["messages"].extend(value['conversation'])
+            # Check if value is a list (ConversationOutput) or dict with 'conversation' key
+            is_conversation_list = isinstance(value, list) and all(
+                isinstance(msg, (dict, object)) and (
+                    (isinstance(msg, dict) and 'role' in msg and 'content' in msg) or
+                    hasattr(msg, 'role') or hasattr(msg, 'content')
+                ) for msg in value[:1]  # Just check first message for efficiency
+            ) if isinstance(value, list) and len(value) > 0 else False
+            
+            logger.debug(f"  Node {node.id} ({getattr(node, 'label', 'unlabeled')}): value type={type(value)}, is_conversation_list={is_conversation_list}, has conversation dict={isinstance(value, dict) and 'conversation' in value}")
+            
+            if is_conversation_list:
+                # Direct list of messages from ConversationOutput
+                messages = value
+                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (direct list)")
+                aggregated["messages"].extend(messages)
+            elif isinstance(value, dict) and 'conversation' in value:
+                # Legacy format with conversation key
+                messages = value['conversation']
+                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (dict format)")
+                aggregated["messages"].extend(messages)
         
+        logger.debug(f"_aggregate_conversation_states: Total aggregated messages: {len(aggregated['messages'])}")
         return aggregated
     
     def _extract_node_exec_counts(self, context: "ExecutionContext") -> dict[str, int] | None:

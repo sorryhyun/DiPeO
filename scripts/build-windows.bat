@@ -20,11 +20,10 @@ set SCRIPT_DIR=%~dp0
 set ROOT_DIR=%SCRIPT_DIR%..
 cd /d "%ROOT_DIR%"
 
-REM Step 1: Build Python Backend and CLI
-echo [1/4] Building Python Backend...
-cd apps\server
+REM Step 1: Setup Python Environment and Install Dependencies
+echo [1/5] Setting up Python environment...
 
-REM Check if virtual environment exists
+REM Check if virtual environment exists at root
 if not exist ".venv" (
     echo Creating virtual environment...
     python -m venv .venv
@@ -33,19 +32,21 @@ if not exist ".venv" (
 REM Activate virtual environment
 call .venv\Scripts\activate.bat
 
-REM Install dependencies
-echo Installing dependencies...
+REM Install all dependencies
+echo Installing all dependencies...
 pip install --upgrade pip setuptools wheel >nul 2>&1
 pip install -r requirements.txt >nul 2>&1
 pip install pyinstaller >nul 2>&1
 
-REM Install local packages
-echo Installing DiPeO packages...
-pip install -e "%ROOT_DIR%" >nul 2>&1
-pip install -e . >nul 2>&1
+echo Dependencies installed successfully
+echo.
 
-REM Build executable
-echo Building executable with PyInstaller...
+REM Step 2: Build Python Backend
+echo [2/5] Building Python Backend...
+cd apps\server
+
+REM Build executable using root virtual environment
+echo Building server executable with PyInstaller...
 set BUILD_TYPE=SERVER
 pyinstaller "%ROOT_DIR%\dipeo\build-windows.spec" --clean --noconfirm --distpath dist
 
@@ -59,30 +60,11 @@ if exist "dist\dipeo-server.exe" (
 cd "%ROOT_DIR%"
 echo.
 
-REM Step 2: Build CLI
-echo [2/4] Building CLI Tool...
+REM Step 3: Build CLI
+echo [3/5] Building CLI Tool...
 cd apps\cli
 
-REM Check if virtual environment exists
-if not exist ".venv" (
-    echo Creating virtual environment...
-    python -m venv .venv
-)
-
-REM Activate virtual environment
-call .venv\Scripts\activate.bat
-
-REM Install dependencies
-echo Installing CLI dependencies...
-pip install --upgrade pip setuptools wheel >nul 2>&1
-pip install -r requirements.txt >nul 2>&1
-pip install pyinstaller >nul 2>&1
-
-REM Install DiPeO core package
-pip install -e "%ROOT_DIR%" >nul 2>&1
-pip install -e . >nul 2>&1
-
-REM Build CLI executable
+REM Build CLI executable using root virtual environment
 echo Building CLI executable...
 set BUILD_TYPE=CLI
 pyinstaller "%ROOT_DIR%\dipeo\build-windows.spec" --clean --noconfirm --distpath dist --name dipeo
@@ -97,8 +79,8 @@ if exist "dist\dipeo.exe" (
 cd "%ROOT_DIR%"
 echo.
 
-REM Step 3: Build Frontend
-echo [3/4] Building Frontend...
+REM Step 4: Build Frontend
+echo [4/5] Building Frontend...
 cd apps\web
 
 REM Install dependencies if needed
@@ -121,8 +103,8 @@ if exist "dist\index.html" (
 cd "%ROOT_DIR%"
 echo.
 
-REM Step 4: Build Tauri Installer
-echo [4/4] Building Windows Installer...
+REM Step 5: Build Tauri Installer
+echo [5/5] Building Windows Installer...
 cd apps\desktop
 
 REM Check if backend executable exists

@@ -45,7 +45,11 @@ class PromptBuilder:
         if should_prepend and template_values:
             selected_prompt = self._prepend_conversation_context(selected_prompt, template_values)
         
-        return self._processor.process_simple(selected_prompt, template_values)
+        # Use full template processing to support Handlebars syntax
+        result = self._processor.process(selected_prompt, template_values)
+        if result.errors:
+            logger.warning(f"Template processing errors: {result.errors}")
+        return result.content
     
     def prepare_template_values(self, inputs: dict[str, Any], conversation_manager=None, person_id=None) -> dict[str, Any]:
 
@@ -100,12 +104,35 @@ class PromptBuilder:
                     # Extract the last message content as the argument to respond to
                     messages = value.get("messages", [])
                     if messages:
+                        # Convert Message objects to dicts if needed
+                        messages_as_dicts = []
+                        for msg in messages:
+                            if hasattr(msg, 'model_dump'):
+                                # Pydantic model - convert to dict
+                                messages_as_dicts.append(msg.model_dump())
+                            elif hasattr(msg, '__dict__'):
+                                # Regular object - convert attributes to dict
+                                messages_as_dicts.append({
+                                    'from_person_id': str(getattr(msg, 'from_person_id', '')),
+                                    'to_person_id': str(getattr(msg, 'to_person_id', '')),
+                                    'content': getattr(msg, 'content', ''),
+                                    'message_type': getattr(msg, 'message_type', ''),
+                                    'timestamp': getattr(msg, 'timestamp', '')
+                                })
+                            elif isinstance(msg, dict):
+                                # Already a dict
+                                messages_as_dicts.append(msg)
+                        
                         # Get the last message content
-                        last_message = messages[-1]
-                        if isinstance(last_message, dict) and "content" in last_message:
+                        last_message = messages_as_dicts[-1] if messages_as_dicts else None
+                        if last_message and "content" in last_message:
                             template_values[f"{key}_last_message"] = last_message["content"]
                             # Also make the full conversation available
-                            template_values[f"{key}_messages"] = messages
+                            template_values[f"{key}_messages"] = messages_as_dicts
+                            
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.debug(f"Prepared {key}_messages with {len(messages_as_dicts)} messages")
                     continue
                     
                 if "value" in value and isinstance(value["value"], dict) and "default" in value["value"]:

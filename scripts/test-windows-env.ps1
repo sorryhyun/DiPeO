@@ -110,8 +110,7 @@ $requiredDirs = @(
     "apps/cli", 
     "apps/web",
     "apps/desktop",
-    "dipeo",
-    "files/diagrams"
+    "dipeo"
 )
 
 foreach ($dir in $requiredDirs) {

@@ -176,7 +176,7 @@ export class DiagramAdapter {
       const memorySettings = nodeData.memory_settings as any;
       
       // Determine memory profile based on memory settings
-      if (memorySettings.view === 'all_involved' && !memorySettings.max_messages) {
+      if (memorySettings.view === 'all_messages' && !memorySettings.max_messages) {
         nodeData.memory_profile = 'FULL';
       } else if (memorySettings.view === 'conversation_pairs' && memorySettings.max_messages === 20) {
         nodeData.memory_profile = 'FOCUSED';

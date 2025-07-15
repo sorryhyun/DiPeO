@@ -46,33 +46,34 @@ if ($Clean) {
     Write-Output ""
 }
 
-# Step 1: Build Python Backend
+# Step 1: Setup Python Environment and Install Dependencies
+Write-ColorOutput Yellow "🔧 Setting up Python environment..."
+
+# Check if virtual environment exists at root
+if (-not (Test-Path ".venv")) {
+    Write-Output "Creating virtual environment..."
+    python -m venv .venv
+}
+
+# Activate virtual environment
+& ".\.venv\Scripts\Activate.ps1"
+
+# Install all dependencies
+Write-Output "Installing all dependencies..."
+pip install --upgrade pip setuptools wheel | Out-Null
+pip install -r requirements.txt | Out-Null
+pip install pyinstaller | Out-Null
+
+Write-ColorOutput Green "✓ Dependencies installed successfully"
+Write-Output ""
+
+# Step 2: Build Python Backend
 if (-not $SkipBackend) {
     Write-ColorOutput Yellow "🐍 Building Python Backend..."
     Set-Location "$RootDir\apps\server"
     
-    # Check if virtual environment exists
-    if (-not (Test-Path ".venv")) {
-        Write-Output "Creating virtual environment..."
-        python -m venv .venv
-    }
-    
-    # Activate virtual environment
-    & ".\.venv\Scripts\Activate.ps1"
-    
-    # Install dependencies
-    Write-Output "Installing dependencies..."
-    pip install --upgrade pip setuptools wheel | Out-Null
-    pip install -r requirements.txt | Out-Null
-    pip install pyinstaller | Out-Null
-    
-    # Install local packages
-    Write-Output "Installing DiPeO packages..."
-    pip install -e "$RootDir" | Out-Null
-    pip install -e . | Out-Null
-    
-    # Build executable
-    Write-Output "Building executable with PyInstaller..."
+    # Build executable using root virtual environment
+    Write-Output "Building server executable with PyInstaller..."
     $env:BUILD_TYPE = "SERVER"
     pyinstaller "$RootDir\dipeo\build-windows.spec" --clean --noconfirm --distpath dist
     
@@ -88,31 +89,12 @@ if (-not $SkipBackend) {
     Write-Output ""
 }
 
-# Step 2: Build CLI
+# Step 3: Build CLI
 if (-not $SkipCLI) {
     Write-ColorOutput Yellow "🔧 Building CLI Tool..."
     Set-Location "$RootDir\apps\cli"
     
-    # Check if virtual environment exists
-    if (-not (Test-Path ".venv")) {
-        Write-Output "Creating virtual environment..."
-        python -m venv .venv
-    }
-    
-    # Activate virtual environment
-    & ".\.venv\Scripts\Activate.ps1"
-    
-    # Install dependencies
-    Write-Output "Installing CLI dependencies..."
-    pip install --upgrade pip setuptools wheel | Out-Null
-    pip install -r requirements.txt | Out-Null
-    pip install pyinstaller | Out-Null
-    
-    # Install DiPeO core package
-    pip install -e "$RootDir" | Out-Null
-    pip install -e . | Out-Null
-    
-    # Build CLI executable
+    # Build CLI executable using root virtual environment
     Write-Output "Building CLI executable..."
     $env:BUILD_TYPE = "CLI"
     pyinstaller "$RootDir\dipeo\build-windows.spec" --clean --noconfirm --distpath dist --name dipeo
@@ -129,7 +111,7 @@ if (-not $SkipCLI) {
     Write-Output ""
 }
 
-# Step 3: Build Frontend
+# Step 4: Build Frontend
 if (-not $SkipFrontend) {
     Write-ColorOutput Yellow "⚛️  Building Frontend..."
     Set-Location "$RootDir\apps\web"
@@ -157,7 +139,7 @@ if (-not $SkipFrontend) {
     Write-Output ""
 }
 
-# Step 4: Build Tauri Installer
+# Step 5: Build Tauri Installer
 if (-not $SkipInstaller) {
     Write-ColorOutput Yellow "📦 Building Windows Installer..."
     Set-Location "$RootDir\apps\desktop"

@@ -51,6 +51,7 @@ class MemoryView(str, Enum):
     sent_to_me = "sent_to_me"
     system_and_me = "system_and_me"
     conversation_pairs = "conversation_pairs"
+    all_messages = "all_messages"
 
 class DiagramFormat(str, Enum):
     native = "native"
