@@ -134,46 +134,7 @@ jobs:
           
           Write-Host "Backend build complete: $(Get-Item dist/dipeo-server.exe).Length bytes"
       
-      - name: Build CLI Tool
-        run: |
-          # Activate root virtual environment
-          & ".\.venv\Scripts\Activate.ps1"
-          
-          # Set working directory
-          Set-Location "apps/cli"
-          
-          # Set PYTHONPATH and BUILD_TYPE for the build
-          $env:PYTHONPATH = "${{ github.workspace }};${{ github.workspace }}\dipeo;${{ github.workspace }}\apps\cli"
-          $env:BUILD_TYPE = "CLI"
-          
-          # Windows-specific PyInstaller workarounds
-          $env:PYTHONIOENCODING = "utf-8"
-          $env:PYTHONLEGACYWINDOWSSTDIO = "1"
-          
-          # Clear PyInstaller cache to avoid conflicts
-          if (Test-Path "$env:LOCALAPPDATA\pyinstaller") {
-            Remove-Item -Path "$env:LOCALAPPDATA\pyinstaller" -Recurse -Force
-          }
-          
-          try {
-            # Use centralized Windows build spec with verbose output for debugging
-            pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --name dipeo --log-level DEBUG 2>&1 | Tee-Object -FilePath "pyinstaller-cli.log"
-          } catch {
-            Write-Host "PyInstaller failed. Log contents:"
-            Get-Content "pyinstaller-cli.log" -Tail 100
-            throw
-          }
-          
-          # Verify executable was created
-          if (!(Test-Path "dist/dipeo.exe")) {
-            Write-Host "PyInstaller log contents:"
-            Get-Content "pyinstaller-cli.log" -Tail 100
-            Write-Error "CLI build failed"
-            exit 1
-          }
-          
-          Write-Host "CLI build complete: $(Get-Item dist/dipeo.exe).Length bytes"
-      
+
       - name: Install all dependencies
         run: |
           pnpm install --frozen-lockfile
