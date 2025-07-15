@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core.execution.execution_tracker import CompletionStatus
-from dipeo.core.execution.node_output import BaseNodeOutput, ErrorOutput
+from dipeo.core.execution.node_output import BaseNodeOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.models import NodeExecutionStatus, NodeID, NodeState
 
 if TYPE_CHECKING:
@@ -136,22 +136,24 @@ class StateTransitionManager:
     def transition_to_maxiter(
         self,
         node_id: NodeID,
-        node_states: dict[NodeID, NodeState]
+        node_states: dict[NodeID, NodeState],
+        output: Optional[NodeOutputProtocol] = None
     ) -> None:
         """Transition a node to max iterations reached state."""
         with self.state_lock:
-            # Create max iter output
-            max_iter_output = BaseNodeOutput(
-                value="Maximum iterations reached",
-                node_id=node_id,
-                metadata={"reason": "max_iterations"}
-            )
+            # Use provided output or create default max iter output
+            if output is None:
+                output = BaseNodeOutput(
+                    value="Maximum iterations reached",
+                    node_id=node_id,
+                    metadata={"reason": "max_iterations"}
+                )
             
             # Complete in tracker
             self.tracker.complete_execution(
                 node_id=node_id,
                 status=CompletionStatus.MAX_ITER,
-                output=max_iter_output
+                output=output
             )
             
             # Update state
@@ -259,8 +261,16 @@ class StateTransitionManager:
             # Check if we can reset this node
             can_reset = True
             
-            # Don't reset one-time nodes or condition nodes
-            if isinstance(target_node, (StartNode, EndpointNode, ConditionNode)):
+            # Don't reset one-time nodes
+            if isinstance(target_node, (StartNode, EndpointNode)):
+                can_reset = False
+            
+            # For condition nodes, allow reset if they're part of a loop
+            # (they need to re-evaluate when loop conditions change)
+            if isinstance(target_node, ConditionNode):
+                # Check if this condition node has outgoing edges that loop back
+                # If it does, it's part of a loop and should be reset
+                cond_outgoing = [e for e in self.diagram.edges if e.source_node_id == target_node.id]
                 can_reset = False
             
             # For PersonJobNodes, check max_iteration

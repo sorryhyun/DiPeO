@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.unified_service_registry import FILE_SERVICE
 from dipeo.core.static.generated_nodes import EndpointNode
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.models import EndpointNodeData, NodeType
@@ -38,7 +37,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["file"]
+        return ["file_service"]
 
     @property
     def description(self) -> str:
@@ -50,7 +49,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         # Validate file service is available if save_to_file is enabled
         if node.save_to_file:
-            if not request.services.get(FILE_SERVICE.name) and not self.file_service:
+            if not request.services.get("file_service") and not self.file_service:
                 return "File service is required when save_to_file is enabled"
         
         return None
@@ -69,7 +68,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             })
         
         # Get service from services dict
-        file_service = self.file_service or services.get(FILE_SERVICE.name)
+        file_service = self.file_service or services.get("file_service")
 
         # Endpoint nodes pass through their inputs
         result_data = inputs if inputs else {}

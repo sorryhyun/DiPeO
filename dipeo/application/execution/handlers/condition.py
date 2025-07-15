@@ -136,7 +136,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             # For detect_max_iterations, aggregate conversation states from all person_job nodes
             if condition_type == "detect_max_iterations":
                 aggregated_conversations = self._aggregate_conversation_states(context, diagram)
-                logger.debug(f"[CONDITION] Aggregated conversations for condtrue: {aggregated_conversations}")
                 output_value = {"condtrue": aggregated_conversations if aggregated_conversations else inputs}
             else:
                 output_value = {"condtrue": inputs if inputs else {}}
@@ -191,9 +190,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     
     def _aggregate_conversation_states(self, context: "ExecutionContext", diagram: Any) -> dict[str, Any]:
         """Aggregate conversation states from all person_job nodes that have executed."""
-        import logging
-
-        logger = logging.getLogger(__name__)
         
         aggregated = {"messages": []}
         
@@ -216,9 +212,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             value = node_result.get('value')
             if isinstance(value, dict) and 'conversation' in value:
                 aggregated["messages"].extend(value['conversation'])
-                logger.debug(f"Added {len(value['conversation'])} messages from node {node.id}")
         
-        logger.debug(f"Aggregated {len(aggregated['messages'])} total messages from {len(person_job_nodes)} executed person_job nodes")
         return aggregated
     
     def _extract_node_exec_counts(self, context: "ExecutionContext") -> dict[str, int] | None:
@@ -261,16 +255,18 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 node_state = context.get_node_state(node.id)
                 if node_state and hasattr(node_state, 'status'):
                     # Use the MAXITER_REACHED status
-                    logger.debug(f"[CONDITION] Node {node.id} status: {node_state.status}")
                     if node_state.status != NodeExecutionStatus.MAXITER_REACHED:
                         all_reached_max = False
                         break
                 else:
                     # No state found, can't be at max
-                    logger.debug(f"[CONDITION] No state found for node {node.id}, falling back to exec count check")
                     all_reached_max = False
                     break
 
         result = found_executed and all_reached_max
-        logger.debug(f"[CONDITION] detect_max_iterations result: {result} (found_executed={found_executed}, all_reached_max={all_reached_max})")
+        logger.debug(f"_evaluate_max_iterations_with_outputs: found_executed={found_executed}, all_reached_max={all_reached_max}, result={result}")
+        for node in person_job_nodes:
+            exec_count = context.get_node_execution_count(node.id)
+            node_state = context.get_node_state(node.id)
+            logger.debug(f"  Node {node.id}: exec_count={exec_count}, status={node_state.status if node_state else 'None'}")
         return result

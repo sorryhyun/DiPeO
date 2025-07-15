@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from dipeo.core.dynamic.execution_context import ExecutionContext
 from dipeo.core.execution.execution_tracker import ExecutionTracker
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.models import (
     ExecutionState,
     NodeExecutionStatus,
@@ -132,9 +133,9 @@ class ExecutionRuntime(ExecutionContext):
             node_id, self._node_states, self._current_node_id, error
         )
     
-    def transition_node_to_maxiter(self, node_id: NodeID) -> None:
+    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
         """Transition a node to max iterations reached state."""
-        self._transition_manager.transition_to_maxiter(node_id, self._node_states)
+        self._transition_manager.transition_to_maxiter(node_id, self._node_states, output)
     
     def transition_node_to_skipped(self, node_id: NodeID) -> None:
         """Transition a node to skipped state."""

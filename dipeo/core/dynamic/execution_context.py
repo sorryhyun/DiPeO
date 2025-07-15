@@ -1,9 +1,10 @@
 """Protocol for managing execution context during diagram runtime."""
 
 from abc import abstractmethod
-from typing import Any, Protocol
+from typing import Any, Optional, Protocol
 
 from dipeo.models import NodeID, NodeState
+from dipeo.core.execution.node_output import NodeOutputProtocol
 
 
 class ExecutionContext(Protocol):
@@ -113,11 +114,12 @@ class ExecutionContext(Protocol):
         ...
     
     @abstractmethod
-    def transition_node_to_maxiter(self, node_id: NodeID) -> None:
+    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
         """Transition a node to max iterations reached state.
         
         Args:
             node_id: The ID of the node to transition
+            output: Optional output from the node execution
         """
         ...
     

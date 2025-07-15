@@ -61,9 +61,8 @@ class NodeReadinessChecker:
         if isinstance(node, PersonJobNode):
             exec_count = self.tracker.get_execution_count(node.id)
             
-            # Reached max iterations? No edges are relevant
-            if exec_count >= node.max_iteration:
-                return []
+            # Note: We should NOT filter edges when max iterations is reached
+            # This allows downstream nodes to become ready when this node hits max iterations
             
             # First execution? Only check 'first' inputs or non-loop edges
             if exec_count == 0:

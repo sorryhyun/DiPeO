@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_runtime import ExecutionRuntime
 from dipeo.application.execution.iterators.simple_iterator import SimpleAsyncIterator
-from dipeo.core.execution.node_executor import ModernNodeExecutor
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.infra.config.settings import get_settings
 
@@ -31,7 +30,6 @@ class TypedExecutionEngine:
     ):
         self.service_registry = service_registry
         self.observers = observers or []
-        self._modern_executor: ModernNodeExecutor | None = None
         self._settings = get_settings()
     
     async def execute(
@@ -41,10 +39,6 @@ class TypedExecutionEngine:
         options: dict[str, Any],
         interactive_handler: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        
-        # Initialize ModernNodeExecutor with the runtime's tracker
-        if hasattr(execution_runtime, '_tracker'):
-            self._modern_executor = ModernNodeExecutor(execution_runtime._tracker)
         
         # Notify observers of execution start
         for observer in self.observers:
@@ -88,6 +82,7 @@ class TypedExecutionEngine:
                 
                 # Check for completion
                 is_complete = execution_runtime.is_complete()
+                ready_nodes = execution_runtime.get_ready_nodes()
                 if is_complete:
                     break
             
@@ -121,10 +116,6 @@ class TypedExecutionEngine:
         execution_id: str
     ):
         async def execute_node(node: "ExecutableNode") -> dict[str, Any]:
-            # Use ModernNodeExecutor for cleaner execution flow
-            if not self._modern_executor:
-                raise RuntimeError("ModernNodeExecutor not initialized")
-            
             # Track start for observers
             for observer in self.observers:
                 await observer.on_node_start(execution_id, str(node.id))
@@ -154,33 +145,55 @@ class TypedExecutionEngine:
                     "interactive_handler": interactive_handler
                 })
                 
-                # Execute using ModernNodeExecutor
-                output = await self._modern_executor.execute_node(
+                # Get services dict from handler requirements
+                services_dict = {}
+                if hasattr(handler, 'requires_services'):
+                    for service_name in handler.requires_services:
+                        service = execution_runtime.get_service(service_name)
+                        if service:
+                            services_dict[service_name] = service
+                
+                # Execute handler directly
+                output = await handler.execute(
                     node=node,
                     context=execution_runtime,
                     inputs=inputs,
-                    handler=handler
+                    services=services_dict
                 )
                 
-                # Update node state without calling tracker (ModernNodeExecutor already did that)
-                # This also stores the output
-                execution_runtime.update_node_state_without_tracker(node.id, output)
-                
-                # Handle PersonJobNode special logic
-                from dipeo.core.static.generated_nodes import PersonJobNode
+                # Handle PersonJobNode special logic BEFORE marking complete
+                from dipeo.core.static.generated_nodes import PersonJobNode, ConditionNode
                 
                 if isinstance(node, PersonJobNode):
                     exec_count = execution_runtime.get_node_execution_count(node.id)
+                    log.debug(f"PersonJobNode {node.id}: exec_count={exec_count}, max_iteration={node.max_iteration}")
                     
                     if exec_count >= node.max_iteration:
-                        # Check if output indicates max iteration was hit
-                        if output and output.metadata and output.metadata.get("skipped") and "Max iteration" in output.metadata.get("reason", ""):
-                            log.debug(f"[ModernNodeExecutor] Setting node {node.id} to MAXITER_REACHED status")
-                            execution_runtime.transition_node_to_maxiter(node.id)
+                        # Always set MAXITER_REACHED when we reach max iterations
+                        # Pass the output to save it for downstream nodes
+                        execution_runtime.transition_node_to_maxiter(node.id, output)
+                        log.debug(f"PersonJobNode {node.id}: Transitioned to MAXITER_REACHED")
+                        
+                        # Reset any downstream condition nodes so they can re-evaluate
+                        outgoing_edges = execution_runtime.diagram.get_outgoing_edges(node.id)
+                        for edge in outgoing_edges:
+                            target_node = execution_runtime.diagram.get_node(edge.target_node_id)
+                            if target_node and isinstance(target_node, ConditionNode):
+                                node_state = execution_runtime.get_node_state(target_node.id)
+                                from dipeo.models import NodeExecutionStatus
+                                if node_state and node_state.status == NodeExecutionStatus.COMPLETED:
+                                    execution_runtime.reset_node(target_node.id)
+                                    log.debug(f"Reset ConditionNode {target_node.id} after PersonJobNode {node.id} reached max iterations")
                     else:
-                        # Not at max iteration yet, reset to pending for next iteration
-                        log.debug(f"[ModernNodeExecutor] Resetting node {node.id} to PENDING for next iteration")
+                        # Not at max iteration yet, mark complete then reset to pending for next iteration
+                        execution_runtime.transition_node_to_completed(node.id, output)
                         execution_runtime.reset_node(node.id)
+                elif isinstance(node, ConditionNode):
+                    # Mark condition node as completed
+                    execution_runtime.transition_node_to_completed(node.id, output)
+                else:
+                    # For other nodes, just mark as completed
+                    execution_runtime.transition_node_to_completed(node.id, output)
                 
                 # Notify observers of completion
                 node_state = execution_runtime.get_node_state(node.id)
