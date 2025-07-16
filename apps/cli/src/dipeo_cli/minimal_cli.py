@@ -210,6 +210,9 @@ class DiPeOCLI:
             print("❌ Failed to start server")
             return False
 
+        # Store diagram name for later use
+        diagram_name = Path(diagram_path).stem if not no_browser else None
+
         # Execute diagram
         print("🔄 Executing diagram...")
         try:
@@ -222,11 +225,10 @@ class DiPeOCLI:
             execution_id = result["execution_id"]
             print(f"✓ Execution started: {execution_id}")
 
-            # Open browser if requested
+            # Open browser with execution ID if requested (only once)
             if not no_browser:
-                diagram_name = Path(diagram_path).stem
-                monitor_url = f"http://localhost:3000/?diagram={diagram_name}&executionId={execution_id}"
-                print(f"🌐 Opening browser: {monitor_url}")
+                monitor_url = f"http://localhost:3000/?diagram={diagram_name}&executionId={execution_id}&monitor=true"
+                print(f"🌐 Opening browser in monitor mode: {monitor_url}")
                 webbrowser.open(monitor_url)
 
             # Poll for completion

@@ -1,8 +1,9 @@
 """GraphQL context for providing access to services."""
 
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Optional
 
-from fastapi import Request
+from fastapi import Request, WebSocket
 from strawberry.fastapi import BaseContext
 
 if TYPE_CHECKING:
@@ -14,22 +15,14 @@ if TYPE_CHECKING:
     from dipeo_server.application.container import ServerContainer
 
 
+@dataclass
 class GraphQLContext(BaseContext):
     """Context object that provides direct access to the DI container."""
 
-    request: Request | None
-    user_data: dict[str, Any]
-    container: "ServerContainer"
-
-    def __init__(
-        self,
-        request: Request | None,
-        container: "ServerContainer",
-    ):
-        super().__init__()
-        self.request = request
-        self.user_data = {}
-        self.container = container
+    request: Optional[Request] = None       # present on HTTP
+    websocket: Optional[WebSocket] = None   # present on WS
+    container: Optional["ServerContainer"] = None
+    user_data: dict[str, Any] = field(default_factory=dict)
 
     def get_service(self, name: str) -> Any:
         """Get a service from the unified service registry."""
@@ -51,21 +44,37 @@ class GraphQLContext(BaseContext):
         return True
 
 
-async def get_graphql_context(request: Request) -> GraphQLContext:
+def get_graphql_context(request_or_ws=None):
     """
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
     
     Handles both HTTP requests and WebSocket connections.
+    Strawberry calls this with a single positional argument:
+    - HTTP: The FastAPI Request object
+    - WebSocket: The WebSocket connection object
     """
     # Get the global container instance directly
     from dipeo_server.application.app_context import get_container
 
     container = get_container()
+    
+    # Determine what type of connection we have
+    request = None
+    websocket = None
+    
+    if request_or_ws:
+        # Check if it's a Request object (has url attribute)
+        if hasattr(request_or_ws, 'url') and hasattr(request_or_ws, 'method'):
+            request = request_or_ws
+        # Otherwise assume it's a WebSocket
+        else:
+            websocket = request_or_ws
 
     # Create and return the context
     return GraphQLContext(
         request=request,
+        websocket=websocket,
         container=container,
     )
 

@@ -37,7 +37,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   // Check if we're in monitor mode
   const isMonitorMode = () => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('monitor') === 'true';
+    return params.get('monitor') === 'true' || !!params.get('executionId');
   };
   
   // Get diagram name from URL
@@ -46,18 +46,43 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
     return params.get('diagram');
   };
   
+  // Get execution ID from URL
+  const getExecutionId = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('executionId');
+  };
+  
   useEffect(() => {
     // Only proceed if:
     // 1. We're in monitor mode
     // 2. Auto-start is enabled
-    // 3. Diagram has loaded
-    // 4. We haven't already started execution
-    // 5. We're not currently running
-    if (!isMonitorMode() || !autoStart || !hasLoaded || hasStartedRef.current || execution.isRunning) {
+    // 3. We haven't already started execution
+    // 4. We're not currently running
+    if (!isMonitorMode() || !autoStart || hasStartedRef.current || execution.isRunning) {
       return;
     }
     
+    const executionId = getExecutionId();
     const diagramName = getDiagramName();
+    
+    // Case 1: We have an executionId - connect to existing execution
+    if (executionId) {
+      console.log('Monitor mode: Connecting to existing execution:', executionId);
+      hasStartedRef.current = true;
+      
+      // The execution is already running on the backend
+      // Connect to it using the proper function
+      const totalNodes = nodes.size || 0;
+      execution.connectToExecution(executionId, totalNodes);
+      
+      return;
+    }
+    
+    // Case 2: No executionId - start a new execution (original logic)
+    if (!hasLoaded) {
+      return;
+    }
+    
     if (!diagramName) {
       console.warn('Monitor mode enabled but no diagram specified in URL');
       return;
@@ -97,7 +122,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
     
     console.log('Monitor mode: Auto-starting execution for diagram:', diagramName);
     
-    // Start execution with a slight delay to ensure UI is ready
+    // Start execution with a delay to ensure UI and diagram are fully loaded
     setTimeout(() => {
       execution.execute(diagram, {
         debug,
@@ -107,7 +132,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
         // Reset the flag so user can manually retry if needed
         hasStartedRef.current = false;
       });
-    }, 500);
+    }, 100);
     
   }, [hasLoaded, nodes.size, execution.isRunning, autoStart, debug, diagramId, execution]);
   

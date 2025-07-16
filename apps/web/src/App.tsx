@@ -33,14 +33,18 @@ function AppContent() {
     const checkMonitorMode = () => {
       const params = new URLSearchParams(window.location.search);
       const monitorParam = params.get('monitor') === 'true';
+      const executionIdParam = params.get('executionId');
       const diagramName = params.get('diagram');
-      setReadOnly?.(monitorParam);
+      
+      // Enter monitor mode if either monitor=true OR executionId is present
+      const isMonitorMode = monitorParam || !!executionIdParam;
+      setReadOnly?.(isMonitorMode);
 
-      if (monitorParam) {
+      if (isMonitorMode) {
         document.title = 'DiPeO - Monitor Mode';
         
         // Automatically switch to execution view when in monitor mode
-        if (diagramName) {
+        if (diagramName || executionIdParam) {
           setActiveCanvas('execution');
         }
       } else {
