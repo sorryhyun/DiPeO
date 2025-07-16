@@ -11,7 +11,11 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 ## Quickstart
 
+[windows installer](https://github.com/sorryhyun/DiPeO/releases/tag/betav6)
+
 For Korean guide for quickstart, read [Korean docs](docs/korean_install_guide.md)
+
+dev settings:
 
 ```bash
 make install
