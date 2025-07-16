@@ -155,9 +155,9 @@ class ExecuteDiagramUseCase(BaseService):
         domain_diagram = diagram_loader.prepare_diagram(diagram)
         
         # Validate execution flow using domain service
-        from dipeo.domain.execution import ExecutionDomainService
-        execution_domain_service = ExecutionDomainService()
-        validation_result = execution_domain_service.validate_execution_flow(domain_diagram)
+        from dipeo.domain.validators import ExecutionValidator
+        execution_validator = ExecutionValidator()
+        validation_result = execution_validator.validate_execution_flow(domain_diagram)
         
         if not validation_result.is_valid:
             critical_issues = validation_result.critical_issues

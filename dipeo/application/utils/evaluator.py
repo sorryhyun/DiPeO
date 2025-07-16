@@ -5,7 +5,7 @@ import operator
 from typing import Any
 
 from dipeo.models import DomainDiagram, NodeType
-from dipeo.utils.template import TemplateProcessor
+from dipeo.application.utils.template import TemplateProcessor
 
 
 class ConditionEvaluator:

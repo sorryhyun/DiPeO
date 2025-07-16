@@ -98,7 +98,6 @@ class UnifiedServiceRegistry(DynamicRegistry):
             # Domain services
             "diagram_storage_service": "diagram_storage_service",
             "api_integration_service": "api_integration_service",
-            "text_processing_service": "text_processing_service",
             "db_operations_service": "db_operations_service",
             "code_execution_service": "code_execution_service",
             

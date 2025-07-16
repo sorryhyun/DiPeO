@@ -115,11 +115,11 @@ class DiagramResolver:
             file_infos = await storage_service.list_files()
             all_diagrams = [
                 {
-                    "path": fi.path,
-                    "name": fi.name,
-                    "format": fi.format,
-                    "size": fi.size,
-                    "modified": fi.modified,
+                    "path": fi["path"],
+                    "name": fi["name"],
+                    "format": fi["format"],
+                    "size": fi["size"],
+                    "modified": fi["modified"],
                 }
                 for fi in file_infos
             ]

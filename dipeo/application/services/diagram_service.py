@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.domain.diagram.services import (
     DiagramFormatService,
-    DiagramOperationsService,
-    DiagramValidator,
+    DiagramOperationsService
 )
+from dipeo.domain.validators.diagram_validator import DiagramValidator
 from dipeo.models import DiagramFormat
 
 if TYPE_CHECKING:

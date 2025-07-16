@@ -4,7 +4,6 @@
 from .arrow_transformer import ArrowTransformer
 from .handle_resolver import HandleResolver
 from .static_diagram_compiler import StaticDiagramCompiler
-from .validation_rules import ValidationRules
 
 # Compatibility imports for migration
 from .simple_order_calculator import SimpleOrderCalculator
@@ -15,6 +14,5 @@ __all__ = [
     "ArrowTransformer",
     "ExecutionOrderCalculator",
     "HandleResolver",
-    "StaticDiagramCompiler",
-    "ValidationRules",
+    "StaticDiagramCompiler"
 ]

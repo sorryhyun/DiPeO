@@ -12,7 +12,7 @@ from dipeo.diagram import (
     dict_to_domain_diagram,
     domain_diagram_to_dict,
 )
-from dipeo.domain.diagram.services import DiagramValidator
+from dipeo.domain.validators import DiagramValidator
 from dipeo.models import DiagramMetadata, DomainDiagram
 
 from ...resolution import StaticDiagramCompiler

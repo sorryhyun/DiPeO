@@ -7,7 +7,8 @@ from ..base import MutableBaseContainer
 
 def _create_file_service(base_dir, backup_service=None, domain_validator=None):
     """Create modular file service."""
-    from dipeo.domain.file.services import BackupService, FileValidator
+    from dipeo.domain.file.services import BackupService
+    from dipeo.domain.validators import FileValidator
     from dipeo.infra.persistence.file import ModularFileService
     
     return ModularFileService(

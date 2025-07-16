@@ -55,7 +55,6 @@ def _create_unified_service_registry(
     state_store,
     message_router,
     # Business logic services
-    text_processing_service,
     validation_service,
     condition_evaluator,
     api_business_logic,
@@ -91,7 +90,6 @@ def _create_unified_service_registry(
     registry.register("message_router", message_router)
     
     # Business logic services
-    registry.register("text_processing_service", text_processing_service)
     registry.register("validation_service", validation_service)
     registry.register("condition_evaluation_service", condition_evaluator)
     registry.register("api_business_logic", api_business_logic)
@@ -145,7 +143,6 @@ class ApplicationContainer(ImmutableBaseContainer):
         state_store=persistence.state_store,
         message_router=persistence.message_router,
         # Business logic services
-        text_processing_service=business.text_processing_service,
         validation_service=business.validation_service,
         condition_evaluator=business.condition_evaluator,
         api_business_logic=business.api_business_logic,

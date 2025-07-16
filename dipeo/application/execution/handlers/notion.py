@@ -8,7 +8,7 @@ from dipeo.application.execution.types import TypedNodeHandler
 from dipeo.application.unified_service_registry import NOTION_SERVICE, API_KEY_SERVICE
 from dipeo.core.static.generated_nodes import NotionNode
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.domain.notion.services import NotionValidator
+from dipeo.domain.validators import NotionValidator
 from dipeo.models import NodeType, NotionNodeData, NotionOperation
 
 if TYPE_CHECKING:
