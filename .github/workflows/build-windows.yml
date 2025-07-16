@@ -38,7 +38,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
           cache: 'pip'
       
       - name: Install Rust
@@ -77,8 +77,8 @@ jobs:
           & ".\.venv\Scripts\Activate.ps1"
           python -m pip install --upgrade pip setuptools wheel
           
-          # Pin PyInstaller to a stable version compatible with Python 3.12
-          pip install pyinstaller==6.11.1
+          # Pin PyInstaller to a stable version compatible with Python 3.13
+          pip install pyinstaller==6.14.2
           
           # Install other dependencies
           pip install -r requirements.txt
@@ -115,9 +115,70 @@ jobs:
             Remove-Item -Path "$env:LOCALAPPDATA\pyinstaller" -Recurse -Force
           }
           
+          # Ensure the custom hook file is present
+          if (!(Test-Path "hook-dependency_injector.py")) {
+            Write-Host "Creating hook-dependency_injector.py..."
+            @'
+"""PyInstaller hook for dependency_injector package.
+
+This hook ensures all submodules of dependency_injector are properly included,
+especially the errors module and C extensions which are dynamically imported.
+"""
+
+from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files, collect_dynamic_libs
+
+# Collect all data files, binaries, and submodules
+datas, binaries, hiddenimports = collect_all('dependency_injector')
+
+# Also collect dynamic libraries (for .pyd files on Windows)
+binaries += collect_dynamic_libs('dependency_injector')
+
+# Critical modules that must be included (based on actual package inspection)
+critical_modules = [
+    'dependency_injector._cwiring',
+    'dependency_injector.containers',
+    'dependency_injector.errors',
+    'dependency_injector.ext',
+    'dependency_injector.ext.aiohttp',
+    'dependency_injector.ext.flask',
+    'dependency_injector.ext.starlette',
+    'dependency_injector.providers',
+    'dependency_injector.resources',
+    'dependency_injector.schema',
+    'dependency_injector.wiring',
+]
+
+# Ensure all critical modules are in hiddenimports
+for module in critical_modules:
+    if module not in hiddenimports:
+        hiddenimports.append(module)
+
+# Also collect data files specifically
+datas += collect_data_files('dependency_injector')
+
+# Debug output
+print(f"dependency_injector hook: Found {len(hiddenimports)} hidden imports")
+print(f"dependency_injector hook: Found {len(binaries)} binaries")
+print(f"dependency_injector hook: Found {len(datas)} data files")
+print("Hidden imports:", hiddenimports)
+'@ | Out-File -FilePath "hook-dependency_injector.py" -Encoding UTF8
+          }
+          
           try {
-            # Use centralized Windows build spec with verbose output for debugging
-            pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --log-level DEBUG 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
+            # Check if spec file exists, otherwise use fallback
+            if (Test-Path "dipeo-server-hooks.spec") {
+              Write-Host "Using dipeo-server-hooks.spec"
+              pyinstaller dipeo-server-hooks.spec --clean --noconfirm --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
+            } elseif (Test-Path "dipeo-server-correct.spec") {
+              Write-Host "Using dipeo-server-correct.spec"
+              pyinstaller dipeo-server-correct.spec --clean --noconfirm --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
+            } elseif (Test-Path "dipeo-server.spec") {
+              Write-Host "Using dipeo-server.spec"
+              pyinstaller dipeo-server.spec --clean --noconfirm --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
+            } else {
+              Write-Host "Using centralized build spec"
+              pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
+            }
           } catch {
             Write-Host "PyInstaller failed. Log contents:"
             Get-Content "pyinstaller-backend.log" -Tail 100
@@ -134,46 +195,7 @@ jobs:
           
           Write-Host "Backend build complete: $(Get-Item dist/dipeo-server.exe).Length bytes"
       
-      - name: Build CLI Tool
-        run: |
-          # Activate root virtual environment
-          & ".\.venv\Scripts\Activate.ps1"
-          
-          # Set working directory
-          Set-Location "apps/cli"
-          
-          # Set PYTHONPATH and BUILD_TYPE for the build
-          $env:PYTHONPATH = "${{ github.workspace }};${{ github.workspace }}\dipeo;${{ github.workspace }}\apps\cli"
-          $env:BUILD_TYPE = "CLI"
-          
-          # Windows-specific PyInstaller workarounds
-          $env:PYTHONIOENCODING = "utf-8"
-          $env:PYTHONLEGACYWINDOWSSTDIO = "1"
-          
-          # Clear PyInstaller cache to avoid conflicts
-          if (Test-Path "$env:LOCALAPPDATA\pyinstaller") {
-            Remove-Item -Path "$env:LOCALAPPDATA\pyinstaller" -Recurse -Force
-          }
-          
-          try {
-            # Use centralized Windows build spec with verbose output for debugging
-            pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --name dipeo --log-level DEBUG 2>&1 | Tee-Object -FilePath "pyinstaller-cli.log"
-          } catch {
-            Write-Host "PyInstaller failed. Log contents:"
-            Get-Content "pyinstaller-cli.log" -Tail 100
-            throw
-          }
-          
-          # Verify executable was created
-          if (!(Test-Path "dist/dipeo.exe")) {
-            Write-Host "PyInstaller log contents:"
-            Get-Content "pyinstaller-cli.log" -Tail 100
-            Write-Error "CLI build failed"
-            exit 1
-          }
-          
-          Write-Host "CLI build complete: $(Get-Item dist/dipeo.exe).Length bytes"
-      
+
       - name: Install all dependencies
         run: |
           pnpm install --frozen-lockfile

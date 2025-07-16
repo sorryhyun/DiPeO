@@ -1,13 +1,19 @@
 """Core constants shared across DiPeO components."""
 
 import os
+import sys
 from pathlib import Path
 
 # Project Base Directory
-# Go up from dipeo/core/constants.py to project root
-BASE_DIR: Path = Path(
-    os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[2].as_posix())
-).resolve()
+# Check if we're running as a PyInstaller bundle
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    # Running in a PyInstaller bundle - use executable directory
+    BASE_DIR: Path = Path(sys.executable).parent.resolve()
+else:
+    # Normal execution - go up from dipeo/core/constants.py to project root
+    BASE_DIR: Path = Path(
+        os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[2].as_posix())
+    ).resolve()
 
 # Unified file storage directories (no mkdir here - let apps create as needed)
 FILES_DIR: Path = BASE_DIR / "files"

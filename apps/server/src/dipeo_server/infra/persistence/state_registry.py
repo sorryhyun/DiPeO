@@ -70,7 +70,9 @@ class StateRegistry:
             self._initialized = False
 
     async def _connect(self):
+        print(f"[StateRegistry] Attempting to connect to database at: {self.db_path}")
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        print(f"[StateRegistry] Database directory created/verified: {Path(self.db_path).parent}")
 
         loop = asyncio.get_event_loop()
 
@@ -155,19 +157,7 @@ class StateRegistry:
         -- SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so we need to check first
         """
 
-        # Check if columns exist
-        cursor = await self._execute("PRAGMA table_info(execution_states)")
-        columns = await asyncio.get_event_loop().run_in_executor(
-            self._executor, cursor.fetchall
-        )
-        column_names = [col[1] for col in columns]
-
-        # Add missing columns
-        if 'exec_counts' not in column_names:
-            await self._execute("ALTER TABLE execution_states ADD COLUMN exec_counts TEXT NOT NULL DEFAULT '{}'")
-        if 'executed_nodes' not in column_names:
-            await self._execute("ALTER TABLE execution_states ADD COLUMN executed_nodes TEXT NOT NULL DEFAULT '[]'")
-
+        # First, create the tables
         # Ensure executor is available
         if self._executor._shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
@@ -185,6 +175,19 @@ class StateRegistry:
                 )
             else:
                 raise
+
+        # Then check if columns exist (for migration purposes)
+        cursor = await self._execute("PRAGMA table_info(execution_states)")
+        columns = await asyncio.get_event_loop().run_in_executor(
+            self._executor, cursor.fetchall
+        )
+        column_names = [col[1] for col in columns]
+
+        # Add missing columns if needed (for existing databases)
+        if 'exec_counts' not in column_names:
+            await self._execute("ALTER TABLE execution_states ADD COLUMN exec_counts TEXT NOT NULL DEFAULT '{}'")
+        if 'executed_nodes' not in column_names:
+            await self._execute("ALTER TABLE execution_states ADD COLUMN executed_nodes TEXT NOT NULL DEFAULT '[]'")
 
     async def create_execution(
         self,

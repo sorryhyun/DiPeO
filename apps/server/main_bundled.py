@@ -34,17 +34,37 @@ def setup_bundled_paths():
 
         # Set the BASE_DIR for the application
         os.environ['DIPEO_BASE_DIR'] = str(exe_dir)
+        
+        # Debug logging
+        print(f"[BUNDLED] Executable directory: {exe_dir}")
+        print(f"[BUNDLED] DIPEO_BASE_DIR set to: {os.environ['DIPEO_BASE_DIR']}")
+        print(f"[BUNDLED] Expected database path: {exe_dir / '.data' / 'dipeo_state.db'}")
 
         # Add the bundled packages to Python path
         sys.path.insert(0, str(bundle_dir))
 
         # Change to the executable directory
         os.chdir(exe_dir)
+        print(f"[BUNDLED] Changed working directory to: {os.getcwd()}")
 
 if __name__ == "__main__":
-    # Set up bundled paths if running as executable
+    # Set up bundled paths BEFORE any imports that might use them
     setup_bundled_paths()
 
-    # Import and run the main server
-    from main import start
-    start()
+    # NOW import the main server after paths are set
+    import main
+    
+    # Check if main has a start function, otherwise run it directly
+    if hasattr(main, 'start'):
+        main.start()
+    else:
+        # If there's no start function, the server initialization happens at import time
+        # or we need to call the appropriate function
+        import uvicorn
+        from main import app
+        
+        # Get port from environment or use default
+        port = int(os.environ.get("PORT", 8000))
+        host = os.environ.get("HOST", "0.0.0.0")
+        
+        uvicorn.run(app, host=host, port=port)

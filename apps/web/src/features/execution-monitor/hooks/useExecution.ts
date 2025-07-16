@@ -42,6 +42,7 @@ export interface UseExecutionReturn {
   
   // Execution Actions
   execute: (diagram?: DomainDiagram, options?: ExecutionOptions) => Promise<void>;
+  connectToExecution: (executionId: string, totalNodes?: number) => void;
   abort: () => void;
   
   // Node Actions
@@ -95,6 +96,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     runContextRef,
     skippedNodesRef,
     startExecution,
+    connectToExecution,
     resetState,
     errorExecution,
     updateProgress,
@@ -250,6 +252,14 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     return states;
   }, [executionActions.runningNodes]);
 
+  // Connect to existing execution (for monitor mode with executionId)
+  const connectToExecutionWithStore = useCallback((executionIdStr: string, totalNodes?: number) => {
+    const nodesArray = Array.from(executionActions.nodes.values());
+    connectToExecution(executionIdStr, totalNodes || nodesArray.length);
+    executionActions.startExecution(executionIdStr);
+    onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, execution_id: executionId(executionIdStr), timestamp: new Date().toISOString() });
+  }, [connectToExecution, executionActions, onUpdate]);
+
   return {
     // State
     execution,
@@ -261,6 +271,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     
     // Execution Actions
     execute,
+    connectToExecution: connectToExecutionWithStore,
     abort,
     
     // Node Actions

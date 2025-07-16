@@ -2,25 +2,19 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "DiPeO",
   "version": "0.1.0",
-  "identifier": "com.dipeo.app",
+  "identifier": "com.dipeo.desktop",
   "build": {
-    "beforeDevCommand": "cd ../../web && pnpm dev",
-    "beforeBuildCommand": "cd ../../web && pnpm build",
+    "beforeDevCommand": "cd ../web && pnpm dev",
+    "beforeBuildCommand": "cd ../web && pnpm run build",
     "devUrl": "http://localhost:3000",
     "frontendDist": "../../web/dist"
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
+    "targets": ["nsis"],
     "windows": {
       "nsis": {
-        "oneClick": true,
-        "perMachine": false,
-        "allowDowngrade": false,
-        "removeDefaultUninstallPage": false,
-        "displayLanguageSelector": false,
-        "installerIcon": "icons/icon.ico",
-        "license": "../../../LICENSE"
+        "installerIcon": "icons/icon.ico"
       },
       "wix": {
         "language": "en-US"
@@ -29,19 +23,7 @@
     "category": "DeveloperTool",
     "shortDescription": "Visual AI Workflow Builder",
     "longDescription": "DiPeO is a visual programming environment for building and executing AI agent workflows",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "resources": [
-      {
-        "path": "../../../apps/server/dist/dipeo-server.exe",
-        "target": "dipeo-server.exe"
-      }
-    ],
+    "icon": ["icons/icon.png"],
     "publisher": "DiPeO Team",
     "copyright": "Copyright © 2024 DiPeO",
     "license": "../../../LICENSE"
@@ -61,12 +43,7 @@
       }
     ],
     "security": {
-      "csp": null,
-      "dangerousRemoteDomainIpcAccess": []
-    },
-    "trayIcon": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true
+      "csp": null
     }
   },
   "plugins": {}

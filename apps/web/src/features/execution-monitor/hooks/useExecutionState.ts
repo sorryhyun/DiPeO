@@ -169,6 +169,21 @@ export function useExecutionState() {
     skippedNodesRef.current.push({ nodeId: nodeIdStr, reason });
   }, []);
 
+  const connectToExecution = useCallback((executionIdStr: string, totalNodes: number = 0) => {
+    executionIdRef.current = executionIdStr;
+    
+    setExecution({
+      isRunning: true,
+      executionId: executionIdStr,
+      totalNodes,
+      completedNodes: 0,
+      currentNode: null,
+      startTime: new Date(), // We'll update this from the actual execution data
+      endTime: null,
+      error: null,
+    });
+  }, []);
+
   return {
     // State
     execution,
@@ -186,6 +201,7 @@ export function useExecutionState() {
     
     // Actions
     startExecution,
+    connectToExecution,
     completeExecution,
     errorExecution,
     updateNodeState,
