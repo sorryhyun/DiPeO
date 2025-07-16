@@ -7,7 +7,8 @@
     "tauri": "tauri",
     "dev": "tauri dev",
     "build": "tauri build",
-    "build:windows": "tauri build --target x86_64-pc-windows-msvc"
+    "build:windows": "tauri build --target x86_64-pc-windows-msvc",
+    "build:win-copy": "pnpm build:windows && powershell -Command \"$installer = Get-ChildItem -Path src-tauri/target/x86_64-pc-windows-msvc/release/bundle -Recurse -Filter *.exe | Where-Object {$_.Name -like '*setup*' -or $_.Name -like '*installer*'} | Select-Object -First 1; if ($installer) { Copy-Item -Path $installer.FullName -Destination ./ -Force; Write-Host ('Installer copied: ' + $installer.Name) -ForegroundColor Green } else { Write-Host 'No installer found' -ForegroundColor Red }\""
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.6.2"

@@ -35,9 +35,9 @@ make dev-web                      # Start frontend server
 ### `./dipeo` - Run Diagrams
 ```bash
 # run diagram with automatically running server
-./dipeo-cli run quicksave --debug --format=native
+dipeo run quicksave --debug --light --no-browser --timeout=10
 # or, feed actual directory
-./dipeo-cli run files/diagrams/native/quicksave --debug
+dipeo run files/diagrams/native/quicksave --debug
 ```
 
 ### Docs
@@ -52,11 +52,7 @@ Note [docs](docs)
 ## Next Release will be
 - hook node for general event hooks. i.e. youtube subtitle generator
 - gemini supports
-- tool use supports for openai adapter
-- code, api job nodes
-- windows installer deployment
 
 ## Near-future objectives
-- Gemini, Claude support (grok will be removed)
+- Gemini, Claude support
 - Custom LLM support
-- various diagram examples

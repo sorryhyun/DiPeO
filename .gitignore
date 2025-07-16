@@ -131,3 +131,19 @@ coverage/
 # Package manager files
 package-lock.json
 yarn.lock
+/apps/desktop/src-tauri/target/
+/apps/desktop/src-tauri/gen/
+/apps/desktop/src-tauri/Cargo.lock
+/apps/desktop/TROUBLESHOOTING_INSTALLER.md
+/apps/desktop/test-build-backend.ps1
+/apps/desktop/DiPeO_0.1.0_x64-setup.exe
+/apps/desktop/INTEGRATED_INSTALLER_README.md
+/apps/desktop/diagnose-pyinstaller.ps1
+/apps/desktop/QUICKSTART_INTEGRATED.md
+/apps/server/dipeo-server-fixed.spec
+/apps/server/dipeo-server-simple.spec
+/apps/server/dipeo-server.spec
+/apps/server/dipeo-server-minimal.spec
+/apps/server/test-pyinstaller.py
+/apps/server/test-paths.py
+/build-with-rust.bat
