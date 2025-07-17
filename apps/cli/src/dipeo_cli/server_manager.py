@@ -40,7 +40,11 @@ class ServerManager:
             return False
 
         # Start server process
-        env = {**subprocess.os.environ, "LOG_LEVEL": "DEBUG" if debug else "INFO"}
+        env = {
+            **subprocess.os.environ, 
+            "LOG_LEVEL": "DEBUG" if debug else "INFO",
+            "DIPEO_BASE_DIR": str(BASE_DIR)  # Ensure server uses correct base directory
+        }
 
         self.process = subprocess.Popen(
             ["python", "main.py"],

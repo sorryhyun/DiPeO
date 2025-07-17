@@ -5,12 +5,11 @@ from .handler_factory import (
     get_global_registry,
     register_handler,
 )
-from .types import (
-    ExecutionContext,
-    ExecutionOptions,
-    TypedNodeHandler,
-)
+from .handler_base import TypedNodeHandler
+from dipeo.models import ExecutionOptions
+from dipeo.core.dynamic.execution_context import ExecutionContext
 from .execution_runtime import ExecutionRuntime
+from .engine import TypedExecutionEngine
 from .use_cases import ExecuteDiagramUseCase
 
 # Compatibility imports for migration
@@ -20,6 +19,7 @@ from .execution_runtime import ExecutionRuntime as StatefulExecution
 
 __all__ = [
     "ExecutionRuntime",
+    "TypedExecutionEngine",
     # Use cases
     "ExecuteDiagramUseCase",
     # Types

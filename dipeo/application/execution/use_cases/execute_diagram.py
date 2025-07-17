@@ -69,15 +69,23 @@ class ExecuteDiagramUseCase(BaseService):
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)
 
-        # Import EngineFactory from application package
-        from ...engine_factory import EngineFactory
+        # Create engine with observers
+        from dipeo.application.execution.engine import TypedExecutionEngine
+        from dipeo.application.execution.observers import StateStoreObserver
         
-        # Create engine with factory
-        engine = EngineFactory.create_engine(
+        observers = []
+        
+        # Add state store observer
+        if self.state_store:
+            observers.append(StateStoreObserver(self.state_store))
+            
+        # Add streaming observer (already created above)
+        observers.append(streaming_observer)
+        
+        # Create the TypedExecutionEngine
+        engine = TypedExecutionEngine(
             service_registry=self.service_registry,
-            state_store=self.state_store,
-            message_router=self.message_router,
-            custom_observers=[streaming_observer],
+            observers=observers,
         )
 
         # Subscribe to streaming updates

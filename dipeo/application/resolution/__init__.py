@@ -2,6 +2,7 @@
 # Handles resolution, arrow transformation, execution order, and validation.
 
 from .arrow_transformer import ArrowTransformer
+from .compiler import NodeFactory
 from .handle_resolver import HandleResolver
 from .static_diagram_compiler import StaticDiagramCompiler
 
@@ -14,5 +15,6 @@ __all__ = [
     "ArrowTransformer",
     "ExecutionOrderCalculator",
     "HandleResolver",
+    "NodeFactory",
     "StaticDiagramCompiler"
 ]

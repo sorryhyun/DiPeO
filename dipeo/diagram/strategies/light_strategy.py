@@ -119,7 +119,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                     },
                     "GOLDFISH": {
                         "view": MemoryView.conversation_pairs,
-                        "max_messages": 2,
+                        "max_messages": 1,
                         "preserve_system": False
                     }
                 }

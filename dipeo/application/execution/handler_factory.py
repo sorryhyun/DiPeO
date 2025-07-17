@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, TypeVar
 from pydantic import BaseModel
 
 from ..unified_service_registry import UnifiedServiceRegistry
-from .types import TypedNodeHandler
+from .handler_base import TypedNodeHandler
 
 if TYPE_CHECKING:
     pass

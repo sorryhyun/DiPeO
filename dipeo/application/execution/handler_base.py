@@ -1,6 +1,5 @@
-# Core execution types for DiPeO
+# Base handler class for DiPeO node handlers
 
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from dipeo.core.static.executable_diagram import ExecutableNode
@@ -10,20 +9,6 @@ from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-
-
-ExecutionContext = Any
-
-
-@dataclass
-class ExecutionOptions:
-
-    debug: bool = False
-    timeout: float | None = None
-    max_iterations: int | None = None
-    monitor: bool = False
-    interactive: bool = False
-    variables: dict[str, Any] = field(default_factory=dict)
 
 
 # Type variable for node types

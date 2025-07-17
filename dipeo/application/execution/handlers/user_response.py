@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import EXECUTION_CONTEXT
 from dipeo.core.static.generated_nodes import UserResponseNode
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
