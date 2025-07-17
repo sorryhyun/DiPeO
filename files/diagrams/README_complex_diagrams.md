@@ -85,7 +85,7 @@ dipeo run <diagram_name> --light --debug --no-browser --timeout=60
 
 ### View in browser:
 ```
-http://localhost:3000/?diagram=light/<diagram_name>.yaml
+http://localhost:3000/?diagram=<diagram_name>.light.yaml
 ```
 
 ## Testing Notes

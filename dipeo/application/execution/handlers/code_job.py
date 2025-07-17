@@ -245,6 +245,20 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 var_value = context.get_variable(var_name)
                 if var_value is not None:
                     namespace[var_name] = var_value
+        
+        # Add individual inputs to namespace for easier access
+        if inputs:
+            for key, value in inputs.items():
+                # Skip 'default' as it's already handled as input_data
+                if key != 'default':
+                    # Try to parse JSON strings
+                    if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                        try:
+                            namespace[key] = json.loads(value)
+                        except json.JSONDecodeError:
+                            namespace[key] = value
+                    else:
+                        namespace[key] = value
 
         # Capture stdout
         old_stdout = sys.stdout

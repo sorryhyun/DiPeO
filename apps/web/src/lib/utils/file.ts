@@ -104,16 +104,8 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
   message: string;
 }> => {
   try {
-    // Determine the subdirectory based on format
-    const formatValue = format || DiagramFormat.NATIVE;
-    let category = 'diagrams/';
-    if (formatValue === DiagramFormat.LIGHT) {
-      category = 'diagrams/light/';
-    } else if (formatValue === DiagramFormat.READABLE) {
-      category = 'diagrams/readable/';
-    } else if (formatValue === DiagramFormat.NATIVE) {
-      category = 'diagrams/native/';
-    }
+    // All diagrams now use the same directory with format-specific extensions
+    const category = 'diagrams/';
     
     const { data } = await apolloClient.mutate<UploadFileMutation, UploadFileMutationVariables>({
       mutation: UploadFileDocument,

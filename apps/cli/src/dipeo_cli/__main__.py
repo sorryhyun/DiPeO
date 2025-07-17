@@ -50,6 +50,16 @@ def main():
     convert_parser = subparsers.add_parser("convert", help="Convert between formats")
     convert_parser.add_argument("input", help="Input file")
     convert_parser.add_argument("output", help="Output file")
+    convert_parser.add_argument(
+        "--from-format",
+        choices=["native", "light", "readable"],
+        help="Source format (auto-detected if not specified)",
+    )
+    convert_parser.add_argument(
+        "--to-format",
+        choices=["native", "light", "readable"],
+        help="Target format (auto-detected from output extension if not specified)",
+    )
 
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show diagram statistics")
@@ -83,7 +93,12 @@ def main():
             )
             sys.exit(0 if success else 1)
         elif args.command == "convert":
-            cli.convert(args.input, args.output)
+            cli.convert(
+                args.input,
+                args.output,
+                from_format=getattr(args, "from_format", None),
+                to_format=getattr(args, "to_format", None),
+            )
         elif args.command == "stats":
             cli.stats(args.diagram)
         elif args.command == "monitor":

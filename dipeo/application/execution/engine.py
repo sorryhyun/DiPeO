@@ -46,9 +46,6 @@ class TypedExecutionEngine:
             await observer.on_execution_start(execution_id, diagram_id)
         
         try:
-            # Create async execution iterator
-            # max_parallel = options.get("max_parallel_nodes", 10)  # Reserved for future use
-            
             # Create iterator with typed execution
             iterator = SimpleAsyncIterator(
                 execution=execution_runtime,
@@ -62,7 +59,6 @@ class TypedExecutionEngine:
             async for step in iterator:
                 if not step.nodes:
                     # Empty step - waiting for running nodes
-                    # Use shorter interval from settings for more responsive execution
                     await asyncio.sleep(self._settings.node_ready_poll_interval)
                     continue
                 
@@ -170,7 +166,6 @@ class TypedExecutionEngine:
                     
                     if exec_count >= node.max_iteration:
                         # Always set MAXITER_REACHED when we reach max iterations
-                        # Pass the output to save it for downstream nodes
                         execution_runtime.transition_node_to_maxiter(node.id, output)
                         log.debug(f"PersonJobNode {node.id}: Transitioned to MAXITER_REACHED")
                         

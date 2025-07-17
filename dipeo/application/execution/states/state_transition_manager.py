@@ -266,10 +266,7 @@ class StateTransitionManager:
                 can_reset = False
             
             # For condition nodes, allow reset if they're part of a loop
-            # (they need to re-evaluate when loop conditions change)
             if isinstance(target_node, ConditionNode):
-                # Check if this condition node has outgoing edges that loop back
-                # If it does, it's part of a loop and should be reset
                 cond_outgoing = [e for e in self.diagram.edges if e.source_node_id == target_node.id]
                 can_reset = False
             

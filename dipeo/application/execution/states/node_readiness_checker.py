@@ -27,7 +27,6 @@ class NodeReadinessChecker:
         node: "ExecutableNode", 
         node_states: dict[NodeID, any]
     ) -> bool:
-        """Check if a node is ready to execute."""
         # Not pending? Not ready
         state = node_states.get(node.id)
         if not state or state.status != NodeExecutionStatus.PENDING:
@@ -60,10 +59,7 @@ class NodeReadinessChecker:
         # Special handling for PersonJobNodes
         if isinstance(node, PersonJobNode):
             exec_count = self.tracker.get_execution_count(node.id)
-            
-            # Note: We should NOT filter edges when max iterations is reached
-            # This allows downstream nodes to become ready when this node hits max iterations
-            
+
             # First execution? Only check 'first' inputs or non-loop edges
             if exec_count == 0:
                 first_edges = [e for e in incoming_edges if e.target_input == "first"]

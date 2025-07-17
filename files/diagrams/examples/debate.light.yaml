@@ -1,6 +1,6 @@
 version: light
 nodes:
-- label: Optimist topic
+- label: Optimist
   type: person_job
   position: {x: 600, y: 453}
   props:
@@ -23,7 +23,7 @@ nodes:
     operation: read
     sub_type: file
     source_details: files/uploads/questions.txt
-- label: Pessimist topic
+- label: Pessimist
   type: person_job
   position: {x: 899, y: 380}
   props:
@@ -52,11 +52,11 @@ nodes:
     flipped: true
 connections:
 - from: db
-  to: Optimist topic_first
+  to: Optimist_first
   content_type: raw_text
   label: topic
 - from: db
-  to: Pessimist topic_first
+  to: Pessimist_first
   content_type: raw_text
   label: topic
 - from: Start
@@ -68,14 +68,14 @@ connections:
 - from: Condition_condtrue
   to: Judge panel
   content_type: conversation_state
-- from: Optimist topic
-  to: Pessimist topic
+- from: Optimist
+  to: Pessimist
   content_type: conversation_state
-- from: Pessimist topic
+- from: Pessimist
   to: Condition
   content_type: conversation_state
 - from: Condition_condfalse
-  to: Optimist topic
+  to: Optimist
   content_type: conversation_state
 persons:
   Judge:

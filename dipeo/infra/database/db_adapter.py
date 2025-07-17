@@ -79,17 +79,31 @@ class DBOperationsAdapter:
         try:
             # Handle file service read operation
             try:
-                result = self.file_service.read(file_path)
+                # ModularFileService expects file_id relative to base_dir
+                # If path starts with known directories, use it as-is
+                if file_path.startswith(('files/', 'dbs/', 'prompts/')):
+                    # Remove the base directory prefix since ModularFileService will add it
+                    file_id = file_path
+                else:
+                    file_id = file_path
+                
+                result = self.file_service.read(file_id)
 
                 if isinstance(result, dict) and "success" in result:
                     if result.get("success"):
                         content = result.get("content", "{}")
-                        # Try to parse as JSON, fall back to plain text
-                        try:
-                            data = self.domain_service.validate_json_data(content, file_path)
-                        except ValidationError:
-                            # Not JSON, treat as plain text
+                        
+                        # ModularFileService may have already parsed the content
+                        if isinstance(content, (dict, list)):
+                            # Already parsed - use as-is
                             data = content
+                        else:
+                            # Try to parse as JSON, fall back to plain text
+                            try:
+                                data = self.domain_service.validate_json_data(content, file_path)
+                            except ValidationError:
+                                # Not JSON, treat as plain text
+                                data = content
                         return self.domain_service.prepare_read_response(
                             data, file_path, result.get("size", 0)
                         )

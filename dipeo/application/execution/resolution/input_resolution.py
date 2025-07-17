@@ -63,7 +63,6 @@ class TypedInputResolutionService:
             if isinstance(source_output, NodeOutputProtocol):
                 # Protocol output - extract value based on type
                 if isinstance(source_output, ConditionOutput):
-                    # For condition outputs, create dict with branch keys
                     if source_output.value:  # True branch
                         output_value = {"condtrue": source_output.true_output or {}}
                     else:  # False branch
@@ -96,17 +95,14 @@ class TypedInputResolutionService:
                     continue
             
             # Get the input key where this should be placed
-            # Use label from metadata if available, otherwise use target_input
             input_key = edge.metadata.get("label") or edge.target_input or "default"
 
             # Apply any transformations if specified
             if edge.data_transform:
-                # Check if this is a conversation_state content type
                 if edge.data_transform.get('content_type') == 'conversation_state':
                     # For conversation_state, pass the conversation data directly
                     value = output_value[output_key]
                     if isinstance(value, dict) and 'messages' in value:
-                        # Pass the messages directly to the target node
                         inputs[input_key] = value
                     else:
                         inputs[input_key] = value
@@ -136,10 +132,8 @@ class TypedInputResolutionService:
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
 
             # On first execution (exec_count == 1 because it's incremented before execution),
-            # handle "first" inputs specially
             if exec_count == 1:
                 # Special case: Always process conversation_state inputs from condition nodes
-                # These provide context for judging/decision-making
                 if hasattr(edge, 'data_transform') and edge.data_transform:
                     if edge.data_transform.get('content_type') == 'conversation_state':
                         return True
@@ -147,13 +141,10 @@ class TypedInputResolutionService:
                 # If there are "first" inputs, only process those
                 if has_first_inputs:
                     return edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
-                # If no "first" inputs exist, fall back to processing default inputs
                 else:
-                    # Process edges without target_input (default) or explicitly "default"
                     return not edge.target_input or edge.target_input == "default"
             # On subsequent executions, process all non-_first inputs
             else:
-                # Process edges without target_input (regular edges) or non-_first inputs
                 return not edge.target_input or not (edge.target_input == "first" or edge.target_input.endswith("_first"))
         
         # For all other node types, process all edges

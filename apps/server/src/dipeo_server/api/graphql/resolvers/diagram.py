@@ -5,7 +5,6 @@ import logging
 from collections import defaultdict
 from datetime import UTC, datetime
 
-import yaml
 from dipeo.infra.diagram import converter_registry
 from dipeo.models import DiagramMetadata, DomainDiagram
 
@@ -31,42 +30,40 @@ class DiagramResolver:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
 
             # Use integrated diagram service
-            integrated_service = info.context.get_service(
-                "integrated_diagram_service"
-            )
-
-            # Get diagram data
-            diagram_data = await integrated_service.get_diagram(diagram_id)
-            if not diagram_data:
-                logger.error(f"Diagram not found: {diagram_id}")
-                return None
+            integrated_service = info.context.get_service("integrated_diagram_service")
 
             # Get path for format detection
             file_repo = integrated_service.file_repository
             path = await file_repo.find_by_id(diagram_id) or ""
 
-            # Determine format from path and data
+            # Determine format from path
             format_type = "native"  # default
-            if "light/" in path or diagram_data.get("version") == "light":
+            if (
+                "light/" in path
+                or path.endswith(".light.yaml")
+                or path.endswith(".light.yml")
+            ):
                 format_type = "light"
-            elif "readable/" in path:
+            elif (
+                "readable/" in path
+                or path.endswith(".readable.yaml")
+                or path.endswith(".readable.yml")
+            ):
                 format_type = "readable"
 
-            # Use converter registry to handle all format conversions
-            if format_type == "light":
-                logger.info(f"Detected light format for diagram {diagram_id}")
-                # Convert to YAML string for light format processing
-                yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-                domain_diagram = converter_registry.deserialize(yaml_content, "light")
-            elif format_type == "readable":
-                logger.info(f"Detected readable format for diagram {diagram_id}")
-                # Convert to YAML string for readable format processing
-                yaml_content = yaml.dump(diagram_data, default_flow_style=False)
+            # For readable and light formats, get raw content to preserve structure
+            if format_type in ("readable", "light"):
+                logger.info(f"Detected {format_type} format for diagram {diagram_id}")
+                raw_content = await file_repo.read_raw_content(path)
                 domain_diagram = converter_registry.deserialize(
-                    yaml_content, "readable"
+                    raw_content, format_type
                 )
             else:
-                # For native format, use converter registry
+                # For native format, get parsed data
+                diagram_data = await integrated_service.get_diagram(diagram_id)
+                if not diagram_data:
+                    logger.error(f"Diagram not found: {diagram_id}")
+                    return None
                 json_content = json.dumps(diagram_data)
                 domain_diagram = converter_registry.deserialize(json_content, "native")
 
@@ -76,11 +73,9 @@ class DiagramResolver:
                     id=diagram_id,
                     name=diagram_id,
                     description=f"{format_type} format diagram",
-                    version=diagram_data.get("version", DIAGRAM_VERSION),
-                    created=diagram_data.get("created", datetime.now(UTC).isoformat()),
-                    modified=diagram_data.get(
-                        "modified", datetime.now(UTC).isoformat()
-                    ),
+                    version=DIAGRAM_VERSION,
+                    created=datetime.now(UTC).isoformat(),
+                    modified=datetime.now(UTC).isoformat(),
                 )
 
             # Use domain model directly for GraphQL
@@ -105,9 +100,7 @@ class DiagramResolver:
         """Returns filtered diagram list."""
         try:
             # Use integrated diagram service
-            integrated_service = info.context.get_service(
-                "integrated_diagram_service"
-            )
+            integrated_service = info.context.get_service("integrated_diagram_service")
 
             file_infos = await integrated_service.list_diagrams()
             all_diagrams = [

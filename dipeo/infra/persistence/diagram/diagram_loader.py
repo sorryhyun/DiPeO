@@ -44,7 +44,7 @@ class DiagramLoaderAdapter:
                      "persons" in data)):
                     return DiagramFormat.light
                 # Check for readable format
-                if data.get("format") == "readable":
+                if data.get("format") == "readable" or data.get("version") == "readable":
                     return DiagramFormat.readable
                 # Default YAML is light format
                 return DiagramFormat.light
@@ -102,6 +102,16 @@ class DiagramLoaderAdapter:
             if isinstance(diagram_ref.get("nodes"), dict):
                 # Convert from dict format to domain format
                 return dict_to_domain_diagram(diagram_ref)
+            
+            # Check if this is readable format
+            if (diagram_ref.get("version") == "readable" or 
+                diagram_ref.get("format") == "readable" or
+                (isinstance(diagram_ref.get("nodes"), list) and 
+                 "flow" in diagram_ref and 
+                 isinstance(diagram_ref.get("persons"), list))):
+                # This is readable format - convert to YAML string then deserialize
+                content = yaml.dump(diagram_ref, default_flow_style=False, sort_keys=False)
+                return self.converter.deserialize(content, format_id="readable")
             
             # Check if this is light format
             if (diagram_ref.get("version") == "light" or 

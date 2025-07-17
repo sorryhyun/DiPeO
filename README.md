@@ -37,7 +37,7 @@ make dev-web                      # Start frontend server
 # run diagram with automatically running server
 dipeo run examples/simple_iter --debug --light --no-browser --timeout=10
 # or, feed actual directory
-dipeo run files/diagrams/native/quicksave --debug
+dipeo run files/diagrams/native_examples/quicksave.native.json --debug
 ```
 
 ### Docs

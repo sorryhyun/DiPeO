@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from dipeo.models import (
@@ -33,8 +34,8 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
     # ---- extraction ------------------------------------------------------- #
     def _get_raw_nodes(self, data: dict[str, Any]) -> list[Any]:
-        """Get workflow steps from readable format."""
-        return data.get("workflow", [])
+        """Get nodes from readable format."""
+        return data.get("nodes", [])
     
     def _process_node(self, node_data: Any, index: int) -> dict[str, Any] | None:
         """Process readable format workflow step."""
@@ -64,13 +65,17 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
             position = cfg.get("position", {})
 
         node_type = cfg.get("type") or ("start" if index == 0 else "job")
-        return build_node(
-            id=self._create_node_id(index),
-            type_=node_type,
-            pos=position,
-            label=clean_name,
-            **{k: v for k, v in cfg.items() if k not in {"position", "type"}},
-        )
+        
+        # Build node with proper structure for base strategy
+        node_data = {
+            "id": self._create_node_id(index),
+            "type": node_type,
+            "position": position,
+            "label": clean_name,
+            **{k: v for k, v in cfg.items() if k not in {"position", "type"}}
+        }
+        
+        return node_data
 
     def extract_arrows(
             self, data: dict[str, Any], nodes: list[dict[str, Any]]
@@ -100,6 +105,11 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
                         for dst in dst_data.keys():
                             arrows.extend(self._parse_single_flow(src, dst, label2id, arrow_counter))
                             arrow_counter += 1
+                    elif isinstance(dst_data, list):
+                        # Array format: {source: [dest1, dest2, ...]}
+                        for dst in dst_data:
+                            arrows.extend(self._parse_single_flow(src, dst, label2id, arrow_counter))
+                            arrow_counter += 1
                     elif dst_data is None:
                         # Handle case where dst_data is None (shouldn't happen in well-formed data)
                         continue
@@ -118,13 +128,22 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         label = None
         clean_dst = dst_str.strip()
 
-        # Extract content type [type]
-        if "[" in clean_dst and "]" in clean_dst:
-            start = clean_dst.find("[")
-            end = clean_dst.find("]", start)
-            if start != -1 and end != -1:
-                content_type = clean_dst[start + 1:end]
-                clean_dst = clean_dst[:start].strip() + clean_dst[end + 1:].strip()
+        # Extract content type (type)
+        # Check for new format (type) or old format [type]
+        if "(" in clean_dst:
+            # Extract all parentheses content
+            import re
+            paren_matches = re.findall(r'\(([^)]+)\)', clean_dst)
+            if paren_matches:
+                # First parenthesis is content type if not a label
+                # Check if it's a known content type
+                known_types = ["raw_text", "conversation_state", "variable", "json", "object"]
+                for match in paren_matches:
+                    if match in known_types:
+                        content_type = match
+                        # Remove this specific parenthesis from clean_dst
+                        clean_dst = clean_dst.replace(f"({match})", "").strip()
+                        break
 
         # Extract label (label)
         if "(" in clean_dst and ")" in clean_dst:
@@ -139,6 +158,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         src_label = src.strip()
         src_handle = "default"
         if "_" in src:
+            # Regular underscore split
             parts = src.rsplit("_", 1)
             if parts[0] in label2id:
                 src_label = parts[0].strip()
@@ -147,6 +167,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         dst_label = clean_dst.strip()
         dst_handle = "default"
         if "_" in clean_dst:
+            # Regular underscore split
             parts = clean_dst.rsplit("_", 1)
             if parts[0] in label2id:
                 dst_label = parts[0].strip()
@@ -197,8 +218,8 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         for n in diagram.nodes:
             id_to_label[n.id] = n.data.get("label") or n.id
 
-        # Build workflow section with positions
-        workflow = []
+        # Build nodes section with positions
+        nodes = []
         for n in diagram.nodes:
             label = id_to_label[n.id]
 
@@ -208,13 +229,13 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
             else:
                 label_with_pos = label
 
-            # Filter out position and label from data
+            # Filter out position, label, memory_config, and memory_settings from data
             node_data = {
                 k: v for k, v in n.data.items()
-                if k not in {"label", "position"} and v not in (None, "", {}, [])
+                if k not in {"label", "position", "memory_config", "memory_settings", "memory_profile"} and v not in (None, "", {}, [])
             }
 
-            workflow.append({label_with_pos: node_data})
+            nodes.append({label_with_pos: node_data})
 
         # Build flow section with enhanced syntax
         flow = self._build_enhanced_flow(diagram, id_to_label)
@@ -236,10 +257,10 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 person_dict[p.label]["api_key_id"] = p.llm_config.api_key_id
             persons.append(person_dict)
 
-        out: dict[str, Any] = {}
+        out: dict[str, Any] = {"version": "readable"}
         if persons:
             out["persons"] = persons
-        out["workflow"] = workflow
+        out["nodes"] = nodes
         if flow:
             out["flow"] = flow
         return out
@@ -252,7 +273,14 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         for a in diagram.arrows:
             # Parse handle IDs using the new format
             source_id, source_handle, _ = parse_handle_id(a.source)
-            source_key = f"{source_id}_{source_handle}" if source_handle not in ("output", "default") else source_id
+            
+            # Use node label instead of ID for source key
+            source_label = id_to_label.get(source_id, source_id)
+            # Add handle suffix for non-default handles
+            if source_handle.value not in ("output", "default"):
+                source_key = f"{source_label}_{source_handle.value}"
+            else:
+                source_key = source_label
 
             if source_key not in source_groups:
                 source_groups[source_key] = []
@@ -261,14 +289,14 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
             # Build target string with handle, content type, and label
             target_str = id_to_label.get(target_id, target_id)
-            if target_handle not in ("input", "default"):
-                target_str += f"_{target_handle}"
+            if target_handle.value not in ("input", "default"):
+                target_str += f"_{target_handle.value}"
 
             # Add content type and label annotations
             annotations = []
             if a.content_type:
                 content_type_str = a.content_type.value if hasattr(a.content_type, "value") else str(a.content_type)
-                annotations.append(f"[{content_type_str}]")
+                annotations.append(f"({content_type_str})")
             if a.label:
                 annotations.append(f"({a.label})")
 
@@ -280,31 +308,55 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         # Generate flow dictionaries
         flow = []
         for source_key, targets in source_groups.items():
-            source_id = source_key.split('_')[0]
-            source_handle = source_key.split('_', 1)[1] if '_' in source_key else None
-
-            source_str = id_to_label.get(source_id, source_id)
-            if source_handle and source_handle not in ("output", "default"):
-                source_str += f"_{source_handle}"
-
             if len(targets) == 1:
                 # Single target: {source: "target"}
-                flow.append({source_str: targets[0]})
+                flow.append({source_key: targets[0]})
             else:
-                # Multiple targets: {source: {target1: null, target2: null}}
-                targets_dict = {target: None for target in targets}
-                flow.append({source_str: targets_dict})
+                # Multiple targets: {source: [target1, target2, ...]}
+                flow.append({source_key: targets})
 
         return flow
 
     # ---- heuristics ------------------------------------------------------- #
     def detect_confidence(self, data: dict[str, Any]) -> float:
-        return 0.9 if "workflow" in data else 0.1
+        # Check for readable format indicators
+        if data.get("format") == "readable" or data.get("version") == "readable":
+            return 0.95
+        # Check for readable-specific structure
+        if "nodes" in data and "flow" in data:
+            # Additional checks for readable format characteristics
+            nodes = data.get("nodes", [])
+            if isinstance(nodes, list) and nodes:
+                # Check if nodes use readable format (dict with single key)
+                first_node = nodes[0]
+                if isinstance(first_node, dict) and len(first_node) == 1:
+                    return 0.85
+            return 0.7
+        return 0.1
 
     def quick_match(self, content: str) -> bool:
-        return "workflow:" in content and "flow:" in content
+        # Quick check for readable format indicators
+        if "version: readable" in content or "format: readable" in content:
+            return True
+        # Check for readable-specific patterns
+        return "nodes:" in content and "flow:" in content and "persons:" in content
     
     # ---- Domain Conversion Overrides -------------------------------------- #
+    
+    def _apply_format_transformations(
+        self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Apply readable format specific transformations."""
+        # Ensure person references in nodes match the generated person IDs
+        for node_id, node_data in diagram_dict.get("nodes", {}).items():
+            if "person" in node_data.get("data", {}):
+                person_ref = node_data["data"]["person"]
+                # If it's already in the correct format, keep it
+                if not person_ref.startswith("person_"):
+                    # Transform simple name to person_id format
+                    node_data["data"]["person"] = f"person_{person_ref}"
+        
+        return diagram_dict
     
     def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Extract persons for readable format with list structure."""
@@ -324,13 +376,16 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
                         if "system_prompt" in person_config:
                             llm_config["system_prompt"] = person_config["system_prompt"]
                         
+                        # Generate a consistent person ID
+                        person_id = f"person_{person_name}"
+                        
                         # Add required fields for DomainPerson
                         person_dict = {
-                            "id": person_name,
+                            "id": person_id,
                             "label": person_name,
                             "type": "person",
                             "llm_config": llm_config,
                         }
-                        persons_dict[person_name] = person_dict
+                        persons_dict[person_id] = person_dict
         
         return persons_dict

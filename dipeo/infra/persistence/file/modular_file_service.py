@@ -585,6 +585,71 @@ class ModularFileService(BaseService, FileServicePort):
                 raise
             raise FileOperationError("get_file_info", file_path, str(e))
     
+    async def list_prompt_files(self) -> list[dict[str, Any]]:
+        """List all prompt files in the prompts directory.
+        
+        Returns:
+            List of prompt file information
+        """
+        prompts_dir = self.base_dir / "prompts"
+        if not prompts_dir.exists():
+            return []
+        
+        prompt_files = []
+        for file_path in prompts_dir.rglob("*"):
+            if file_path.is_file() and file_path.suffix in ['.txt', '.md', '.csv', '.json', '.yaml']:
+                try:
+                    relative_path = file_path.relative_to(prompts_dir)
+                    prompt_files.append({
+                        "name": file_path.name,
+                        "path": str(relative_path),
+                        "extension": file_path.suffix[1:],
+                        "size": file_path.stat().st_size,
+                    })
+                except Exception as e:
+                    logger.warning(f"Failed to process prompt file {file_path}: {e}")
+        
+        return prompt_files
+    
+    async def read_prompt_file(self, filename: str) -> dict[str, Any]:
+        """Read a prompt file from the prompts directory.
+        
+        Args:
+            filename: Name or relative path of the prompt file
+            
+        Returns:
+            Dictionary with file content and metadata
+        """
+        prompts_dir = self.base_dir / "prompts"
+        file_path = prompts_dir / filename
+        
+        if not file_path.exists():
+            return {
+                "success": False,
+                "error": f"Prompt file not found: {filename}",
+                "filename": filename,
+            }
+        
+        try:
+            # Use format registry to read the file
+            content, raw_content = self.formats.read_file(file_path)
+            
+            return {
+                "success": True,
+                "filename": filename,
+                "content": content,
+                "raw_content": raw_content,
+                "extension": file_path.suffix[1:],
+                "size": file_path.stat().st_size,
+            }
+        except Exception as e:
+            logger.error(f"Failed to read prompt file {filename}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "filename": filename,
+            }
+    
     # === Internal Helper Methods ===
     
     def _resolve_path(

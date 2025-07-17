@@ -1,0 +1,32 @@
+version: readable
+persons:
+- Person 1:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F
+nodes:
+- Start @(26,211):
+    trigger_mode: manual
+- Endpoint @(273,424):
+    file_format: txt
+    save_to_file: true
+    file_name: files/results/simple_iter_output.txt
+- Code Job @(596,245):
+    code: |
+      print(f"Value of a: {a}")
+      a+=1
+      result = f"Iteration with a={a-1}"
+    language: python
+- Condition @(612,447):
+    condition_type: custom
+    expression: a>10
+    flipped: true
+- Code Job~1 @(306,204):
+    code: a=1
+    language: python
+flow:
+- Code Job: Condition (raw_text)
+- Condition_condfalse: Code Job (raw_text)
+- Condition_condtrue: Endpoint (raw_text)
+- Start: Code Job~1 (raw_text)
+- Code Job~1: Code Job (raw_text)

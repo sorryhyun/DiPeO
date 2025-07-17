@@ -104,11 +104,30 @@ Execute Python, JavaScript, or Bash code:
   props:
     code_type: python  # or javascript, bash
     code: |
-      # Access variables from context
-      print(f"Input value: {input_value}")
-      result = input_value * 2
-      # 'result' variable is automatically passed to next nodes
+      # Access input variables from connections
+      data = raw_data  # Variable from connection labeled 'raw_data'
+      
+      # Process data
+      processed = data.upper()
+      
+      # IMPORTANT: To pass data to next nodes, use one of:
+      # 1. Assign to 'result' variable
+      result = processed
+      
+      # 2. Or use return statement
+      # return processed
+      
+      # NOTE: print() is NOT supported in code_job nodes
+      # Variables not assigned to 'result' won't be passed forward
 ```
+
+**Important Notes for code_job:**
+- Variables from incoming connections are available by their label names
+- To pass data to subsequent nodes, you MUST either:
+  - Assign the output to a variable named `result`
+  - Use a `return` statement (the code will be wrapped in a function)
+- If neither `result` nor `return` is used, the node outputs "Code executed successfully"
+- The `print()` function is not supported and won't produce output
 
 ### 5. **endpoint** - Output/Save
 
@@ -209,16 +228,32 @@ connections:
     content_type: variable        # Variables from code execution
 ```
 
-### Named Connections
+### Named Connections (Important!)
 
-Label connections for variable access:
+**Labels are REQUIRED for passing data between nodes.** Without labels, the receiving node cannot access the data:
 
 ```yaml
 connections:
+  # Without label - data is NOT accessible
   - from: Load Data
-    to: Process_first  # Special handle for first-only input
-    label: topic       # Access as {{topic}} in prompts
+    to: Process Data
+    
+  # With label - data is accessible as 'raw_data' variable
+  - from: Load Data
+    to: Process Data
+    label: raw_data    # In code_job: access as raw_data
+                      # In templates: access as {{raw_data}}
+    
+  # Multiple inputs with different labels
+  - from: Load Config
+    to: Process Data
+    label: config     # Accessible as separate 'config' variable
 ```
+
+**Key Points:**
+- DB nodes (file operations) return the file content
+- The label becomes the variable name in the receiving node
+- Without a label, the data is passed but not accessible by name
 
 ## Variables and Data Flow
 

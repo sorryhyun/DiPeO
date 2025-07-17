@@ -1,0 +1,55 @@
+version: readable
+persons:
+- Judge:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: Say 25 words at most.
+    api_key_id: APIKEY_52609F
+- Optimist:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: Be optimistic and say 25 words at most.
+    api_key_id: APIKEY_52609F
+- Pessimist:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: Be pessimistic and say 25 words at most.
+    api_key_id: APIKEY_52609F
+nodes:
+- Optimist @(600,453):
+    default_prompt: Argue against the argument.
+    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
+    max_iteration: 2
+    person: person_Optimist
+- End @(58,668):
+    file_format: txt
+    save_to_file: true
+    file_name: files/results/output.txt
+- db @(431,148):
+    operation: read
+    sub_type: file
+    file: files/uploads/questions.txt
+- Pessimist @(899,380):
+    default_prompt: Argue against the argument.
+    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
+    max_iteration: 3
+    person: person_Pessimist
+- Start @(279,406): {}
+- Judge panel @(439,663):
+    default_prompt: Judge which panel is more reasonable.
+    flipped: true
+    max_iteration: 1
+    person: person_Judge
+- Condition @(785,647):
+    condition_type: detect_max_iterations
+    flipped: true
+flow:
+- db:
+  - Optimist_first (raw_text)(topic)
+  - Pessimist_first (raw_text)(topic)
+- Start: db (raw_text)
+- Judge panel: End (raw_text)
+- Condition_condtrue: Judge panel (conversation_state)
+- Optimist: Pessimist (conversation_state)
+- Pessimist: Condition (conversation_state)
+- Condition_condfalse: Optimist (conversation_state)
