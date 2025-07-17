@@ -39,17 +39,6 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     def description(self) -> str:
         return "Interactive node that prompts for user input"
 
-    async def pre_execute(
-        self,
-        node: UserResponseNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for UserResponseNode."""
-        return {
-            "prompt": node.prompt,
-            "timeout": node.timeout
-        }
-    
     async def execute(
         self,
         node: UserResponseNode,

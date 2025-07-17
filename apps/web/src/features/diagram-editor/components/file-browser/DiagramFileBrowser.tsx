@@ -21,15 +21,18 @@ export const DiagramFileBrowser: React.FC = () => {
 
   const handleFileClick = useCallback((file: FileNode) => {
     if (file.type === 'file') {
-      // Update URL without page refresh
-      const newUrl = `/?diagram=${file.path}`;
-      window.history.pushState({}, '', newUrl);
-      
-      // Trigger popstate event to load diagram
-      window.dispatchEvent(new PopStateEvent('popstate'));
-      
-      // Update selected path
+      // Update selected path immediately for UI feedback
       setSelectedPath(file.path);
+      
+      // Add a small delay to ensure React Flow has time to clean up
+      setTimeout(() => {
+        // Update URL without page refresh
+        const newUrl = `/?diagram=${file.path}`;
+        window.history.pushState({}, '', newUrl);
+        
+        // Trigger popstate event to load diagram
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }, 100); // Small delay for cleanup
     }
   }, []);
 
@@ -40,14 +43,47 @@ export const DiagramFileBrowser: React.FC = () => {
   };
 
   // Filter files based on search query
+  // Count files recursively
+  const countFiles = (nodes: FileNode[]): number => {
+    return nodes.reduce((count, node) => {
+      if (node.type === 'file') {
+        return count + 1;
+      } else if (node.type === 'folder' && node.children) {
+        return count + countFiles(node.children);
+      }
+      return count;
+    }, 0);
+  };
+
   const filterNodes = (nodes: FileNode[], query: string): FileNode[] => {
     if (!query) return nodes;
     
     const lowerQuery = query.toLowerCase();
     
-    return nodes.filter(node => 
-      node.name.toLowerCase().includes(lowerQuery)
-    );
+    return nodes.reduce<FileNode[]>((filtered, node) => {
+      // Check if current node matches
+      const matches = node.name.toLowerCase().includes(lowerQuery);
+      
+      if (node.type === 'folder' && node.children) {
+        // For folders, check children recursively
+        const filteredChildren = filterNodes(node.children, query);
+        if (filteredChildren.length > 0) {
+          // Include folder if it has matching children
+          filtered.push({
+            ...node,
+            children: filteredChildren
+          });
+        } else if (matches) {
+          // Include folder if its name matches (even without matching children)
+          filtered.push(node);
+        }
+      } else if (matches) {
+        // Include file if it matches
+        filtered.push(node);
+      }
+      
+      return filtered;
+    }, []);
   };
 
   const filteredTree = filterNodes(fileTree, searchQuery);
@@ -101,7 +137,7 @@ export const DiagramFileBrowser: React.FC = () => {
       </div>
 
       {/* File tree */}
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto px-1 py-2">
         {loading && !fileTree.length ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="animate-spin text-gray-600" size={24} />
@@ -120,7 +156,7 @@ export const DiagramFileBrowser: React.FC = () => {
         {loading ? (
           <span>Loading...</span>
         ) : (
-          <span>{fileTree.length} files</span>
+          <span>{countFiles(fileTree)} files</span>
         )}
       </div>
     </div>

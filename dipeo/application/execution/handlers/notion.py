@@ -46,18 +46,6 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     def description(self) -> str:
         return "Executes Notion API operations"
 
-    async def pre_execute(
-        self,
-        node: NotionNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for NotionNode."""
-        return {
-            "operation": node.operation.value if hasattr(node.operation, 'value') else node.operation,
-            "page_id": node.page_id,
-            "database_id": node.database_id
-        }
-    
     async def execute(
         self,
         node: NotionNode,

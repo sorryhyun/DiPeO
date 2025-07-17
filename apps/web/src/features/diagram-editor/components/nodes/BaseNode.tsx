@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
@@ -273,6 +273,9 @@ export function BaseNode({
   showFlipButton = true,
   className 
 }: BaseNodeProps) {
+  // Local state
+  const [isHovered, setIsHovered] = useState(false);
+  
   // Store selectors
   const nodeOps = useNodeOperations();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -363,6 +366,8 @@ export function BaseNode({
     <div
       className={nodeClassNames}
       title={status.progress || `${config?.label || 'Unknown'} Node`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       {...dataAttributes}
     >
       {/* Status indicators */}
@@ -376,7 +381,7 @@ export function BaseNode({
       )}
       
       {/* Flip button */}
-      {selected && showFlipButton && !status.isRunning && (
+      {isHovered && showFlipButton && !status.isRunning && (
         <Button
           onClick={handleFlip}
           variant="outline"

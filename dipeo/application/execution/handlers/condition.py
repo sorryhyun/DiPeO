@@ -64,19 +64,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             
         return None
     
-
-    async def pre_execute(
-        self,
-        node: ConditionNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for ConditionNode."""
-        return {
-            "condition_type": node.condition_type,
-            "expression": node.expression,
-            "node_indices": node.node_indices
-        }
-    
     async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> NodeOutputProtocol:
         """Execute the condition with the unified request object."""
         # Get node and context from request

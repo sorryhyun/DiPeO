@@ -77,37 +77,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             
         return None
     
-    async def pre_execute(
-        self,
-        node: PersonJobNode,
-        execution: Any
-    ) -> dict[str, Any]:
-        """Pre-execute logic for PersonJobNode."""
-        # Handle different execution types
-        if hasattr(execution, 'context'):
-            # ExecutionRuntime
-            exec_count = execution.context.get_node_execution_count(node.id)
-        elif hasattr(execution, 'get_node_execution_count'):
-            # SimpleExecution or similar
-            exec_count = execution.get_node_execution_count(node.id)
-        else:
-            # Fallback
-            exec_count = 1
-        
-        # Determine which prompt to use
-        # exec_count is 1 on first run because it's incremented before execution
-        if exec_count == 1 and node.first_only_prompt:
-            prompt = node.first_only_prompt
-        else:
-            prompt = node.default_prompt
-        
-        return {
-            "prompt": prompt,
-            "exec_count": exec_count,
-            "should_continue": exec_count <= node.max_iteration,
-            "tools": node.tools
-        }
-    
     async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
         """Execute the person job with the unified request object."""
         # Get node and context from request
@@ -148,20 +117,9 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Handle conversation inputs
             has_conversation_input = self._has_conversation_input(transformed_inputs)
             if has_conversation_input:
-                logger.debug(f"PersonJob {node.id}: Rebuilding conversation from inputs")
                 self._rebuild_conversation(person, transformed_inputs)
-                logger.debug(f"PersonJob {node.id}: After rebuild, person has {person.get_message_count()} messages")
-            
+
             # Build prompt BEFORE applying memory management
-            logger.debug(f"PersonJob {node.id} ({node.label}): transformed_inputs keys: {list(transformed_inputs.keys())}")
-            for key, value in transformed_inputs.items():
-                if isinstance(value, dict) and 'messages' in value:
-                    logger.debug(f"  {key}: dict with {len(value.get('messages', []))} messages")
-                elif isinstance(value, list):
-                    logger.debug(f"  {key}: list with {len(value)} items")
-                else:
-                    logger.debug(f"  {key}: {type(value).__name__}")
-            
             template_values = prompt_builder.prepare_template_values(
                 transformed_inputs, 
                 conversation_manager=conversation_manager,
@@ -300,7 +258,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             if isinstance(value, dict) and "messages" in value:
                 messages = value["messages"]
                 if isinstance(messages, list):
-                    logger.debug(f"_rebuild_conversation: Found {len(messages)} messages in input '{key}'")
                     all_messages.extend(messages)
         
         if not all_messages:
@@ -315,13 +272,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 # Already a Message object - check content and add directly
                 if "[Previous conversation" not in msg.content:
                     person.add_message(msg)
-                    logger.debug(f"  Added Message object {i}: from={msg.from_person_id}, to={msg.to_person_id}")
             elif isinstance(msg, dict):
                 # Dictionary format - convert to Message
                 content = msg.get("content", "")
                 # Skip messages that contain the "[Previous conversation" marker to avoid duplication
                 if "[Previous conversation" in content:
-                    logger.debug(f"  Skipped message {i} with '[Previous conversation' marker")
                     continue
                     
                 message = Message(

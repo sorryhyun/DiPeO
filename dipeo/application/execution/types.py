@@ -39,7 +39,6 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
     
     Lifecycle methods (all optional):
     - validate: Pre-execution validation
-    - pre_execute: Setup before execution
     - execute_request: New unified execution interface
     - post_execute: Post-processing after execution
     - on_error: Error recovery handling
@@ -78,18 +77,6 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         """
         # Default implementation - can be overridden
         return None
-    
-    async def pre_execute(
-        self,
-        node: T,
-        execution: Any  # Accept any type for backward compatibility
-    ) -> dict[str, Any]:
-        """Pre-execution logic for the node. Override in subclasses.
-        
-        Note: This method accepts Any for the execution parameter to maintain
-        backward compatibility with handlers using ExecutionRuntime.
-        """
-        return {}
     
     async def execute_request(self, request: "ExecutionRequest[T]") -> NodeOutputProtocol:
         """Execute the node with the unified request object.

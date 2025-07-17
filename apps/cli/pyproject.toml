@@ -41,9 +41,7 @@ dev = [
 
 [project.scripts]
 # New simplified command
-dipeo = "dipeo_cli.minimal_cli:main"
-# Keep old command during transition
-dipeo-cli = "dipeo_cli.__main__:main"
+dipeo = "dipeo_cli.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

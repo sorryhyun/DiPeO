@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 
 # Add project root to path
-# This file is at apps/cli/dipeo/commands/profile_container.py
+# This file is at apps/cli/src/dipeo_cli/profile_container.py
 # Going up 4 levels to reach project root
 try:
     from dipeo.core.constants import BASE_DIR

@@ -44,14 +44,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     def description(self) -> str:
         return "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
     
-    async def pre_execute(
-        self,
-        node: HookNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for HookNode."""
-        return {}
-    
     async def execute(
         self,
         node: HookNode,

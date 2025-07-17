@@ -28,10 +28,11 @@ const TopBar = () => {
   const diagramFormatFromStore = useDiagramFormat();
   
   // Get diagram metadata from store
-  const { diagramName, diagramDescription, setDiagramName, setDiagramDescription } = useUnifiedStore(
+  const { diagramName, diagramDescription, diagramId, setDiagramName, setDiagramDescription } = useUnifiedStore(
     useShallow(state => ({
       diagramName: state.diagramName,
       diagramDescription: state.diagramDescription,
+      diagramId: state.diagramId,
       setDiagramName: state.setDiagramName,
       setDiagramDescription: state.setDiagramDescription,
     }))
@@ -71,10 +72,13 @@ const TopBar = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
   
-  // Sync format from store
+  // Sync format from store - including when it's null (no diagram loaded)
   useEffect(() => {
-    if (diagramFormatFromStore) {
+    if (diagramFormatFromStore !== null) {
       setSelectedFormat(diagramFormatFromStore);
+    } else {
+      // When no diagram is loaded, default to NATIVE
+      setSelectedFormat(DiagramFormat.NATIVE);
     }
   }, [diagramFormatFromStore]);
 
@@ -85,15 +89,47 @@ const TopBar = () => {
       // Use the user-provided name or default
       const finalName = diagramName.trim() || 'diagram';
       
-      // Generate filename based on format
-      const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
-      const filename = `${finalName}.${extension}`;
+      // Determine the save path
+      let savePath: string;
+      let filename: string;
+      
+      if (diagramId) {
+        // If we have an existing diagram ID, preserve its directory structure
+        const pathParts = diagramId.split('/');
+        const originalFilename = pathParts[pathParts.length - 1] || '';
+        
+        // Remove any format-specific extensions from the original filename
+        let baseName = originalFilename
+          .replace(/\.(native|light|readable)\.(json|yaml|yml)$/, '')
+          .replace(/\.(json|yaml|yml)$/, '');
+        
+        // If the name has changed, use the new name
+        if (finalName !== baseName && finalName !== 'diagram') {
+          baseName = finalName;
+        }
+        
+        // Generate new filename with appropriate extension
+        const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
+        filename = `${baseName}.${extension}`;
+        
+        // Reconstruct the path preserving directory structure
+        if (pathParts.length > 1) {
+          savePath = [...pathParts.slice(0, -1), filename].join('/');
+        } else {
+          savePath = filename;
+        }
+      } else {
+        // For new diagrams, save in format-specific directory
+        const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
+        filename = `${finalName}.${extension}`;
+        const formatDir = selectedFormat.toLowerCase();
+        savePath = `${formatDir}/${filename}`;
+      }
       
       // For native format, use the existing saveDiagram function
       if (selectedFormat === DiagramFormat.NATIVE) {
-        await saveToFileSystem(filename, selectedFormat);
-        const formatDir = selectedFormat.toLowerCase();
-        toast.success(`Saved to ${formatDir}/${filename}`);
+        await saveToFileSystem(savePath, selectedFormat);
+        toast.success(`Saved to ${savePath}`);
         return;
       }
       
@@ -120,15 +156,19 @@ const TopBar = () => {
         throw new Error('No content returned from conversion');
       }
       
-      // Determine the category based on format
-      const category = `diagrams/${selectedFormat}`;
+      // Extract directory and filename from savePath
+      const savePathParts = savePath.split('/');
+      const saveFilename = savePathParts[savePathParts.length - 1];
+      const category = savePathParts.length > 1 
+        ? `diagrams/${savePathParts.slice(0, -1).join('/')}`
+        : 'diagrams';
       
       // Create a File object from the converted content
-      const file = new File([convertedContent], filename, { 
+      const file = new File([convertedContent], saveFilename || 'diagram.yaml', { 
         type: 'text/yaml' 
       });
       
-      // Upload the file directly to diagrams/{format}/ directory
+      // Upload the file to the appropriate directory
       const uploadResult = await uploadFileMutation({
         variables: {
           file,
@@ -141,14 +181,14 @@ const TopBar = () => {
       }
       
       // Show success message
-      toast.success(`Saved to ${category}/${filename}`);
+      toast.success(`Saved to ${savePath}`);
     } catch (error) {
       console.error('Save error:', error);
       toast.error(error instanceof Error ? error.message : 'Save failed');
     } finally {
       setIsSaving(false);
     }
-  }, [selectedFormat, diagramName, saveToFileSystem, convertDiagramMutation, uploadFileMutation]);
+  }, [selectedFormat, diagramName, diagramId, saveToFileSystem, convertDiagramMutation, uploadFileMutation]);
 
 
   return (
@@ -161,7 +201,7 @@ const TopBar = () => {
               type="text"
               value={diagramName}
               onChange={(e) => setDiagramName(e.target.value)}
-              className="w-48 px-2 py-1 text-lg font-semibold bg-transparent border-b border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-96 px-2 py-1 text-lg font-semibold bg-transparent border-b border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
               placeholder="Diagram Title"
             />
             {/* Action Buttons */}
@@ -251,7 +291,7 @@ const TopBar = () => {
               type="text"
               value={diagramDescription}
               onChange={(e) => setDiagramDescription(e.target.value)}
-              className="flex-1 min-w-[300px] px-2 py-0.5 text-sm text-gray-600 bg-transparent border-b border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:outline-none transition-colors"
+              className="flex-1 min-w-[600px] px-2 py-0.5 text-sm text-gray-600 bg-transparent border-b border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:outline-none transition-colors"
               placeholder="Description (optional)"
             />
             <Select

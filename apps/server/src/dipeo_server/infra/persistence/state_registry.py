@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.core.constants import STATE_DB_PATH
+from dipeo.core.execution.node_output import serialize_protocol
 from dipeo.models import (
     DiagramID,
     ExecutionID,
@@ -152,7 +153,7 @@ class StateRegistry:
 
         CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
         CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
-        
+
         -- Add columns to existing tables if they don't exist
         -- SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so we need to check first
         """
@@ -232,16 +233,10 @@ class StateRegistry:
             await self._execution_cache.remove(state.id)
 
         async with self._lock:
-            # Convert node_states and node_outputs to JSON-serializable format
-            node_states_dict = {
-                node_id: node_state.model_dump()
-                for node_id, node_state in state.node_states.items()
-            }
+            # Use model_dump for complete serialization
+            state_dict = state.model_dump()
 
-            # Node outputs are already dicts, no need to call model_dump
-            node_outputs_dict = state.node_outputs
-
-
+            # Extract fields for database columns
             await self._execute(
                 """
                 INSERT OR REPLACE INTO execution_states
@@ -256,15 +251,13 @@ class StateRegistry:
                     state.diagram_id,
                     state.started_at,
                     state.ended_at,
-                    json.dumps(node_states_dict),
-                    json.dumps(node_outputs_dict),
-                    json.dumps(
-                        state.token_usage.model_dump() if state.token_usage else {}
-                    ),
+                    json.dumps(state_dict["node_states"]),
+                    json.dumps(state_dict["node_outputs"]),
+                    json.dumps(state_dict["token_usage"]),
                     state.error,
-                    json.dumps(state.variables),
-                    json.dumps(state.exec_counts),
-                    json.dumps(state.executed_nodes),
+                    json.dumps(state_dict["variables"]),
+                    json.dumps(state_dict["exec_counts"]),
+                    json.dumps(state_dict["executed_nodes"]),
                 ),
             )
 
@@ -294,47 +287,25 @@ class StateRegistry:
         if not row:
             return None
 
-        # Parse JSON fields
-        node_states_dict = json.loads(row[5])
-        node_outputs_dict = json.loads(row[6])
-        token_usage_dict = json.loads(row[7])
-
-        # Parse exec_counts and executed_nodes if available
-        exec_counts = {}
-        executed_nodes = []
-        if len(row) > 10:  # Check if new columns exist
-            try:
-                exec_counts = json.loads(row[10]) if row[10] else {}
-                executed_nodes = json.loads(row[11]) if row[11] else []
-            except (IndexError, json.JSONDecodeError):
-                # Handle case where columns don't exist in older databases
-                pass
-
-
-        # Convert dicts back to model instances
-        node_states = {
-            node_id: NodeState(**state_data)
-            for node_id, state_data in node_states_dict.items()
+        # Build ExecutionState data dictionary
+        state_data = {
+            "id": row[0],
+            "status": row[1],
+            "diagram_id": row[2],
+            "started_at": row[3],
+            "ended_at": row[4],
+            "node_states": json.loads(row[5]) if row[5] else {},
+            "node_outputs": json.loads(row[6]) if row[6] else {},
+            "token_usage": json.loads(row[7]) if row[7] else {"input": 0, "output": 0, "cached": None, "total": 0},
+            "error": row[8],
+            "variables": json.loads(row[9]) if row[9] else {},
+            "exec_counts": json.loads(row[10]) if len(row) > 10 and row[10] else {},
+            "executed_nodes": json.loads(row[11]) if len(row) > 11 and row[11] else [],
+            "is_active": False  # Loaded from DB means it's not active
         }
-        # Node outputs are now stored as dicts (serialized protocol outputs)
-        node_outputs = node_outputs_dict
 
-        return ExecutionState(
-            id=ExecutionID(row[0]),
-            status=ExecutionStatus(row[1]),
-            diagram_id=DiagramID(row[2]) if row[2] else None,
-            started_at=row[3],
-            ended_at=row[4],
-            node_states=node_states,
-            node_outputs=node_outputs,
-            token_usage=TokenUsage(**token_usage_dict)
-            if token_usage_dict
-            else TokenUsage(input=0, output=0, cached=None),
-            error=row[8],
-            variables=json.loads(row[9]),
-            exec_counts=exec_counts,
-            executed_nodes=executed_nodes,
-        )
+        # Create ExecutionState from the data
+        return ExecutionState(**state_data)
 
     async def update_status(
         self, execution_id: str, status: ExecutionStatus, error: str | None = None
@@ -377,43 +348,48 @@ class StateRegistry:
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
 
-        # Convert output to dict format if it isn't already
-        if not isinstance(output, dict):
-            node_output = {
-                "value": {"default": str(output)} if is_exception else output,
-                "metadata": {"is_exception": is_exception} if is_exception else {},
-                "_protocol_type": "BaseNodeOutput",
-                "node_id": node_id
-            }
+        # Handle protocol outputs vs raw outputs
+        if hasattr(output, '__class__') and hasattr(output, 'to_dict'):
+            # It's already a protocol output, serialize it
+            serialized_output = serialize_protocol(output)
+        elif isinstance(output, dict) and "_protocol_type" in output:
+            # It's already a serialized protocol output
+            serialized_output = output
         else:
-            node_output = output
+            # It's a raw output, wrap it in a basic protocol format
+            from dipeo.core.execution.node_output import BaseNodeOutput
+            from dipeo.models import NodeID
 
-        # For PersonJob outputs with conversation history
+            wrapped_output = BaseNodeOutput(
+                value={"default": str(output)} if is_exception else output,
+                node_id=NodeID(node_id),
+                error=str(output) if is_exception else None
+            )
+            serialized_output = serialize_protocol(wrapped_output)
+
+        # Handle PersonJob outputs with conversation history
         if (
-            isinstance(node_output, dict)
-            and node_output.get("metadata")
-            and node_output["metadata"].get("_type") == "personjob_output"
+            isinstance(serialized_output, dict)
+            and serialized_output.get("metadata")
+            and serialized_output["metadata"].get("_type") == "personjob_output"
+            and not state.is_active
         ):
-            # Check if execution is active - defer persistence for active executions
-            is_active = state.is_active
+            # Only persist conversation for completed executions
+            conversation = serialized_output["metadata"].get("conversation_history", [])
+            if conversation and self.message_store:
+                message_ref = await self.message_store.store_message(
+                    execution_id=execution_id,
+                    node_id=node_id,
+                    content={"conversation": conversation},
+                    person_id=serialized_output["metadata"].get("person_id"),
+                    token_count=serialized_output["metadata"].get("token_count"),
+                )
+                # Replace conversation with reference
+                serialized_output["metadata"]["conversation_ref"] = message_ref
+                serialized_output["metadata"].pop("conversation_history", None)
 
-            if not is_active:
-                # Only persist conversation for completed executions
-                conversation = node_output["metadata"].get("conversation_history", [])
-                if conversation and self.message_store:
-                    message_ref = await self.message_store.store_message(
-                        execution_id=execution_id,
-                        node_id=node_id,
-                        content={"conversation": conversation},
-                        person_id=node_output["metadata"].get("person_id"),
-                        token_count=node_output["metadata"].get("token_count"),
-                    )
-                    # Replace conversation with reference
-                    node_output["metadata"]["conversation_ref"] = message_ref
-                    node_output["metadata"].pop("conversation_history", None)
-
-        # Store the output with reference
-        state.node_outputs[node_id] = node_output
+        # Store the serialized output
+        state.node_outputs[node_id] = serialized_output
 
         # Update token usage if provided
         if token_usage:
@@ -510,7 +486,7 @@ class StateRegistry:
         offset: int = 0,
     ) -> list[ExecutionState]:
         # Build query with optional filters
-        query = "SELECT execution_id, status, started_at, ended_at, node_states, diagram_id, node_outputs, token_usage, error, variables, exec_counts, executed_nodes FROM execution_states"
+        query = "SELECT execution_id, status, diagram_id, started_at, ended_at, node_states, node_outputs, token_usage, error, variables, exec_counts, executed_nodes FROM execution_states"
         conditions = []
         params = []
 
@@ -536,66 +512,25 @@ class StateRegistry:
 
         executions = []
         for row in rows:
-            # Deserialize data from database
-            node_states_data = json.loads(row[4]) if row[4] else {}
-            node_outputs_data = json.loads(row[6]) if row[6] else {}
-            token_usage_data = json.loads(row[7]) if row[7] else {}
-            variables_data = json.loads(row[9]) if row[9] else {}
+            # Build ExecutionState data dictionary
+            state_data = {
+                "id": row[0],
+                "status": row[1],
+                "diagram_id": row[2],
+                "started_at": row[3],
+                "ended_at": row[4],
+                "node_states": json.loads(row[5]) if row[5] else {},
+                "node_outputs": json.loads(row[6]) if row[6] else {},
+                "token_usage": json.loads(row[7]) if row[7] else {"input": 0, "output": 0, "cached": None, "total": 0},
+                "error": row[8],
+                "variables": json.loads(row[9]) if row[9] else {},
+                "exec_counts": json.loads(row[10]) if len(row) > 10 and row[10] else {},
+                "executed_nodes": json.loads(row[11]) if len(row) > 11 and row[11] else [],
+                "is_active": False  # Loaded from DB means it's not active
+            }
 
-            # Convert node states to NodeState objects
-            node_states = {}
-            for node_id, state_data in node_states_data.items():
-                if isinstance(state_data, dict):
-                    # Handle token usage in node state
-                    token_usage = None
-                    if "token_usage" in state_data:
-                        tu_data = state_data["token_usage"]
-                        if isinstance(tu_data, dict):
-                            token_usage = TokenUsage(**tu_data)
-
-                    node_states[node_id] = NodeState(
-                        status=NodeExecutionStatus(state_data.get("status", "pending")),
-                        started_at=state_data.get("started_at"),
-                        ended_at=state_data.get("ended_at"),
-                        error=state_data.get("error"),
-                        token_usage=token_usage,
-                    )
-
-            # Node outputs are already in dict format (serialized protocol outputs)
-            node_outputs = node_outputs_data
-
-            # Convert token usage
-            token_usage = None
-            if token_usage_data:
-                token_usage = TokenUsage(**token_usage_data)
-
-            # Parse exec_counts and executed_nodes if available
-            exec_counts = {}
-            executed_nodes = []
-            if len(row) > 10:  # Check if new columns exist
-                try:
-                    exec_counts = json.loads(row[10]) if row[10] else {}
-                    executed_nodes = json.loads(row[11]) if row[11] else []
-                except (IndexError, json.JSONDecodeError):
-                    # Handle case where columns don't exist in older databases
-                    pass
-
-            # Create ExecutionState object
-            execution_state = ExecutionState(
-                id=ExecutionID(row[0]),
-                status=ExecutionStatus(row[1]),
-                node_states=node_states,
-                node_outputs=node_outputs,
-                diagram_id=DiagramID(row[5]) if row[5] else None,
-                variables=variables_data,
-                started_at=row[2],
-                ended_at=row[3],
-                token_usage=token_usage,
-                error=row[8],
-                exec_counts=exec_counts,
-                executed_nodes=executed_nodes,
-            )
-
+            # Create ExecutionState from the data
+            execution_state = ExecutionState(**state_data)
             executions.append(execution_state)
 
         return executions

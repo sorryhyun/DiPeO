@@ -71,22 +71,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     # ---------------------------------------------------------------------#
     #  Typed execution                                                      #
     # ---------------------------------------------------------------------#
-
-    async def pre_execute(
-        self,
-        node: DBNode,
-        execution: ExecutionRuntime
-    ) -> dict[str, Any]:
-        """Pre-execute logic for DBNode."""
-        return {
-            "file": node.file,
-            "collection": node.collection,
-            "sub_type": node.sub_type.value if hasattr(node.sub_type, 'value') else node.sub_type,
-            "operation": node.operation,
-            "query": node.query,
-            "data": node.data
-        }
-    
     async def execute(
         self,
         node: DBNode,

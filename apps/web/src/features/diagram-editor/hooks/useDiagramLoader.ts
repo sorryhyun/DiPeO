@@ -38,7 +38,7 @@ export function useDiagramLoader() {
         // Format: {format}/{filename} or just {filename}
         const parts = diagramParam.split('/');
         let format: DiagramFormat | null = null;
-        let fullDiagramId = diagramParam;
+        const fullDiagramId = diagramParam;
         
         if (parts.length === 2) {
           // Has format prefix
@@ -54,8 +54,29 @@ export function useDiagramLoader() {
               format = DiagramFormat.READABLE;
               break;
             default:
-              // Unknown format, treat as regular ID
+              // Unknown format, try to detect from file extension
               format = null;
+          }
+        }
+        
+        // If format not detected from path, try to detect from file extension
+        if (!format) {
+          if (fullDiagramId.endsWith('.native.json') || fullDiagramId.endsWith('.json')) {
+            format = DiagramFormat.NATIVE;
+          } else if (fullDiagramId.endsWith('.light.yaml') || fullDiagramId.endsWith('.light.yml')) {
+            format = DiagramFormat.LIGHT;
+          } else if (fullDiagramId.endsWith('.readable.yaml') || fullDiagramId.endsWith('.readable.yml')) {
+            format = DiagramFormat.READABLE;
+          } else if (fullDiagramId.endsWith('.yaml') || fullDiagramId.endsWith('.yml')) {
+            // For generic YAML files, check if in a format directory
+            if (parts.length > 1) {
+              const firstPart = parts[0];
+              if (firstPart === 'light') format = DiagramFormat.LIGHT;
+              else if (firstPart === 'readable') format = DiagramFormat.READABLE;
+              else format = DiagramFormat.LIGHT; // Default YAML to light format
+            } else {
+              format = DiagramFormat.LIGHT; // Default YAML to light format
+            }
           }
         }
         
@@ -157,28 +178,31 @@ export function useDiagramLoader() {
             // Preserve the active canvas state before clearing
             const currentActiveCanvas = store.activeCanvas;
             
-            // First clear existing data
+            // First clear existing data to ensure clean slate
             store.clearAll();
             
-            // Restore the active canvas state
-            store.setActiveCanvas(currentActiveCanvas);
-            
-            // Then restore the snapshot which properly updates all slices
-            store.restoreSnapshot({
-              nodes,
-              arrows,
-              persons,
-              handles,
-              timestamp: Date.now()
+            // Add a micro-delay to ensure React Flow processes the clear
+            requestAnimationFrame(() => {
+              // Restore the active canvas state
+              store.setActiveCanvas(currentActiveCanvas);
+              
+              // Then restore the snapshot which properly updates all slices
+              store.restoreSnapshot({
+                nodes,
+                arrows,
+                persons,
+                handles,
+                timestamp: Date.now()
+              });
+              
+              // Set diagram metadata after restoring snapshot
+              if (diagramWithCounts.metadata) {
+                store.setDiagramName(diagramWithCounts.metadata.name || 'Untitled');
+                store.setDiagramDescription(diagramWithCounts.metadata.description || '');
+              }
+              store.setDiagramId(diagramIdFromUrl);
+              store.setDiagramFormat(diagramFormatFromUrl);
             });
-            
-            // Set diagram metadata
-            if (diagramWithCounts.metadata) {
-              store.setDiagramName(diagramWithCounts.metadata.name || 'Untitled');
-              store.setDiagramDescription(diagramWithCounts.metadata.description || '');
-            }
-            store.setDiagramId(diagramIdFromUrl);
-            store.setDiagramFormat(diagramFormatFromUrl);
           });
 
           // Mark as loaded after store is updated

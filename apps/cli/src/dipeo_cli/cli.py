@@ -1,141 +1,16 @@
-#!/usr/bin/env python3
-"""
-Minimal DiPeO CLI - Server-only execution (Phase 1 Implementation)
-
-This implementation follows the refactoring plan:
-- ~200 lines of code
-- Server-based execution only (no local mode)
-- Simple HTTP requests for GraphQL (no complex clients)
-- Minimal dependencies
-"""
+"""DiPeO CLI - Main orchestration layer."""
 
 import json
-import subprocess
-import sys
 import time
 import webbrowser
 from pathlib import Path
 from typing import Any
 
-import requests
 import yaml
 
-from dipeo.core.constants import BASE_DIR, FILES_DIR
+from dipeo.core.constants import FILES_DIR
 
-
-class ServerManager:
-    """Manages the backend server process."""
-
-    def __init__(self, port: int = 8000):
-        self.port = port
-        self.process: subprocess.Popen | None = None
-        self.base_url = f"http://localhost:{port}"
-
-    def is_running(self) -> bool:
-        """Check if server is running."""
-        try:
-            response = requests.get(f"{self.base_url}/health", timeout=1)
-            return response.status_code == 200
-        except:
-            return False
-
-    def start(self, debug: bool = False) -> bool:
-        """Start the backend server if not running."""
-        if self.is_running():
-            print("✓ Server already running")
-            return True
-
-        print("🚀 Starting backend server...")
-
-        # Find server directory
-        server_path = BASE_DIR / "apps" / "server"
-        if not server_path.exists():
-            print(f"❌ Server directory not found: {server_path}")
-            return False
-
-        # Start server process
-        env = {**subprocess.os.environ, "LOG_LEVEL": "DEBUG" if debug else "INFO"}
-
-        self.process = subprocess.Popen(
-            ["python", "main.py"],
-            cwd=server_path,
-            env=env,
-            stdout=subprocess.PIPE if not debug else None,
-            stderr=subprocess.PIPE if not debug else None,
-        )
-
-        # Wait for server to be ready
-        for i in range(20):  # 10 seconds timeout
-            time.sleep(0.5)
-            if self.is_running():
-                print("✓ Server started successfully")
-                return True
-
-        print("❌ Server failed to start")
-        return False
-
-    def stop(self):
-        """Stop the server if we started it."""
-        if self.process:
-            print("🛑 Stopping server...")
-            self.process.terminate()
-            self.process.wait()
-            self.process = None
-
-    def execute_diagram(self, diagram_data: dict[str, Any]) -> dict[str, Any]:
-        """Execute a diagram via GraphQL."""
-        query = """
-        mutation ExecuteDiagram($diagramData: JSONScalar) {
-            execute_diagram(data: { diagram_data: $diagramData }) {
-                success
-                execution_id
-                error
-            }
-        }
-        """
-
-        response = requests.post(
-            f"{self.base_url}/graphql",
-            json={"query": query, "variables": {"diagramData": diagram_data}},
-        )
-
-        if response.status_code != 200:
-            raise Exception(f"GraphQL request failed: {response.status_code}")
-
-        result = response.json()
-        if "errors" in result:
-            raise Exception(f"GraphQL errors: {result['errors']}")
-
-        return result["data"]["execute_diagram"]
-
-    def get_execution_result(self, execution_id: str) -> dict[str, Any]:
-        """Get execution result by ID."""
-        query = """
-        query GetExecutionResult($id: ExecutionID!) {
-            execution(id: $id) {
-                status
-                node_outputs
-                error
-            }
-        }
-        """
-
-        response = requests.post(
-            f"{self.base_url}/graphql",
-            json={"query": query, "variables": {"id": execution_id}},
-        )
-
-        if response.status_code != 200:
-            raise Exception(f"GraphQL request failed: {response.status_code}")
-
-        result = response.json()
-        if "errors" in result:
-            raise Exception(f"GraphQL errors: {result['errors']}")
-
-        if "data" not in result or result["data"] is None:
-            return None
-
-        return result["data"].get("execution")
+from .server_manager import ServerManager
 
 
 class DiPeOCLI:
@@ -148,11 +23,17 @@ class DiPeOCLI:
         self, diagram: str, format_type: str | None = None
     ) -> str:
         """Resolve diagram path based on format type."""
-        # If it looks like a full path (contains / or has new extensions), use as-is
-        if "/" in diagram or diagram.endswith((".json", ".yaml", ".yml", ".native.json", ".light.yaml", ".readable.yaml")):
+        # If it's an absolute path or starts with files/, use as-is
+        path = Path(diagram)
+        if path.is_absolute() or diagram.startswith("files/"):
             return diagram
+        
+        # If it has a file extension, check if it exists relative to current dir
+        if diagram.endswith((".json", ".yaml", ".yml", ".native.json", ".light.yaml", ".readable.yaml")):
+            if Path(diagram).exists():
+                return diagram
 
-        # Otherwise, construct path based on format
+        # Otherwise, construct path based on format within diagrams directory
         diagrams_dir = FILES_DIR / "diagrams"
         
         if not format_type:
@@ -175,9 +56,14 @@ class DiPeOCLI:
                 ("light", ".yaml"),
                 ("readable", ".yaml"),
             ]:
-                path = diagrams_dir / fmt / f"{diagram}{ext}"
-                if path.exists():
-                    return str(path)
+                # Handle subdirectories in old format
+                if "/" in diagram:
+                    parts = diagram.split("/")
+                    old_path = diagrams_dir / fmt / "/".join(parts[:-1]) / f"{parts[-1]}{ext}"
+                else:
+                    old_path = diagrams_dir / fmt / f"{diagram}{ext}"
+                if old_path.exists():
+                    return str(old_path)
                     
             raise FileNotFoundError(f"Diagram '{diagram}' not found in any format")
 
@@ -201,7 +87,12 @@ class DiPeOCLI:
             "readable": ("readable", ".yaml"),
         }
         fmt_dir, old_ext = old_format_map[format_type]
-        old_path = diagrams_dir / fmt_dir / f"{diagram}{old_ext}"
+        # Handle subdirectories in old format
+        if "/" in diagram:
+            parts = diagram.split("/")
+            old_path = diagrams_dir / fmt_dir / "/".join(parts[:-1]) / f"{parts[-1]}{old_ext}"
+        else:
+            old_path = diagrams_dir / fmt_dir / f"{diagram}{old_ext}"
         if old_path.exists():
             return str(old_path)
             
@@ -370,97 +261,3 @@ class DiPeOCLI:
             url += f"?diagram={diagram_name}"
         print(f"🌐 Opening browser: {url}")
         webbrowser.open(url)
-
-
-def main():
-    """Main entry point."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="DiPeO CLI - Simplified Interface")
-    subparsers = parser.add_subparsers(dest="command", help="Commands")
-
-    # Run command
-    run_parser = subparsers.add_parser("run", help="Execute a diagram")
-    run_parser.add_argument(
-        "diagram",
-        help="Path to diagram file or diagram name (when using format options)",
-    )
-    run_parser.add_argument("--debug", action="store_true", help="Enable debug output")
-    run_parser.add_argument(
-        "--no-browser", action="store_true", help="Skip browser opening"
-    )
-    run_parser.add_argument("--quiet", action="store_true", help="Minimal output")
-    run_parser.add_argument(
-        "--timeout",
-        type=int,
-        default=300,
-        help="Execution timeout in seconds (default: 300)",
-    )
-
-    # Format options (mutually exclusive)
-    format_group = run_parser.add_mutually_exclusive_group()
-    format_group.add_argument(
-        "--light", action="store_true", help="Use light format (YAML)"
-    )
-    format_group.add_argument(
-        "--native", action="store_true", help="Use native format (JSON)"
-    )
-    format_group.add_argument(
-        "--readable", action="store_true", help="Use readable format (YAML)"
-    )
-
-    # Convert command
-    convert_parser = subparsers.add_parser("convert", help="Convert between formats")
-    convert_parser.add_argument("input", help="Input file")
-    convert_parser.add_argument("output", help="Output file")
-
-    # Stats command
-    stats_parser = subparsers.add_parser("stats", help="Show diagram statistics")
-    stats_parser.add_argument("diagram", help="Path to diagram file")
-
-    # Monitor command
-    monitor_parser = subparsers.add_parser("monitor", help="Open browser monitor")
-    monitor_parser.add_argument("diagram", nargs="?", help="Diagram name")
-
-    args = parser.parse_args()
-
-    if not args.command:
-        parser.print_help()
-        sys.exit(0)
-
-    cli = DiPeOCLI()
-
-    try:
-        if args.command == "run":
-            # Determine format type
-            format_type = None
-            if args.light:
-                format_type = "light"
-            elif args.native:
-                format_type = "native"
-            elif args.readable:
-                format_type = "readable"
-
-            success = cli.run(
-                args.diagram, args.debug, args.no_browser, args.timeout, format_type
-            )
-            sys.exit(0 if success else 1)
-        elif args.command == "convert":
-            cli.convert(args.input, args.output)
-        elif args.command == "stats":
-            cli.stats(args.diagram)
-        elif args.command == "monitor":
-            cli.monitor(args.diagram)
-
-    except KeyboardInterrupt:
-        print("\n\nInterrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    finally:
-        cli.server.stop()
-
-
-if __name__ == "__main__":
-    main()
