@@ -1,6 +1,333 @@
 version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: -244, y: 485}
+  props:
+    trigger_mode: manual
+- label: Get Research Topic
+  type: user_response
+  position: {x: 118, y: 478}
+  props:
+    prompt: |
+      Enter your research topic or question:
+      (e.g., "Impact of AI on healthcare in 2024")
+    timeout: 120
+- label: Initialize Research
+  type: code_job
+  position: {x: 604, y: 466}
+  props:
+    code: |
+      research_state = {
+          "topic": research_topic,
+          "iteration": 0,
+          "max_iterations": 3,
+          "findings": [],
+          "sources": [],
+          "verified_facts": [],
+          "gaps": []
+      }
 
+      print(f"Starting research on: {research_topic}")
+    code_type: python
+- label: Generate Search Queries
+  type: person_job
+  position: {x: 509, y: 616}
+  props:
+    default_prompt: |
+      Based on our findings so far and identified gaps:
+      {{gaps}}
+
+      Generate 3 more targeted search queries to fill these gaps.
+      Previous findings: {{findings}}
+    first_only_prompt: |
+      Generate 5 diverse search queries for researching: {{research_topic}}
+
+      Consider different angles:
+      - Current state/statistics
+      - Recent developments
+      - Expert opinions
+      - Challenges/concerns
+      - Future predictions
+
+      Return as a numbered list.
+    max_iteration: 3
+    memory_profile: FOCUSED
+    person: Researcher
+    flipped: true
+- label: Conduct Web Search
+  type: person_job
+  position: {x: 120, y: 662}
+  props:
+    default_prompt: |
+      Search for information using these queries:
+      {{search_queries}}
+
+      For each search:
+      1. Use the web search tool
+      2. Summarize key findings
+      3. Note the source URL and date
+      4. Extract specific facts and statistics
+    max_iteration: 3
+    memory_profile: FULL
+    person: Researcher
+    tools:
+    - type: web_search_preview
+      enabled: true
+    flipped: true
+- label: Extract Facts
+  type: code_job
+  position: {x: -260, y: 670}
+  props:
+    code: |
+      import re
+
+      # Extract facts and sources from search results
+      new_findings = web_search_results.split('\n')
+
+      # Simple extraction (in real scenario, would use NLP)
+      facts_to_verify = []
+      for finding in new_findings:
+          if any(keyword in finding.lower() for keyword in ['study', 'report', 'found', 'shows', '%', 'million', 'billion']):
+              facts_to_verify.append(finding.strip())
+
+      # Update research state
+      research_state["findings"].extend(new_findings[:10])  # Limit to avoid overflow
+      research_state["iteration"] += 1
+
+      print(f"Extracted {len(facts_to_verify)} facts to verify")
+      facts_list = '\n'.join(facts_to_verify[:5])  # Top 5 for verification
+    flipped: true
+    code_type: python
+- label: Fact Check
+  type: person_job
+  position: {x: -206, y: 879}
+  props:
+    default_prompt: |
+      Verify these facts from our research:
+      {{facts_list}}
+
+      For each fact:
+      1. Rate as: verified, likely, uncertain, or false
+      2. Explain your reasoning
+      3. Suggest additional verification if needed
+
+      Context: {{research_topic}}
+    max_iteration: 1
+    memory_profile: MINIMAL
+    person: FactChecker
+    flipped: false
+- label: Update Verified Facts
+  type: code_job
+  position: {x: 202, y: 885}
+  props:
+    code: |
+      # Parse fact checking results
+      verified_items = []
+      lines = fact_check_results.split('\n')
+
+      for line in lines:
+          if 'verified' in line.lower() or 'likely' in line.lower():
+              verified_items.append(line)
+
+      research_state["verified_facts"].extend(verified_items)
+
+      # Check if we need more iterations
+      continue_research = research_state["iteration"] < research_state["max_iterations"]
+
+      print(f"Total verified facts: {len(research_state['verified_facts'])}")
+    code_type: python
+- label: Check Continue Research
+  type: condition
+  position: {x: 644, y: 859}
+  props:
+    condition_type: custom
+    expression: continue_research == True
+- label: Critical Review
+  type: person_job
+  position: {x: 1048, y: 841}
+  props:
+    default_prompt: |
+      Review this research critically:
+
+      Topic: {{research_topic}}
+      Findings: {{findings}}
+      Verified Facts: {{verified_facts}}
+
+      Identify:
+      1. Information gaps
+      2. Potential biases
+      3. Contradictions
+      4. Areas needing deeper investigation
+
+      Be specific and constructive.
+    max_iteration: 1
+    memory_profile: FOCUSED
+    person: Critic
+- label: Extract Gaps
+  type: code_job
+  position: {x: 1035, y: 687}
+  props:
+    code: |
+      # Extract gaps from critical review
+      gaps = []
+      review_lines = critical_review.split('\n')
+
+      gap_section = False
+      for line in review_lines:
+          if 'gap' in line.lower() or 'missing' in line.lower() or 'need' in line.lower():
+              gap_section = True
+          if gap_section and line.strip():
+              gaps.append(line.strip())
+
+      research_state["gaps"] = gaps[:5]  # Top 5 gaps
+
+      print(f"Identified {len(gaps)} research gaps")
+    flipped: true
+    code_type: python
+- label: Synthesize Report
+  type: person_job
+  position: {x: 599, y: 1048}
+  props:
+    default_prompt: |
+      Create a comprehensive research report on: {{research_topic}}
+
+      Use this structure:
+      # Executive Summary
+      (2-3 key takeaways)
+
+      # Introduction
+      (Context and importance)
+
+      # Key Findings
+      {{verified_facts}}
+
+      # Analysis
+      (Synthesize the findings with insights)
+
+      # Gaps and Limitations
+      {{gaps}}
+
+      # Conclusion
+      (Summary and future research needs)
+
+      # Sources
+      (List all sources with dates)
+
+      Total findings analyzed: {{findings}}
+    max_iteration: 1
+    memory_profile: FULL
+    person: Synthesizer
+    flipped: true
+- label: Generate Citations
+  type: code_job
+  position: {x: 240, y: 1201}
+  props:
+    code: |
+      import json
+      from datetime import datetime
+
+      # Create structured output
+      research_output = {
+          "topic": research_state["topic"],
+          "research_date": datetime.now().isoformat(),
+          "total_iterations": research_state["iteration"],
+          "verified_facts_count": len(research_state["verified_facts"]),
+          "gaps_identified": len(research_state["gaps"]),
+          "report": synthesized_report,
+          "metadata": {
+              "research_depth": "comprehensive" if research_state["iteration"] >= 3 else "standard",
+              "fact_checked": True,
+              "peer_reviewed": True
+          }
+      }
+
+      print("Research completed successfully")
+    flipped: true
+    code_type: python
+- label: Save Report
+  type: endpoint
+  position: {x: -241, y: 1286}
+  props:
+    file_format: md
+    save_to_file: true
+    file_path: files/results/research_report.md
+- label: Save Metadata
+  type: endpoint
+  position: {x: -276, y: 1085}
+  props:
+    file_format: json
+    save_to_file: true
+    file_path: files/results/research_metadata.json
+connections:
+- from: Start
+  to: Get Research Topic
+  content_type: raw_text
+- from: Get Research Topic
+  to: Initialize Research
+  content_type: raw_text
+  label: research_topic
+- from: Initialize Research
+  to: Generate Search Queries
+  content_type: variable
+- from: Generate Search Queries
+  to: Conduct Web Search
+  content_type: raw_text
+  label: search_queries
+- from: Conduct Web Search
+  to: Extract Facts
+  content_type: raw_text
+  label: web_search_results
+- from: Extract Facts
+  to: Fact Check
+  content_type: variable
+- from: Fact Check
+  to: Update Verified Facts
+  content_type: raw_text
+  label: fact_check_results
+- from: Update Verified Facts
+  to: Check Continue Research
+  content_type: variable
+- from: Check Continue Research_condtrue
+  to: Critical Review
+  content_type: variable
+- from: Critical Review
+  to: Extract Gaps
+  content_type: raw_text
+  label: critical_review
+- from: Extract Gaps
+  to: Generate Search Queries
+  content_type: variable
+- from: Check Continue Research_condfalse
+  to: Synthesize Report
+  content_type: variable
+- from: Synthesize Report
+  to: Generate Citations
+  content_type: raw_text
+  label: synthesized_report
+- from: Generate Citations
+  to: Save Report
+  content_type: raw_text
+  label: synthesized_report
+- from: Generate Citations
+  to: Save Metadata
+  content_type: variable
 persons:
+  Critic:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: |
+      You critically review research for gaps, biases, and areas needing improvement.
+      Be constructive but thorough in your critique.
+    api_key_id: APIKEY_52609F
+  FactChecker:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: |
+      You verify facts and claims. You are skeptical and thorough.
+      Rate each claim as: verified, likely, uncertain, or false.
+      Always explain your reasoning.
+    api_key_id: APIKEY_52609F
   Researcher:
     service: openai
     model: gpt-4.1-nano
@@ -10,16 +337,6 @@ persons:
       - Focus on recent, authoritative sources
       - Keep track of all sources used
     api_key_id: APIKEY_52609F
-  
-  FactChecker:
-    service: openai
-    model: gpt-4.1-nano
-    system_prompt: |
-      You verify facts and claims. You are skeptical and thorough.
-      Rate each claim as: verified, likely, uncertain, or false.
-      Always explain your reasoning.
-    api_key_id: APIKEY_52609F
-  
   Synthesizer:
     service: openai
     model: gpt-4.1-nano
@@ -28,339 +345,3 @@ persons:
       Include proper citations in [Author, Year] format.
       Organize information logically with clear sections.
     api_key_id: APIKEY_52609F
-  
-  Critic:
-    service: openai
-    model: gpt-4.1-nano
-    system_prompt: |
-      You critically review research for gaps, biases, and areas needing improvement.
-      Be constructive but thorough in your critique.
-    api_key_id: APIKEY_52609F
-
-nodes:
-  - label: Start
-    type: start
-    position: {x: 50, y: 400}
-    props:
-      trigger_mode: manual
-
-  - label: Get Research Topic
-    type: user_response
-    position: {x: 200, y: 400}
-    props:
-      prompt: |
-        Enter your research topic or question:
-        (e.g., "Impact of AI on healthcare in 2024")
-      timeout: 120
-
-  - label: Initialize Research
-    type: code_job
-    position: {x: 400, y: 400}
-    props:
-      code_type: python
-      code: |
-        research_state = {
-            "topic": research_topic,
-            "iteration": 0,
-            "max_iterations": 3,
-            "findings": [],
-            "sources": [],
-            "verified_facts": [],
-            "gaps": []
-        }
-        
-        print(f"Starting research on: {research_topic}")
-
-  - label: Generate Search Queries
-    type: person_job
-    position: {x: 600, y: 300}
-    props:
-      person: Researcher
-      first_only_prompt: |
-        Generate 5 diverse search queries for researching: {{research_topic}}
-        
-        Consider different angles:
-        - Current state/statistics
-        - Recent developments
-        - Expert opinions
-        - Challenges/concerns
-        - Future predictions
-        
-        Return as a numbered list.
-      default_prompt: |
-        Based on our findings so far and identified gaps:
-        {{gaps}}
-        
-        Generate 3 more targeted search queries to fill these gaps.
-        Previous findings: {{findings}}
-      max_iteration: 3
-      memory_profile: FOCUSED
-
-  - label: Conduct Web Search
-    type: person_job
-    position: {x: 800, y: 300}
-    props:
-      person: Researcher
-      default_prompt: |
-        Search for information using these queries:
-        {{search_queries}}
-        
-        For each search:
-        1. Use the web search tool
-        2. Summarize key findings
-        3. Note the source URL and date
-        4. Extract specific facts and statistics
-      max_iteration: 3
-      memory_profile: FULL
-      tools:
-        - type: web_search_preview
-          enabled: true
-
-  - label: Extract Facts
-    type: code_job
-    position: {x: 1000, y: 300}
-    props:
-      code_type: python
-      code: |
-        import re
-        
-        # Extract facts and sources from search results
-        new_findings = web_search_results.split('\n')
-        
-        # Simple extraction (in real scenario, would use NLP)
-        facts_to_verify = []
-        for finding in new_findings:
-            if any(keyword in finding.lower() for keyword in ['study', 'report', 'found', 'shows', '%', 'million', 'billion']):
-                facts_to_verify.append(finding.strip())
-        
-        # Update research state
-        research_state["findings"].extend(new_findings[:10])  # Limit to avoid overflow
-        research_state["iteration"] += 1
-        
-        print(f"Extracted {len(facts_to_verify)} facts to verify")
-        facts_list = '\n'.join(facts_to_verify[:5])  # Top 5 for verification
-
-  - label: Fact Check
-    type: person_job
-    position: {x: 1200, y: 300}
-    props:
-      person: FactChecker
-      default_prompt: |
-        Verify these facts from our research:
-        {{facts_list}}
-        
-        For each fact:
-        1. Rate as: verified, likely, uncertain, or false
-        2. Explain your reasoning
-        3. Suggest additional verification if needed
-        
-        Context: {{research_topic}}
-      max_iteration: 1
-      memory_profile: MINIMAL
-
-  - label: Update Verified Facts
-    type: code_job
-    position: {x: 1400, y: 300}
-    props:
-      code_type: python
-      code: |
-        # Parse fact checking results
-        verified_items = []
-        lines = fact_check_results.split('\n')
-        
-        for line in lines:
-            if 'verified' in line.lower() or 'likely' in line.lower():
-                verified_items.append(line)
-        
-        research_state["verified_facts"].extend(verified_items)
-        
-        # Check if we need more iterations
-        continue_research = research_state["iteration"] < research_state["max_iterations"]
-        
-        print(f"Total verified facts: {len(research_state['verified_facts'])}")
-
-  - label: Check Continue Research
-    type: condition
-    position: {x: 1400, y: 500}
-    props:
-      condition_type: custom
-      expression: continue_research == True
-
-  - label: Critical Review
-    type: person_job
-    position: {x: 1200, y: 600}
-    props:
-      person: Critic
-      default_prompt: |
-        Review this research critically:
-        
-        Topic: {{research_topic}}
-        Findings: {{findings}}
-        Verified Facts: {{verified_facts}}
-        
-        Identify:
-        1. Information gaps
-        2. Potential biases
-        3. Contradictions
-        4. Areas needing deeper investigation
-        
-        Be specific and constructive.
-      max_iteration: 1
-      memory_profile: FOCUSED
-
-  - label: Extract Gaps
-    type: code_job
-    position: {x: 1000, y: 600}
-    props:
-      code_type: python
-      code: |
-        # Extract gaps from critical review
-        gaps = []
-        review_lines = critical_review.split('\n')
-        
-        gap_section = False
-        for line in review_lines:
-            if 'gap' in line.lower() or 'missing' in line.lower() or 'need' in line.lower():
-                gap_section = True
-            if gap_section and line.strip():
-                gaps.append(line.strip())
-        
-        research_state["gaps"] = gaps[:5]  # Top 5 gaps
-        
-        print(f"Identified {len(gaps)} research gaps")
-
-  - label: Synthesize Report
-    type: person_job
-    position: {x: 1600, y: 400}
-    props:
-      person: Synthesizer
-      default_prompt: |
-        Create a comprehensive research report on: {{research_topic}}
-        
-        Use this structure:
-        # Executive Summary
-        (2-3 key takeaways)
-        
-        # Introduction
-        (Context and importance)
-        
-        # Key Findings
-        {{verified_facts}}
-        
-        # Analysis
-        (Synthesize the findings with insights)
-        
-        # Gaps and Limitations
-        {{gaps}}
-        
-        # Conclusion
-        (Summary and future research needs)
-        
-        # Sources
-        (List all sources with dates)
-        
-        Total findings analyzed: {{findings}}
-      max_iteration: 1
-      memory_profile: FULL
-
-  - label: Generate Citations
-    type: code_job
-    position: {x: 1800, y: 400}
-    props:
-      code_type: python
-      code: |
-        import json
-        from datetime import datetime
-        
-        # Create structured output
-        research_output = {
-            "topic": research_state["topic"],
-            "research_date": datetime.now().isoformat(),
-            "total_iterations": research_state["iteration"],
-            "verified_facts_count": len(research_state["verified_facts"]),
-            "gaps_identified": len(research_state["gaps"]),
-            "report": synthesized_report,
-            "metadata": {
-                "research_depth": "comprehensive" if research_state["iteration"] >= 3 else "standard",
-                "fact_checked": True,
-                "peer_reviewed": True
-            }
-        }
-        
-        print("Research completed successfully")
-
-  - label: Save Report
-    type: endpoint
-    position: {x: 2000, y: 300}
-    props:
-      file_format: md
-      save_to_file: true
-      file_path: files/results/research_report.md
-
-  - label: Save Metadata
-    type: endpoint
-    position: {x: 2000, y: 500}
-    props:
-      file_format: json
-      save_to_file: true
-      file_path: files/results/research_metadata.json
-
-connections:
-  - from: Start
-    to: Get Research Topic
-
-  - from: Get Research Topic
-    to: Initialize Research
-    label: research_topic
-
-  - from: Initialize Research
-    to: Generate Search Queries
-    content_type: variable
-
-  - from: Generate Search Queries
-    to: Conduct Web Search
-    label: search_queries
-
-  - from: Conduct Web Search
-    to: Extract Facts
-    label: web_search_results
-
-  - from: Extract Facts
-    to: Fact Check
-    content_type: variable
-
-  - from: Fact Check
-    to: Update Verified Facts
-    label: fact_check_results
-
-  - from: Update Verified Facts
-    to: Check Continue Research
-    content_type: variable
-
-  - from: Check Continue Research_condtrue
-    to: Critical Review
-    content_type: variable
-
-  - from: Critical Review
-    to: Extract Gaps
-    label: critical_review
-
-  - from: Extract Gaps
-    to: Generate Search Queries
-    content_type: variable
-
-  - from: Check Continue Research_condfalse
-    to: Synthesize Report
-    content_type: variable
-
-  - from: Synthesize Report
-    to: Generate Citations
-    label: synthesized_report
-
-  - from: Generate Citations
-    to: Save Report
-    label: synthesized_report
-
-  - from: Generate Citations
-    to: Save Metadata
-    content_type: variable

@@ -173,7 +173,7 @@
   box-shadow: 
     0 6px 12px -2px var(--shadow-color),
     0 0 0 2px theme('colors.border.light');
-  transform: translateY(-1px);
+  /* Removed transform to prevent node movement on hover */
 }
 
 /* Handle styles for better UX */
@@ -189,7 +189,7 @@
 
 .react-flow__handle:hover {
   opacity: 1;
-  transform: scale(1.2);
+  transform: scale(1.1);
   box-shadow: 0 0 0 4px theme('colors.primary.500 / 0.2');
 }
 

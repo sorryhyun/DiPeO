@@ -18,7 +18,7 @@ nodes:
   position: {x: 620, y: 425}
   props:
     condition_type: detect_max_iterations
-    flipped: true
+    flipped: [true, false]
 - label: Endpoint
   type: endpoint
   position: {x: 0, y: 437}
@@ -31,7 +31,7 @@ nodes:
   position: {x: 311, y: 443}
   props:
     default_prompt: How many times did you respond?
-    flipped: true
+    flipped: [true, false]
     max_iteration: 1
     memory_profile: FULL
     person: Person 1

@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
-import { RotateCcw } from 'lucide-react';
+import { ArrowUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
@@ -43,7 +43,7 @@ function useNodeStatus(nodeIdStr: string) {
 }
 
 // Custom hook for handles generation with auto-spacing
-function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
+function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal: boolean; vertical: boolean }) {
   const config = getNodeConfig(nodeType as NodeType);
   
   return useMemo(() => {
@@ -79,11 +79,22 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
       
       handles.forEach((handle, index) => {
         const isVertical = pos === 'top' || pos === 'bottom';
-        const position = isFlipped && !isVertical
-          ? (handle.position === 'left' ? Position.Right : Position.Left)
-          : (handle.position === 'left' ? Position.Left : 
-             handle.position === 'right' ? Position.Right :
-             handle.position === 'top' ? Position.Top : Position.Bottom);
+        const isHorizontal = pos === 'left' || pos === 'right';
+        
+        // Apply flips to positions
+        let position = handle.position === 'left' ? Position.Left : 
+                      handle.position === 'right' ? Position.Right :
+                      handle.position === 'top' ? Position.Top : Position.Bottom;
+        
+        // Apply horizontal flip (swap left/right)
+        if (flippedState.horizontal && isHorizontal) {
+          position = position === Position.Left ? Position.Right : Position.Left;
+        }
+        
+        // Apply vertical flip (swap top/bottom)
+        if (flippedState.vertical && isVertical) {
+          position = position === Position.Top ? Position.Bottom : Position.Top;
+        }
         
         let offsetPercentage: number;
         
@@ -124,7 +135,7 @@ function useHandles(nodeId: string, nodeType: string, isFlipped: boolean) {
     });
     
     return processedHandles;
-  }, [nodeId, config, isFlipped]);
+  }, [nodeId, config, flippedState]);
 }
 
 // Memoized status indicator component
@@ -295,14 +306,33 @@ export function BaseNode({
   const nId = nodeId(id);
   const status = useNodeStatus(id);
   const config = getNodeConfig(type as NodeType);
-  const isFlipped = data?.flipped === true;
-  const handles = useHandles(id, type, isFlipped);
   
-  // Handle flip
-  const handleFlip = useCallback(async () => {
-    await nodeOps.updateNode(nId, { data: { ...data, flipped: !isFlipped } });
+  // Handle flipped state - support both legacy boolean and new array format
+  const flippedState = useMemo(() => {
+    if (Array.isArray(data?.flipped)) {
+      return { horizontal: data.flipped[0] || false, vertical: data.flipped[1] || false };
+    } else if (typeof data?.flipped === 'boolean') {
+      // Legacy support: old boolean flipped is horizontal flip
+      return { horizontal: data.flipped, vertical: false };
+    }
+    return { horizontal: false, vertical: false };
+  }, [data?.flipped]);
+  
+  const handles = useHandles(id, type, flippedState);
+  
+  // Handle horizontal flip
+  const handleFlipHorizontal = useCallback(async () => {
+    const newFlipped = [!flippedState.horizontal, flippedState.vertical];
+    await nodeOps.updateNode(nId, { data: { ...data, flipped: newFlipped } });
     updateNodeInternals(id);
-  }, [nId, id, data, isFlipped, nodeOps, updateNodeInternals]);
+  }, [nId, id, data, flippedState, nodeOps, updateNodeInternals]);
+  
+  // Handle vertical flip
+  const handleFlipVertical = useCallback(async () => {
+    const newFlipped = [flippedState.horizontal, !flippedState.vertical];
+    await nodeOps.updateNode(nId, { data: { ...data, flipped: newFlipped } });
+    updateNodeInternals(id);
+  }, [nId, id, data, flippedState, nodeOps, updateNodeInternals]);
   
   // Check if this person_job node is assigned to the selected person
   const isAssignedToSelectedPerson = useMemo(() => {
@@ -380,17 +410,37 @@ export function BaseNode({
         </div>
       )}
       
-      {/* Flip button */}
+      {/* Flip buttons */}
       {isHovered && showFlipButton && !status.isRunning && (
-        <Button
-          onClick={handleFlip}
-          variant="outline"
-          size="icon"
-          className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full shadow-md bg-white hover:bg-gray-50 transition-colors duration-200"
-          title="Flip handles"
-        >
-          <RotateCcw className="w-3 h-3" />
-        </Button>
+        <>
+          {/* Flip horizontal button - swaps left/right handles */}
+          <Button
+            onClick={handleFlipHorizontal}
+            variant="outline"
+            size="icon"
+            className={`absolute -top-10 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full shadow-md transition-all duration-200 ${
+              flippedState.horizontal ? 'bg-blue-100 hover:bg-blue-200' : 'bg-white hover:bg-gray-50'
+            }`}
+            title="Flip handles left/right"
+            style={{ marginLeft: '-20px' }}
+          >
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+          
+          {/* Flip vertical button - swaps top/bottom handles */}
+          <Button
+            onClick={handleFlipVertical}
+            variant="outline"
+            size="icon"
+            className={`absolute -top-10 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full shadow-md transition-all duration-200 ${
+              flippedState.vertical ? 'bg-blue-100 hover:bg-blue-200' : 'bg-white hover:bg-gray-50'
+            }`}
+            title="Flip handles up/down"
+            style={{ marginLeft: '20px' }}
+          >
+            <ArrowUp className="w-4 h-4" />
+          </Button>
+        </>
       )}
 
       {/* Node content */}

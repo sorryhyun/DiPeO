@@ -115,12 +115,20 @@ class _YamlMixin:
 
         def str_representer(dumper, data):
             if '\n' in data:
-                # Use literal style without strip indicator
-                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
+                # Use literal (block) style for multiline strings
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
             return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+        
+        def list_representer(dumper, data):
+            # Use inline flow style for boolean arrays (flipped property)
+            # Check if it's a 2-element boolean array
+            if len(data) == 2 and all(isinstance(x, bool) for x in data):
+                return dumper.represent_sequence('tag:yaml.org,2002:seq', data, flow_style=True)
+            return dumper.represent_list(data)
 
         CustomDumper.add_representer(dict, position_representer)
         CustomDumper.add_representer(str, str_representer)
+        CustomDumper.add_representer(list, list_representer)
 
         return yaml.dump(
             data, Dumper=CustomDumper, sort_keys=False, allow_unicode=True, default_flow_style=False

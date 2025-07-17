@@ -11,6 +11,8 @@ from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.infra.persistence.diagram import DiagramFileRepository, DiagramLoaderAdapter
 from dipeo.models import DiagramFormat, DomainDiagram
 from dipeo.domain.diagram.services import DiagramFormatService
+from dipeo.infra.diagram.unified_converter import converter_registry
+from dipeo.domain.diagram.utils import dict_to_domain_diagram
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,24 @@ class IntegratedDiagramService(DiagramPort):
         return await self.file_repository.list_files()
     
     async def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
-        await self.file_repository.write_file(path, diagram)
+        # Determine format from filename
+        format = self.format_service.determine_format_from_filename(path)
+        
+        # For YAML formats, use converter to get properly formatted string
+        if format in [DiagramFormat.light, DiagramFormat.readable]:
+            # Convert dict to domain model
+            domain_diagram = dict_to_domain_diagram(diagram)
+            
+            # Use converter to serialize with proper formatting
+            content_str = converter_registry.serialize(domain_diagram, format.value)
+            
+            # Write the formatted string directly
+            file_path = self.file_repository.diagrams_dir / path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(content_str, encoding="utf-8")
+        else:
+            # For JSON formats, use the existing method
+            await self.file_repository.write_file(path, diagram)
     
     async def create_diagram(self, name: str, diagram: dict[str, Any], format: str = "json") -> str:
         """Create a new diagram with unique filename."""
@@ -110,7 +129,8 @@ class IntegratedDiagramService(DiagramPort):
         if "id" not in diagram_dict:
             diagram_dict["id"] = filename.split(".")[0]
         
-        await self.file_repository.write_file(filename, diagram_dict)
+        # Use save_diagram to ensure proper formatting
+        await self.save_diagram(filename, diagram_dict)
         
         return diagram_dict.get("id", filename)
     

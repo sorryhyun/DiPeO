@@ -533,7 +533,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             props = {
                 k: v
                 for k, v in (n.data or {}).items()
-                if k not in {"label", "position"} and v not in (None, "", {}, [])
+                if k not in {"label", "position"} and v not in (None, "", {})
+                # Don't filter out empty arrays for 'flipped' property
+                and not (k != "flipped" and v == [])
             }
             
             # Replace person ID with person label for person_job nodes

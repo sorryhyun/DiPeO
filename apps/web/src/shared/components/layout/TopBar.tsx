@@ -277,18 +277,30 @@ const TopBar = () => {
                 // Use title from input field
                 const name = diagramName.trim() || 'quicksave';
                 
-                // Map DiagramFormat enum to string format
-                let format = 'native';
-                if (selectedFormat === DiagramFormat.LIGHT) {
-                  format = 'light';
-                } else if (selectedFormat === DiagramFormat.READABLE) {
-                  format = 'readable';
-                } else if (selectedFormat === DiagramFormat.NATIVE) {
-                  format = 'native';
-                }
+                // Check if filename already contains format suffix
+                const hasFormatSuffix = 
+                  name.endsWith('.light.yaml') || name.endsWith('.light.yml') ||
+                  name.endsWith('.native.json') ||
+                  name.endsWith('.readable.yaml') || name.endsWith('.readable.yml');
                 
-                // Build the diagram path
-                const diagramPath = `${format}/${name}`;
+                let diagramPath: string;
+                if (hasFormatSuffix) {
+                  // Use filename directly if it already has format suffix
+                  diagramPath = name;
+                } else {
+                  // Map DiagramFormat enum to string format
+                  let format = 'native';
+                  if (selectedFormat === DiagramFormat.LIGHT) {
+                    format = 'light';
+                  } else if (selectedFormat === DiagramFormat.READABLE) {
+                    format = 'readable';
+                  } else if (selectedFormat === DiagramFormat.NATIVE) {
+                    format = 'native';
+                  }
+                  
+                  // Build the diagram path with format prefix
+                  diagramPath = `${format}/${name}`;
+                }
                 
                 // Update URL and trigger reload
                 const newUrl = `/?diagram=${diagramPath}`;
