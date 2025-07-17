@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from dipeo.core import ServiceError, ValidationError
-from dipeo.domain.api.value_objects import URL, RetryPolicy, RetryStrategy
+from dipeo.domain.api.value_objects import RetryPolicy, RetryStrategy
 from dipeo.models.models import HttpMethod
 
 log = logging.getLogger(__name__)
@@ -138,12 +138,7 @@ class APIBusinessLogic:
         for field in required_fields:
             if field not in step:
                 raise ValidationError(f"Workflow step missing required field: {field}")
-        
-        # Validate URL
-        try:
-            URL(step["url"])
-        except ValueError as e:
-            raise ValidationError(f"Invalid URL in workflow step: {e}")
+
         
         # Validate HTTP method
         try:
@@ -225,13 +220,11 @@ class APIBusinessLogic:
         """Build request configuration."""
         # Validate method
         http_method = HttpMethod(method.upper())
-        
-        # Validate URL
-        url_obj = URL(url)
+
         
         config = {
             "method": http_method.value,
-            "url": str(url_obj),
+            "url": str(url),
             "timeout": timeout,
         }
         

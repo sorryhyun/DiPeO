@@ -264,7 +264,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
       <EdgeLabelRenderer>
         <div
           style={labelStyle}
-          className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+          className="bg-white border border-gray-200 shadow-sm hover:shadow-md"
           onMouseDown={handleMouseDown}
           onDoubleClick={handleDoubleClick}
           title="Drag to curve arrow, double-click to straighten"

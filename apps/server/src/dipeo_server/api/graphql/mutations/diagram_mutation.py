@@ -29,8 +29,8 @@ class DiagramMutations:
         try:
             context: GraphQLContext = info.context
 
-            # Try new services first
-            storage_service = context.get_service("diagram_storage_service")
+            # Use integrated diagram service
+            integrated_service = context.get_service("integrated_diagram_service")
 
             # Create metadata directly from input
             metadata = DiagramMetadata(
@@ -51,18 +51,17 @@ class DiagramMutations:
                 metadata=metadata,
             )
 
-            # Use new services - convert to storage format
-            from dipeo.diagram import domain_diagram_to_dict
+            # Use integrated service - convert to storage format
+            from dipeo.domain.diagram.utils import domain_diagram_to_dict
 
             storage_dict = domain_diagram_to_dict(diagram_model)
-            path = f"{input.name}.json"
-            await storage_service.write_file(path, storage_dict)
+            filename = await integrated_service.create_diagram(input.name, storage_dict, "json")
 
             # Use domain model directly
             return DiagramResult(
                 success=True,
                 diagram=diagram_model,
-                message=f"Created diagram at {path}",
+                message=f"Created diagram: {filename}",
             )
 
         except ValueError as e:
@@ -78,14 +77,20 @@ class DiagramMutations:
     async def delete_diagram(self, id: DiagramID, info) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            storage_service = context.get_service("diagram_storage_service")
+            integrated_service = context.get_service("integrated_diagram_service")
 
-            # Use new service
-            path = await storage_service.find_by_id(id)
-            if path:
-                await storage_service.delete_file(path)
-            else:
+            # Use integrated service to find and delete
+            diagram_data = await integrated_service.get_diagram(id)
+            if not diagram_data:
                 raise FileNotFoundError(f"Diagram not found: {id}")
+
+            # Find the path for deletion
+            file_repo = integrated_service.file_repository
+            path = await file_repo.find_by_id(id)
+            if path:
+                await integrated_service.delete_diagram(path)
+            else:
+                raise FileNotFoundError(f"Diagram path not found: {id}")
 
             return DeleteResult(
                 success=True, deleted_id=id, message=f"Deleted diagram: {id}"

@@ -143,7 +143,7 @@ def validate_protocol_compliance(container) -> None:
         (container.persistence.file_service(), FileServicePort, "FileSystemRepository"),
         (container.dynamic.conversation_manager(), ConversationManager, "ConversationManagerImpl"),
         (container.integration.notion_service(), NotionServicePort, "NotionAPIService"),
-        (container.persistence.diagram_storage_service(), DiagramPort, "DiagramFileRepository"),
+        (container.integration.integrated_diagram_service(), DiagramPort, "IntegratedDiagramService"),
     ]
 
     for service, protocol, name in validations:

@@ -31,19 +31,12 @@ class NodeMutations:
         """Creates new node in diagram."""
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            integrated_service = context.get_service("integrated_diagram_service")
 
             # Use input_data directly without conversion
 
-            # Find the diagram file path
-            if diagram_id == "quicksave":
-                path = "quicksave.json"
-            else:
-                path = await diagram_service.find_by_id(diagram_id)
-                if not path:
-                    return NodeResult(success=False, error="Diagram not found")
-
-            diagram_data = await diagram_service.read_file(path)
+            # Get diagram data
+            diagram_data = await integrated_service.get_diagram(diagram_id)
             if not diagram_data:
                 return NodeResult(success=False, error="Diagram not found")
 
@@ -61,7 +54,7 @@ class NodeMutations:
 
             diagram_data["nodes"][node_id] = node.model_dump()
 
-            await diagram_service.write_file(path, diagram_data)
+            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
 
             return NodeResult(
                 success=True, node=node, message=f"Created node {node_id}"
@@ -79,18 +72,21 @@ class NodeMutations:
         """Updates existing node properties."""
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            integrated_service = context.get_service("integrated_diagram_service")
 
             # Use input_data directly without conversion
 
-            diagrams = await diagram_service.list_files()
+            diagrams = await integrated_service.list_diagrams()
             diagram_id = None
             diagram_data = None
 
             for diagram_meta in diagrams:
-                temp_diagram = await diagram_service.read_file(diagram_meta.path)
-                if input_data.id in temp_diagram.get("nodes", {}):
-                    diagram_id = diagram_meta.path
+                # Extract diagram ID from path
+                path = diagram_meta.get("path", "")
+                temp_diagram_id = path.split(".")[0] if path else diagram_meta.get("id")
+                temp_diagram = await integrated_service.get_diagram(temp_diagram_id)
+                if temp_diagram and input_data.id in temp_diagram.get("nodes", {}):
+                    diagram_id = temp_diagram_id
                     diagram_data = temp_diagram
                     break
 
@@ -125,7 +121,7 @@ class NodeMutations:
 
             diagram_data["nodes"][input_data.id] = updated_node.model_dump()
 
-            await diagram_service.write_file(diagram_id, diagram_data)
+            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
 
             return NodeResult(
                 success=True,
@@ -145,16 +141,19 @@ class NodeMutations:
         """Removes node and connected elements."""
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.diagram_storage_service
+            integrated_service = context.get_service("integrated_diagram_service")
 
-            diagrams = await diagram_service.list_files()
+            diagrams = await integrated_service.list_diagrams()
             diagram_id = None
             diagram_data = None
 
             for diagram_meta in diagrams:
-                temp_diagram = await diagram_service.read_file(diagram_meta.path)
-                if node_id in temp_diagram.get("nodes", {}):
-                    diagram_id = diagram_meta.path
+                # Extract diagram ID from path
+                path = diagram_meta.get("path", "")
+                temp_diagram_id = path.split(".")[0] if path else diagram_meta.get("id")
+                temp_diagram = await integrated_service.get_diagram(temp_diagram_id)
+                if temp_diagram and node_id in temp_diagram.get("nodes", {}):
+                    diagram_id = temp_diagram_id
                     diagram_data = temp_diagram
                     break
 
@@ -184,7 +183,7 @@ class NodeMutations:
             for handle_id in handles_to_remove:
                 del diagram_data["handles"][handle_id]
 
-            await diagram_service.write_file(diagram_id, diagram_data)
+            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
 
             return DeleteResult(
                 success=True,

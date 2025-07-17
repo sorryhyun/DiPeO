@@ -1,0 +1,450 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: -264, y: 399}
+  props:
+    trigger_mode: manual
+- label: Content Requirements
+  type: user_response
+  position: {x: 64, y: 294}
+  props:
+    prompt: |
+      Please provide content requirements:
+      - Topic/Title
+      - Target audience
+      - Content type (blog, article, social media)
+      - Key points to cover
+      - Desired tone (professional, casual, technical)
+    timeout: 180
+- label: SEO Keywords
+  type: user_response
+  position: {x: 51, y: 488}
+  props:
+    prompt: |
+      Enter target SEO keywords (comma-separated):
+      Leave blank to auto-generate based on topic
+    timeout: 60
+- label: Initialize Content Pipeline
+  type: code_job
+  position: {x: 444, y: 400}
+  props:
+    code: |
+      import json
+      from datetime import datetime
+
+      # Parse requirements
+      content_data = {
+          "requirements": requirements,
+          "keywords": seo_keywords.split(',') if seo_keywords.strip() else [],
+          "creation_date": datetime.now().isoformat(),
+          "revision_count": 0,
+          "max_revisions": 2,
+          "quality_threshold": 80,
+          "workflow_stage": "planning"
+      }
+
+      print(f"Initializing content creation for: {requirements.split('\\n')[0]}")
+    code_type: python
+- label: Create Content Brief
+  type: person_job
+  position: {x: 838, y: 200}
+  props:
+    default_prompt: |
+      Create a detailed content brief based on:
+      {{requirements}}
+
+      SEO Keywords: {{keywords}}
+
+      Include:
+      1. Content outline with H1, H2, H3 structure
+      2. Key messages for each section
+      3. Word count targets
+      4. Style guidelines
+      5. Call-to-action recommendations
+
+      Format as structured JSON.
+    max_iteration: 1
+    memory_profile: FOCUSED
+    person: ContentStrategist
+- label: Parse Brief
+  type: code_job
+  position: {x: 1260, y: 395}
+  props:
+    code: |
+      import json
+
+      try:
+          brief = json.loads(content_brief)
+      except:
+          # Fallback parsing
+          brief = {
+              "outline": content_brief,
+              "word_count": 1000,
+              "style": "professional"
+          }
+
+      content_data["brief"] = brief
+      content_data["workflow_stage"] = "writing"
+
+      print("Content brief created successfully")
+    code_type: python
+- label: Generate Keywords
+  type: person_job
+  position: {x: 846, y: 520}
+  props:
+    default_prompt: |
+      Generate SEO keywords for this content:
+      {{requirements}}
+
+      Provide:
+      - 5 primary keywords
+      - 10 secondary keywords
+      - 3 long-tail keywords
+
+      Consider search volume and relevance.
+    max_iteration: 1
+    memory_profile: MINIMAL
+    person: SEOOptimizer
+- label: Write Content
+  type: person_job
+  position: {x: 1093, y: 892}
+  props:
+    default_prompt: |
+      Revise the content based on this feedback:
+      {{edit_feedback}}
+
+      Previous version issues:
+      {{quality_issues}}
+
+      Maintain the core message while addressing all concerns.
+    first_only_prompt: |
+      Write content following this brief:
+      {{brief}}
+
+      Requirements: {{requirements}}
+      Keywords to include naturally: {{keywords}}
+
+      Create engaging, well-structured content that meets all specifications.
+    max_iteration: 3
+    memory_profile: FULL
+    person: Writer
+    flipped: [true, false]
+- label: Edit Content
+  type: person_job
+  position: {x: 669, y: 888}
+  props:
+    default_prompt: |
+      Edit this content thoroughly:
+      {{written_content}}
+
+      Check for:
+      1. Grammar, spelling, punctuation
+      2. Clarity and coherence
+      3. Factual accuracy
+      4. Tone consistency
+      5. Structure and flow
+
+      Provide:
+      - Corrected version
+      - List of changes made
+      - Improvement suggestions
+    max_iteration: 1
+    memory_profile: FOCUSED
+    person: Editor
+    flipped: [true, false]
+- label: SEO Optimization
+  type: person_job
+  position: {x: 213, y: 799}
+  props:
+    default_prompt: |
+      Optimize this edited content for SEO:
+      {{edited_content}}
+
+      Target keywords: {{keywords}}
+
+      Improve:
+      1. Keyword density (1-2%)
+      2. Header structure
+      3. Meta description
+      4. Internal linking opportunities
+      5. Readability score
+
+      Maintain content quality while optimizing.
+    max_iteration: 1
+    memory_profile: FOCUSED
+    person: SEOOptimizer
+    flipped: [true, false]
+- label: Quality Assessment
+  type: code_job
+  position: {x: -180, y: 738}
+  props:
+    code: |
+      import re
+
+      # Simple quality scoring
+      content = seo_optimized_content
+
+      # Check various quality metrics
+      word_count = len(content.split())
+      has_headers = bool(re.search(r'#{1,3}\s', content))
+      keyword_count = sum(1 for keyword in content_data["keywords"] if keyword.lower() in content.lower())
+
+      # Calculate quality score
+      quality_score = 0
+      quality_issues = []
+
+      # Word count check
+      if 800 <= word_count <= 1500:
+          quality_score += 25
+      else:
+          quality_issues.append(f"Word count {word_count} outside optimal range")
+
+      # Structure check
+      if has_headers:
+          quality_score += 25
+      else:
+          quality_issues.append("Missing proper header structure")
+
+      # Keyword optimization
+      if keyword_count >= 3:
+          quality_score += 25
+      else:
+          quality_issues.append("Insufficient keyword usage")
+
+      # Length and readability
+      avg_sentence_length = len(content) / max(content.count('.'), 1)
+      if avg_sentence_length < 150:
+          quality_score += 25
+      else:
+          quality_issues.append("Sentences too long")
+
+      content_data["quality_score"] = quality_score
+      content_data["quality_issues"] = quality_issues
+      content_data["revision_count"] += 1
+
+      print(f"Quality score: {quality_score}/100")
+      print(f"Issues found: {len(quality_issues)}")
+    flipped: [true, false]
+    code_type: python
+- label: Check Quality Pass
+  type: condition
+  position: {x: -313, y: 1024}
+  props:
+    condition_type: custom
+    expression: quality_score >= content_data["quality_threshold"]
+    flipped: [false, true]
+- label: Check Max Revisions
+  type: condition
+  position: {x: 211, y: 1137}
+  props:
+    condition_type: custom
+    expression: content_data["revision_count"] >= content_data["max_revisions"]
+- label: Create Image Prompts
+  type: person_job
+  position: {x: 40, y: 1334}
+  props:
+    default_prompt: |
+      Create 3 image generation prompts for this content:
+      {{seo_optimized_content}}
+
+      Consider:
+      - Content theme and tone
+      - Target audience preferences
+      - Visual storytelling
+
+      For each image specify:
+      - Detailed prompt for AI generation
+      - Suggested placement in content
+      - Alt text for SEO
+    max_iteration: 1
+    memory_profile: MINIMAL
+    person: ImagePromptCreator
+- label: Prepare Publishing Package
+  type: code_job
+  position: {x: 595, y: 1380}
+  props:
+    code: |
+      import json
+
+      # Prepare final publishing package
+      publishing_package = {
+          "content": {
+              "title": content_data["requirements"].split('\n')[0],
+              "body": seo_optimized_content,
+              "meta_description": seo_optimized_content[:160] + "...",
+              "keywords": content_data["keywords"]
+          },
+          "images": image_prompts,
+          "metadata": {
+              "created_date": content_data["creation_date"],
+              "quality_score": content_data["quality_score"],
+              "revision_count": content_data["revision_count"],
+              "workflow_stage": "ready_to_publish"
+          },
+          "seo": {
+              "focus_keywords": content_data["keywords"][:5],
+              "readability": "good" if content_data["quality_score"] >= 80 else "needs_improvement"
+          }
+      }
+
+      print("Content package prepared for publishing")
+    code_type: python
+- label: Manual Review Required
+  type: code_job
+  position: {x: 681, y: 1178}
+  props:
+    code: |
+      review_package = {
+          "status": "manual_review_required",
+          "content": seo_optimized_content,
+          "quality_score": content_data["quality_score"],
+          "issues": content_data["quality_issues"],
+          "revision_count": content_data["revision_count"],
+          "recommendation": "Content did not meet quality threshold after maximum revisions"
+      }
+
+      print("Content requires manual review before publishing")
+    code_type: python
+- label: Save Final Content
+  type: endpoint
+  position: {x: 1189, y: 1314}
+  props:
+    file_format: md
+    save_to_file: true
+    flipped: [true, false]
+    file_path: files/results/final_content.md
+- label: Save Publishing Package
+  type: endpoint
+  position: {x: 1135, y: 1503}
+  props:
+    file_format: json
+    save_to_file: true
+    flipped: [true, false]
+    file_path: files/results/publishing_package.json
+- label: Save Review Package
+  type: endpoint
+  position: {x: 1101, y: 1145}
+  props:
+    file_format: json
+    save_to_file: true
+    flipped: [true, false]
+    file_path: files/results/review_required.json
+connections:
+- from: Start
+  to: Content Requirements
+  content_type: raw_text
+- from: Start
+  to: SEO Keywords
+  content_type: raw_text
+- from: Content Requirements
+  to: Initialize Content Pipeline
+  content_type: raw_text
+  label: requirements
+- from: SEO Keywords
+  to: Initialize Content Pipeline
+  content_type: raw_text
+  label: seo_keywords
+- from: Initialize Content Pipeline
+  to: Create Content Brief
+  content_type: variable
+- from: Create Content Brief
+  to: Parse Brief
+  content_type: raw_text
+  label: content_brief
+- from: Initialize Content Pipeline
+  to: Generate Keywords
+  content_type: variable
+- from: Generate Keywords
+  to: Parse Brief
+  content_type: raw_text
+  label: generated_keywords
+- from: Parse Brief
+  to: Write Content
+  content_type: variable
+- from: Write Content
+  to: Edit Content
+  content_type: raw_text
+  label: written_content
+- from: Edit Content
+  to: SEO Optimization
+  content_type: raw_text
+  label: edited_content
+- from: SEO Optimization
+  to: Quality Assessment
+  content_type: raw_text
+  label: seo_optimized_content
+- from: Quality Assessment
+  to: Check Quality Pass
+  content_type: variable
+- from: Check Quality Pass_condtrue
+  to: Create Image Prompts
+  content_type: variable
+- from: Create Image Prompts
+  to: Prepare Publishing Package
+  content_type: raw_text
+  label: image_prompts
+- from: Prepare Publishing Package
+  to: Save Final Content
+  content_type: raw_text
+  label: seo_optimized_content
+- from: Prepare Publishing Package
+  to: Save Publishing Package
+  content_type: variable
+- from: Check Quality Pass_condfalse
+  to: Check Max Revisions
+  content_type: variable
+- from: Check Max Revisions_condfalse
+  to: Write Content
+  content_type: variable
+  label: edit_feedback
+- from: Check Max Revisions_condtrue
+  to: Manual Review Required
+  content_type: variable
+- from: Manual Review Required
+  to: Save Review Package
+  content_type: variable
+persons:
+  ContentStrategist:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: |
+      You are a content strategist who creates detailed content briefs.
+      Consider target audience, SEO keywords, tone, and key messages.
+      Output structured briefs with clear sections.
+    api_key_id: APIKEY_52609F
+  Editor:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: |
+      You are a meticulous editor. Check for:
+      - Grammar and spelling
+      - Clarity and flow
+      - Factual accuracy
+      - Tone consistency
+      Provide specific improvement suggestions.
+    api_key_id: APIKEY_52609F
+  ImagePromptCreator:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: |
+      You create detailed prompts for AI image generation.
+      Consider the content theme, style requirements, and visual appeal.
+      Be specific about composition, colors, and mood.
+    api_key_id: APIKEY_52609F
+  SEOOptimizer:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: |
+      You optimize content for search engines while maintaining readability.
+      Focus on keyword placement, meta descriptions, headers, and structure.
+      Suggest improvements without compromising quality.
+    api_key_id: APIKEY_52609F
+  Writer:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: |
+      You are a professional content writer. Follow the brief exactly.
+      Write engaging, clear, and well-structured content.
+      Use appropriate tone and style for the target audience.
+    api_key_id: APIKEY_52609F

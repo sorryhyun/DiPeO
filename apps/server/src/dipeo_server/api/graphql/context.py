@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 class GraphQLContext(BaseContext):
     """Context object that provides direct access to the DI container."""
 
-    request: Optional[Request] = None       # present on HTTP
-    websocket: Optional[WebSocket] = None   # present on WS
+    request: Optional[Request] = None  # present on HTTP
+    websocket: Optional[WebSocket] = None  # present on WS
     container: Optional["ServerContainer"] = None
     user_data: dict[str, Any] = field(default_factory=dict)
 
@@ -48,7 +48,7 @@ def get_graphql_context(request_or_ws=None):
     """
     Factory function for creating GraphQL context.
     Used as context_getter in GraphQLRouter.
-    
+
     Handles both HTTP requests and WebSocket connections.
     Strawberry calls this with a single positional argument:
     - HTTP: The FastAPI Request object
@@ -58,14 +58,14 @@ def get_graphql_context(request_or_ws=None):
     from dipeo_server.application.app_context import get_container
 
     container = get_container()
-    
+
     # Determine what type of connection we have
     request = None
     websocket = None
-    
+
     if request_or_ws:
         # Check if it's a Request object (has url attribute)
-        if hasattr(request_or_ws, 'url') and hasattr(request_or_ws, 'method'):
+        if hasattr(request_or_ws, "url") and hasattr(request_or_ws, "method"):
             request = request_or_ws
         # Otherwise assume it's a WebSocket
         else:
@@ -77,4 +77,3 @@ def get_graphql_context(request_or_ws=None):
         websocket=websocket,
         container=container,
     )
-

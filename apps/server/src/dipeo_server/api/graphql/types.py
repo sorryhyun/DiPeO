@@ -120,8 +120,6 @@ class NodeStateType:
     pass
 
 
-
-
 @strawberry.experimental.pydantic.type(
     DomainHandle, fields=["label", "direction", "data_type", "position"]
 )
@@ -384,22 +382,6 @@ class InteractiveResponseInput:
 
 
 @strawberry.input
-class CreateArrowInput:
-    source: str  # format: "nodeId:handleId"
-    target: str  # format: "nodeId:handleId"
-    label: str | None = None
-
-
-@strawberry.input
-class CreateHandleInput:
-    node_id: NodeID
-    label: str
-    direction: HandleDirectionEnum
-    data_type: DataTypeEnum
-    position: Vec2Input
-
-
-@strawberry.input
 class FileUploadInput:
     filename: str
     content_base64: str
@@ -472,16 +454,6 @@ class DeleteResult(MutationResult):
 
 
 @strawberry.type
-class HandleResult(MutationResult):
-    handle: DomainHandleType | None = None
-
-
-@strawberry.type
-class ArrowResult(MutationResult):
-    arrow: DomainArrowType | None = None
-
-
-@strawberry.type
 class FileUploadResult(MutationResult):
     path: str | None = None
     size_bytes: int | None = None
@@ -504,11 +476,8 @@ __all__ = [
     "ApiKeyResult",
     "APIServiceTypeEnum",
     "ArrowID",
-    "ArrowResult",
     "CreateApiKeyInput",
-    "CreateArrowInput",
     "CreateDiagramInput",
-    "CreateHandleInput",
     "CreateNodeInput",
     "CreatePersonInput",
     "DataTypeEnum",
@@ -538,7 +507,6 @@ __all__ = [
     "ForgettingModeEnum",
     "HandleDirectionEnum",
     "HandleID",
-    "HandleResult",
     "InteractiveResponseInput",
     "JSONScalar",
     "LLMServiceEnum",

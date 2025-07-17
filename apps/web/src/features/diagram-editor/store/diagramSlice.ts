@@ -6,7 +6,7 @@ import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { NODE_CONFIGS_MAP } from '../config/nodes';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
-import { NodeType, Vec2 } from '@dipeo/domain-models';
+import { NodeType, Vec2, DiagramFormat } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
 
 export interface DiagramSlice {
@@ -21,6 +21,7 @@ export interface DiagramSlice {
   diagramName: string;
   diagramDescription: string;
   diagramId: string | null;
+  diagramFormat: DiagramFormat | null;
   
   // Node operations
   addNode: (type: NodeType, position: Vec2, initialData?: Record<string, unknown>) => NodeID;
@@ -43,6 +44,7 @@ export interface DiagramSlice {
   setDiagramName: (name: string) => void;
   setDiagramDescription: (description: string) => void;
   setDiagramId: (id: string | null) => void;
+  setDiagramFormat: (format: DiagramFormat | null) => void;
   
   // Utility
   clearDiagram: () => void;
@@ -73,6 +75,7 @@ export const createDiagramSlice: StateCreator<
   diagramName: 'Untitled',
   diagramDescription: '',
   diagramId: null,
+  diagramFormat: null,
 
   // Node operations
   addNode: (type, position, initialData) => {
@@ -316,6 +319,13 @@ export const createDiagramSlice: StateCreator<
     });
   },
   
+  setDiagramFormat: (format) => {
+    set(state => {
+      state.diagramFormat = format;
+      // Don't increment version or record history for metadata changes
+    });
+  },
+  
   clearDiagram: () => {
     set(state => {
       state.nodes.clear();
@@ -323,6 +333,7 @@ export const createDiagramSlice: StateCreator<
       state.diagramName = 'Untitled';
       state.diagramDescription = '';
       state.diagramId = null;
+      state.diagramFormat = null;
       // Arrays will be updated by afterChange
       afterChange(state);
     });

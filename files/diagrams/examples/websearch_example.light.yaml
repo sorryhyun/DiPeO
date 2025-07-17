@@ -1,0 +1,39 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 180, y: 290}
+  props:
+    trigger_mode: manual
+- label: WebSearcher
+  type: person_job
+  position: {x: 483, y: 304}
+  props:
+    flipped: false
+    max_iteration: 1
+    memory_profile: FULL
+    person: Searcher
+    tools:
+    - type: web_search_preview
+      enabled: true
+    default_prompt: search about CLAUDE
+- label: result
+  type: endpoint
+  position: {x: 792, y: 281}
+  props:
+    file_format: json
+    flipped: true
+    save_to_file: true
+    file_path: files/results/search_result.json
+connections:
+- from: Start
+  to: WebSearcher
+  content_type: raw_text
+- from: WebSearcher
+  to: result
+  content_type: raw_text
+persons:
+  Searcher:
+    service: openai
+    model: gpt-4.1-mini
+    api_key_id: APIKEY_52609F

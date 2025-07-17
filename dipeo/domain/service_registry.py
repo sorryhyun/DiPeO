@@ -45,6 +45,7 @@ class DomainServiceRegistry:
             return
         
         # Import and register services lazily to avoid circular imports
+        self._register_api_services()
         self._register_file_services()
         self._register_diagram_services()
         self._register_db_services()
@@ -54,10 +55,18 @@ class DomainServiceRegistry:
         
         self._initialized = True
     
+    def _register_api_services(self) -> None:
+        """Register API domain services."""
+        from .api.services.api_business_logic import APIBusinessLogic
+        from .validators import APIValidator
+        
+        self._validators["api"] = APIValidator()
+        self._business_services["api"] = APIBusinessLogic()
+    
     def _register_file_services(self) -> None:
         """Register file domain services."""
         from .file.services.file_business_logic import FileBusinessLogic
-        from .file.services.file_validator import FileValidator
+        from .validators import FileValidator
         
         self._validators["file"] = FileValidator()
         self._business_services["file"] = FileBusinessLogic()
@@ -66,7 +75,7 @@ class DomainServiceRegistry:
         """Register diagram domain services."""
         from .diagram.services.diagram_format_service import DiagramFormatService
         from .diagram.services.diagram_operations_service import DiagramOperationsService
-        from .diagram.services.diagram_validator import DiagramValidator
+        from .validators import DiagramValidator
         
         self._validators["diagram"] = DiagramValidator()
         self._business_services["diagram_operations"] = DiagramOperationsService()
@@ -76,7 +85,11 @@ class DomainServiceRegistry:
         """Register database domain services."""
         try:
             from .db.services.db_operations_service import DBOperationsDomainService
+            from .validators import DataValidator
+            
             self._business_services["db_operations"] = DBOperationsDomainService()
+            self._validators["data"] = DataValidator()
+            self._validators["db"] = DataValidator()  # Alias for compatibility
         except ImportError:
             # Service might not exist yet
             pass
@@ -84,7 +97,7 @@ class DomainServiceRegistry:
     def _register_notion_services(self) -> None:
         """Register Notion domain services."""
         try:
-            from .notion.services.notion_validator import NotionValidator
+            from .validators import NotionValidator
             self._validators["notion"] = NotionValidator()
         except ImportError:
             # Service might not exist yet
@@ -101,12 +114,11 @@ class DomainServiceRegistry:
     
     def _register_execution_services(self) -> None:
         """Register execution domain services."""
-        from .execution.services.execution_domain_service import ExecutionDomainService
+        from .validators import ExecutionValidator
         
-        execution_service = ExecutionDomainService()
-        self._business_services["execution"] = execution_service
-        # Execution service acts as both validator and business service
-        self._validators["execution"] = execution_service  # type: ignore
+        execution_validator = ExecutionValidator()
+        # Only register as validator since it only provides validation
+        self._validators["execution"] = execution_validator  # type: ignore
     
     def get_validator(self, domain: str) -> BaseValidator | None:
         """

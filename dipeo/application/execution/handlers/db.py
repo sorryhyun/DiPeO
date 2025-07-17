@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import DB_OPERATIONS_SERVICE
 from dipeo.core.static.generated_nodes import DBNode
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
@@ -71,22 +71,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     # ---------------------------------------------------------------------#
     #  Typed execution                                                      #
     # ---------------------------------------------------------------------#
-
-    async def pre_execute(
-        self,
-        node: DBNode,
-        execution: ExecutionRuntime
-    ) -> dict[str, Any]:
-        """Pre-execute logic for DBNode."""
-        return {
-            "file": node.file,
-            "collection": node.collection,
-            "sub_type": node.sub_type.value if hasattr(node.sub_type, 'value') else node.sub_type,
-            "operation": node.operation,
-            "query": node.query,
-            "data": node.data
-        }
-    
     async def execute(
         self,
         node: DBNode,

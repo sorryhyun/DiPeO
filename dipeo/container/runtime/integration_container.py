@@ -27,12 +27,12 @@ def _create_api_service(api_business_logic, file_service):
     )
 
 
-def _create_integrated_diagram_service(diagram_business_logic, base_dir):
+def _create_integrated_diagram_service(file_repository, loader_adapter):
     """Create integrated diagram service with conversion capabilities."""
     from dipeo.infra.diagram.integrated_diagram_service import IntegratedDiagramService
     return IntegratedDiagramService(
-        domain_service=diagram_business_logic,
-        base_dir=base_dir
+        file_repository=file_repository,
+        loader_adapter=loader_adapter
     )
 
 
@@ -113,8 +113,8 @@ class IntegrationServicesContainer(MutableBaseContainer):
     # Diagram integration service
     integrated_diagram_service = providers.Singleton(
         _create_integrated_diagram_service,
-        diagram_business_logic=business.diagram_business_logic,
-        base_dir=base_dir,
+        file_repository=persistence.diagram_storage_service,
+        loader_adapter=persistence.diagram_loader,
     )
     
     # Future integrations

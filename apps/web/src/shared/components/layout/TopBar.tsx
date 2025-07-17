@@ -6,7 +6,7 @@ import { useUIState } from '@/core/store/hooks/state';
 import { useDiagramManager, useFileOperations } from '@/features/diagram-editor/hooks';
 import { useUIOperations, useExecutionOperations } from '@/core/store/hooks';
 import { toast } from 'sonner';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore, useDiagramFormat } from '@/core/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { DiagramFormat } from '@dipeo/domain-models';
 import { useConvertDiagramMutation, useUploadFileMutation } from '@/__generated__/graphql';
@@ -24,11 +24,15 @@ const TopBar = () => {
   const { setReadOnly, setActiveCanvas } = useUIOperations();
   const { stopExecution } = useExecutionOperations();
   
+  // Get diagram format from store
+  const diagramFormatFromStore = useDiagramFormat();
+  
   // Get diagram metadata from store
-  const { diagramName, diagramDescription, setDiagramName, setDiagramDescription } = useUnifiedStore(
+  const { diagramName, diagramDescription, diagramId, setDiagramName, setDiagramDescription } = useUnifiedStore(
     useShallow(state => ({
       diagramName: state.diagramName,
       diagramDescription: state.diagramDescription,
+      diagramId: state.diagramId,
       setDiagramName: state.setDiagramName,
       setDiagramDescription: state.setDiagramDescription,
     }))
@@ -55,7 +59,7 @@ const TopBar = () => {
   const [uploadFileMutation] = useUploadFileMutation();
   
 
-  // Handle monitor mode and format detection
+  // Handle monitor mode
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isMonitor = params.get('monitor') === 'true';
@@ -65,21 +69,18 @@ const TopBar = () => {
     if (isMonitor) {
       setReadOnly?.(true);
     }
-    
-    // Detect format from current diagram URL
-    const currentDiagramId = params.get('diagram');
-    if (currentDiagramId && currentDiagramId.includes('/')) {
-      const format = currentDiagramId.split('/')[0];
-      if (format === 'native') {
-        setSelectedFormat(DiagramFormat.NATIVE);
-      } else if (format === 'readable') {
-        setSelectedFormat(DiagramFormat.READABLE);
-      } else if (format === 'light') {
-        setSelectedFormat(DiagramFormat.LIGHT);
-      }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
+  
+  // Sync format from store - including when it's null (no diagram loaded)
+  useEffect(() => {
+    if (diagramFormatFromStore !== null) {
+      setSelectedFormat(diagramFormatFromStore);
+    } else {
+      // When no diagram is loaded, default to NATIVE
+      setSelectedFormat(DiagramFormat.NATIVE);
+    }
+  }, [diagramFormatFromStore]);
 
   // Convert and save functionality
   const handleConvertAndSave = useCallback(async () => {
@@ -88,15 +89,95 @@ const TopBar = () => {
       // Use the user-provided name or default
       const finalName = diagramName.trim() || 'diagram';
       
-      // Generate filename based on format
-      const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
-      const filename = `${finalName}.${extension}`;
+      // Determine the save path
+      let savePath: string;
+      let filename: string;
+      
+      if (diagramId) {
+        // Parse the diagram ID to extract directory and base filename
+        const pathParts = diagramId.split('/');
+        const fullFilename = pathParts[pathParts.length - 1] || '';
+        const directories = pathParts.slice(0, -1);
+        
+        // Extract base name by removing ALL known extensions patterns
+        let baseName = fullFilename;
+        
+        // Remove format-specific double extensions first (e.g., .light.yaml, .readable.yaml)
+        const formatExtensionRemoved = baseName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
+        if (formatExtensionRemoved !== baseName) {
+          baseName = formatExtensionRemoved;
+        } else {
+          // If no format-specific extension, just remove the file extension
+          baseName = baseName.replace(/\.(json|yaml|yml)$/i, '');
+        }
+        
+        // If nothing was removed (edge case), use everything before the last dot
+        if (baseName === fullFilename && fullFilename.includes('.')) {
+          baseName = fullFilename.substring(0, fullFilename.lastIndexOf('.'));
+        }
+        
+        // Use the user-provided name if it's different from the extracted base name
+        if (finalName.trim() && finalName !== 'diagram' && finalName !== baseName) {
+          // Extract just the filename part from finalName (in case user entered a path)
+          const finalNameParts = finalName.split('/');
+          const finalNameOnly = finalNameParts[finalNameParts.length - 1];
+          
+          // Remove extensions from the final name as well
+          let cleanFinalName = finalNameOnly || '';
+          const formatExtRemoved = cleanFinalName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
+          if (formatExtRemoved !== cleanFinalName) {
+            cleanFinalName = formatExtRemoved;
+          } else {
+            cleanFinalName = cleanFinalName.replace(/\.(json|yaml|yml)$/i, '');
+          }
+          
+          // If still has extension, remove it
+          if (cleanFinalName.includes('.') && cleanFinalName === finalNameOnly) {
+            cleanFinalName = cleanFinalName.substring(0, cleanFinalName.lastIndexOf('.'));
+          }
+          
+          baseName = cleanFinalName;
+        }
+        
+        // Generate filename based on selected format
+        if (selectedFormat === DiagramFormat.NATIVE) {
+          filename = `${baseName}.json`;
+        } else if (selectedFormat === DiagramFormat.LIGHT) {
+          filename = `${baseName}.light.yaml`;
+        } else if (selectedFormat === DiagramFormat.READABLE) {
+          filename = `${baseName}.readable.yaml`;
+        } else {
+          filename = `${baseName}.yaml`;
+        }
+        
+        // Reconstruct the path
+        if (directories.length > 0) {
+          // Check if we're in a format-specific directory that needs to be changed
+          const lastDir = directories[directories.length - 1];
+          if (lastDir === 'light' || lastDir === 'readable' || lastDir === 'native') {
+            // Replace the format directory with the new format
+            const newFormatDir = selectedFormat.toLowerCase();
+            savePath = [...directories.slice(0, -1), newFormatDir, filename].join('/');
+          } else {
+            // Keep the existing directory structure
+            savePath = [...directories, filename].join('/');
+          }
+        } else {
+          // No directory, just use the filename
+          savePath = filename;
+        }
+      } else {
+        // For new diagrams, save in format-specific directory
+        const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
+        filename = `${finalName}.${extension}`;
+        const formatDir = selectedFormat.toLowerCase();
+        savePath = `${formatDir}/${filename}`;
+      }
       
       // For native format, use the existing saveDiagram function
       if (selectedFormat === DiagramFormat.NATIVE) {
-        await saveToFileSystem(filename, selectedFormat);
-        const formatDir = selectedFormat.toLowerCase();
-        toast.success(`Saved to ${formatDir}/${filename}`);
+        await saveToFileSystem(savePath, selectedFormat);
+        toast.success(`Saved to ${savePath}`);
         return;
       }
       
@@ -123,15 +204,22 @@ const TopBar = () => {
         throw new Error('No content returned from conversion');
       }
       
-      // Determine the category based on format
-      const category = `diagrams/${selectedFormat}`;
+      // Extract directory and filename from savePath
+      const savePathParts = savePath.split('/');
+      const saveFilename = savePathParts[savePathParts.length - 1];
+      // For diagrams, we need to include 'diagrams/' as the base,
+      // then the subdirectory if any (without duplicating 'diagrams/')
+      const subdirectory = savePathParts.length > 1 
+        ? savePathParts.slice(0, -1).join('/')
+        : '';
+      const category = subdirectory ? `diagrams/${subdirectory}` : 'diagrams';
       
       // Create a File object from the converted content
-      const file = new File([convertedContent], filename, { 
+      const file = new File([convertedContent], saveFilename || 'diagram.yaml', { 
         type: 'text/yaml' 
       });
       
-      // Upload the file directly to diagrams/{format}/ directory
+      // Upload the file to the appropriate directory
       const uploadResult = await uploadFileMutation({
         variables: {
           file,
@@ -144,14 +232,14 @@ const TopBar = () => {
       }
       
       // Show success message
-      toast.success(`Saved to ${category}/${filename}`);
+      toast.success(`Saved to ${savePath}`);
     } catch (error) {
       console.error('Save error:', error);
       toast.error(error instanceof Error ? error.message : 'Save failed');
     } finally {
       setIsSaving(false);
     }
-  }, [selectedFormat, diagramName, saveToFileSystem, convertDiagramMutation, uploadFileMutation]);
+  }, [selectedFormat, diagramName, diagramId, saveToFileSystem, convertDiagramMutation, uploadFileMutation]);
 
 
   return (
@@ -164,7 +252,7 @@ const TopBar = () => {
               type="text"
               value={diagramName}
               onChange={(e) => setDiagramName(e.target.value)}
-              className="w-48 px-2 py-1 text-lg font-semibold bg-transparent border-b border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-96 px-2 py-1 text-lg font-semibold bg-transparent border-b border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
               placeholder="Diagram Title"
             />
             {/* Action Buttons */}
@@ -189,18 +277,30 @@ const TopBar = () => {
                 // Use title from input field
                 const name = diagramName.trim() || 'quicksave';
                 
-                // Map DiagramFormat enum to string format
-                let format = 'native';
-                if (selectedFormat === DiagramFormat.LIGHT) {
-                  format = 'light';
-                } else if (selectedFormat === DiagramFormat.READABLE) {
-                  format = 'readable';
-                } else if (selectedFormat === DiagramFormat.NATIVE) {
-                  format = 'native';
-                }
+                // Check if filename already contains format suffix
+                const hasFormatSuffix = 
+                  name.endsWith('.light.yaml') || name.endsWith('.light.yml') ||
+                  name.endsWith('.native.json') ||
+                  name.endsWith('.readable.yaml') || name.endsWith('.readable.yml');
                 
-                // Build the diagram path
-                const diagramPath = `${format}/${name}`;
+                let diagramPath: string;
+                if (hasFormatSuffix) {
+                  // Use filename directly if it already has format suffix
+                  diagramPath = name;
+                } else {
+                  // Map DiagramFormat enum to string format
+                  let format = 'native';
+                  if (selectedFormat === DiagramFormat.LIGHT) {
+                    format = 'light';
+                  } else if (selectedFormat === DiagramFormat.READABLE) {
+                    format = 'readable';
+                  } else if (selectedFormat === DiagramFormat.NATIVE) {
+                    format = 'native';
+                  }
+                  
+                  // Build the diagram path with format prefix
+                  diagramPath = `${format}/${name}`;
+                }
                 
                 // Update URL and trigger reload
                 const newUrl = `/?diagram=${diagramPath}`;
@@ -254,7 +354,7 @@ const TopBar = () => {
               type="text"
               value={diagramDescription}
               onChange={(e) => setDiagramDescription(e.target.value)}
-              className="flex-1 min-w-[300px] px-2 py-0.5 text-sm text-gray-600 bg-transparent border-b border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:outline-none transition-colors"
+              className="flex-1 min-w-[600px] px-2 py-0.5 text-sm text-gray-600 bg-transparent border-b border-gray-200 hover:border-gray-300 focus:border-blue-400 focus:outline-none transition-colors"
               placeholder="Description (optional)"
             />
             <Select

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { GetDiagramDocument } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
@@ -6,6 +6,7 @@ import { diagramId } from '@/core/types';
 import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/lib/graphql/types';
 import { rebuildHandleIndex } from '@/core/store/helpers/handleIndexHelper';
 import { createEntityQuery } from '@/lib/graphql/hooks';
+import { DiagramFormat } from '@dipeo/domain-models';
 
 /**
  * Refactored diagram loader using the GraphQL factory pattern
@@ -22,57 +23,106 @@ const useDiagramQuery = createEntityQuery({
 
 export function useDiagramLoader() {
   const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
   const [diagramIdFromUrl, setDiagramIdFromUrl] = useState<string | null>(null);
+  const [diagramFormatFromUrl, setDiagramFormatFromUrl] = useState<DiagramFormat | null>(null);
+  
+  // Track what diagram we've actually loaded to prevent reloads
+  const loadedDiagramIdRef = useRef<string | null>(null);
+  const hasInitializedRef = useRef(false);
+
+  // Parse diagram parameter from URL
+  const parseDiagramParam = (diagramParam: string | null): { id: string | null; format: DiagramFormat | null } => {
+    if (!diagramParam) return { id: null, format: null };
+    
+    const parts = diagramParam.split('/');
+    let format: DiagramFormat | null = null;
+    
+    // Parse format from path prefix
+    if (parts.length === 2) {
+      const [formatStr] = parts;
+      switch (formatStr) {
+        case 'native':
+          format = DiagramFormat.NATIVE;
+          break;
+        case 'light':
+          format = DiagramFormat.LIGHT;
+          break;
+        case 'readable':
+          format = DiagramFormat.READABLE;
+          break;
+      }
+    }
+    
+    // Detect format from file extension if not found
+    if (!format) {
+      if (diagramParam.endsWith('.native.json') || diagramParam.endsWith('.json')) {
+        format = DiagramFormat.NATIVE;
+      } else if (diagramParam.endsWith('.light.yaml') || diagramParam.endsWith('.light.yml')) {
+        format = DiagramFormat.LIGHT;
+      } else if (diagramParam.endsWith('.readable.yaml') || diagramParam.endsWith('.readable.yml')) {
+        format = DiagramFormat.READABLE;
+      } else if (diagramParam.endsWith('.yaml') || diagramParam.endsWith('.yml')) {
+        format = DiagramFormat.LIGHT; // Default YAML to light format
+      }
+    }
+    
+    return { id: diagramParam, format };
+  };
 
   // Check URL for diagram parameter
   useEffect(() => {
-    const checkUrlParams = () => {
+    const checkUrl = () => {
       const params = new URLSearchParams(window.location.search);
       const diagramParam = params.get('diagram');
+      const { id, format } = parseDiagramParam(diagramParam);
       
-      if (diagramParam && diagramParam !== diagramIdFromUrl) {
-        setDiagramIdFromUrl(diagramParam);
-        setHasLoaded(false); // Reset loaded state when diagram ID changes
+      // Only proceed if diagram ID is different from what we've loaded
+      if (id !== loadedDiagramIdRef.current) {
+        setDiagramIdFromUrl(id);
+        setDiagramFormatFromUrl(format);
       }
     };
-
-    // Check on mount
-    checkUrlParams();
-
+    
+    // Initial check
+    checkUrl();
+    hasInitializedRef.current = true;
+    
     // Listen for URL changes
-    const handleUrlChange = () => checkUrlParams();
-    window.addEventListener('popstate', handleUrlChange);
-
-    return () => {
-      window.removeEventListener('popstate', handleUrlChange);
-    };
-  }, [diagramIdFromUrl]);
+    window.addEventListener('popstate', checkUrl);
+    return () => window.removeEventListener('popstate', checkUrl);
+  }, []); // No dependencies - we want this to run once
 
   // Query for diagram data using factory-generated hook
   const { data, loading, error } = useDiagramQuery(
     { id: diagramId(diagramIdFromUrl || '') },
     { 
-      skip: !diagramIdFromUrl || hasLoaded,
+      skip: !diagramIdFromUrl || loadedDiagramIdRef.current === diagramIdFromUrl,
       // Custom error handling
       onError: (error) => {
         console.error('Failed to fetch diagram:', error);
         toast.error(`Failed to load diagram: ${error.message}`);
-        setHasLoaded(true); // Prevent retry loop
+        // Mark as loaded to prevent retry
+        loadedDiagramIdRef.current = diagramIdFromUrl;
       },
       // Custom success handling
       onCompleted: (data) => {
         if (!data.diagram && diagramIdFromUrl) {
           toast.error(`Diagram "${diagramIdFromUrl}" not found`);
-          setHasLoaded(true); // Prevent retry
+          // Mark as loaded to prevent retry
+          loadedDiagramIdRef.current = diagramIdFromUrl;
         }
       }
     }
   );
 
-  // Load diagram data into store - delay until after mount
+  // Load diagram data into store
   useEffect(() => {
-    if (!loading && !hasLoaded && diagramIdFromUrl && data?.diagram) {
+    // Skip if already loaded this diagram
+    if (loadedDiagramIdRef.current === diagramIdFromUrl) {
+      return;
+    }
+    
+    if (!loading && diagramIdFromUrl && data?.diagram) {
       setIsLoading(true);
       
       // Delay loading until after the component tree has mounted
@@ -92,11 +142,12 @@ export function useDiagramLoader() {
           const domainDiagram = convertGraphQLDiagramToDomain(diagramWithCounts);
           
           // Convert arrays to Maps for the store
-          let { nodes, handles, arrows, persons } = diagramToStoreMaps(domainDiagram);
+          const { nodes, handles, persons } = diagramToStoreMaps(domainDiagram);
+          let { arrows } = diagramToStoreMaps(domainDiagram);
           
           // Deduplicate arrows based on source/target
           const arrowMap = new Map<string, typeof arrows extends Map<any, infer V> ? V : never>();
-          arrows.forEach((arrow, id) => {
+          arrows.forEach((arrow) => {
             // Create a key for deduplication without changing case
             const key = `${arrow.source}->${arrow.target}`;
             
@@ -127,31 +178,35 @@ export function useDiagramLoader() {
             // Preserve the active canvas state before clearing
             const currentActiveCanvas = store.activeCanvas;
             
-            // First clear existing data
+            // First clear existing data to ensure clean slate
             store.clearAll();
             
-            // Restore the active canvas state
-            store.setActiveCanvas(currentActiveCanvas);
-            
-            // Then restore the snapshot which properly updates all slices
-            store.restoreSnapshot({
-              nodes,
-              arrows,
-              persons,
-              handles,
-              timestamp: Date.now()
+            // Add a micro-delay to ensure React Flow processes the clear
+            requestAnimationFrame(() => {
+              // Restore the active canvas state
+              store.setActiveCanvas(currentActiveCanvas);
+              
+              // Then restore the snapshot which properly updates all slices
+              store.restoreSnapshot({
+                nodes,
+                arrows,
+                persons,
+                handles,
+                timestamp: Date.now()
+              });
+              
+              // Set diagram metadata after restoring snapshot
+              if (diagramWithCounts.metadata) {
+                store.setDiagramName(diagramWithCounts.metadata.name || 'Untitled');
+                store.setDiagramDescription(diagramWithCounts.metadata.description || '');
+              }
+              store.setDiagramId(diagramIdFromUrl);
+              store.setDiagramFormat(diagramFormatFromUrl);
             });
-            
-            // Set diagram metadata
-            if (diagramWithCounts.metadata) {
-              store.setDiagramName(diagramWithCounts.metadata.name || 'Untitled');
-              store.setDiagramDescription(diagramWithCounts.metadata.description || '');
-            }
-            store.setDiagramId(diagramIdFromUrl);
           });
 
-          // Mark as loaded after store is updated
-          setHasLoaded(true);
+          // Mark this diagram as loaded
+          loadedDiagramIdRef.current = diagramIdFromUrl;
           
           // Show success message
           const diagramName = diagramWithCounts.metadata?.name || 'Unnamed diagram';
@@ -166,15 +221,16 @@ export function useDiagramLoader() {
         }
       }, 250); // Give component tree time to mount and ReactFlow to initialize
       
-      // Cleanup timer on unmount
+      // Cleanup timer on unmount or when dependencies change
       return () => clearTimeout(loadTimer);
     }
-  }, [data, loading, hasLoaded, diagramIdFromUrl]);
+  }, [data, loading, diagramIdFromUrl, diagramFormatFromUrl]);
 
   return {
     isLoading: loading || isLoading,
-    hasLoaded,
+    hasLoaded: loadedDiagramIdRef.current === diagramIdFromUrl,
     diagramId: diagramIdFromUrl,
+    diagramFormat: diagramFormatFromUrl,
     error
   };
 }

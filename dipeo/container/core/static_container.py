@@ -21,19 +21,19 @@ def _create_node_registry():
 
 def _create_diagram_validator(api_key_service):
     """Create the diagram validator."""
-    from dipeo.domain.diagram.services import DiagramValidator
+    from dipeo.domain.validators import DiagramValidator
     return DiagramValidator(api_key_service)
 
 
 def _create_template_processor():
     """Create the template processor."""
-    from dipeo.utils.template import TemplateProcessor
+    from dipeo.application.utils.template import TemplateProcessor
     return TemplateProcessor()
 
 
 def _create_validation_rules():
     """Create the validation rules registry."""
-    from dipeo.domain.diagram.services.validation_rules import ValidationRules
+    from dipeo.domain.validators.validation_rules import ValidationRules
     return ValidationRules()
 
 

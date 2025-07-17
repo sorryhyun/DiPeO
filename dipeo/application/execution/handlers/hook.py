@@ -9,7 +9,7 @@ import aiohttp
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.core.static.generated_nodes import HookNode
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
@@ -43,14 +43,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     @property
     def description(self) -> str:
         return "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
-    
-    async def pre_execute(
-        self,
-        node: HookNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for HookNode."""
-        return {}
     
     async def execute(
         self,

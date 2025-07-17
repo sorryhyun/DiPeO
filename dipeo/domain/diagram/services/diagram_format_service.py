@@ -71,7 +71,15 @@ class DiagramFormatService:
         Determine the likely format based on filename patterns.
         This is a business rule about naming conventions.
         """
-        if filename.endswith(".json"):
+        # Check for new extension format
+        if filename.endswith(".native.json"):
+            return DiagramFormat.native
+        elif filename.endswith(".light.yaml") or filename.endswith(".light.yml"):
+            return DiagramFormat.light
+        elif filename.endswith(".readable.yaml") or filename.endswith(".readable.yml"):
+            return DiagramFormat.readable
+        # Backward compatibility with old format
+        elif filename.endswith(".json"):
             return DiagramFormat.native
         elif filename.endswith((".yaml", ".yml")):
             # Check for format hints in filename
@@ -89,11 +97,13 @@ class DiagramFormatService:
         This is a business rule about file naming conventions.
         """
         if format == DiagramFormat.native:
-            return ".json"
-        elif format in [DiagramFormat.light, DiagramFormat.readable]:
-            return ".yaml"
+            return ".native.json"
+        elif format == DiagramFormat.light:
+            return ".light.yaml"
+        elif format == DiagramFormat.readable:
+            return ".readable.yaml"
         else:
-            return ".yaml"  # Default
+            return ".light.yaml"  # Default
 
     def construct_search_patterns(
         self, diagram_id: str, formats: list | None = None
@@ -106,18 +116,24 @@ class DiagramFormatService:
             formats = [DiagramFormat.native, DiagramFormat.light, DiagramFormat.readable]
         
         patterns = []
-        extensions = [".yaml", ".yml", ".json"]
         
+        # New extension format patterns
+        for format in formats:
+            ext = self.get_file_extension_for_format(format)
+            # Direct match with new extension
+            patterns.append(f"{diagram_id}{ext}")
+            # Also check in format directories for backward compatibility
+            patterns.append(f"{format.value}/{diagram_id}{ext}")
+        
+        # Backward compatibility patterns
+        old_extensions = [".yaml", ".yml", ".json"]
         for format in formats:
             format_dir = format.value
-            for ext in extensions:
-                # Direct ID match
+            for ext in old_extensions:
                 patterns.append(f"{format_dir}/{diagram_id}{ext}")
-                # ID might be the filename without extension
-                patterns.append(f"{format_dir}/{diagram_id}")
         
-        # Also check without format directory
-        for ext in extensions:
+        # Also check old extensions without format directory
+        for ext in old_extensions:
             patterns.append(f"{diagram_id}{ext}")
         
         return patterns

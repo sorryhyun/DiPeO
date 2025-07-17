@@ -14,7 +14,7 @@ from dipeo.core import (
 )
 from dipeo.core.ports.file_service import FileServicePort
 from dipeo.domain.file.services import BackupService
-from dipeo.domain.file.services import FileValidator as DomainFileValidator
+from dipeo.domain.validators import FileValidator as DomainFileValidator
 
 from .async_adapter import AsyncFileAdapter
 from .file_info import FileInfo

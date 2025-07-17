@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.unified_service_registry import API_SERVICE
@@ -44,23 +44,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
-    async def pre_execute(
-        self,
-        node: ApiJobNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for ApiJobNode."""
-        return {
-            "url": node.url,
-            "method": node.method.value if hasattr(node.method, 'value') else node.method,
-            "headers": node.headers,
-            "params": node.params,
-            "body": node.body,
-            "timeout": node.timeout,
-            "auth_type": node.auth_type,
-            "auth_config": node.auth_config
-        }
-    
     async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> NodeOutputProtocol:
         """Execute the API request."""
         node = request.node

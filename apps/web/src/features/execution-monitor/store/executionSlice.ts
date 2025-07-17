@@ -87,7 +87,7 @@ export function toCanonicalExecutionState(
   
   return {
     id: (storeState.id || '') as ExecutionID,
-    status: status,
+    status,
     diagram_id: diagramId as DiagramID | null,
     started_at: new Date().toISOString(), // Store doesn't track this, using current time
     node_states: nodeStatesDict,

@@ -1,0 +1,137 @@
+{
+  "nodes": [
+    {
+      "id": "node_Y_MY",
+      "type": "start",
+      "position": {
+        "x": 180,
+        "y": 290
+      },
+      "data": {
+        "label": "Start",
+        "custom_data": {},
+        "output_data_structure": {},
+        "trigger_mode": "manual"
+      }
+    },
+    {
+      "id": "node_kga-",
+      "type": "person_job",
+      "position": {
+        "x": 482.9411764705882,
+        "y": 304.11764705882354
+      },
+      "data": {
+        "person": "",
+        "max_iteration": 1,
+        "first_only_prompt": "",
+        "default_prompt": "",
+        "tools": null,
+        "memory_profile": "FULL",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "memory_config": {
+          "forget_mode": "no_forget"
+        },
+        "label": "WebSearcher",
+        "flipped": false
+      }
+    },
+    {
+      "id": "node_bpwS",
+      "type": "endpoint",
+      "position": {
+        "x": 792.3529411764706,
+        "y": 281.17647058823525
+      },
+      "data": {
+        "label": "result",
+        "output_variable": "",
+        "save_to_file": true,
+        "file_format": "json",
+        "file_name": "files/results/search_result.json",
+        "flipped": true
+      }
+    }
+  ],
+  "arrows": [
+    {
+      "id": "arrow_vF0K",
+      "source": "node_Y_MY_default_output",
+      "target": "node_kga-_default_input"
+    },
+    {
+      "id": "arrow_TGHq",
+      "source": "node_kga-_default_output",
+      "target": "node_bpwS_default_input"
+    }
+  ],
+  "persons": [
+    {
+      "id": "person_o-hq",
+      "label": "Searcher",
+      "llm_config": {
+        "api_key_id": "APIKEY_52609F",
+        "service": "openai",
+        "model": "",
+        "system_prompt": ""
+      },
+      "type": "person"
+    }
+  ],
+  "handles": [
+    {
+      "id": "node_Y_MY_default_output",
+      "node_id": "node_Y_MY",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_kga-_first_input",
+      "node_id": "node_kga-",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_kga-_default_input",
+      "node_id": "node_kga-",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_kga-_default_output",
+      "node_id": "node_kga-",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_bpwS_default_input",
+      "node_id": "node_bpwS",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "right"
+    }
+  ],
+  "metadata": {
+    "name": "websearch_example",
+    "description": null,
+    "author": null,
+    "tags": null,
+    "created": "2025-07-15T14:16:48.640Z",
+    "modified": "2025-07-15T14:16:48.640Z",
+    "version": "1.0.0",
+    "id": null
+  }
+}

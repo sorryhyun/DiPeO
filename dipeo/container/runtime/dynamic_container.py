@@ -28,7 +28,7 @@ def _create_execution_engine(
     observers=None
 ):
     """Create stateful execution engine."""
-    from dipeo.application.engine import TypedExecutionEngine
+    from dipeo.application.execution.engine import TypedExecutionEngine
     
     return TypedExecutionEngine(
         service_registry=service_registry,

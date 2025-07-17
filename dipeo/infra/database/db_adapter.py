@@ -6,7 +6,8 @@ from typing import Any
 
 from dipeo.core import ValidationError
 from dipeo.core.ports import FileServicePort
-from dipeo.domain.db.services import DBOperationsDomainService, DBValidator
+from dipeo.domain.db.services import DBOperationsDomainService
+from dipeo.domain.validators import DataValidator
 
 
 class DBOperationsAdapter:
@@ -19,7 +20,7 @@ class DBOperationsAdapter:
         self,
         file_service: FileServicePort,
         domain_service: DBOperationsDomainService,
-        validation_service: DBValidator
+        validation_service: DataValidator
     ):
         self.file_service = file_service
         self.domain_service = domain_service

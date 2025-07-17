@@ -1,178 +1,144 @@
-"""Integrated infrastructure service for diagram operations."""
+"""Integrated infrastructure service for diagram operations - clean facade implementation.
+
+This module provides a unified async interface for diagram operations,
+delegating to specialized persistence layer components.
+"""
 
 import logging
-from pathlib import Path
 from typing import Any
 
-from dipeo.core.constants import BASE_DIR
-from dipeo.core.ports import FileServicePort
 from dipeo.core.ports.diagram_port import DiagramPort
-from dipeo.diagram.unified_converter import UnifiedDiagramConverter
-from dipeo.domain.diagram.services import DiagramBusinessLogic as DiagramDomainService
-from dipeo.domain.diagram.services import DiagramFormatService
+from dipeo.infra.persistence.diagram import DiagramFileRepository, DiagramLoaderAdapter
 from dipeo.models import DiagramFormat, DomainDiagram
+from dipeo.domain.diagram.services import DiagramFormatService
+from dipeo.infra.diagram.unified_converter import converter_registry
+from dipeo.domain.diagram.utils import dict_to_domain_diagram
 
 logger = logging.getLogger(__name__)
 
 
 class IntegratedDiagramService(DiagramPort):
-    def __init__(self, file_service: FileServicePort):
-        self.file_service = file_service
-        self.converter = UnifiedDiagramConverter()
-        self.diagrams_dir = Path(BASE_DIR) / "files" / "diagrams"
-        self.domain_service = DiagramDomainService()
+    """Facade service that delegates to persistence layer components.
+    
+    This service acts as a unified interface for diagram operations,
+    delegating actual implementation to specialized adapters.
+    """
+    
+    def __init__(self, file_repository: DiagramFileRepository, loader_adapter: DiagramLoaderAdapter):
+        self.file_repository = file_repository
+        self.loader_adapter = loader_adapter
         self.format_service = DiagramFormatService()
-
+    
     def detect_format(self, content: str) -> DiagramFormat:
-        """Delegate format detection to domain service."""
-        return self.format_service.detect_format(content)
-
+        """Delegate format detection to loader adapter."""
+        return self.loader_adapter.detect_format(content)
+    
     def load_diagram(
-            self,
-            content: str,
-            format: DiagramFormat | None = None,
+        self,
+        content: str,
+        format: DiagramFormat | None = None,
     ) -> DomainDiagram:
-        if format is None:
-            format = self.format_service.detect_format(content)
-
-        return self.converter.deserialize(content, format_id=format.value)
-
+        """Delegate diagram loading to loader adapter."""
+        return self.loader_adapter.load_diagram(content, format)
+    
     async def load_from_file(
-            self,
-            file_path: str,
-            format: DiagramFormat | None = None,
+        self,
+        file_path: str,
+        format: DiagramFormat | None = None,
     ) -> DomainDiagram:
-        result = self.file_service.read(file_path)
-        content = result.get("content", "")
-
-        if not content:
-            raise ValueError(f"Empty or missing content in file: {file_path}")
-
-        return self.load_diagram(content, format)
-
-
+        """Delegate file loading to loader adapter."""
+        return await self.loader_adapter.load_from_file(file_path, format)
     
-    def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
-        return self.list_diagram_files(directory)
+    async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
+        return await self.file_repository.list_files()
     
-    def list_diagram_files(self, directory: str | None = None) -> list[dict[str, Any]]:
-        files = []
-        
-        if directory:
-            scan_dir = self.diagrams_dir / directory
-        else:
-            scan_dir = self.diagrams_dir
-        
-        if not scan_dir.exists():
-            return files
-        
-        allowed_extensions = [".yaml", ".yml", ".json"]
-        
-        for file_path in scan_dir.rglob("*"):
-            if file_path.is_file() and file_path.suffix.lower() in allowed_extensions:
-                try:
-                    stats = file_path.stat()
-                    relative_path = file_path.relative_to(self.diagrams_dir)
-                    
-                    file_info = self.domain_service.generate_file_info(
-                        path=str(relative_path),
-                        name=file_path.stem,
-                        extension=file_path.suffix,
-                        size=stats.st_size,
-                        modified_timestamp=stats.st_mtime,
-                    )
-                    
-                    files.append(file_info)
-                except Exception:
-                    continue
-        
-        files.sort(key=lambda x: x["modified"], reverse=True)
-        return files
-    
-
-    def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
-        file_path = self.diagrams_dir / path
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        self.domain_service.validate_diagram_data(diagram)
-        
-        # Determine format from path
+    async def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
+        # Determine format from filename
         format = self.format_service.determine_format_from_filename(path)
-        if format is None:
-            # Fallback to native format
-            format = DiagramFormat.native
-        format_type = format.value
         
-        if file_path.suffix.lower() in [".yaml", ".yml"]:
-            content = self.converter.dict_to_yaml(diagram, format_type=format_type)
-            file_path.write_text(content, encoding="utf-8")
-        elif file_path.suffix.lower() == ".json":
-            content = self.converter.dict_to_json(diagram, format_type=format_type)
-            file_path.write_text(content, encoding="utf-8")
+        # For YAML formats, use converter to get properly formatted string
+        if format in [DiagramFormat.light, DiagramFormat.readable]:
+            # Convert dict to domain model
+            domain_diagram = dict_to_domain_diagram(diagram)
+            
+            # Use converter to serialize with proper formatting
+            content_str = converter_registry.serialize(domain_diagram, format.value)
+            
+            # Write the formatted string directly
+            file_path = self.file_repository.diagrams_dir / path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(content_str, encoding="utf-8")
         else:
-            raise ValueError(f"Unsupported file format: {file_path.suffix}")
+            # For JSON formats, use the existing method
+            await self.file_repository.write_file(path, diagram)
     
-    def create_diagram(self, name: str, diagram: dict[str, Any], format: str = "json") -> str:
-        # Determine format based on requested format
+    async def create_diagram(self, name: str, diagram: dict[str, Any], format: str = "json") -> str:
+        """Create a new diagram with unique filename."""
+        # Determine format from parameter
         if format == "json":
             diagram_format = DiagramFormat.native
         else:
-            diagram_format = DiagramFormat.light  # Default to light for YAML
+            if diagram.get("format") == "readable" or diagram.get("version") == "readable":
+                diagram_format = DiagramFormat.readable
+            else:
+                diagram_format = DiagramFormat.light
         
-        format_type = diagram_format.value
-        format_dir = self.diagrams_dir / format_type
-        format_dir.mkdir(parents=True, exist_ok=True)
-        
+        # Get file extension for format
         extension = self.format_service.get_file_extension_for_format(diagram_format)
         filename = f"{name}{extension}"
-        path = f"{format_type}/{filename}"
         
-        self.save_diagram(path, diagram)
-        return path
+        # Ensure unique filename
+        counter = 1
+        while await self.file_repository.exists(filename):
+            filename = f"{name}_{counter}{extension}"
+            counter += 1
+        
+        await self.save_diagram(filename, diagram)
+        return filename
     
-    def update_diagram(self, path: str, diagram: dict[str, Any]) -> None:
-        if not (self.diagrams_dir / path).exists():
+    async def update_diagram(self, path: str, diagram: dict[str, Any]) -> None:
+        """Update existing diagram."""
+        if not await self.file_repository.exists(path):
             raise FileNotFoundError(f"Diagram file not found: {path}")
         
-        self.save_diagram(path, diagram)
+        await self.save_diagram(path, diagram)
     
-    def delete_diagram(self, path: str) -> None:
-        file_path = self.diagrams_dir / path
+    async def update_diagram_by_id(self, diagram_id: str, diagram: dict[str, Any]) -> None:
+        """Update diagram by ID."""
+        # Find the path for this diagram ID
+        path = await self.file_repository.find_by_id(diagram_id)
+        if not path:
+            raise FileNotFoundError(f"Diagram not found: {diagram_id}")
         
-        if not file_path.exists():
-            raise FileNotFoundError(f"Diagram file not found: {path}")
-        
-        file_path.unlink()
+        await self.update_diagram(path, diagram)
+    
+    async def delete_diagram(self, path: str) -> None:
+        await self.file_repository.delete_file(path)
     
     async def save_diagram_with_id(self, diagram_dict: dict[str, Any], filename: str) -> str:
+        """Save diagram with ID."""
         # Determine format from filename
         detected_format = self.format_service.determine_format_from_filename(filename)
-        if detected_format:
-            format_type = detected_format.value
-        else:
-            format_type = "native"  # Default
         
-        path = f"{format_type}/{filename}"
-        self.save_diagram(path, diagram_dict)
+        # If no format detected and filename doesn't have new extension, add it
+        if not detected_format and not any(filename.endswith(ext) for ext in [".native.json", ".light.yaml", ".readable.yaml"]):
+            # Default to native format
+            filename = f"{filename}.native.json"
+        
+        # Ensure the diagram has an ID
+        if "id" not in diagram_dict:
+            diagram_dict["id"] = filename.split(".")[0]
+        
+        # Use save_diagram to ensure proper formatting
+        await self.save_diagram(filename, diagram_dict)
         
         return diagram_dict.get("id", filename)
     
     async def get_diagram(self, diagram_id: str) -> dict[str, Any] | None:
-        # Use format service to construct search patterns
-        search_paths = self.format_service.construct_search_patterns(diagram_id)
-        
-        for path in search_paths:
-            file_path = self.diagrams_dir / path
-            if file_path.exists():
-                return self.load_diagram(path)
-        
-        all_files = self.list_diagram_files()
-        for file_info in all_files:
-            try:
-                diagram = self.load_diagram(file_info["path"])
-                if diagram.get("id") == diagram_id:
-                    return diagram
-            except Exception:
-                continue
+        """Get diagram by ID."""
+        # First try to find by ID using repository
+        path = await self.file_repository.find_by_id(diagram_id)
+        if path:
+            return await self.file_repository.read_file(path)
         
         return None

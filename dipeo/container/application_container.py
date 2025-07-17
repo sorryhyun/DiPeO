@@ -46,6 +46,7 @@ def _create_unified_service_registry(
     llm_service,
     notion_service,
     api_service,
+    integrated_diagram_service,
     # Persistence services
     file_service,
     diagram_loader,
@@ -55,7 +56,6 @@ def _create_unified_service_registry(
     state_store,
     message_router,
     # Business logic services
-    text_processing_service,
     validation_service,
     condition_evaluator,
     api_business_logic,
@@ -80,6 +80,7 @@ def _create_unified_service_registry(
     registry.register("llm_service", llm_service)
     registry.register("notion_service", notion_service)
     registry.register("api_service", api_service)
+    registry.register("integrated_diagram_service", integrated_diagram_service)
     
     # Persistence services
     registry.register("file_service", file_service)
@@ -91,7 +92,6 @@ def _create_unified_service_registry(
     registry.register("message_router", message_router)
     
     # Business logic services
-    registry.register("text_processing_service", text_processing_service)
     registry.register("validation_service", validation_service)
     registry.register("condition_evaluation_service", condition_evaluator)
     registry.register("api_business_logic", api_business_logic)
@@ -136,6 +136,7 @@ class ApplicationContainer(ImmutableBaseContainer):
         llm_service=integration.llm_service,
         notion_service=integration.notion_service,
         api_service=integration.api_service,
+        integrated_diagram_service=integration.integrated_diagram_service,
         # Persistence services
         file_service=persistence.file_service,
         diagram_loader=persistence.diagram_loader,
@@ -145,7 +146,6 @@ class ApplicationContainer(ImmutableBaseContainer):
         state_store=persistence.state_store,
         message_router=persistence.message_router,
         # Business logic services
-        text_processing_service=business.text_processing_service,
         validation_service=business.validation_service,
         condition_evaluator=business.condition_evaluator,
         api_business_logic=business.api_business_logic,

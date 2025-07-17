@@ -194,7 +194,7 @@ function useCommonFlowProps({
         // Clear person highlight when clicking on empty canvas
         highlightPerson(null);
       },
-      className: executionMode ? "bg-gray-900" : "bg-gradient-to-br from-slate-50 to-sky-100",
+      className: executionMode ? "bg-neutral-900" : "diagram-canvas",
     } satisfies Parameters<typeof ReactFlow>[0];
   }, [
     arrows,
@@ -290,7 +290,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
         hasFitView.current = true;
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            rfInstance.fitView({ padding: 0.3, duration: 200, maxZoom: 0.8 });
+            rfInstance.fitView({ padding: 0.3, duration: 0, maxZoom: 0.8 });
           });
         });
       }
@@ -369,7 +369,13 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
               <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
-              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+              <Background 
+                variant={BackgroundVariant.Dots} 
+                gap={16} 
+                size={1.5}
+                className="opacity-[0.03]"
+                color="currentColor"
+              />
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
@@ -395,7 +401,13 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
               <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
-              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+              <Background 
+                variant={BackgroundVariant.Dots} 
+                gap={16} 
+                size={1.5}
+                className="opacity-[0.03]"
+                color="currentColor"
+              />
             </div>
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />

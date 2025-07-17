@@ -38,25 +38,11 @@ input CreateApiKeyInput {
   key: String!
 }
 
-input CreateArrowInput {
-  source: String!
-  target: String!
-  label: String = null
-}
-
 input CreateDiagramInput {
   name: String!
   description: String = null
   author: String = null
   tags: [String!]! = []
-}
-
-input CreateHandleInput {
-  node_id: NodeID!
-  label: String!
-  direction: HandleDirection!
-  data_type: DataType!
-  position: Vec2Input!
 }
 
 input CreateNodeInput {
@@ -293,13 +279,6 @@ enum HandleLabel {
   condfalse
 }
 
-type HandleResult {
-  success: Boolean!
-  message: String
-  error: String
-  handle: DomainHandleType
-}
-
 type InteractivePrompt {
   execution_id: ExecutionID!
   node_id: NodeID!
@@ -335,10 +314,6 @@ type Mutation {
   execute_diagram(data: ExecuteDiagramInput!): ExecutionResult!
   control_execution(data: ExecutionControlInput!): ExecutionResult!
   submit_interactive_response(data: InteractiveResponseInput!): ExecutionResult!
-  create_arrow(diagram_id: DiagramID!, data: CreateArrowInput!): DiagramResult!
-  delete_arrow(arrow_id: ArrowID!): DeleteResult!
-  create_handle(data: CreateHandleInput!): HandleResult!
-  delete_handle(handle_id: HandleID!): DeleteResult!
   create_node(diagram_id: DiagramID!, input_data: CreateNodeInput!): NodeResult!
   update_node(input_data: UpdateNodeInput!): NodeResult!
   delete_node(node_id: NodeID!): DeleteResult!

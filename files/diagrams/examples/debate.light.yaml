@@ -1,0 +1,95 @@
+version: light
+nodes:
+- label: Optimist topic
+  type: person_job
+  position: {x: 600, y: 453}
+  props:
+    default_prompt: Argue against the argument.
+    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
+    max_iteration: 2
+    memory_profile: GOLDFISH
+    person: Optimist
+- label: End
+  type: endpoint
+  position: {x: 58, y: 668}
+  props:
+    file_format: txt
+    save_to_file: true
+    file_path: files/results/output.txt
+- label: db
+  type: db
+  position: {x: 431, y: 148}
+  props:
+    operation: read
+    sub_type: file
+    source_details: files/uploads/questions.txt
+- label: Pessimist topic
+  type: person_job
+  position: {x: 899, y: 380}
+  props:
+    default_prompt: Argue against the argument.
+    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
+    max_iteration: 3
+    memory_profile: GOLDFISH
+    person: Pessimist
+- label: Start
+  type: start
+  position: {x: 279, y: 406}
+- label: Judge panel
+  type: person_job
+  position: {x: 439, y: 663}
+  props:
+    default_prompt: Judge which panel is more reasonable.
+    flipped: true
+    max_iteration: 1
+    memory_profile: FULL
+    person: Judge
+- label: Condition
+  type: condition
+  position: {x: 785, y: 647}
+  props:
+    condition_type: detect_max_iterations
+    flipped: true
+connections:
+- from: db
+  to: Optimist topic_first
+  content_type: raw_text
+  label: topic
+- from: db
+  to: Pessimist topic_first
+  content_type: raw_text
+  label: topic
+- from: Start
+  to: db
+  content_type: raw_text
+- from: Judge panel
+  to: End
+  content_type: raw_text
+- from: Condition_condtrue
+  to: Judge panel
+  content_type: conversation_state
+- from: Optimist topic
+  to: Pessimist topic
+  content_type: conversation_state
+- from: Pessimist topic
+  to: Condition
+  content_type: conversation_state
+- from: Condition_condfalse
+  to: Optimist topic
+  content_type: conversation_state
+persons:
+  Judge:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: Say 25 words at most.
+    api_key_id: APIKEY_52609F
+  Optimist:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: Be optimistic and say 25 words at most.
+    api_key_id: APIKEY_52609F
+  Pessimist:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: Be pessimistic and say 25 words at most.
+    api_key_id: APIKEY_52609F

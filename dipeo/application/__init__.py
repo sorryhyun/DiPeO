@@ -16,15 +16,13 @@ from dipeo.application.execution.handlers import (
     UserResponseNodeHandler,
 )
 
-# Engine components
-from .engine import TypedExecutionEngine
-
 # Execution framework (moved from core)
 from .execution import (
     ExecutionContext,
     ExecutionOptions,
     ExecutionRuntime,
     HandlerRegistry,
+    TypedExecutionEngine,
     TypedNodeHandler,
     get_global_registry,
     register_handler,

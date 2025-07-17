@@ -204,7 +204,7 @@ class ExecutionRuntime(ExecutionContext):
     
     def resolve_inputs(self, node: "ExecutableNode") -> dict[str, Any]:
         """Resolve all inputs for a node."""
-        from dipeo.application.execution.input.typed_input_resolution import (
+        from dipeo.application.execution.resolution import (
             TypedInputResolutionService,
         )
         from dipeo.core.static.generated_nodes import PersonJobNode

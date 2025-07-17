@@ -39,7 +39,7 @@ make dev-web                      # Start frontend server
 ### `./dipeo` - Run Diagrams
 ```bash
 # run diagram with automatically running server
-dipeo run quicksave --debug --light --no-browser --timeout=10
+dipeo run examples/simple_iter --debug --light --no-browser --timeout=10
 # or, feed actual directory
 dipeo run files/diagrams/native/quicksave --debug
 ```

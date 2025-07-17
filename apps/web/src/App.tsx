@@ -74,7 +74,7 @@ function AppContent() {
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
-          <div className="w-64 border-r flex-shrink-0">
+          <div className="w-80 border-r border-border flex-shrink-0 bg-background-secondary">
             <Sidebar position="left" />
           </div>
 
@@ -82,15 +82,15 @@ function AppContent() {
           <div className="flex-1 flex flex-col">
             {activeCanvas === 'main' ? (
               <Suspense fallback={
-                <div className="h-full bg-gradient-to-br from-slate-50 to-sky-100 flex items-center justify-center">
-                  <div className="text-gray-500 animate-pulse">Loading diagram canvas...</div>
+                <div className="h-full diagram-canvas flex items-center justify-center">
+                  <div className="text-text-secondary animate-pulse">Loading diagram canvas...</div>
                 </div>
               }>
                 {isDiagramLoading ? (
-                  <div className="h-full bg-gradient-to-br from-slate-50 to-sky-100 flex items-center justify-center">
+                  <div className="h-full diagram-canvas flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-                      <div className="text-gray-600">Loading diagram from server...</div>
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+                      <div className="text-text-secondary">Loading diagram from server...</div>
                     </div>
                   </div>
                 ) : (

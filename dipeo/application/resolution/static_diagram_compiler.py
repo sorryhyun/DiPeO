@@ -2,22 +2,46 @@
 
 from typing import Any
 
-from dipeo.application.resolution.arrow_transformer import ArrowTransformer, ExecutableNodeImpl
+from dipeo.application.resolution.arrow_transformer import ArrowTransformer
+from dipeo.application.resolution.compiler import NodeFactory
 from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalculator
 from dipeo.application.resolution.handle_resolver import HandleResolver
 from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
-from dipeo.core.static.generated_nodes import (
-    ApiJobNode,
-    CodeJobNode,
-    ConditionNode,
-    EndpointNode,
-    ExecutableNode,
-    PersonJobNode,
-    StartNode,
-    create_executable_node,
-)
-from dipeo.models import DomainDiagram, NodeID
+from dipeo.core.static.generated_nodes import ExecutableNode, PersonJobNode
+from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
+from dipeo.models import DomainDiagram, NodeID, NodeType
+
+
+class ExecutableNodeImpl:
+    """Compatibility wrapper for nodes used by ArrowTransformer.
+
+    This provides a uniform interface for accessing node properties
+    regardless of the underlying node implementation.
+    """
+
+    def __init__(
+            self,
+            id: NodeID,
+            type: NodeType,
+            position: Any,
+            data: dict[str, Any]
+    ):
+        self.id = id
+        self.type = type
+        self.position = position
+        self.data = data
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": self.type.value,
+            "position": {
+                "x": self.position.x,
+                "y": self.position.y
+            },
+            "data": self.data
+        }
 
 
 class StaticDiagramCompiler(DiagramCompiler):
@@ -27,6 +51,9 @@ class StaticDiagramCompiler(DiagramCompiler):
         self.handle_resolver = HandleResolver()
         self.arrow_transformer = ArrowTransformer()
         self.order_calculator = SimpleOrderCalculator()
+        self.node_factory = NodeFactory()
+        self.connection_rules = NodeConnectionRules()
+        self.transform_rules = DataTransformRules()
         self.validation_errors: list[str] = []
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
@@ -34,7 +61,8 @@ class StaticDiagramCompiler(DiagramCompiler):
         self.validation_errors.clear()
         
         # 1. Create strongly-typed executable nodes
-        executable_nodes = self._create_typed_nodes(domain_diagram.nodes)
+        executable_nodes = self.node_factory.create_typed_nodes(domain_diagram.nodes)
+        self.validation_errors.extend(self.node_factory.get_validation_errors())
         
         # 2. Resolve handles to connections
         resolved_connections, handle_errors = self.handle_resolver.resolve_arrows(
@@ -81,55 +109,6 @@ class StaticDiagramCompiler(DiagramCompiler):
             }
         )
     
-    def _create_typed_nodes(self, domain_nodes) -> list[ExecutableNode]:
-        """Create strongly-typed nodes with compile-time validation."""
-        typed_nodes = []
-        
-        for node in domain_nodes:
-            try:
-                # Factory creates the appropriate immutable node type
-                typed_node = create_executable_node(
-                    node_type=node.type,
-                    node_id=node.id,
-                    position=node.position,
-                    label=node.data.get("label", "") if node.data else "",
-                    data=node.data or {}
-                )
-                
-                # Additional type-specific validation
-                self._validate_typed_node(typed_node)
-                typed_nodes.append(typed_node)
-                
-            except (ValueError, TypeError) as e:
-                self.validation_errors.append(
-                    f"Failed to create {node.type} node {node.id}: {e}"
-                )
-        
-        return typed_nodes
-    
-    def _validate_typed_node(self, node: ExecutableNode) -> None:
-        """Type-specific validation using actual node types."""
-        if isinstance(node, PersonJobNode):
-            if not node.person_id and not node.llm_config:
-                self.validation_errors.append(
-                    f"Person node {node.id} must have either person_id or llm_config"
-                )
-            if node.max_iteration < 1:
-                self.validation_errors.append(
-                    f"Person node {node.id} max_iteration must be >= 1"
-                )
-                
-        elif isinstance(node, ConditionNode):
-            if not node.expression and node.condition_type == "expression":
-                self.validation_errors.append(
-                    f"Condition node {node.id} with type 'expression' must have expression"
-                )
-                
-        elif isinstance(node, StartNode):
-            if node.trigger_mode and not node.hook_event:
-                self.validation_errors.append(
-                    f"Start node {node.id} with trigger_mode must have hook_event"
-                )
     
     def _to_executable_impl(self, node: ExecutableNode) -> ExecutableNodeImpl:
         """Convert typed node to ExecutableNodeImpl for compatibility."""
@@ -152,9 +131,9 @@ class StaticDiagramCompiler(DiagramCompiler):
             source_node = node_map.get(edge.source_node_id)
             target_node = node_map.get(edge.target_node_id)
             
-            # Type-specific edge validation
+            # Type-specific edge validation using domain rules
             if source_node and target_node:
-                if not self._can_connect(source_node, target_node):
+                if not self.connection_rules.can_connect(source_node.type, target_node.type):
                     self.validation_errors.append(
                         f"Cannot connect {source_node.type} to {target_node.type}"
                     )
@@ -162,8 +141,8 @@ class StaticDiagramCompiler(DiagramCompiler):
             
             # Merge existing data_transform with node-type-based transforms
             existing_transform = edge.data_transform if hasattr(edge, 'data_transform') else {}
-            type_based_transform = self._get_data_transform(source_node, target_node) if source_node and target_node else {}
-            merged_transform = {**existing_transform, **type_based_transform}
+            type_based_transform = self.transform_rules.get_data_transform(source_node, target_node) if source_node and target_node else {}
+            merged_transform = self.transform_rules.merge_transforms(existing_transform, type_based_transform)
             
             typed_edge = ExecutableEdge(
                 id=edge.id,
@@ -178,38 +157,6 @@ class StaticDiagramCompiler(DiagramCompiler):
         
         return typed_edges
     
-    def _can_connect(self, source: ExecutableNode, target: ExecutableNode) -> bool:
-        """Type-safe connection validation."""
-        # Use actual node types for validation
-        if isinstance(target, StartNode):
-            return False  # Start nodes cannot have inputs
-        
-        if isinstance(source, EndpointNode):
-            return False  # Endpoint nodes cannot have outputs
-        
-        if isinstance(source, (PersonJobNode, ConditionNode, CodeJobNode, ApiJobNode)):
-            # These can connect to most node types
-            return not isinstance(target, StartNode)
-        
-        return True  # Default allow
-    
-    def _get_data_transform(
-        self, 
-        source: ExecutableNode, 
-        target: ExecutableNode
-    ) -> dict[str, Any]:
-        """Define data transformations based on node types."""
-        transforms = {}
-        
-        # Example: Person node output transformation
-        if isinstance(source, PersonJobNode) and source.tools:
-            transforms["extract_tool_results"] = True
-        
-        # Example: Condition node branching
-        if isinstance(source, ConditionNode):
-            transforms["branch_on"] = "condition_result"
-        
-        return transforms
     
     def decompile(self, executable_diagram: ExecutableDiagram) -> DomainDiagram:
         """Convert executable diagram back to domain representation."""

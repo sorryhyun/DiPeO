@@ -182,7 +182,7 @@ export class DiagramAdapter {
         nodeData.memory_profile = 'FOCUSED';
       } else if (memorySettings.view === 'system_and_me' && memorySettings.max_messages === 5) {
         nodeData.memory_profile = 'MINIMAL';
-      } else if (memorySettings.view === 'conversation_pairs' && memorySettings.max_messages === 2 && !memorySettings.preserve_system) {
+      } else if (memorySettings.view === 'conversation_pairs' && memorySettings.max_messages === 1 && !memorySettings.preserve_system) {
         nodeData.memory_profile = 'GOLDFISH';
       } else {
         nodeData.memory_profile = 'CUSTOM';

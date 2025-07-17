@@ -5,7 +5,7 @@ This is the umbrella package that provides unified access to all DiPeO modules.
 It re-exports the core functionality from the various sub-packages for easier imports.
 
 Usage:
-    from dipeo import core, domain, diagram, application, infra, container
+    from dipeo import core, domain, application, infra, container
     from dipeo.models import (Person, Diagram, NodeType)
 """
 
@@ -16,11 +16,11 @@ from typing import TYPE_CHECKING
 __version__ = "0.1.0"
 
 # Import sub-modules
-from . import core, diagram, domain
+from . import core, domain
 from . import domain as models  # Alias for backward compatibility
 
 # Track what we successfully imported
-_imported_modules = ["core", "domain", "models", "diagram"]
+_imported_modules = ["core", "domain", "models"]
 
 # For convenience, re-export commonly used items from core
 try:
@@ -67,17 +67,16 @@ try:
 except ImportError as e:
     warnings.warn(f"Could not import some domain items: {e}", ImportWarning)
 
-# For convenience, re-export commonly used items from diagram
+# For convenience, re-export commonly used items from diagram infrastructure
 try:
-    from .diagram import (
-        DiagramConverter,
-        FormatStrategy,
-        UnifiedDiagramConverter,
-        converter_registry,
-    )
+    from .core.ports import DiagramConverter, FormatStrategy
+    from .infra.diagram import UnifiedDiagramConverter, converter_registry
+    from .domain.diagram.utils import dict_to_domain_diagram, domain_diagram_to_dict
+    
     _imported_modules.extend([
         "UnifiedDiagramConverter", "DiagramConverter",
-        "FormatStrategy", "converter_registry"
+        "FormatStrategy", "converter_registry",
+        "dict_to_domain_diagram", "domain_diagram_to_dict"
     ])
 except ImportError as e:
     warnings.warn(f"Could not import some diagram items: {e}", ImportWarning)

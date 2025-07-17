@@ -123,7 +123,7 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
               case 'GOLDFISH':
                 transformedData.memory_settings = {
                   view: 'conversation_pairs',
-                  max_messages: 2,
+                  max_messages: 1,
                   preserve_system: false
                 };
                 break;

@@ -1,0 +1,58 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 330, y: 200}
+  props:
+    trigger_mode: manual
+- label: printer
+  type: person_job
+  position: {x: 632, y: 231}
+  props:
+    default_prompt: say hi
+    max_iteration: 3
+    memory_profile: FULL
+    person: Person 1
+- label: Condition
+  type: condition
+  position: {x: 620, y: 425}
+  props:
+    condition_type: detect_max_iterations
+    flipped: [true, false]
+- label: Endpoint
+  type: endpoint
+  position: {x: 0, y: 437}
+  props:
+    file_format: txt
+    save_to_file: true
+    file_path: files/results/total.txt
+- label: ask
+  type: person_job
+  position: {x: 311, y: 443}
+  props:
+    default_prompt: How many times did you respond?
+    flipped: [true, false]
+    max_iteration: 1
+    memory_profile: FULL
+    person: Person 1
+connections:
+- from: Start
+  to: printer
+  content_type: raw_text
+- from: printer
+  to: Condition
+  content_type: conversation_state
+- from: Condition_condfalse
+  to: printer
+  content_type: conversation_state
+- from: Condition_condtrue
+  to: ask
+  content_type: conversation_state
+- from: ask
+  to: Endpoint
+  content_type: raw_text
+persons:
+  Person 1:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F

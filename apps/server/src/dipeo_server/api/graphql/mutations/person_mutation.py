@@ -34,11 +34,11 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_service")
+            integrated_service = context.get_service("integrated_diagram_service")
 
             # Use input directly without conversion
 
-            diagram_data = await diagram_service.read_file(diagram_id)
+            diagram_data = await integrated_service.get_diagram(diagram_id)
             if not diagram_data:
                 return PersonResult(success=False, error="Diagram not found")
 
@@ -72,7 +72,7 @@ class PersonMutations:
             diagram_data["persons"][person_id] = person_data
 
             # Save updated diagram
-            await diagram_service.write_file(diagram_id, diagram_data)
+            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
 
             return PersonResult(
                 success=True,
@@ -93,18 +93,21 @@ class PersonMutations:
     ) -> PersonResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_service")
+            integrated_service = context.get_service("integrated_diagram_service")
 
             # Use input directly without conversion
 
-            diagrams = await diagram_service.list_files()
+            diagrams = await integrated_service.list_diagrams()
             diagram_id = None
             diagram_data = None
 
             for diagram_meta in diagrams:
-                temp_diagram = await diagram_service.read_file(diagram_meta.path)
-                if person_input.id in temp_diagram.get("persons", {}):
-                    diagram_id = diagram_meta.path
+                # Extract diagram ID from path
+                path = diagram_meta.get("path", "")
+                temp_diagram_id = path.split(".")[0] if path else diagram_meta.get("id")
+                temp_diagram = await integrated_service.get_diagram(temp_diagram_id)
+                if temp_diagram and person_input.id in temp_diagram.get("persons", {}):
+                    diagram_id = temp_diagram_id
                     diagram_data = temp_diagram
                     break
 
@@ -227,7 +230,7 @@ class PersonMutations:
             diagram_data["persons"][person_input.id] = person_dict
 
             # Save updated diagram
-            await diagram_service.write_file(diagram_id, diagram_data)
+            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
 
             return PersonResult(
                 success=True,
@@ -249,16 +252,19 @@ class PersonMutations:
     ) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_storage_service")
+            integrated_service = context.get_service("integrated_diagram_service")
 
-            diagrams = await diagram_service.list_files()
+            diagrams = await integrated_service.list_diagrams()
             diagram_id = None
             diagram_data = None
 
             for diagram_meta in diagrams:
-                temp_diagram = await diagram_service.read_file(diagram_meta.path)
-                if person_id in temp_diagram.get("persons", {}):
-                    diagram_id = diagram_meta.path
+                # Extract diagram ID from path
+                path = diagram_meta.get("path", "")
+                temp_diagram_id = path.split(".")[0] if path else diagram_meta.get("id")
+                temp_diagram = await integrated_service.get_diagram(temp_diagram_id)
+                if temp_diagram and person_id in temp_diagram.get("persons", {}):
+                    diagram_id = temp_diagram_id
                     diagram_data = temp_diagram
                     break
 
@@ -276,7 +282,7 @@ class PersonMutations:
                     nodes_updated += 1
 
             # Save updated diagram
-            await diagram_service.write_file(diagram_id, diagram_data)
+            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
 
             return DeleteResult(
                 success=True,
@@ -303,7 +309,9 @@ class PersonMutations:
 
             # Validate API key exists
             try:
-                api_key_data = context.get_service("api_key_service").get_api_key(api_key_id)
+                api_key_data = context.get_service("api_key_service").get_api_key(
+                    api_key_id
+                )
                 service_str = api_key_data["service"]
             except Exception:
                 return PersonResult(

@@ -96,7 +96,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
           { value: 'FULL', label: 'Full (No limits, see everything)' },
           { value: 'FOCUSED', label: 'Focused (Last 20 messages, conversation pairs)' },
           { value: 'MINIMAL', label: 'Minimal (Last 5 messages, system + direct)' },
-          { value: 'GOLDFISH', label: 'Goldfish (Last 2 exchanges only)' },
+          { value: 'GOLDFISH', label: 'Goldfish (Last 1 exchange only)' },
           { value: 'CUSTOM', label: 'Custom (Configure manually)' }
         ],
         defaultValue: 'FULL',

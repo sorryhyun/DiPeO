@@ -4,7 +4,7 @@ import logging
 import warnings
 from typing import Any
 
-from dipeo.utils.template import TemplateProcessor
+from dipeo.application.utils.template import TemplateProcessor
 
 logger = logging.getLogger(__name__)
 

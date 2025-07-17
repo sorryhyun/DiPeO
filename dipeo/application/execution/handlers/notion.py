@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import NOTION_SERVICE, API_KEY_SERVICE
 from dipeo.core.static.generated_nodes import NotionNode
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.domain.notion.services import NotionValidator
+from dipeo.domain.validators import NotionValidator
 from dipeo.models import NodeType, NotionNodeData, NotionOperation
 
 if TYPE_CHECKING:
@@ -46,18 +46,6 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     def description(self) -> str:
         return "Executes Notion API operations"
 
-    async def pre_execute(
-        self,
-        node: NotionNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for NotionNode."""
-        return {
-            "operation": node.operation.value if hasattr(node.operation, 'value') else node.operation,
-            "page_id": node.page_id,
-            "database_id": node.database_id
-        }
-    
     async def execute(
         self,
         node: NotionNode,

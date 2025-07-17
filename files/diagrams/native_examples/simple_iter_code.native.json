@@ -1,0 +1,239 @@
+{
+  "nodes": [
+    {
+      "__typename": "DomainNodeType",
+      "id": "node_0",
+      "type": "start",
+      "position": {
+        "__typename": "Vec2Type",
+        "x": 26,
+        "y": 211
+      },
+      "data": {
+        "label": "Start",
+        "trigger_mode": "manual",
+        "custom_data": {},
+        "output_data_structure": {}
+      }
+    },
+    {
+      "__typename": "DomainNodeType",
+      "id": "node_1",
+      "type": "endpoint",
+      "position": {
+        "__typename": "Vec2Type",
+        "x": 273,
+        "y": 424
+      },
+      "data": {
+        "label": "Endpoint",
+        "file_format": "txt",
+        "save_to_file": false,
+        "file_name": "files/results/total.txt"
+      }
+    },
+    {
+      "__typename": "DomainNodeType",
+      "id": "node_2",
+      "type": "code_job",
+      "position": {
+        "__typename": "Vec2Type",
+        "x": 596,
+        "y": 245
+      },
+      "data": {
+        "label": "Code Job",
+        "code": "print(a)\na+=1",
+        "language": "python"
+      }
+    },
+    {
+      "__typename": "DomainNodeType",
+      "id": "node_3",
+      "type": "condition",
+      "position": {
+        "__typename": "Vec2Type",
+        "x": 612,
+        "y": 447
+      },
+      "data": {
+        "label": "Condition",
+        "condition_type": "custom",
+        "expression": "a>10",
+        "flipped": true
+      }
+    },
+    {
+      "__typename": "DomainNodeType",
+      "id": "node_4",
+      "type": "code_job",
+      "position": {
+        "__typename": "Vec2Type",
+        "x": 306,
+        "y": 204
+      },
+      "data": {
+        "label": "Code Job~1",
+        "code": "a=1",
+        "language": "python"
+      }
+    }
+  ],
+  "arrows": [
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_0",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": {}
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_1",
+      "source": "node_3_condfalse_output",
+      "target": "node_2_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": {
+        "branch": "false"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_2",
+      "source": "node_3_condtrue_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": {
+        "branch": "true"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_3",
+      "source": "node_0_default_output",
+      "target": "node_4_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": {}
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_4",
+      "source": "node_4_default_output",
+      "target": "node_2_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": {}
+    }
+  ],
+  "persons": [
+    {
+      "id": "person_Person_1",
+      "label": "Person 1",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": null
+      },
+      "type": "person"
+    }
+  ],
+  "handles": [
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_0_default_output",
+      "node_id": "node_0",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_1_default_input",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_2_default_input",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_2_default_output",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_3_default_input",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_3_condtrue_output",
+      "node_id": "node_3",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_3_condfalse_output",
+      "node_id": "node_3",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_4_default_input",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_4_default_output",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    }
+  ],
+  "metadata": {
+    "name": "simple_iter_code",
+    "description": "light format diagram",
+    "author": null,
+    "tags": null,
+    "created": "2025-07-15T15:55:58.656Z",
+    "modified": "2025-07-15T15:55:58.656Z",
+    "version": "1.0.0",
+    "id": "light/simple_iter_code"
+  }
+}

@@ -23,15 +23,10 @@ def _create_diagram_business_logic():
     return DiagramBusinessLogic()
 
 
-def _create_text_processing_service():
-    """Create text processing domain service."""
-    from dipeo.utils.text import TextProcessingDomainService
-    return TextProcessingDomainService()
-
 
 def _create_base_validator():
     """Create base validation service."""
-    from dipeo.core.base import BaseValidator
+    from dipeo.domain.validators import BaseValidator
     return BaseValidator()
 
 
@@ -47,47 +42,29 @@ def _create_prompt_builder():
     return PromptBuilder()
 
 
-def _create_message_formatter():
-    """Create message formatter service."""
-    from dipeo.domain.conversation.services import MessageFormatter
-    return MessageFormatter()
-
-
-
-def _create_diagram_analyzer():
-    """Create diagram analyzer service."""
-    from dipeo.domain.diagram.services import DiagramAnalyzer
-    return DiagramAnalyzer()
-
-
-def _create_diagram_transformer():
-    """Create diagram transformer service."""
-    from dipeo.domain.diagram.services import DiagramTransformer
-    return DiagramTransformer()
-
 
 def _create_validation_service():
     """Create shared validation service."""
-    from dipeo.core.base import BaseValidator
+    from dipeo.domain.validators import BaseValidator
     return BaseValidator()
 
 
 def _create_api_validator():
     """Create API validator service."""
-    from dipeo.domain.api.services import APIValidator
+    from dipeo.domain.validators import APIValidator
     return APIValidator()
 
 
 def _create_file_validator():
     """Create file validator service."""
-    from dipeo.domain.file.services import FileValidator
+    from dipeo.domain.validators import FileValidator
     return FileValidator()
 
 
 def _create_db_validator():
     """Create database validator service."""
-    from dipeo.domain.db.services import DBValidator
-    return DBValidator()
+    from dipeo.domain.validators import DataValidator
+    return DataValidator()
 
 
 def _create_backup_service():
@@ -98,14 +75,8 @@ def _create_backup_service():
 
 def _create_path_validator():
     """Create path validator service."""
-    from dipeo.domain.file.services import PathValidator
+    from dipeo.domain.validators import PathValidator
     return PathValidator()
-
-
-def _create_data_transformer():
-    """Create data transformer service."""
-    from dipeo.domain.services.integration import DataTransformer
-    return DataTransformer()
 
 
 def _create_llm_domain_service():
@@ -114,10 +85,10 @@ def _create_llm_domain_service():
     return LLMDomainService()
 
 
-def _create_execution_domain_service():
-    """Create execution domain service."""
-    from dipeo.domain.execution import ExecutionDomainService
-    return ExecutionDomainService()
+def _create_execution_validator():
+    """Create execution validator."""
+    from dipeo.domain.validators import ExecutionValidator
+    return ExecutionValidator()
 
 
 def _create_domain_service_registry():
@@ -151,31 +122,19 @@ class BusinessLogicContainer(ImmutableBaseContainer):
     
     # Diagram domain
     diagram_business_logic = providers.Singleton(_create_diagram_business_logic)
-    diagram_analyzer = providers.Singleton(_create_diagram_analyzer)
-    diagram_transformer = providers.Singleton(_create_diagram_transformer)
     
     # Database domain
     db_validator = providers.Singleton(_create_db_validator)
     
     # Shared services
-    text_processing_service = providers.Singleton(_create_text_processing_service)
     base_validator = providers.Singleton(_create_base_validator)
     validation_service = providers.Singleton(_create_validation_service)
     
     # Template and evaluation services
     condition_evaluator = providers.Singleton(_create_condition_evaluator)
     prompt_builder = providers.Singleton(_create_prompt_builder)
-    
-    # Execution services (pure logic only)
-    # input_resolution_service removed - using typed version directly
-    
-    # Conversation domain
-    message_formatter = providers.Singleton(_create_message_formatter)
-    
-    # Integration services
-    data_transformer = providers.Singleton(_create_data_transformer)
-    
+
     # New domain services (Phase 4 & 5)
     llm_domain_service = providers.Singleton(_create_llm_domain_service)
-    execution_domain_service = providers.Singleton(_create_execution_domain_service)
+    execution_validator = providers.Singleton(_create_execution_validator)
     domain_service_registry = providers.Singleton(_create_domain_service_registry)

@@ -36,6 +36,13 @@ part2.md
 part3.md
 part4.md
 TODO.md
+files/uploads
+files/results
+files/config
+files/conversation_logs
+files/hooks
+files/prompts
+files/apikeys.json
 
 dipeo/models/__generated__
 # Generated models now in dipeo/domain/models.py (tracked)
@@ -90,8 +97,6 @@ server/src/__pycache__/
 server/src/*/__pycache__/
 web/dist/
 # Project file storage - consolidated under files/
-files/
-data/
 .data/
 **/.data/
 

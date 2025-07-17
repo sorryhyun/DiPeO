@@ -69,15 +69,23 @@ class ExecuteDiagramUseCase(BaseService):
         # Create streaming observer for this execution
         streaming_observer = StreamingObserver(self.message_router)
 
-        # Import EngineFactory from application package
-        from ...engine_factory import EngineFactory
+        # Create engine with observers
+        from dipeo.application.execution.engine import TypedExecutionEngine
+        from dipeo.application.execution.observers import StateStoreObserver
         
-        # Create engine with factory
-        engine = EngineFactory.create_engine(
+        observers = []
+        
+        # Add state store observer
+        if self.state_store:
+            observers.append(StateStoreObserver(self.state_store))
+            
+        # Add streaming observer (already created above)
+        observers.append(streaming_observer)
+        
+        # Create the TypedExecutionEngine
+        engine = TypedExecutionEngine(
             service_registry=self.service_registry,
-            state_store=self.state_store,
-            message_router=self.message_router,
-            custom_observers=[streaming_observer],
+            observers=observers,
         )
 
         # Subscribe to streaming updates
@@ -155,9 +163,9 @@ class ExecuteDiagramUseCase(BaseService):
         domain_diagram = diagram_loader.prepare_diagram(diagram)
         
         # Validate execution flow using domain service
-        from dipeo.domain.execution import ExecutionDomainService
-        execution_domain_service = ExecutionDomainService()
-        validation_result = execution_domain_service.validate_execution_flow(domain_diagram)
+        from dipeo.domain.validators import ExecutionValidator
+        execution_validator = ExecutionValidator()
+        validation_result = execution_validator.validate_execution_flow(domain_diagram)
         
         if not validation_result.is_valid:
             critical_issues = validation_result.critical_issues

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.types import TypedNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import EXECUTION_CONTEXT
 from dipeo.core.static.generated_nodes import UserResponseNode
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
@@ -39,17 +39,6 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     def description(self) -> str:
         return "Interactive node that prompts for user input"
 
-    async def pre_execute(
-        self,
-        node: UserResponseNode,
-        execution: "ExecutionRuntime"
-    ) -> dict[str, Any]:
-        """Pre-execute logic for UserResponseNode."""
-        return {
-            "prompt": node.prompt,
-            "timeout": node.timeout
-        }
-    
     async def execute(
         self,
         node: UserResponseNode,
