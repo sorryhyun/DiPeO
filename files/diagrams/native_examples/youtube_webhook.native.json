@@ -1,0 +1,329 @@
+{
+  "nodes": [
+    {
+      "__typename": "DomainNodeType",
+      "id": "node_1",
+      "type": "endpoint",
+      "position": {
+        "__typename": "Vec2Type",
+        "x": 199,
+        "y": 566
+      },
+      "data": {
+        "label": "End",
+        "file_format": "txt",
+        "save_to_file": true,
+        "file_name": "files/results/subtitles.txt"
+      }
+    },
+    {
+      "__typename": "DomainNodeType",
+      "id": "node_4",
+      "type": "start",
+      "position": {
+        "x": 279,
+        "y": 404.8235294117647
+      },
+      "data": {
+        "label": "Start",
+        "custom_data": {},
+        "output_data_structure": {}
+      }
+    },
+    {
+      "id": "node_YB-Y",
+      "type": "hook",
+      "position": {
+        "x": 570,
+        "y": 290
+      },
+      "data": {
+        "label": "Hook",
+        "hook_type": "webhook",
+        "command": ""
+      }
+    },
+    {
+      "id": "node_8IK1",
+      "type": "person_job",
+      "position": {
+        "x": 807.0588235294117,
+        "y": 484.1176470588236
+      },
+      "data": {
+        "person": "person_nfKM",
+        "max_iteration": 1,
+        "first_only_prompt": "",
+        "default_prompt": "",
+        "tools": null,
+        "label": "whisper"
+      }
+    }
+  ],
+  "arrows": [
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_0",
+      "source": "node_2_default_output",
+      "target": "node_0_first_input",
+      "content_type": null,
+      "label": "topic",
+      "data": {
+        "_isFromConditionBranch": false,
+        "type": "arrow"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_1",
+      "source": "node_2_default_output",
+      "target": "node_3_first_input",
+      "content_type": null,
+      "label": "topic",
+      "data": {
+        "_isFromConditionBranch": false,
+        "type": "arrow"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_2",
+      "source": "node_4_default_output",
+      "target": "node_2_default_input",
+      "content_type": null,
+      "label": null,
+      "data": {}
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_3",
+      "source": "node_0_default_output",
+      "target": "node_3_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": {
+        "_isFromConditionBranch": false,
+        "type": "arrow"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_4",
+      "source": "node_3_default_output",
+      "target": "node_6_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": {
+        "_isFromConditionBranch": false,
+        "type": "arrow"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_5",
+      "source": "node_6_false_output",
+      "target": "node_0_default_input",
+      "content_type": null,
+      "label": null,
+      "data": {
+        "branch": "false"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_6",
+      "source": "node_6_true_output",
+      "target": "node_5_default_input",
+      "content_type": null,
+      "label": null,
+      "data": {
+        "branch": "true"
+      }
+    },
+    {
+      "__typename": "DomainArrowType",
+      "id": "arrow_7",
+      "source": "node_5_default_output",
+      "target": "node_1_default_input",
+      "content_type": null,
+      "label": null,
+      "data": {}
+    },
+    {
+      "id": "arrow_JIFO",
+      "source": "node_YB-Y_default_output",
+      "target": "node_8IK1_first_input"
+    },
+    {
+      "id": "arrow_7W4s",
+      "source": "node_4_default_output",
+      "target": "node_YB-Y_default_input"
+    },
+    {
+      "id": "arrow_xoOj",
+      "source": "node_8IK1_default_output",
+      "target": "node_1_default_input",
+      "data": {
+        "controlPointOffsetX": 369.4,
+        "controlPointOffsetY": 140
+      }
+    }
+  ],
+  "persons": [
+    {
+      "id": "person_nfKM",
+      "label": "whisper",
+      "llm_config": {
+        "service": "openai",
+        "model": "whisper-1",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": ""
+      },
+      "type": "person"
+    }
+  ],
+  "handles": [
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_0_first_input",
+      "node_id": "node_0",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_0_default_output",
+      "node_id": "node_0",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_1_default_input",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_2_default_output",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_4_default_output",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_5_first_input",
+      "node_id": "node_5",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_6_true_output",
+      "node_id": "node_6",
+      "label": "true",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "__typename": "DomainHandleType",
+      "id": "node_6_false_output",
+      "node_id": "node_6",
+      "label": "false",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_YB-Y_default_input",
+      "node_id": "node_YB-Y",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8IK1_first_input",
+      "node_id": "node_8IK1",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8IK1_default_input",
+      "node_id": "node_8IK1",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    }
+  ],
+  "metadata": {
+    "name": "Untitled Diagram",
+    "description": null,
+    "author": null,
+    "tags": null,
+    "created": "2025-07-05T11:45:55.354Z",
+    "modified": "2025-07-05T11:45:55.354Z",
+    "version": "1.0.0",
+    "id": null
+  }
+}

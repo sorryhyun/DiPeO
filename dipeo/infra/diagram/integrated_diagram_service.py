@@ -66,25 +66,40 @@ class IntegratedDiagramService(DiagramPort):
         if not scan_dir.exists():
             return files
         
+        # Support both old and new extensions
         allowed_extensions = [".yaml", ".yml", ".json"]
+        new_extensions = [".native.json", ".light.yaml", ".light.yml", ".readable.yaml", ".readable.yml"]
         
         for file_path in scan_dir.rglob("*"):
-            if file_path.is_file() and file_path.suffix.lower() in allowed_extensions:
-                try:
-                    stats = file_path.stat()
-                    relative_path = file_path.relative_to(self.diagrams_dir)
-                    
-                    file_info = self.domain_service.generate_file_info(
-                        path=str(relative_path),
-                        name=file_path.stem,
-                        extension=file_path.suffix,
-                        size=stats.st_size,
-                        modified_timestamp=stats.st_mtime,
-                    )
-                    
-                    files.append(file_info)
-                except Exception:
-                    continue
+            if file_path.is_file():
+                # Check for new extension format first
+                matches_new = any(str(file_path).endswith(ext) for ext in new_extensions)
+                # Fallback to old extension format
+                matches_old = file_path.suffix.lower() in allowed_extensions
+                
+                if matches_new or matches_old:
+                    try:
+                        stats = file_path.stat()
+                        relative_path = file_path.relative_to(self.diagrams_dir)
+                        
+                        # Determine the actual extension
+                        actual_extension = file_path.suffix
+                        for ext in new_extensions:
+                            if str(file_path).endswith(ext):
+                                actual_extension = ext
+                                break
+                        
+                        file_info = self.domain_service.generate_file_info(
+                            path=str(relative_path),
+                            name=file_path.stem if not matches_new else str(file_path.name).replace(actual_extension, ""),
+                            extension=actual_extension,
+                            size=stats.st_size,
+                            modified_timestamp=stats.st_mtime,
+                        )
+                        
+                        files.append(file_info)
+                    except Exception:
+                        continue
         
         files.sort(key=lambda x: x["modified"], reverse=True)
         return files
@@ -103,7 +118,15 @@ class IntegratedDiagramService(DiagramPort):
             format = DiagramFormat.native
         format_type = format.value
         
-        if file_path.suffix.lower() in [".yaml", ".yml"]:
+        # Check for new extension format
+        if str(file_path).endswith((".light.yaml", ".light.yml", ".readable.yaml", ".readable.yml")):
+            content = self.converter.dict_to_yaml(diagram, format_type=format_type)
+            file_path.write_text(content, encoding="utf-8")
+        elif str(file_path).endswith(".native.json"):
+            content = self.converter.dict_to_json(diagram, format_type=format_type)
+            file_path.write_text(content, encoding="utf-8")
+        # Fallback to old extension format
+        elif file_path.suffix.lower() in [".yaml", ".yml"]:
             content = self.converter.dict_to_yaml(diagram, format_type=format_type)
             file_path.write_text(content, encoding="utf-8")
         elif file_path.suffix.lower() == ".json":
@@ -117,18 +140,24 @@ class IntegratedDiagramService(DiagramPort):
         if format == "json":
             diagram_format = DiagramFormat.native
         else:
-            diagram_format = DiagramFormat.light  # Default to light for YAML
+            # Check if diagram specifies its format
+            if diagram.get("format") == "readable" or diagram.get("version") == "readable":
+                diagram_format = DiagramFormat.readable
+            else:
+                diagram_format = DiagramFormat.light  # Default to light for YAML
         
-        format_type = diagram_format.value
-        format_dir = self.diagrams_dir / format_type
-        format_dir.mkdir(parents=True, exist_ok=True)
-        
+        # Get new extension format
         extension = self.format_service.get_file_extension_for_format(diagram_format)
         filename = f"{name}{extension}"
-        path = f"{format_type}/{filename}"
         
-        self.save_diagram(path, diagram)
-        return path
+        # Ensure unique filename
+        counter = 1
+        while (self.diagrams_dir / filename).exists():
+            filename = f"{name}_{counter}{extension}"
+            counter += 1
+        
+        self.save_diagram(filename, diagram)
+        return filename
     
     def update_diagram(self, path: str, diagram: dict[str, Any]) -> None:
         if not (self.diagrams_dir / path).exists():
@@ -147,13 +176,13 @@ class IntegratedDiagramService(DiagramPort):
     async def save_diagram_with_id(self, diagram_dict: dict[str, Any], filename: str) -> str:
         # Determine format from filename
         detected_format = self.format_service.determine_format_from_filename(filename)
-        if detected_format:
-            format_type = detected_format.value
-        else:
-            format_type = "native"  # Default
         
-        path = f"{format_type}/{filename}"
-        self.save_diagram(path, diagram_dict)
+        # If no format detected and filename doesn't have new extension, add it
+        if not detected_format and not any(filename.endswith(ext) for ext in [".native.json", ".light.yaml", ".readable.yaml"]):
+            # Default to native format
+            filename = f"{filename}.native.json"
+        
+        self.save_diagram(filename, diagram_dict)
         
         return diagram_dict.get("id", filename)
     

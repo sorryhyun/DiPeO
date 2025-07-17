@@ -286,3 +286,6 @@ export const useIsExecuting = () =>
 
 export const useNodeExecutionState = (nodeId: NodeID) =>
   useUnifiedStore(state => state.execution.nodeStates.get(nodeId));
+
+export const useDiagramFormat = () =>
+  useUnifiedStore(state => state.diagramFormat);

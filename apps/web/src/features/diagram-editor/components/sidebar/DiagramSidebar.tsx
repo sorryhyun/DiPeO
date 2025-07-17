@@ -7,7 +7,6 @@ import { NodeType } from '@dipeo/domain-models';
 import { useCanvas, useCanvasInteractions } from '@/features/diagram-editor/hooks';
 import { useSelectionData, useSelectionOperations, usePersonsData, usePersonOperations } from '@/core/store/hooks';
 import { LazyApiKeysModal } from '@/shared/components/feedback/LazyModals';
-import { FileOperations } from '@/features/diagram-editor/components/file-operations/FileOperations';
 import { PersonID, DomainPerson, personId } from '@/core/types';
 import { SidebarLayout } from '@/shared/components/layout/SidebarLayout';
 import { Tabs, TabList, TabTrigger, TabContent } from '@/shared/components/ui/tabs';
@@ -28,7 +27,7 @@ export const DraggableBlock = React.memo<{ type: string; label: string }>(({ typ
       draggable
     >
       <div className="text-base group-hover:scale-110 transition-transform duration-200">{icon}</div>
-      <div className="text-sm font-medium text-gray-700 leading-tight">{text}</div>
+      <div className="text-sm font-medium text-black leading-tight">{text}</div>
     </div>
   );
 });
@@ -92,7 +91,6 @@ export const DiagramSidebar = React.memo(() => {
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
-  const [fileOperationsExpanded, setFileOperationsExpanded] = useState(false);
   
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId as PersonID);
@@ -100,132 +98,113 @@ export const DiagramSidebar = React.memo(() => {
 
   return (
     <SidebarLayout position="left">
-      <Tabs defaultValue="blocks" className="h-full flex flex-col">
+      <Tabs defaultValue="workspace" className="h-full flex flex-col">
         <TabList aria-label="Sidebar tabs">
-          <TabTrigger value="blocks">Blocks</TabTrigger>
-          <TabTrigger value="persons">Persons</TabTrigger>
-          <TabTrigger value="tools">Tools</TabTrigger>
+          <TabTrigger value="workspace">Workspace</TabTrigger>
           <TabTrigger value="files">Files</TabTrigger>
         </TabList>
         
-        {/* Blocks Tab */}
-        <TabContent value="blocks" className="p-4 overflow-y-auto">
-          <div>
-            <h3 
-              className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
-              onClick={() => setBlocksExpanded(!blocksExpanded)}
-            >
-              <span className="flex items-center gap-2">
-                <span className="text-base">🎨</span>
-                <span className="text-base font-medium">Blocks Palette</span>
-              </span>
-              {blocksExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
-            </h3>
-            {blocksExpanded && (
-              <div className="mt-3">
-                <h4 className="font-semibold mb-2 text-sm text-gray-600 px-2">Job Blocks</h4>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <DraggableBlock type="start" label={`${getNodeConfig(NodeType.START)?.icon || '🚀'} ${getNodeConfig(NodeType.START)?.label || 'Start'}`} />
-                  <DraggableBlock type="person_job" label={`${getNodeConfig(NodeType.PERSON_JOB)?.icon || '🤖'} ${getNodeConfig(NodeType.PERSON_JOB)?.label || 'Person Job'}`} />
-                  <DraggableBlock type="person_batch_job" label={`${getNodeConfig(NodeType.PERSON_BATCH_JOB)?.icon || '🤖📦'} ${getNodeConfig(NodeType.PERSON_BATCH_JOB)?.label || 'Person Batch Job'}`} />
-                  <DraggableBlock type="condition" label={`${getNodeConfig(NodeType.CONDITION)?.icon || '🔀'} ${getNodeConfig(NodeType.CONDITION)?.label || 'Condition'}`} />
-                  <DraggableBlock type="code_job" label={`${getNodeConfig(NodeType.CODE_JOB)?.icon || '📝'} ${getNodeConfig(NodeType.CODE_JOB)?.label || 'Code Job'}`} />
-                  <DraggableBlock type="api_job" label={`${getNodeConfig(NodeType.API_JOB)?.icon || '🌐'} ${getNodeConfig(NodeType.API_JOB)?.label || 'API Job'}`} />
-                  <DraggableBlock type="user_response" label={`${getNodeConfig(NodeType.USER_RESPONSE)?.icon || '💬'} ${getNodeConfig(NodeType.USER_RESPONSE)?.label || 'User Response'}`} />
-                  <DraggableBlock type="endpoint" label={`${getNodeConfig(NodeType.ENDPOINT)?.icon || '🎯'} ${getNodeConfig(NodeType.ENDPOINT)?.label || 'Endpoint'}`} />
-                </div>
-                <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
-                <div className="grid grid-cols-2 gap-2 px-2">
-                  <DraggableBlock type="db" label={`${getNodeConfig(NodeType.DB)?.icon || '📊'} ${getNodeConfig(NodeType.DB)?.label || 'DB Source'} Block`} />
-                  <DraggableBlock type="hook" label={`${getNodeConfig(NodeType.HOOK)?.icon || '🪝'} ${getNodeConfig(NodeType.HOOK)?.label || 'Hook'}`} />
-                </div>
-              </div>
-            )}
-          </div>
-        </TabContent>
-        
-        {/* Persons Tab */}
-        <TabContent value="persons" className="p-4 overflow-y-auto">
-          <div>
-            <h3 
-              className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
-              onClick={() => setPersonsExpanded(!personsExpanded)}
-            >
-              <span className="flex items-center gap-2">
-                <span className="text-base">👥</span>
-                <span className="text-base font-medium">Persons ({persons.length})</span>
-              </span>
-              {personsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
-            </h3>
-            {personsExpanded && (
-              <div className="mt-3">
-                <div className="space-y-1 max-h-96 overflow-y-auto px-2">
-                  {persons.map((personId) => {
-                    const person = getPersonById(personId);
-                    if (!person) return null;
-                    return (
-                      <PersonItem
-                        key={person.id}
-                        person={person}
-                        isSelected={selectedPersonId === person.id}
-                        isHighlighted={highlightedPersonId === person.id}
-                        onClick={handlePersonClick}
-                      />
-                    );
-                  })}
-                </div>
-                <div className="px-2">
-                  <Button
-                    variant="outline"
-                    className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
-                    size="sm"
-                    onClick={async () => {
-                      await personOps.addPerson(
-                        `Person ${persons.length + 1}`,
-                        'openai',
-                        'gpt-4.1-nano'
-                      );
-                    }}
-                  >
-                    <span className="mr-1">➕</span> Add Person
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </TabContent>
-        
-        {/* Tools Tab */}
-        <TabContent value="tools" className="p-4 overflow-y-auto">
-          <div className="space-y-4">
-            {/* API Keys */}
-            <div>
-              <Button 
-                variant="outline" 
-                className="w-full bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200 py-2"
-                onClick={() => setIsApiModalOpen(true)}
-              >
-                🔑 API Keys
-              </Button>
-            </div>
-            
-            {/* File Operations */}
+        {/* Workspace Tab - Consolidated view */}
+        <TabContent value="workspace" className="p-4 overflow-y-auto">
+          <div className="space-y-6">
+            {/* Blocks Section */}
             <div>
               <h3 
                 className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
-                onClick={() => setFileOperationsExpanded(!fileOperationsExpanded)}
+                onClick={() => setBlocksExpanded(!blocksExpanded)}
               >
                 <span className="flex items-center gap-2">
-                  <span className="text-base">📁</span>
-                  <span className="text-base font-medium">Other formats</span>
+                  <span className="text-base">🎨</span>
+                  <span className="text-base font-medium">Blocks Palette</span>
                 </span>
-                {fileOperationsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
+                {blocksExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
               </h3>
-              {fileOperationsExpanded && (
+              {blocksExpanded && (
                 <div className="mt-3">
-                  <FileOperations />
+                  <h4 className="font-semibold mb-2 text-sm text-gray-600 px-2">Job Blocks</h4>
+                  <div className="grid grid-cols-2 gap-2 px-2">
+                    <DraggableBlock type="start" label={`${getNodeConfig(NodeType.START)?.icon || '🚀'} ${getNodeConfig(NodeType.START)?.label || 'Start'}`} />
+                    <DraggableBlock type="person_job" label={`${getNodeConfig(NodeType.PERSON_JOB)?.icon || '🤖'} ${getNodeConfig(NodeType.PERSON_JOB)?.label || 'Person Job'}`} />
+                    <DraggableBlock type="person_batch_job" label={`${getNodeConfig(NodeType.PERSON_BATCH_JOB)?.icon || '🤖📦'} ${getNodeConfig(NodeType.PERSON_BATCH_JOB)?.label || 'Person Batch Job'}`} />
+                    <DraggableBlock type="condition" label={`${getNodeConfig(NodeType.CONDITION)?.icon || '🔀'} ${getNodeConfig(NodeType.CONDITION)?.label || 'Condition'}`} />
+                    <DraggableBlock type="code_job" label={`${getNodeConfig(NodeType.CODE_JOB)?.icon || '📝'} ${getNodeConfig(NodeType.CODE_JOB)?.label || 'Code Job'}`} />
+                    <DraggableBlock type="api_job" label={`${getNodeConfig(NodeType.API_JOB)?.icon || '🌐'} ${getNodeConfig(NodeType.API_JOB)?.label || 'API Job'}`} />
+                    <DraggableBlock type="user_response" label={`${getNodeConfig(NodeType.USER_RESPONSE)?.icon || '💬'} ${getNodeConfig(NodeType.USER_RESPONSE)?.label || 'User Response'}`} />
+                    <DraggableBlock type="endpoint" label={`${getNodeConfig(NodeType.ENDPOINT)?.icon || '🎯'} ${getNodeConfig(NodeType.ENDPOINT)?.label || 'Endpoint'}`} />
+                  </div>
+                  <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
+                  <div className="grid grid-cols-2 gap-2 px-2">
+                    <DraggableBlock type="db" label={`${getNodeConfig(NodeType.DB)?.icon || '📊'} ${getNodeConfig(NodeType.DB)?.label || 'DB Source'} Block`} />
+                    <DraggableBlock type="hook" label={`${getNodeConfig(NodeType.HOOK)?.icon || '🪝'} ${getNodeConfig(NodeType.HOOK)?.label || 'Hook'}`} />
+                  </div>
                 </div>
               )}
+            </div>
+            
+            {/* Persons Section */}
+            <div>
+              <h3 
+                className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
+                onClick={() => setPersonsExpanded(!personsExpanded)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-base">👥</span>
+                  <span className="text-base font-medium">Persons ({persons.length})</span>
+                </span>
+                {personsExpanded ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
+              </h3>
+              {personsExpanded && (
+                <div className="mt-3">
+                  <div className="space-y-1 max-h-48 overflow-y-auto px-2">
+                    {persons.map((personId) => {
+                      const person = getPersonById(personId);
+                      if (!person) return null;
+                      return (
+                        <PersonItem
+                          key={person.id}
+                          person={person}
+                          isSelected={selectedPersonId === person.id}
+                          isHighlighted={highlightedPersonId === person.id}
+                          onClick={handlePersonClick}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="px-2">
+                    <Button
+                      variant="outline"
+                      className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
+                      size="sm"
+                      onClick={async () => {
+                        await personOps.addPerson(
+                          `Person ${persons.length + 1}`,
+                          'openai',
+                          'gpt-4.1-nano'
+                        );
+                      }}
+                    >
+                      <span className="mr-1">➕</span> Add Person
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Tools Section - API Keys only */}
+            <div>
+              <h3 className="font-semibold flex items-center gap-2 p-2">
+                <span className="text-base">🔧</span>
+                <span className="text-base font-medium">Tools</span>
+              </h3>
+              <div className="px-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200 py-2"
+                  onClick={() => setIsApiModalOpen(true)}
+                >
+                  🔑 API Keys
+                </Button>
+              </div>
             </div>
           </div>
         </TabContent>

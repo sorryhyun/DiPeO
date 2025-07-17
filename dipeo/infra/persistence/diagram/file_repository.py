@@ -60,7 +60,13 @@ class DiagramFileRepository:
 
         content = file_path.read_text(encoding="utf-8")
 
-        if file_path.suffix.lower() in [".yaml", ".yml"]:
+        # Check for new extension format
+        if str(file_path).endswith((".light.yaml", ".light.yml", ".readable.yaml", ".readable.yml")):
+            return yaml.safe_load(content)
+        elif str(file_path).endswith(".native.json"):
+            return json.loads(content)
+        # Fallback to old extension format
+        elif file_path.suffix.lower() in [".yaml", ".yml"]:
             return yaml.safe_load(content)
         elif file_path.suffix.lower() == ".json":
             return json.loads(content)
@@ -72,7 +78,13 @@ class DiagramFileRepository:
         file_path = self.diagrams_dir / path
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if file_path.suffix.lower() in [".yaml", ".yml"]:
+        # Check for new extension format
+        if str(file_path).endswith((".light.yaml", ".light.yml", ".readable.yaml", ".readable.yml")):
+            content = yaml.dump(data, default_flow_style=False, sort_keys=False)
+        elif str(file_path).endswith(".native.json"):
+            content = json.dumps(data, indent=2)
+        # Fallback to old extension format
+        elif file_path.suffix.lower() in [".yaml", ".yml"]:
             content = yaml.dump(data, default_flow_style=False, sort_keys=False)
         elif file_path.suffix.lower() == ".json":
             content = json.dumps(data, indent=2)
@@ -96,26 +108,41 @@ class DiagramFileRepository:
     async def list_files(self) -> list[dict[str, Any]]:
         # List all diagram files
         files = []
+        # Support both old and new extensions
         allowed_extensions = [".yaml", ".yml", ".json"]
+        new_extensions = [".native.json", ".light.yaml", ".light.yml", ".readable.yaml", ".readable.yml"]
 
         for file_path in self.diagrams_dir.rglob("*"):
-            if file_path.is_file() and file_path.suffix.lower() in allowed_extensions:
-                try:
-                    stats = file_path.stat()
-                    relative_path = file_path.relative_to(self.diagrams_dir)
+            if file_path.is_file():
+                # Check for new extension format first
+                matches_new = any(str(file_path).endswith(ext) for ext in new_extensions)
+                # Fallback to old extension format
+                matches_old = file_path.suffix.lower() in allowed_extensions
+                
+                if matches_new or matches_old:
+                    try:
+                        stats = file_path.stat()
+                        relative_path = file_path.relative_to(self.diagrams_dir)
 
-                    file_info = self.domain_service.generate_file_info(
-                        path=str(relative_path),
-                        name=file_path.stem,
-                        extension=file_path.suffix,
-                        size=stats.st_size,
-                        modified_timestamp=stats.st_mtime,
-                    )
+                        # Determine the actual extension
+                        actual_extension = file_path.suffix
+                        for ext in new_extensions:
+                            if str(file_path).endswith(ext):
+                                actual_extension = ext
+                                break
 
-                    files.append(file_info)
-                except Exception as e:
-                    logger.warning(f"Failed to process file {file_path}: {e}")
-                    continue
+                        file_info = self.domain_service.generate_file_info(
+                            path=str(relative_path),
+                            name=file_path.stem if not matches_new else str(file_path.name).replace(actual_extension, ""),
+                            extension=actual_extension,
+                            size=stats.st_size,
+                            modified_timestamp=stats.st_mtime,
+                        )
+
+                        files.append(file_info)
+                    except Exception as e:
+                        logger.warning(f"Failed to process file {file_path}: {e}")
+                        continue
 
         files.sort(key=lambda x: x["modified"], reverse=True)
         return files
@@ -194,8 +221,23 @@ class DiagramFileRepository:
         self, name: str, diagram: dict[str, Any], format: str = "json"
     ) -> str:
         # Create a new diagram and return its path
-        # Generate filename
-        extension = ".json" if format == "json" else ".yaml"
+        # Determine the format type
+        if format == "json":
+            diagram_format = DiagramFormat.native
+            extension = ".native.json"
+        elif format == "yaml":
+            # Determine light vs readable from diagram content
+            if diagram.get("format") == "readable" or diagram.get("version") == "readable":
+                diagram_format = DiagramFormat.readable
+                extension = ".readable.yaml"
+            else:
+                diagram_format = DiagramFormat.light
+                extension = ".light.yaml"
+        else:
+            # Default to light format for unknown formats
+            diagram_format = DiagramFormat.light
+            extension = ".light.yaml"
+        
         filename = f"{name}{extension}"
         
         # Ensure unique filename

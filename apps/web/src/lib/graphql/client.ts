@@ -68,8 +68,9 @@ export const apolloClient = new ApolloClient({
           // Merge paginated results
           diagrams: {
             keyArgs: ['filter'],
+            // Replace existing results instead of appending to prevent duplicates during polling
             merge(existing = [], incoming) {
-              return [...existing, ...incoming];
+              return incoming;
             },
           },
           executions: {

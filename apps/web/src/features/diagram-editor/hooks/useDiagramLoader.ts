@@ -6,6 +6,7 @@ import { diagramId } from '@/core/types';
 import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/lib/graphql/types';
 import { rebuildHandleIndex } from '@/core/store/helpers/handleIndexHelper';
 import { createEntityQuery } from '@/lib/graphql/hooks';
+import { DiagramFormat } from '@dipeo/domain-models';
 
 /**
  * Refactored diagram loader using the GraphQL factory pattern
@@ -24,6 +25,7 @@ export function useDiagramLoader() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [diagramIdFromUrl, setDiagramIdFromUrl] = useState<string | null>(null);
+  const [diagramFormatFromUrl, setDiagramFormatFromUrl] = useState<DiagramFormat | null>(null);
 
   // Check URL for diagram parameter
   useEffect(() => {
@@ -31,9 +33,37 @@ export function useDiagramLoader() {
       const params = new URLSearchParams(window.location.search);
       const diagramParam = params.get('diagram');
       
-      if (diagramParam && diagramParam !== diagramIdFromUrl) {
-        setDiagramIdFromUrl(diagramParam);
-        setHasLoaded(false); // Reset loaded state when diagram ID changes
+      if (diagramParam) {
+        // Parse format and filename from the diagram parameter
+        // Format: {format}/{filename} or just {filename}
+        const parts = diagramParam.split('/');
+        let format: DiagramFormat | null = null;
+        let fullDiagramId = diagramParam;
+        
+        if (parts.length === 2) {
+          // Has format prefix
+          const [formatStr, filename] = parts;
+          switch (formatStr) {
+            case 'native':
+              format = DiagramFormat.NATIVE;
+              break;
+            case 'light':
+              format = DiagramFormat.LIGHT;
+              break;
+            case 'readable':
+              format = DiagramFormat.READABLE;
+              break;
+            default:
+              // Unknown format, treat as regular ID
+              format = null;
+          }
+        }
+        
+        if (diagramParam !== diagramIdFromUrl) {
+          setDiagramIdFromUrl(fullDiagramId);
+          setDiagramFormatFromUrl(format);
+          setHasLoaded(false); // Reset loaded state when diagram ID changes
+        }
       }
     };
 
@@ -47,7 +77,7 @@ export function useDiagramLoader() {
     return () => {
       window.removeEventListener('popstate', handleUrlChange);
     };
-  }, [diagramIdFromUrl]);
+  }, [diagramIdFromUrl, diagramFormatFromUrl]);
 
   // Query for diagram data using factory-generated hook
   const { data, loading, error } = useDiagramQuery(
@@ -148,6 +178,7 @@ export function useDiagramLoader() {
               store.setDiagramDescription(diagramWithCounts.metadata.description || '');
             }
             store.setDiagramId(diagramIdFromUrl);
+            store.setDiagramFormat(diagramFormatFromUrl);
           });
 
           // Mark as loaded after store is updated
@@ -169,12 +200,13 @@ export function useDiagramLoader() {
       // Cleanup timer on unmount
       return () => clearTimeout(loadTimer);
     }
-  }, [data, loading, hasLoaded, diagramIdFromUrl]);
+  }, [data, loading, hasLoaded, diagramIdFromUrl, diagramFormatFromUrl]);
 
   return {
     isLoading: loading || isLoading,
     hasLoaded,
     diagramId: diagramIdFromUrl,
+    diagramFormat: diagramFormatFromUrl,
     error
   };
 }

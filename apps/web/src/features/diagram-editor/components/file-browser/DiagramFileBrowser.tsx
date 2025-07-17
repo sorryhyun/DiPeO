@@ -45,20 +45,9 @@ export const DiagramFileBrowser: React.FC = () => {
     
     const lowerQuery = query.toLowerCase();
     
-    return nodes.reduce<FileNode[]>((acc, node) => {
-      if (node.type === 'directory') {
-        const filteredChildren = filterNodes(node.children || [], query);
-        if (filteredChildren.length > 0) {
-          acc.push({
-            ...node,
-            children: filteredChildren
-          });
-        }
-      } else if (node.name.toLowerCase().includes(lowerQuery)) {
-        acc.push(node);
-      }
-      return acc;
-    }, []);
+    return nodes.filter(node => 
+      node.name.toLowerCase().includes(lowerQuery)
+    );
   };
 
   const filteredTree = filterNodes(fileTree, searchQuery);
@@ -83,15 +72,15 @@ export const DiagramFileBrowser: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Search and refresh controls */}
-      <div className="p-3 border-b border-gray-700 space-y-2">
+      <div className="p-3 border-b border-gray-200 space-y-2">
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files..."
-            className="w-full pl-9 pr-3 py-1.5 text-sm bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-200 placeholder-gray-500"
+            className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-400"
           />
         </div>
         
@@ -115,7 +104,7 @@ export const DiagramFileBrowser: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-2">
         {loading && !fileTree.length ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="animate-spin text-gray-400" size={24} />
+            <Loader2 className="animate-spin text-gray-600" size={24} />
           </div>
         ) : (
           <FileTree 
@@ -127,11 +116,11 @@ export const DiagramFileBrowser: React.FC = () => {
       </div>
 
       {/* Status bar */}
-      <div className="px-3 py-2 border-t border-gray-700 text-xs text-gray-500">
+      <div className="px-3 py-2 border-t border-gray-200 text-xs text-black/60">
         {loading ? (
           <span>Loading...</span>
         ) : (
-          <span>{fileTree.reduce((count, dir) => count + (dir.children?.length || 0), 0)} files</span>
+          <span>{fileTree.length} files</span>
         )}
       </div>
     </div>

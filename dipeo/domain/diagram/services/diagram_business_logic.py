@@ -187,15 +187,28 @@ class DiagramBusinessLogic:
         """Construct possible file paths for a diagram ID."""
         paths = []
         
+        # First check if diagram_id already has a valid extension
+        path_obj = Path(diagram_id)
+        has_valid_extension = any(
+            diagram_id.endswith(ext) for ext in 
+            [".yaml", ".yml", ".json", ".light.yaml", ".light.yml", 
+             ".native.json", ".readable.yaml", ".readable.yml"]
+        )
+        
+        # If it already has a valid extension, try it as-is first
+        if has_valid_extension:
+            paths.append(diagram_id)
+        
         # Normalize extensions
         extensions = [
             FileExtension(ext if ext.startswith('.') else f'.{ext}').value
             for ext in base_extensions
         ]
         
-        # Direct paths with extensions
-        for ext in extensions:
-            paths.append(f"{diagram_id}{ext}")
+        # Direct paths with extensions (only if doesn't already have extension)
+        if not has_valid_extension:
+            for ext in extensions:
+                paths.append(f"{diagram_id}{ext}")
         
         # Only check subdirectories if diagram_id doesn't contain a path separator
         if "/" not in diagram_id:

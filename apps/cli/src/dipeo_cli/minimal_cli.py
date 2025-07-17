@@ -148,32 +148,65 @@ class DiPeOCLI:
         self, diagram: str, format_type: str | None = None
     ) -> str:
         """Resolve diagram path based on format type."""
-        # If it looks like a full path (contains / or .), use as-is
-        if "/" in diagram or diagram.endswith((".json", ".yaml", ".yml")):
+        # If it looks like a full path (contains / or has new extensions), use as-is
+        if "/" in diagram or diagram.endswith((".json", ".yaml", ".yml", ".native.json", ".light.yaml", ".readable.yaml")):
             return diagram
 
         # Otherwise, construct path based on format
+        diagrams_dir = FILES_DIR / "diagrams"
+        
         if not format_type:
-            # Try to find the diagram in any format
+            # Try to find the diagram with new extensions first
+            new_extensions = [
+                (".native.json", "native"),
+                (".light.yaml", "light"),
+                (".readable.yaml", "readable"),
+            ]
+            
+            # Check new extension format
+            for ext, _ in new_extensions:
+                path = diagrams_dir / f"{diagram}{ext}"
+                if path.exists():
+                    return str(path)
+            
+            # Fallback to old format (backward compatibility)
             for fmt, ext in [
                 ("native", ".json"),
                 ("light", ".yaml"),
                 ("readable", ".yaml"),
             ]:
-                path = FILES_DIR / "diagrams" / fmt / f"{diagram}{ext}"
+                path = diagrams_dir / fmt / f"{diagram}{ext}"
                 if path.exists():
                     return str(path)
+                    
             raise FileNotFoundError(f"Diagram '{diagram}' not found in any format")
 
         # Use specified format
         format_map = {
+            "light": ".light.yaml",
+            "native": ".native.json",
+            "readable": ".readable.yaml",
+        }
+
+        # Try new extension format first
+        ext = format_map[format_type]
+        path = diagrams_dir / f"{diagram}{ext}"
+        if path.exists():
+            return str(path)
+            
+        # Fallback to old format
+        old_format_map = {
             "light": ("light", ".yaml"),
             "native": ("native", ".json"),
             "readable": ("readable", ".yaml"),
         }
-
-        fmt_dir, ext = format_map[format_type]
-        return str(FILES_DIR / "diagrams" / fmt_dir / f"{diagram}{ext}")
+        fmt_dir, old_ext = old_format_map[format_type]
+        old_path = diagrams_dir / fmt_dir / f"{diagram}{old_ext}"
+        if old_path.exists():
+            return str(old_path)
+            
+        # If neither exists, return the new format path (for creating new files)
+        return str(path)
 
     def load_diagram(self, file_path: str) -> dict[str, Any]:
         """Load diagram from file (JSON or YAML)."""
@@ -185,9 +218,16 @@ class DiPeOCLI:
             content = f.read()
 
         # Parse based on extension
-        if path.suffix in [".yaml", ".yml"]:
+        if str(path).endswith((".light.yaml", ".readable.yaml")) or path.suffix in [".yaml", ".yml"]:
             return yaml.safe_load(content)
-        return json.loads(content)
+        elif str(path).endswith(".native.json") or path.suffix == ".json":
+            return json.loads(content)
+        else:
+            # Try to parse as YAML first, then JSON
+            try:
+                return yaml.safe_load(content)
+            except:
+                return json.loads(content)
 
     def run(
         self,

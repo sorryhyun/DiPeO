@@ -1,0 +1,39 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 180, y: 290}
+  props:
+    trigger_mode: manual
+- label: Image_drawings
+  type: person_job
+  position: {x: 483, y: 304}
+  props:
+    flipped: false
+    max_iteration: 1
+    memory_profile: FULL
+    person: Drawer
+    tools:
+    - type: image_generation
+      enabled: true
+    default_prompt: Draw about CLAUDE
+- label: result
+  type: endpoint
+  position: {x: 792, y: 281}
+  props:
+    file_format: txt
+    flipped: true
+    save_to_file: true
+    file_path: files/results/drawing_result.jpg
+connections:
+- from: Start
+  to: Image_drawings
+  content_type: raw_text
+- from: Image_drawings
+  to: result
+  content_type: raw_text
+persons:
+  Drawer:
+    service: openai
+    model: gpt-4.1-mini
+    api_key_id: APIKEY_52609F

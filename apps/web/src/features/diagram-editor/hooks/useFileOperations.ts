@@ -13,6 +13,7 @@ import {
   type ConvertDiagramMutation,
   type ConvertDiagramMutationVariables
 } from '@/__generated__/graphql';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // Create the mutation hook using factory pattern
 const useConvertDiagramMutation = createEntityMutation<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
@@ -129,6 +130,10 @@ export const useFileOperations = () => {
       if (!saveResult.success) {
         throw new Error(saveResult.message || 'Failed to save diagram');
       }
+      
+      // Update the format in the store
+      const store = useUnifiedStore.getState();
+      store.setDiagramFormat(actualFormat);
       
       // Silent save - no toast notification
       return saveResult;

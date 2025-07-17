@@ -6,7 +6,7 @@ import { useUIState } from '@/core/store/hooks/state';
 import { useDiagramManager, useFileOperations } from '@/features/diagram-editor/hooks';
 import { useUIOperations, useExecutionOperations } from '@/core/store/hooks';
 import { toast } from 'sonner';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore, useDiagramFormat } from '@/core/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { DiagramFormat } from '@dipeo/domain-models';
 import { useConvertDiagramMutation, useUploadFileMutation } from '@/__generated__/graphql';
@@ -23,6 +23,9 @@ const TopBar = () => {
   const { activeCanvas } = useUIState();
   const { setReadOnly, setActiveCanvas } = useUIOperations();
   const { stopExecution } = useExecutionOperations();
+  
+  // Get diagram format from store
+  const diagramFormatFromStore = useDiagramFormat();
   
   // Get diagram metadata from store
   const { diagramName, diagramDescription, setDiagramName, setDiagramDescription } = useUnifiedStore(
@@ -55,7 +58,7 @@ const TopBar = () => {
   const [uploadFileMutation] = useUploadFileMutation();
   
 
-  // Handle monitor mode and format detection
+  // Handle monitor mode
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isMonitor = params.get('monitor') === 'true';
@@ -65,21 +68,15 @@ const TopBar = () => {
     if (isMonitor) {
       setReadOnly?.(true);
     }
-    
-    // Detect format from current diagram URL
-    const currentDiagramId = params.get('diagram');
-    if (currentDiagramId && currentDiagramId.includes('/')) {
-      const format = currentDiagramId.split('/')[0];
-      if (format === 'native') {
-        setSelectedFormat(DiagramFormat.NATIVE);
-      } else if (format === 'readable') {
-        setSelectedFormat(DiagramFormat.READABLE);
-      } else if (format === 'light') {
-        setSelectedFormat(DiagramFormat.LIGHT);
-      }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
+  
+  // Sync format from store
+  useEffect(() => {
+    if (diagramFormatFromStore) {
+      setSelectedFormat(diagramFormatFromStore);
+    }
+  }, [diagramFormatFromStore]);
 
   // Convert and save functionality
   const handleConvertAndSave = useCallback(async () => {

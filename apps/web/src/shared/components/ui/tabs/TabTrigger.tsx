@@ -41,8 +41,8 @@ export function TabTrigger({ value, children, className = '', disabled = false }
         px-4 py-2 text-sm font-medium transition-colors
         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800
         ${isActive
-          ? 'text-white border-b-2 border-blue-500'
-          : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent'
+          ? 'text-blue-600 border-b-2 border-blue-500'
+          : 'text-black hover:text-blue-500 border-b-2 border-transparent'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         ${className}
