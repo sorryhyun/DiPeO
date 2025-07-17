@@ -75,8 +75,22 @@ function getStateDiff(prev: any, next: any): Record<string, any> {
 
 // Detect cross-slice violations
 function detectCrossSliceViolations(diff: Record<string, any>, sliceName?: string) {
+  // Operations that are allowed to modify multiple slices
+  const allowedCrossSliceOperations = [
+    'UnifiedStore', // The unified store itself can modify any slice
+    'clearAll',     // Clear all operation needs to modify multiple slices
+    'transaction',  // Transactions may modify multiple slices
+    'undo',         // Undo operations restore multiple slices
+    'redo'          // Redo operations restore multiple slices
+  ];
+  
+  // Skip violation detection for allowed operations
+  if (sliceName && allowedCrossSliceOperations.includes(sliceName)) {
+    return;
+  }
+  
   const sliceBoundaries = {
-    diagram: ['nodes', 'arrows', 'handles', 'handleIndex'],
+    diagram: ['nodes', 'arrows', 'diagramName', 'diagramDescription', 'diagramId', 'diagramFormat'],
     execution: ['execution'],
     person: ['persons'],
     ui: [
@@ -85,7 +99,9 @@ function detectCrossSliceViolations(diff: Record<string, any>, sliceName?: strin
       'readOnly', 'executionReadOnly', 'isMonitorMode', 'canvasMode'
     ],
     computed: ['dataVersion'],
-    history: ['history']
+    history: ['history'],
+    // UnifiedStore's own properties
+    unified: ['handles', 'handleIndex']
   };
   
   // Determine which slice is being modified

@@ -123,7 +123,7 @@ const TopBar = () => {
           const finalNameOnly = finalNameParts[finalNameParts.length - 1];
           
           // Remove extensions from the final name as well
-          let cleanFinalName = finalNameOnly;
+          let cleanFinalName = finalNameOnly || '';
           const formatExtRemoved = cleanFinalName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
           if (formatExtRemoved !== cleanFinalName) {
             cleanFinalName = formatExtRemoved;

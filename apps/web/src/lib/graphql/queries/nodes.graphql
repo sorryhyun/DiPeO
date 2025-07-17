@@ -42,28 +42,3 @@ mutation DeleteNode($nodeId: NodeID!) {
   }
 }
 
-# Arrow Mutations
-mutation CreateArrow($diagramId: DiagramID!, $input: CreateArrowInput!) {
-  create_arrow(diagram_id: $diagramId, data: $input) {
-    success
-    diagram {
-      arrows {
-        id
-        source
-        target
-        data
-      }
-    }
-    message
-    error
-  }
-}
-
-mutation DeleteArrow($id: ArrowID!) {
-  delete_arrow(arrow_id: $id) {
-    success
-    deleted_id
-    message
-    error
-  }
-}

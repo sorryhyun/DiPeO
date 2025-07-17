@@ -10,8 +10,8 @@ from dipeo.models import DomainDiagram
 
 from dipeo.core.ports import FormatStrategy
 from dipeo.domain.diagram.utils import (
-    ensure_position,
     extract_common_arrows,
+    dict_to_domain_diagram,
 )
 
 log = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         for idx, node_data in enumerate(raw_nodes):
             node = self._process_node(node_data, idx)
             if node:
-                ensure_position(node, idx)
+                # Don't call ensure_position here - let _build_nodes_dict handle it
                 nodes.append(node)
         
         return nodes
@@ -183,3 +183,133 @@ class BaseConversionStrategy(FormatStrategy, ABC):
             return True
         except Exception:
             return False
+    
+    # ---- New Domain Conversion Methods ------------------------------------ #
+    
+    def deserialize_to_domain(self, content: str) -> DomainDiagram:
+        """Default implementation that uses existing methods.
+        
+        Subclasses should override this for format-specific logic.
+        """
+        # Parse content to dict
+        data = self.parse(content)
+        
+        # Extract and process nodes
+        nodes_list = self.extract_nodes(data)
+        nodes_dict = self._build_nodes_dict(nodes_list)
+        
+        # Extract and process arrows  
+        arrows_list = self.extract_arrows(data, nodes_list)
+        arrows_dict = self._build_arrows_dict(arrows_list)
+        
+        # Extract other components
+        handles_dict = self._extract_handles_dict(data)
+        persons_dict = self._extract_persons_dict(data)
+        
+        # Build diagram dict
+        diagram_dict = {
+            "nodes": nodes_dict,
+            "arrows": arrows_dict,
+            "handles": handles_dict,
+            "persons": persons_dict,
+            "metadata": data.get("metadata"),
+        }
+        
+        # Apply format-specific transformations
+        diagram_dict = self._apply_format_transformations(diagram_dict, data)
+        
+        # Convert to domain model
+        return dict_to_domain_diagram(diagram_dict)
+    
+    def serialize_from_domain(self, diagram: DomainDiagram) -> str:
+        """Default implementation that uses existing methods."""
+        data = self.build_export_data(diagram)
+        return self.format(data)
+    
+    # ---- Helper Methods for Domain Conversion ---------------------------- #
+    
+    def _build_nodes_dict(self, nodes_list: list[dict[str, Any]]) -> dict[str, Any]:
+        """Build nodes dictionary from list. Override for custom node creation."""
+        from dipeo.models.conversions import node_kind_to_domain_type
+        from dipeo.domain.diagram.utils.shared_components import PositionCalculator
+        
+        position_calculator = PositionCalculator()
+        nodes_dict = {}
+        
+        for index, node_data in enumerate(nodes_list):
+            if "id" not in node_data:
+                continue
+                
+            node_id = node_data["id"]
+            node_type_str = node_data.get("type", "job")
+            
+            # Convert node type string to domain enum
+            try:
+                node_type = node_kind_to_domain_type(node_type_str)
+            except ValueError:
+                log.warning(f"Unknown node type '{node_type_str}', defaulting to 'job'")
+                node_type = node_kind_to_domain_type("job")
+            
+            # Ensure position exists
+            position = node_data.get("position")
+            if not position:
+                position = position_calculator.calculate_grid_position(index)
+            
+            # Build node dict with required fields
+            exclude_fields = {"id", "type", "position", "handles", "arrows"}
+            properties = {k: v for k, v in node_data.items() if k not in exclude_fields}
+            
+            nodes_dict[node_id] = {
+                "id": node_id,
+                "type": node_type.value,
+                "position": position,
+                "data": properties
+            }
+            
+        return nodes_dict
+    
+    def _build_arrows_dict(self, arrows_list: list[dict[str, Any]]) -> dict[str, Any]:
+        """Build arrows dictionary from list. Override for custom arrow creation."""
+        from dipeo.models import ContentType
+        
+        arrows_dict = {}
+        for i, arrow_data in enumerate(arrows_list):
+            arrow_id = arrow_data.get("id", f"arrow_{i}")
+            
+            # Ensure content_type is set
+            if "content_type" not in arrow_data and arrow_data.get("content_type") is None:
+                arrow_data["content_type"] = ContentType.raw_text.value
+            
+            arrows_dict[arrow_id] = arrow_data
+            
+        return arrows_dict
+    
+    def _extract_handles_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Extract handles as dictionary. Override for format-specific logic."""
+        handles_data = data.get("handles", {})
+        if isinstance(handles_data, dict):
+            return handles_data
+        elif isinstance(handles_data, list):
+            return {
+                handle.get("id", f"handle_{i}"): handle
+                for i, handle in enumerate(handles_data)
+            }
+        return {}
+    
+    def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Extract persons as dictionary. Override for format-specific logic."""
+        persons_data = data.get("persons", {})
+        if isinstance(persons_data, dict):
+            return persons_data
+        elif isinstance(persons_data, list):
+            return {
+                person.get("id", f"person_{i}"): person
+                for i, person in enumerate(persons_data)
+            }
+        return {}
+    
+    def _apply_format_transformations(
+        self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Apply format-specific transformations. Override in subclasses."""
+        return diagram_dict

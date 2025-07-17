@@ -46,6 +46,7 @@ def _create_unified_service_registry(
     llm_service,
     notion_service,
     api_service,
+    integrated_diagram_service,
     # Persistence services
     file_service,
     diagram_loader,
@@ -79,6 +80,7 @@ def _create_unified_service_registry(
     registry.register("llm_service", llm_service)
     registry.register("notion_service", notion_service)
     registry.register("api_service", api_service)
+    registry.register("integrated_diagram_service", integrated_diagram_service)
     
     # Persistence services
     registry.register("file_service", file_service)
@@ -134,6 +136,7 @@ class ApplicationContainer(ImmutableBaseContainer):
         llm_service=integration.llm_service,
         notion_service=integration.notion_service,
         api_service=integration.api_service,
+        integrated_diagram_service=integration.integrated_diagram_service,
         # Persistence services
         file_service=persistence.file_service,
         diagram_loader=persistence.diagram_loader,

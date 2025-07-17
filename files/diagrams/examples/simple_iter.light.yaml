@@ -30,11 +30,11 @@ nodes:
   type: person_job
   position: {x: 311, y: 443}
   props:
-    person: Person 1
-    max_iteration: 1
     default_prompt: How many times did you respond?
-    memory_profile: FULL
     flipped: true
+    max_iteration: 1
+    memory_profile: FULL
+    person: Person 1
 connections:
 - from: Start
   to: printer
@@ -47,8 +47,10 @@ connections:
   content_type: conversation_state
 - from: Condition_condtrue
   to: ask
+  content_type: conversation_state
 - from: ask
   to: Endpoint
+  content_type: raw_text
 persons:
   Person 1:
     service: openai

@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 
 import yaml
 from dipeo.infra.diagram import converter_registry
-from dipeo.infra.persistence.diagram import DiagramFileRepository
 from dipeo.models import DiagramMetadata, DomainDiagram
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
@@ -31,22 +30,20 @@ class DiagramResolver:
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
 
-            # Use storage service to find and load diagram data
-            storage_service: DiagramFileRepository = info.context.get_service(
-                "diagram_storage_service"
+            # Use integrated diagram service
+            integrated_service = info.context.get_service(
+                "integrated_diagram_service"
             )
 
-            # Find the diagram file
-            path = await storage_service.find_by_id(diagram_id)
-            if not path:
-                logger.error(f"Diagram not found: {diagram_id}")
-                return None
-
-            # Read diagram data
-            diagram_data = await storage_service.read_file(path)
+            # Get diagram data
+            diagram_data = await integrated_service.get_diagram(diagram_id)
             if not diagram_data:
                 logger.error(f"Diagram not found: {diagram_id}")
                 return None
+
+            # Get path for format detection
+            file_repo = integrated_service.file_repository
+            path = await file_repo.find_by_id(diagram_id) or ""
 
             # Determine format from path and data
             format_type = "native"  # default
@@ -107,12 +104,12 @@ class DiagramResolver:
     ) -> list[DomainDiagramType]:
         """Returns filtered diagram list."""
         try:
-            # Use new storage service
-            storage_service: DiagramFileRepository = info.context.get_service(
-                "diagram_storage_service"
+            # Use integrated diagram service
+            integrated_service = info.context.get_service(
+                "integrated_diagram_service"
             )
 
-            file_infos = await storage_service.list_files()
+            file_infos = await integrated_service.list_diagrams()
             all_diagrams = [
                 {
                     "path": fi["path"],

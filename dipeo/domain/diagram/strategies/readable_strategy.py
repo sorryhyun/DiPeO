@@ -80,7 +80,15 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         arrow_counter = 0
 
         for flow_item in data.get("flow", []):
-            if isinstance(flow_item, dict):
+            if isinstance(flow_item, str):
+                # Handle string format: "Start -> Ask Assistant"
+                if " -> " in flow_item:
+                    parts = flow_item.split(" -> ")
+                    if len(parts) == 2:
+                        src_label, dst_label = parts[0].strip(), parts[1].strip()
+                        arrows.extend(self._parse_single_flow(src_label, dst_label, label2id, arrow_counter))
+                        arrow_counter += 1
+            elif isinstance(flow_item, dict):
                 # Dictionary format: {source: destination} or {source: {dest1: null, dest2: null}}
                 for src, dst_data in flow_item.items():
                     if isinstance(dst_data, str):
@@ -295,3 +303,34 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
     def quick_match(self, content: str) -> bool:
         return "workflow:" in content and "flow:" in content
+    
+    # ---- Domain Conversion Overrides -------------------------------------- #
+    
+    def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Extract persons for readable format with list structure."""
+        persons_data = data.get("persons", [])
+        persons_dict = {}
+        
+        if isinstance(persons_data, list):
+            for person_item in persons_data:
+                if isinstance(person_item, dict):
+                    # Each item should have one key (the person name)
+                    for person_name, person_config in person_item.items():
+                        llm_config = {
+                            "service": person_config.get("service", "openai"),
+                            "model": person_config.get("model", "gpt-4-mini"),
+                            "api_key_id": person_config.get("api_key_id", "default"),
+                        }
+                        if "system_prompt" in person_config:
+                            llm_config["system_prompt"] = person_config["system_prompt"]
+                        
+                        # Add required fields for DomainPerson
+                        person_dict = {
+                            "id": person_name,
+                            "label": person_name,
+                            "type": "person",
+                            "llm_config": llm_config,
+                        }
+                        persons_dict[person_name] = person_dict
+        
+        return persons_dict

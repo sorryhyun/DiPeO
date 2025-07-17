@@ -65,6 +65,29 @@ class FormatStrategy(ABC):
         pass
 
     @abstractmethod
+    def deserialize_to_domain(self, content: str) -> Any:
+        """Deserialize format-specific string to domain diagram.
+        
+        This method should handle the complete conversion from the format-specific
+        string representation to a DomainDiagram object, including:
+        - Parsing the content
+        - Creating domain nodes with proper types
+        - Creating domain arrows with content types
+        - Creating/generating handles
+        - Handling format-specific transformations
+        """
+        pass
+
+    @abstractmethod
+    def serialize_from_domain(self, diagram: Any) -> str:
+        """Serialize domain diagram to format-specific string.
+        
+        This method should handle the complete conversion from a DomainDiagram
+        object to the format-specific string representation.
+        """
+        pass
+
+    @abstractmethod
     def detect_confidence(self, data: dict[str, Any]) -> float:
         """Detect confidence that data matches this format."""
         pass

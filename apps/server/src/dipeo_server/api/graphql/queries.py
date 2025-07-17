@@ -110,12 +110,15 @@ class Query:
     async def execution_capabilities(self, info) -> JSONScalar:
         context = info.context
 
-        storage_service = context.get_service("diagram_storage_service")
+        integrated_service = context.get_service("integrated_diagram_service")
         persons_list = []
 
-        file_infos = await storage_service.list_files()
-        for file_info in file_infos:
-            diagram = await storage_service.read_file(file_info.path)
+        diagram_infos = await integrated_service.list_diagrams()
+        for diagram_info in diagram_infos:
+            # Extract diagram ID from path
+            path = diagram_info.get("path", "")
+            diagram_id = path.split(".")[0] if path else diagram_info.get("id")
+            diagram = await integrated_service.get_diagram(diagram_id)
             for person_id, person_data in diagram.get("persons", {}).items():
                 persons_list.append(
                     {

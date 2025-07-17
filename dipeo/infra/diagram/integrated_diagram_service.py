@@ -1,4 +1,8 @@
-"""Integrated infrastructure service for diagram operations - clean facade implementation."""
+"""Integrated infrastructure service for diagram operations - clean facade implementation.
+
+This module provides a unified async interface for diagram operations,
+delegating to specialized persistence layer components.
+"""
 
 import logging
 from typing import Any
@@ -43,36 +47,13 @@ class IntegratedDiagramService(DiagramPort):
         """Delegate file loading to loader adapter."""
         return await self.loader_adapter.load_from_file(file_path, format)
     
-    def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
-        """Delegate listing to file repository.
-        
-        Note: This is a synchronous wrapper for the async method for backward compatibility.
-        """
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If we're already in an async context, we can't use run_until_complete
-                # This is a limitation that should be addressed by making this method async
-                logger.warning("list_diagrams called from async context, consider using async version")
-                # For now, we'll have to return empty list or raise an error
-                return []
-            else:
-                return loop.run_until_complete(self.file_repository.list_files())
-        except RuntimeError:
-            # No event loop, create one
-            return asyncio.run(self.file_repository.list_files())
+    async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
+        return await self.file_repository.list_files()
     
-    def list_diagram_files(self, directory: str | None = None) -> list[dict[str, Any]]:
-        """Alias for list_diagrams for backward compatibility."""
-        return self.list_diagrams(directory)
+    async def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
+        await self.file_repository.write_file(path, diagram)
     
-    def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
-        """Save diagram to file."""
-        import asyncio
-        asyncio.run(self.file_repository.write_file(path, diagram))
-    
-    def create_diagram(self, name: str, diagram: dict[str, Any], format: str = "json") -> str:
+    async def create_diagram(self, name: str, diagram: dict[str, Any], format: str = "json") -> str:
         """Create a new diagram with unique filename."""
         # Determine format from parameter
         if format == "json":
@@ -88,27 +69,32 @@ class IntegratedDiagramService(DiagramPort):
         filename = f"{name}{extension}"
         
         # Ensure unique filename
-        import asyncio
         counter = 1
-        while asyncio.run(self.file_repository.exists(filename)):
+        while await self.file_repository.exists(filename):
             filename = f"{name}_{counter}{extension}"
             counter += 1
         
-        self.save_diagram(filename, diagram)
+        await self.save_diagram(filename, diagram)
         return filename
     
-    def update_diagram(self, path: str, diagram: dict[str, Any]) -> None:
+    async def update_diagram(self, path: str, diagram: dict[str, Any]) -> None:
         """Update existing diagram."""
-        import asyncio
-        if not asyncio.run(self.file_repository.exists(path)):
+        if not await self.file_repository.exists(path):
             raise FileNotFoundError(f"Diagram file not found: {path}")
         
-        self.save_diagram(path, diagram)
+        await self.save_diagram(path, diagram)
     
-    def delete_diagram(self, path: str) -> None:
-        """Delete diagram file."""
-        import asyncio
-        asyncio.run(self.file_repository.delete_file(path))
+    async def update_diagram_by_id(self, diagram_id: str, diagram: dict[str, Any]) -> None:
+        """Update diagram by ID."""
+        # Find the path for this diagram ID
+        path = await self.file_repository.find_by_id(diagram_id)
+        if not path:
+            raise FileNotFoundError(f"Diagram not found: {diagram_id}")
+        
+        await self.update_diagram(path, diagram)
+    
+    async def delete_diagram(self, path: str) -> None:
+        await self.file_repository.delete_file(path)
     
     async def save_diagram_with_id(self, diagram_dict: dict[str, Any], filename: str) -> str:
         """Save diagram with ID."""
@@ -120,27 +106,19 @@ class IntegratedDiagramService(DiagramPort):
             # Default to native format
             filename = f"{filename}.native.json"
         
+        # Ensure the diagram has an ID
+        if "id" not in diagram_dict:
+            diagram_dict["id"] = filename.split(".")[0]
+        
         await self.file_repository.write_file(filename, diagram_dict)
         
         return diagram_dict.get("id", filename)
     
     async def get_diagram(self, diagram_id: str) -> dict[str, Any] | None:
         """Get diagram by ID."""
-        # Use format service to construct search patterns
-        search_paths = self.format_service.construct_search_patterns(diagram_id)
-        
-        for path in search_paths:
-            if await self.file_repository.exists(path):
-                return await self.file_repository.read_file(path)
-        
-        # Search all files for matching ID
-        all_files = await self.file_repository.list_files()
-        for file_info in all_files:
-            try:
-                diagram = await self.file_repository.read_file(file_info["path"])
-                if diagram.get("id") == diagram_id:
-                    return diagram
-            except Exception:
-                continue
+        # First try to find by ID using repository
+        path = await self.file_repository.find_by_id(diagram_id)
+        if path:
+            return await self.file_repository.read_file(path)
         
         return None

@@ -5,15 +5,22 @@ from typing import Any
 
 from dipeo.models import (
     DomainDiagram,
+    DomainNode,
+    DomainArrow,
+    DomainHandle,
     HandleDirection,
     HandleLabel,
     NodeID,
+    NodeType,
+    ContentType,
+    DataType,
     create_handle_id,
     parse_handle_id,
     MemoryView,
 )
+from dipeo.models.conversions import node_kind_to_domain_type
 
-from dipeo.domain.diagram.utils import _node_id_map, _YamlMixin, build_node
+from dipeo.domain.diagram.utils import _node_id_map, _YamlMixin, build_node, dict_to_domain_diagram
 from .base_strategy import BaseConversionStrategy
 
 log = logging.getLogger(__name__)
@@ -271,6 +278,231 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
             arrows.append(arrow_dict)
         return arrows
+
+    # ---- Domain Conversion Overrides -------------------------------------- #
+    
+    def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Extract persons for light format with label-based structure."""
+        persons_data = data.get("persons", {})
+        if isinstance(persons_data, dict):
+            persons_dict = {}
+            for person_key, person_config in persons_data.items():
+                # Transform flat structure to nested llmConfig structure
+                llm_config = {
+                    "service": person_config.get("service", "openai"),
+                    "model": person_config.get("model", "gpt-4-mini"),
+                    "api_key_id": person_config.get("api_key_id", "default"),
+                }
+                if "system_prompt" in person_config:
+                    llm_config["system_prompt"] = person_config["system_prompt"]
+                
+                # In light format, the key is the label
+                person_id = person_config.get("id", f"person_{person_key.replace(' ', '_')}")
+                
+                person_dict = {
+                    "id": person_id,
+                    "label": person_key,  # The key is the label in light format
+                    "type": "person",
+                    "llm_config": llm_config,
+                }
+                persons_dict[person_id] = person_dict
+            return persons_dict
+        return {}
+    
+    def _apply_format_transformations(
+        self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Apply light format specific transformations."""
+        # Create person label to ID mapping
+        person_label_to_id: dict[str, str] = {}
+        if diagram_dict["persons"]:
+            for person_id, person_data in diagram_dict["persons"].items():
+                label = person_data.get("label", person_id)
+                person_label_to_id[label] = person_id
+        
+        # Resolve person labels to IDs in nodes
+        if person_label_to_id:
+            for node_id, node in diagram_dict["nodes"].items():
+                if node.get("type") == "person_job":
+                    person_ref = None
+                    if "person" in node:
+                        person_ref = node["person"]
+                        if person_ref in person_label_to_id:
+                            node["person"] = person_label_to_id[person_ref]
+                    elif "props" in node and isinstance(node["props"], dict) and "person" in node["props"]:
+                        person_ref = node["props"]["person"]
+                        if person_ref in person_label_to_id:
+                            node["props"]["person"] = person_label_to_id[person_ref]
+                    elif "data" in node and isinstance(node["data"], dict) and "person" in node["data"]:
+                        person_ref = node["data"]["person"]
+                        if person_ref in person_label_to_id:
+                            node["data"]["person"] = person_label_to_id[person_ref]
+        
+        # Generate handles for nodes without them
+        self._generate_missing_handles(diagram_dict)
+        
+        # Create handles referenced by arrows
+        self._create_arrow_handles(diagram_dict)
+        
+        # Preserve content types for condition outputs
+        self._preserve_condition_content_types(diagram_dict)
+        
+        return diagram_dict
+    
+    def _generate_missing_handles(self, diagram_dict: dict[str, Any]):
+        """Generate default handles for nodes that don't have any."""
+        from dipeo.domain.diagram.utils.shared_components import HandleGenerator
+        handle_generator = HandleGenerator()
+        
+        for node_id, node in diagram_dict["nodes"].items():
+            # Check if this node has any handles
+            node_has_handles = any(
+                handle.get("nodeId") == node_id or handle.get("node_id") == node_id
+                for handle in diagram_dict["handles"].values()
+            )
+            if not node_has_handles:
+                # Convert node type string to enum
+                node_type_str = node.get("type", "job")
+                try:
+                    node_type = node_kind_to_domain_type(node_type_str)
+                except ValueError:
+                    node_type = NodeType.job
+                
+                handle_generator.generate_for_node(
+                    diagram_dict, node_id, node_type
+                )
+    
+    def _create_arrow_handles(self, diagram_dict: dict[str, Any]):
+        """Create handles referenced by arrows but not yet defined."""
+        nodes_dict = diagram_dict["nodes"]
+        
+        for arrow_id, arrow in diagram_dict["arrows"].items():
+            # Process source handle
+            if "_" in arrow.get("source", ""):
+                self._ensure_handle_exists(
+                    arrow["source"], 
+                    HandleDirection.output, 
+                    nodes_dict, 
+                    diagram_dict["handles"],
+                    arrow
+                )
+            
+            # Process target handle  
+            if "_" in arrow.get("target", ""):
+                self._ensure_handle_exists(
+                    arrow["target"],
+                    HandleDirection.input,
+                    nodes_dict,
+                    diagram_dict["handles"],
+                    arrow
+                )
+    
+    def _ensure_handle_exists(
+        self, 
+        handle_ref: str,
+        direction: HandleDirection,
+        nodes_dict: dict[str, Any],
+        handles_dict: dict[str, Any],
+        arrow: dict[str, Any]
+    ):
+        """Ensure a handle exists, creating it if necessary."""
+        # Check if it's already a full handle ID
+        parts = handle_ref.split("_")
+        if len(parts) >= 3 and parts[-1] in ["input", "output"]:
+            return
+        
+        # Parse light format handle reference
+        node_id = None
+        handle_name = "default"
+        
+        # Try to match against node labels
+        for nid, node in nodes_dict.items():
+            node_label = node.get("data", {}).get("label", nid) if "data" in node else nid
+            for possible_handle in ["first", "default", "condtrue", "condfalse"]:
+                if handle_ref == f"{node_label}_{possible_handle}":
+                    node_id = nid
+                    handle_name = possible_handle
+                    break
+            if node_id:
+                break
+        
+        # Fall back to simple split
+        if not node_id:
+            parts = handle_ref.rsplit("_", 1)
+            if len(parts) == 2:
+                node_label_or_id, handle_name = parts
+                node_id = next(
+                    (nid for nid, node in nodes_dict.items() 
+                     if nid == node_label_or_id or 
+                     ("data" in node and node["data"].get("label") == node_label_or_id)),
+                    node_label_or_id
+                )
+            else:
+                node_id = handle_ref
+                handle_name = "default"
+        
+        # Validate and create handle if needed
+        if handle_name in ["input", "output"]:
+            handle_name = "default"
+        
+        try:
+            handle_label = HandleLabel(handle_name)
+        except ValueError:
+            handle_label = handle_name
+        
+        # Find actual node ID (case-insensitive)
+        actual_node_id = next(
+            (n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), 
+            node_id
+        )
+        
+        expected_handle_id = create_handle_id(actual_node_id, handle_label, direction)
+        
+        if expected_handle_id not in handles_dict:
+            # Create the handle
+            handles_dict[expected_handle_id] = {
+                "id": expected_handle_id,
+                "node_id": actual_node_id,
+                "label": str(handle_label),
+                "direction": direction.value,
+                "data_type": DataType.any.value,
+                "position": "right" if direction == HandleDirection.output else "left",
+            }
+        
+        # Update arrow to use the correct handle ID
+        if direction == HandleDirection.output:
+            arrow["source"] = expected_handle_id
+        else:
+            arrow["target"] = expected_handle_id
+    
+    def _preserve_condition_content_types(self, diagram_dict: dict[str, Any]):
+        """Preserve content types for arrows from condition nodes."""
+        nodes_dict = diagram_dict["nodes"]
+        arrows_dict = diagram_dict["arrows"]
+        
+        for arrow_id, arrow in arrows_dict.items():
+            if arrow.get("source"):
+                try:
+                    # Parse source handle
+                    node_id, handle_label, direction = parse_handle_id(arrow["source"])
+                    source_node = nodes_dict.get(node_id)
+                    
+                    # If source is from condition node's condtrue/condfalse
+                    if (source_node and 
+                        source_node.get("type") == "condition" and 
+                        handle_label.value in ["condtrue", "condfalse"]):
+                        # Find input content types
+                        input_content_types = []
+                        for other_arrow in arrows_dict.values():
+                            if other_arrow.get("target") and node_id in other_arrow["target"]:
+                                if other_arrow.get("content_type"):
+                                    input_content_types.append(other_arrow["content_type"])
+                        
+                        # Preserve if all inputs have same type
+                        if input_content_types and all(ct == input_content_types[0] for ct in input_content_types):
+                            arrow["content_type"] = input_content_types[0]
+                except Exception:
+                    pass
 
     # ---- export ----------------------------------------------------------- #
     def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
