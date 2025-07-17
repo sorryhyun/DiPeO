@@ -154,7 +154,6 @@ class Query:
         checks["redis"] = False
 
         try:
-
             (FILES_DIR / "diagrams").exists()
             checks["file_system"] = True
         except:
@@ -263,7 +262,7 @@ class Query:
 
     @strawberry.field
     async def supported_formats(self, info) -> list[DiagramFormatInfo]:
-        from dipeo.diagram import converter_registry
+        from dipeo.infra.diagram import converter_registry
 
         formats = converter_registry.list_formats()
         return [

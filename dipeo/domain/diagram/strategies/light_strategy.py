@@ -13,8 +13,7 @@ from dipeo.models import (
     MemoryView,
 )
 
-from ..conversion_utils import _node_id_map, _YamlMixin
-from ..shared_components import build_node
+from dipeo.domain.diagram.utils import _node_id_map, _YamlMixin, build_node
 from .base_strategy import BaseConversionStrategy
 
 log = logging.getLogger(__name__)
@@ -119,7 +118,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                     },
                     "GOLDFISH": {
                         "view": MemoryView.conversation_pairs,
-                        "max_messages": 1,
+                        "max_messages": 2,
                         "preserve_system": False
                     }
                 }

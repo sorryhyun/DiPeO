@@ -8,7 +8,7 @@ from dipeo.application.services.apikey_service import APIKeyService as APIKeyDom
 from dipeo.application.services.diagram_service import DiagramService as DiagramStorageDomainService
 from dipeo.core import BaseService, ValidationError
 from dipeo.core.static import ExecutableDiagram
-from dipeo.diagram import (
+from dipeo.domain.diagram.utils import (
     dict_to_domain_diagram,
     domain_diagram_to_dict,
 )

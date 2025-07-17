@@ -73,7 +73,9 @@ class StateRegistry:
     async def _connect(self):
         print(f"[StateRegistry] Attempting to connect to database at: {self.db_path}")
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        print(f"[StateRegistry] Database directory created/verified: {Path(self.db_path).parent}")
+        print(
+            f"[StateRegistry] Database directory created/verified: {Path(self.db_path).parent}"
+        )
 
         loop = asyncio.get_event_loop()
 
@@ -104,7 +106,9 @@ class StateRegistry:
     async def _execute(self, *args, **kwargs):
         """Execute a database operation in the dedicated thread."""
         if self._conn is None:
-            raise RuntimeError("StateRegistry not initialized. Call initialize() first.")
+            raise RuntimeError(
+                "StateRegistry not initialized. Call initialize() first."
+            )
 
         # Ensure executor is available
         if self._executor._shutdown:
@@ -185,10 +189,14 @@ class StateRegistry:
         column_names = [col[1] for col in columns]
 
         # Add missing columns if needed (for existing databases)
-        if 'exec_counts' not in column_names:
-            await self._execute("ALTER TABLE execution_states ADD COLUMN exec_counts TEXT NOT NULL DEFAULT '{}'")
-        if 'executed_nodes' not in column_names:
-            await self._execute("ALTER TABLE execution_states ADD COLUMN executed_nodes TEXT NOT NULL DEFAULT '[]'")
+        if "exec_counts" not in column_names:
+            await self._execute(
+                "ALTER TABLE execution_states ADD COLUMN exec_counts TEXT NOT NULL DEFAULT '{}'"
+            )
+        if "executed_nodes" not in column_names:
+            await self._execute(
+                "ALTER TABLE execution_states ADD COLUMN executed_nodes TEXT NOT NULL DEFAULT '[]'"
+            )
 
     async def create_execution(
         self,
@@ -202,7 +210,9 @@ class StateRegistry:
         exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
         diag_id = None
         if diagram_id:
-            diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+            diag_id = (
+                DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+            )
 
         now = datetime.now().isoformat()
         state = ExecutionState(
@@ -225,6 +235,8 @@ class StateRegistry:
         return state
 
     async def save_state(self, state: ExecutionState):
+        await self._ensure_initialized()
+
         # Update cache for active executions
         if state.is_active:
             await self._execution_cache.set(state.id, state)
@@ -296,12 +308,14 @@ class StateRegistry:
             "ended_at": row[4],
             "node_states": json.loads(row[5]) if row[5] else {},
             "node_outputs": json.loads(row[6]) if row[6] else {},
-            "token_usage": json.loads(row[7]) if row[7] else {"input": 0, "output": 0, "cached": None, "total": 0},
+            "token_usage": json.loads(row[7])
+            if row[7]
+            else {"input": 0, "output": 0, "cached": None, "total": 0},
             "error": row[8],
             "variables": json.loads(row[9]) if row[9] else {},
             "exec_counts": json.loads(row[10]) if len(row) > 10 and row[10] else {},
             "executed_nodes": json.loads(row[11]) if len(row) > 11 and row[11] else [],
-            "is_active": False  # Loaded from DB means it's not active
+            "is_active": False,  # Loaded from DB means it's not active
         }
 
         # Create ExecutionState from the data
@@ -349,7 +363,7 @@ class StateRegistry:
             raise ValueError(f"Execution {execution_id} not found")
 
         # Handle protocol outputs vs raw outputs
-        if hasattr(output, '__class__') and hasattr(output, 'to_dict'):
+        if hasattr(output, "__class__") and hasattr(output, "to_dict"):
             # It's already a protocol output, serialize it
             serialized_output = serialize_protocol(output)
         elif isinstance(output, dict) and "_protocol_type" in output:
@@ -363,7 +377,7 @@ class StateRegistry:
             wrapped_output = BaseNodeOutput(
                 value={"default": str(output)} if is_exception else output,
                 node_id=NodeID(node_id),
-                error=str(output) if is_exception else None
+                error=str(output) if is_exception else None,
             )
             serialized_output = serialize_protocol(wrapped_output)
 
@@ -521,12 +535,16 @@ class StateRegistry:
                 "ended_at": row[4],
                 "node_states": json.loads(row[5]) if row[5] else {},
                 "node_outputs": json.loads(row[6]) if row[6] else {},
-                "token_usage": json.loads(row[7]) if row[7] else {"input": 0, "output": 0, "cached": None, "total": 0},
+                "token_usage": json.loads(row[7])
+                if row[7]
+                else {"input": 0, "output": 0, "cached": None, "total": 0},
                 "error": row[8],
                 "variables": json.loads(row[9]) if row[9] else {},
                 "exec_counts": json.loads(row[10]) if len(row) > 10 and row[10] else {},
-                "executed_nodes": json.loads(row[11]) if len(row) > 11 and row[11] else [],
-                "is_active": False  # Loaded from DB means it's not active
+                "executed_nodes": json.loads(row[11])
+                if len(row) > 11 and row[11]
+                else [],
+                "is_active": False,  # Loaded from DB means it's not active
             }
 
             # Create ExecutionState from the data
@@ -560,7 +578,9 @@ class StateRegistry:
         exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
         diag_id = None
         if diagram_id:
-            diag_id = DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+            diag_id = (
+                DiagramID(diagram_id) if isinstance(diagram_id, str) else diagram_id
+            )
 
         now = datetime.now().isoformat()
         state = ExecutionState(
@@ -593,4 +613,3 @@ class StateRegistry:
 
         # Remove from cache after persisting
         await self._execution_cache.remove(state.id)
-

@@ -120,8 +120,6 @@ class NodeStateType:
     pass
 
 
-
-
 @strawberry.experimental.pydantic.type(
     DomainHandle, fields=["label", "direction", "data_type", "position"]
 )

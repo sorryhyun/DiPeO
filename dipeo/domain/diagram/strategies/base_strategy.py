@@ -8,8 +8,8 @@ from typing import Any
 
 from dipeo.models import DomainDiagram
 
-from ..base import FormatStrategy
-from ..shared_components import (
+from dipeo.core.ports import FormatStrategy
+from dipeo.domain.diagram.utils import (
     ensure_position,
     extract_common_arrows,
 )

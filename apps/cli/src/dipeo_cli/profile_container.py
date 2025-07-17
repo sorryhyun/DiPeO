@@ -11,12 +11,14 @@ import click
 # Going up 4 levels to reach project root
 try:
     from dipeo.core.constants import BASE_DIR
+
     project_root = BASE_DIR
 except ImportError:
     # Fallback if dipeo is not in path yet
     project_root = Path(__file__).resolve().parents[4]
     sys.path.insert(0, str(project_root))
     from dipeo.core.constants import BASE_DIR
+
     project_root = BASE_DIR
 
 from dipeo.container import Container
@@ -25,11 +27,18 @@ from dipeo.container.utilities import init_resources, shutdown_resources
 
 
 @click.command()
-@click.option('--profile', type=click.Choice(['full', 'edit', 'execution', 'analysis', 'cli']),
-              default='full', help='Container profile to use')
-@click.option('--repeat', type=int, default=1, help='Number of times to repeat the profiling')
+@click.option(
+    "--profile",
+    type=click.Choice(["full", "edit", "execution", "analysis", "cli"]),
+    default="full",
+    help="Container profile to use",
+)
+@click.option(
+    "--repeat", type=int, default=1, help="Number of times to repeat the profiling"
+)
 def profile_container(profile: str, repeat: int):
     """Profile container initialization performance."""
+
     async def run_profiling():
         times = []
 
@@ -40,7 +49,9 @@ def profile_container(profile: str, repeat: int):
                 container = Container()
 
                 # Initialize resources with profiling
-                async with profiler.profile_async("Container.init_resources", profile=profile):
+                async with profiler.profile_async(
+                    "Container.init_resources", profile=profile
+                ):
                     await init_resources(container)
 
                 # Get results
@@ -66,5 +77,5 @@ def profile_container(profile: str, repeat: int):
     asyncio.run(run_profiling())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     profile_container()

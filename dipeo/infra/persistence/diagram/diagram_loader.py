@@ -3,8 +3,8 @@
 from typing import Any
 
 from dipeo.core.ports import FileServicePort
-from dipeo.diagram import dict_to_domain_diagram
-from dipeo.diagram.unified_converter import UnifiedDiagramConverter
+from dipeo.domain.diagram.utils import dict_to_domain_diagram
+from dipeo.infra.diagram.unified_converter import UnifiedDiagramConverter
 from dipeo.models import DiagramFormat, DomainDiagram
 
 

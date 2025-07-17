@@ -21,14 +21,14 @@ DomainDiagram.model_rebuild()
 from dipeo.models import create_handle_id
 from dipeo.models.conversions import node_kind_to_domain_type
 
-from .base import DiagramConverter, FormatStrategy
-from .conversion_utils import dict_to_domain_diagram
-from .shared_components import (
+from dipeo.core.ports import DiagramConverter, FormatStrategy
+from dipeo.domain.diagram.utils import dict_to_domain_diagram
+from dipeo.domain.diagram.utils.shared_components import (
     ArrowBuilder,
     HandleGenerator,
     PositionCalculator,
 )
-from .strategies import LightYamlStrategy, NativeJsonStrategy, ReadableYamlStrategy
+from dipeo.domain.diagram.strategies import LightYamlStrategy, NativeJsonStrategy, ReadableYamlStrategy
 
 logger = logging.getLogger(__name__)
 

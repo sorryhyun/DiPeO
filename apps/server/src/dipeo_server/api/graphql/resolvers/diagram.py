@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 
 import yaml
-from dipeo.diagram import converter_registry
+from dipeo.infra.diagram import converter_registry
 from dipeo.infra.persistence.diagram import DiagramFileRepository
 from dipeo.models import DiagramMetadata, DomainDiagram
 
@@ -32,8 +32,8 @@ class DiagramResolver:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
 
             # Use storage service to find and load diagram data
-            storage_service: DiagramFileRepository = (
-                info.context.get_service("diagram_storage_service")
+            storage_service: DiagramFileRepository = info.context.get_service(
+                "diagram_storage_service"
             )
 
             # Find the diagram file
@@ -108,8 +108,8 @@ class DiagramResolver:
         """Returns filtered diagram list."""
         try:
             # Use new storage service
-            storage_service: DiagramFileRepository = (
-                info.context.get_service("diagram_storage_service")
+            storage_service: DiagramFileRepository = info.context.get_service(
+                "diagram_storage_service"
             )
 
             file_infos = await storage_service.list_files()

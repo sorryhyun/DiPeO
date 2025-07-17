@@ -12,8 +12,7 @@ from dipeo.models import (
     parse_handle_id,
 )
 
-from ..conversion_utils import _node_id_map, _YamlMixin
-from ..shared_components import build_node
+from dipeo.domain.diagram.utils import _node_id_map, _YamlMixin, build_node
 from .base_strategy import BaseConversionStrategy
 
 log = logging.getLogger(__name__)

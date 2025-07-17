@@ -94,28 +94,76 @@ const TopBar = () => {
       let filename: string;
       
       if (diagramId) {
-        // If we have an existing diagram ID, preserve its directory structure
+        // Parse the diagram ID to extract directory and base filename
         const pathParts = diagramId.split('/');
-        const originalFilename = pathParts[pathParts.length - 1] || '';
+        const fullFilename = pathParts[pathParts.length - 1] || '';
+        const directories = pathParts.slice(0, -1);
         
-        // Remove any format-specific extensions from the original filename
-        let baseName = originalFilename
-          .replace(/\.(native|light|readable)\.(json|yaml|yml)$/, '')
-          .replace(/\.(json|yaml|yml)$/, '');
+        // Extract base name by removing ALL known extensions patterns
+        let baseName = fullFilename;
         
-        // If the name has changed, use the new name
-        if (finalName !== baseName && finalName !== 'diagram') {
-          baseName = finalName;
+        // Remove format-specific double extensions first (e.g., .light.yaml, .readable.yaml)
+        const formatExtensionRemoved = baseName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
+        if (formatExtensionRemoved !== baseName) {
+          baseName = formatExtensionRemoved;
+        } else {
+          // If no format-specific extension, just remove the file extension
+          baseName = baseName.replace(/\.(json|yaml|yml)$/i, '');
         }
         
-        // Generate new filename with appropriate extension
-        const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
-        filename = `${baseName}.${extension}`;
+        // If nothing was removed (edge case), use everything before the last dot
+        if (baseName === fullFilename && fullFilename.includes('.')) {
+          baseName = fullFilename.substring(0, fullFilename.lastIndexOf('.'));
+        }
         
-        // Reconstruct the path preserving directory structure
-        if (pathParts.length > 1) {
-          savePath = [...pathParts.slice(0, -1), filename].join('/');
+        // Use the user-provided name if it's different from the extracted base name
+        if (finalName.trim() && finalName !== 'diagram' && finalName !== baseName) {
+          // Extract just the filename part from finalName (in case user entered a path)
+          const finalNameParts = finalName.split('/');
+          const finalNameOnly = finalNameParts[finalNameParts.length - 1];
+          
+          // Remove extensions from the final name as well
+          let cleanFinalName = finalNameOnly;
+          const formatExtRemoved = cleanFinalName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
+          if (formatExtRemoved !== cleanFinalName) {
+            cleanFinalName = formatExtRemoved;
+          } else {
+            cleanFinalName = cleanFinalName.replace(/\.(json|yaml|yml)$/i, '');
+          }
+          
+          // If still has extension, remove it
+          if (cleanFinalName.includes('.') && cleanFinalName === finalNameOnly) {
+            cleanFinalName = cleanFinalName.substring(0, cleanFinalName.lastIndexOf('.'));
+          }
+          
+          baseName = cleanFinalName;
+        }
+        
+        // Generate filename based on selected format
+        if (selectedFormat === DiagramFormat.NATIVE) {
+          filename = `${baseName}.json`;
+        } else if (selectedFormat === DiagramFormat.LIGHT) {
+          filename = `${baseName}.light.yaml`;
+        } else if (selectedFormat === DiagramFormat.READABLE) {
+          filename = `${baseName}.readable.yaml`;
         } else {
+          filename = `${baseName}.yaml`;
+        }
+        
+        // Reconstruct the path
+        if (directories.length > 0) {
+          // Check if we're in a format-specific directory that needs to be changed
+          const lastDir = directories[directories.length - 1];
+          if (lastDir === 'light' || lastDir === 'readable' || lastDir === 'native') {
+            // Replace the format directory with the new format
+            const newFormatDir = selectedFormat.toLowerCase();
+            savePath = [...directories.slice(0, -1), newFormatDir, filename].join('/');
+          } else {
+            // Keep the existing directory structure
+            savePath = [...directories, filename].join('/');
+          }
+        } else {
+          // No directory, just use the filename
           savePath = filename;
         }
       } else {
@@ -159,9 +207,12 @@ const TopBar = () => {
       // Extract directory and filename from savePath
       const savePathParts = savePath.split('/');
       const saveFilename = savePathParts[savePathParts.length - 1];
-      const category = savePathParts.length > 1 
-        ? `diagrams/${savePathParts.slice(0, -1).join('/')}`
-        : 'diagrams';
+      // For diagrams, we need to include 'diagrams/' as the base,
+      // then the subdirectory if any (without duplicating 'diagrams/')
+      const subdirectory = savePathParts.length > 1 
+        ? savePathParts.slice(0, -1).join('/')
+        : '';
+      const category = subdirectory ? `diagrams/${subdirectory}` : 'diagrams';
       
       // Create a File object from the converted content
       const file = new File([convertedContent], saveFilename || 'diagram.yaml', { 

@@ -52,7 +52,7 @@ class DiagramMutations:
             )
 
             # Use new services - convert to storage format
-            from dipeo.diagram import domain_diagram_to_dict
+            from dipeo.domain.diagram.utils import domain_diagram_to_dict
 
             storage_dict = domain_diagram_to_dict(diagram_model)
             path = f"{input.name}.json"

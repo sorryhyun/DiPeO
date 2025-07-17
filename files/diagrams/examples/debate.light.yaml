@@ -7,8 +7,8 @@ nodes:
     default_prompt: Argue against the argument.
     first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
     max_iteration: 2
-    person: Optimist
     memory_profile: GOLDFISH
+    person: Optimist
 - label: End
   type: endpoint
   position: {x: 58, y: 668}
@@ -30,8 +30,8 @@ nodes:
     default_prompt: Argue against the argument.
     first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
     max_iteration: 3
-    person: Pessimist
     memory_profile: GOLDFISH
+    person: Pessimist
 - label: Start
   type: start
   position: {x: 279, y: 406}
@@ -53,14 +53,18 @@ nodes:
 connections:
 - from: db
   to: Optimist topic_first
+  content_type: raw_text
   label: topic
 - from: db
   to: Pessimist topic_first
+  content_type: raw_text
   label: topic
 - from: Start
   to: db
+  content_type: raw_text
 - from: Judge panel
   to: End
+  content_type: raw_text
 - from: Condition_condtrue
   to: Judge panel
   content_type: conversation_state
@@ -72,7 +76,7 @@ connections:
   content_type: conversation_state
 - from: Condition_condfalse
   to: Optimist topic
-  content_type: variable
+  content_type: conversation_state
 persons:
   Judge:
     service: openai

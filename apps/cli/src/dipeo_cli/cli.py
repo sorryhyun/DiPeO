@@ -19,23 +19,23 @@ class DiPeOCLI:
     def __init__(self):
         self.server = ServerManager()
 
-    def resolve_diagram_path(
-        self, diagram: str, format_type: str | None = None
-    ) -> str:
+    def resolve_diagram_path(self, diagram: str, format_type: str | None = None) -> str:
         """Resolve diagram path based on format type."""
         # If it's an absolute path or starts with files/, use as-is
         path = Path(diagram)
         if path.is_absolute() or diagram.startswith("files/"):
             return diagram
-        
+
         # If it has a file extension, check if it exists relative to current dir
-        if diagram.endswith((".json", ".yaml", ".yml", ".native.json", ".light.yaml", ".readable.yaml")):
+        if diagram.endswith(
+            (".json", ".yaml", ".yml", ".native.json", ".light.yaml", ".readable.yaml")
+        ):
             if Path(diagram).exists():
                 return diagram
 
         # Otherwise, construct path based on format within diagrams directory
         diagrams_dir = FILES_DIR / "diagrams"
-        
+
         if not format_type:
             # Try to find the diagram with new extensions first
             new_extensions = [
@@ -43,13 +43,13 @@ class DiPeOCLI:
                 (".light.yaml", "light"),
                 (".readable.yaml", "readable"),
             ]
-            
+
             # Check new extension format
             for ext, _ in new_extensions:
                 path = diagrams_dir / f"{diagram}{ext}"
                 if path.exists():
                     return str(path)
-            
+
             # Fallback to old format (backward compatibility)
             for fmt, ext in [
                 ("native", ".json"),
@@ -59,12 +59,14 @@ class DiPeOCLI:
                 # Handle subdirectories in old format
                 if "/" in diagram:
                     parts = diagram.split("/")
-                    old_path = diagrams_dir / fmt / "/".join(parts[:-1]) / f"{parts[-1]}{ext}"
+                    old_path = (
+                        diagrams_dir / fmt / "/".join(parts[:-1]) / f"{parts[-1]}{ext}"
+                    )
                 else:
                     old_path = diagrams_dir / fmt / f"{diagram}{ext}"
                 if old_path.exists():
                     return str(old_path)
-                    
+
             raise FileNotFoundError(f"Diagram '{diagram}' not found in any format")
 
         # Use specified format
@@ -79,7 +81,7 @@ class DiPeOCLI:
         path = diagrams_dir / f"{diagram}{ext}"
         if path.exists():
             return str(path)
-            
+
         # Fallback to old format
         old_format_map = {
             "light": ("light", ".yaml"),
@@ -90,12 +92,14 @@ class DiPeOCLI:
         # Handle subdirectories in old format
         if "/" in diagram:
             parts = diagram.split("/")
-            old_path = diagrams_dir / fmt_dir / "/".join(parts[:-1]) / f"{parts[-1]}{old_ext}"
+            old_path = (
+                diagrams_dir / fmt_dir / "/".join(parts[:-1]) / f"{parts[-1]}{old_ext}"
+            )
         else:
             old_path = diagrams_dir / fmt_dir / f"{diagram}{old_ext}"
         if old_path.exists():
             return str(old_path)
-            
+
         # If neither exists, return the new format path (for creating new files)
         return str(path)
 
@@ -109,7 +113,10 @@ class DiPeOCLI:
             content = f.read()
 
         # Parse based on extension
-        if str(path).endswith((".light.yaml", ".readable.yaml")) or path.suffix in [".yaml", ".yml"]:
+        if str(path).endswith((".light.yaml", ".readable.yaml")) or path.suffix in [
+            ".yaml",
+            ".yml",
+        ]:
             return yaml.safe_load(content)
         elif str(path).endswith(".native.json") or path.suffix == ".json":
             return json.loads(content)

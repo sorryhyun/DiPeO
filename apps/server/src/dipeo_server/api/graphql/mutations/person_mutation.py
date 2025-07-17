@@ -303,7 +303,9 @@ class PersonMutations:
 
             # Validate API key exists
             try:
-                api_key_data = context.get_service("api_key_service").get_api_key(api_key_id)
+                api_key_data = context.get_service("api_key_service").get_api_key(
+                    api_key_id
+                )
                 service_str = api_key_data["service"]
             except Exception:
                 return PersonResult(

@@ -4,7 +4,7 @@ import logging
 import uuid
 
 import strawberry
-from dipeo.diagram import dict_to_domain_diagram
+from dipeo.domain.diagram.utils import dict_to_domain_diagram
 from dipeo.models import (
     ArrowID as DomainArrowID,
 )

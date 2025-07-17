@@ -41,9 +41,11 @@ class ServerManager:
 
         # Start server process
         env = {
-            **subprocess.os.environ, 
+            **subprocess.os.environ,
             "LOG_LEVEL": "DEBUG" if debug else "INFO",
-            "DIPEO_BASE_DIR": str(BASE_DIR)  # Ensure server uses correct base directory
+            "DIPEO_BASE_DIR": str(
+                BASE_DIR
+            ),  # Ensure server uses correct base directory
         }
 
         self.process = subprocess.Popen(

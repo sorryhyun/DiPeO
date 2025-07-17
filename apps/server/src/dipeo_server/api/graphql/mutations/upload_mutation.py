@@ -9,10 +9,8 @@ from typing import Any
 
 import strawberry
 from dipeo.application.services.apikey_service import APIKeyService
-from dipeo.diagram import (
-    converter_registry,
-    dict_to_domain_diagram,
-)
+from dipeo.infra.diagram import converter_registry
+from dipeo.domain.diagram.utils import dict_to_domain_diagram
 from dipeo.models import (
     DiagramMetadata,
     DomainDiagram,
@@ -222,9 +220,7 @@ class UploadMutations:
             api_key_service = context.get_service("api_key_service")
             validation_errors = validate_diagram(
                 domain_diagram,
-                api_key_service
-                if isinstance(api_key_service, APIKeyService)
-                else None,
+                api_key_service if isinstance(api_key_service, APIKeyService) else None,
             )
 
             if validation_errors:

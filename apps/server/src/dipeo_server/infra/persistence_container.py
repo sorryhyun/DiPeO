@@ -14,6 +14,7 @@ def _create_initialized_state_store():
     """Create and initialize the state store."""
     # Import the class instead of the singleton instance
     from dipeo_server.infra.persistence.state_registry import StateRegistry
+
     # Create a new instance that will be initialized by init_resources
     return StateRegistry()
 
@@ -27,6 +28,7 @@ def _create_server_api_key_storage():
 def _create_server_api_key_service():
     """Create API key service with server-specific storage."""
     from dipeo.application.services.apikey_service import APIKeyService
+
     storage = _create_server_api_key_storage()
     return APIKeyService(storage=storage)
 
