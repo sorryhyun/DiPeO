@@ -99,10 +99,13 @@ class Settings:
         if base_dir := os.getenv("DIPEO_BASE_DIR"):
             return Path(base_dir)
 
-        # Try to find project root by looking for pyproject.toml
+        # Try to find project root by looking for root pyproject.toml
+        # This ensures we find the actual project root, not any sub-project
         current = Path.cwd()
         while current != current.parent:
-            if (current / "pyproject.toml").exists():
+            # Check for root-level indicators
+            if (current / "pyproject.toml").exists() and (current / "dipeo").exists():
+                # This is the project root (has both pyproject.toml and dipeo directory)
                 return current
             current = current.parent
 

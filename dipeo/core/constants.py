@@ -10,10 +10,21 @@ if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     # Running in a PyInstaller bundle - use executable directory
     BASE_DIR: Path = Path(sys.executable).parent.resolve()
 else:
-    # Normal execution - go up from dipeo/core/constants.py to project root
-    BASE_DIR: Path = Path(
-        os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[2].as_posix())
-    ).resolve()
+    # Normal execution - find project root by looking for root pyproject.toml
+    # Start from dipeo/core/constants.py and go up
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        # Check for root-level indicators
+        if (current / "pyproject.toml").exists() and (current / "dipeo").exists():
+            # This is the project root (has both pyproject.toml and dipeo directory)
+            BASE_DIR: Path = current
+            break
+        current = current.parent
+    else:
+        # Fallback to environment variable or default
+        BASE_DIR: Path = Path(
+            os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[2].as_posix())
+        ).resolve()
 
 # Unified file storage directories (no mkdir here - let apps create as needed)
 FILES_DIR: Path = BASE_DIR / "files"
