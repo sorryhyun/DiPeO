@@ -11,7 +11,7 @@ from dipeo.models import (
 )
 
 from ..context import GraphQLContext
-from ..types import (
+from ..generated_types import (
     ExecuteDiagramInput,
     ExecutionControlInput,
     ExecutionResult,

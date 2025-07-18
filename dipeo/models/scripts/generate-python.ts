@@ -76,7 +76,7 @@ class PythonGenerator {
 
     // ─── arrays (T[]  /  Array<T>) ─────────────────────────────────
     const arr = ts.match(RE.ARRAY) || ts.match(RE.GENERIC);
-    if (arr) {
+    if (arr && arr[1]) {
       const inner = this.py(arr[1]);
       this.add('typing', 'List');
       const T = `List[${inner}]`;
@@ -87,8 +87,8 @@ class PythonGenerator {
     const mapRec = (kw: 'Map' | 'Record') => {
       const m = ts.match(new RegExp(`^${kw}<([^,]+),\\s*(.+)>$`));
       if (!m) return;
-      const k = BRANDED_IDS.includes(m[1] as any) || m[1] === 'string' ? 'str' : this.py(m[1]);
-      const v = this.py(m[2]);
+      const k = BRANDED_IDS.includes(m[1] as any) || m[1] === 'string' ? 'str' : this.py(m[1] || 'str');
+      const v = this.py(m[2] || 'Any');
       this.add('typing', 'Dict');
       const T = `Dict[${k}, ${v}]`;
       return save(opt ? this.optional(T) : T);
@@ -117,7 +117,7 @@ class PythonGenerator {
       const pieces = ts.split('|').map(p => p.trim()).filter(p => !['undefined', 'null'].includes(p));
       const uniq = [...new Set(pieces.map(p => this.py(p)))];
       if (uniq.length === 0) return save('None'); // All parts were undefined/null
-      if (uniq.length === 1) return save(opt ? this.optional(uniq[0]) : uniq[0]);
+      if (uniq.length === 1) return save(opt ? this.optional(uniq[0] || 'Any') : (uniq[0] || 'Any'));
       this.add('typing', 'Union');
       const T = `Union[${uniq.join(', ')}]`;
       return save(opt ? this.optional(T) : T);

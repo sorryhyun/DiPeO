@@ -6,7 +6,7 @@ import strawberry
 from dipeo.models import DomainApiKey
 
 from ..context import GraphQLContext
-from ..types import (
+from ..generated_types import (
     ApiKeyID,
     ApiKeyResult,
     CreateApiKeyInput,

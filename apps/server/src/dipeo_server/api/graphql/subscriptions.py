@@ -9,7 +9,7 @@ import strawberry
 from dipeo.models import ExecutionStatus, NodeType
 
 from .context import GraphQLContext
-from .types import (
+from .generated_types import (
     DiagramID,
     DomainDiagramType,
     ExecutionID,

@@ -153,3 +153,5 @@ yarn.lock
 /apps/server/test-paths.py
 /build-with-rust.bat
 /files/test/
+/apps/server/src/dipeo_server/api/graphql/generated-schema.graphql
+/apps/server/src/dipeo_server/api/graphql/generated_types.py

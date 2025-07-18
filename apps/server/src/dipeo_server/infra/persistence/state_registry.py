@@ -114,7 +114,7 @@ class StateRegistry:
         # (to avoid circular dependency when _execute is called from _init_schema)
         if not self._initializing:
             await self._ensure_initialized()
-        
+
         if self._conn is None:
             raise RuntimeError(
                 "StateRegistry not initialized. Call initialize() first."

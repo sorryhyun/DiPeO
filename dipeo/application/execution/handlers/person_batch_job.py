@@ -325,11 +325,48 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
                 messages.append({"role": role, "content": msg.content})
 
         # Call LLM
-        result: ChatResult = await llm_service.complete(
-            messages=messages,
-            model=person.llm_config.model if person.llm_config else "gpt-4.1-nano",
-            api_key_id=person.llm_config.api_key_id if person.llm_config else None,
-        )
+        llm_kwargs = {
+            "messages": messages,
+            "model": person.llm_config.model if person.llm_config else "gpt-4.1-nano",
+            "api_key_id": person.llm_config.api_key_id if person.llm_config else None,
+        }
+        
+        # Add tools if configured
+        if node.tools:
+            # Convert tools to proper format if needed
+            from dipeo.models import ToolConfig, ToolType
+            
+            tool_configs = []
+            # Handle both string array and ToolConfig array formats
+            for tool in node.tools:
+                if isinstance(tool, str):
+                    # Convert string to ToolConfig
+                    if tool in ['web_search', 'web_search_preview']:
+                        tool_configs.append(ToolConfig(
+                            type=ToolType.web_search_preview,
+                            enabled=True
+                        ))
+                    elif tool == 'image_generation':
+                        tool_configs.append(ToolConfig(
+                            type=ToolType.image_generation,
+                            enabled=True
+                        ))
+                    elif tool == 'voice':
+                        tool_configs.append(ToolConfig(
+                            type=ToolType.voice,
+                            enabled=True
+                        ))
+                elif isinstance(tool, dict):
+                    # Already a dict, convert to ToolConfig
+                    tool_configs.append(ToolConfig(**tool))
+                else:
+                    # Already a ToolConfig
+                    tool_configs.append(tool)
+            
+            if tool_configs:
+                llm_kwargs["tools"] = tool_configs
+        
+        result: ChatResult = await llm_service.complete(**llm_kwargs)
 
         # Store response
         prompt_builder.assistant(result.text)

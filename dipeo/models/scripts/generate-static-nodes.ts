@@ -156,8 +156,9 @@ class StaticNodeGenerator {
     }
     
     // Direct mapping
-    if (TS_TO_PY_TYPE[tsType]) {
-      return TS_TO_PY_TYPE[tsType];
+    const mapped = TS_TO_PY_TYPE[tsType];
+    if (mapped) {
+      return mapped;
     }
     
     // Handle arrays

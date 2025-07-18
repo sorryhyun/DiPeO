@@ -65,6 +65,9 @@ def _create_unified_service_registry(
     template_processor,
     # Dynamic services
     conversation_manager,
+    person_manager,
+    tool_configuration_service,
+    output_builder,
 ):
     """Factory for UnifiedServiceRegistry.
     
@@ -104,6 +107,9 @@ def _create_unified_service_registry(
     # Dynamic services
     registry.register("conversation_service", conversation_manager)
     registry.register("conversation_manager", conversation_manager)
+    registry.register("person_manager", person_manager)
+    registry.register("tool_config_service", tool_configuration_service)
+    registry.register("output_builder", output_builder)
     
     # Legacy aliases for backward compatibility
     registry.register("file", file_service)  # Used by endpoint.py
@@ -155,6 +161,9 @@ class ApplicationContainer(ImmutableBaseContainer):
         template_processor=static.template_processor,
         # Dynamic services
         conversation_manager=dynamic.conversation_manager,
+        person_manager=dynamic.person_manager,
+        tool_configuration_service=dynamic.tool_configuration_service,
+        output_builder=dynamic.output_builder,
     )
     
     # Use case: Prepare diagram for execution

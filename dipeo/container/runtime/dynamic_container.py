@@ -20,6 +20,18 @@ def _create_person_manager():
     return PersonManagerImpl()
 
 
+def _create_tool_configuration_service():
+    """Create tool configuration service for converting tool strings to configs."""
+    from dipeo.application.services.tool_configuration_service import ToolConfigurationService
+    return ToolConfigurationService()
+
+
+def _create_output_builder():
+    """Create output builder for constructing node outputs."""
+    from dipeo.application.services.output_builder import OutputBuilder
+    return OutputBuilder()
+
+
 # UnifiedExecutionCoordinator removed - functionality merged into TypedStatefulExecution
 
 
@@ -72,6 +84,8 @@ class DynamicServicesContainer(MutableBaseContainer):
     # State management services - Singletons that manage multiple executions
     conversation_manager = providers.Singleton(_create_conversation_manager)
     person_manager = providers.Singleton(_create_person_manager)
+    tool_configuration_service = providers.Singleton(_create_tool_configuration_service)
+    output_builder = providers.Singleton(_create_output_builder)
     
     # Execution context removed - use ExecutionRuntime directly in ExecuteDiagramUseCase
     

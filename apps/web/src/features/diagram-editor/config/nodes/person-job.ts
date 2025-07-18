@@ -29,7 +29,7 @@ export const PersonJobNodeConfig = createNodeConfig<PersonJobNodeData>({
     max_iteration: 1, 
     first_only_prompt: '', 
     default_prompt: '',
-    tools: '',
+    tools: [],
     memory_profile: 'FULL',
     memory_settings: {
       view: 'all_involved',

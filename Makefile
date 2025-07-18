@@ -28,8 +28,6 @@ install:
 codegen:
 	@echo "🔄 Generating code from domain models..."
 	cd dipeo/models && pnpm generate:all
-	@echo "📝 Exporting GraphQL schema from server..."
-	make graphql-schema
 	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen
 	@echo "✅ All code generation completed!"

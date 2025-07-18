@@ -91,6 +91,11 @@ class HookTriggerMode(str, Enum):
     manual = "manual"
     hook = "hook"
 
+class VoiceMode(str, Enum):
+    none = "none"
+    text_to_speech = "text_to_speech"
+    speech_to_text = "speech_to_text"
+
 class ExecutionStatus(str, Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
@@ -154,6 +159,9 @@ class ToolType(str, Enum):
     web_search = "web_search"
     web_search_preview = "web_search_preview"
     image_generation = "image_generation"
+    voice = "voice"
+    speech_to_text = "speech_to_text"
+    text_to_speech = "text_to_speech"
 
 # Branded scalar IDs
 NodeID = NewType('NodeID', str)
@@ -253,6 +261,9 @@ class PersonLLMConfig(BaseModel):
     model: str
     api_key_id: ApiKeyID
     system_prompt: Optional[str] = Field(default=None)
+    voice: Optional[VoiceMode] = Field(default=None)
+    voice_id: Optional[str] = Field(default=None)
+    audio_format: Optional[str] = Field(default=None)
 
 class DomainPerson(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -509,6 +520,22 @@ class ImageGenerationResult(BaseModel):
     format: str
     width: Optional[float] = Field(default=None)
     height: Optional[float] = Field(default=None)
+
+class SpeechToTextResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    text: str
+    language: Optional[str] = Field(default=None)
+    confidence: Optional[float] = Field(default=None)
+    segments: Optional[Dict[str, Any]] = Field(default=None)
+
+class TextToSpeechResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    audio_data: str
+    format: str
+    duration: Optional[float] = Field(default=None)
+    voice: Optional[str] = Field(default=None)
 
 class ToolOutput(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)

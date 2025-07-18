@@ -8,7 +8,7 @@ from dipeo.models import DomainNode, NodeType, Vec2
 from dipeo.models import NodeID as DomainNodeID
 
 from ..context import GraphQLContext
-from ..types import (
+from ..generated_types import (
     CreateNodeInput,
     DeleteResult,
     DiagramID,

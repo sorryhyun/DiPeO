@@ -3,7 +3,6 @@ import asyncio
 import json
 import os
 import sys
-import warnings
 from io import StringIO
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -12,10 +11,10 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.unified_service_registry import TEMPLATE_SERVICE
 from dipeo.core.static.generated_nodes import CodeJobNode
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.models import CodeJobNodeData, NodeType
-from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -27,14 +26,7 @@ if TYPE_CHECKING:
 class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     
     def __init__(self, template_service=None):
-        if template_service is not None:
-            warnings.warn(
-                "Passing template_service to CodeJobNodeHandler is deprecated. "
-                "It now uses the unified TemplateProcessor internally.",
-                DeprecationWarning,
-                stacklevel=2
-            )
-        self._processor = TemplateProcessor()
+        self._template_service = template_service
 
     @property
     def node_class(self) -> type[CodeJobNode]:
@@ -78,6 +70,21 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         node = request.node
         context = request.context
         inputs = request.inputs
+        services = request.services
+        
+        # Get template service from registry or use injected
+        self._processor = self._template_service or services.get(TEMPLATE_SERVICE.name)
+        if not self._processor:
+            # For backward compatibility, try legacy keys
+            self._processor = services.get("template_service") or services.get("template")
+        
+        if not self._processor:
+            return ErrorOutput(
+                value="Template service not available",
+                node_id=node.id,
+                error_type="ServiceNotAvailableError"
+            )
+        
         # Store execution metadata
         language = node.language.value if hasattr(node.language, 'value') else node.language
         request.add_metadata("language", language)

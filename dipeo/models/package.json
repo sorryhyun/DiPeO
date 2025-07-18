@@ -25,7 +25,10 @@
     "generate:field-configs": "tsx scripts/generate-field-configs.ts",
     "generate:zod-schemas": "tsx scripts/generate-zod-schemas.ts",
     "generate:static-nodes": "tsx scripts/generate-static-nodes.ts",
-    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions && pnpm generate:field-configs && pnpm generate:zod-schemas && pnpm generate:static-nodes && pnpm build"
+    "generate:graphql-schema": "tsx scripts/generate-graphql-schema.ts",
+    "generate:graphql-types": "tsx scripts/generate-graphql-types.ts",
+    "generate:frontend-mappings": "tsx scripts/generate-frontend-mappings.ts",
+    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions && pnpm generate:field-configs && pnpm generate:zod-schemas && pnpm generate:static-nodes && pnpm generate:graphql-schema && pnpm generate:graphql-types && pnpm generate:frontend-mappings && pnpm build"
   },
   "dependencies": {
     "zod": "^3.25.42"

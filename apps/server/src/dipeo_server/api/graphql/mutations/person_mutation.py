@@ -8,7 +8,7 @@ from dipeo.models import DomainPerson, LLMService, PersonLLMConfig
 from dipeo.models import PersonID as DomainPersonID
 
 from ..context import GraphQLContext
-from ..types import (
+from ..generated_types import (
     ApiKeyID,
     CreatePersonInput,
     DeleteResult,

@@ -10,7 +10,7 @@ from dipeo.models import (
 )
 
 from ..context import GraphQLContext
-from ..types import (
+from ..generated_types import (
     CreateDiagramInput,
     DeleteResult,
     DiagramID,

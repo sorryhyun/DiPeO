@@ -154,7 +154,7 @@ class ZodSchemaGenerator {
     // Handle Record types
     if (cleanType.startsWith('Record<')) {
       const match = cleanType.match(/Record<(.+),\s*(.+)>/);
-      if (match) {
+      if (match && match[2]) {
         const valueType = match[2].trim();
         const valueZod = this.getZodType(valueType);
         zodSchema = `z.record(z.string(), ${valueZod})`;
