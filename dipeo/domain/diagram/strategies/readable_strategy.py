@@ -13,7 +13,16 @@ from dipeo.models import (
     parse_handle_id,
 )
 
-from dipeo.domain.diagram.utils import _node_id_map, _YamlMixin, build_node
+from dipeo.domain.diagram.utils import (
+    _node_id_map, 
+    _YamlMixin, 
+    build_node,
+    NodeFieldMapper,
+    HandleParser,
+    PersonExtractor,
+    ArrowDataProcessor,
+    process_dotted_keys,
+)
 from .base_strategy import BaseConversionStrategy
 
 log = logging.getLogger(__name__)
@@ -66,8 +75,8 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
         node_type = cfg.get("type") or ("start" if index == 0 else "job")
         
-        # Build node with proper structure for base strategy
-        node_data = {
+        # Build node data for processing
+        node_dict = {
             "id": self._create_node_id(index),
             "type": node_type,
             "position": position,
@@ -75,7 +84,22 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
             **{k: v for k, v in cfg.items() if k not in {"position", "type"}}
         }
         
-        return node_data
+        # Use common prop extraction
+        props = self._extract_node_props(node_dict)
+        
+        return build_node(
+            id=node_dict["id"],
+            type_=node_type,
+            pos=position,
+            label=clean_name,
+            **props,
+        )
+    
+    def _get_node_base_props(self, node_data: dict[str, Any]) -> dict[str, Any]:
+        """Get base properties for readable format."""
+        # Exclude standard fields
+        exclude_fields = {"id", "type", "position", "label"}
+        return {k: v for k, v in node_data.items() if k not in exclude_fields}
 
     def extract_arrows(
             self, data: dict[str, Any], nodes: list[dict[str, Any]]
@@ -132,7 +156,6 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         # Check for new format (type) or old format [type]
         if "(" in clean_dst:
             # Extract all parentheses content
-            import re
             paren_matches = re.findall(r'\(([^)]+)\)', clean_dst)
             if paren_matches:
                 # First parenthesis is content type if not a label
@@ -153,57 +176,29 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 label = clean_dst[start + 1:end]
                 clean_dst = clean_dst[:start].strip() + clean_dst[end + 1:].strip()
 
-        # Parse source and target handles
-        # Use rsplit to handle node labels with spaces
-        src_label = src.strip()
-        src_handle = "default"
-        if "_" in src:
-            # Regular underscore split
-            parts = src.rsplit("_", 1)
-            if parts[0] in label2id:
-                src_label = parts[0].strip()
-                src_handle = parts[1].strip()
+        # Parse source and target handles using shared utility
+        src_id, src_handle_from_split, src_label = HandleParser.parse_label_with_handle(src.strip(), label2id)
+        dst_id, dst_handle_from_split, dst_label = HandleParser.parse_label_with_handle(clean_dst.strip(), label2id)
+        
+        # Use parsed handles or default
+        src_handle = src_handle_from_split if src_handle_from_split else "default"
+        dst_handle = dst_handle_from_split if dst_handle_from_split else "default"
 
-        dst_label = clean_dst.strip()
-        dst_handle = "default"
-        if "_" in clean_dst:
-            # Regular underscore split
-            parts = clean_dst.rsplit("_", 1)
-            if parts[0] in label2id:
-                dst_label = parts[0].strip()
-                dst_handle = parts[1].strip()
-
-        # Get node IDs
-        sid = label2id.get(src_label)
-        tid = label2id.get(dst_label)
-
-        if sid and tid:
+        if src_id and dst_id:
             # Create proper handle IDs
-            # Convert string handle labels to HandleLabel enum
-            try:
-                src_handle_enum = HandleLabel(src_handle)
-            except ValueError:
-                src_handle_enum = HandleLabel.default
-                
-            try:
-                dst_handle_enum = HandleLabel(dst_handle)
-            except ValueError:
-                dst_handle_enum = HandleLabel.default
-                
-            source_handle_id = create_handle_id(NodeID(sid), src_handle_enum, HandleDirection.output)
-            target_handle_id = create_handle_id(NodeID(tid), dst_handle_enum, HandleDirection.input)
+            source_handle_id, target_handle_id = HandleParser.create_handle_ids(
+                src_id, dst_id, src_handle, dst_handle
+            )
             
-            arrow_dict = {
-                "id": f"arrow_{idx}",
-                "source": source_handle_id,
-                "target": target_handle_id,
-            }
-
-            # Add content type and label if present
-            if content_type:
-                arrow_dict["content_type"] = content_type
-            if label:
-                arrow_dict["label"] = label
+            # Build arrow using shared processor
+            arrow_dict = ArrowDataProcessor.build_arrow_dict(
+                f"arrow_{idx}",
+                source_handle_id,
+                target_handle_id,
+                None,  # No data for readable format
+                content_type,
+                label
+            )
 
             arrows.append(arrow_dict)
         else:
@@ -229,9 +224,12 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
             else:
                 label_with_pos = label
 
-            # Filter out position, label, memory_config, and memory_settings from data
+            # Filter and map node data for export
+            node_type_str = str(n.type).split(".")[-1]
+            node_data = NodeFieldMapper.map_export_fields(node_type_str, n.data.copy())
+            # Filter out position, label, and memory-related fields
             node_data = {
-                k: v for k, v in n.data.items()
+                k: v for k, v in node_data.items()
                 if k not in {"label", "position", "memory_config", "memory_settings", "memory_profile"} and v not in (None, "", {}, [])
             }
 
@@ -361,31 +359,6 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
     def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Extract persons for readable format with list structure."""
         persons_data = data.get("persons", [])
-        persons_dict = {}
-        
         if isinstance(persons_data, list):
-            for person_item in persons_data:
-                if isinstance(person_item, dict):
-                    # Each item should have one key (the person name)
-                    for person_name, person_config in person_item.items():
-                        llm_config = {
-                            "service": person_config.get("service", "openai"),
-                            "model": person_config.get("model", "gpt-4-mini"),
-                            "api_key_id": person_config.get("api_key_id", "default"),
-                        }
-                        if "system_prompt" in person_config:
-                            llm_config["system_prompt"] = person_config["system_prompt"]
-                        
-                        # Generate a consistent person ID
-                        person_id = f"person_{person_name}"
-                        
-                        # Add required fields for DomainPerson
-                        person_dict = {
-                            "id": person_id,
-                            "label": person_name,
-                            "type": "person",
-                            "llm_config": llm_config,
-                        }
-                        persons_dict[person_id] = person_dict
-        
-        return persons_dict
+            return PersonExtractor.extract_from_list(persons_data)
+        return {}

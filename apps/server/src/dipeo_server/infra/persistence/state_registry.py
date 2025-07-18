@@ -43,14 +43,19 @@ class StateRegistry:
         self.message_store = message_store
         self._execution_cache = ExecutionCache(ttl_minutes=60)
         self._initialized = False
+        self._initializing = False
 
     async def initialize(self):
         async with self._lock:
             if self._initialized:
                 return
-            await self._connect()
-            await self._init_schema()
-            self._initialized = True
+            self._initializing = True
+            try:
+                await self._connect()
+                await self._init_schema()
+                self._initialized = True
+            finally:
+                self._initializing = False
 
     async def cleanup(self):
         async with self._lock:
@@ -105,6 +110,11 @@ class StateRegistry:
 
     async def _execute(self, *args, **kwargs):
         """Execute a database operation in the dedicated thread."""
+        # Only ensure initialization if we're not already initializing
+        # (to avoid circular dependency when _execute is called from _init_schema)
+        if not self._initializing:
+            await self._ensure_initialized()
+        
         if self._conn is None:
             raise RuntimeError(
                 "StateRegistry not initialized. Call initialize() first."

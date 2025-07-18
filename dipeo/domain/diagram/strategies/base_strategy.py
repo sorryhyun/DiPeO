@@ -12,6 +12,11 @@ from dipeo.core.ports import FormatStrategy
 from dipeo.domain.diagram.utils import (
     extract_common_arrows,
     dict_to_domain_diagram,
+    PersonExtractor,
+    ArrowDataProcessor,
+    HandleParser,
+    NodeFieldMapper,
+    process_dotted_keys,
 )
 
 log = logging.getLogger(__name__)
@@ -45,6 +50,26 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     @abstractmethod
     def _process_node(self, node_data: Any, index: int) -> dict[str, Any] | None:
         pass
+    
+    def _extract_node_props(self, node_data: dict[str, Any]) -> dict[str, Any]:
+        """Extract and process node properties with common transformations."""
+        # Get base properties - default implementation, override in subclasses
+        props = self._get_node_base_props(node_data)
+        
+        # Process dotted keys
+        props = process_dotted_keys(props)
+        
+        # Map fields based on node type
+        node_type = node_data.get("type", "job")
+        props = NodeFieldMapper.map_import_fields(node_type, props)
+        
+        return props
+    
+    def _get_node_base_props(self, node_data: dict[str, Any]) -> dict[str, Any]:
+        """Get base properties from node data - default implementation."""
+        # Default: exclude standard fields and return the rest
+        exclude_fields = {"id", "type", "position", "label"}
+        return {k: v for k, v in node_data.items() if k not in exclude_fields}
     
 
     def extract_arrows(
@@ -92,14 +117,19 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     def _export_nodes(self, diagram: DomainDiagram) -> Any:
         """Export nodes in format-specific structure."""
         # Default implementation for dict-based formats
-        return {
-            n.id: {
-                "type": n.type,
+        nodes = {}
+        for n in diagram.nodes:
+            node_type = str(n.type).split(".")[-1]
+            
+            # Map fields for export
+            data = NodeFieldMapper.map_export_fields(node_type, n.data.copy())
+            
+            nodes[n.id] = {
+                "type": node_type,
                 "position": n.position.model_dump(),
-                "data": n.data,
+                "data": data,
             }
-            for n in diagram.nodes
-        }
+        return nodes
     
     def _export_arrows(self, diagram: DomainDiagram) -> Any:
         """Export arrows in format-specific structure."""
@@ -111,24 +141,14 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     
     def _format_arrow(self, arrow: Any) -> dict[str, Any]:
         """Format a single arrow for export."""
-        result = {
-            "source": arrow.source,
-            "target": arrow.target,
-            "data": arrow.data,
-        }
-        
-        # Add optional fields if present
-        if hasattr(arrow, 'content_type') and arrow.content_type:
-            result["content_type"] = (
-                arrow.content_type.value 
-                if hasattr(arrow.content_type, "value") 
-                else str(arrow.content_type)
-            )
-        
-        if hasattr(arrow, 'label') and arrow.label:
-            result["label"] = arrow.label
-            
-        return result
+        return ArrowDataProcessor.build_arrow_dict(
+            arrow.id,
+            arrow.source,
+            arrow.target,
+            arrow.data,
+            arrow.content_type.value if hasattr(arrow.content_type, "value") else str(arrow.content_type) if hasattr(arrow, 'content_type') and arrow.content_type else None,
+            arrow.label if hasattr(arrow, 'label') else None
+        )
     
     def _export_handles(self, diagram: DomainDiagram) -> Any:
         """Export handles in format-specific structure."""
@@ -153,14 +173,6 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         if isinstance(position_data, dict):
             return position_data
         return {}
-    
-    def _map_node_type_for_import(self, node_type: str, node_data: dict[str, Any]) -> str:
-        """Map node type during import. Override for legacy compatibility."""
-        return node_type
-    
-    def _map_node_type_for_export(self, node_type: str) -> str:
-        """Map node type during export. Override for format-specific naming."""
-        return str(node_type).split(".")[-1]
     
     def _filter_node_properties(self, props: dict[str, Any], node_type: str) -> dict[str, Any]:
         """Filter node properties for export. Override to customize."""
@@ -276,11 +288,17 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         for i, arrow_data in enumerate(arrows_list):
             arrow_id = arrow_data.get("id", f"arrow_{i}")
             
-            # Ensure content_type is set
-            if "content_type" not in arrow_data and arrow_data.get("content_type") is None:
-                arrow_data["content_type"] = ContentType.raw_text.value
+            # Ensure we have proper arrow structure
+            arrow_dict = ArrowDataProcessor.build_arrow_dict(
+                arrow_id,
+                arrow_data.get("source", ""),
+                arrow_data.get("target", ""),
+                arrow_data.get("data"),
+                arrow_data.get("content_type"),
+                arrow_data.get("label")
+            )
             
-            arrows_dict[arrow_id] = arrow_data
+            arrows_dict[arrow_id] = arrow_dict
             
         return arrows_dict
     
@@ -302,10 +320,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         if isinstance(persons_data, dict):
             return persons_data
         elif isinstance(persons_data, list):
-            return {
-                person.get("id", f"person_{i}"): person
-                for i, person in enumerate(persons_data)
-            }
+            return PersonExtractor.extract_from_list(persons_data)
         return {}
     
     def _apply_format_transformations(

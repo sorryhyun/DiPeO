@@ -20,7 +20,7 @@ def _create_notion_service():
 
 def _create_api_service(api_business_logic, file_service):
     """Create infrastructure API service."""
-    from dipeo.infra.services.api import APIService
+    from dipeo.infra.adapters.http import APIService
     return APIService(
         business_logic=api_business_logic,
         file_service=file_service

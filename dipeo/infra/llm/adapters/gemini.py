@@ -36,7 +36,8 @@ class GeminiAdapter(BaseLLMAdapter):
         return None
     
     def supports_tools(self) -> bool:
-        supported_models = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.5-flash']
+        supported_models = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash', 
+                           'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
         return any(model in self.model_name for model in supported_models)
 
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
@@ -72,19 +73,29 @@ class GeminiAdapter(BaseLLMAdapter):
             gemini_tools = self._convert_tools_to_gemini_format(tools)
         
         # Get the model with system instruction
+        # Note: tools parameter should be in generation config, not model init
         model = self.client.GenerativeModel(
             model_name=self.model_name,
             system_instruction=system_prompt,
-            tools=gemini_tools,
         )
 
         # Use base method to extract allowed parameters
         api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature"])
 
-        generation_config = self.client.GenerationConfig(
-            max_output_tokens=api_params.get("max_tokens"),
-            temperature=api_params.get("temperature"),
-        )
+        # Create generation config with tools if provided
+        config_params = {
+            "max_output_tokens": api_params.get("max_tokens"),
+            "temperature": api_params.get("temperature"),
+        }
+        if gemini_tools:
+            config_params["tools"] = gemini_tools
+            # Set function calling mode
+            config_params["tool_config"] = types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(
+                    mode="AUTO"  # Let the model decide when to use tools
+                )
+            )
+        generation_config = self.client.GenerationConfig(**config_params)
 
         # Make the API call with retry logic
         response = self._make_api_call_with_retry(
@@ -112,12 +123,17 @@ class GeminiAdapter(BaseLLMAdapter):
                             tool_outputs.append(tool_output)
 
         # Use base method to create token usage
-        token_usage = self._create_token_usage(
-            response,
-            input_field="prompt_token_count",
-            output_field="candidates_token_count",
-            usage_attr="usage_metadata"
-        )
+        # Note: Gemini response structure may vary, so we handle it carefully
+        token_usage = None
+        if hasattr(response, 'usage_metadata'):
+            usage = response.usage_metadata
+            if hasattr(usage, 'prompt_token_count') and hasattr(usage, 'candidates_token_count'):
+                token_usage = self._create_token_usage(
+                    response,
+                    input_field="prompt_token_count",
+                    output_field="candidates_token_count",
+                    usage_attr="usage_metadata"
+                )
 
         return ChatResult(
             text=text,
@@ -133,11 +149,11 @@ class GeminiAdapter(BaseLLMAdapter):
             tool_type = tool.type if isinstance(tool.type, str) else tool.type.value
             
             if tool_type == "web_search" or tool_type == "web_search_preview":
-                # Define web search function
-                function_declarations.append({
-                    "name": "web_search",
-                    "description": "Search the web for information",
-                    "parameters": {
+                # Define web search function following official format
+                function_declarations.append(types.FunctionDeclaration(
+                    name="web_search",
+                    description="Search the web for information",
+                    parameters={
                         "type": "object",
                         "properties": {
                             "query": {
@@ -147,7 +163,28 @@ class GeminiAdapter(BaseLLMAdapter):
                         },
                         "required": ["query"]
                     }
-                })
+                ))
+            elif tool_type == "image_generation":
+                # Define image generation function
+                function_declarations.append(types.FunctionDeclaration(
+                    name="generate_image",
+                    description="Generate an image based on a text prompt",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "prompt": {
+                                "type": "string",
+                                "description": "The image generation prompt"
+                            },
+                            "size": {
+                                "type": "string",
+                                "description": "Image size",
+                                "enum": ["1024x1024", "512x512", "256x256"]
+                            }
+                        },
+                        "required": ["prompt"]
+                    }
+                ))
             # Add more tool types as needed
         
         if function_declarations:
@@ -158,6 +195,8 @@ class GeminiAdapter(BaseLLMAdapter):
         """Process a function call from Gemini response."""
         if function_call.name == "web_search":
             query = function_call.args.get("query", "")
+            # Note: This returns placeholder data. In production, you would
+            # execute the actual web search and return real results
             return ToolOutput(
                 type=ToolType.WEB_SEARCH,
                 result=[
@@ -168,6 +207,22 @@ class GeminiAdapter(BaseLLMAdapter):
                         score=1.0
                     )
                 ],
+                raw_response=function_call
+            )
+        elif function_call.name == "generate_image":
+            prompt = function_call.args.get("prompt", "")
+            size = function_call.args.get("size", "1024x1024")
+            width, height = map(int, size.split("x"))
+            # Note: This is a placeholder. The actual image generation
+            # happens in _make_image_generation_call
+            return ToolOutput(
+                type=ToolType.IMAGE_GENERATION,
+                result=ImageGenerationResult(
+                    image_data="",  # Will be filled by actual generation
+                    format="png",
+                    width=width,
+                    height=height
+                ),
                 raw_response=function_call
             )
         return None
@@ -225,19 +280,29 @@ class GeminiAdapter(BaseLLMAdapter):
             gemini_tools = self._convert_tools_to_gemini_format(tools)
         
         # Get the model with system instruction
+        # Note: tools parameter should be in generation config, not model init
         model = self.client.GenerativeModel(
             model_name=self.model_name,
             system_instruction=system_prompt,
-            tools=gemini_tools,
         )
 
         # Use base method to extract allowed parameters
         api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature"])
 
-        generation_config = self.client.GenerationConfig(
-            max_output_tokens=api_params.get("max_tokens"),
-            temperature=api_params.get("temperature"),
-        )
+        # Create generation config with tools if provided
+        config_params = {
+            "max_output_tokens": api_params.get("max_tokens"),
+            "temperature": api_params.get("temperature"),
+        }
+        if gemini_tools:
+            config_params["tools"] = gemini_tools
+            # Set function calling mode
+            config_params["tool_config"] = types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(
+                    mode="AUTO"  # Let the model decide when to use tools
+                )
+            )
+        generation_config = self.client.GenerationConfig(**config_params)
 
         # Make the API call with retry logic
         response = await self._make_api_call_with_retry_async(
@@ -257,7 +322,7 @@ class GeminiAdapter(BaseLLMAdapter):
                     text += part.text
                 elif hasattr(part, 'function_call') and part.function_call is not None:
                     # Handle function call
-                    function_output = self._handle_function_call(part.function_call)
+                    function_output = self._process_function_call(part.function_call)
                     if function_output:
                         tool_outputs.append(function_output)
 
@@ -285,8 +350,9 @@ class GeminiAdapter(BaseLLMAdapter):
             last_exception = None
             for attempt in range(self.max_retries):
                 try:
+                    # Use the latest flash model with image generation capabilities
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash-preview-image-generation",
+                        model="gemini-2.0-flash-exp",  # Latest model with image generation
                         contents=prompt,
                         config=types.GenerateContentConfig(
                             response_modalities=['TEXT', 'IMAGE']
@@ -449,10 +515,12 @@ class GeminiAdapter(BaseLLMAdapter):
         # Use base method to extract allowed parameters
         api_params = self._extract_api_params(kwargs, ["max_tokens", "temperature"])
 
-        generation_config = self.client.GenerationConfig(
-            max_output_tokens=api_params.get("max_tokens"),
-            temperature=api_params.get("temperature"),
-        )
+        # Create generation config
+        config_params = {
+            "max_output_tokens": api_params.get("max_tokens"),
+            "temperature": api_params.get("temperature"),
+        }
+        generation_config = self.client.GenerationConfig(**config_params)
 
         # Make streaming API call with retry logic
         last_exception = None
@@ -576,9 +644,9 @@ class GeminiAdapter(BaseLLMAdapter):
         # Extract the model with system instruction if present
         system_prompt, _ = self._extract_system_and_messages(messages)
         
-        # Create the model with imagen capabilities
+        # Create the model with image generation capabilities
         model = self.client.GenerativeModel(
-            model_name='gemini-2.0-flash-exp',
+            model_name='gemini-2.0-flash-exp',  # Latest model with image generation
             system_instruction=system_prompt,
         )
         
