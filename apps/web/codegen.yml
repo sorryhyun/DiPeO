@@ -1,7 +1,7 @@
 # GraphQL Code Generation Configuration
 
 overwrite: true
-schema: "../server/schema.graphql"
+schema: "../server/src/dipeo_server/api/graphql/generated-schema.graphql"
 documents: 
   - "src/**/*.graphql"
   - "src/**/*.{ts,tsx}"

@@ -1,21 +1,24 @@
-"""GraphQL mutations for diagram execution operations."""
+"""GraphQL mutations for Execution management - Auto-generated."""
 
-import asyncio
 import logging
 import uuid
-from datetime import UTC, datetime
+from typing import Optional
+from datetime import datetime
 
 import strawberry
-from dipeo.models import (
-    ExecutionStatus,
-)
+from dipeo.models import Execution
+from dipeo.models import ExecutionID
 
 from ..context import GraphQLContext
 from ..generated_types import (
-    ExecuteDiagramInput,
-    ExecutionControlInput,
+    CreateExecutionInput,
+    UpdateExecutionInput,
     ExecutionResult,
-    InteractiveResponseInput,
+    ExecutionID,
+    DeleteResult,
+    JSONScalar,
+    MutationResult,
+    ExecutionType,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,234 +26,182 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class ExecutionMutations:
-    # Handles diagram execution via GraphQL API
-
+    """Handles Execution CRUD operations."""
+    
     @strawberry.mutation
-    async def execute_diagram(self, data: ExecuteDiagramInput, info) -> ExecutionResult:
-        try:
-            context: GraphQLContext = info.context
-            execution_service = context.execution_service
-            state_store = context.get_service("state_store")
-
-            if state_store is None:
-                logger.error("State store is None!")
-                return ExecutionResult(
-                    success=False, error="State store not initialized"
-                )
-
-            if execution_service is None:
-                logger.error("Execution service is None!")
-                return ExecutionResult(
-                    success=False, error="Execution service not initialized"
-                )
-
-            if data.diagram_data:
-                # The execution service will validate as DomainDiagram which expects lists
-                # If the data is in backend format (dict of dicts), it needs to stay as dict
-                # because the execution service handles the conversion internally
-                diagram_data = data.diagram_data
-            elif data.diagram_id:
-                # Use integrated service
-                integrated_service = context.get_service("integrated_diagram_service")
-                diagram_data = await integrated_service.get_diagram(data.diagram_id)
-                if not diagram_data:
-                    return ExecutionResult(success=False, error="Diagram not found")
-            else:
-                return ExecutionResult(success=False, error="No diagram data provided")
-
-            execution_id = str(uuid.uuid4())
-
-            options = {
-                "debugMode": data.debug_mode,
-                "maxIterations": data.max_iterations,
-                "timeout": data.timeout_seconds,
-                "variables": data.variables or {},
-            }
-
-            diagram_id = data.diagram_id if data.diagram_id else None
-            execution = await state_store.create_execution(
-                execution_id, diagram_id, data.variables
-            )
-
-            # Start the actual execution asynchronously
-            async def run_execution():
-                try:
-                    async for _ in execution_service.execute_diagram(
-                        diagram=diagram_data, options=options, execution_id=execution_id
-                    ):
-                        # Updates are handled by the execution service
-                        pass
-                except Exception as ex:
-                    import traceback
-
-                    logger.error(f"Execution failed for {execution_id}: {ex}")
-                    logger.error(f"Traceback: {traceback.format_exc()}")
-                    await state_store.update_status(
-                        execution_id, ExecutionStatus.FAILED, error=str(ex)
-                    )
-
-            # Launch execution in background
-            asyncio.create_task(run_execution())
-
-            return ExecutionResult(
-                success=True,
-                execution=execution,  # Use the domain model directly, Strawberry will convert it
-                execution_id=execution_id,
-                message=f"Started execution {execution_id}",
-            )
-
-        except ValueError as e:
-            logger.error(f"Validation error executing diagram: {e}")
-            return ExecutionResult(success=False, error=f"Validation error: {e!s}")
-        except Exception as e:
-            import traceback
-
-            logger.error(f"Failed to execute diagram: {e}")
-            logger.error(f"Full traceback:\n{traceback.format_exc()}")
-            return ExecutionResult(
-                success=False, error=f"Failed to execute diagram: {e!s}"
-            )
-
-    @strawberry.mutation
-    async def control_execution(
-        self, data: ExecutionControlInput, info
+    async def create_execution(
+        self,
+        execution_input: CreateExecutionInput,
+        info: strawberry.Info[GraphQLContext],
     ) -> ExecutionResult:
+        """Create a new Execution."""
         try:
             context: GraphQLContext = info.context
-            state_store = context.get_service("state_store")
-            message_router = context.get_service("message_router")
-
-            state = await state_store.get_state(data.execution_id)
-            if not state:
+            execution_service = context.get_service("execution_service")
+            
+            # Extract fields from input
+            data = {
+                "diagram_id": getattr(execution_input, "diagram_id", None),
+                "variables": getattr(execution_input, "variables", None),
+            }
+            
+            # Remove None values
+            data = {k: v for k, v in data.items() if v is not None}
+            
+            # Validate required fields
+            required_fields = ["variables"]
+            missing = [f for f in required_fields if f not in data or data[f] is None]
+            if missing:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {data.execution_id} not found",
+                    error=f"Missing required fields: {', '.join(missing)}"
                 )
-
-            if data.action == "pause":
-                if data.node_id:
-                    pass
-                else:
-                    await state_store.update_status(
-                        data.execution_id, ExecutionStatus.PAUSED
-                    )
-            elif data.action == "resume":
-                if data.node_id:
-                    pass
-                else:
-                    await state_store.update_status(
-                        data.execution_id, ExecutionStatus.RUNNING
-                    )
-            elif data.action == "abort":
-                await state_store.update_status(
-                    data.execution_id, ExecutionStatus.ABORTED
-                )
-            elif data.action == "skip" and data.node_id:
-                pass
-
-            control_message = {
-                "type": f"{data.action}_{'node' if data.node_id else 'execution'}",
-                "execution_id": data.execution_id,
-                "node_id": data.node_id,
-                "timestamp": datetime.now(UTC).isoformat(),
-            }
-
-            await message_router.broadcast_to_execution(
-                data.execution_id, control_message
+            
+            # Create the entity
+            entity_id = f"execution_{str(uuid.uuid4())[:8]}"
+            
+            # Build domain model
+            execution_data = Execution(
+                id=ExecutionID(entity_id),
+                **data
             )
+            
+            # Save through service
+            saved_entity = await execution_service.create(execution_data)
+            
 
-            updated_state = await state_store.get_state(data.execution_id)
-
+            
             return ExecutionResult(
                 success=True,
-                execution=updated_state,
-                message=f"Execution control '{data.action}' sent successfully",
+                execution=saved_entity,
+                message=f"Execution created successfully with ID: {entity_id}"
             )
-
+            
         except ValueError as e:
-            logger.error(f"Validation error controlling execution: {e}")
-            return ExecutionResult(success=False, error=f"Validation error: {e!s}")
-        except Exception as e:
-            logger.error(f"Failed to control execution: {e}")
+            logger.error(f"Validation error creating Execution: {e}")
             return ExecutionResult(
-                success=False, error=f"Failed to control execution: {e!s}"
+                success=False, 
+                error=f"Validation error: {str(e)}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to create Execution: {e}", exc_info=True)
+            return ExecutionResult(
+                success=False, 
+                error=f"Failed to create Execution: {str(e)}"
             )
 
     @strawberry.mutation
-    async def submit_interactive_response(
-        self, data: InteractiveResponseInput, info
+    async def update_execution(
+        self,
+        execution_input: UpdateExecutionInput,
+        info: strawberry.Info[GraphQLContext],
     ) -> ExecutionResult:
+        """Update an existing Execution."""
         try:
             context: GraphQLContext = info.context
-            state_store = context.get_service("state_store")
-            message_router = context.get_service("message_router")
-
-            execution_state = await state_store.get_state(data.execution_id)
-            if not execution_state:
+            service = context.get_service("execution_service")
+            
+            # Get existing entity
+            existing = await service.get(execution_input.id)
+            if not existing:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {data.execution_id} not found",
+                    error=f"Execution with ID {execution_input.id} not found"
                 )
-
-            if execution_state.status not in [
-                ExecutionStatus.PENDING,
-                ExecutionStatus.RUNNING,
-            ]:
+            
+            # Build updates
+            updates = {}
+            if execution_input.status is not None:
+                updates["status"] = execution_input.status
+            if execution_input.node_states is not None:
+                updates["node_states"] = execution_input.node_states
+            if execution_input.node_outputs is not None:
+                updates["node_outputs"] = execution_input.node_outputs
+            if execution_input.token_usage is not None:
+                updates["token_usage"] = execution_input.token_usage
+            if execution_input.error is not None:
+                updates["error"] = execution_input.error
+            if execution_input.variables is not None:
+                updates["variables"] = execution_input.variables
+            if execution_input.exec_counts is not None:
+                updates["exec_counts"] = execution_input.exec_counts
+            if execution_input.executed_nodes is not None:
+                updates["executed_nodes"] = execution_input.executed_nodes
+            if execution_input.ended_at is not None:
+                updates["ended_at"] = execution_input.ended_at
+            
+            if not updates:
                 return ExecutionResult(
                     success=False,
-                    error=f"Execution {data.execution_id} is not running (status: {execution_state.status})",
+                    error="No fields to update"
                 )
+            
 
-            interactive_message = {
-                "type": "interactive_response",
-                "executionId": data.execution_id,
-                "nodeId": data.node_id,
-                "response": data.response,
-                "timestamp": datetime.now(UTC).isoformat(),
-            }
-
-            await message_router.broadcast_to_execution(
-                data.execution_id, interactive_message
-            )
-
-            updated_state = await state_store.get_state(data.execution_id)
-
+            
+            # Apply updates
+            updated_entity = await execution_service.update(execution_input.id, updates)
+            
             return ExecutionResult(
                 success=True,
-                execution=updated_state,
-                message=f"Interactive response submitted for node {data.node_id}",
+                execution=updated_entity,
+                message=f"Execution updated successfully"
             )
-
+            
         except ValueError as e:
-            logger.error(f"Validation error submitting response: {e}")
-            return ExecutionResult(success=False, error=f"Validation error: {e!s}")
-        except Exception as e:
-            logger.error(f"Failed to submit interactive response: {e}", exc_info=True)
+            logger.error(f"Validation error updating Execution: {e}")
             return ExecutionResult(
-                success=False, error=f"Failed to submit interactive response: {e!s}"
+                success=False,
+                error=f"Validation error: {str(e)}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to update Execution: {e}", exc_info=True)
+            return ExecutionResult(
+                success=False,
+                error=f"Failed to update Execution: {str(e)}"
             )
 
+    @strawberry.mutation
+    async def updateNodeState(
+        self,
+        execution_id: str,
+        node_id: str,
+        state: str,
+        info: strawberry.Info[GraphQLContext],
+    ) -> Execution:
+        """updateNodeState - Custom mutation for Execution."""
+        try:
+            context: GraphQLContext = info.context
+            execution_service = context.get_service("execution_service")
+            
+            # Custom implementation
+            service.update_node_state
+            
+        except ValueError as e:
+            logger.error(f"Validation error in updateNodeState: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to execute updateNodeState: {e}", exc_info=True)
+            raise
 
-def _map_status(status: str) -> ExecutionStatus:
-    status_map = {
-        "pending": ExecutionStatus.PENDING,
-        "running": ExecutionStatus.RUNNING,
-        "paused": ExecutionStatus.PAUSED,
-        "completed": ExecutionStatus.COMPLETED,
-        "failed": ExecutionStatus.FAILED,
-        "cancelled": ExecutionStatus.ABORTED,
-    }
-    return status_map.get(status.lower(), ExecutionStatus.PENDING)
-
-
-def _map_action_to_status(action: str, current_status: str) -> ExecutionStatus:
-    current = _map_status(current_status)
-    action_map = {
-        "pause": ExecutionStatus.PAUSED,
-        "resume": ExecutionStatus.RUNNING,
-        "abort": ExecutionStatus.ABORTED,
-        "cancel": ExecutionStatus.ABORTED,
-        "skip_node": current,
-    }
-
-    return action_map.get(action.lower(), current)
+    @strawberry.mutation
+    async def addNodeOutput(
+        self,
+        execution_id: str,
+        node_id: str,
+        output: str,
+        info: strawberry.Info[GraphQLContext],
+    ) -> Execution:
+        """addNodeOutput - Custom mutation for Execution."""
+        try:
+            context: GraphQLContext = info.context
+            execution_service = context.get_service("execution_service")
+            
+            # Custom implementation
+            service.add_node_output
+            
+        except ValueError as e:
+            logger.error(f"Validation error in addNodeOutput: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to execute addNodeOutput: {e}", exc_info=True)
+            raise

@@ -40,8 +40,8 @@ class GraphQLTypesGenerator {
     
     // Types with specific fields and custom resolvers
     {
-      domainType: 'DomainHandle',
-      graphqlType: 'DomainHandleType',
+      domainType: 'Handle',
+      graphqlType: 'HandleType',
       fields: ['label', 'direction', 'data_type', 'position'],
       customFields: [
         { name: 'id', type: 'HandleID', resolver: 'HandleID(str(obj.id))' },
@@ -49,8 +49,8 @@ class GraphQLTypesGenerator {
       ]
     },
     {
-      domainType: 'DomainNode',
-      graphqlType: 'DomainNodeType',
+      domainType: 'Node',
+      graphqlType: 'NodeType',
       fields: ['type', 'position'],
       customFields: [
         { name: 'id', type: 'NodeID', resolver: 'NodeID(str(obj.id))' },
@@ -58,8 +58,8 @@ class GraphQLTypesGenerator {
       ]
     },
     {
-      domainType: 'DomainArrow',
-      graphqlType: 'DomainArrowType',
+      domainType: 'Arrow',
+      graphqlType: 'ArrowType',
       fields: ['content_type', 'label'],
       customFields: [
         { name: 'id', type: 'ArrowID', resolver: 'ArrowID(str(obj.id))' },
@@ -82,8 +82,8 @@ class GraphQLTypesGenerator {
       ]
     },
     {
-      domainType: 'DomainPerson',
-      graphqlType: 'DomainPersonType',
+      domainType: 'Person',
+      graphqlType: 'PersonType',
       fields: ['label', 'llm_config'],
       customFields: [
         { name: 'id', type: 'PersonID', resolver: 'PersonID(str(obj.id))' },
@@ -97,16 +97,16 @@ class GraphQLTypesGenerator {
       ]
     },
     {
-      domainType: 'DomainApiKey',
-      graphqlType: 'DomainApiKeyType',
+      domainType: 'ApiKey',
+      graphqlType: 'ApiKeyType',
       fields: ['label', 'service', 'key'],
       customFields: [
         { name: 'id', type: 'ApiKeyID', resolver: 'ApiKeyID(str(obj.id))' },
       ]
     },
     {
-      domainType: 'DomainDiagram',
-      graphqlType: 'DomainDiagramType',
+      domainType: 'Diagram',
+      graphqlType: 'DiagramType',
       fields: ['nodes', 'handles', 'arrows', 'persons', 'metadata'],
       customFields: [
         { name: 'nodeCount', type: 'int', resolver: 'len(obj.nodes) if obj and hasattr(obj, "nodes") else 0', computed: true },
@@ -115,8 +115,8 @@ class GraphQLTypesGenerator {
       ]
     },
     {
-      domainType: 'ExecutionState',
-      graphqlType: 'ExecutionStateType',
+      domainType: 'Execution',
+      graphqlType: 'ExecutionType',
       fields: ['id', 'status', 'diagram_id', 'started_at', 'ended_at', 'token_usage', 'error', 'duration_seconds', 'is_active'],
       customFields: [
         { 
@@ -138,6 +138,21 @@ class GraphQLTypesGenerator {
           computed: true 
         },
       ]
+    },
+    {
+      domainType: 'Message',
+      graphqlType: 'MessageType',
+      fields: ['id', 'from_person_id', 'to_person_id', 'content', 'timestamp', 'token_count', 'message_type', 'metadata'],
+    },
+    {
+      domainType: 'ConversationMetadata',
+      graphqlType: 'ConversationMetadataType',
+      allFields: true
+    },
+    {
+      domainType: 'Conversation',
+      graphqlType: 'ConversationType',
+      fields: ['messages', 'metadata'],
     },
   ];
   
@@ -178,6 +193,16 @@ class GraphQLTypesGenerator {
       ]
     },
     {
+      name: 'UpdateDiagramInput',
+      fields: [
+        { name: 'id', type: 'DiagramID' },
+        { name: 'name', type: 'str | None', default: 'None' },
+        { name: 'description', type: 'str | None', default: 'None' },
+        { name: 'author', type: 'str | None', default: 'None' },
+        { name: 'tags', type: 'list[str] | None', default: 'None' },
+      ]
+    },
+    {
       name: 'CreatePersonInput',
       fields: [
         { name: 'label', type: 'str' },
@@ -209,6 +234,95 @@ class GraphQLTypesGenerator {
         { name: 'label', type: 'str' },
         { name: 'service', type: 'APIServiceTypeEnum' },
         { name: 'key', type: 'str' },
+      ]
+    },
+    {
+      name: 'UpdateApiKeyInput',
+      fields: [
+        { name: 'id', type: 'ApiKeyID' },
+        { name: 'label', type: 'str | None', default: 'None' },
+        { name: 'key', type: 'str | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'CreateArrowInput',
+      fields: [
+        { name: 'source', type: 'HandleID' },
+        { name: 'target', type: 'HandleID' },
+        { name: 'content_type', type: 'ContentTypeEnum | None', default: 'None' },
+        { name: 'label', type: 'str | None', default: 'None' },
+        { name: 'data', type: 'JSONScalar | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'UpdateArrowInput',
+      fields: [
+        { name: 'id', type: 'ArrowID' },
+        { name: 'content_type', type: 'ContentTypeEnum | None', default: 'None' },
+        { name: 'label', type: 'str | None', default: 'None' },
+        { name: 'data', type: 'JSONScalar | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'CreateHandleInput',
+      fields: [
+        { name: 'node_id', type: 'NodeID' },
+        { name: 'label', type: 'HandleLabelEnum' },
+        { name: 'direction', type: 'HandleDirectionEnum' },
+        { name: 'data_type', type: 'DataTypeEnum' },
+        { name: 'position', type: 'str | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'UpdateHandleInput',
+      fields: [
+        { name: 'id', type: 'HandleID' },
+        { name: 'label', type: 'HandleLabelEnum | None', default: 'None' },
+        { name: 'data_type', type: 'DataTypeEnum | None', default: 'None' },
+        { name: 'position', type: 'str | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'CreateMessageInput',
+      fields: [
+        { name: 'from_person_id', type: 'str' },
+        { name: 'to_person_id', type: 'PersonID' },
+        { name: 'content', type: 'str' },
+        { name: 'message_type', type: 'str' },
+        { name: 'metadata', type: 'JSONScalar | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'CreateConversationInput',
+      fields: [
+        { name: 'messages', type: 'list[str]', default: 'strawberry.field(default_factory=list)' },
+        { name: 'metadata', type: 'JSONScalar | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'UpdateConversationInput',
+      fields: [
+        { name: 'id', type: 'str' },
+        { name: 'messages', type: 'list[str] | None', default: 'None' },
+        { name: 'metadata', type: 'JSONScalar | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'CreateExecutionInput',
+      fields: [
+        { name: 'diagram_id', type: 'DiagramID | None', default: 'None' },
+        { name: 'started_at', type: 'str' },
+        { name: 'status', type: 'ExecutionStatusEnum' },
+        { name: 'variables', type: 'JSONScalar | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'UpdateExecutionInput',
+      fields: [
+        { name: 'id', type: 'ExecutionID' },
+        { name: 'status', type: 'ExecutionStatusEnum | None', default: 'None' },
+        { name: 'ended_at', type: 'str | None', default: 'None' },
+        { name: 'error', type: 'str | None', default: 'None' },
       ]
     },
     {
@@ -284,28 +398,28 @@ class GraphQLTypesGenerator {
       name: 'DiagramResult',
       base: 'MutationResult',
       fields: [
-        { name: 'diagram', type: 'DomainDiagramType | None', default: 'None' },
+        { name: 'diagram', type: 'DiagramType | None', default: 'None' },
       ]
     },
     {
       name: 'NodeResult',
       base: 'MutationResult',
       fields: [
-        { name: 'node', type: 'DomainNodeType | None', default: 'None' },
+        { name: 'node', type: 'NodeType | None', default: 'None' },
       ]
     },
     {
       name: 'PersonResult',
       base: 'MutationResult',
       fields: [
-        { name: 'person', type: 'DomainPersonType | None', default: 'None' },
+        { name: 'person', type: 'PersonType | None', default: 'None' },
       ]
     },
     {
       name: 'ApiKeyResult',
       base: 'MutationResult',
       fields: [
-        { name: 'api_key', type: 'DomainApiKeyType | None', default: 'None' },
+        { name: 'api_key', type: 'ApiKeyType | None', default: 'None' },
       ]
     },
     {
@@ -320,8 +434,36 @@ class GraphQLTypesGenerator {
       name: 'ExecutionResult',
       base: 'MutationResult',
       fields: [
-        { name: 'execution', type: 'ExecutionStateType | None', default: 'None' },
+        { name: 'execution', type: 'ExecutionType | None', default: 'None' },
         { name: 'execution_id', type: 'str | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'ArrowResult',
+      base: 'MutationResult',
+      fields: [
+        { name: 'arrow', type: 'ArrowType | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'HandleResult',
+      base: 'MutationResult',
+      fields: [
+        { name: 'handle', type: 'HandleType | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'MessageResult',
+      base: 'MutationResult',
+      fields: [
+        { name: 'message', type: 'MessageType | None', default: 'None' },
+      ]
+    },
+    {
+      name: 'ConversationResult',
+      base: 'MutationResult',
+      fields: [
+        { name: 'conversation', type: 'ConversationType | None', default: 'None' },
       ]
     },
     {
@@ -364,6 +506,8 @@ class GraphQLTypesGenerator {
     { name: 'ApiKeyID', description: 'Unique identifier for an API key' },
     { name: 'HandleID', description: 'Unique identifier for a handle' },
     { name: 'ArrowID', description: 'Unique identifier for an arrow' },
+    { name: 'ConversationID', description: 'Unique identifier for a conversation' },
+    { name: 'MessageID', description: 'Unique identifier for a message' },
   ];
   
   async generate() {
@@ -439,7 +583,7 @@ class GraphQLTypesGenerator {
     // Import domain models - get all enums and types from schema
     const imports: string[] = [];
     for (const [name, def] of Object.entries(this.schema)) {
-      if (def && (def.type === 'enum' || name.startsWith('Domain') || ['Vec2', 'TokenUsage', 'NodeState', 'ExecutionState', 'DiagramMetadata', 'PersonLLMConfig'].includes(name))) {
+      if (def && (def.type === 'enum' || name.startsWith('Domain') || ['Vec2', 'TokenUsage', 'NodeState', 'Execution', 'DiagramMetadata', 'PersonLLMConfig', 'Handle', 'Node', 'Arrow', 'Person', 'ApiKey', 'Diagram', 'Message', 'Conversation', 'ConversationMetadata'].includes(name))) {
         imports.push(name);
       }
     }
@@ -541,6 +685,8 @@ class GraphQLTypesGenerator {
             }
             lines.push('');
           }
+        } else {
+          lines.push('    pass');
         }
       }
       lines.push('');

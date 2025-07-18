@@ -58,7 +58,7 @@ class FrontendMappingsGenerator {
       { domain: 'DomainHandle', graphql: 'Handle' },
       { domain: 'DomainPerson', graphql: 'Person' },
       { domain: 'DomainApiKey', graphql: 'ApiKey' },
-      { domain: 'ExecutionState', graphql: 'Execution' },
+      { domain: 'Execution', graphql: 'Execution' },
       { domain: 'NodeState', graphql: 'NodeState' },
       { domain: 'Vec2', graphql: 'Vec2' },
       { domain: 'DiagramMetadata', graphql: 'DiagramMetadata' },

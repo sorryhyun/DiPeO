@@ -304,6 +304,57 @@ export const GENERATED_FIELD_CONFIGS: GeneratedFieldConfigs = {
       required: false,
     },
   ],
+  'person_batch_job': [
+    {
+      name: 'person',
+      type: 'personSelect',
+      label: 'Person',
+      required: false,
+    },
+    {
+      name: 'first_only_prompt',
+      type: 'variableTextArea',
+      label: 'First Only Prompt',
+      required: true,
+      placeholder: 'Enter prompt. Use {{variable_name}} for variables.',
+      rows: 6,
+    },
+    {
+      name: 'default_prompt',
+      type: 'variableTextArea',
+      label: 'Default Prompt',
+      required: false,
+      placeholder: 'Enter prompt. Use {{variable_name}} for variables.',
+      rows: 6,
+    },
+    {
+      name: 'max_iteration',
+      type: 'maxIteration',
+      label: 'Max Iteration',
+      required: true,
+      defaultValue: 1,
+      min: 1,
+      max: 100,
+    },
+    {
+      name: 'memory_config',
+      type: 'text',
+      label: 'Memory Config',
+      required: false,
+    },
+    {
+      name: 'memory_settings',
+      type: 'text',
+      label: 'Memory Settings',
+      required: false,
+    },
+    {
+      name: 'tools',
+      type: 'textarea',
+      label: 'Tools',
+      required: false,
+    },
+  ],
   'hook': [
     {
       name: 'hook_type',

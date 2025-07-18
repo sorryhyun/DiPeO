@@ -1,20 +1,24 @@
-"""GraphQL mutations for node operations."""
+"""GraphQL mutations for Node management - Auto-generated."""
 
 import logging
 import uuid
+from typing import Optional
+from datetime import datetime
 
 import strawberry
-from dipeo.models import DomainNode, NodeType, Vec2
-from dipeo.models import NodeID as DomainNodeID
+from dipeo.models import Node
+from dipeo.models import NodeID
 
 from ..context import GraphQLContext
 from ..generated_types import (
     CreateNodeInput,
-    DeleteResult,
-    DiagramID,
-    NodeID,
-    NodeResult,
     UpdateNodeInput,
+    NodeResult,
+    NodeID,
+    DeleteResult,
+    JSONScalar,
+    MutationResult,
+    NodeType,
 )
 
 logger = logging.getLogger(__name__)
@@ -22,175 +26,169 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class NodeMutations:
-    """Handles node CRUD operations."""
-
+    """Handles Node CRUD operations."""
+    
     @strawberry.mutation
     async def create_node(
-        self, diagram_id: DiagramID, input_data: CreateNodeInput, info
+        self,
+        node_input: CreateNodeInput,
+        info: strawberry.Info[GraphQLContext],
     ) -> NodeResult:
-        """Creates new node in diagram."""
+        """Create a new Node."""
         try:
             context: GraphQLContext = info.context
-            integrated_service = context.get_service("integrated_diagram_service")
-
-            # Use input_data directly without conversion
-
-            # Get diagram data
-            diagram_data = await integrated_service.get_diagram(diagram_id)
-            if not diagram_data:
-                return NodeResult(success=False, error="Diagram not found")
-
-            node_id = f"node_{str(uuid.uuid4())[:8]}"
-
-            node_properties = (input_data.properties or {}).copy()
-            node_properties["label"] = input_data.label
-
-            node = DomainNode(
-                id=DomainNodeID(node_id),
-                type=input_data.type,
-                position=Vec2(x=input_data.position.x, y=input_data.position.y),
-                data=node_properties,
-            )
-
-            diagram_data["nodes"][node_id] = node.model_dump()
-
-            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
-
-            return NodeResult(
-                success=True, node=node, message=f"Created node {node_id}"
-            )
-
-        except ValueError as e:
-            logger.error(f"Validation error creating node: {e}")
-            return NodeResult(success=False, error=f"Validation error: {e!s}")
-        except Exception as e:
-            logger.error(f"Failed to create node: {e}")
-            return NodeResult(success=False, error=f"Failed to create node: {e!s}")
-
-    @strawberry.mutation
-    async def update_node(self, input_data: UpdateNodeInput, info) -> NodeResult:
-        """Updates existing node properties."""
-        try:
-            context: GraphQLContext = info.context
-            integrated_service = context.get_service("integrated_diagram_service")
-
-            # Use input_data directly without conversion
-
-            diagrams = await integrated_service.list_diagrams()
-            diagram_id = None
-            diagram_data = None
-
-            for diagram_meta in diagrams:
-                # Extract diagram ID from path
-                path = diagram_meta.get("path", "")
-                temp_diagram_id = path.split(".")[0] if path else diagram_meta.get("id")
-                temp_diagram = await integrated_service.get_diagram(temp_diagram_id)
-                if temp_diagram and input_data.id in temp_diagram.get("nodes", {}):
-                    diagram_id = temp_diagram_id
-                    diagram_data = temp_diagram
-                    break
-
-            if not diagram_data:
+            node_service = context.get_service("node_service")
+            
+            # Extract fields from input
+            data = {
+                "type": getattr(node_input, "type", None),
+                "position": getattr(node_input, "position", None),
+                "data": getattr(node_input, "data", None),
+                "diagram_id": getattr(node_input, "diagram_id", None),
+            }
+            
+            # Remove None values
+            data = {k: v for k, v in data.items() if v is not None}
+            
+            # Validate required fields
+            required_fields = ["type", "position", "data", "diagram_id"]
+            missing = [f for f in required_fields if f not in data or data[f] is None]
+            if missing:
                 return NodeResult(
                     success=False,
-                    error=f"Node {input_data.id} not found in any diagram",
+                    error=f"Missing required fields: {', '.join(missing)}"
                 )
-
-            node_data = diagram_data["nodes"][input_data.id]
-
-            if input_data.position:
-                node_data["position"] = {
-                    "x": input_data.position.x,
-                    "y": input_data.position.y,
-                }
-
-            if input_data.label is not None:
-                node_data["data"]["label"] = input_data.label
-
-            if input_data.properties is not None:
-                node_data["data"].update(input_data.properties)
-
-            updated_node = DomainNode(
-                id=input_data.id,
-                type=NodeType(node_data["type"]),
-                position=Vec2(
-                    x=node_data["position"]["x"], y=node_data["position"]["y"]
-                ),
-                data=node_data["data"],
+            
+            # Create the entity
+            entity_id = f"node_{str(uuid.uuid4())[:8]}"
+            
+            # Build domain model
+            node_data = Node(
+                id=NodeID(entity_id),
+                **data
             )
+            
+            # Save through service
+            saved_entity = await node_service.create(node_data)
+            
 
-            diagram_data["nodes"][input_data.id] = updated_node.model_dump()
-
-            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
-
+            
             return NodeResult(
                 success=True,
-                node=updated_node,
-                message=f"Updated node {input_data.id}",
+                node=saved_entity,
+                message=f"Node created successfully with ID: {entity_id}"
             )
-
+            
         except ValueError as e:
-            logger.error(f"Validation error updating node: {e}")
-            return NodeResult(success=False, error=f"Validation error: {e!s}")
+            logger.error(f"Validation error creating Node: {e}")
+            return NodeResult(
+                success=False, 
+                error=f"Validation error: {str(e)}"
+            )
         except Exception as e:
-            logger.error(f"Failed to update node: {e}")
-            return NodeResult(success=False, error=f"Failed to update node: {e!s}")
+            logger.error(f"Failed to create Node: {e}", exc_info=True)
+            return NodeResult(
+                success=False, 
+                error=f"Failed to create Node: {str(e)}"
+            )
 
     @strawberry.mutation
-    async def delete_node(self, node_id: NodeID, info) -> DeleteResult:
-        """Removes node and connected elements."""
+    async def update_node(
+        self,
+        node_input: UpdateNodeInput,
+        info: strawberry.Info[GraphQLContext],
+    ) -> NodeResult:
+        """Update an existing Node."""
         try:
             context: GraphQLContext = info.context
-            integrated_service = context.get_service("integrated_diagram_service")
-
-            diagrams = await integrated_service.list_diagrams()
-            diagram_id = None
-            diagram_data = None
-
-            for diagram_meta in diagrams:
-                # Extract diagram ID from path
-                path = diagram_meta.get("path", "")
-                temp_diagram_id = path.split(".")[0] if path else diagram_meta.get("id")
-                temp_diagram = await integrated_service.get_diagram(temp_diagram_id)
-                if temp_diagram and node_id in temp_diagram.get("nodes", {}):
-                    diagram_id = temp_diagram_id
-                    diagram_data = temp_diagram
-                    break
-
-            if not diagram_data:
-                return DeleteResult(
-                    success=False, error=f"Node {node_id} not found in any diagram"
+            service = context.get_service("node_service")
+            
+            # Get existing entity
+            existing = await service.get(node_input.id)
+            if not existing:
+                return NodeResult(
+                    success=False,
+                    error=f"Node with ID {node_input.id} not found"
                 )
+            
+            # Build updates
+            updates = {}
+            if node_input.type is not None:
+                updates["type"] = node_input.type
+            if node_input.position is not None:
+                updates["position"] = node_input.position
+            if node_input.data is not None:
+                updates["data"] = node_input.data
+            
+            if not updates:
+                return NodeResult(
+                    success=False,
+                    error="No fields to update"
+                )
+            
 
-            del diagram_data["nodes"][node_id]
-
-            arrows_to_remove = []
-            for arrow_id, arrow in diagram_data.get("arrows", {}).items():
-                source_node_id = arrow["source"].split(":")[0]
-                target_node_id = arrow["target"].split(":")[0]
-
-                if source_node_id == node_id or target_node_id == node_id:
-                    arrows_to_remove.append(arrow_id)
-
-            for arrow_id in arrows_to_remove:
-                del diagram_data["arrows"][arrow_id]
-
-            handles_to_remove = []
-            for handle_id, handle in diagram_data.get("handles", {}).items():
-                if handle.get("nodeId") == node_id:
-                    handles_to_remove.append(handle_id)
-
-            for handle_id in handles_to_remove:
-                del diagram_data["handles"][handle_id]
-
-            await integrated_service.update_diagram_by_id(diagram_id, diagram_data)
-
-            return DeleteResult(
+            
+            # Apply updates
+            updated_entity = await node_service.update(node_input.id, updates)
+            
+            return NodeResult(
                 success=True,
-                deleted_id=node_id,
-                message=f"Deleted node {node_id} and {len(arrows_to_remove)} connected arrows",
+                node=updated_entity,
+                message=f"Node updated successfully"
+            )
+            
+        except ValueError as e:
+            logger.error(f"Validation error updating Node: {e}")
+            return NodeResult(
+                success=False,
+                error=f"Validation error: {str(e)}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to update Node: {e}", exc_info=True)
+            return NodeResult(
+                success=False,
+                error=f"Failed to update Node: {str(e)}"
             )
 
+    @strawberry.mutation
+    async def delete_node(
+        self,
+        node_id: NodeID,
+        info: strawberry.Info[GraphQLContext],
+    ) -> DeleteResult:
+        """Delete a Node."""
+        try:
+            context: GraphQLContext = info.context
+            node_service = context.get_service("node_service")
+            
+            # Check if exists
+            existing = await node_service.get(node_id)
+            if not existing:
+                return DeleteResult(
+                    success=False,
+                    error=f"Node with ID {node_id} not found"
+                )
+            
+
+            
+            # Delete the entity
+            await node_service.delete(node_id)
+            
+            return DeleteResult(
+                success=True,
+                deleted_id=str(node_id),
+                message=f"Node deleted successfully"
+            )
+            
+        except ValueError as e:
+            logger.error(f"Validation error deleting Node: {e}")
+            return DeleteResult(
+                success=False,
+                error=f"Cannot delete: {str(e)}"
+            )
         except Exception as e:
-            logger.error(f"Failed to delete node {node_id}: {e}")
-            return DeleteResult(success=False, error=f"Failed to delete node: {e!s}")
+            logger.error(f"Failed to delete Node: {e}", exc_info=True)
+            return DeleteResult(
+                success=False,
+                error=f"Failed to delete Node: {str(e)}"
+            )

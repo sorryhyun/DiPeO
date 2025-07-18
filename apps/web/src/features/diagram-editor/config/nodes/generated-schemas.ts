@@ -94,6 +94,15 @@ export const NODE_DATA_SCHEMAS = {
     page_id: z.string().optional(),
     database_id: z.string().optional()
   }),
+  'person_batch_job': z.object({
+    person: z.any().optional(),
+    first_only_prompt: z.string(),
+    default_prompt: z.string().optional(),
+    max_iteration: z.number(),
+    memory_config: z.any().optional().nullable(),
+    memory_settings: z.any().optional().nullable(),
+    tools: z.array(z.any()).optional().nullable()
+  }),
   'hook': z.object({
     hook_type: z.any(),
     config: z.any(),
@@ -114,6 +123,7 @@ export type CodeJobNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['code_job']
 export type ApiJobNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['api_job']>;
 export type UserResponseNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['user_response']>;
 export type NotionNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['notion']>;
+export type PersonBatchJobNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['person_batch_job']>;
 export type HookNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['hook']>;
 
 /**

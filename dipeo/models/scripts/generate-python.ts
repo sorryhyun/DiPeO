@@ -33,6 +33,13 @@ const BRANDED_IDS = [
   'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 'DiagramID', 'ExecutionID'
 ] as const;
 
+const PYTHON_RESERVED_KEYWORDS = new Set([
+  'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break',
+  'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally',
+  'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal',
+  'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'
+]);
+
 type TsType = string;
 
 const ADDITIONAL_FIELDS: Record<string, Array<{ name: string; type: string; optional: boolean }>> = {};
@@ -171,7 +178,18 @@ class PythonGenerator {
         t = info.optional ? 'Optional[Dict[str, Any]]' : 'Dict[str, Any]';
         this.add('typing', 'Optional', 'Dict', 'Any');
       }
-      lines.push(`    ${p}: ${t}${info.optional ? ' = Field(default=None)' : ''}`);
+      
+      // Handle Python reserved keywords
+      const fieldName = PYTHON_RESERVED_KEYWORDS.has(p) ? `${p}_` : p;
+      const fieldDef = info.optional 
+        ? PYTHON_RESERVED_KEYWORDS.has(p) 
+          ? ` = Field(default=None, alias="${p}")`
+          : ' = Field(default=None)'
+        : PYTHON_RESERVED_KEYWORDS.has(p)
+          ? ` = Field(alias="${p}")`
+          : '';
+      
+      lines.push(`    ${fieldName}: ${t}${fieldDef}`);
     }
     return lines;
   }
@@ -223,8 +241,22 @@ class PythonGenerator {
     this.all.filter(s => s.type === 'interface').forEach(i => lines.push(...this.classLines(i), ''));
 
     this.all.filter(s => s.type === 'type-alias').forEach(a => {
-      const m = a.aliasType?.match(/\.([A-Za-z]+)/);
-      if (m && [...this.all].some(s => s.name === m[1])) lines.push(`${a.name} = ${m[1]}`, '');
+      // Only generate type alias if it's a simple reference to another class
+      const aliasType = a.aliasType?.trim();
+      if (!aliasType) return;
+      
+      // Skip union types and complex types
+      if (aliasType.includes('|') || aliasType.includes('&')) return;
+      
+      // Extract the referenced type name
+      const m = aliasType.match(/^([A-Za-z]+)$/) || aliasType.match(/\.([A-Za-z]+)$/);
+      if (m) {
+        const referencedType = m[1];
+        // Only create alias if the referenced type exists as a class
+        if (this.all.some(s => s.name === referencedType && s.type === 'interface')) {
+          lines.push(`${a.name} = ${referencedType}`, '');
+        }
+      }
     });
 
     await fs.mkdir(path.dirname(dest), { recursive: true });

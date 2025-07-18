@@ -1,8 +1,10 @@
 import strawberry
 
-from .api_key_mutation import ApiKeyMutations
+from .apikey_mutation import ApiKeyMutations
+from .arrow_mutation import ArrowMutations
 from .diagram_mutation import DiagramMutations
 from .execution_mutation import ExecutionMutations
+from .handle_mutation import HandleMutations
 from .node_mutation import NodeMutations
 from .person_mutation import PersonMutations
 from .upload_mutation import (
@@ -13,10 +15,12 @@ from .upload_mutation import (
 
 __all__ = [
     "ApiKeyMutations",
+    "ArrowMutations",
     "DiagramConvertResult",
     "DiagramMutations",
     "DiagramValidationResult",
     "ExecutionMutations",
+    "HandleMutations",
     "Mutation",
     "NodeMutations",
     "PersonMutations",
@@ -27,8 +31,10 @@ __all__ = [
 @strawberry.type
 class Mutation(
     ApiKeyMutations,
+    ArrowMutations,
     DiagramMutations,
     ExecutionMutations,
+    HandleMutations,
     NodeMutations,
     PersonMutations,
     UploadMutations,
