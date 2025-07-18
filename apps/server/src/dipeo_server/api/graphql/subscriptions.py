@@ -11,12 +11,14 @@ from dipeo.models import ExecutionStatus, NodeType
 from .context import GraphQLContext
 from .generated_types import (
     DiagramID,
-    DomainDiagramType,
     ExecutionID,
-    ExecutionStateType,
+    ExecutionType,
     ExecutionStatusEnum,
     JSONScalar,
     NodeID,
+)
+from .domain_types import (
+    DomainDiagramType,
 )
 
 logger = logging.getLogger(__name__)
@@ -99,7 +101,7 @@ class Subscription:
     @strawberry.subscription
     async def execution_updates(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[ExecutionStateType]:
+    ) -> AsyncGenerator[ExecutionType]:
         """Streams execution state changes using direct streaming."""
         context: GraphQLContext = info.context
         state_store = context.get_service("state_store")

@@ -3,7 +3,7 @@
 import logging
 
 import strawberry
-from dipeo.models import DomainApiKey
+from dipeo.models import ApiKey
 
 from ..context import GraphQLContext
 from ..generated_types import (
@@ -33,7 +33,7 @@ class ApiKeyMutations:
                 key=input.key,
             )
 
-            api_key = DomainApiKey(
+            api_key = ApiKey(
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=input.service,

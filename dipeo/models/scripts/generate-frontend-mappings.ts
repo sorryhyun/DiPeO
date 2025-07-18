@@ -39,8 +39,8 @@ class FrontendMappingsGenerator {
     // Write to file
     const outputPath = path.join(
       __dirname, '..', '..', '..',
-      'apps', 'web', 'src', 'lib', 'graphql', 'types',
-      'generated-mappings.ts'
+      'apps', 'web', 'src', '__generated__', 'domain',
+      'mappings.ts'
     );
     
     fs.writeFileSync(outputPath, mappingCode);

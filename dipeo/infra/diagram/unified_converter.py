@@ -2,9 +2,9 @@
 
 import logging
 
-from dipeo.models import DomainDiagram
+from dipeo.models import Diagram
 
-DomainDiagram.model_rebuild()
+Diagram.model_rebuild()
 
 from dipeo.core.ports import DiagramConverter, FormatStrategy
 from dipeo.domain.diagram.strategies import LightYamlStrategy, NativeJsonStrategy, ReadableYamlStrategy
@@ -45,7 +45,7 @@ class UnifiedDiagramConverter(DiagramConverter):
 
         return strategy
 
-    def serialize(self, diagram: DomainDiagram, format_id: str | None = None) -> str:
+    def serialize(self, diagram: Diagram, format_id: str | None = None) -> str:
         """Convert domain diagram to format-specific string."""
         fmt = format_id or getattr(self, "active_format", None)
         if not fmt:
@@ -54,7 +54,7 @@ class UnifiedDiagramConverter(DiagramConverter):
         strategy = self.get_strategy(fmt)
         return strategy.serialize_from_domain(diagram)
 
-    def deserialize(self, content: str, format_id: str | None = None) -> DomainDiagram:
+    def deserialize(self, content: str, format_id: str | None = None) -> Diagram:
         """Convert format-specific string to domain diagram."""
         fmt = format_id or getattr(self, "active_format", None)
 

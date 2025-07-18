@@ -13,14 +13,16 @@ from .generated_types import (
     DiagramFilterInput,
     DiagramFormatInfo,
     DiagramID,
+    ExecutionFilterInput,
+    ExecutionID,
+    ExecutionType,
+    JSONScalar,
+    PersonID,
+)
+from .domain_types import (
     DomainApiKeyType,
     DomainDiagramType,
     DomainPersonType,
-    ExecutionFilterInput,
-    ExecutionID,
-    ExecutionStateType,
-    JSONScalar,
-    PersonID,
 )
 
 
@@ -45,7 +47,7 @@ class Query:
         return await diagram_resolver.list_diagrams(filter, limit, offset, info)
 
     @strawberry.field
-    async def execution(self, id: ExecutionID, info) -> ExecutionStateType | None:
+    async def execution(self, id: ExecutionID, info) -> ExecutionType | None:
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.get_execution(id, info)
@@ -57,7 +59,7 @@ class Query:
         filter: ExecutionFilterInput | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[ExecutionStateType]:
+    ) -> list[ExecutionType]:
         from .resolvers.execution import execution_resolver
 
         return await execution_resolver.list_executions(filter, limit, offset, info)

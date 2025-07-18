@@ -1,6 +1,6 @@
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
-import { getGeneratedFields } from './generated-fields';
-import { createZodFieldValidator } from './generated-schemas';
+import { getGeneratedFields } from '@/__generated__/nodes/fields';
+import { createZodFieldValidator } from '@/__generated__/nodes/schemas';
 
 /**
  * Field override configuration for specific node types

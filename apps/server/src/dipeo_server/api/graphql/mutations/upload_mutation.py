@@ -13,7 +13,7 @@ from dipeo.infra.diagram import converter_registry
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
 from dipeo.models import (
     DiagramMetadata,
-    DomainDiagram,
+    Diagram,
 )
 from strawberry.file_uploads import Upload
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_diagram(
-    diagram: DomainDiagram, api_key_service: APIKeyService | None = None
+    diagram: Diagram, api_key_service: APIKeyService | None = None
 ) -> list[str]:
     """Validates diagram structure, returns error list."""
     errors = []
@@ -85,7 +85,7 @@ def validate_diagram(
     return errors
 
 
-def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
+def domain_to_backend_format(diagram: Diagram) -> dict[str, Any]:
     """Converts domain diagram to backend dict format."""
     json_str = converter_registry.serialize(diagram, DiagramFormat.native.value)
     data = json.loads(json_str)
@@ -102,7 +102,7 @@ def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
     return data
 
 
-def backend_to_domain_format(data: dict[str, Any]) -> DomainDiagram:
+def backend_to_domain_format(data: dict[str, Any]) -> Diagram:
     """Converts backend dict to domain diagram."""
     json_str = json.dumps(data, indent=2)
     return converter_registry.deserialize(json_str, DiagramFormat.native.value)

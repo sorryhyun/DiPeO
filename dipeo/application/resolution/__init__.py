@@ -1,4 +1,4 @@
-# Diagram resolution pipeline for transforming DomainDiagram to ExecutableDiagram.
+# Diagram resolution pipeline for transforming Diagram to ExecutableDiagram.
 # Handles resolution, arrow transformation, execution order, and validation.
 
 from .arrow_transformer import ArrowTransformer

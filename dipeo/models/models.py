@@ -593,6 +593,268 @@ class NodeDefinition(BaseModel):
     requires_services: Optional[List[str]] = Field(default=None)
     description: Optional[str] = Field(default=None)
 
+class Person(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: PersonID
+    label: str
+    type: str
+    llm_config: Dict[str, Any]
+    diagram_id: DiagramID
+    created: Optional[str] = Field(default=None)
+    modified: Optional[str] = Field(default=None)
+
+class CreatePersonInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    label: str
+    llm_config: Dict[str, Any]
+    diagram_id: DiagramID
+
+class UpdatePersonInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: PersonID
+    label: Optional[str] = Field(default=None)
+    llm_config: Optional[Dict[str, Any]] = Field(default=None)
+
+class PersonResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    success: bool
+    message: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    person: Optional[Person] = Field(default=None)
+
+class Node(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: NodeID
+    type: str
+    position: Dict[str, Any]
+    data: Dict[str, Any]
+    diagram_id: DiagramID
+    created: Optional[str] = Field(default=None)
+    modified: Optional[str] = Field(default=None)
+
+class CreateNodeInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    type: str
+    position: Dict[str, Any]
+    data: Dict[str, Any]
+    diagram_id: DiagramID
+
+class UpdateNodeInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: NodeID
+    type: Optional[str] = Field(default=None)
+    position: Optional[Dict[str, Any]] = Field(default=None)
+    data: Optional[Dict[str, Any]] = Field(default=None)
+
+class NodeResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    success: bool
+    message: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    node: Optional[Node] = Field(default=None)
+
+class Handle(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: HandleID
+    node_id: NodeID
+    label: str
+    direction: str
+    data_type: str
+    position: Optional[str] = Field(default=None)
+    diagram_id: DiagramID
+    created: Optional[str] = Field(default=None)
+    modified: Optional[str] = Field(default=None)
+
+class CreateHandleInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    node_id: NodeID
+    label: str
+    direction: str
+    data_type: str
+    position: Optional[str] = Field(default=None)
+    diagram_id: DiagramID
+
+class UpdateHandleInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: HandleID
+    label: Optional[str] = Field(default=None)
+    direction: Optional[str] = Field(default=None)
+    data_type: Optional[str] = Field(default=None)
+    position: Optional[str] = Field(default=None)
+
+class HandleResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    success: bool
+    message: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    handle: Optional[Handle] = Field(default=None)
+
+class Execution(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: ExecutionID
+    status: str
+    diagram_id: Optional[DiagramID] = Field(default=None)
+    started_at: str
+    ended_at: Optional[str] = Field(default=None)
+    node_states: Dict[str, Any]
+    node_outputs: Dict[str, Any]
+    token_usage: Dict[str, Any]
+    error: Optional[str] = Field(default=None)
+    variables: Dict[str, Any]
+    exec_counts: Dict[str, Any]
+    executed_nodes: List[str]
+
+class CreateExecutionInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    diagram_id: Optional[DiagramID] = Field(default=None)
+    variables: Dict[str, Any]
+
+class UpdateExecutionInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: ExecutionID
+    status: Optional[str] = Field(default=None)
+    node_states: Optional[Dict[str, Any]] = Field(default=None)
+    node_outputs: Optional[Dict[str, Any]] = Field(default=None)
+    token_usage: Optional[Dict[str, Any]] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    variables: Optional[Dict[str, Any]] = Field(default=None)
+    exec_counts: Optional[Dict[str, Any]] = Field(default=None)
+    executed_nodes: Optional[List[str]] = Field(default=None)
+    ended_at: Optional[str] = Field(default=None)
+
+class ExecutionResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    success: bool
+    message: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    execution: Optional[Execution] = Field(default=None)
+
+class Diagram(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: DiagramID
+    name: str
+    description: Optional[str] = Field(default=None)
+    version: str
+    author: Optional[str] = Field(default=None)
+    tags: Optional[List[str]] = Field(default=None)
+    created: Optional[str] = Field(default=None)
+    modified: Optional[str] = Field(default=None)
+
+class CreateDiagramInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    name: str
+    description: Optional[str] = Field(default=None)
+    author: Optional[str] = Field(default=None)
+    tags: Optional[List[str]] = Field(default=None)
+
+class UpdateDiagramInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: DiagramID
+    name: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    author: Optional[str] = Field(default=None)
+    tags: Optional[List[str]] = Field(default=None)
+
+class DiagramResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    success: bool
+    message: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    diagram: Optional[Diagram] = Field(default=None)
+
+class Arrow(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: ArrowID
+    source: HandleID
+    target: HandleID
+    content_type: Optional[str] = Field(default=None)
+    label: Optional[str] = Field(default=None)
+    data: Optional[Dict[str, Any]] = Field(default=None)
+    diagram_id: DiagramID
+    created: Optional[str] = Field(default=None)
+    modified: Optional[str] = Field(default=None)
+
+class CreateArrowInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    source: HandleID
+    target: HandleID
+    content_type: Optional[str] = Field(default=None)
+    label: Optional[str] = Field(default=None)
+    data: Optional[Dict[str, Any]] = Field(default=None)
+    diagram_id: DiagramID
+
+class UpdateArrowInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: ArrowID
+    source: Optional[HandleID] = Field(default=None)
+    target: Optional[HandleID] = Field(default=None)
+    content_type: Optional[str] = Field(default=None)
+    label: Optional[str] = Field(default=None)
+    data: Optional[Dict[str, Any]] = Field(default=None)
+
+class ArrowResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    success: bool
+    message: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    arrow: Optional[Arrow] = Field(default=None)
+
+class ApiKey(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: ApiKeyID
+    label: str
+    service: str
+    key: str
+    created: Optional[str] = Field(default=None)
+    modified: Optional[str] = Field(default=None)
+
+class CreateApiKeyInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    label: str
+    service: str
+    key: str
+
+class UpdateApiKeyInput(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    id: ApiKeyID
+    label: Optional[str] = Field(default=None)
+    key: Optional[str] = Field(default=None)
+
+class ApiKeyResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    success: bool
+    message: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    apikey: Optional[ApiKey] = Field(default=None)
+
 class GraphQLDomainPersonType(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 

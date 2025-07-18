@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from dipeo.models import DomainDiagram
+from dipeo.models import Diagram
 
 from .executable_diagram import ExecutableDiagram
 
@@ -10,7 +10,7 @@ from .executable_diagram import ExecutableDiagram
 class DiagramCompiler(Protocol):
     """Compiles between domain and executable diagram representations."""
     
-    def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
+    def compile(self, domain_diagram: Diagram) -> ExecutableDiagram:
         """Compile a domain diagram into an executable representation.
         
         This involves:

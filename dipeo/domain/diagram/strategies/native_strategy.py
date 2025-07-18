@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from dipeo.models import DomainDiagram
+from dipeo.models import Diagram
 
 from dipeo.domain.diagram.utils import _JsonMixin, build_node, coerce_to_dict
 from .base_strategy import BaseConversionStrategy
@@ -40,7 +40,7 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
         )
 
     # ---- export ----------------------------------------------------------- #
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
+    def build_export_data(self, diagram: Diagram) -> dict[str, Any]:
         return {
             "nodes": {
                 n.id: {

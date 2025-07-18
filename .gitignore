@@ -50,6 +50,8 @@ packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
 # Generated conversions now in dipeo/domain/conversions.py (tracked)
 apps/cli/src/dipeo_cli/__generated__
 apps/web/src/__generated__
+apps/server/src/dipeo_server/api/graphql/generated_types.py
+apps/server/src/dipeo_server/api/graphql/generated_types_additions.py
 
 # Node.js
 node_modules/
@@ -155,3 +157,4 @@ yarn.lock
 /files/test/
 /apps/server/src/dipeo_server/api/graphql/generated-schema.graphql
 /apps/server/src/dipeo_server/api/graphql/generated_types.py
+/dipeo/models/src/generated-entities.ts

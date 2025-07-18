@@ -2,7 +2,7 @@
 
 import logging
 
-from dipeo.models import APIServiceType, DomainApiKey, DomainPerson
+from dipeo.models import APIServiceType, ApiKey, Person
 
 from ..context import GraphQLContext
 from ..generated_types import (
@@ -16,19 +16,19 @@ logger = logging.getLogger(__name__)
 class PersonResolver:
     """Handles person and API key queries."""
 
-    async def get_person(self, person_id: PersonID, info) -> DomainPerson | None:
+    async def get_person(self, person_id: PersonID, info) -> Person | None:
         """Returns person by ID."""
         logger.warning(
             f"get_person called for {person_id} - persons are diagram-scoped"
         )
         return None
 
-    async def list_persons(self, limit: int, info) -> list[DomainPerson]:
+    async def list_persons(self, limit: int, info) -> list[Person]:
         """Returns person list."""
         logger.warning("list_persons called - persons are diagram-scoped")
         return []
 
-    async def get_api_key(self, api_key_id: ApiKeyID, info) -> DomainApiKey | None:
+    async def get_api_key(self, api_key_id: ApiKeyID, info) -> ApiKey | None:
         """Returns API key by ID."""
         try:
             context: GraphQLContext = info.context
@@ -45,7 +45,7 @@ class PersonResolver:
                 )
                 return None
 
-            return DomainApiKey(
+            return ApiKey(
                 id=api_key_data["id"],
                 label=api_key_data["label"],
                 service=self._map_api_service(api_key_data["service"]),
@@ -55,7 +55,7 @@ class PersonResolver:
             logger.error(f"Failed to get API key {api_key_id}: {e}")
             return None
 
-    async def list_api_keys(self, service: str | None, info) -> list[DomainApiKey]:
+    async def list_api_keys(self, service: str | None, info) -> list[ApiKey]:
         """Returns API key list, optionally filtered."""
         try:
             context: GraphQLContext = info.context
@@ -69,7 +69,7 @@ class PersonResolver:
             result = []
             for key_data in all_keys:
                 if self._is_valid_service(key_data["service"]):
-                    pydantic_api_key = DomainApiKey(
+                    pydantic_api_key = ApiKey(
                         id=key_data["id"],
                         label=key_data["label"],
                         service=self._map_api_service(key_data["service"]),
