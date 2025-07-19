@@ -69,7 +69,7 @@ class FormatStrategy(ABC):
         """Deserialize format-specific string to domain diagram.
         
         This method should handle the complete conversion from the format-specific
-        string representation to a DomainDiagram object, including:
+        string representation to a Diagram object, including:
         - Parsing the content
         - Creating domain nodes with proper types
         - Creating domain arrows with content types
@@ -82,7 +82,7 @@ class FormatStrategy(ABC):
     def serialize_from_domain(self, diagram: Any) -> str:
         """Serialize domain diagram to format-specific string.
         
-        This method should handle the complete conversion from a DomainDiagram
+        This method should handle the complete conversion from a Diagram
         object to the format-specific string representation.
         """
         pass

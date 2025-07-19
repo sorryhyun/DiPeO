@@ -105,9 +105,9 @@ export {
   createEmptyDiagram,
   diagramToStoreMaps,
   storeMapsToArrays,
-  // Type conversions
-  convertGraphQLDiagramToDomain,
-  convertGraphQLPersonToDomain,
+  // Type conversions - moved to generated mappings
+  // convertGraphQLDiagramToDomain,
+  // convertGraphQLPersonToDomain,
   nodeKindToDomainType,
   domainTypeToNodeKind,
   // Type guards

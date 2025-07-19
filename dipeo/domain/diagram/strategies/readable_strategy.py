@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 from dipeo.models import (
-    DomainDiagram,
+    Diagram,
     HandleDirection,
     HandleLabel,
     NodeID,
@@ -207,7 +207,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         return arrows
 
     # ---- export ----------------------------------------------------------- #
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
+    def build_export_data(self, diagram: Diagram) -> dict[str, Any]:
         # Build a mapping from node ID to label (or ID if no label)
         id_to_label: dict[str, str] = {}
         for n in diagram.nodes:
@@ -263,7 +263,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
             out["flow"] = flow
         return out
 
-    def _build_enhanced_flow(self, diagram: DomainDiagram, id_to_label: dict[str, str]) -> list[str]:
+    def _build_enhanced_flow(self, diagram: Diagram, id_to_label: dict[str, str]) -> list[str]:
         """Build flow section using enhanced syntax with parallel flows and content types"""
         # Group arrows by source to detect parallel flows
         source_groups: dict[str, list] = {}

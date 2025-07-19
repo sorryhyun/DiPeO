@@ -6,7 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo.models import DomainDiagram
+from dipeo.models import Diagram
 
 from dipeo.core.ports import FormatStrategy
 from dipeo.domain.diagram.utils import (
@@ -83,7 +83,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         return extract_common_arrows(data.get("arrows", []))
     
 
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
+    def build_export_data(self, diagram: Diagram) -> dict[str, Any]:
         """Build export data with common structure.
 
         Subclasses can override this method entirely for custom formats,
@@ -114,7 +114,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
             
         return result
     
-    def _export_nodes(self, diagram: DomainDiagram) -> Any:
+    def _export_nodes(self, diagram: Diagram) -> Any:
         """Export nodes in format-specific structure."""
         # Default implementation for dict-based formats
         nodes = {}
@@ -131,7 +131,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
             }
         return nodes
     
-    def _export_arrows(self, diagram: DomainDiagram) -> Any:
+    def _export_arrows(self, diagram: Diagram) -> Any:
         """Export arrows in format-specific structure."""
         # Default implementation for dict-based formats
         return {
@@ -150,15 +150,15 @@ class BaseConversionStrategy(FormatStrategy, ABC):
             arrow.label if hasattr(arrow, 'label') else None
         )
     
-    def _export_handles(self, diagram: DomainDiagram) -> Any:
+    def _export_handles(self, diagram: Diagram) -> Any:
         """Export handles in format-specific structure."""
         return {h.id: h.model_dump(by_alias=True) for h in diagram.handles}
     
-    def _export_persons(self, diagram: DomainDiagram) -> Any:
+    def _export_persons(self, diagram: Diagram) -> Any:
         """Export persons in format-specific structure."""
         return {p.id: p.model_dump(by_alias=True) for p in diagram.persons}
     
-    def _export_metadata(self, diagram: DomainDiagram) -> Any:
+    def _export_metadata(self, diagram: Diagram) -> Any:
         """Export metadata in format-specific structure."""
         return diagram.metadata.model_dump(by_alias=True) if diagram.metadata else None
     
@@ -198,7 +198,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     
     # ---- New Domain Conversion Methods ------------------------------------ #
     
-    def deserialize_to_domain(self, content: str) -> DomainDiagram:
+    def deserialize_to_domain(self, content: str) -> Diagram:
         """Default implementation that uses existing methods.
         
         Subclasses should override this for format-specific logic.
@@ -233,7 +233,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         # Convert to domain model
         return dict_to_domain_diagram(diagram_dict)
     
-    def serialize_from_domain(self, diagram: DomainDiagram) -> str:
+    def serialize_from_domain(self, diagram: Diagram) -> str:
         """Default implementation that uses existing methods."""
         data = self.build_export_data(diagram)
         return self.format(data)

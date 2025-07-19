@@ -13,11 +13,11 @@ import {
   HandleID,
   PersonID,
   ApiKeyID,
-  DomainNode,
-  DomainArrow,
-  DomainHandle,
-  DomainPerson,
-  DomainApiKey,
+  Node,
+  Arrow,
+  Handle,
+  Person,
+  ApiKey,
 } from './diagram';
 
 // ============================================================================
@@ -139,8 +139,8 @@ export function parseHandleId(
  * Check if two handles are compatible for connection
  */
 export function areHandlesCompatible(
-  sourceHandle: DomainHandle,
-  targetHandle: DomainHandle
+  sourceHandle: Handle,
+  targetHandle: Handle
 ): boolean {
   // Opposite directions required
   if (sourceHandle.direction === targetHandle.direction) {
@@ -194,17 +194,17 @@ export function isDataTypeCompatible(
  * Convert array-based diagram to map-based structure
  */
 export function diagramArraysToMaps(diagram: {
-  nodes: DomainNode[];
-  arrows: DomainArrow[];
-  handles: DomainHandle[];
-  persons: DomainPerson[];
-  apiKeys?: DomainApiKey[];
+  nodes: Node[];
+  arrows: Arrow[];
+  handles: Handle[];
+  persons: Person[];
+  apiKeys?: ApiKey[];
 }): {
-  nodes: Map<NodeID, DomainNode>;
-  arrows: Map<ArrowID, DomainArrow>;
-  handles: Map<HandleID, DomainHandle>;
-  persons: Map<PersonID, DomainPerson>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
+  nodes: Map<NodeID, Node>;
+  arrows: Map<ArrowID, Arrow>;
+  handles: Map<HandleID, Handle>;
+  persons: Map<PersonID, Person>;
+  apiKeys: Map<ApiKeyID, ApiKey>;
 } {
   return {
     nodes: new Map(diagram.nodes.map(n => [n.id, n])),
@@ -219,17 +219,17 @@ export function diagramArraysToMaps(diagram: {
  * Convert map-based diagram to array-based structure
  */
 export function diagramMapsToArrays(diagram: {
-  nodes: Map<NodeID, DomainNode>;
-  arrows: Map<ArrowID, DomainArrow>;
-  handles: Map<HandleID, DomainHandle>;
-  persons: Map<PersonID, DomainPerson>;
-  apiKeys?: Map<ApiKeyID, DomainApiKey>;
+  nodes: Map<NodeID, Node>;
+  arrows: Map<ArrowID, Arrow>;
+  handles: Map<HandleID, Handle>;
+  persons: Map<PersonID, Person>;
+  apiKeys?: Map<ApiKeyID, ApiKey>;
 }): {
-  nodes: DomainNode[];
-  arrows: DomainArrow[];
-  handles: DomainHandle[];
-  persons: DomainPerson[];
-  apiKeys: DomainApiKey[];
+  nodes: Node[];
+  arrows: Arrow[];
+  handles: Handle[];
+  persons: Person[];
+  apiKeys: ApiKey[];
 } {
   return {
     nodes: Array.from(diagram.nodes.values()),
@@ -369,10 +369,10 @@ export function validateNodeData(
  * Validate arrow connection
  */
 export function validateArrowConnection(
-  sourceNode: DomainNode,
-  targetNode: DomainNode,
-  sourceHandle: DomainHandle,
-  targetHandle: DomainHandle
+  sourceNode: Node,
+  targetNode: Node,
+  sourceHandle: Handle,
+  targetHandle: Handle
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   

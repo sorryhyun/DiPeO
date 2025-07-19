@@ -5,8 +5,8 @@ from typing import Any
 from dipeo.core.base.exceptions import ValidationError
 from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
 from dipeo.models import (
-    DomainDiagram,
-    DomainNode,
+    Diagram,
+    Node,
     NodeType,
     extract_node_id_from_handle,
     parse_handle_id,
@@ -27,14 +27,14 @@ class DiagramValidator(BaseValidator):
                 self._validate_backend_format(target, result)
             else:
                 try:
-                    diagram = DomainDiagram.model_validate(target)
+                    diagram = Diagram.model_validate(target)
                     self._validate_diagram(diagram, result)
                 except Exception as e:
                     result.add_error(ValidationError(f"Invalid diagram format: {e!s}"))
-        elif isinstance(target, DomainDiagram):
+        elif isinstance(target, Diagram):
             self._validate_diagram(target, result)
         else:
-            result.add_error(ValidationError("Target must be a DomainDiagram or dict"))
+            result.add_error(ValidationError("Target must be a Diagram or dict"))
     
     def _is_backend_format(self, data: dict[str, Any]) -> bool:
         """Check if the data is in backend format (nodes/arrows as dicts)."""
@@ -42,8 +42,8 @@ class DiagramValidator(BaseValidator):
         arrows = data.get("arrows", {})
         return isinstance(nodes, dict) or isinstance(arrows, dict)
     
-    def _validate_diagram(self, diagram: DomainDiagram, result: ValidationResult) -> None:
-        """Validate a DomainDiagram object."""
+    def _validate_diagram(self, diagram: Diagram, result: ValidationResult) -> None:
+        """Validate a Diagram object."""
         # Basic structure validation
         if not diagram.nodes:
             result.add_error(ValidationError("Diagram must have at least one node"))
@@ -176,7 +176,7 @@ class DiagramValidator(BaseValidator):
                             f"Person '{person_id}' references non-existent API key '{api_key_id}'"
                         ))
     
-    def _validate_node_connections(self, node: DomainNode, diagram: DomainDiagram, result: ValidationResult) -> None:
+    def _validate_node_connections(self, node: Node, diagram: Diagram, result: ValidationResult) -> None:
         """Validate connections for a specific node."""
         # Get incoming and outgoing arrows
         incoming = []
@@ -205,7 +205,7 @@ class DiagramValidator(BaseValidator):
             if "condfalse" not in handle_values:
                 result.add_warning(ValidationWarning(f"Condition node '{node.id}' missing false branch"))
     
-    def _find_unreachable_nodes(self, diagram: DomainDiagram) -> set[str]:
+    def _find_unreachable_nodes(self, diagram: Diagram) -> set[str]:
         """Find nodes that cannot be reached from any start node."""
         # Build adjacency list
         graph = {}
@@ -238,7 +238,7 @@ class DiagramValidator(BaseValidator):
 
 
 # Convenience methods for backward compatibility
-def validate_or_raise(diagram: DomainDiagram | dict[str, Any], api_key_service: Any | None = None) -> None:
+def validate_or_raise(diagram: Diagram | dict[str, Any], api_key_service: Any | None = None) -> None:
     """Validate diagram and raise ValidationError if invalid."""
     validator = DiagramValidator(api_key_service)
     result = validator.validate(diagram)
@@ -247,7 +247,7 @@ def validate_or_raise(diagram: DomainDiagram | dict[str, Any], api_key_service: 
         raise ValidationError("; ".join(errors))
 
 
-def is_valid(diagram: DomainDiagram | dict[str, Any], api_key_service: Any | None = None) -> bool:
+def is_valid(diagram: Diagram | dict[str, Any], api_key_service: Any | None = None) -> bool:
     """Check if diagram is valid."""
     validator = DiagramValidator(api_key_service)
     result = validator.validate(diagram)

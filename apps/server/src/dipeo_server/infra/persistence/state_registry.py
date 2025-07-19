@@ -14,7 +14,7 @@ from dipeo.core.execution.node_output import serialize_protocol
 from dipeo.models import (
     DiagramID,
     ExecutionID,
-    ExecutionState,
+    Execution,
     ExecutionStatus,
     NodeExecutionStatus,
     NodeState,
@@ -213,7 +213,7 @@ class StateRegistry:
         execution_id: str | ExecutionID,
         diagram_id: str | DiagramID | None = None,
         variables: dict[str, Any] | None = None,
-    ) -> ExecutionState:
+    ) -> Execution:
         await self._ensure_initialized()
 
         # Handle both str and ExecutionID types
@@ -225,7 +225,7 @@ class StateRegistry:
             )
 
         now = datetime.now().isoformat()
-        state = ExecutionState(
+        state = Execution(
             id=ExecutionID(exec_id),
             status=ExecutionStatus.PENDING,
             diagram_id=diag_id,
@@ -244,7 +244,7 @@ class StateRegistry:
         await self.save_state(state)
         return state
 
-    async def save_state(self, state: ExecutionState):
+    async def save_state(self, state: Execution):
         await self._ensure_initialized()
 
         # Update cache for active executions
@@ -283,7 +283,7 @@ class StateRegistry:
                 ),
             )
 
-    async def get_state(self, execution_id: str) -> ExecutionState | None:
+    async def get_state(self, execution_id: str) -> Execution | None:
         await self._ensure_initialized()
 
         # Check cache first
@@ -309,7 +309,7 @@ class StateRegistry:
         if not row:
             return None
 
-        # Build ExecutionState data dictionary
+        # Build Execution data dictionary
         state_data = {
             "id": row[0],
             "status": row[1],
@@ -328,8 +328,8 @@ class StateRegistry:
             "is_active": False,  # Loaded from DB means it's not active
         }
 
-        # Create ExecutionState from the data
-        return ExecutionState(**state_data)
+        # Create Execution from the data
+        return Execution(**state_data)
 
     async def update_status(
         self, execution_id: str, status: ExecutionStatus, error: str | None = None
@@ -508,7 +508,7 @@ class StateRegistry:
         status: ExecutionStatus | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[ExecutionState]:
+    ) -> list[Execution]:
         # Build query with optional filters
         query = "SELECT execution_id, status, diagram_id, started_at, ended_at, node_states, node_outputs, token_usage, error, variables, exec_counts, executed_nodes FROM execution_states"
         conditions = []
@@ -536,7 +536,7 @@ class StateRegistry:
 
         executions = []
         for row in rows:
-            # Build ExecutionState data dictionary
+            # Build Execution data dictionary
             state_data = {
                 "id": row[0],
                 "status": row[1],
@@ -557,8 +557,8 @@ class StateRegistry:
                 "is_active": False,  # Loaded from DB means it's not active
             }
 
-            # Create ExecutionState from the data
-            execution_state = ExecutionState(**state_data)
+            # Create Execution from the data
+            execution_state = Execution(**state_data)
             executions.append(execution_state)
 
         return executions
@@ -575,7 +575,7 @@ class StateRegistry:
 
         await self._execute("VACUUM")
 
-    async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
+    async def get_state_from_cache(self, execution_id: str) -> Execution | None:
         return await self._execution_cache.get(execution_id)
 
     async def create_execution_in_cache(
@@ -583,7 +583,7 @@ class StateRegistry:
         execution_id: str | ExecutionID,
         diagram_id: str | DiagramID | None = None,
         variables: dict[str, Any] | None = None,
-    ) -> ExecutionState:
+    ) -> Execution:
         # Handle both str and ExecutionID types
         exec_id = execution_id if isinstance(execution_id, str) else str(execution_id)
         diag_id = None
@@ -593,7 +593,7 @@ class StateRegistry:
             )
 
         now = datetime.now().isoformat()
-        state = ExecutionState(
+        state = Execution(
             id=ExecutionID(exec_id),
             status=ExecutionStatus.PENDING,
             diagram_id=diag_id,
@@ -613,7 +613,7 @@ class StateRegistry:
         await self._execution_cache.set(execution_id, state)
         return state
 
-    async def persist_final_state(self, state: ExecutionState):
+    async def persist_final_state(self, state: Execution):
         # Ensure the state is marked as inactive
         state.is_active = False
 

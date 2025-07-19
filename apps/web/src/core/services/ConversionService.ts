@@ -7,6 +7,7 @@ import {
   type HandleID
 } from '@dipeo/domain-models';
 import { nodeId, arrowId, personId, handleId } from '@/core/types/branded';
+import * as GeneratedMappings from '@/__generated__/domain/mappings';
 
 // Conversion utilities service for ID conversions and common transformations
 // Reduces code duplication across the codebase
@@ -169,4 +170,40 @@ export class ConversionService {
       enabled: true
     }));
   }
+  
+  // ===== Generated Type Mappings =====
+  // These methods delegate to the generated mappings for backward compatibility
+  // and to provide a unified API for type conversions
+  
+  // Node conversions
+  static convertGraphQLNode = GeneratedMappings.convertGraphQLNodeToDomain;
+  static convertDomainNode = GeneratedMappings.convertDomainNodeToGraphQL;
+  
+  // Arrow conversions
+  static convertGraphQLArrow = GeneratedMappings.convertGraphQLArrowToDomain;
+  static convertDomainArrow = GeneratedMappings.convertDomainArrowToGraphQL;
+  
+  // Handle conversions
+  static convertGraphQLHandle = GeneratedMappings.convertGraphQLHandleToDomain;
+  static convertDomainHandle = GeneratedMappings.convertDomainHandleToGraphQL;
+  
+  // Diagram conversions
+  static convertGraphQLDiagram = GeneratedMappings.convertGraphQLDiagramToDomain;
+  static convertDomainDiagram = GeneratedMappings.convertDomainDiagramToGraphQL;
+  
+  // Person conversions
+  static convertGraphQLPerson = GeneratedMappings.convertGraphQLPersonToDomain;
+  static convertDomainPerson = GeneratedMappings.convertDomainPersonToGraphQL;
+  
+  // ApiKey conversions
+  static convertGraphQLApiKey = GeneratedMappings.convertGraphQLApiKeyToDomain;
+  static convertDomainApiKey = GeneratedMappings.convertDomainApiKeyToGraphQL;
+  
+  // Execution conversions
+  static convertGraphQLExecution = GeneratedMappings.convertGraphQLExecutionToDomain;
+  static convertDomainExecution = GeneratedMappings.convertDomainExecutionToGraphQL;
+  
+  // Helper functions
+  static convertNullable = GeneratedMappings.convertNullable;
+  static convertArray = GeneratedMappings.convertArray;
 }

@@ -9,14 +9,14 @@ import strawberry
 from dipeo.models import ExecutionStatus, NodeType
 
 from .context import GraphQLContext
-from .types import (
+from .generated_types import (
     DiagramID,
-    DomainDiagramType,
     ExecutionID,
-    ExecutionStateType,
+    ExecutionType,
     ExecutionStatusEnum,
     JSONScalar,
     NodeID,
+    DiagramType
 )
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,7 @@ class Subscription:
     @strawberry.subscription
     async def execution_updates(
         self, info: strawberry.Info[GraphQLContext], execution_id: ExecutionID
-    ) -> AsyncGenerator[ExecutionStateType]:
+    ) -> AsyncGenerator[ExecutionType]:
         """Streams execution state changes using direct streaming."""
         context: GraphQLContext = info.context
         state_store = context.get_service("state_store")
@@ -323,7 +323,7 @@ class Subscription:
     @strawberry.subscription
     async def diagram_changes(
         self, info: strawberry.Info[GraphQLContext], diagram_id: DiagramID
-    ) -> AsyncGenerator[DomainDiagramType]:
+    ) -> AsyncGenerator[DiagramType]:
         """Streams diagram modifications (not implemented)."""
         logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
         while False:

@@ -278,5 +278,4 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         for node in person_job_nodes:
             exec_count = context.get_node_execution_count(node.id)
             node_state = context.get_node_state(node.id)
-            logger.debug(f"  Node {node.id}: exec_count={exec_count}, status={node_state.status if node_state else 'None'}")
         return result

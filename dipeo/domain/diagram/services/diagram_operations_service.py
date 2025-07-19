@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from dipeo.models import DomainDiagram
+from dipeo.models import Diagram
 
 
 class DiagramOperationsService:
@@ -12,7 +12,7 @@ class DiagramOperationsService:
     This includes cloning, transformations, and batch operations.
     """
 
-    def clone_diagram(self, diagram: DomainDiagram, new_name: str, new_description: str | None = None) -> DomainDiagram:
+    def clone_diagram(self, diagram: Diagram, new_name: str, new_description: str | None = None) -> Diagram:
         """
         Clone a diagram with a new name and optional description.
         This is pure business logic without any persistence operations.
@@ -21,7 +21,7 @@ class DiagramOperationsService:
         new_id = self._generate_diagram_id(new_name)
         
         # Clone the diagram with updated metadata
-        cloned_diagram = DomainDiagram(
+        cloned_diagram = Diagram(
             metadata=diagram.metadata.model_copy(
                 update={
                     "id": new_id,
@@ -56,9 +56,9 @@ class DiagramOperationsService:
 
     def prepare_diagram_update(
         self, 
-        diagram: DomainDiagram, 
+        diagram: Diagram, 
         updates: dict[str, Any]
-    ) -> DomainDiagram:
+    ) -> Diagram:
         """
         Apply updates to a diagram according to business rules.
         """
@@ -75,7 +75,7 @@ class DiagramOperationsService:
             updated_metadata = diagram.metadata
         
         # Create updated diagram
-        return DomainDiagram(
+        return Diagram(
             metadata=updated_metadata,
             nodes=updates.get("nodes", diagram.nodes),
             arrows=updates.get("arrows", diagram.arrows),
@@ -85,9 +85,9 @@ class DiagramOperationsService:
 
     def batch_update_diagrams(
         self, 
-        diagrams: list[DomainDiagram], 
+        diagrams: list[Diagram], 
         updates: dict[str, Any]
-    ) -> list[DomainDiagram]:
+    ) -> list[Diagram]:
         """
         Apply the same updates to multiple diagrams.
         """
@@ -97,7 +97,7 @@ class DiagramOperationsService:
         ]
 
 
-    def calculate_diagram_statistics(self, diagram: DomainDiagram) -> dict[str, Any]:
+    def calculate_diagram_statistics(self, diagram: Diagram) -> dict[str, Any]:
         """
         Calculate various statistics about a diagram.
         This is business logic about what metrics matter.
@@ -123,7 +123,7 @@ class DiagramOperationsService:
             "is_connected": self._is_connected(diagram),
         }
 
-    def _has_cycles(self, diagram: DomainDiagram) -> bool:
+    def _has_cycles(self, diagram: Diagram) -> bool:
         """
         Check if the diagram has cycles (simplified implementation).
         """
@@ -131,7 +131,7 @@ class DiagramOperationsService:
         # graph algorithms like DFS to detect cycles
         return False  # Placeholder
 
-    def _is_connected(self, diagram: DomainDiagram) -> bool:
+    def _is_connected(self, diagram: Diagram) -> bool:
         """
         Check if all nodes in the diagram are connected.
         """

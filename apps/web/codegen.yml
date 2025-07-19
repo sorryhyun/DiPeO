@@ -1,9 +1,10 @@
 # GraphQL Code Generation Configuration
 
 overwrite: true
-schema: "../server/schema.graphql"
+schema: "../server/src/dipeo_server/api/graphql/generated-schema.graphql"
 documents: 
   - "src/**/*.graphql"
+  - "src/__generated__/**/*.graphql"
   - "src/**/*.{ts,tsx}"
 generates:
   src/__generated__/graphql.tsx:
@@ -32,6 +33,9 @@ generates:
         DiagramFormat: "@dipeo/domain-models#DiagramFormat"
         ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
         ContentType: "@dipeo/domain-models#ContentType"
+        ForgettingMode: "@dipeo/domain-models#ForgettingMode"
+        MemoryView: "@dipeo/domain-models#MemoryView"
+        DBBlockSubType: "@dipeo/domain-models#DBBlockSubType"
       # Skip generating TypeScript types for enums
       skipTypename: false
       # Use proper imports

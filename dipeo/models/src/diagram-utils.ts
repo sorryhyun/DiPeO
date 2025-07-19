@@ -4,15 +4,15 @@
  */
 
 import {
-  DomainDiagram,
-  DomainNode,
+  Diagram,
+  Node,
 } from './diagram.js';
 
 // Re-export handle utilities from conversions
 export { parseHandleId, createHandleId, areHandlesCompatible } from './conversions.js';
 
 // Utility function to create an empty diagram
-export function createEmptyDiagram(): DomainDiagram {
+export function createEmptyDiagram(): Diagram {
   return {
     nodes: [],
     handles: [],
@@ -26,8 +26,8 @@ export function createEmptyDiagram(): DomainDiagram {
   };
 }
 
-// Type guard for DomainNode
-export function isDomainNode(obj: unknown): obj is DomainNode {
+// Type guard for Node
+export function isNode(obj: unknown): obj is Node {
   // Simple type guard without Zod
   if (!obj || typeof obj !== 'object') return false;
   const node = obj as any;

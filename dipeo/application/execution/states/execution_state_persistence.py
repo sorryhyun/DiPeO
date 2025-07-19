@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from dipeo.core.execution.execution_tracker import CompletionStatus
 from dipeo.core.execution.node_output import deserialize_protocol, serialize_protocol
 from dipeo.models import (
-    ExecutionState,
+    Execution,
     ExecutionStatus,
     NodeExecutionStatus,
     NodeID,
@@ -19,17 +19,17 @@ if TYPE_CHECKING:
     from dipeo.core.static.executable_diagram import ExecutableDiagram
 
 
-class ExecutionStatePersistence:
-    """Handles conversion between runtime state and persistent ExecutionState."""
+class ExecutionPersistence:
+    """Handles conversion between runtime state and persistent Execution."""
     
     @staticmethod
     def load_from_state(
-        state: ExecutionState,
+        state: Execution,
         node_states: dict[NodeID, NodeState],
         tracker: "ExecutionTracker",
         variables: dict[str, Any]
     ) -> None:
-        """Load runtime state from persisted ExecutionState."""
+        """Load runtime state from persisted Execution."""
         # Load node states
         if state.node_states:
             for node_id_str, node_state in state.node_states.items():
@@ -67,8 +67,8 @@ class ExecutionStatePersistence:
         node_states: dict[NodeID, NodeState],
         tracker: "ExecutionTracker",
         variables: dict[str, Any]
-    ) -> ExecutionState:
-        """Convert runtime state to ExecutionState for persistence."""
+    ) -> Execution:
+        """Convert runtime state to Execution for persistence."""
         # Calculate aggregate token usage
         total_input = 0
         total_output = 0
@@ -98,7 +98,7 @@ class ExecutionStatePersistence:
         # Get execution summary from tracker
         summary = tracker.get_execution_summary()
         
-        return ExecutionState(
+        return Execution(
             id=execution_id,
             status=status,
             diagram_id=diagram_id,

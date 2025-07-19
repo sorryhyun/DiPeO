@@ -4,12 +4,12 @@ import logging
 from datetime import datetime
 
 from ..context import GraphQLContext
-from ..types import (
+from ..generated.types import (
     ExecutionFilterInput,
     ExecutionID,
 )
-from ..types import (
-    ExecutionStateType as ExecutionState,
+from ..generated.types import (
+    ExecutionType,
 )
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class ExecutionResolver:
 
     async def get_execution(
         self, execution_id: ExecutionID, info
-    ) -> ExecutionState | None:
+    ) -> ExecutionType | None:
         """Returns execution by ID."""
         try:
             context: GraphQLContext = info.context
@@ -40,7 +40,7 @@ class ExecutionResolver:
 
     async def list_executions(
         self, filter: ExecutionFilterInput | None, limit: int, offset: int, info
-    ) -> list[ExecutionState]:
+    ) -> list[ExecutionType]:
         """Returns filtered execution list."""
         try:
             context: GraphQLContext = info.context
