@@ -31,6 +31,9 @@ export const PATHS = {
   serverGraphQLDir: join(projectRoot, 'apps', 'server', 'src', 'dipeo_server', 'api', 'graphql'),
   serverMutationsDir: join(projectRoot, 'apps', 'server', 'src', 'dipeo_server', 'api', 'graphql', 'mutations'),
   serverQueriesDir: join(projectRoot, 'apps', 'server', 'src', 'dipeo_server', 'api', 'graphql', 'queries'),
+  serverGeneratedMutationsDir: join(projectRoot, 'apps', 'server', 'src', 'dipeo_server', 'api', 'graphql', 'generated', 'mutations'),
+  serverGeneratedQueriesDir: join(projectRoot, 'apps', 'server', 'src', 'dipeo_server', 'api', 'graphql', 'generated', 'queries'),
+  serverGeneratedTypesDir: join(projectRoot, 'apps', 'server', 'src', 'dipeo_server', 'api', 'graphql', 'generated'),
   
   // Core output paths
   coreStaticNodes: join(projectRoot, 'dipeo', 'core', 'static', 'generated_nodes.py'),

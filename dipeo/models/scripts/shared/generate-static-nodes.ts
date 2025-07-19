@@ -7,8 +7,6 @@ import { SchemaDefinition } from './generate-schema';
 import { loadSchemas } from './load-schema';
 import { PATHS } from '../paths';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // Mapping from TypeScript node data interfaces to Python static node classes
 const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<{ tsName: string; pyName: string; defaultValue?: string }> }> = {
   StartNodeData: {

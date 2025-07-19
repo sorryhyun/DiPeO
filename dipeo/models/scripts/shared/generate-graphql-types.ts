@@ -2,8 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { PATHS } from '../paths';
 
 interface FieldConfig {
   name: string;
@@ -624,7 +623,7 @@ class GraphQLTypesGenerator {
     console.log('Generating Python GraphQL types from TypeScript models...');
     
     // Load the generated schema
-    const schemaPath = path.join(__dirname, '..', '__generated__', 'schemas.json');
+    const schemaPath = path.join(PATHS.generatedDir, 'schemas.json');
     try {
       const schemaData = JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) as SchemaDefinition[];
       // Convert array to object for easier lookup
@@ -667,11 +666,7 @@ class GraphQLTypesGenerator {
     this.generateExports(lines);
     
     // Write file
-    const outputPath = path.join(
-      __dirname, '..', '..', '..',
-      'apps', 'server', 'src', 'dipeo_server', 'api', 'graphql',
-      'generated_types.py'
-    );
+    const outputPath = path.join(PATHS.serverGraphQLDir, 'generated_types.py');
     
     fs.writeFileSync(outputPath, lines.join('\n'));
     console.log(`Python GraphQL types generated at: ${outputPath}`);

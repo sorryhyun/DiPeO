@@ -15,9 +15,9 @@ import { EntityDefinition } from '../../src/entity-config';
 import { PATHS } from '../paths';
 
 const OUTPUT_PATHS = {
-  serverMutations: PATHS.serverMutationsDir,
-  serverQueries: PATHS.serverQueriesDir,
-  serverTypes: PATHS.serverGraphQLDir,
+  serverMutations: PATHS.serverGeneratedMutationsDir,
+  serverQueries: PATHS.serverGeneratedQueriesDir,
+  serverTypes: PATHS.serverGeneratedTypesDir,
   hooks: path.join(PATHS.webGeneratedDir, 'entities'),
   graphql: path.join(PATHS.webGeneratedDir, 'entities'),
 };
@@ -27,8 +27,8 @@ const OUTPUT_PATHS = {
  */
 async function loadEntityDefinitions(): Promise<EntityDefinition[]> {
   const quiet = process.env.QUIET === 'true';
-  const entityFiles = await glob('src/entities/*.entity.ts', {
-    cwd: process.cwd(),
+  const entityFiles = await glob('entities/*.entity.ts', {
+    cwd: PATHS.srcDir,
     absolute: false
   });
   
@@ -40,7 +40,7 @@ async function loadEntityDefinitions(): Promise<EntityDefinition[]> {
     }
     try {
       // Dynamic import of entity definition
-      const module = await import(path.join(process.cwd(), file));
+      const module = await import(path.join(PATHS.srcDir, file));
       
       // Find the exported entity definition
       const entityExport = Object.values(module).find(
@@ -359,7 +359,7 @@ async function runIntegrationScript(): Promise<boolean> {
   
   try {
     const scriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'integrate-generated-entities.py');
-    const serverPath = path.join(process.cwd(), '../../apps/server');
+    const serverPath = path.dirname(PATHS.serverGraphQLDir);
     
     // Check if script exists
     try {
@@ -417,7 +417,7 @@ async function main() {
     console.log('📝 Generating TypeScript interfaces for entities...');
     await generateEntityInterfaces(
       entities,
-      path.join(process.cwd(), 'src/generated-entities.ts')
+      path.join(PATHS.srcDir, 'generated-entities.ts')
     );
     console.log('✅ Entity interfaces generated. Run `make codegen` to generate Python models.');
     console.log('');

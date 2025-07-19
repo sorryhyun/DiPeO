@@ -97,7 +97,7 @@ class ZodSchemaGenerator {
   }
 
   private async generateNodeSchema(nodeType: string, interfaceName: string): Promise<ZodSchemaOutput | null> {
-    const diagramPath = join(dirname(fileURLToPath(import.meta.url)), '../src/diagram.ts');
+    const diagramPath = join(PATHS.srcDir, 'diagram.ts');
     const sourceFile = this.project.getSourceFile(diagramPath) || this.project.addSourceFileAtPath(diagramPath);
     
     let interfaceDecl = sourceFile.getInterface(interfaceName);

@@ -73,7 +73,7 @@ Add the query methods from the generated query files to the main Query class:
 ### 4. Create Services
 
 Ensure these services exist in the service registry:
-- person_service
+- diagram_service
 - diagram_service
 - diagram_service
 - execution_service
