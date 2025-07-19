@@ -36,8 +36,12 @@ class NodeFieldMapper:
                 if "code_type" in props:
                     props["language"] = props.pop("code_type")
         elif node_type == "code_job":
+            # Map old field names to new ones
             if "code_type" in props and "language" not in props:
                 props["language"] = props.pop("code_type")
+            if "code" in props and "filePath" not in props:
+                # Map inline code to filePath for new schema
+                props["filePath"] = props.pop("code")
         elif node_type == "db":
             if "source_details" in props and "file" not in props:
                 props["file"] = props.pop("source_details")
@@ -81,8 +85,13 @@ class NodeFieldMapper:
         """Map fields during export based on node type."""
         if node_type == "endpoint" and "file_name" in props:
             props["file_path"] = props.pop("file_name")
-        elif node_type == "code_job" and "language" in props:
-            props["code_type"] = props.pop("language")
+        elif node_type == "code_job":
+            # Map new field names back to old ones for light format
+            if "language" in props:
+                props["code_type"] = props.pop("language")
+            if "filePath" in props:
+                props["code"] = props.pop("filePath")
+            # Keep functionName as is - it's a new field
         elif node_type == "db" and "file" in props:
             props["source_details"] = props.pop("file")
         elif node_type == "person_job":

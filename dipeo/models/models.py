@@ -68,10 +68,11 @@ class ContentType(str, Enum):
     variable = "variable"
     raw_text = "raw_text"
     conversation_state = "conversation_state"
+    object = "object"
 
 class SupportedLanguage(str, Enum):
     python = "python"
-    javascript = "javascript"
+    typescript = "typescript"
     bash = "bash"
 
 class HttpMethod(str, Enum):
@@ -350,7 +351,8 @@ class CodeJobNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     language: SupportedLanguage
-    code: str
+    filePath: str
+    functionName: Optional[str] = Field(default=None)
     timeout: Optional[float] = Field(default=None)
 
 class ApiJobNodeData(BaseNodeData):

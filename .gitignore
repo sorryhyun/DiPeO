@@ -153,3 +153,5 @@ yarn.lock
 /apps/server/test-paths.py
 /build-with-rust.bat
 /files/test/
+/files/code/
+/files/debug/

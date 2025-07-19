@@ -5,6 +5,10 @@ nodes:
   position: {x: -728, y: 348}
   props:
     trigger_mode: manual
+    custom_data:
+      processing_config:
+        quality_threshold: 70
+        output_format: "json"
 - label: Load Raw Data
   type: db
   position: {x: -386, y: 146}
@@ -24,83 +28,60 @@ nodes:
   type: code_job
   position: {x: 19, y: 342}
   props:
-    code: |
-      import json
-      import csv
-      from io import StringIO
-
-      # Parse CSV data
-      csv_reader = csv.DictReader(StringIO(raw_data))
-      data_rows = list(csv_reader)
-
-      # Parse config
-      config = json.loads(config_data)
-
-      # Basic validation
-      total_rows = len(data_rows)
-      valid_rows = [row for row in data_rows if all(row.values())]
-      invalid_rows = total_rows - len(valid_rows)
-
-      # Prepare data for quality check
-      data_summary = {
-          "total_rows": total_rows,
-          "valid_rows": len(valid_rows),
-          "invalid_rows": invalid_rows,
-          "columns": list(data_rows[0].keys()) if data_rows else [],
-          "sample_data": data_rows[:5] if data_rows else []
-      }
-
-      print(f"Parsed {total_rows} rows, {invalid_rows} invalid")
+    code: files/code_examples/data_processor.py
     code_type: python
+    functionName: parse_data
 - label: Quality Check
   type: person_job
   position: {x: 355, y: 233}
   props:
     default_prompt: |
       Analyze this data summary and provide a quality score (0-100):
-      {{data_summary}}
+      Total rows: {{parsed_data.total_rows}}
+      Valid rows: {{parsed_data.valid_rows}}
+      Invalid rows: {{parsed_data.invalid_rows}}
+      Columns: {{parsed_data.columns}}
+      Statistics: {{parsed_data.statistics}}
 
-      Return only a JSON object with: {"score": <number>, "issues": [<list of issues>]}
+      IMPORTANT: You MUST respond with ONLY a valid JSON object with score and issues.
+      
+      Required format:
+      {
+        "score": <number 0-100>,
+        "issues": ["issue1", "issue2"]
+      }
+      
+      Example response:
+      {
+        "score": 85,
+        "issues": ["Missing data in row 9", "Invalid region in 1 row"]
+      }
+      
+      DO NOT include any explanatory text before or after the JSON.
     max_iteration: 1
     person: QualityChecker
 - label: Extract Score
   type: code_job
   position: {x: 731, y: 425}
   props:
-    code: |
-      import json
-      quality_result = json.loads(quality_check_output)
-      quality_score = quality_result.get("score", 0)
-      quality_issues = quality_result.get("issues", [])
-
-      # Also store in data_rows and config for later use
-      data_rows = data_rows if 'data_rows' in locals() else []
-      config = config if 'config' in locals() else {}
-
-      print(f"Quality score: {quality_score}")
-      print(f"Issues found: {len(quality_issues)}")
+    code: files/code_examples/data_processor.py
     code_type: python
+    functionName: extract_score
 - label: Check Quality Threshold
   type: condition
   position: {x: 720, y: 775}
   props:
     condition_type: custom
-    expression: quality_score >= 70
+    expression: processing_result.quality_score >= 70
     flipped: [true, false]
 - label: Transform Data
-  type: person_job
+  type: code_job
   position: {x: 271, y: 943}
   props:
-    default_prompt: |
-      Transform this data according to the rules:
-      Data: {{data_rows}}
-      Rules: {{config}}
-
-      Apply all transformations and return clean JSON data.
+    code: files/code_examples/data_processor.py
+    code_type: python
+    functionName: transform_data
     flipped: [true, false]
-    max_iteration: 1
-    memory_profile: MINIMAL
-    person: Transformer
 - label: Enrich with API
   type: api_job
   position: {x: -79, y: 995}
@@ -114,38 +95,25 @@ nodes:
   type: code_job
   position: {x: -393, y: 854}
   props:
-    code: |
-      import json
-
-      # Parse transformed data
-      transformed = json.loads(transformed_data)
-
-      # Parse API response
-      api_data = json.loads(api_response)
-      exchange_rates = api_data.get("rates", {})
-
-      # Enrich data with exchange rates
-      enriched_data = []
-      for item in transformed:
-          if "amount_usd" in item:
-              item["amount_eur"] = item["amount_usd"] * exchange_rates.get("EUR", 0.85)
-              item["amount_gbp"] = item["amount_usd"] * exchange_rates.get("GBP", 0.73)
-          enriched_data.append(item)
-
-      result = {
-          "processed_at": api_data.get("date", "unknown"),
-          "total_records": len(enriched_data),
-          "data": enriched_data
-      }
+    code: files/code_examples/data_processor.py
     flipped: [true, false]
     code_type: python
+    functionName: enrich_data
+- label: Pattern Analysis
+  type: code_job
+  position: {x: -550, y: 950}
+  props:
+    code: files/code_examples/data_processor.py
+    code_type: python
+    functionName: analyze_patterns
+    flipped: [true, false]
 - label: Analyze Patterns
   type: person_job
   position: {x: -722, y: 1054}
   props:
     default_prompt: |
       Analyze these patterns in the enriched data:
-      {{result}}
+      {{enriched_result.patterns}}
 
       Provide insights on:
       1. Key trends
@@ -161,27 +129,19 @@ nodes:
   type: code_job
   position: {x: 276, y: 655}
   props:
-    code: |
-      error_report = {
-          "status": "failed",
-          "reason": "Data quality below threshold",
-          "quality_score": quality_score,
-          "issues": quality_issues,
-          "recommendation": "Please clean the source data and retry"
-      }
-
-      print("Processing failed due to low data quality")
+    code: files/code_examples/data_processor.py
     flipped: [true, false]
     code_type: python
+    functionName: handle_error
 - label: Generate Report
   type: person_job
   position: {x: -1040, y: 836}
   props:
     default_prompt: |
       Create a comprehensive data processing report combining:
-      - Processing summary: {{result}}
-      - Pattern analysis: {{analysis}}
-      - Quality metrics: Score {{quality_score}}
+      - Processing summary: {{final_data.enriched_data}}
+      - Pattern analysis: {{final_data.analysis}}
+      - Quality metrics: Score {{final_data.quality_score}}
 
       Format as a professional markdown report with sections, tables, and recommendations.
     flipped: [true, false]
@@ -212,10 +172,16 @@ nodes:
 connections:
 - from: Start
   to: Load Raw Data
-  content_type: raw_text
+  content_type: object
+  label: config
 - from: Start
   to: Load Config
-  content_type: raw_text
+  content_type: object
+  label: config
+- from: Start
+  to: Parse Data
+  content_type: object
+  label: processing_config
 - from: Load Raw Data
   to: Parse Data
   content_type: raw_text
@@ -226,47 +192,71 @@ connections:
   label: config_data
 - from: Parse Data
   to: Quality Check
-  content_type: variable
+  content_type: object
+  label: parsed_data
 - from: Quality Check
   to: Extract Score
   content_type: raw_text
-  label: quality_check_output
+  label: quality_result
+- from: Parse Data
+  to: Extract Score
+  content_type: object
+  label: parsed_data
 - from: Extract Score
   to: Check Quality Threshold
-  content_type: variable
+  content_type: object
+  label: processing_result
+- from: Start
+  to: Check Quality Threshold
+  content_type: object
+  label: processing_config
 - from: Check Quality Threshold_condtrue
   to: Transform Data
-  content_type: variable
+  content_type: object
+  label: processing_result
 - from: Transform Data
   to: Enrich with API
-  content_type: raw_text
+  content_type: object
   label: transformed_data
 - from: Enrich with API
   to: Merge Enriched Data
   content_type: raw_text
   label: api_response
+- from: Transform Data
+  to: Merge Enriched Data
+  content_type: object
+  label: transformed_data
 - from: Merge Enriched Data
+  to: Pattern Analysis
+  content_type: object
+  label: enriched_data
+- from: Pattern Analysis
   to: Analyze Patterns
-  content_type: variable
+  content_type: object
+  label: enriched_result
 - from: Analyze Patterns
   to: Generate Report
   content_type: raw_text
   label: analysis
-- from: Merge Enriched Data
+- from: Pattern Analysis
   to: Generate Report
-  content_type: variable
+  content_type: object
+  label: final_data
 - from: Generate Report
   to: Save Success Report
   content_type: raw_text
-- from: Merge Enriched Data
+- from: Pattern Analysis
   to: Save Processed Data
-  content_type: variable
+  content_type: object
+  label: enriched_result
 - from: Check Quality Threshold_condfalse
   to: Handle Low Quality
-  content_type: variable
+  content_type: object
+  label: processing_result
 - from: Handle Low Quality
   to: Save Error Report
-  content_type: variable
+  content_type: object
+  label: error_result
 persons:
   DataAnalyst:
     service: openai
@@ -277,8 +267,7 @@ persons:
   QualityChecker:
     service: openai
     model: gpt-4.1-nano
-    system_prompt: You are a data quality expert. Check for data integrity issues
-      and return a score from 0-100.
+    system_prompt: 'You are a data quality expert. ALWAYS respond with ONLY valid JSON in the exact format {"score": number, "issues": []}. Never include explanatory text.'
     api_key_id: APIKEY_52609F
   ReportWriter:
     service: openai

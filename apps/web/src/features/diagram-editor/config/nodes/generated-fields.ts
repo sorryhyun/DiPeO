@@ -193,12 +193,16 @@ export const GENERATED_FIELD_CONFIGS: GeneratedFieldConfigs = {
       required: true,
     },
     {
-      name: 'code',
-      type: 'variableTextArea',
-      label: 'Code',
+      name: 'filePath',
+      type: 'text',
+      label: 'FilePath',
       required: true,
-      placeholder: 'Enter code here',
-      rows: 10,
+    },
+    {
+      name: 'functionName',
+      type: 'text',
+      label: 'FunctionName',
+      required: false,
     },
     {
       name: 'timeout',

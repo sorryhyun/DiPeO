@@ -112,14 +112,16 @@ class ConditionNode(BaseExecutableNode):
 class CodeJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.code_job, init=False)
     language: SupportedLanguage = SupportedLanguage.python
-    code: str = ""
+    filePath: str = ""
+    functionName: str = None
     timeout: int = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         data = super().to_dict()
         data["language"] = self.language
-        data["code"] = self.code
+        data["filePath"] = self.filePath
+        data["functionName"] = self.functionName
         data["timeout"] = self.timeout
         return data
 
@@ -310,7 +312,8 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             language=data.get("language", SupportedLanguage.python),
-            code=data.get("code", ""),
+            filePath=data.get("filePath", ""),
+            functionName=data.get("functionName"),
             timeout=data.get("timeout"),
         )
     

@@ -38,7 +38,8 @@ export const arrowFields: TypedPanelFieldConfig<ExtendedArrowData>[] = [
     options: [
       { value: 'raw_text', label: 'Raw Text' },
       { value: 'variable_in_object', label: 'Variable in Object' },
-      { value: 'conversation_state', label: 'Conversation State' }
+      { value: 'conversation_state', label: 'Conversation State' },
+      { value: 'object', label: 'Object' }
     ],
     conditional: {
       field: '_sourceNodeType',
@@ -55,6 +56,7 @@ export const arrowFields: TypedPanelFieldConfig<ExtendedArrowData>[] = [
       { value: 'raw_text', label: 'Raw Text' },
       { value: 'variable_in_object', label: 'Variable in Object' },
       { value: 'conversation_state', label: 'Conversation State' },
+      { value: 'object', label: 'Object' },
       { value: 'generic', label: 'Generic' }
     ],
     disabled: true,

@@ -51,7 +51,8 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
     nodeType: 'code_job',
     fields: [
       { tsName: 'language', pyName: 'language', defaultValue: 'SupportedLanguage.python' },
-      { tsName: 'code', pyName: 'code', defaultValue: '""' },
+      { tsName: 'filePath', pyName: 'filePath', defaultValue: '""' },
+      { tsName: 'functionName', pyName: 'functionName' },
       { tsName: 'timeout', pyName: 'timeout' }
     ]
   },

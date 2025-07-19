@@ -64,6 +64,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
       const icons: Record<string, string> = {
         'conversation_state': '💬',
         'variable_in_object': '📦',
+        'object': '🔗',
         'raw_text': '📝',
         'empty': '⚪',
         'generic': '🔄',

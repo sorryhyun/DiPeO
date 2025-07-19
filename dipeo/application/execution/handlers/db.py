@@ -102,8 +102,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     f"{meta['file_path']} ({meta.get('size', 0)} bytes)"
                 )
 
-            logger.debug("DB node output_value: %s", repr(output_value))
-            
             # Convert structured data to JSON string for consistent handling
             if isinstance(output_value, (dict, list)):
                 import json

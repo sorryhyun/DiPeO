@@ -79,12 +79,13 @@ export enum DBBlockSubType {
 export enum ContentType {
   VARIABLE = 'variable',
   RAW_TEXT = 'raw_text',
-  CONVERSATION_STATE = 'conversation_state'
+  CONVERSATION_STATE = 'conversation_state',
+  OBJECT = 'object'
 }
 
 export enum SupportedLanguage {
   PYTHON = 'python',
-  JAVASCRIPT = 'javascript',
+  TYPESCRIPT = 'typescript',
   BASH = 'bash'
 }
 
@@ -255,7 +256,8 @@ export interface JobNodeData extends BaseNodeData {
 
 export interface CodeJobNodeData extends BaseNodeData {
   language: SupportedLanguage;
-  code: string;
+  filePath: string;
+  functionName?: string;  // Function to call (default: 'main' for Python)
   timeout?: number;  // in seconds
 }
 

@@ -71,7 +71,8 @@ export const NODE_DATA_SCHEMAS = {
   }),
   'code_job': z.object({
     language: z.any(),
-    code: z.string(),
+    filePath: z.string(),
+    functionName: z.string().optional(),
     timeout: z.number().optional()
   }),
   'api_job': z.object({

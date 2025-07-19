@@ -27,7 +27,7 @@ class TypedInputResolutionService:
         """Resolve inputs for a node using ExecutableDiagram edges."""
         import logging
         log = logging.getLogger(__name__)
-        
+
         inputs = {}
         
         # Find all edges pointing to this node
@@ -85,6 +85,8 @@ class TypedInputResolutionService:
             # Get the specific output key
             output_key = edge.source_output or "default"
             
+            # Log the output structure for debugging
+
             # Check if the output has the requested key
             if output_key not in output_value:
                 # Try default if specific key not found
@@ -92,27 +94,71 @@ class TypedInputResolutionService:
                     output_key = "default"
                 else:
                     # Skip if no matching output
+                    log.debug(f"    Skipping - output key '{output_key}' not found in output")
                     continue
             
             # Get the input key where this should be placed
             input_key = edge.metadata.get("label") or edge.target_input or "default"
+            log.debug(f"    Will place at input key: {input_key}, value type: {type(output_value.get(output_key)) if isinstance(output_value, dict) else type(output_value)}")
+
+            # Special handling for condition node outputs with labels
+            if (edge.source_output in ["condtrue", "condfalse"] and 
+                input_key != "default" and 
+                isinstance(output_value.get(output_key), dict) and 
+                input_key in output_value[output_key]):
+                # Extract the specific value to avoid nesting
+                output_value[output_key] = output_value[output_key][input_key]
 
             # Apply any transformations if specified
             if edge.data_transform:
-                if edge.data_transform.get('content_type') == 'conversation_state':
+                content_type = edge.data_transform.get('content_type')
+                
+                if content_type == 'conversation_state':
                     # For conversation_state, pass the conversation data directly
                     value = output_value[output_key]
                     if isinstance(value, dict) and 'messages' in value:
                         inputs[input_key] = value
                     else:
                         inputs[input_key] = value
+                
+                elif content_type == 'object':
+                    # For object type, pass the complete output value as-is
+                    # This preserves the entire structure for dot notation access
+                    value = output_value[output_key]
+                    
+                    # If value is a string that looks like JSON, try to parse it
+                    if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                        try:
+                            import json
+                            parsed_value = json.loads(value)
+                            inputs[input_key] = parsed_value
+                        except json.JSONDecodeError:
+                            # Fallback: if parsing fails, pass the raw text
+                            log.warning(f"Failed to parse JSON for object content type on edge to {node_id}, using raw text")
+                            inputs[input_key] = value
+                    else:
+                        # Value is already an object or not a JSON string
+                        inputs[input_key] = value
+                
+                elif content_type == 'variable':
+                    # Legacy variable extraction - extract specific field if specified
+                    # This maintains backward compatibility
+                    extract_field = edge.data_transform.get('rules', {}).get('extract_variable')
+                    if extract_field and isinstance(output_value[output_key], dict):
+                        # Extract the specific field
+                        inputs[input_key] = output_value[output_key].get(extract_field)
+                    else:
+                        # No extraction specified, pass value directly
+                        inputs[input_key] = output_value[output_key]
+                
                 else:
-                    # Pass the value directly without memory configuration
+                    # Default behavior - pass the value directly
                     inputs[input_key] = output_value[output_key]
             else:
                 # Store the input directly
                 inputs[input_key] = output_value[output_key]
         
+        log.debug(f"  Final inputs for {node_id}: {list(inputs.keys())}")
         return inputs
     
     def _should_process_edge(

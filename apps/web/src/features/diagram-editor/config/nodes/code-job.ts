@@ -4,7 +4,14 @@ import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 
 /**
  * Complete configuration for the Code Job node type
- * Combines visual metadata, node structure, and field definitions
+ * Executes code from files instead of inline code
+ * 
+ * Examples:
+ * - Python: files/code_examples/example_python.py (calls main() function)
+ * - TypeScript: files/code_examples/example_typescript.ts (calls exported main function)
+ * - Bash: files/code_examples/example_bash.sh (accesses inputs via INPUT_* env vars)
+ * 
+ * Input data flows through connection labels as keys in the input object/env vars
  */
 export const CodeJobNodeConfig: UnifiedNodeConfig<CodeJobNodeData> = {
   // Visual metadata
@@ -23,12 +30,13 @@ export const CodeJobNodeConfig: UnifiedNodeConfig<CodeJobNodeData> = {
   defaults: { 
     label: 'Code Job', 
     language: 'python', 
-    code: '' 
+    filePath: '',
+    functionName: 'main'
   },
   
   // Panel layout configuration
   panelLayout: 'twoColumn',
-  panelFieldOrder: ['label', 'language', 'code'],
+  panelFieldOrder: ['label', 'language', 'filePath', 'functionName'],
   
   // Field definitions
   customFields: [
@@ -46,25 +54,41 @@ export const CodeJobNodeConfig: UnifiedNodeConfig<CodeJobNodeData> = {
       required: true,
       options: [
         { value: 'python', label: 'Python' },
-        { value: 'javascript', label: 'JavaScript' },
-        { value: 'typescript', label: 'TypeScript' }
+        { value: 'typescript', label: 'TypeScript' },
+        { value: 'bash', label: 'Bash' }
       ],
-      column: 1
+      column: 1,
+      helpText: 'Select the programming language of your code file'
     },
     {
-      name: 'code',
-      type: 'variableTextArea',
-      label: 'Code',
+      name: 'filePath',
+      type: 'text',
+      label: 'File Path',
       required: true,
-      placeholder: 'Enter your code here',
-      rows: 8,
+      placeholder: 'e.g., files/code_examples/my_script.py',
       column: 2,
+      helpText: 'Path to the code file (relative to project root or absolute)',
       validate: (value: unknown) => {
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
-          return { isValid: false, error: 'Code is required' };
+          return { isValid: false, error: 'File path is required' };
+        }
+        // Basic file path validation
+        const trimmed = value.trim();
+        if (trimmed.includes('..')) {
+          return { isValid: false, error: 'File path cannot contain ".."' };
         }
         return { isValid: true };
       }
+    },
+    {
+      name: 'functionName',
+      type: 'text',
+      label: 'Function Name',
+      required: false,
+      placeholder: 'main',
+      column: 2,
+      helpText: 'Name of the function to call (Python/TypeScript only, defaults to "main")',
+      visible: (data: any) => data.language === 'python' || data.language === 'typescript'
     }
   ]
 };

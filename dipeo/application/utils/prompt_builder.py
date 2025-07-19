@@ -137,7 +137,8 @@ class PromptBuilder:
                     
                 if "value" in value and isinstance(value["value"], dict) and "default" in value["value"]:
                     template_values[key] = value["value"]["default"]
-                elif all(isinstance(v, (str, int, float, bool, type(None))) for v in value.values()):
+                else:
+                    # For any dict value (including nested dicts), make it available for dot notation access
                     template_values[key] = value
             
             elif isinstance(value, list) and all(isinstance(v, (str, int, float, bool)) for v in value):
