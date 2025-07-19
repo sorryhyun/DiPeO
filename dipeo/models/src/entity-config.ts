@@ -227,6 +227,18 @@ export interface ServiceDefinition {
   
   /** Dependencies required by the service */
   dependencies?: string[];
+  
+  /** Custom operation method mappings */
+  operations?: {
+    create?: string | { method: string; handler?: string };
+    update?: string | { method: string; handler?: string };
+    delete?: string | { method: string; handler?: string };
+    get?: string | { method: string; handler?: string };
+    list?: string | { method: string; handler?: string };
+  };
+  
+  /** Whether to use CRUD adapter for standard interface */
+  useCrudAdapter?: boolean;
 }
 
 /**

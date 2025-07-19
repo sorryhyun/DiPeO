@@ -7,23 +7,26 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { glob } from 'glob';
 import { execSync } from 'child_process';
-import { generateMutations, generateQueries, generateTypeAdditions } from './generate-graphql-resolvers';
-import { generateHooks, generateGraphQLDocuments } from './generate-react-hooks';
+import { fileURLToPath } from 'url';
+import { generateMutations, generateQueries, generateTypeAdditions } from '../backend/generate-graphql-resolvers';
+import { generateHooks, generateGraphQLDocuments } from '../frontend/generate-react-hooks';
 import { generateEntityInterfaces } from './generate-entity-interfaces';
-import { EntityDefinition } from '../src/entity-config';
+import { EntityDefinition } from '../../src/entity-config';
+import { PATHS } from '../paths';
 
 const OUTPUT_PATHS = {
-  serverMutations: path.join(process.cwd(), '../../apps/server/src/dipeo_server/api/graphql/mutations'),
-  serverQueries: path.join(process.cwd(), '../../apps/server/src/dipeo_server/api/graphql/queries'),
-  serverTypes: path.join(process.cwd(), '../../apps/server/src/dipeo_server/api/graphql'),
-  hooks: path.join(process.cwd(), '../../apps/web/src/__generated__/entities'),
-  graphql: path.join(process.cwd(), '../../apps/web/src/__generated__/entities'),
+  serverMutations: PATHS.serverMutationsDir,
+  serverQueries: PATHS.serverQueriesDir,
+  serverTypes: PATHS.serverGraphQLDir,
+  hooks: path.join(PATHS.webGeneratedDir, 'entities'),
+  graphql: path.join(PATHS.webGeneratedDir, 'entities'),
 };
 
 /**
  * Load all entity definitions
  */
 async function loadEntityDefinitions(): Promise<EntityDefinition[]> {
+  const quiet = process.env.QUIET === 'true';
   const entityFiles = await glob('src/entities/*.entity.ts', {
     cwd: process.cwd(),
     absolute: false
@@ -32,7 +35,9 @@ async function loadEntityDefinitions(): Promise<EntityDefinition[]> {
   const entities: EntityDefinition[] = [];
   
   for (const file of entityFiles) {
-    console.log(`Loading entity from ${file}...`);
+    if (!quiet) {
+      console.log(`Loading entity from ${file}...`);
+    }
     try {
       // Dynamic import of entity definition
       const module = await import(path.join(process.cwd(), file));
@@ -70,16 +75,22 @@ async function ensureDir(dir: string): Promise<void> {
  * Write generated file with header
  */
 async function writeGeneratedFile(filePath: string, content: string): Promise<void> {
+  const quiet = process.env.QUIET === 'true';
   await ensureDir(path.dirname(filePath));
   await fs.writeFile(filePath, content, 'utf-8');
-  console.log(`✅ Generated: ${path.relative(process.cwd(), filePath)}`);
+  if (!quiet) {
+    console.log(`✅ Generated: ${path.relative(process.cwd(), filePath)}`);
+  }
 }
 
 /**
  * Generate all code for a single entity
  */
 async function generateEntityCode(entity: EntityDefinition): Promise<void> {
-  console.log(`\n🔧 Generating code for ${entity.name}...`);
+  const quiet = process.env.QUIET === 'true';
+  if (!quiet) {
+    console.log(`\n🔧 Generating code for ${entity.name}...`);
+  }
   
   try {
     // 1. Generate GraphQL mutations (Python)
@@ -108,7 +119,9 @@ async function generateEntityCode(entity: EntityDefinition): Promise<void> {
     const graphqlPath = path.join(OUTPUT_PATHS.graphql, 'graphql', `${entity.name.toLowerCase()}.graphql`);
     await writeGeneratedFile(graphqlPath, documents);
     
-    console.log(`✨ Successfully generated all code for ${entity.name}`);
+    if (!quiet) {
+      console.log(`✨ Successfully generated all code for ${entity.name}`);
+    }
     
   } catch (error) {
     console.error(`❌ Failed to generate code for ${entity.name}:`, error);
@@ -120,6 +133,14 @@ async function generateEntityCode(entity: EntityDefinition): Promise<void> {
  * Generate query methods for an entity (to be integrated into main Query class)
  */
 async function generateQueryMethods(entity: EntityDefinition): Promise<string | null> {
+  // Skip query generation if all operations are disabled
+  const hasQueries = entity.operations.get || entity.operations.list || 
+    (entity.operations.custom && Object.values(entity.operations.custom).some(op => op.type === 'query'));
+  
+  if (!hasQueries) {
+    return null;
+  }
+  
   // For now, return the queries as-is since they need manual integration
   const queries = await generateQueries(entity);
   return queries;
@@ -186,6 +207,22 @@ from datetime import datetime
 from typing import NewType
 import strawberry
 
+# Import existing types from generated_types
+from .generated_types import (
+    DiagramID,
+    NodeID,
+    HandleID,
+    JSONScalar,
+    MutationResult,
+    PersonType,
+    NodeType,
+    DiagramType,
+    ExecutionType,
+    HandleType,
+    ArrowType,
+    ApiKeyType,
+)
+
 ${additions.join('\n\n')}
 
 # Add these to the __all__ export at the bottom of generated_types.py:
@@ -195,7 +232,7 @@ ${entities.flatMap(entity => [
     `    "Create${entity.name}Input",`,
     `    "Update${entity.name}Input",`,
     `    "${entity.name}Result",`,
-    `    "Domain${entity.name}Type",`,
+    `    "${entity.name}Type",`,
     entity.operations.list && typeof entity.operations.list === 'object' && entity.operations.list.filters && entity.operations.list.filters.length > 0 ? 
     `    "${entity.name}FilterInput",` : null
   ].filter(Boolean)).join('\n')}
@@ -216,14 +253,20 @@ async function generateIntegrationInstructions(entities: EntityDefinition[]): Pr
   const queryMethods = entities.flatMap(entity => {
     const methods = [];
     if (entity.operations.get) {
-      methods.push(`    - ${entity.name.toLowerCase()}(id) -> Domain${entity.name}Type`);
+      methods.push(`    - ${entity.name.toLowerCase()}(id) -> ${entity.name}Type`);
     }
     if (entity.operations.list) {
-      methods.push(`    - ${entity.plural}(filter, limit, offset) -> list[Domain${entity.name}Type]`);
+      methods.push(`    - ${entity.plural}(filter, limit, offset) -> list[${entity.name}Type]`);
     }
     return methods;
   });
   
+  // Filter entities with queries
+  const entitiesWithQueries = entities.filter(entity => 
+    entity.operations.get || entity.operations.list || 
+    (entity.operations.custom && Object.values(entity.operations.custom).some(op => op.type === 'query'))
+  );
+
   const content = `# Entity Code Generation - Integration Instructions
 
 ## Generated Files
@@ -234,7 +277,7 @@ The following files have been generated:
 ${entities.map(e => `- mutations/${e.name.toLowerCase()}_mutation.py`).join('\n')}
 
 ### Query Methods  
-${entities.map(e => `- queries/${e.name.toLowerCase()}_queries.py`).join('\n')}
+${entitiesWithQueries.map(e => `- queries/${e.name.toLowerCase()}_queries.py`).join('\n')}
 
 ### Types
 - generated_types_additions.py (merge into generated_types.py)
@@ -315,7 +358,7 @@ async function runIntegrationScript(): Promise<boolean> {
   console.log('\n🔧 Running automatic integration...');
   
   try {
-    const scriptPath = path.join(__dirname, 'integrate-generated-entities.py');
+    const scriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'integrate-generated-entities.py');
     const serverPath = path.join(process.cwd(), '../../apps/server');
     
     // Check if script exists
@@ -351,7 +394,11 @@ async function runIntegrationScript(): Promise<boolean> {
  * Main generation function
  */
 async function main() {
-  console.log('🚀 Starting entity code generation...\n');
+  const quiet = process.env.QUIET === 'true';
+  
+  if (!quiet) {
+    console.log('🚀 Starting entity code generation...\n');
+  }
   
   try {
     // Load all entity definitions
@@ -362,7 +409,9 @@ async function main() {
       return;
     }
     
-    console.log(`Found ${entities.length} entity definition(s): ${entities.map(e => e.name).join(', ')}\n`);
+    if (!quiet) {
+      console.log(`Found ${entities.length} entity definition(s): ${entities.map(e => e.name).join(', ')}\n`);
+    }
     
     // First, generate TypeScript interfaces for entities
     console.log('📝 Generating TypeScript interfaces for entities...');

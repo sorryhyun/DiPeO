@@ -5,6 +5,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'url';
 import { SchemaDefinition } from './generate-schema';
 import { loadSchemas } from './load-schema';
+import { PATHS } from '../paths';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -424,8 +425,8 @@ class StaticNodeGenerator {
 // CLI
 if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
-    const schemas = await loadSchemas(path.resolve(__dirname, '../__generated__'));
-    const out = path.resolve(__dirname, '../../core/static/generated_nodes.py');
+    const schemas = await loadSchemas(PATHS.generatedDir);
+    const out = PATHS.coreStaticNodes;
     await new StaticNodeGenerator(schemas).generate(out);
     console.log(`Generated static nodes → ${out}`);
   })();

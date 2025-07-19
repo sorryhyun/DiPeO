@@ -23,25 +23,21 @@ export default defineEntity({
   },
   
   operations: {
-    create: {
-      input: ['type', 'position', 'data', 'diagram_id'],
-      returnEntity: true
-    },
-    update: {
-      input: ['type', 'position', 'data'],
-      partial: true
-    },
-    delete: true,
-    list: {
-      filters: ['diagram_id', 'type'],
-      sortable: ['created'],
-      pagination: true
-    },
-    get: true
+    create: false,  // Nodes are created/updated through diagram mutations
+    update: false,
+    delete: false,
+    list: false,
+    get: false
   },
   
   features: {
     timestamps: true,
     softDelete: false
+  },
+  
+  // Nodes are part of diagrams and edited through diagram mutations
+  service: {
+    name: 'diagram_service',
+    useCrudAdapter: false
   }
 });

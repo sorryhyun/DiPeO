@@ -3,7 +3,7 @@
  * These interfaces will be processed by generate-schema.ts to create Python models
  */
 
-import { EntityDefinition } from '../src/entity-config';
+import { EntityDefinition } from '../../src/entity-config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -85,7 +85,9 @@ export function generateEntityInterface(entity: EntityDefinition): string {
   
   if (entity.operations.update && typeof entity.operations.update === 'object') {
     lines.push(`export interface Update${entity.name}Input {`);
-    lines.push(`  id: ${entity.name}ID;`);
+    // Special case: DiagramInfo uses DiagramID
+    const idType = entity.name === 'DiagramInfo' ? 'DiagramID' : `${entity.name}ID`;
+    lines.push(`  id: ${idType};`);
     
     const updateConfig = entity.operations.update;
     for (const fieldName of updateConfig.input) {

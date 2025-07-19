@@ -23,25 +23,21 @@ export default defineEntity({
   },
   
   operations: {
-    create: {
-      input: ['label', 'llm_config', 'diagram_id'],
-      returnEntity: true
-    },
-    update: {
-      input: ['label', 'llm_config'],
-      partial: true
-    },
-    delete: true,
-    list: {
-      filters: ['diagram_id', 'label'],
-      sortable: ['label', 'created'],
-      pagination: true
-    },
-    get: true
+    create: false,
+    update: false,
+    delete: false,
+    list: false,
+    get: false
   },
   
   features: {
     timestamps: true,
     softDelete: false
+  },
+  
+  // Map to the existing diagram_service (persons are part of diagrams)
+  service: {
+    name: 'diagram_service',
+    useCrudAdapter: false
   }
 });

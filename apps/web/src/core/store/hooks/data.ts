@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../unifiedStore';
 import type { NodeID, ArrowID, PersonID, HandleID } from '@/core/types';
+import { ConversionService } from '@/core/services/ConversionService';
 
 // === Entity Data Hooks ===
 
@@ -115,11 +116,11 @@ export const useSelectedEntityData = () =>
 
     switch (state.selectedType) {
       case 'node':
-        return state.nodes.get(state.selectedId as NodeID);
+        return state.nodes.get(ConversionService.toNodeId(state.selectedId));
       case 'arrow':
-        return state.arrows.get(state.selectedId as ArrowID);
+        return state.arrows.get(ConversionService.toArrowId(state.selectedId));
       case 'person':
-        return state.persons.get(state.selectedId as PersonID);
+        return state.persons.get(ConversionService.toPersonId(state.selectedId));
       default:
         return null;
     }

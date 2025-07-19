@@ -3,9 +3,9 @@
 
 import { Project, InterfaceDeclaration, EnumDeclaration, TypeAliasDeclaration, Type } from 'ts-morph';
 import { readdir, writeFile, mkdir } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import process from 'node:process';
+import { PATHS } from '../paths';
 
 //--- Types
 export interface SchemaDefinition {
@@ -130,7 +130,11 @@ class SchemaGenerator {
   private async collectTsFiles(dir: string): Promise<string[]> {
     const entries = await readdir(dir, { recursive: true, withFileTypes: true });
     return entries
-      .filter(e => e.isFile() && e.name.endsWith('.ts') && !e.name.endsWith('.test.ts'))
+      .filter(e => e.isFile() && 
+              e.name.endsWith('.ts') && 
+              !e.name.endsWith('.test.ts') &&
+              !e.name.startsWith('generated-') &&  // Exclude generated files
+              !e.path.includes('entities'))         // Exclude entity definitions
       .map(e => join(e.path, e.name));
   }
 
@@ -138,13 +142,8 @@ class SchemaGenerator {
 
 //--- Entry Point
 export async function generateSchemas() {
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const tsConfig = join(__dirname, '../tsconfig.json');
-  const srcDir = join(__dirname, '../src');
-  const outputDir = join(__dirname, '../__generated__');
-
-  const generator = new SchemaGenerator(tsConfig);
-  await generator.generate(srcDir, outputDir);
+  const generator = new SchemaGenerator(PATHS.tsConfig);
+  await generator.generate(PATHS.srcDir, PATHS.generatedDir);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

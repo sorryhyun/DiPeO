@@ -25,25 +25,21 @@ export default defineEntity({
   },
   
   operations: {
-    create: {
-      input: ['source', 'target', 'content_type', 'label', 'data', 'diagram_id'],
-      returnEntity: true
-    },
-    update: {
-      input: ['source', 'target', 'content_type', 'label', 'data'],
-      partial: true
-    },
-    delete: true,
-    list: {
-      filters: ['diagram_id'],
-      sortable: ['created'],
-      pagination: true
-    },
-    get: true
+    create: false,  // Arrows are created/updated through diagram mutations
+    update: false,
+    delete: false,
+    list: false,
+    get: false
   },
   
   features: {
     timestamps: true,
     softDelete: false
+  },
+  
+  // Arrows are part of diagrams and edited through diagram mutations
+  service: {
+    name: 'diagram_service',
+    useCrudAdapter: false
   }
 });

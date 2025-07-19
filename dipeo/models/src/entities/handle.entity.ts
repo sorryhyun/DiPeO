@@ -30,25 +30,21 @@ export default defineEntity({
   },
   
   operations: {
-    create: {
-      input: ['node_id', 'label', 'direction', 'data_type', 'position', 'diagram_id'],
-      returnEntity: true
-    },
-    update: {
-      input: ['label', 'direction', 'data_type', 'position'],
-      partial: true
-    },
-    delete: true,
-    list: {
-      filters: ['diagram_id', 'node_id'],
-      sortable: ['created'],
-      pagination: true
-    },
-    get: true
+    create: false,  // Handles are created/updated through diagram mutations
+    update: false,
+    delete: false,
+    list: false,
+    get: false
   },
   
   features: {
     timestamps: true,
     softDelete: false
+  },
+  
+  // Handles are part of diagrams and edited through diagram mutations
+  service: {
+    name: 'diagram_service',
+    useCrudAdapter: false
   }
 });

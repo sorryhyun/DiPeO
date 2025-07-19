@@ -7,10 +7,9 @@ from datetime import datetime
 
 import strawberry
 from dipeo.models import Execution
-from dipeo.models import ExecutionID
 
-from ..context import GraphQLContext
-from ..generated_types import (
+from ...context import GraphQLContext
+from ...generated.types import (
     CreateExecutionInput,
     UpdateExecutionInput,
     ExecutionResult,
@@ -18,6 +17,7 @@ from ..generated_types import (
     DeleteResult,
     JSONScalar,
     MutationResult,
+    DiagramID,
     ExecutionType,
 )
 
@@ -37,7 +37,14 @@ class ExecutionMutations:
         """Create a new Execution."""
         try:
             context: GraphQLContext = info.context
-            execution_service = context.get_service("execution_service")
+            # Get CRUD adapter for standardized interface
+            crud_registry = context.get_service("crud_registry")
+            if not crud_registry:
+                from dipeo.application.services import create_crud_registry
+                crud_registry = create_crud_registry(context.service_registry)
+            execution_service = crud_registry.get_adapter("execution_service")
+            if not execution_service:
+                raise ValueError("CRUD adapter for execution_service not found")
             
             # Extract fields from input
             data = {
@@ -67,13 +74,16 @@ class ExecutionMutations:
             )
             
             # Save through service
-            saved_entity = await execution_service.create(execution_data)
+            saved_entity = await execution_service.create(data)
             
 
             
+            # Convert to GraphQL type if needed
+            execution_graphql = ExecutionType.from_pydantic(saved_entity)
+            
             return ExecutionResult(
                 success=True,
-                execution=saved_entity,
+                execution=execution_graphql,
                 message=f"Execution created successfully with ID: {entity_id}"
             )
             
@@ -99,10 +109,17 @@ class ExecutionMutations:
         """Update an existing Execution."""
         try:
             context: GraphQLContext = info.context
-            service = context.get_service("execution_service")
+            # Get CRUD adapter for standardized interface
+            crud_registry = context.get_service("crud_registry")
+            if not crud_registry:
+                from dipeo.application.services import create_crud_registry
+                crud_registry = create_crud_registry(context.service_registry)
+            execution_service = crud_registry.get_adapter("execution_service")
+            if not execution_service:
+                raise ValueError("CRUD adapter for execution_service not found")
             
             # Get existing entity
-            existing = await service.get(execution_input.id)
+            existing = await execution_service.get(execution_input.id)
             if not existing:
                 return ExecutionResult(
                     success=False,
@@ -141,9 +158,12 @@ class ExecutionMutations:
             # Apply updates
             updated_entity = await execution_service.update(execution_input.id, updates)
             
+            # Convert to GraphQL type if needed
+            execution_graphql = ExecutionType.from_pydantic(updated_entity)
+            
             return ExecutionResult(
                 success=True,
-                execution=updated_entity,
+                execution=execution_graphql,
                 message=f"Execution updated successfully"
             )
             
@@ -167,14 +187,22 @@ class ExecutionMutations:
         node_id: str,
         state: str,
         info: strawberry.Info[GraphQLContext],
-    ) -> Execution:
+    ) -> ExecutionType:
         """updateNodeState - Custom mutation for Execution."""
         try:
             context: GraphQLContext = info.context
-            execution_service = context.get_service("execution_service")
+            # Get CRUD adapter for standardized interface
+            crud_registry = context.get_service("crud_registry")
+            if not crud_registry:
+                from dipeo.application.services import create_crud_registry
+                crud_registry = create_crud_registry(context.service_registry)
+            execution_service = crud_registry.get_adapter("execution_service")
+            if not execution_service:
+                raise ValueError("CRUD adapter for execution_service not found")
             
             # Custom implementation
-            service.update_node_state
+            result = await execution_service.update_node_state(execution_id, node_id, state)
+            return ExecutionType.from_pydantic(result)
             
         except ValueError as e:
             logger.error(f"Validation error in updateNodeState: {e}")
@@ -190,14 +218,22 @@ class ExecutionMutations:
         node_id: str,
         output: str,
         info: strawberry.Info[GraphQLContext],
-    ) -> Execution:
+    ) -> ExecutionType:
         """addNodeOutput - Custom mutation for Execution."""
         try:
             context: GraphQLContext = info.context
-            execution_service = context.get_service("execution_service")
+            # Get CRUD adapter for standardized interface
+            crud_registry = context.get_service("crud_registry")
+            if not crud_registry:
+                from dipeo.application.services import create_crud_registry
+                crud_registry = create_crud_registry(context.service_registry)
+            execution_service = crud_registry.get_adapter("execution_service")
+            if not execution_service:
+                raise ValueError("CRUD adapter for execution_service not found")
             
             # Custom implementation
-            service.add_node_output
+            result = await execution_service.add_node_output(execution_id, node_id, output)
+            return ExecutionType.from_pydantic(result)
             
         except ValueError as e:
             logger.error(f"Validation error in addNodeOutput: {e}")

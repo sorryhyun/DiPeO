@@ -3,7 +3,7 @@
  * Generates Python GraphQL resolvers from entity definitions following DiPeO server patterns
  */
 
-import { EntityDefinition, CreateOperationConfig, UpdateOperationConfig } from '../src/entity-config';
+import { EntityDefinition, CreateOperationConfig, UpdateOperationConfig } from '../../src/entity-config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -77,13 +77,27 @@ function generateServiceRetrievals(entity: EntityDefinition, customLogic: string
   const services = customLogic ? extractServicesFromLogic(customLogic) : new Set<string>();
   const lines: string[] = [];
   
-  // Always include the entity's main service
-  const mainService = entity.service?.name || `${entity.name.toLowerCase()}_service`;
-  lines.push(`${indent}${mainService} = context.get_service("${mainService}")`);
+  // Check if using CRUD adapter
+  if (entity.service?.useCrudAdapter) {
+    // Get CRUD adapter registry and adapter
+    lines.push(`${indent}# Get CRUD adapter for standardized interface`);
+    lines.push(`${indent}crud_registry = context.get_service("crud_registry")`);
+    lines.push(`${indent}if not crud_registry:`);
+    lines.push(`${indent}    from dipeo.application.services import create_crud_registry`);
+    lines.push(`${indent}    crud_registry = create_crud_registry(context.service_registry)`);
+    lines.push(`${indent}${entity.service.name} = crud_registry.get_adapter("${entity.service.name}")`);    
+    lines.push(`${indent}if not ${entity.service.name}:`);
+    lines.push(`${indent}    raise ValueError("CRUD adapter for ${entity.service.name} not found")`);    
+  } else {
+    // Always include the entity's main service
+    const mainService = entity.service?.name || `${entity.name.toLowerCase()}_service`;
+    lines.push(`${indent}${mainService} = context.get_service("${mainService}")`);    
+  }
   
   // Add other services found in custom logic
+  const definedService = entity.service?.name || `${entity.name.toLowerCase()}_service`;
   for (const service of services) {
-    if (service !== mainService) {
+    if (service !== definedService) {
       lines.push(`${indent}${service} = context.get_service("${service}")`);
     }
   }
@@ -152,22 +166,44 @@ function generateImports(entity: EntityDefinition): string {
     imports.push('from datetime import datetime');
   }
   
+  // Collect all ID types used in fields
+  const idTypes = new Set<string>();
+  idTypes.add(`${entity.name}ID`); // Always include the entity's own ID
+  
+  Object.values(entity.fields).forEach(field => {
+    if (field.type.endsWith('ID')) {
+      idTypes.add(field.type);
+    }
+  });
+  
   imports.push(
     '',
     'import strawberry',
     `from dipeo.models import ${entity.name}`,
-    `from dipeo.models import ${entity.name}ID`,
+  );
+  
+  // Don't import ID types from dipeo.models - they'll come from generated_types
+  
+  imports.push(
     '',
     'from ..context import GraphQLContext',
     'from ..generated_types import (',
     `    Create${entity.name}Input,`,
     `    Update${entity.name}Input,`,
     `    ${entity.name}Result,`,
-    `    ${entity.name}ID,`,
+    `    ${entity.name}ID,`, // Import from generated_types for GraphQL arguments
     '    DeleteResult,',
     '    JSONScalar,',
     '    MutationResult,',
   );
+  
+  // Import other ID types from generated_types if needed
+  const otherIdTypes = Array.from(idTypes).filter(id => id !== `${entity.name}ID`);
+  if (otherIdTypes.length > 0) {
+    otherIdTypes.forEach(idType => {
+      imports.push(`    ${idType},`);
+    });
+  }
   
   // Add entity type
   imports.push(`    ${entity.name}Type,`);
@@ -256,9 +292,12 @@ ${fields.join('\n')}`;
  * Generate result type
  */
 function generateResultType(entity: EntityDefinition): string {
+  // Convert entity name to snake_case field name
+  const fieldName = entity.name === 'ApiKey' ? 'api_key' : entity.name.toLowerCase();
+  
   return `@strawberry.type
 class ${entity.name}Result(MutationResult):
-    ${entity.name.toLowerCase()}: ${entity.name}Type | None = None`;
+    ${fieldName}: ${entity.name}Type | None = None`;
 }
 
 /**
@@ -361,16 +400,24 @@ ${fieldMappings}
             )
             
             # Save through service
-            saved_entity = await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.create(${entity.name.toLowerCase()}_data)
+            ${entity.service?.useCrudAdapter ? 
+              `saved_entity = await ${entity.service.name}.create(data)` :
+              entity.service?.operations?.create ? 
+                `saved_entity = await ${entity.service.name}.${entity.service.operations.create}(${generateCreateArgs(entity, config)})` :
+                `saved_entity = await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.create(${entity.name.toLowerCase()}_data)`
+            }
             
 ${config.customLogic ? `
             # Custom logic
             entity = saved_entity
 ${indentCustomLogic(config.customLogic, '            ')}` : ''}
             
+            # Convert to GraphQL type if needed
+            ${entity.name === 'Execution' ? `${entity.name.toLowerCase()}_graphql = ${entity.name}Type.from_pydantic(saved_entity)` : `${entity.name.toLowerCase()}_graphql = saved_entity`}
+            
             return ${returnType}(
                 success=True,
-                ${entity.name.toLowerCase()}=saved_entity,
+                ${entity.name === 'ApiKey' ? 'api_key' : entity.name.toLowerCase()}=${entity.name === 'Execution' ? `${entity.name.toLowerCase()}_graphql` : 'saved_entity'},
                 message=f"${entity.name} created successfully with ID: {entity_id}"
             )
             
@@ -416,10 +463,10 @@ function generateUpdateMutation(entity: EntityDefinition): string {
         """Update an existing ${entity.name}."""
         try:
             context: GraphQLContext = info.context
-            service = context.get_service("${entity.service?.name || entity.name.toLowerCase() + '_service'}")
+${generateServiceRetrievals(entity, config.customLogic, '            ')}
             
             # Get existing entity
-            existing = await service.get(${entity.name.toLowerCase()}_input.id)
+            existing = await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.get(${entity.name.toLowerCase()}_input.id)
             if not existing:
                 return ${returnType}(
                     success=False,
@@ -442,11 +489,19 @@ ${config.customLogic ? `
 ${indentCustomLogic(config.customLogic, '            ')}` : ''}
             
             # Apply updates
-            updated_entity = await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.update(${entity.name.toLowerCase()}_input.id, updates)
+            ${entity.service?.useCrudAdapter ? 
+              `updated_entity = await ${entity.service.name}.update(${entity.name.toLowerCase()}_input.id, updates)` :
+              entity.service?.operations?.update ? 
+                `updated_entity = await ${entity.service.name}.${entity.service.operations.update}(${generateUpdateArgs(entity, config)})` :
+                `updated_entity = await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.update(${entity.name.toLowerCase()}_input.id, updates)`
+            }
+            
+            # Convert to GraphQL type if needed
+            ${entity.name === 'Execution' ? `${entity.name.toLowerCase()}_graphql = ${entity.name}Type.from_pydantic(updated_entity)` : `${entity.name.toLowerCase()}_graphql = updated_entity`}
             
             return ${returnType}(
                 success=True,
-                ${entity.name.toLowerCase()}=updated_entity,
+                ${entity.name === 'ApiKey' ? 'api_key' : entity.name.toLowerCase()}=${entity.name === 'Execution' ? `${entity.name.toLowerCase()}_graphql` : 'updated_entity'},
                 message=f"${entity.name} updated successfully"
             )
             
@@ -486,7 +541,12 @@ function generateDeleteMutation(entity: EntityDefinition): string {
 ${generateServiceRetrievals(entity, config.customLogic, '            ')}
             
             # Check if exists
-            existing = await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.get(${entity.name.toLowerCase()}_id)
+            ${entity.service?.useCrudAdapter ?
+              `existing = await ${entity.service.name}.get(${entity.name.toLowerCase()}_id)` :
+              entity.service?.operations?.get ?
+                `existing = await ${entity.service.name}.${entity.service.operations.get}(${entity.name.toLowerCase()}_id)` :
+                `existing = await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.get(${entity.name.toLowerCase()}_id)`
+            }
             if not existing:
                 return DeleteResult(
                     success=False,
@@ -500,9 +560,14 @@ ${config.customLogic ? `
 ${indentCustomLogic(config.customLogic, '            ')}` : ''}
             
             # Delete the entity
-            ${config.soft ? 
-            `await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.soft_delete(${entity.name.toLowerCase()}_id)` : 
-            `await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.delete(${entity.name.toLowerCase()}_id)`}
+            ${entity.service?.useCrudAdapter ?
+              `await ${entity.service.name}.delete(${entity.name.toLowerCase()}_id)` :
+              entity.service?.operations?.delete ?
+                `await ${entity.service.name}.${entity.service.operations.delete}(${entity.name.toLowerCase()}_id)` :
+                config.soft ? 
+                  `await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.soft_delete(${entity.name.toLowerCase()}_id)` : 
+                  `await ${entity.service?.name || entity.name.toLowerCase() + '_service'}.delete(${entity.name.toLowerCase()}_id)`
+            }
             
             return DeleteResult(
                 success=True,
@@ -577,6 +642,11 @@ export async function generateQueries(entity: EntityDefinition): Promise<string>
     }
   }
   
+  const hasFilters = entity.operations.list && 
+                    typeof entity.operations.list === 'object' && 
+                    entity.operations.list.filters && 
+                    entity.operations.list.filters.length > 0;
+  
   const imports = `"""GraphQL queries for ${entity.name} - Auto-generated."""
 
 import strawberry
@@ -585,8 +655,8 @@ from typing import Optional
 from dipeo_server.api.graphql.context import GraphQLContext
 from dipeo_server.api.graphql.generated_types import (
     ${entity.name}ID,
-    ${entity.name}Type,
-    ${entity.name}FilterInput,
+    ${entity.name}Type,${hasFilters ? `
+    ${entity.name}FilterInput,` : ''}
     JSONScalar,
 )`;
   
@@ -701,6 +771,36 @@ ${generateServiceRetrievals(entity, config.implementation, '    ')}
     
     # Custom implementation
 ${indentCustomLogic(config.implementation, '    ')}`;
+}
+
+/**
+ * Generate create method arguments based on service configuration
+ */
+function generateCreateArgs(entity: EntityDefinition, config: CreateOperationConfig): string {
+  // If using specific method mapping, generate appropriate args
+  if (entity.service?.operations?.create && typeof entity.service.operations.create === 'string') {
+    // For methods like create_api_key(label, service, key)
+    if (entity.name === 'ApiKey') {
+      return `label=data['label'], service=data['service'], key=data['key']`;
+    }
+  }
+  // Default to passing the entity data object
+  return `${entity.name.toLowerCase()}_data`;
+}
+
+/**
+ * Generate update method arguments based on service configuration
+ */
+function generateUpdateArgs(entity: EntityDefinition, config: any): string {
+  // If using specific method mapping, generate appropriate args
+  if (entity.service?.operations?.update && typeof entity.service.operations.update === 'string') {
+    // For methods like update_api_key(key_id, label, service, key)
+    if (entity.name === 'ApiKey') {
+      return `key_id=${entity.name.toLowerCase()}_input.id, **updates`;
+    }
+  }
+  // Default pattern
+  return `${entity.name.toLowerCase()}_input.id, updates`;
 }
 
 /**

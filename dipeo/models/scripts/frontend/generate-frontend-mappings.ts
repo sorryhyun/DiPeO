@@ -2,6 +2,7 @@ import * as ts from 'typescript';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Project } from 'ts-morph';
+import { PATHS } from '../paths';
 
 interface TypeMapping {
   domainType: string;
@@ -23,7 +24,7 @@ class FrontendMappingsGenerator {
   
   constructor() {
     this.project = new Project({
-      tsConfigFilePath: path.join(__dirname, '..', 'tsconfig.json'),
+      tsConfigFilePath: PATHS.tsConfig,
     });
   }
 
@@ -37,11 +38,7 @@ class FrontendMappingsGenerator {
     const mappingCode = this.generateMappingCode();
     
     // Write to file
-    const outputPath = path.join(
-      __dirname, '..', '..', '..',
-      'apps', 'web', 'src', '__generated__', 'domain',
-      'mappings.ts'
-    );
+    const outputPath = PATHS.webDomainMappings;
     
     fs.writeFileSync(outputPath, mappingCode);
     console.log(`Frontend type mappings generated at: ${outputPath}`);
@@ -50,19 +47,20 @@ class FrontendMappingsGenerator {
   private analyzeModels() {
     const sourceFiles = this.project.getSourceFiles();
     
-    // Define mappings between domain types and GraphQL types
+    // Since we use the same types everywhere, we only need to handle specific cases
+    // where GraphQL codegen might produce slightly different types
     const typeMap = [
-      { domain: 'DomainDiagram', graphql: 'Diagram' },
-      { domain: 'DomainNode', graphql: 'Node' },
-      { domain: 'DomainArrow', graphql: 'Arrow' },
-      { domain: 'DomainHandle', graphql: 'Handle' },
-      { domain: 'DomainPerson', graphql: 'Person' },
-      { domain: 'DomainApiKey', graphql: 'ApiKey' },
+      { domain: 'Diagram', graphql: 'Diagram' },
+      { domain: 'Node', graphql: 'Node' },
+      { domain: 'Arrow', graphql: 'Arrow' },
+      { domain: 'Handle', graphql: 'Handle' },
+      { domain: 'Person', graphql: 'Person' },
+      { domain: 'ApiKey', graphql: 'ApiKey' },
       { domain: 'Execution', graphql: 'Execution' },
       { domain: 'NodeState', graphql: 'NodeState' },
       { domain: 'Vec2', graphql: 'Vec2' },
       { domain: 'DiagramMetadata', graphql: 'DiagramMetadata' },
-      { domain: 'PersonLLMConfig', graphql: 'PersonLlmConfig' },
+      { domain: 'PersonLLMConfig', graphql: 'PersonLLMConfig' },
     ];
     
     for (const { domain, graphql } of typeMap) {
@@ -175,14 +173,10 @@ class FrontendMappingsGenerator {
       return brandedTypes[domainType];
     }
     
-    // Handle domain types
+    // Most types should be the same between domain and GraphQL
+    // Only handle special cases where they differ
     const domainToGraphQL: Record<string, string> = {
-      'DomainNode': 'Node',
-      'DomainArrow': 'Arrow',
-      'DomainHandle': 'Handle',
-      'DomainPerson': 'Person',
-      'DomainApiKey': 'ApiKey',
-      'PersonLLMConfig': 'PersonLlmConfig',
+      // Add any specific mappings if GraphQL codegen creates different names
     };
     
     return domainToGraphQL[domainType] || domainType;
@@ -197,6 +191,10 @@ class FrontendMappingsGenerator {
     lines.push(' * Generated GraphQL to Domain type mappings');
     lines.push(' * Source: dipeo/models/scripts/generate-frontend-mappings.ts');
     lines.push(' * Run "make codegen" to regenerate');
+    lines.push(' * ');
+    lines.push(' * Note: Since we use the same types in both frontend and backend,');
+    lines.push(' * most conversions are simple type assertions. Only branded types');
+    lines.push(' * and special cases need actual field mapping.');
     lines.push(' */');
     lines.push('');
     
@@ -259,7 +257,35 @@ class FrontendMappingsGenerator {
   }
   
   private generateConversionFunction(lines: string[], mapping: TypeMapping) {
-    // GraphQL to Domain conversion
+    // Since domain and GraphQL types are mostly the same, we can simplify
+    // Only generate conversions if there are actual differences
+    
+    // Check if any fields need special conversion
+    const needsConversion = mapping.fields.some(field => 
+      this.isBrandedType(field.domainType) || 
+      field.domainType !== field.graphqlType ||
+      field.domainType.includes('PersonLLMConfig') // Special cases
+    );
+    
+    if (!needsConversion) {
+      // If types are identical, just create simple type assertion functions
+      lines.push(`export function convertGraphQL${mapping.graphqlType}ToDomain(`);
+      lines.push(`  graphql: GraphQL.${mapping.graphqlType}`);
+      lines.push(`): Domain.${mapping.domainType} {`);
+      lines.push('  return graphql as any as Domain.' + mapping.domainType + ';');
+      lines.push('}');
+      lines.push('');
+      
+      lines.push(`export function convertDomain${mapping.domainType}ToGraphQL(`);
+      lines.push(`  domain: Domain.${mapping.domainType}`);
+      lines.push(`): GraphQL.${mapping.graphqlType} {`);
+      lines.push('  return domain as any as GraphQL.' + mapping.graphqlType + ';');
+      lines.push('}');
+      lines.push('');
+      return;
+    }
+    
+    // Original conversion logic for types that need it
     lines.push(`export function convertGraphQL${mapping.graphqlType}ToDomain(`);
     lines.push(`  graphql: GraphQL.${mapping.graphqlType}`);
     lines.push(`): Domain.${mapping.domainType} {`);
@@ -274,10 +300,9 @@ class FrontendMappingsGenerator {
     lines.push('}');
     lines.push('');
     
-    // Domain to GraphQL conversion
     lines.push(`export function convertDomain${mapping.domainType}ToGraphQL(`);
     lines.push(`  domain: Domain.${mapping.domainType}`);
-    lines.push(`): Partial<GraphQL.${mapping.graphqlType}> {`);
+    lines.push(`): GraphQL.${mapping.graphqlType} {`);
     lines.push('  return {');
     
     for (const field of mapping.fields) {

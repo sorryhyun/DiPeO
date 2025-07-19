@@ -76,6 +76,7 @@ def _create_unified_service_registry(
     dependency injection in the execution context.
     """
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.application.services import create_crud_registry
     
     registry = UnifiedServiceRegistry()
     
@@ -114,6 +115,10 @@ def _create_unified_service_registry(
     # Legacy aliases for backward compatibility
     registry.register("file", file_service)  # Used by endpoint.py
     registry.register("template", template_processor)  # Used by code_job.py
+    
+    # Create and register CRUD adapter registry
+    crud_registry = create_crud_registry(registry)
+    registry.register("crud_registry", crud_registry)
     
     return registry
 

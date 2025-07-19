@@ -16,9 +16,7 @@ from .generated_types import (
     ExecutionStatusEnum,
     JSONScalar,
     NodeID,
-)
-from .domain_types import (
-    DomainDiagramType,
+    DiagramType
 )
 
 logger = logging.getLogger(__name__)
@@ -325,7 +323,7 @@ class Subscription:
     @strawberry.subscription
     async def diagram_changes(
         self, info: strawberry.Info[GraphQLContext], diagram_id: DiagramID
-    ) -> AsyncGenerator[DomainDiagramType]:
+    ) -> AsyncGenerator[DiagramType]:
         """Streams diagram modifications (not implemented)."""
         logger.warning(f"Diagram change stream not yet implemented for {diagram_id}")
         while False:

@@ -48,15 +48,15 @@ export default defineEntity({
         name: 'updateNodeState',
         type: 'mutation',
         input: ['execution_id', 'node_id', 'state'],
-        returns: 'Execution',
-        implementation: 'service.update_node_state'
+        returns: 'ExecutionType',
+        implementation: 'result = await execution_service.update_node_state(execution_id, node_id, state)\nreturn ExecutionType.from_pydantic(result)'
       },
       addNodeOutput: {
         name: 'addNodeOutput',
         type: 'mutation',
         input: ['execution_id', 'node_id', 'output'],
-        returns: 'Execution',
-        implementation: 'service.add_node_output'
+        returns: 'ExecutionType',
+        implementation: 'result = await execution_service.add_node_output(execution_id, node_id, output)\nreturn ExecutionType.from_pydantic(result)'
       }
     }
   },
@@ -64,5 +64,11 @@ export default defineEntity({
   features: {
     timestamps: false, // We have custom started_at/ended_at
     softDelete: false
+  },
+  
+  // Map to the existing execution_service
+  service: {
+    name: 'execution_service',
+    useCrudAdapter: true
   }
 });

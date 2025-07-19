@@ -3,10 +3,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import process from 'node:process';
 import { fileURLToPath } from 'url';
-import { SchemaDefinition } from './generate-schema';
-import { loadSchemas } from './load-schema';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { SchemaDefinition } from '../shared/generate-schema';
+import { loadSchemas } from '../shared/load-schema';
+import { PATHS } from '../paths';
 
 
 //  Static mappings & regex helpers
@@ -238,14 +237,39 @@ class PythonGenerator {
       lines.push('');
     }
 
+    // Add FieldType before interfaces since it's used by FieldDefinition
+    const fieldTypeAlias = this.all.find(s => s.type === 'type-alias' && s.name === 'FieldType');
+    if (fieldTypeAlias) {
+      lines.push('# Define FieldType as a Union of possible field types');
+      this.add('typing', 'Union', 'Literal');
+      lines.push('FieldType = Union[');
+      lines.push('    Literal[\'string\'],');
+      lines.push('    Literal[\'number\'],');
+      lines.push('    Literal[\'boolean\'],');
+      lines.push('    Literal[\'Date\'],');
+      lines.push('    Literal[\'JSON\'],');
+      // Add branded types
+      lines.push('    Literal[\'NodeID\'],');
+      lines.push('    Literal[\'DiagramID\'],');
+      lines.push('    Literal[\'PersonID\'],');
+      lines.push('    Literal[\'ExecutionID\'],');
+      lines.push('    Literal[\'HandleID\'],');
+      lines.push('    Literal[\'ArrowID\'],');
+      lines.push('    Literal[\'ApiKeyID\'],');
+      lines.push('    str  # For array types like \'string[]\'');
+      lines.push(']', '');
+    }
+
     this.all.filter(s => s.type === 'interface').forEach(i => lines.push(...this.classLines(i), ''));
 
     this.all.filter(s => s.type === 'type-alias').forEach(a => {
-      // Only generate type alias if it's a simple reference to another class
       const aliasType = a.aliasType?.trim();
       if (!aliasType) return;
       
-      // Skip union types and complex types
+      // Skip FieldType since we already handled it above
+      if (a.name === 'FieldType') return;
+      
+      // Skip other union types and complex types
       if (aliasType.includes('|') || aliasType.includes('&')) return;
       
       // Extract the referenced type name
@@ -269,8 +293,8 @@ class PythonGenerator {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
-    const schemas = await loadSchemas(path.resolve(__dirname, '../__generated__'));
-    const out = path.resolve(__dirname, '../models.py');
+    const schemas = await loadSchemas(PATHS.generatedDir);
+    const out = PATHS.modelsOutput;
     await new PythonGenerator(schemas, true).generate(out);
     console.log(`Generated models.py → ${out}`);
   })();

@@ -5,6 +5,7 @@ import { readdir, writeFile, mkdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import process from 'node:process';
+import { PATHS } from '../paths';
 
 //--- Types
 interface ZodSchemaOutput {
@@ -60,8 +61,7 @@ class ZodSchemaGenerator {
 
     // Generate TypeScript file with Zod schemas
     const tsOutput = this.generateTypeScriptOutput(schemas);
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    const tsOutputPath = join(__dirname, '../../../apps/web/src/__generated__/nodes/schemas.ts');
+    const tsOutputPath = PATHS.webNodesSchemas;
     await mkdir(dirname(tsOutputPath), { recursive: true });
     await writeFile(tsOutputPath, tsOutput);
 
@@ -330,9 +330,8 @@ export function createZodFieldValidator(nodeType: string, fieldName: string) {
 
 //--- Entry Point
 export async function generateZodSchemas() {
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const tsConfig = join(__dirname, '../tsconfig.json');
-  const srcDir = join(__dirname, '../src');
+  const tsConfig = PATHS.tsConfig;
+  const srcDir = PATHS.srcDir;
 
   const generator = new ZodSchemaGenerator(tsConfig);
   await generator.generate(srcDir);

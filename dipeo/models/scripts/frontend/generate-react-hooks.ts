@@ -3,7 +3,7 @@
  * Generates React hooks for GraphQL operations from entity definitions
  */
 
-import { EntityDefinition } from '../src/entity-config';
+import { EntityDefinition } from '../../src/entity-config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

@@ -50,8 +50,14 @@ packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
 # Generated conversions now in dipeo/domain/conversions.py (tracked)
 apps/cli/src/dipeo_cli/__generated__
 apps/web/src/__generated__
+# Generated GraphQL types
 apps/server/src/dipeo_server/api/graphql/generated_types.py
 apps/server/src/dipeo_server/api/graphql/generated_types_additions.py
+apps/server/src/dipeo_server/api/graphql/generated/types/*.py
+
+# Auto-generated entity queries and mutations
+apps/server/src/dipeo_server/api/graphql/generated/queries/*.py
+apps/server/src/dipeo_server/api/graphql/generated/mutations/*.py
 
 # Node.js
 node_modules/
@@ -156,5 +162,8 @@ yarn.lock
 /build-with-rust.bat
 /files/test/
 /apps/server/src/dipeo_server/api/graphql/generated-schema.graphql
-/apps/server/src/dipeo_server/api/graphql/generated_types.py
 /dipeo/models/src/generated-entities.ts
+/dipeo/models/models.py
+
+# Other generated files
+apps/server/src/dipeo_server/api/graphql/domain_types.py

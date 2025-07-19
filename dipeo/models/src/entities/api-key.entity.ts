@@ -34,5 +34,18 @@ export default defineEntity({
   features: {
     timestamps: true,
     softDelete: false
+  },
+  
+  // Map to the existing api_key_service
+  service: {
+    name: 'api_key_service',
+    useCrudAdapter: true,
+    operations: {
+      create: 'create_api_key',
+      update: 'update_api_key',
+      delete: 'delete_api_key',
+      get: 'get_api_key',
+      list: 'list_api_keys'
+    }
   }
 });
