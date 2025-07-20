@@ -15,6 +15,8 @@ import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import process from 'node:process';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 interface CliOpts {
   src: string;
   out: string;
