@@ -100,23 +100,9 @@ class ZodSchemaGenerator {
     const diagramPath = join(PATHS.srcDir, 'diagram.ts');
     const sourceFile = this.project.getSourceFile(diagramPath) || this.project.addSourceFileAtPath(diagramPath);
     
-    let interfaceDecl = sourceFile.getInterface(interfaceName);
-    
-    // If not found as interface, try to find as type alias
+    const interfaceDecl = sourceFile.getInterface(interfaceName);
     if (!interfaceDecl) {
-      const typeAlias = sourceFile.getTypeAlias(interfaceName);
-      if (typeAlias) {
-        // If it's a type alias, resolve the referenced type
-        const typeNode = typeAlias.getTypeNode();
-        if (typeNode) {
-          const typeName = typeNode.getText();
-          interfaceDecl = sourceFile.getInterface(typeName);
-        }
-      }
-    }
-    
-    if (!interfaceDecl) {
-      console.warn(`⚠️  Interface or type alias ${interfaceName} not found`);
+      console.warn(`⚠️  Interface ${interfaceName} not found`);
       return null;
     }
 

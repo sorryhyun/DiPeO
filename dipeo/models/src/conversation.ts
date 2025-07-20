@@ -1,8 +1,5 @@
 import { PersonID, MemoryConfig } from "./diagram.js";
 
-// Branded types for IDs
-export type MessageID = string & { readonly __brand: 'MessageID' };
-
 /**
  * Base message interface for conversations
  * Used by both execution (PersonMemory) and person domains

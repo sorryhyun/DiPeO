@@ -125,7 +125,7 @@ export type ApiKeyID = string & { readonly __brand: 'ApiKeyID' };
 export type DiagramID = string & { readonly __brand: 'DiagramID' };
 
 // Domain models
-export interface Handle {
+export interface DomainHandle {
   id: HandleID;
   node_id: NodeID;
   label: HandleLabel;
@@ -134,14 +134,14 @@ export interface Handle {
   position?: string | null; // 'left' | 'right' | 'top' | 'bottom'
 }
 
-export interface Node {
+export interface DomainNode {
   id: NodeID;
   type: NodeType;
   position: Vec2;
   data: Record<string, any>;
 }
 
-export interface Arrow {
+export interface DomainArrow {
   id: ArrowID;
   source: HandleID; // "nodeId_handleName_direction" format
   target: HandleID; // "nodeId_handleName_direction" format
@@ -169,14 +169,14 @@ export interface PersonLLMConfig {
   system_prompt?: string | null;
 }
 
-export interface Person {
+export interface DomainPerson {
   id: PersonID;
   label: string;
   llm_config: PersonLLMConfig;
   type: 'person';
 }
 
-export interface ApiKey {
+export interface DomainApiKey {
   id: ApiKeyID;
   label: string;
   service: APIServiceType;
@@ -195,11 +195,11 @@ export interface DiagramMetadata {
 }
 
 // Main diagram type used in GraphQL API (array format)
-export interface Diagram {
-  nodes: Node[];
-  handles: Handle[];
-  arrows: Arrow[];
-  persons: Person[];
+export interface DomainDiagram {
+  nodes: DomainNode[];
+  handles: DomainHandle[];
+  arrows: DomainArrow[];
+  persons: DomainPerson[];
   metadata?: DiagramMetadata | null;
 }
 

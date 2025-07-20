@@ -1,4 +1,4 @@
-# GraphQL Code Generation Configuration
+# GraphQL Code Generation Configuration for Vercel builds
 
 overwrite: true
 schema: "../server/schema.graphql"
@@ -26,15 +26,11 @@ generates:
       enumValues:
         NodeType: "@dipeo/domain-models#NodeType"
         HandleDirection: "@dipeo/domain-models#HandleDirection"
-        HandleLabel: "@dipeo/domain-models#HandleLabel"
         DataType: "@dipeo/domain-models#DataType"
         LLMService: "@dipeo/domain-models#LLMService"
         DiagramFormat: "@dipeo/domain-models#DiagramFormat"
         ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
         ContentType: "@dipeo/domain-models#ContentType"
-        ForgettingMode: "@dipeo/domain-models#ForgettingMode"
-        MemoryView: "@dipeo/domain-models#MemoryView"
-        DBBlockSubType: "@dipeo/domain-models#DBBlockSubType"
       # Skip generating TypeScript types for enums
       skipTypename: false
       # Use proper imports

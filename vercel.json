@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @dipeo/domain-models build && echo 'Checking schema location...' && ls -la apps/server/ && cd apps/web && pnpm exec graphql-codegen --config codegen.yml && pnpm build",
+  "buildCommand": "pnpm --filter @dipeo/domain-models build && echo 'Checking schema location...' && ls -la apps/server/ && cd apps/web && pnpm exec graphql-codegen --config codegen.vercel.yml && pnpm build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,

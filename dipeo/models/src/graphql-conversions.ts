@@ -8,11 +8,11 @@ import {
   ArrowID,
   HandleID,
   PersonID,
-  Node,
-  Arrow,
-  Handle,
-  Person,
-  Diagram,
+  DomainNode,
+  DomainArrow,
+  DomainHandle,
+  DomainPerson,
+  DomainDiagram,
   DiagramMetadata,
   PersonLLMConfig
 } from './diagram';
@@ -33,10 +33,10 @@ export interface GraphQLDomainPersonType {
  * Store format uses Maps for efficient lookups in frontend state management
  */
 export interface StoreDiagram {
-  nodes: Map<NodeID, Node>;
-  handles: Map<HandleID, Handle>;
-  arrows: Map<ArrowID, Arrow>;
-  persons: Map<PersonID, Person>;
+  nodes: Map<NodeID, DomainNode>;
+  handles: Map<HandleID, DomainHandle>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
   metadata?: DiagramMetadata;
 }
 
@@ -45,10 +45,10 @@ export interface StoreDiagram {
 // ============================================================================
 
 /**
- * Convert GraphQL DomainPersonType to domain Person
+ * Convert GraphQL DomainPersonType to domain DomainPerson
  * Handles the api_key_id optional/required mismatch
  */
-export function convertGraphQLPersonToDomain(graphqlPerson: any): Person {
+export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
   // Handle missing or null api_key_id by providing a default value
   const apiKeyId = graphqlPerson.llm_config?.api_key_id || '';
   
@@ -68,8 +68,8 @@ export function convertGraphQLPersonToDomain(graphqlPerson: any): Person {
 /**
  * Convert GraphQL diagram data to domain format, handling type mismatches
  */
-export function convertGraphQLDiagramToDomain(diagram: any): Partial<Diagram> {
-  const result: Partial<Diagram> = {};
+export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagram> {
+  const result: Partial<DomainDiagram> = {};
   
   if (diagram.nodes) {
     result.nodes = diagram.nodes;
@@ -98,16 +98,16 @@ export function convertGraphQLDiagramToDomain(diagram: any): Partial<Diagram> {
  * Convert from Domain format (arrays) to Store format (Maps)
  * Used when loading diagrams into frontend state
  */
-export function diagramToStoreMaps(diagram: Partial<Diagram>): {
-  nodes: Map<NodeID, Node>;
-  handles: Map<HandleID, Handle>;
-  arrows: Map<ArrowID, Arrow>;
-  persons: Map<PersonID, Person>;
+export function diagramToStoreMaps(diagram: Partial<DomainDiagram>): {
+  nodes: Map<NodeID, DomainNode>;
+  handles: Map<HandleID, DomainHandle>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
 } {
-  const nodes = new Map<NodeID, Node>();
-  const handles = new Map<HandleID, Handle>();
-  const arrows = new Map<ArrowID, Arrow>();
-  const persons = new Map<PersonID, Person>();
+  const nodes = new Map<NodeID, DomainNode>();
+  const handles = new Map<HandleID, DomainHandle>();
+  const arrows = new Map<ArrowID, DomainArrow>();
+  const persons = new Map<PersonID, DomainPerson>();
 
   // Convert arrays to maps with branded IDs as keys
   diagram.nodes?.forEach((node) => {
@@ -134,11 +134,11 @@ export function diagramToStoreMaps(diagram: Partial<Diagram>): {
  * Used when sending diagrams to server or saving
  */
 export function storeMapsToArrays(store: {
-  nodes: Map<NodeID, Node>;
-  handles: Map<HandleID, Handle>;
-  arrows: Map<ArrowID, Arrow>;
-  persons: Map<PersonID, Person>;
-}): Partial<Diagram> {
+  nodes: Map<NodeID, DomainNode>;
+  handles: Map<HandleID, DomainHandle>;
+  arrows: Map<ArrowID, DomainArrow>;
+  persons: Map<PersonID, DomainPerson>;
+}): Partial<DomainDiagram> {
   return {
     nodes: Array.from(store.nodes.values()),
     handles: Array.from(store.handles.values()),
@@ -153,9 +153,9 @@ export function storeMapsToArrays(store: {
 // ============================================================================
 
 /**
- * Check if an object is a valid Diagram
+ * Check if an object is a valid DomainDiagram
  */
-export function isDiagram(obj: unknown): obj is Diagram {
+export function isDomainDiagram(obj: unknown): obj is DomainDiagram {
   return (
     obj !== null &&
     typeof obj === 'object' &&
@@ -174,9 +174,9 @@ export function isDiagram(obj: unknown): obj is Diagram {
  * Get all handles for a specific node
  */
 export function getNodeHandles(
-  diagram: Diagram,
+  diagram: DomainDiagram,
   node_id: NodeID
-): Handle[] {
+): DomainHandle[] {
   return diagram.handles.filter(
     (handle) => handle.node_id === node_id
   );
@@ -186,12 +186,12 @@ export function getNodeHandles(
  * Get a handle by its ID
  */
 export function getHandleById(
-  diagram: Diagram,
+  diagram: DomainDiagram,
   handle_id: HandleID
-): Handle | undefined {
+): DomainHandle | undefined {
   return diagram.handles.find((handle) => handle.id === handle_id);
 }
 
 // Re-export utilities for convenience
 export { parseHandleId } from './conversions';
-export { createEmptyDiagram, isNode } from './diagram-utils';
+export { createEmptyDiagram, isDomainNode } from './diagram-utils';

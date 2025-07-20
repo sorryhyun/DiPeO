@@ -40,8 +40,6 @@ codegen:
 codegen-verbose:
 	@echo "🔄 Generating code from domain models..."
 	cd dipeo/models && pnpm generate:all
-	@echo "📝 Exporting GraphQL schema from server..."
-	@$(MAKE) graphql-schema
 	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen
 	@echo "✅ All code generation completed!"
@@ -64,8 +62,8 @@ dev-all:
 # Export GraphQL schema
 graphql-schema:
 	@echo "📝 Exporting GraphQL schema..."
-	cd apps/server && PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo_server.api.graphql.schema > src/dipeo_server/api/graphql/generated-schema.graphql
-	@echo "✅ GraphQL schema exported to apps/server/src/dipeo_server/api/graphql/generated-schema.graphql"
+	cd apps/server && PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo_server.api.graphql.schema > schema.graphql
+	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
 
 # Python directories
 PY_DIRS := apps/server apps/cli dipeo

@@ -69,7 +69,7 @@ export interface NodeState {
 
 
 // Simplified execution state
-export interface Execution {
+export interface ExecutionState {
   id: ExecutionID;
   status: ExecutionStatus;
   diagram_id?: DiagramID | null;
@@ -151,7 +151,7 @@ export function createTokenUsage(input: number, output: number, cached?: number)
   };
 }
 
-export function createEmptyExecution(executionId: ExecutionID, diagramId?: DiagramID): Execution {
+export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: DiagramID): ExecutionState {
   const now = new Date().toISOString();
   return {
     id: executionId,
