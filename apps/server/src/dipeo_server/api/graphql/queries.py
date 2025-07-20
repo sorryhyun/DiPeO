@@ -8,7 +8,7 @@ from dipeo.models import LLMService, NodeType
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
-from .generated_types import (
+from .types import (
     ApiKeyID,
     DiagramFilterInput,
     DiagramFormatInfo,

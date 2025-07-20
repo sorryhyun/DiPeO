@@ -1,24 +1,20 @@
-"""GraphQL mutations for Diagram management - Auto-generated."""
+"""GraphQL mutations for diagram management."""
 
 import logging
-import uuid
-from typing import Optional
 from datetime import datetime
 
 import strawberry
-from dipeo.models import Diagram
-from dipeo.models import DiagramID
+from dipeo.models import (
+    DiagramMetadata,
+    DomainDiagram,
+)
 
 from ..context import GraphQLContext
-from ..generated_types import (
+from ..types import (
     CreateDiagramInput,
-    UpdateDiagramInput,
-    DiagramResult,
-    DiagramID,
     DeleteResult,
-    JSONScalar,
-    MutationResult,
-    DiagramType,
+    DiagramID,
+    DiagramResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,171 +22,82 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class DiagramMutations:
-    """Handles Diagram CRUD operations."""
-    
+    # Handles diagram CRUD operations
+
     @strawberry.mutation
-    async def create_diagram(
-        self,
-        diagram_input: CreateDiagramInput,
-        info: strawberry.Info[GraphQLContext],
-    ) -> DiagramResult:
-        """Create a new Diagram."""
+    async def create_diagram(self, input: CreateDiagramInput, info) -> DiagramResult:
         try:
             context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_service")
-            
-            # Extract fields from input
-            data = {
-                "name": getattr(diagram_input, "name", None),
-                "description": getattr(diagram_input, "description", None),
-                "author": getattr(diagram_input, "author", None),
-                "tags": getattr(diagram_input, "tags", None),
-            }
-            
-            # Remove None values
-            data = {k: v for k, v in data.items() if v is not None}
-            
-            # Validate required fields
-            required_fields = ["name"]
-            missing = [f for f in required_fields if f not in data or data[f] is None]
-            if missing:
-                return DiagramResult(
-                    success=False,
-                    error=f"Missing required fields: {', '.join(missing)}"
-                )
-            
-            # Create the entity
-            entity_id = f"diagram_{str(uuid.uuid4())[:8]}"
-            
-            # Build domain model
-            diagram_data = Diagram(
-                id=DiagramID(entity_id),
-                **data
-            )
-            
-            # Save through service
-            saved_entity = await diagram_service.create(diagram_data)
-            
 
-            
+            # Use integrated diagram service
+            integrated_service = context.get_service("integrated_diagram_service")
+
+            # Create metadata directly from input
+            metadata = DiagramMetadata(
+                name=input.name,
+                description=input.description or "",
+                author=input.author or "",
+                tags=input.tags or [],
+                created=datetime.now(),
+                modified=datetime.now(),
+            )
+
+            diagram_model = DomainDiagram(
+                nodes=[],
+                arrows=[],
+                handles=[],
+                persons=[],
+                apiKeys=[],
+                metadata=metadata,
+            )
+
+            # Use integrated service - convert to storage format
+            from dipeo.domain.diagram.utils import domain_diagram_to_dict
+
+            storage_dict = domain_diagram_to_dict(diagram_model)
+            filename = await integrated_service.create_diagram(
+                input.name, storage_dict, "json"
+            )
+
+            # Use domain model directly
             return DiagramResult(
                 success=True,
-                diagram=saved_entity,
-                message=f"Diagram created successfully with ID: {entity_id}"
+                diagram=diagram_model,
+                message=f"Created diagram: {filename}",
             )
-            
+
         except ValueError as e:
-            logger.error(f"Validation error creating Diagram: {e}")
-            return DiagramResult(
-                success=False, 
-                error=f"Validation error: {str(e)}"
-            )
+            logger.error(f"Validation error creating diagram: {e}")
+            return DiagramResult(success=False, error=f"Validation error: {e!s}")
         except Exception as e:
-            logger.error(f"Failed to create Diagram: {e}", exc_info=True)
+            logger.error(f"Failed to create diagram: {e}")
             return DiagramResult(
-                success=False, 
-                error=f"Failed to create Diagram: {str(e)}"
+                success=False, error=f"Failed to create diagram: {e!s}"
             )
 
     @strawberry.mutation
-    async def update_diagram(
-        self,
-        diagram_input: UpdateDiagramInput,
-        info: strawberry.Info[GraphQLContext],
-    ) -> DiagramResult:
-        """Update an existing Diagram."""
+    async def delete_diagram(self, id: DiagramID, info) -> DeleteResult:
         try:
             context: GraphQLContext = info.context
-            service = context.get_service("diagram_service")
-            
-            # Get existing entity
-            existing = await service.get(diagram_input.id)
-            if not existing:
-                return DiagramResult(
-                    success=False,
-                    error=f"Diagram with ID {diagram_input.id} not found"
-                )
-            
-            # Build updates
-            updates = {}
-            if diagram_input.name is not None:
-                updates["name"] = diagram_input.name
-            if diagram_input.description is not None:
-                updates["description"] = diagram_input.description
-            if diagram_input.author is not None:
-                updates["author"] = diagram_input.author
-            if diagram_input.tags is not None:
-                updates["tags"] = diagram_input.tags
-            
-            if not updates:
-                return DiagramResult(
-                    success=False,
-                    error="No fields to update"
-                )
-            
+            integrated_service = context.get_service("integrated_diagram_service")
 
-            
-            # Apply updates
-            updated_entity = await diagram_service.update(diagram_input.id, updates)
-            
-            return DiagramResult(
-                success=True,
-                diagram=updated_entity,
-                message=f"Diagram updated successfully"
+            # Use integrated service to find and delete
+            diagram_data = await integrated_service.get_diagram(id)
+            if not diagram_data:
+                raise FileNotFoundError(f"Diagram not found: {id}")
+
+            # Find the path for deletion
+            file_repo = integrated_service.file_repository
+            path = await file_repo.find_by_id(id)
+            if path:
+                await integrated_service.delete_diagram(path)
+            else:
+                raise FileNotFoundError(f"Diagram path not found: {id}")
+
+            return DeleteResult(
+                success=True, deleted_id=id, message=f"Deleted diagram: {id}"
             )
-            
-        except ValueError as e:
-            logger.error(f"Validation error updating Diagram: {e}")
-            return DiagramResult(
-                success=False,
-                error=f"Validation error: {str(e)}"
-            )
+
         except Exception as e:
-            logger.error(f"Failed to update Diagram: {e}", exc_info=True)
-            return DiagramResult(
-                success=False,
-                error=f"Failed to update Diagram: {str(e)}"
-            )
-
-    @strawberry.mutation
-    async def delete_diagram(
-        self,
-        diagram_id: DiagramID,
-        info: strawberry.Info[GraphQLContext],
-    ) -> DeleteResult:
-        """Delete a Diagram."""
-        try:
-            context: GraphQLContext = info.context
-            diagram_service = context.get_service("diagram_service")
-            
-            # Check if exists
-            existing = await diagram_service.get(diagram_id)
-            if not existing:
-                return DeleteResult(
-                    success=False,
-                    error=f"Diagram with ID {diagram_id} not found"
-                )
-            
-
-            
-            # Delete the entity
-            await diagram_service.delete(diagram_id)
-            
-            return DeleteResult(
-                success=True,
-                deleted_id=str(diagram_id),
-                message=f"Diagram deleted successfully"
-            )
-            
-        except ValueError as e:
-            logger.error(f"Validation error deleting Diagram: {e}")
-            return DeleteResult(
-                success=False,
-                error=f"Cannot delete: {str(e)}"
-            )
-        except Exception as e:
-            logger.error(f"Failed to delete Diagram: {e}", exc_info=True)
-            return DeleteResult(
-                success=False,
-                error=f"Failed to delete Diagram: {str(e)}"
-            )
+            logger.error(f"Failed to delete diagram {id}: {e}")
+            return DeleteResult(success=False, error=f"Failed to delete diagram: {e!s}")

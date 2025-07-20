@@ -17,8 +17,6 @@ import process from 'node:process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 interface CliOpts {
   src: string;
   out: string;

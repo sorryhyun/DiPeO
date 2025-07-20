@@ -24,7 +24,7 @@ FILES_DIR = Path(BASE_DIR) / "files"
 UPLOAD_DIR = FILES_DIR / "uploads"
 
 from ..context import GraphQLContext
-from ..generated_types import (
+from ..types import (
     DiagramFormat,
     FileUploadResult,
     JSONScalar,

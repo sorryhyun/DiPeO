@@ -4,11 +4,11 @@ import logging
 from datetime import datetime
 
 from ..context import GraphQLContext
-from ..generated_types import (
+from ..types import (
     ExecutionFilterInput,
     ExecutionID,
 )
-from ..generated_types import (
+from ..types import (
     ExecutionStateType as ExecutionState,
 )
 

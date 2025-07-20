@@ -180,9 +180,151 @@ export function domainToolTypeToGraphQL(value: Domain.ToolType): GraphQL.ToolTyp
 
 
 // Type Conversion Functions
+export function convertGraphQLDiagramToDomain(
+  graphql: GraphQL.Diagram
+): Domain.DomainDiagram {
+  return {
+    nodes: graphql.nodes.map(item => convertGraphQLNodeToDomain(item)),
+    handles: graphql.handles.map(item => convertGraphQLHandleToDomain(item)),
+    arrows: graphql.arrows.map(item => convertGraphQLArrowToDomain(item)),
+    persons: graphql.persons.map(item => convertGraphQLPersonToDomain(item)),
+    metadata: graphql.metadata != null ? graphql.metadata : undefined,
+  };
+}
+
+export function convertDomainDomainDiagramToGraphQL(
+  domain: Domain.DomainDiagram
+): Partial<GraphQL.Diagram> {
+  return {
+    nodes: domain.nodes.map(item => convertDomainDomainNodeToGraphQL(item)),
+    handles: domain.handles.map(item => convertDomainDomainHandleToGraphQL(item)),
+    arrows: domain.arrows.map(item => convertDomainDomainArrowToGraphQL(item)),
+    persons: domain.persons.map(item => convertDomainDomainPersonToGraphQL(item)),
+    metadata: domain.metadata != null ? domain.metadata : undefined,
+  };
+}
+
+export function convertGraphQLNodeToDomain(
+  graphql: GraphQL.Node
+): Domain.DomainNode {
+  return {
+    id: graphql.id as Domain.NodeID,
+    type: graphql.type,
+    position: convertGraphQLVec2ToDomain(graphql.position),
+    data: graphql.data,
+  };
+}
+
+export function convertDomainDomainNodeToGraphQL(
+  domain: Domain.DomainNode
+): Partial<GraphQL.Node> {
+  return {
+    id: String(domain.id),
+    type: domain.type,
+    position: convertDomainVec2ToGraphQL(domain.position),
+    data: domain.data,
+  };
+}
+
+export function convertGraphQLArrowToDomain(
+  graphql: GraphQL.Arrow
+): Domain.DomainArrow {
+  return {
+    id: graphql.id as Domain.ArrowID,
+    source: graphql.source as Domain.HandleID,
+    target: graphql.target as Domain.HandleID,
+    content_type: graphql.content_type != null ? graphql.content_type : undefined,
+    label: graphql.label != null ? graphql.label : undefined,
+    data: graphql.data != null ? graphql.data : undefined,
+  };
+}
+
+export function convertDomainDomainArrowToGraphQL(
+  domain: Domain.DomainArrow
+): Partial<GraphQL.Arrow> {
+  return {
+    id: String(domain.id),
+    source: String(domain.source),
+    target: String(domain.target),
+    content_type: domain.content_type != null ? domain.content_type : undefined,
+    label: domain.label != null ? domain.label : undefined,
+    data: domain.data != null ? domain.data : undefined,
+  };
+}
+
+export function convertGraphQLHandleToDomain(
+  graphql: GraphQL.Handle
+): Domain.DomainHandle {
+  return {
+    id: graphql.id as Domain.HandleID,
+    node_id: graphql.node_id as Domain.NodeID,
+    label: graphql.label,
+    direction: graphql.direction,
+    data_type: graphql.data_type,
+    position: graphql.position != null ? graphql.position : undefined,
+  };
+}
+
+export function convertDomainDomainHandleToGraphQL(
+  domain: Domain.DomainHandle
+): Partial<GraphQL.Handle> {
+  return {
+    id: String(domain.id),
+    node_id: String(domain.node_id),
+    label: domain.label,
+    direction: domain.direction,
+    data_type: domain.data_type,
+    position: domain.position != null ? domain.position : undefined,
+  };
+}
+
+export function convertGraphQLPersonToDomain(
+  graphql: GraphQL.Person
+): Domain.DomainPerson {
+  return {
+    id: graphql.id as Domain.PersonID,
+    label: graphql.label,
+    llm_config: convertGraphQLPersonLlmConfigToDomain(graphql.llm_config),
+    type: graphql.type,
+  };
+}
+
+export function convertDomainDomainPersonToGraphQL(
+  domain: Domain.DomainPerson
+): Partial<GraphQL.Person> {
+  return {
+    id: String(domain.id),
+    label: domain.label,
+    llm_config: convertDomainPersonLLMConfigToGraphQL(domain.llm_config),
+    type: domain.type,
+  };
+}
+
+export function convertGraphQLApiKeyToDomain(
+  graphql: GraphQL.ApiKey
+): Domain.DomainApiKey {
+  return {
+    id: graphql.id as Domain.ApiKeyID,
+    label: graphql.label,
+    service: graphql.service,
+    key: graphql.key != null ? graphql.key : undefined,
+  };
+}
+
+export function convertDomainDomainApiKeyToGraphQL(
+  domain: Domain.DomainApiKey
+): Partial<GraphQL.ApiKey> {
+  return {
+    id: String(domain.id),
+    label: domain.label,
+    service: domain.service,
+    key: domain.key != null ? domain.key : undefined,
+  };
+}
+
 export function convertGraphQLExecutionToDomain(
   graphql: GraphQL.Execution
-): Domain.Execution {
+): Domain.ExecutionState {
   return {
     id: graphql.id as Domain.ExecutionID,
     status: graphql.status,
@@ -201,8 +343,8 @@ export function convertGraphQLExecutionToDomain(
   };
 }
 
-export function convertDomainExecutionToGraphQL(
-  domain: Domain.Execution
+export function convertDomainExecutionStateToGraphQL(
+  domain: Domain.ExecutionState
 ): Partial<GraphQL.Execution> {
   return {
     id: String(domain.id),
@@ -341,8 +483,20 @@ export function convertArray<T, R>(
 
 // Exports
 export {
+  convertGraphQLDiagramToDomain,
+  convertDomainDomainDiagramToGraphQL,
+  convertGraphQLNodeToDomain,
+  convertDomainDomainNodeToGraphQL,
+  convertGraphQLArrowToDomain,
+  convertDomainDomainArrowToGraphQL,
+  convertGraphQLHandleToDomain,
+  convertDomainDomainHandleToGraphQL,
+  convertGraphQLPersonToDomain,
+  convertDomainDomainPersonToGraphQL,
+  convertGraphQLApiKeyToDomain,
+  convertDomainDomainApiKeyToGraphQL,
   convertGraphQLExecutionToDomain,
-  convertDomainExecutionToGraphQL,
+  convertDomainExecutionStateToGraphQL,
   convertGraphQLNodeStateToDomain,
   convertDomainNodeStateToGraphQL,
   convertGraphQLVec2ToDomain,
