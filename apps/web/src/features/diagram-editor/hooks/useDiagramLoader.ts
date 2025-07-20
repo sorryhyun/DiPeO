@@ -3,11 +3,10 @@ import { GetDiagramDocument } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
 import { diagramId } from '@/core/types';
-import { diagramToStoreMaps } from '@/lib/graphql/types';
+import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/lib/graphql/types';
 import { rebuildHandleIndex } from '@/core/store/helpers/handleIndexHelper';
 import { createEntityQuery } from '@/lib/graphql/hooks';
 import { DiagramFormat } from '@dipeo/domain-models';
-import { ConversionService } from '@/core/services/ConversionService';
 
 /**
  * Refactored diagram loader using the GraphQL factory pattern
@@ -139,8 +138,8 @@ export function useDiagramLoader() {
             personCount: data.diagram.persons.length
           };
           
-          // Convert GraphQL types to domain types using generated mappings
-          const domainDiagram = ConversionService.convertGraphQLDiagram(diagramWithCounts);
+          // Convert GraphQL types to domain types
+          const domainDiagram = convertGraphQLDiagramToDomain(diagramWithCounts);
           
           // Convert arrays to Maps for the store
           const { nodes, handles, persons } = diagramToStoreMaps(domainDiagram);

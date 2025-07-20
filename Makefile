@@ -27,18 +27,6 @@ install:
 # Code generation
 codegen:
 	@echo "🔄 Generating code from domain models..."
-	@cd dipeo/models && pnpm generate:all:quiet
-	@echo "✅ Domain models generated"
-	@echo "📝 Exporting GraphQL schema..."
-	@$(MAKE) -s graphql-schema 2>/dev/null
-	@echo "✅ GraphQL schema exported"
-	@echo "🔄 Generating TypeScript types..."
-	@pnpm --filter web codegen --silent 2>/dev/null || true
-	@echo "✅ All code generation completed!"
-
-# Verbose code generation (original)
-codegen-verbose:
-	@echo "🔄 Generating code from domain models..."
 	cd dipeo/models && pnpm generate:all
 	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen

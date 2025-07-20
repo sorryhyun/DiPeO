@@ -14,7 +14,6 @@ import { readFile, writeFile, mkdir } from 'fs/promises';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import process from 'node:process';
-import { PATHS } from '../paths';
 
 interface CliOpts {
   src: string;
@@ -33,10 +32,14 @@ function parseArgs(): CliOpts {
     }
   }
   return {
-    src: opts.src ?? join(PATHS.srcDir, 'conversions.ts'),
+    src: opts.src ?? join(__dirname, '../src/conversions.ts'),
     out:
       opts.out ??
-      join(PATHS.modelsRoot, 'conversions.py'),
+      resolve(
+        __dirname,
+        '..',
+        'conversions.py'
+      ),
   };
 }
 

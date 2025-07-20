@@ -1,10 +1,9 @@
 import { StateCreator } from 'zustand';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
-import { NodeType, NodeExecutionStatus, NodeID, PersonID, Vec2 } from '@dipeo/domain-models';
+import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/domain-models';
 import { UnifiedStore } from '../unifiedStore.types';
 import type { SelectableID } from './uiSlice';
 import type { NodeState } from '@/features/execution-monitor/store/executionSlice';
-import { ConversionService } from '@/core/services/ConversionService';
 
 export interface ComputedSlice {
   // Array versions of Maps (maintained for React components)
@@ -156,11 +155,8 @@ export const createComputedSlice: StateCreator<
     // Find all nodes that this node depends on (incoming connections)
     state.arrows.forEach(arrow => {
       if (arrow.target.includes(nodeId)) {
-        const sourceNodeIdStr = arrow.source.split('_')[0];
-        if (sourceNodeIdStr) {
-          const sourceNodeId = ConversionService.toNodeId(sourceNodeIdStr);
-          dependencies.add(sourceNodeId);
-        }
+        const sourceNodeId = arrow.source.split('_')[0] as NodeID;
+        dependencies.add(sourceNodeId);
       }
     });
     
@@ -174,11 +170,8 @@ export const createComputedSlice: StateCreator<
     // Find all nodes that depend on this node (outgoing connections)
     state.arrows.forEach(arrow => {
       if (arrow.source.includes(nodeId)) {
-        const targetNodeIdStr = arrow.target.split('_')[0];
-        if (targetNodeIdStr) {
-          const targetNodeId = ConversionService.toNodeId(targetNodeIdStr);
-          dependents.add(targetNodeId);
-        }
+        const targetNodeId = arrow.target.split('_')[0] as NodeID;
+        dependents.add(targetNodeId);
       }
     });
     
@@ -196,19 +189,13 @@ export const createComputedSlice: StateCreator<
     const nodesWithIncoming = new Set<NodeID>();
     
     state.arrows.forEach(arrow => {
-      const sourceNodeIdStr = arrow.source.split('_')[0];
-      const targetNodeIdStr = arrow.target.split('_')[0];
-      if (sourceNodeIdStr) {
-        nodesWithOutgoing.add(ConversionService.toNodeId(sourceNodeIdStr));
-      }
-      if (targetNodeIdStr) {
-        nodesWithIncoming.add(ConversionService.toNodeId(targetNodeIdStr));
-      }
+      nodesWithOutgoing.add(arrow.source.split('_')[0] as NodeID);
+      nodesWithIncoming.add(arrow.target.split('_')[0] as NodeID);
     });
     
     // End nodes are nodes with incoming connections but no outgoing connections
     return Array.from(state.nodes.values()).filter(
-      node => nodesWithIncoming.has(node.id) && !nodesWithOutgoing.has(node.id)
+      node => nodesWithIncoming.has(node.id as NodeID) && !nodesWithOutgoing.has(node.id as NodeID)
     );
   },
   
@@ -216,7 +203,7 @@ export const createComputedSlice: StateCreator<
   getSelectedNode: () => {
     const state = get();
     if (state.selectedType === 'node' && state.selectedId) {
-      return state.nodes.get(ConversionService.toNodeId(state.selectedId));
+      return state.nodes.get(state.selectedId as NodeID);
     }
     return undefined;
   },
@@ -224,7 +211,7 @@ export const createComputedSlice: StateCreator<
   getSelectedArrow: () => {
     const state = get();
     if (state.selectedType === 'arrow' && state.selectedId) {
-      return state.arrows.get(ConversionService.toArrowId(state.selectedId));
+      return state.arrows.get(state.selectedId as ArrowID);
     }
     return undefined;
   },
@@ -232,7 +219,7 @@ export const createComputedSlice: StateCreator<
   getSelectedPerson: () => {
     const state = get();
     if (state.selectedType === 'person' && state.selectedId) {
-      return state.persons.get(ConversionService.toPersonId(state.selectedId));
+      return state.persons.get(state.selectedId as PersonID);
     }
     return undefined;
   },
@@ -248,7 +235,7 @@ export const createComputedSlice: StateCreator<
   getCompletedNodes: () => {
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
-      const nodeState = state.execution.nodeStates.get(node.id);
+      const nodeState = state.execution.nodeStates.get(node.id as NodeID);
       return nodeState?.status === NodeExecutionStatus.COMPLETED;
     });
   },
@@ -256,7 +243,7 @@ export const createComputedSlice: StateCreator<
   getFailedNodes: () => {
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
-      const nodeState = state.execution.nodeStates.get(node.id);
+      const nodeState = state.execution.nodeStates.get(node.id as NodeID);
       return nodeState?.status === NodeExecutionStatus.FAILED;
     });
   },

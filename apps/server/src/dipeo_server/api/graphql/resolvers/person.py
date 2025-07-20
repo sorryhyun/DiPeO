@@ -1,17 +1,32 @@
-"""GraphQL resolvers for API key operations."""
+"""GraphQL resolvers for person and API key operations."""
 
 import logging
 
-from dipeo.models import APIServiceType, ApiKey
+from dipeo.models import APIServiceType, ApiKey, Person
 
 from ..context import GraphQLContext
-from ..generated.types import ApiKeyID
+from ..generated_types import (
+    ApiKeyID,
+    PersonID,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class ApiKeyResolver:
-    """Handles API key queries."""
+class PersonResolver:
+    """Handles person and API key queries."""
+
+    async def get_person(self, person_id: PersonID, info) -> Person | None:
+        """Returns person by ID."""
+        logger.warning(
+            f"get_person called for {person_id} - persons are diagram-scoped"
+        )
+        return None
+
+    async def list_persons(self, limit: int, info) -> list[Person]:
+        """Returns person list."""
+        logger.warning("list_persons called - persons are diagram-scoped")
+        return []
 
     async def get_api_key(self, api_key_id: ApiKeyID, info) -> ApiKey | None:
         """Returns API key by ID."""
@@ -104,4 +119,4 @@ class ApiKeyResolver:
             raise ValueError(f"Unknown API service: {service}")
 
 
-api_key_resolver = ApiKeyResolver()
+person_resolver = PersonResolver()

@@ -1,26 +1,29 @@
 import strawberry
 
-# Generated mutations
-from ..generated.mutations.apikey_mutation import ApiKeyMutations
-
-# Custom mutations
-from ..custom.mutations.custom_mutations import CustomMutations
-from ..custom.mutations.execution_mutation import ExecutionMutations
+from .apikey_mutation import ApiKeyMutations
+from .arrow_mutation import ArrowMutations
+from .diagram_mutation import DiagramMutations
+from .execution_mutation import ExecutionMutations
+from .handle_mutation import HandleMutations
+from .node_mutation import NodeMutations
+from .person_mutation import PersonMutations
 from .upload_mutation import (
     DiagramConvertResult,
     DiagramValidationResult,
     UploadMutations,
 )
-from .mapped_mutations import MappedMutations
 
 __all__ = [
     "ApiKeyMutations",
-    "CustomMutations",
+    "ArrowMutations",
     "DiagramConvertResult",
+    "DiagramMutations",
     "DiagramValidationResult",
     "ExecutionMutations",
-    "MappedMutations",
+    "HandleMutations",
     "Mutation",
+    "NodeMutations",
+    "PersonMutations",
     "UploadMutations",
 ]
 
@@ -28,9 +31,12 @@ __all__ = [
 @strawberry.type
 class Mutation(
     ApiKeyMutations,
-    CustomMutations,
+    ArrowMutations,
+    DiagramMutations,
     ExecutionMutations,
-    MappedMutations,
+    HandleMutations,
+    NodeMutations,
+    PersonMutations,
     UploadMutations,
 ):
     """Combined GraphQL mutation type."""

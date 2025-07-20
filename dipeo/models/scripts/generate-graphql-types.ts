@@ -36,9 +36,6 @@ class GraphQLTypesGenerator {
     { domainType: 'TokenUsage', graphqlType: 'TokenUsageType', allFields: true },
     { domainType: 'NodeState', graphqlType: 'NodeStateType', allFields: true },
     { domainType: 'DiagramMetadata', graphqlType: 'DiagramMetadataType', allFields: true },
-    { domainType: 'MemoryConfig', graphqlType: 'MemoryConfigType', allFields: true },
-    { domainType: 'MemorySettings', graphqlType: 'MemorySettingsType', allFields: true },
-    { domainType: 'ToolConfig', graphqlType: 'ToolConfigType', allFields: true },
     
     // Types with specific fields and custom resolvers
     {
@@ -52,7 +49,7 @@ class GraphQLTypesGenerator {
     },
     {
       domainType: 'Node',
-      graphqlType: 'NodeGraphQLType',
+      graphqlType: 'NodeType',
       fields: ['type', 'position'],
       customFields: [
         { name: 'id', type: 'NodeID', resolver: 'NodeID(str(obj.id))' },
@@ -155,37 +152,6 @@ class GraphQLTypesGenerator {
       domainType: 'Conversation',
       graphqlType: 'ConversationType',
       fields: ['messages', 'metadata'],
-    },
-    // Node data types to expose enums
-    {
-      domainType: 'PersonJobNodeData',
-      graphqlType: 'PersonJobNodeDataType',
-      fields: ['label', 'person', 'first_only_prompt', 'default_prompt', 'max_iteration', 'memory_config', 'memory_settings'],
-      customFields: [
-        { name: 'tools', type: 'list[ToolConfigType] | None', resolver: 'obj.tools if obj and hasattr(obj, "tools") else None', optional: true },
-      ]
-    },
-    {
-      domainType: 'DBNodeData',
-      graphqlType: 'DBNodeDataType',
-      fields: ['label', 'file', 'collection', 'sub_type', 'operation', 'query', 'data'],
-    },
-  ];
-  
-  // Entity-specific types (separate because they don't have domain models)
-  private entityTypes = [
-    {
-      name: 'DiagramInfoType',
-      fields: [
-        { name: 'id', type: 'DiagramID' },
-        { name: 'name', type: 'str' },
-        { name: 'description', type: 'str | None' },
-        { name: 'version', type: 'str' },
-        { name: 'author', type: 'str | None' },
-        { name: 'tags', type: 'list[str] | None' },
-        { name: 'created', type: 'datetime' },
-        { name: 'modified', type: 'datetime' },
-      ]
     },
   ];
   
@@ -414,73 +380,6 @@ class GraphQLTypesGenerator {
         { name: 'active_only', type: 'bool', default: 'False' },
       ]
     },
-    // Entity-specific filter inputs
-    {
-      name: 'PersonFilterInput',
-      fields: [
-        { name: 'name_contains', type: 'str | None', default: 'None' },
-        { name: 'diagram_id', type: 'DiagramID | None', default: 'None' },
-        { name: 'label', type: 'str | None', default: 'None' },
-      ]
-    },
-    {
-      name: 'NodeFilterInput',
-      fields: [
-        { name: 'name_contains', type: 'str | None', default: 'None' },
-        { name: 'diagram_id', type: 'DiagramID | None', default: 'None' },
-        { name: 'type', type: 'str | None', default: 'None' },
-      ]
-    },
-    {
-      name: 'HandleFilterInput',
-      fields: [
-        { name: 'name_contains', type: 'str | None', default: 'None' },
-        { name: 'diagram_id', type: 'DiagramID | None', default: 'None' },
-        { name: 'node_id', type: 'NodeID | None', default: 'None' },
-      ]
-    },
-    {
-      name: 'DiagramInfoFilterInput',
-      fields: [
-        { name: 'name_contains', type: 'str | None', default: 'None' },
-        { name: 'name', type: 'str | None', default: 'None' },
-        { name: 'author', type: 'str | None', default: 'None' },
-      ]
-    },
-    {
-      name: 'ArrowFilterInput',
-      fields: [
-        { name: 'name_contains', type: 'str | None', default: 'None' },
-        { name: 'diagram_id', type: 'DiagramID | None', default: 'None' },
-      ]
-    },
-    {
-      name: 'ApiKeyFilterInput',
-      fields: [
-        { name: 'name_contains', type: 'str | None', default: 'None' },
-        { name: 'service', type: 'str | None', default: 'None' },
-      ]
-    },
-    // Entity-specific inputs
-    {
-      name: 'CreateDiagramInfoInput',
-      fields: [
-        { name: 'name', type: 'str' },
-        { name: 'description', type: 'str | None', default: 'None' },
-        { name: 'author', type: 'str | None', default: 'None' },
-        { name: 'tags', type: 'list[str] | None', default: 'None' },
-      ]
-    },
-    {
-      name: 'UpdateDiagramInfoInput',
-      fields: [
-        { name: 'id', type: 'DiagramInfoID' },
-        { name: 'name', type: 'str | None', default: 'None' },
-        { name: 'description', type: 'str | None', default: 'None' },
-        { name: 'author', type: 'str | None', default: 'None' },
-        { name: 'tags', type: 'list[str] | None', default: 'None' },
-      ]
-    },
   ];
   
   // Result types configuration
@@ -505,7 +404,7 @@ class GraphQLTypesGenerator {
       name: 'NodeResult',
       base: 'MutationResult',
       fields: [
-        { name: 'node', type: 'NodeGraphQLType | None', default: 'None' },
+        { name: 'node', type: 'NodeType | None', default: 'None' },
       ]
     },
     {
@@ -595,14 +494,6 @@ class GraphQLTypesGenerator {
         { name: 'supports_export', type: 'bool' },
       ]
     },
-    // Entity-specific results
-    {
-      name: 'DiagramInfoResult',
-      base: 'MutationResult',
-      fields: [
-        { name: 'diagraminfo', type: 'DiagramInfoType | None', default: 'None' },
-      ]
-    },
   ];
   
   // Scalar types
@@ -616,7 +507,6 @@ class GraphQLTypesGenerator {
     { name: 'ArrowID', description: 'Unique identifier for an arrow' },
     { name: 'ConversationID', description: 'Unique identifier for a conversation' },
     { name: 'MessageID', description: 'Unique identifier for a message' },
-    { name: 'DiagramInfoID', description: 'Unique identifier for a diagraminfo' },
   ];
   
   async generate() {
@@ -656,9 +546,6 @@ class GraphQLTypesGenerator {
     // Input types
     this.generateInputTypes(lines);
     
-    // Entity types (that don't have domain models)
-    this.generateEntityTypes(lines);
-    
     // Result types
     this.generateResultTypes(lines);
     
@@ -691,7 +578,7 @@ class GraphQLTypesGenerator {
     // Import domain models - get all enums and types from schema
     const imports: string[] = [];
     for (const [name, def] of Object.entries(this.schema)) {
-      if (def && (def.type === 'enum' || name.startsWith('Domain') || ['Vec2', 'TokenUsage', 'NodeState', 'Execution', 'DiagramMetadata', 'PersonLLMConfig', 'Handle', 'Node', 'Arrow', 'Person', 'ApiKey', 'Diagram', 'Message', 'Conversation', 'ConversationMetadata', 'MemoryConfig', 'MemorySettings', 'PersonJobNodeData', 'DBNodeData', 'ToolConfig'].includes(name))) {
+      if (def && (def.type === 'enum' || name.startsWith('Domain') || ['Vec2', 'TokenUsage', 'NodeState', 'Execution', 'DiagramMetadata', 'PersonLLMConfig', 'Handle', 'Node', 'Arrow', 'Person', 'ApiKey', 'Diagram', 'Message', 'Conversation', 'ConversationMetadata'].includes(name))) {
         imports.push(name);
       }
     }
@@ -839,24 +726,6 @@ class GraphQLTypesGenerator {
     }
   }
   
-  private generateEntityTypes(lines: string[]) {
-    if (this.entityTypes.length === 0) return;
-    
-    lines.push('# ENTITY TYPES');
-    lines.push('');
-    
-    for (const entityType of this.entityTypes) {
-      lines.push('@strawberry.type');
-      lines.push(`class ${entityType.name}:`);
-      
-      for (const field of entityType.fields) {
-        lines.push(`    ${field.name}: ${field.type}`);
-      }
-      
-      lines.push('');
-    }
-  }
-  
   private generateExports(lines: string[]) {
     lines.push('# Export all types');
     lines.push('__all__ = [');
@@ -882,9 +751,6 @@ class GraphQLTypesGenerator {
     
     // Result types
     this.resultTypes.forEach(t => exports.push(t.name));
-    
-    // Entity types
-    this.entityTypes.forEach(t => exports.push(t.name));
     
     // Sort and output
     exports.sort().forEach(exp => lines.push(`    "${exp}",`));

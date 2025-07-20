@@ -43,13 +43,13 @@ sys.path.insert(0, SERVER_DIR)
 # Only include essential data files
 datas = []
 
-# Add generated-schema.graphql
-schema_file = os.path.join(SERVER_DIR, 'src', 'dipeo_server', 'api', 'graphql', 'generated-schema.graphql')
+# Add schema.graphql
+schema_file = os.path.join(SERVER_DIR, 'schema.graphql')
 if os.path.exists(schema_file):
     datas.append((schema_file, '.'))
     print(f"Adding schema file: {schema_file}")
 else:
-    print(f"WARNING: generated-schema.graphql not found at {schema_file}")
+    print(f"WARNING: schema.graphql not found at {schema_file}")
 
 # Add config.py if exists
 config_file = os.path.join(SERVER_DIR, 'config.py')

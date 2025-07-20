@@ -22,11 +22,11 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram } from '@/core/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagram, arrowId, nodeId } from '@/core/types';
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
-import { HandleDirection, HandleLabel } from '@dipeo/domain-models';
+import { HandleDirection, HandleLabel, createHandleId, parseHandleId } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 import { ConversionService } from '@/core/services/ConversionService';

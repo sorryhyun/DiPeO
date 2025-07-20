@@ -5,7 +5,6 @@ import { readdir, writeFile, mkdir, readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import process from 'node:process';
-import { PATHS } from '../paths.js';
 
 //--- Types
 interface FieldConfigOutput {
@@ -110,7 +109,7 @@ class FieldConfigGenerator {
   }
 
   private async generateNodeFieldConfig(nodeType: string, interfaceName: string): Promise<NodeFieldConfigs | null> {
-    const diagramPath = join(PATHS.srcDir, 'diagram.ts');
+    const diagramPath = join(dirname(fileURLToPath(import.meta.url)), '../src/diagram.ts');
     const sourceFile = this.project.getSourceFile(diagramPath) || this.project.addSourceFileAtPath(diagramPath);
     
     const interfaceDecl = sourceFile.getInterface(interfaceName);
@@ -328,8 +327,13 @@ export function getGeneratedFields(nodeType: string): UnifiedFieldDefinition[] {
 
 //--- Entry Point
 export async function generateFieldConfigs() {
-  const generator = new FieldConfigGenerator(PATHS.tsConfig);
-  await generator.generate(PATHS.srcDir, PATHS.generatedDir);
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const tsConfig = join(__dirname, '../tsconfig.json');
+  const srcDir = join(__dirname, '../src');
+  const outputDir = join(__dirname, '../__generated__');
+
+  const generator = new FieldConfigGenerator(tsConfig);
+  await generator.generate(srcDir, outputDir);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

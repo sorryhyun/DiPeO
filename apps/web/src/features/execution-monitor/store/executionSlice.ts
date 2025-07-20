@@ -1,5 +1,5 @@
 import {StateCreator} from 'zustand';
-import {NodeID, executionId, diagramId} from '@/core/types';
+import {NodeID} from '@/core/types';
 import {UnifiedStore} from '@/core/store/unifiedStore.types';
 import {
   type DiagramID,
@@ -52,7 +52,7 @@ export function toDomainNodeState(nodeState: NodeState): DomainNodeState {
  */
 export function toCanonicalExecutionState(
   storeState: ExecutionState,
-  diagramIdParam?: string | null,
+  diagramId?: string | null,
 ): CanonicalExecutionState {
   let status: ExecutionStatus;
   if (storeState.isPaused) {
@@ -86,9 +86,9 @@ export function toCanonicalExecutionState(
   });
   
   return {
-    id: storeState.id ? executionId(storeState.id) : executionId(''),
+    id: (storeState.id || '') as ExecutionID,
     status,
-    diagram_id: diagramIdParam ? diagramId(diagramIdParam) : null,
+    diagram_id: diagramId as DiagramID | null,
     started_at: new Date().toISOString(), // Store doesn't track this, using current time
     node_states: nodeStatesDict,
     node_outputs: nodeOutputsDict,

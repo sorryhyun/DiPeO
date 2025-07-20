@@ -27,8 +27,8 @@ export {
   // Conversion functions
   diagramToStoreMaps,
   storeMapsToArrays,
-  // convertGraphQLDiagramToDomain, // Moved to generated mappings
-  // convertGraphQLPersonToDomain, // Moved to generated mappings
+  convertGraphQLDiagramToDomain,
+  convertGraphQLPersonToDomain,
   nodeKindToDomainType as nodeKindToGraphQLType,
   domainTypeToNodeKind as graphQLTypeToNodeKind,
   // Type guards
@@ -41,17 +41,6 @@ export {
   parseHandleId,
   areHandlesCompatible
 } from '@/core/types/domain';
-
-// Import and re-export conversion functions from generated mappings
-import { 
-  convertGraphQLDiagramToDomain,
-  convertGraphQLPersonToDomain 
-} from '@/__generated__/domain/mappings';
-
-export {
-  convertGraphQLDiagramToDomain,
-  convertGraphQLPersonToDomain
-};
 
 // Arrow data interface
 export interface ArrowData {

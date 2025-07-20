@@ -32,9 +32,6 @@ generates:
         DiagramFormat: "@dipeo/domain-models#DiagramFormat"
         ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
         ContentType: "@dipeo/domain-models#ContentType"
-        ForgettingMode: "@dipeo/domain-models#ForgettingMode"
-        MemoryView: "@dipeo/domain-models#MemoryView"
-        DBBlockSubType: "@dipeo/domain-models#DBBlockSubType"
       # Skip generating TypeScript types for enums
       skipTypename: false
       # Use proper imports

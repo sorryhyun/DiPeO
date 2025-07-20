@@ -10,10 +10,12 @@ from dipeo.models import DiagramMetadata, Diagram
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
-from ..generated.types import (
+from ..generated_types import (
     DiagramFilterInput,
     DiagramID,
-    DiagramType
+)
+from ..domain_types import (
+    DomainDiagramType,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ class DiagramResolver:
 
     async def get_diagram(
         self, diagram_id: DiagramID, info
-    ) -> DiagramType | None:
+    ) -> DomainDiagramType | None:
         """Returns diagram by ID."""
         try:
             logger.info(f"Attempting to get diagram with ID: {diagram_id}")
@@ -96,7 +98,7 @@ class DiagramResolver:
 
     async def list_diagrams(
         self, filter: DiagramFilterInput | None, limit: int, offset: int, info
-    ) -> list[DiagramType]:
+    ) -> list[DomainDiagramType]:
         """Returns filtered diagram list."""
         try:
             # Use integrated diagram service
