@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from dipeo.models import Arrow, Node, HandleDirection, HandleLabel, NodeID
+from dipeo.models import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
 from dipeo.models.handle_utils import parse_handle_id_safe
 
 
@@ -22,8 +22,8 @@ class HandleResolver:
     
     def resolve_arrows(
         self, 
-        arrows: list[Arrow], 
-        nodes: list[Node]
+        arrows: list[DomainArrow], 
+        nodes: list[DomainNode]
     ) -> tuple[list[ResolvedConnection], list[str]]:
         self._errors = []
         
@@ -41,7 +41,7 @@ class HandleResolver:
     
     def _resolve_arrow(
         self, 
-        arrow: Arrow, 
+        arrow: DomainArrow, 
         valid_nodes: set[NodeID]
     ) -> ResolvedConnection | None:
         # Parse source handle
@@ -122,7 +122,7 @@ class HandleResolver:
     
     def find_disconnected_nodes(
         self,
-        nodes: list[Node],
+        nodes: list[DomainNode],
         resolved: list[ResolvedConnection]
     ) -> set[NodeID]:
         connected_nodes = set()

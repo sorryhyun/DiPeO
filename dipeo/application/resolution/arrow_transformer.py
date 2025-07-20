@@ -5,7 +5,7 @@ from typing import Any
 
 from dipeo.application.resolution.handle_resolver import ResolvedConnection
 from dipeo.core.static import ExecutableEdge
-from dipeo.models import ContentType, Arrow, Node, NodeID, NodeType
+from dipeo.models import ContentType, DomainArrow, DomainNode, NodeID, NodeType
 
 
 @dataclass
@@ -30,9 +30,9 @@ class ArrowTransformer:
     
     def transform_arrows(
         self,
-        arrows: list[Arrow],
+        arrows: list[DomainArrow],
         resolved_connections: list[ResolvedConnection],
-        nodes: dict[NodeID, Node]
+        nodes: dict[NodeID, DomainNode]
     ) -> tuple[list[ExecutableEdge], list[str]]:
         self._errors = []
         
@@ -56,8 +56,8 @@ class ArrowTransformer:
     def _transform_connection(
         self,
         connection: ResolvedConnection,
-        arrow: Arrow,
-        nodes: dict[NodeID, Node]
+        arrow: DomainArrow,
+        nodes: dict[NodeID, DomainNode]
     ) -> ExecutableEdge | None:
         # Get source and target nodes
         source_node = nodes.get(connection.source_node_id)
@@ -101,9 +101,9 @@ class ArrowTransformer:
     
     def _create_transformation_metadata(
         self,
-        source_node: Node,
-        target_node: Node,
-        arrow: Arrow,
+        source_node: DomainNode,
+        target_node: DomainNode,
+        arrow: DomainArrow,
         connection: ResolvedConnection
     ) -> TransformationMetadata:
         # Default content type based on source node
@@ -119,8 +119,8 @@ class ArrowTransformer:
     
     def _determine_content_type(
         self, 
-        source_node: Node,
-        arrow: Arrow
+        source_node: DomainNode,
+        arrow: DomainArrow
     ) -> ContentType:
         # Check for explicit content type in arrow field
         if arrow.content_type:
@@ -151,9 +151,9 @@ class ArrowTransformer:
     
     def _extract_transformation_rules(
         self,
-        arrow: Arrow,
-        source_node: Node,
-        target_node: Node
+        arrow: DomainArrow,
+        source_node: DomainNode,
+        target_node: DomainNode
     ) -> dict[str, Any]:
         rules = {}
         

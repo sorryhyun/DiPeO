@@ -9,7 +9,7 @@ from typing import Any
 
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.infra.persistence.diagram import DiagramFileRepository, DiagramLoaderAdapter
-from dipeo.models import DiagramFormat, Diagram
+from dipeo.models import DiagramFormat, DomainDiagram
 from dipeo.domain.diagram.services import DiagramFormatService
 from dipeo.infra.diagram.unified_converter import converter_registry
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
@@ -37,7 +37,7 @@ class IntegratedDiagramService(DiagramPort):
         self,
         content: str,
         format: DiagramFormat | None = None,
-    ) -> Diagram:
+    ) -> DomainDiagram:
         """Delegate diagram loading to loader adapter."""
         return self.loader_adapter.load_diagram(content, format)
     
@@ -45,7 +45,7 @@ class IntegratedDiagramService(DiagramPort):
         self,
         file_path: str,
         format: DiagramFormat | None = None,
-    ) -> Diagram:
+    ) -> DomainDiagram:
         """Delegate file loading to loader adapter."""
         return await self.loader_adapter.load_from_file(file_path, format)
     

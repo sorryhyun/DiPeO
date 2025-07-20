@@ -10,7 +10,7 @@ from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
 from dipeo.core.static.generated_nodes import ExecutableNode, PersonJobNode
 from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
-from dipeo.models import Diagram, NodeID, NodeType
+from dipeo.models import DomainDiagram, NodeID, NodeType
 
 
 class ExecutableNodeImpl:
@@ -56,7 +56,7 @@ class StaticDiagramCompiler(DiagramCompiler):
         self.transform_rules = DataTransformRules()
         self.validation_errors: list[str] = []
     
-    def compile(self, domain_diagram: Diagram) -> ExecutableDiagram:
+    def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
         """Compile domain diagram with static type safety."""
         self.validation_errors.clear()
         
@@ -158,7 +158,7 @@ class StaticDiagramCompiler(DiagramCompiler):
         return typed_edges
     
     
-    def decompile(self, executable_diagram: ExecutableDiagram) -> Diagram:
+    def decompile(self, executable_diagram: ExecutableDiagram) -> DomainDiagram:
         """Convert executable diagram back to domain representation."""
         # Convert typed nodes back to domain nodes
         domain_nodes = []
@@ -197,7 +197,7 @@ class StaticDiagramCompiler(DiagramCompiler):
                 })
         
         # Return domain diagram
-        return Diagram(
+        return DomainDiagram(
             nodes=domain_nodes,
             arrows=arrows,
             handles=handles,

@@ -15,7 +15,7 @@ from dipeo.core.dynamic.execution_context import ExecutionContext
 from dipeo.core.execution.execution_tracker import ExecutionTracker
 from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.models import (
-    Execution,
+    ExecutionState,
     NodeExecutionStatus,
     NodeID,
     NodeState,
@@ -23,7 +23,7 @@ from dipeo.models import (
 
 from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker
 from dipeo.application.execution.states.state_transition_manager import StateTransitionManager
-from dipeo.application.execution.states.execution_state_persistence import ExecutionPersistence
+from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
@@ -38,7 +38,7 @@ class ExecutionRuntime(ExecutionContext):
     def __init__(
         self,
         diagram: "ExecutableDiagram",
-        execution_state: Execution,
+        execution_state: ExecutionState,
         service_registry: "UnifiedServiceRegistry",
     ):
         self.diagram = diagram
@@ -63,7 +63,7 @@ class ExecutionRuntime(ExecutionContext):
         )
         
         # Load state
-        ExecutionPersistence.load_from_state(
+        ExecutionStatePersistence.load_from_state(
             execution_state, 
             self._node_states, 
             self._tracker, 
@@ -227,9 +227,9 @@ class ExecutionRuntime(ExecutionContext):
     
     # ========== Persistence ==========
     
-    def to_execution_state(self) -> Execution:
-        """Convert runtime state to Execution for persistence."""
-        return ExecutionPersistence.save_to_state(
+    def to_execution_state(self) -> ExecutionState:
+        """Convert runtime state to ExecutionState for persistence."""
+        return ExecutionStatePersistence.save_to_state(
             self._execution_id,
             self._diagram_id,
             self.diagram,

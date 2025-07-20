@@ -49,18 +49,18 @@ try:
     )
     from .domain.models import (
         Arrow,
-        Diagram,
-        Person,
+        DomainDiagram,
+        DomainPerson,
         Edge,
         NodeArrow,
         NodeType,
     )
     # Create aliases for cleaner API
-    Person = Person
-    Diagram = Diagram
+    Person = DomainPerson
+    Diagram = DomainDiagram
     
     _imported_modules.extend([
-        "Person", "Person", "Diagram", "Diagram", 
+        "DomainPerson", "Person", "DomainDiagram", "Diagram", 
         "NodeType", "Arrow", "Edge", "NodeArrow", 
         "HandleReference", "create_handle_id", "parse_handle_id"
     ])

@@ -3,26 +3,26 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from dipeo.models import Execution, TokenUsage
+from dipeo.models import ExecutionState, TokenUsage
 
 
 class ExecutionCache:
     # In-memory cache for active executions
 
     def __init__(self, ttl_minutes: int = 60):
-        self._cache: dict[str, Execution] = {}
+        self._cache: dict[str, ExecutionState] = {}
         self._last_access: dict[str, datetime] = {}
         self._ttl = timedelta(minutes=ttl_minutes)
         self._lock = asyncio.Lock()
 
-    async def get(self, execution_id: str) -> Execution | None:
+    async def get(self, execution_id: str) -> ExecutionState | None:
         async with self._lock:
             if execution_id in self._cache:
                 self._last_access[execution_id] = datetime.now()
                 return self._cache[execution_id]
         return None
 
-    async def set(self, execution_id: str, state: Execution):
+    async def set(self, execution_id: str, state: ExecutionState):
         async with self._lock:
             self._cache[execution_id] = state
             self._last_access[execution_id] = datetime.now()
@@ -51,6 +51,6 @@ class ExecutionCache:
         async with self._lock:
             return execution_id in self._cache
 
-    async def get_all_active(self) -> dict[str, Execution]:
+    async def get_all_active(self) -> dict[str, ExecutionState]:
         async with self._lock:
             return dict(self._cache)

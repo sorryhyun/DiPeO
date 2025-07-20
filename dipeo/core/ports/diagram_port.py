@@ -10,7 +10,7 @@ from typing import (
     runtime_checkable,
 )
 
-from dipeo.models import DiagramFormat, Diagram
+from dipeo.models import DiagramFormat, DomainDiagram
 
 
 @runtime_checkable
@@ -29,7 +29,7 @@ class DiagramPort(Protocol):
             self,
             content: str,
             format: DiagramFormat | None = None,
-    ) -> Diagram: 
+    ) -> DomainDiagram: 
         """Load a diagram from string content."""
         ...
 
@@ -37,7 +37,7 @@ class DiagramPort(Protocol):
             self,
             file_path: str,
             format: DiagramFormat | None = None,
-    ) -> Diagram: 
+    ) -> DomainDiagram: 
         """Load a diagram from a file."""
         ...
         

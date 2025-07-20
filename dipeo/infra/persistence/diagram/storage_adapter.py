@@ -3,7 +3,7 @@ from typing import Any
 
 from dipeo.core import BaseService
 from dipeo.domain.diagram.services import DiagramBusinessLogic
-from dipeo.models import DiagramID, Diagram
+from dipeo.models import DiagramID, DomainDiagram
 
 from .file_repository import DiagramFileRepository
 
@@ -29,7 +29,7 @@ class DiagramStorageAdapter(BaseService):
     async def initialize(self) -> None:
         await self.repository.initialize()
 
-    async def load_diagram(self, diagram_id: DiagramID) -> Diagram:
+    async def load_diagram(self, diagram_id: DiagramID) -> DomainDiagram:
         """Load a diagram by ID, converting from storage format to domain model."""
         if diagram_id == "quicksave":
             path = "quicksave.json"
@@ -40,12 +40,12 @@ class DiagramStorageAdapter(BaseService):
             path = found_path
 
         data = await self.repository.read_file(path)
-        # Convert dict to Diagram
-        return Diagram(**data)
+        # Convert dict to DomainDiagram
+        return DomainDiagram(**data)
 
-    async def save_diagram(self, diagram_id: str, diagram: Diagram) -> str:
+    async def save_diagram(self, diagram_id: str, diagram: DomainDiagram) -> str:
         """Save a diagram, converting from domain model to storage format."""
-        # Convert Diagram to dict for storage
+        # Convert DomainDiagram to dict for storage
         diagram_data = diagram.model_dump(by_alias=True)
         
         # Determine file path and format

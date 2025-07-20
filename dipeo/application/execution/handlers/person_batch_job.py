@@ -19,8 +19,8 @@ from dipeo.core.utils import is_conversation
 from dipeo.models import (
     ChatResult,
     ContentType,
-    Diagram,
-    Person,
+    DomainDiagram,
+    DomainPerson,
     Message,
     NodeType,
     PersonID,
@@ -93,7 +93,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Get services from services dict
         conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE.name)
         llm_service = self.llm_service or services.get(LLM_SERVICE.name)
-        diagram: Diagram | None = services.get(DIAGRAM.name)
+        diagram: DomainDiagram | None = services.get(DIAGRAM.name)
         
         if not conversation_service or not llm_service:
             raise ValueError("Required services not available")
@@ -189,7 +189,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         node: PersonBatchJobNode,
         context: "ExecutionContext",
         inputs: dict[str, Any],
-        diagram: Diagram | None,
+        diagram: DomainDiagram | None,
         conversation_service: "ConversationManager",
         llm_service: Any,
         services: dict[str, Any],
@@ -342,8 +342,8 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         }
 
     def _find_person(
-        self, diagram: Diagram | None, person_id: str
-    ) -> Person | None:
+        self, diagram: DomainDiagram | None, person_id: str
+    ) -> DomainPerson | None:
         if not diagram:
             return None
         return next((p for p in diagram.persons if p.id == person_id), None)

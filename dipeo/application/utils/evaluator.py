@@ -4,7 +4,7 @@ import ast
 import operator
 from typing import Any
 
-from dipeo.models import Diagram, NodeType
+from dipeo.models import DomainDiagram, NodeType
 from dipeo.application.utils.template import TemplateProcessor
 
 

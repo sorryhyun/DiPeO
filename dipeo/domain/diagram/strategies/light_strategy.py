@@ -4,10 +4,10 @@ import logging
 from typing import Any
 
 from dipeo.models import (
-    Diagram,
-    Node,
-    Arrow,
-    Handle,
+    DomainDiagram,
+    DomainNode,
+    DomainArrow,
+    DomainHandle,
     HandleDirection,
     HandleLabel,
     NodeID,
@@ -275,7 +275,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                     pass
 
     # ---- export ----------------------------------------------------------- #
-    def build_export_data(self, diagram: Diagram) -> dict[str, Any]:
+    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
         id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
         

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from dipeo.core.ports.state_store import StateStorePort
     from dipeo.core.static.executable_diagram import ExecutableDiagram
     from dipeo.infra.persistence.diagram import DiagramStorageAdapter
-    from dipeo.models import Diagram
+    from dipeo.models import DomainDiagram
 
     from ...unified_service_registry import UnifiedServiceRegistry
     from ..execution_runtime import ExecutionRuntime
@@ -311,10 +311,10 @@ class ExecuteDiagramUseCase(BaseService):
         """Initialize execution state for typed diagram."""
         from datetime import datetime
 
-        from dipeo.models import Execution, ExecutionStatus, TokenUsage
+        from dipeo.models import ExecutionState, ExecutionStatus, TokenUsage
         
         # Create initial execution state
-        initial_state = Execution(
+        initial_state = ExecutionState(
             id=execution_id,
             status=ExecutionStatus.PENDING,
             diagram_id=typed_diagram.metadata.get('id') if typed_diagram.metadata else None,
@@ -362,7 +362,7 @@ class ExecuteDiagramUseCase(BaseService):
             # Save final state
             await self.state_store.save_state(state)
     
-    def _extract_api_keys_for_typed_diagram(self, diagram: "Diagram", api_key_service) -> dict[str, str]:
+    def _extract_api_keys_for_typed_diagram(self, diagram: "DomainDiagram", api_key_service) -> dict[str, str]:
         """Extract API keys needed by the diagram.
         
         Args:

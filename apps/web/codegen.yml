@@ -4,7 +4,6 @@ overwrite: true
 schema: "../server/src/dipeo_server/api/graphql/generated-schema.graphql"
 documents: 
   - "src/**/*.graphql"
-  - "src/__generated__/**/*.graphql"
   - "src/**/*.{ts,tsx}"
 generates:
   src/__generated__/graphql.tsx:

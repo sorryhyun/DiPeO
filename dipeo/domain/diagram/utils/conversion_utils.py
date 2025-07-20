@@ -5,20 +5,20 @@ from typing import Any
 
 import yaml
 
-from dipeo.models import Diagram
+from dipeo.models import DomainDiagram
 from dipeo.models.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
 
-Diagram.model_rebuild()
+DomainDiagram.model_rebuild()
 
 
-def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> Diagram:
-    """Convert dict-based diagram representation to Diagram.
+def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> DomainDiagram:
+    """Convert dict-based diagram representation to DomainDiagram.
     
     Args:
         diagram_dict: Dict with keys as IDs (e.g. {"nodes": {"node_0": {...}}})
         
     Returns:
-        Diagram with array-based structure
+        DomainDiagram with array-based structure
     """
     arrays_dict = diagram_maps_to_arrays(
         nodes=diagram_dict.get("nodes", {}),
@@ -44,14 +44,14 @@ def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> Diagram:
 
     result_dict = {k: v for k, v in result_dict.items() if v is not None}
 
-    return Diagram(**result_dict)
+    return DomainDiagram(**result_dict)
 
 
-def domain_diagram_to_dict(domain_diagram: Diagram) -> dict[str, Any]:
-    """Convert Diagram to dict-based representation.
+def domain_diagram_to_dict(domain_diagram: DomainDiagram) -> dict[str, Any]:
+    """Convert DomainDiagram to dict-based representation.
     
     Args:
-        domain_diagram: Diagram with array-based structure
+        domain_diagram: DomainDiagram with array-based structure
         
     Returns:
         Dict with keys as IDs for efficient lookups
