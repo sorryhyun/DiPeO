@@ -1,0 +1,14 @@
+import React from 'react';
+import { {{pascalCase nodeType}}NodeData } from '@/core/types';
+import { ConfigurableNode } from '../ConfigurableNode';
+
+export function {{pascalCase nodeType}}Node({ data }: { data: {{pascalCase nodeType}}NodeData }) {
+  return (
+    <ConfigurableNode
+      nodeType="{{nodeType}}"
+      data={data}
+      icon="{{icon}}"
+      color="{{color}}"
+    />
+  );
+}

@@ -1,0 +1,39 @@
+import { Position } from '@xyflow/react';
+import { UnifiedNodeConfig } from '../types';
+import { {{pascalCase nodeType}}NodeData } from '@/core/types';
+import { {{camelCase nodeType}}Fields } from './__generated__/fields';
+
+export const {{pascalCase nodeType}}NodeConfig: UnifiedNodeConfig<{{pascalCase nodeType}}NodeData> = {
+  nodeType: '{{nodeType}}',
+  label: '{{displayName}}',
+  icon: '{{icon}}',
+  color: '{{color}}',
+  category: '{{category}}',
+  {{#if description}}
+  description: '{{description}}',
+  {{/if}}
+  
+  handles: {
+    sources: [
+      {{#each handles.outputs}}
+      { id: '{{this}}', position: Position.Right },
+      {{/each}}
+    ],
+    targets: [
+      {{#each handles.inputs}}
+      { id: '{{this}}', position: Position.Left },
+      {{/each}}
+    ]
+  },
+  
+  defaults: {
+    label: '{{displayName}}',
+    {{#each fields}}
+    {{#if defaultValue}}
+    {{name}}: {{json defaultValue}},
+    {{/if}}
+    {{/each}}
+  },
+  
+  customFields: {{camelCase nodeType}}Fields
+};
