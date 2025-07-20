@@ -24,7 +24,9 @@ export enum NodeType {
   USER_RESPONSE = 'user_response',
   NOTION = 'notion',
   PERSON_BATCH_JOB = 'person_batch_job',
-  HOOK = 'hook'
+  HOOK = 'hook',
+  TEMPLATE_JOB = 'template_job',
+  JSON_SCHEMA_VALIDATOR = 'json_schema_validator'
 }
 
 export enum HandleDirection {
@@ -312,4 +314,30 @@ export interface HookNodeData extends BaseNodeData {
   retry_delay?: number;  // in seconds
 }
 
+
+export interface TemplateJobNodeData extends BaseNodeData {
+  template_path?: string;  // Path to template file
+  template_content?: string;  // Inline template content
+  output_path?: string;  // Where to write the rendered output
+  variables?: Record<string, any>;  // Variables to pass to the template
+  engine?: 'internal' | 'jinja2' | 'handlebars';  // Template engine (default: internal)
+}
+
+export interface ShellJobNodeData extends BaseNodeData {
+  command: string;  // Shell command to execute
+  args?: string[];  // Command arguments
+  cwd?: string;  // Working directory
+  env?: Record<string, string>;  // Environment variables
+  timeout?: number;  // Execution timeout in seconds
+  capture_output?: boolean;  // Whether to capture stdout/stderr
+  shell?: boolean;  // Whether to run through shell
+}
+
+export interface JsonSchemaValidatorNodeData extends BaseNodeData {
+  schema_path?: string;  // Path to JSON schema file
+  schema?: Record<string, any>;  // Inline schema definition
+  data_path?: string;  // Path to data file to validate
+  strict_mode?: boolean;  // Whether to use strict validation
+  error_on_extra?: boolean;  // Error on extra properties
+}
 
