@@ -100,7 +100,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   
   // Use context instead of individual hooks
   const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperations();
-  const { personsWithUsage } = useCanvasState();
+  const { personsWithUsage, persons: personsMap } = useCanvasState();
   
   // Get panel config from the new unified configuration
   let panelConfig = null;
@@ -282,7 +282,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         onChange={(v) => handleFieldUpdate(fieldConfig.name || '', v)}
         placeholder={'placeholder' in fieldConfig ? fieldConfig.placeholder : undefined}
         options={fieldConfig.type === 'select' ? options : undefined}
-        disabled={isReadOnly || (fieldConfig.disabled ? (typeof fieldConfig.disabled === 'function' ? fieldConfig.disabled(formData) : fieldConfig.disabled) : false) || isLoading}
+        disabled={isReadOnly || (fieldConfig.disabled ? (typeof fieldConfig.disabled === 'function' ? fieldConfig.disabled({ ...formData, _context: { personsMap } }) : fieldConfig.disabled) : false) || isLoading}
         required={false}
         min={fieldConfig.type === 'maxIteration' ? fieldConfig.min : undefined}
         max={fieldConfig.type === 'maxIteration' ? fieldConfig.max : undefined}

@@ -5,7 +5,7 @@ from typing import Any
 from dipeo.core.ports import FileServicePort
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
 from dipeo.infra.diagram.unified_converter import UnifiedDiagramConverter
-from dipeo.models import DiagramFormat, DomainDiagram
+from dipeo.models import DiagramFormat, Diagram
 
 
 class DiagramLoaderAdapter:
@@ -57,7 +57,7 @@ class DiagramLoaderAdapter:
         self,
         content: str,
         format: DiagramFormat | None = None,
-    ) -> DomainDiagram:
+    ) -> Diagram:
         # Load a diagram from content
         if format is None:
             format = self.detect_format(content)
@@ -69,7 +69,7 @@ class DiagramLoaderAdapter:
         self,
         file_path: str,
         format: DiagramFormat | None = None,
-    ) -> DomainDiagram:
+    ) -> Diagram:
         # Load a diagram from a file
         # Read file using file service
         result = self.file_service.read(file_path)
@@ -82,13 +82,13 @@ class DiagramLoaderAdapter:
     
     def prepare_diagram(
         self,
-        diagram_ref: str | dict[str, Any] | DomainDiagram,
-    ) -> DomainDiagram:
+        diagram_ref: str | dict[str, Any] | Diagram,
+    ) -> Diagram:
         # Prepare a diagram from various input types
         import yaml
         
-        # If it's already a DomainDiagram object, validate and return
-        if isinstance(diagram_ref, DomainDiagram):
+        # If it's already a Diagram object, validate and return
+        if isinstance(diagram_ref, Diagram):
             return diagram_ref
         
         # If it's a string, assume it's a file path
@@ -123,6 +123,6 @@ class DiagramLoaderAdapter:
                 return self.converter.deserialize(content, format_id="light")
             
             # Assume it's already in domain format, validate directly
-            return DomainDiagram.model_validate(diagram_ref)
+            return Diagram.model_validate(diagram_ref)
         
         raise ValueError(f"Unsupported diagram reference type: {type(diagram_ref)}")

@@ -8,6 +8,9 @@ query GetPerson($id: PersonID!) {
       model
       api_key_id
       system_prompt
+      voice
+      voice_id
+      audio_format
     }
     masked_api_key
     type
@@ -23,6 +26,9 @@ query GetPersons($limit: Int = 100) {
       model
       api_key_id
       system_prompt
+      voice
+      voice_id
+      audio_format
     }
     masked_api_key
     type

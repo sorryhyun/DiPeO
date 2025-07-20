@@ -46,8 +46,14 @@ EXECUTION_CONTEXT = ServiceKey["ExecutionContext"]("execution_context", "Current
 API_KEY_SERVICE = ServiceKey["APIKeyService"]("api_key_service", "API key management")
 CONVERSATION_MANAGER = ServiceKey["ConversationManager"]("conversation_manager", "Conversation state")
 CONVERSATION_SERVICE = ServiceKey["ConversationManager"]("conversation_service", "Conversation management service")
+PERSON_MANAGER = ServiceKey["PersonManager"]("person_manager", "Person instance management")
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder", "Prompt template builder")
 CONDITION_EVALUATION_SERVICE = ServiceKey["ConditionEvaluator"]("condition_evaluation_service", "Condition expression evaluator")
+TOOL_CONFIG_SERVICE = ServiceKey["ToolConfigurationService"]("tool_config_service", "Tool configuration conversion")
+OUTPUT_BUILDER = ServiceKey["OutputBuilder"]("output_builder", "Node output builder")
+
+# Template service
+TEMPLATE_SERVICE = ServiceKey["TemplateProcessor"]("template_service", "Template processing service")
 
 # Infrastructure service keys
 FILE_SERVICE = ServiceKey["FileServicePort"]("file_service", "File operations service")
@@ -88,6 +94,7 @@ class UnifiedServiceRegistry(DynamicRegistry):
             "file_service": "file_service",
             "conversation_service": "conversation_service",
             "conversation_manager": "conversation_manager",
+            "person_manager": "person_manager",
             "notion_service": "notion_service",
             
             # Infrastructure services

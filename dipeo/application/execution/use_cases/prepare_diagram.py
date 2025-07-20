@@ -13,7 +13,7 @@ from dipeo.domain.diagram.utils import (
     domain_diagram_to_dict,
 )
 from dipeo.domain.validators import DiagramValidator
-from dipeo.models import DiagramMetadata, DomainDiagram
+from dipeo.models import DiagramMetadata, Diagram
 
 from ...resolution import StaticDiagramCompiler
 
@@ -39,7 +39,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
 
     async def prepare_for_execution(
         self,
-        diagram: str | dict[str, Any] | DomainDiagram,
+        diagram: str | dict[str, Any] | Diagram,
         diagram_id: str | None = None,
         validate: bool = True,
     ) -> ExecutableDiagram:
@@ -49,7 +49,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
             diagram: Can be:
                 - str: diagram ID to load from storage
                 - Dict: raw diagram data (backend or domain format)
-                - DomainDiagram: already parsed domain model
+                - Diagram: already parsed domain model
             diagram_id: Optional ID to use (for in-memory diagrams)
             validate: Whether to validate the diagram
 
@@ -65,8 +65,8 @@ class PrepareDiagramForExecutionUseCase(BaseService):
             if self._is_backend_format(backend_data):
                 domain_diagram = dict_to_domain_diagram(backend_data)
             else:
-                domain_diagram = DomainDiagram.model_validate(backend_data)
-        elif isinstance(diagram, DomainDiagram):
+                domain_diagram = Diagram.model_validate(backend_data)
+        elif isinstance(diagram, Diagram):
             # Already have domain model
             domain_diagram = diagram
         elif isinstance(diagram, dict):
@@ -75,7 +75,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                 domain_diagram = dict_to_domain_diagram(diagram)
             else:
                 # Domain format dict
-                domain_diagram = DomainDiagram.model_validate(diagram)
+                domain_diagram = Diagram.model_validate(diagram)
         else:
             raise ValueError(f"Unsupported diagram type: {type(diagram)}")
 

@@ -1,6 +1,6 @@
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
-import { getGeneratedFields } from './generated-fields';
-import { createZodFieldValidator } from './generated-schemas';
+import { getGeneratedFields } from '@/__generated__/nodes/fields';
+import { createZodFieldValidator } from '@/__generated__/nodes/schemas';
 
 /**
  * Field override configuration for specific node types
@@ -51,10 +51,6 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
   person_job: {
     excludeFields: ['person', 'memory_config', 'memory_settings'], // person handled by labelPersonRow, memory fields excluded
     fieldOverrides: {
-      tools: {
-        placeholder: 'Optional tools configuration',
-        rows: 2
-      },
       first_only_prompt: {
         required: true,
         placeholder: 'Prompt to use only on first execution.',
@@ -76,6 +72,23 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
             return { isValid: false, error: 'Default prompt is recommended' };
           }
           return { isValid: true };
+        }
+      },
+      tools: {
+        type: 'textarea',
+        label: 'Tools Configuration',
+        placeholder: 'Enter tools as JSON array (e.g., [{"type": "web_search", "enabled": true}])',
+        description: 'JSON configuration for available tools',
+        column: 1,
+        rows: 3,
+        disabled: (formData: unknown) => {
+          // Disable tools field if selected person has voice mode enabled
+          const data = formData as Record<string, any>;
+          if (!data.person || !data._context?.personsMap) {
+            return false;
+          }
+          const person = data._context.personsMap.get(data.person);
+          return person?.llm_config?.voice && person?.llm_config?.voice !== 'none';
         }
       }
     },
@@ -176,6 +189,40 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         defaultValue: 5
       }
     }
+  },
+  
+  person_batch_job: {
+    fieldOverrides: {
+      person: {
+        placeholder: 'Select a person'
+      },
+      first_only_prompt: {
+        placeholder: 'Prompt for the first execution.\nUse {{variable_name}} for variables.',
+        rows: 6
+      },
+      default_prompt: {
+        placeholder: 'Prompt for subsequent executions.\nUse {{variable_name}} for variables.',
+        rows: 6
+      },
+      tools: {
+        type: 'textarea',
+        label: 'Tools Configuration',
+        placeholder: 'Enter tools as JSON array (e.g., [{"type": "web_search", "enabled": true}])',
+        description: 'JSON configuration for available tools',
+        column: 1,
+        rows: 3,
+        disabled: (formData: unknown) => {
+          // Disable tools field if selected person has voice mode enabled
+          const data = formData as Record<string, any>;
+          if (!data.person || !data._context?.personsMap) {
+            return false;
+          }
+          const person = data._context.personsMap.get(data.person);
+          return person?.llm_config?.voice && person?.llm_config?.voice !== 'none';
+        }
+      }
+    },
+    fieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_profile', 'default_prompt', 'first_only_prompt']
   }
 };
 

@@ -73,6 +73,33 @@ def _create_email_service():
     return None
 
 
+def _create_audio_tools_service(api_key_service):
+    """Create audio tools service with provider-specific adapters."""
+    from dipeo.infra.llm import OpenAIAudioAdapter
+    
+    # For now, we'll create a simple service that manages audio adapters
+    class AudioToolsService:
+        def __init__(self, api_key_service):
+            self.api_key_service = api_key_service
+            self._adapters = {}
+        
+        def get_adapter(self, provider: str, api_key_id: str):
+            """Get or create audio adapter for the specified provider."""
+            cache_key = f"{provider}:{api_key_id}"
+            
+            if cache_key not in self._adapters:
+                api_key = self.api_key_service.get_api_key(api_key_id)
+                
+                if provider == "openai":
+                    self._adapters[cache_key] = OpenAIAudioAdapter(api_key)
+                else:
+                    raise ValueError(f"Unsupported audio provider: {provider}")
+            
+            return self._adapters[cache_key]
+    
+    return AudioToolsService(api_key_service)
+
+
 class IntegrationServicesContainer(MutableBaseContainer):
     """Mutable services for external integrations.
     
@@ -115,6 +142,12 @@ class IntegrationServicesContainer(MutableBaseContainer):
         _create_integrated_diagram_service,
         file_repository=persistence.diagram_storage_service,
         loader_adapter=persistence.diagram_loader,
+    )
+    
+    # Audio tools service
+    audio_tools_service = providers.Singleton(
+        _create_audio_tools_service,
+        api_key_service=persistence.api_key_service,
     )
     
     # Future integrations

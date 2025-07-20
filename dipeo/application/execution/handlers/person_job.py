@@ -11,14 +11,16 @@ from dipeo.application.unified_service_registry import (
     LLM_SERVICE,
     DIAGRAM,
     CONVERSATION_MANAGER,
-    PROMPT_BUILDER
+    PERSON_MANAGER,
+    PROMPT_BUILDER,
+    TOOL_CONFIG_SERVICE,
+    OUTPUT_BUILDER
 )
+from dipeo.application.utils import ConversationProcessor
 from dipeo.core.dynamic import Person
 from dipeo.core.static.generated_nodes import PersonJobNode
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
 from dipeo.models import (
-    MemorySettings,
-    Message,
     NodeType,
     PersonID,
     PersonJobNodeData,
@@ -34,9 +36,9 @@ logger = logging.getLogger(__name__)
 @register_handler
 class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
-    def __init__(self):
-        # Person cache managed at handler level
-        self._person_cache: dict[str, Person] = {}
+    def __init__(self, tool_config_service=None, output_builder=None):
+        self._tool_config_service = tool_config_service
+        self._output_builder = output_builder
 
 
     @property
@@ -58,7 +60,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             "llm_service", 
             "diagram", 
             "conversation_manager",
+            "person_manager",
             "prompt_builder",
+            "tool_config_service",
+            "output_builder",
         ]
 
     @property
@@ -93,21 +98,37 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         llm_service = request.services.get(LLM_SERVICE.name)
         diagram = request.services.get(DIAGRAM.name)
         conversation_manager = request.services.get(CONVERSATION_MANAGER.name)
+        person_manager = request.services.get(PERSON_MANAGER.name)
         prompt_builder = request.services.get(PROMPT_BUILDER.name)
         
-        if not all([llm_service, diagram, conversation_manager, prompt_builder]):
-            raise ValueError("Required services not available")
-        
+        # Get or use injected services
+        tool_config_service = self._tool_config_service or request.services.get(TOOL_CONFIG_SERVICE.name)
+        output_builder = self._output_builder or request.services.get(OUTPUT_BUILDER.name)
 
         execution_count = context.get_node_execution_count(node.id)
 
         try:
-            # Get or create person
-            person = self._get_or_create_person(person_id, conversation_manager)
+            # Get or create person through PersonManager
+            try:
+                person = person_manager.get_person(PersonID(person_id))
+            except KeyError:
+                # Person doesn't exist - create through PersonManager
+                person_config = self._get_person_config(node, conversation_manager)
+                if not person_config:
+                    return ErrorOutput(
+                        value=f"No LLM configuration found for person '{person_id}'",
+                        node_id=node.id,
+                        error_type="ConfigurationError"
+                    )
+                person = person_manager.create_person(
+                    person_id=PersonID(person_id),
+                    name=person_id,
+                    llm_config=person_config
+                )
+                # Set conversation manager after creation
+                person._conversation_manager = conversation_manager
             
             # Apply memory settings if configured
-            # Note: We apply memory settings even on first execution because some nodes
-            # (like judge panels) need to see full conversation history from the start
             if node.memory_settings:
                 person.apply_memory_settings(node.memory_settings)
             
@@ -115,9 +136,9 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             transformed_inputs = inputs
             
             # Handle conversation inputs
-            has_conversation_input = self._has_conversation_input(transformed_inputs)
+            has_conversation_input = ConversationProcessor.has_conversation_input(transformed_inputs)
             if has_conversation_input:
-                self._rebuild_conversation(person, transformed_inputs)
+                ConversationProcessor.rebuild_conversation(person, transformed_inputs)
 
             # Build prompt BEFORE applying memory management
             template_values = prompt_builder.prepare_template_values(
@@ -156,12 +177,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             
             # Add tools only if they exist
             if node.tools:
-                complete_kwargs["tools"] = node.tools
+                # Convert tools to proper format using service
+                tool_configs = tool_config_service.convert_tools(node.tools)
+                
+                if tool_configs:
+                    complete_kwargs["tools"] = tool_configs
                 
             result = await person.complete(**complete_kwargs)
             
             # Build and return output
-            return self._build_node_output(
+            return output_builder.build_node_output(
                 result=result,
                 person=person,
                 node=node,
@@ -197,132 +222,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             error_type=type(error).__name__
         )
     
-    # _execute_with_props removed - logic integrated into execute method
-    
-    def _get_or_create_person(
-        self,
-        person_id: str,
-        conversation_manager: Any
-    ) -> Person:
-        # Check cache first
-        if person_id in self._person_cache:
-            return self._person_cache[person_id]
-        
-        # Get person config from conversation manager
-        person_config = None
-        person_name = person_id  # Default to person_id as name
-        
+    def _get_person_config(self, node: PersonJobNode, conversation_manager: Any) -> Optional["PersonLLMConfig"]:
+        """Get person configuration from conversation manager."""
         if hasattr(conversation_manager, 'get_person_config'):
-            person_config = conversation_manager.get_person_config(person_id)
-        
-        
-        if not person_config:
-            # Fallback: create minimal config with default LLM
-            from dipeo.models import ApiKeyID, LLMService, PersonLLMConfig
-            person_config = PersonLLMConfig(
-                service=LLMService.openai,
-                model="gpt-4.1-nano",
-                api_key_id=ApiKeyID("")  # Wrap empty string with ApiKeyID
-            )
-        
-        # Create Person object without conversation_manager to avoid circular reference
-        person = Person(
-            id=PersonID(person_id),
-            name=person_name,
-            llm_config=person_config,
-            conversation_manager=None  # Initially None to avoid recursion
-        )
-        
-        # Cache the person BEFORE setting conversation_manager
-        self._person_cache[person_id] = person
-        
-        # Now safely set the conversation_manager after caching
-        person._conversation_manager = conversation_manager
-        
-        return person
+            return conversation_manager.get_person_config(node.person_id)
+        return None
     
-    def _has_conversation_input(self, inputs: dict[str, Any]) -> bool:
-        # Check for conversation inputs in the same way the prompt builder does
-        for key, value in inputs.items():
-            # Check if key ends with _messages (like the prompt builder)
-            if key.endswith('_messages') and isinstance(value, list):
-                return True
-            # Also check the original structure for backwards compatibility
-            if isinstance(value, dict) and "messages" in value:
-                return True
-        return False
     
-    def _rebuild_conversation(self, person: Person, inputs: dict[str, Any]) -> None:
-        all_messages = []
-        for key, value in inputs.items():
-            if isinstance(value, dict) and "messages" in value:
-                messages = value["messages"]
-                if isinstance(messages, list):
-                    all_messages.extend(messages)
-        
-        if not all_messages:
-            logger.debug("_rebuild_conversation: No messages found in inputs")
-            return
-        
-        logger.debug(f"_rebuild_conversation: Processing {len(all_messages)} total messages")
-        
-        for i, msg in enumerate(all_messages):
-            # Handle both Message objects and dict formats
-            if isinstance(msg, Message):
-                # Already a Message object - check content and add directly
-                if "[Previous conversation" not in msg.content:
-                    person.add_message(msg)
-            elif isinstance(msg, dict):
-                # Dictionary format - convert to Message
-                content = msg.get("content", "")
-                # Skip messages that contain the "[Previous conversation" marker to avoid duplication
-                if "[Previous conversation" in content:
-                    continue
-                    
-                message = Message(
-                    from_person_id=msg.get("from_person_id", person.id),
-                    to_person_id=msg.get("to_person_id", person.id),
-                    content=content,
-                    message_type="person_to_person",
-                    timestamp=msg.get("timestamp"),
-                )
-                person.add_message(message)
-                logger.debug(f"  Added dict message {i}: from={message.from_person_id}, to={message.to_person_id}, content_length={len(content)}")
-    
-    def _needs_conversation_output(self, node_id: str, diagram: Any) -> bool:
-        # Check if any edge from this node expects conversation output
-        for edge in diagram.edges:
-            if str(edge.source_node_id) == node_id:
-                # Check for explicit conversation output
-                if edge.source_output == "conversation":
-                    return True
-                # Check data_transform for content_type = conversation_state
-                if hasattr(edge, 'data_transform') and edge.data_transform:
-                    if edge.data_transform.get('content_type') == 'conversation_state':
-                        return True
-        return False
-    
-    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
-        # Build metadata
-        metadata = {"model": model}
-        
-        # Check if conversation output is needed
-        if self._needs_conversation_output(str(node.id), diagram):
-            # Return ConversationOutput with messages
-            messages = []
-            for msg in person.get_messages():
-                messages.append(msg)
-            
-            return ConversationOutput(
-                value=messages,
-                node_id=node.id,
-                metadata=metadata
-            )
-        else:
-            # Return TextOutput with just the text
-            return TextOutput(
-                value=result.text,
-                node_id=node.id,
-                metadata=metadata
-            )
     

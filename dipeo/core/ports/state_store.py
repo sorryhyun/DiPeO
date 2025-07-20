@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from dipeo.models import (
         DiagramID,
         ExecutionID,
-        ExecutionState,
+        Execution,
         ExecutionStatus,
         NodeExecutionStatus,
         TokenUsage,
@@ -30,15 +30,15 @@ class StateStorePort(Protocol):
         execution_id: "ExecutionID",
         diagram_id: "DiagramID | None" = None,
         variables: dict[str, Any] | None = None,
-    ) -> "ExecutionState":
+    ) -> "Execution":
         """Create a new execution state."""
         ...
 
-    async def save_state(self, state: "ExecutionState") -> None:
+    async def save_state(self, state: "Execution") -> None:
         """Save or update the complete execution state."""
         ...
 
-    async def get_state(self, execution_id: str) -> "ExecutionState | None":
+    async def get_state(self, execution_id: str) -> "Execution | None":
         """Get execution state by ID."""
         ...
 
@@ -95,7 +95,7 @@ class StateStorePort(Protocol):
         status: "ExecutionStatus | None" = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list["ExecutionState"]:
+    ) -> list["Execution"]:
         """List executions with optional filtering."""
         ...
 
@@ -103,7 +103,7 @@ class StateStorePort(Protocol):
         """Clean up old execution states."""
         ...
 
-    async def get_state_from_cache(self, execution_id: str) -> "ExecutionState | None":
+    async def get_state_from_cache(self, execution_id: str) -> "Execution | None":
         """Get state from cache only (no DB lookup)."""
         ...
 
@@ -112,10 +112,10 @@ class StateStorePort(Protocol):
         execution_id: "ExecutionID",
         diagram_id: "DiagramID | None" = None,
         variables: dict[str, Any] | None = None,
-    ) -> "ExecutionState":
+    ) -> "Execution":
         """Create execution in cache only."""
         ...
 
-    async def persist_final_state(self, state: "ExecutionState") -> None:
+    async def persist_final_state(self, state: "Execution") -> None:
         """Persist final state from cache to database."""
         ...

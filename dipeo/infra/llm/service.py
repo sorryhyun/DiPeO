@@ -14,7 +14,7 @@ from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.core.ports import LLMServicePort
 from dipeo.core.ports.apikey_port import SupportsAPIKey
-from dipeo.domain.llm import LLMDomainService
+from .services.llm_domain_service import LLMDomainService
 from dipeo.infra.config.settings import get_settings
 from dipeo.models import ChatResult
 
