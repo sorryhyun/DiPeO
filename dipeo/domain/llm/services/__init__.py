@@ -1,4 +1,4 @@
-"""LLM infrastructure services."""
+"""LLM domain services."""
 
 from .llm_domain_service import LLMDomainService
 

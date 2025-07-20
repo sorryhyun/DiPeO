@@ -9,9 +9,6 @@ interface ExtendedPersonData extends Partial<DomainPerson> {
   'llm_config.model'?: string;
   'llm_config.system_prompt'?: string;
   'llm_config.service'?: string;
-  'llm_config.voice'?: string;
-  'llm_config.voice_id'?: string;
-  'llm_config.audio_format'?: string;
 }
 
 export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
@@ -102,58 +99,6 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
     min: 0,
     max: 2,
     column: 1
-  },
-  {
-    name: 'llm_config.voice' as keyof ExtendedPersonData & string,
-    type: 'select',
-    label: 'Voice Mode',
-    column: 1,
-    placeholder: 'Select Voice Mode',
-    options: [
-      { value: 'none', label: 'None' },
-      { value: 'text_to_speech', label: 'Text to Speech' },
-      { value: 'speech_to_text', label: 'Speech to Text' }
-    ]
-  },
-  {
-    name: 'llm_config.voice_id' as keyof ExtendedPersonData & string,
-    type: 'select',
-    label: 'Voice',
-    column: 1,
-    placeholder: 'Select Voice',
-    dependsOn: ['llm_config.voice'],
-    conditional: {
-      field: 'llm_config.voice' as keyof ExtendedPersonData & string,
-      values: ['text_to_speech']
-    },
-    options: [
-      { value: 'alloy', label: 'Alloy (Neutral)' },
-      { value: 'echo', label: 'Echo (Male)' },
-      { value: 'fable', label: 'Fable (Neutral)' },
-      { value: 'onyx', label: 'Onyx (Male)' },
-      { value: 'nova', label: 'Nova (Female)' },
-      { value: 'shimmer', label: 'Shimmer (Female)' }
-    ]
-  },
-  {
-    name: 'llm_config.audio_format' as keyof ExtendedPersonData & string,
-    type: 'select',
-    label: 'Audio Format',
-    column: 1,
-    placeholder: 'Select Format',
-    dependsOn: ['llm_config.voice'],
-    conditional: {
-      field: 'llm_config.voice' as keyof ExtendedPersonData & string,
-      values: ['text_to_speech']
-    },
-    options: [
-      { value: 'mp3', label: 'MP3' },
-      { value: 'opus', label: 'Opus' },
-      { value: 'aac', label: 'AAC' },
-      { value: 'flac', label: 'FLAC' },
-      { value: 'wav', label: 'WAV' },
-      { value: 'pcm', label: 'PCM' }
-    ]
   },
   {
     name: 'llm_config.system_prompt' as keyof ExtendedPersonData & string,

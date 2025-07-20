@@ -26,10 +26,7 @@ class DiPeOCLI:
             return diagram
 
         # If it has a file extension, check if it exists relative to current dir
-        if (
-            diagram.endswith((".native.json", ".light.yaml", ".readable.yaml"))
-            and Path(diagram).exists()
-        ):
+        if diagram.endswith((".native.json", ".light.yaml", ".readable.yaml")) and Path(diagram).exists():
             return diagram
 
         # Otherwise, construct path based on format within diagrams directory

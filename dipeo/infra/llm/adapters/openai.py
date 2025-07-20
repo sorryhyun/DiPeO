@@ -75,17 +75,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
                     api_tools.append({"type": "web_search_preview"})
                 elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
                     api_tools.append({"type": "image_generation"})
-                elif tool.type == "voice" or (hasattr(tool.type, 'value') and tool.type.value == "voice"):
-                    # Voice tool is not supported in the responses API, but we include it for future use
-                    logger.debug("Voice tool requested but not yet supported in responses API")
-                elif tool.type == "speech_to_text" or (hasattr(tool.type, 'value') and tool.type.value == "speech_to_text"):
-                    # Speech-to-text is handled separately through audio API
-                    logger.debug("Speech-to-text tool requested - use audio transcription API")
-                elif tool.type == "text_to_speech" or (hasattr(tool.type, 'value') and tool.type.value == "text_to_speech"):
-                    # Text-to-speech is handled separately through audio API
-                    logger.debug("Text-to-speech tool requested - use audio synthesis API")
-
-
+        
         # Only log tools in debug mode if needed
         # if api_tools:
         #     logger.debug(f"API tools: {api_tools}")
@@ -286,15 +276,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
                     api_tools.append({"type": "web_search_preview"})
                 elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
                     api_tools.append({"type": "image_generation"})
-                elif tool.type == "voice" or (hasattr(tool.type, 'value') and tool.type.value == "voice"):
-                    # Voice tool is not supported in the responses API, but we include it for future use
-                    logger.debug("Voice tool requested but not yet supported in responses API")
-                elif tool.type == "speech_to_text" or (hasattr(tool.type, 'value') and tool.type.value == "speech_to_text"):
-                    # Speech-to-text is handled separately through audio API
-                    logger.debug("Speech-to-text tool requested - use audio transcription API")
-                elif tool.type == "text_to_speech" or (hasattr(tool.type, 'value') and tool.type.value == "text_to_speech"):
-                    # Text-to-speech is handled separately through audio API
-                    logger.debug("Text-to-speech tool requested - use audio synthesis API")
         
         # Use base method to extract allowed parameters
         api_params = self._extract_api_params(kwargs, ["temperature"])

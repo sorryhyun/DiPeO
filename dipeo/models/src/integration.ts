@@ -51,9 +51,6 @@ export enum ToolType {
   WEB_SEARCH = 'web_search',
   WEB_SEARCH_PREVIEW = 'web_search_preview',
   IMAGE_GENERATION = 'image_generation',
-  VOICE = 'voice',
-  SPEECH_TO_TEXT = 'speech_to_text',
-  TEXT_TO_SPEECH = 'text_to_speech',
 }
 
 export interface ToolConfig {
@@ -77,28 +74,9 @@ export interface ImageGenerationResult {
   height?: number;
 }
 
-export interface SpeechToTextResult {
-  text: string;
-  language?: string;
-  confidence?: number;
-  segments?: Array<{
-    text: string;
-    start: number;
-    end: number;
-    confidence?: number;
-  }>;
-}
-
-export interface TextToSpeechResult {
-  audio_data: string; // Base64 encoded audio
-  format: string; // e.g., 'mp3', 'wav', 'opus'
-  duration?: number; // Duration in seconds
-  voice?: string; // Voice ID used
-}
-
 export interface ToolOutput {
   type: ToolType;
-  result: WebSearchResult[] | ImageGenerationResult | SpeechToTextResult | TextToSpeechResult | any;
+  result: WebSearchResult[] | ImageGenerationResult | any;
   raw_response?: any;
 }
 

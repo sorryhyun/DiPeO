@@ -162,11 +162,13 @@ class TypedExecutionEngine:
                 
                 if isinstance(node, PersonJobNode):
                     exec_count = execution_runtime.get_node_execution_count(node.id)
-
+                    log.debug(f"PersonJobNode {node.id}: exec_count={exec_count}, max_iteration={node.max_iteration}")
+                    
                     if exec_count >= node.max_iteration:
                         # Always set MAXITER_REACHED when we reach max iterations
                         execution_runtime.transition_node_to_maxiter(node.id, output)
-
+                        log.debug(f"PersonJobNode {node.id}: Transitioned to MAXITER_REACHED")
+                        
                         # Reset any downstream condition nodes so they can re-evaluate
                         outgoing_edges = execution_runtime.diagram.get_outgoing_edges(node.id)
                         for edge in outgoing_edges:
@@ -176,13 +178,16 @@ class TypedExecutionEngine:
                                 from dipeo.models import NodeExecutionStatus
                                 if node_state and node_state.status == NodeExecutionStatus.COMPLETED:
                                     execution_runtime.reset_node(target_node.id)
+                                    log.debug(f"Reset ConditionNode {target_node.id} after PersonJobNode {node.id} reached max iterations")
                     else:
                         # Not at max iteration yet, mark complete then reset to pending for next iteration
                         execution_runtime.transition_node_to_completed(node.id, output)
                         execution_runtime.reset_node(node.id)
                 elif isinstance(node, ConditionNode):
+                    # Mark condition node as completed
                     execution_runtime.transition_node_to_completed(node.id, output)
                 else:
+                    # For other nodes, just mark as completed
                     execution_runtime.transition_node_to_completed(node.id, output)
                 
                 # Notify observers of completion

@@ -81,7 +81,7 @@ def _create_path_validator():
 
 def _create_llm_domain_service():
     """Create LLM domain service."""
-    from dipeo.infra.llm import LLMDomainService
+    from dipeo.domain.llm import LLMDomainService
     return LLMDomainService()
 
 

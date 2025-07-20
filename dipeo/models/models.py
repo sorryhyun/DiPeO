@@ -92,6 +92,11 @@ class HookTriggerMode(str, Enum):
     manual = "manual"
     hook = "hook"
 
+class VoiceMode(str, Enum):
+    none = "none"
+    text_to_speech = "text_to_speech"
+    speech_to_text = "speech_to_text"
+
 class ExecutionStatus(str, Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
@@ -155,6 +160,9 @@ class ToolType(str, Enum):
     web_search = "web_search"
     web_search_preview = "web_search_preview"
     image_generation = "image_generation"
+    voice = "voice"
+    speech_to_text = "speech_to_text"
+    text_to_speech = "text_to_speech"
 
 # Branded scalar IDs
 NodeID = NewType('NodeID', str)
@@ -164,6 +172,23 @@ PersonID = NewType('PersonID', str)
 ApiKeyID = NewType('ApiKeyID', str)
 DiagramID = NewType('DiagramID', str)
 ExecutionID = NewType('ExecutionID', str)
+
+# Define FieldType as a Union of possible field types
+FieldType = Union[
+    Literal['string'],
+    Literal['number'],
+    Literal['boolean'],
+    Literal['Date'],
+    Literal['JSON'],
+    Literal['NodeID'],
+    Literal['DiagramID'],
+    Literal['PersonID'],
+    Literal['ExecutionID'],
+    Literal['HandleID'],
+    Literal['ArrowID'],
+    Literal['ApiKeyID'],
+    str  # For array types like 'string[]'
+]
 
 class Message(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -205,7 +230,7 @@ class Vec2(BaseModel):
     x: float
     y: float
 
-class DomainHandle(BaseModel):
+class Handle(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     id: HandleID
@@ -215,7 +240,7 @@ class DomainHandle(BaseModel):
     data_type: DataType
     position: Optional[str] = Field(default=None)
 
-class DomainNode(BaseModel):
+class Node(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     id: NodeID
@@ -223,7 +248,7 @@ class DomainNode(BaseModel):
     position: Vec2
     data: Dict[str, Any]
 
-class DomainArrow(BaseModel):
+class Arrow(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     id: ArrowID
@@ -254,8 +279,11 @@ class PersonLLMConfig(BaseModel):
     model: str
     api_key_id: ApiKeyID
     system_prompt: Optional[str] = Field(default=None)
+    voice: Optional[VoiceMode] = Field(default=None)
+    voice_id: Optional[str] = Field(default=None)
+    audio_format: Optional[str] = Field(default=None)
 
-class DomainPerson(BaseModel):
+class Person(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     id: PersonID
@@ -263,7 +291,7 @@ class DomainPerson(BaseModel):
     llm_config: PersonLLMConfig
     type: Literal["person"]
 
-class DomainApiKey(BaseModel):
+class ApiKey(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     id: ApiKeyID
@@ -283,13 +311,13 @@ class DiagramMetadata(BaseModel):
     author: Optional[str] = Field(default=None)
     tags: Optional[List[str]] = Field(default=None)
 
-class DomainDiagram(BaseModel):
+class Diagram(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
-    nodes: List[DomainNode]
-    handles: List[DomainHandle]
-    arrows: List[DomainArrow]
-    persons: List[DomainPerson]
+    nodes: List[Node]
+    handles: List[Handle]
+    arrows: List[Arrow]
+    persons: List[Person]
     metadata: Optional[DiagramMetadata] = Field(default=None)
 
 class BaseNodeData(BaseModel):
@@ -389,6 +417,120 @@ class HookNodeData(BaseNodeData):
     retry_count: Optional[float] = Field(default=None)
     retry_delay: Optional[float] = Field(default=None)
 
+class EntityDefinition(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    name: str
+    plural: str
+    fields: Dict[str, FieldDefinition]
+    relations: Optional[Dict[str, Any]] = Field(default=None)
+    operations: OperationsDefinition
+    features: Optional[FeaturesDefinition] = Field(default=None)
+    service: Optional[ServiceDefinition] = Field(default=None)
+
+class FieldDefinition(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    type: FieldType
+    required: Optional[bool] = Field(default=None)
+    nullable: Optional[bool] = Field(default=None)
+    generated: Optional[bool] = Field(default=None)
+    default: Optional[Any] = Field(default=None)
+    validation: Optional[ValidationRules] = Field(default=None)
+
+class RelationDefinition(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    type: str
+    relation: Literal["one-to-one", "one-to-many", "many-to-many"]
+    required: Optional[bool] = Field(default=None)
+    inverse: Optional[str] = Field(default=None)
+
+class OperationsDefinition(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    create: Optional[Union[bool, CreateOperationConfig]] = Field(default=None)
+    update: Optional[Union[bool, UpdateOperationConfig]] = Field(default=None)
+    delete: Optional[Union[bool, DeleteOperationConfig]] = Field(default=None)
+    list: Optional[Union[bool, ListOperationConfig]] = Field(default=None)
+    get: Optional[Union[bool, GetOperationConfig]] = Field(default=None)
+    custom: Optional[Dict[str, Any]] = Field(default=None)
+
+class CreateOperationConfig(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    input: List[str]
+    validation: Optional[Dict[str, Any]] = Field(default=None)
+    customLogic: Optional[str] = Field(default=None)
+    returnEntity: Optional[bool] = Field(default=None)
+
+class UpdateOperationConfig(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    input: List[str]
+    partial: Optional[bool] = Field(default=None)
+    validation: Optional[Dict[str, Any]] = Field(default=None)
+    customLogic: Optional[str] = Field(default=None)
+
+class DeleteOperationConfig(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    soft: Optional[bool] = Field(default=None)
+    customLogic: Optional[str] = Field(default=None)
+
+class ListOperationConfig(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    filters: Optional[List[str]] = Field(default=None)
+    sortable: Optional[List[str]] = Field(default=None)
+    pagination: Optional[bool] = Field(default=None)
+    defaultPageSize: Optional[float] = Field(default=None)
+    maxPageSize: Optional[float] = Field(default=None)
+
+class GetOperationConfig(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    include: Optional[List[str]] = Field(default=None)
+    throwIfNotFound: Optional[bool] = Field(default=None)
+
+class CustomOperationConfig(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    name: str
+    type: Literal["query", "mutation"]
+    input: Optional[List[str]] = Field(default=None)
+    returns: str
+    implementation: str
+
+class ValidationRules(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    minLength: Optional[float] = Field(default=None)
+    maxLength: Optional[float] = Field(default=None)
+    pattern: Optional[str] = Field(default=None)
+    min: Optional[float] = Field(default=None)
+    max: Optional[float] = Field(default=None)
+    custom: Optional[str] = Field(default=None)
+
+class FeaturesDefinition(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    timestamps: Optional[bool] = Field(default=None)
+    softDelete: Optional[bool] = Field(default=None)
+    audit: Optional[bool] = Field(default=None)
+    versioning: Optional[bool] = Field(default=None)
+    cache: Optional[bool] = Field(default=None)
+    cacheTTL: Optional[float] = Field(default=None)
+
+class ServiceDefinition(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    name: Optional[str] = Field(default=None)
+    async_: Optional[bool] = Field(default=None, alias="async")
+    dependencies: Optional[List[str]] = Field(default=None)
+    operations: Optional[Dict[str, Any]] = Field(default=None)
+    useCrudAdapter: Optional[bool] = Field(default=None)
+
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
@@ -407,7 +549,7 @@ class NodeState(BaseModel):
     token_usage: Optional[TokenUsage] = Field(default=None)
     output: Optional[Dict[str, Any]] = Field(default=None)
 
-class ExecutionState(BaseModel):
+class Execution(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     id: ExecutionID
@@ -483,10 +625,10 @@ class GraphQLDomainPersonType(BaseModel):
 class StoreDiagram(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
-    nodes: Dict[NodeID, DomainNode]
-    handles: Dict[HandleID, DomainHandle]
-    arrows: Dict[ArrowID, DomainArrow]
-    persons: Dict[PersonID, DomainPerson]
+    nodes: Dict[NodeID, Node]
+    handles: Dict[HandleID, Handle]
+    arrows: Dict[ArrowID, Arrow]
+    persons: Dict[PersonID, Person]
     metadata: Optional[DiagramMetadata] = Field(default=None)
 
 class ToolConfig(BaseModel):
@@ -511,6 +653,22 @@ class ImageGenerationResult(BaseModel):
     format: str
     width: Optional[float] = Field(default=None)
     height: Optional[float] = Field(default=None)
+
+class SpeechToTextResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    text: str
+    language: Optional[str] = Field(default=None)
+    confidence: Optional[float] = Field(default=None)
+    segments: Optional[Dict[str, Any]] = Field(default=None)
+
+class TextToSpeechResult(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    audio_data: str
+    format: str
+    duration: Optional[float] = Field(default=None)
+    voice: Optional[str] = Field(default=None)
 
 class ToolOutput(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -537,21 +695,7 @@ class LLMRequestOptions(BaseModel):
     tools: Optional[List[ToolConfig]] = Field(default=None)
     response_format: Optional[Any] = Field(default=None)
 
-NodeID = NodeID
-
-ArrowID = ArrowID
-
-HandleID = HandleID
-
-PersonID = PersonID
-
-ApiKeyID = ApiKeyID
-
-DiagramID = DiagramID
-
 PersonBatchJobNodeData = PersonJobNodeData
-
-ExecutionID = ExecutionID
 
 PersonMemoryMessage = Message
 

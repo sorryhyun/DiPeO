@@ -1,4 +1,4 @@
-"""LLM infrastructure value objects."""
+"""LLM domain value objects."""
 
 from .model_config import ModelConfig
 from .retry_strategy import RetryStrategy, RetryType

@@ -109,12 +109,6 @@ export enum HookTriggerMode {
   HOOK = 'hook'
 }
 
-export enum VoiceMode {
-  NONE = 'none',
-  TEXT_TO_SPEECH = 'text_to_speech',
-  SPEECH_TO_TEXT = 'speech_to_text'
-}
-
 // Basic types
 export interface Vec2 {
   x: number;
@@ -173,9 +167,6 @@ export interface PersonLLMConfig {
   model: string;
   api_key_id: ApiKeyID;
   system_prompt?: string | null;
-  voice?: VoiceMode;
-  voice_id?: string | null;
-  audio_format?: string | null;
 }
 
 export interface Person {

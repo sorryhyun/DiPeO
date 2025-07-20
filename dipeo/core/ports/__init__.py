@@ -6,7 +6,6 @@ They enable the core and domain layers to depend on abstractions rather than con
 """
 
 from .apikey_port import APIKeyPort, SupportsAPIKey
-from .audio_tools import SpeechToTextPort, TextToSpeechPort
 from .diagram_converter import DiagramConverter, FormatStrategy
 from .execution_observer import ExecutionObserver
 from .file_service import FileServicePort
@@ -24,8 +23,6 @@ __all__ = [
     "LLMServicePort",
     "MessageRouterPort",
     "NotionServicePort",
-    "SpeechToTextPort",
     "StateStorePort",
     "SupportsAPIKey",
-    "TextToSpeechPort",
 ]

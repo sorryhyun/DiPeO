@@ -214,16 +214,21 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                     hasattr(msg, 'role') or hasattr(msg, 'content')
                 ) for msg in value[:1]  # Just check first message for efficiency
             ) if isinstance(value, list) and len(value) > 0 else False
-
+            
+            logger.debug(f"  Node {node.id} ({getattr(node, 'label', 'unlabeled')}): value type={type(value)}, is_conversation_list={is_conversation_list}, has conversation dict={isinstance(value, dict) and 'conversation' in value}")
+            
             if is_conversation_list:
                 # Direct list of messages from ConversationOutput
                 messages = value
+                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (direct list)")
                 aggregated["messages"].extend(messages)
             elif isinstance(value, dict) and 'conversation' in value:
                 # Legacy format with conversation key
                 messages = value['conversation']
+                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (dict format)")
                 aggregated["messages"].extend(messages)
         
+        logger.debug(f"_aggregate_conversation_states: Total aggregated messages: {len(aggregated['messages'])}")
         return aggregated
     
     def _extract_node_exec_counts(self, context: "ExecutionContext") -> dict[str, int] | None:
@@ -275,7 +280,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                     break
 
         result = found_executed and all_reached_max
+        logger.debug(f"_evaluate_max_iterations_with_outputs: found_executed={found_executed}, all_reached_max={all_reached_max}, result={result}")
         for node in person_job_nodes:
             exec_count = context.get_node_execution_count(node.id)
             node_state = context.get_node_state(node.id)
+            logger.debug(f"  Node {node.id}: exec_count={exec_count}, status={node_state.status if node_state else 'None'}")
         return result
