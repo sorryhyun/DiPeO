@@ -6,15 +6,13 @@ from collections import defaultdict
 from datetime import UTC, datetime
 
 from dipeo.infra.diagram import converter_registry
-from dipeo.models import DiagramMetadata, Diagram
+from dipeo.models import DiagramMetadata, DomainDiagram
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
 from ..generated_types import (
     DiagramFilterInput,
     DiagramID,
-)
-from ..domain_types import (
     DomainDiagramType,
 )
 
@@ -161,7 +159,7 @@ class DiagramResolver:
                     version=DIAGRAM_VERSION,
                 )
 
-                diagram = Diagram(
+                diagram = DomainDiagram(
                     nodes=[],
                     handles=[],
                     arrows=[],

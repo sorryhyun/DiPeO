@@ -61,7 +61,7 @@ class ZodSchemaGenerator {
     // Generate TypeScript file with Zod schemas
     const tsOutput = this.generateTypeScriptOutput(schemas);
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const tsOutputPath = join(__dirname, '../../../apps/web/src/__generated__/nodes/schemas.ts');
+    const tsOutputPath = join(__dirname, '../../../apps/web/src/features/diagram-editor/config/nodes/generated-schemas.ts');
     await mkdir(dirname(tsOutputPath), { recursive: true });
     await writeFile(tsOutputPath, tsOutput);
 

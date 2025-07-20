@@ -9,7 +9,7 @@ from ..generated_types import (
     ExecutionID,
 )
 from ..generated_types import (
-    ExecutionType,
+    ExecutionStateType as ExecutionState,
 )
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class ExecutionResolver:
 
     async def get_execution(
         self, execution_id: ExecutionID, info
-    ) -> ExecutionType | None:
+    ) -> ExecutionState | None:
         """Returns execution by ID."""
         try:
             context: GraphQLContext = info.context
@@ -40,7 +40,7 @@ class ExecutionResolver:
 
     async def list_executions(
         self, filter: ExecutionFilterInput | None, limit: int, offset: int, info
-    ) -> list[ExecutionType]:
+    ) -> list[ExecutionState]:
         """Returns filtered execution list."""
         try:
             context: GraphQLContext = info.context
