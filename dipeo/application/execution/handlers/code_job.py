@@ -128,7 +128,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             if isinstance(result, dict):
                 # For dict results, return DataOutput so object content type works
                 return DataOutput(
-                    value={"default": result},
+                    value=result,
                     node_id=node.id,
                     metadata={"language": language, "success": True}
                 )

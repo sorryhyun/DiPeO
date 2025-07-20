@@ -1,0 +1,26 @@
+{
+  "nodeType": "hook",
+  "files_generated": [
+    "output/generated/python/hook_node.py"
+  ],
+  "files_missing": [
+    "output/generated/hookNode.ts",
+    "output/generated/hook.graphql",
+    "output/generated/hookNode.tsx",
+    "output/generated/hookConfig.ts",
+    "output/generated/hookFields.ts"
+  ],
+  "next_steps": [
+    "1. Add hook to NODE_TYPE_MAP in dipeo/models/src/conversions.ts",
+    "2. Import and register hookNode in dipeo/core/static/generated_nodes.py",
+    "3. Add hook to the GraphQL schema union types",
+    "4. Register the node config in the frontend node registry",
+    "5. Run 'make codegen' to regenerate all derived files",
+    "6. Add handler implementation in dipeo/application/execution/handlers/hook.py"
+  ],
+  "generation_summary": {
+    "total_expected": 6,
+    "total_generated": 1,
+    "success_rate": "16.7%"
+  }
+}

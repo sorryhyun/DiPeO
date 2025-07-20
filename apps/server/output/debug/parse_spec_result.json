@@ -1,0 +1,175 @@
+{
+  "spec": {
+    "nodeType": "hook",
+    "displayName": "Hook",
+    "category": "control",
+    "icon": "\ud83e\ude9d",
+    "color": "#9333ea",
+    "description": "Executes hooks at specific points in the diagram execution",
+    "fields": [
+      {
+        "name": "hook_type",
+        "type": "enum",
+        "values": [
+          "shell",
+          "http",
+          "python",
+          "file"
+        ],
+        "required": "true",
+        "defaultValue": "'shell'",
+        "description": "Type of hook to execute"
+      },
+      {
+        "name": "command",
+        "type": "string",
+        "required": "false",
+        "placeholder": "Command to execute",
+        "description": "Shell command to run (for shell hooks)",
+        "uiConfig": {
+          "inputType": "text"
+        }
+      },
+      {
+        "name": "url",
+        "type": "string",
+        "required": "false",
+        "placeholder": "https://api.example.com/webhook",
+        "description": "Webhook URL (for HTTP hooks)",
+        "validation": {
+          "pattern": "^https?://"
+        }
+      },
+      {
+        "name": "timeout",
+        "type": "number",
+        "required": "false",
+        "defaultValue": 60,
+        "description": "Execution timeout in seconds",
+        "validation": {
+          "min": 1,
+          "max": 300
+        }
+      },
+      {
+        "name": "retry_count",
+        "type": "number",
+        "required": "false",
+        "defaultValue": 0,
+        "description": "Number of retries on failure",
+        "validation": {
+          "min": 0,
+          "max": 5
+        }
+      }
+    ],
+    "handles": {
+      "inputs": [
+        "trigger"
+      ],
+      "outputs": [
+        "success",
+        "error"
+      ]
+    },
+    "execution": {
+      "timeout": 60,
+      "retryable": true,
+      "maxRetries": 3,
+      "requires": []
+    },
+    "examples": [
+      {
+        "name": "Shell Hook",
+        "description": "Execute a shell command",
+        "configuration": {
+          "hook_type": "shell",
+          "command": "echo 'Hook executed'",
+          "timeout": 30
+        }
+      },
+      {
+        "name": "Webhook",
+        "description": "Call a webhook URL",
+        "configuration": {
+          "hook_type": "http",
+          "url": "https://api.example.com/webhook",
+          "timeout": 60,
+          "retry_count": 2
+        }
+      }
+    ]
+  },
+  "nodeType": "hook",
+  "displayName": "Hook",
+  "fields": [
+    {
+      "name": "hook_type",
+      "type": "enum",
+      "values": [
+        "shell",
+        "http",
+        "python",
+        "file"
+      ],
+      "required": "true",
+      "defaultValue": "'shell'",
+      "description": "Type of hook to execute"
+    },
+    {
+      "name": "command",
+      "type": "string",
+      "required": "false",
+      "placeholder": "Command to execute",
+      "description": "Shell command to run (for shell hooks)",
+      "uiConfig": {
+        "inputType": "text"
+      }
+    },
+    {
+      "name": "url",
+      "type": "string",
+      "required": "false",
+      "placeholder": "https://api.example.com/webhook",
+      "description": "Webhook URL (for HTTP hooks)",
+      "validation": {
+        "pattern": "^https?://"
+      }
+    },
+    {
+      "name": "timeout",
+      "type": "number",
+      "required": "false",
+      "defaultValue": 60,
+      "description": "Execution timeout in seconds",
+      "validation": {
+        "min": 1,
+        "max": 300
+      }
+    },
+    {
+      "name": "retry_count",
+      "type": "number",
+      "required": "false",
+      "defaultValue": 0,
+      "description": "Number of retries on failure",
+      "validation": {
+        "min": 0,
+        "max": 5
+      }
+    }
+  ],
+  "handles": {
+    "inputs": [
+      "trigger"
+    ],
+    "outputs": [
+      "success",
+      "error"
+    ]
+  },
+  "category": "control",
+  "icon": "\ud83e\ude9d",
+  "color": "#9333ea",
+  "description": "Executes hooks at specific points in the diagram execution"
+}

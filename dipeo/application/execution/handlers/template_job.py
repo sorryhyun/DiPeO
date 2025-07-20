@@ -72,6 +72,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         node = request.node
         inputs = request.inputs
         
+        
         # Store execution metadata
         request.add_metadata("engine", node.engine or "internal")
         if node.template_path:
@@ -120,27 +121,12 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                             # For labeled inputs like 'spec_data' or single/default inputs
                             if key in ['default', 'spec_data'] or len(inputs) == 1:
                                 template_vars.update(value)
-                                print(f"[TemplateJobNode] Flattened dict from key '{key}' to template_vars")
             
             # Choose template engine
             engine = node.engine or "internal"
             
             if engine == "internal":
                 # Use built-in TemplateProcessor
-                # Debug: log template vars for first 100 chars of template
-                if request.metadata.get("debug") or "{{nodeType}}" in template_content[:100]:
-                    print(f"[TemplateJobNode] Template engine: {engine}")
-                    print(f"[TemplateJobNode] Template vars keys: {list(template_vars.keys())}")
-                    for key in ['default', 'spec_data']:
-                        if key in template_vars:
-                            print(f"[TemplateJobNode] '{key}' type: {type(template_vars[key]).__name__}")
-                            if isinstance(template_vars[key], dict):
-                                print(f"[TemplateJobNode] '{key}' keys: {list(template_vars[key].keys())}")
-                            elif isinstance(template_vars[key], str) and len(template_vars[key]) < 200:
-                                print(f"[TemplateJobNode] '{key}' value: {template_vars[key][:100]}...")
-                    if 'nodeType' in template_vars:
-                        print(f"[TemplateJobNode] 'nodeType' value: {template_vars['nodeType']}")
-                
                 rendered = self._processor.process_simple(template_content, template_vars)
             elif engine == "jinja2":
                 # Use Jinja2
@@ -157,6 +143,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
+                
                 # Process output_path through template processor to handle variables
                 processed_output_path = self._processor.process_simple(node.output_path, template_vars)
                 output_path = Path(processed_output_path)
@@ -211,10 +198,35 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             compiled = compiler.compile(template)
             
             # Add helper functions that might be useful
+            def ts_type(this, type_name):
+                """Convert field type to TypeScript type."""
+                type_map = {
+                    'string': 'string',
+                    'number': 'number',
+                    'boolean': 'boolean',
+                    'array': 'any[]',
+                    'object': 'Record<string, any>',
+                    'date': 'Date',
+                    'datetime': 'Date',
+                }
+                return type_map.get(type_name, 'any')
+            
+            def humanize(this, value):
+                """Convert snake_case or camelCase to human readable text."""
+                if isinstance(value, str):
+                    # Replace underscores with spaces and capitalize words
+                    result = value.replace('_', ' ')
+                    # Handle camelCase
+                    import re
+                    result = re.sub(r'([a-z])([A-Z])', r'\1 \2', result)
+                    # Capitalize first letter of each word
+                    return ' '.join(word.capitalize() for word in result.split())
+                return str(value)
+            
             helpers = {
                 'json': lambda this, value: json.dumps(value),
                 'pascalCase': lambda this, value: ''.join(word.capitalize() for word in value.split('_')),
-                'camelCase': lambda this, value: value[0].lower() + ''.join(word.capitalize() for word in value.split('_'))[1:],
+                'camelCase': lambda this, value: value[0].lower() + ''.join(word.capitalize() for word in value.split('_'))[1:] if value else '',
                 'upperCase': lambda this, value: value.upper(),
                 'lowerCase': lambda this, value: value.lower(),
                 'eq': lambda this, a, b: a == b,
@@ -223,9 +235,15 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 'lt': lambda this, a, b: a < b,
                 'gte': lambda this, a, b: a >= b,
                 'lte': lambda this, a, b: a <= b,
+                'tsType': ts_type,
+                'humanize': humanize,
             }
             
-            return compiled(variables, helpers=helpers)
+            try:
+                result = compiled(variables, helpers=helpers)
+                return result
+            except Exception as e:
+                raise
         except ImportError:
             raise ImportError("PyBars3 is not installed. Install it with: pip install pybars3")
     

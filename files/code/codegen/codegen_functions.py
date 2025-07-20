@@ -19,7 +19,8 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         "available_functions": [
             "parse_spec_data",
             "generate_python_model", 
-            "update_registry"
+            "update_registry",
+            "read_generated_files"
         ],
         "description": "Functions for generating code from node specifications"
     }
@@ -62,15 +63,6 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
                 field['defaultValue'] = 'null'
 
     print(f"Parsed spec for node type: {result['nodeType']}")
-    print(f"[parse_spec_data] Returning dict with keys: {list(result.keys())}")
-    print(f"[parse_spec_data] nodeType value: {result['nodeType']}")
-    
-    # Also save to file for debugging
-    import json
-    import os
-    os.makedirs('output/debug', exist_ok=True)
-    with open('output/debug/parse_spec_result.json', 'w') as f:
-        json.dump(result, f, indent=2)
     
     return result
 
@@ -138,17 +130,31 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(spec, str):
         spec = json.loads(spec)
     
+    # Create list of expected generated files
+    expected_files = [
+        f"output/generated/{spec['nodeType']}Node.ts",
+        f"output/generated/python/{spec['nodeType']}_node.py", 
+        f"output/generated/{spec['nodeType']}.graphql",
+        f"output/generated/{spec['nodeType']}Node.tsx",
+        f"output/generated/{spec['nodeType']}Config.ts",
+        f"output/generated/{spec['nodeType']}Fields.ts"
+    ]
+    
+    # Check which files were actually generated
+    files_generated = []
+    files_missing = []
+    
+    for file_path in expected_files:
+        if os.path.exists(file_path):
+            files_generated.append(file_path)
+        else:
+            files_missing.append(file_path)
+    
     # Create registry update summary
     registry_updates = {
         'nodeType': spec['nodeType'],
-        'files_generated': [
-            f"output/generated/{spec['nodeType']}Node.ts",
-            f"output/generated/python/{spec['nodeType']}_node.py", 
-            f"output/generated/{spec['nodeType']}.graphql",
-            f"output/generated/{spec['nodeType']}Node.tsx",
-            f"output/generated/{spec['nodeType']}Config.ts",
-            f"output/generated/{spec['nodeType']}Fields.ts"
-        ],
+        'files_generated': files_generated,
+        'files_missing': files_missing,
         'next_steps': [
             f"1. Add {spec['nodeType']} to NODE_TYPE_MAP in dipeo/models/src/conversions.ts",
             f"2. Import and register {spec['nodeType']}Node in dipeo/core/static/generated_nodes.py",
@@ -156,7 +162,12 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
             f"4. Register the node config in the frontend node registry",
             f"5. Run 'make codegen' to regenerate all derived files",
             f"6. Add handler implementation in dipeo/application/execution/handlers/{spec['nodeType']}.py"
-        ]
+        ],
+        'generation_summary': {
+            'total_expected': len(expected_files),
+            'total_generated': len(files_generated),
+            'success_rate': f"{(len(files_generated) / len(expected_files) * 100):.1f}%"
+        }
     }
 
     # Write summary file
@@ -165,6 +176,46 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
         json.dump(registry_updates, f, indent=2)
 
     print(f"\nRegistry update summary written to output/generated/registry_updates.json")
-    print(f"Generated {len(registry_updates['files_generated'])} files for {spec['nodeType']} node")
+    print(f"Generated {len(files_generated)} out of {len(expected_files)} expected files for {spec['nodeType']} node")
+    
+    if files_missing:
+        print(f"Missing files: {', '.join(files_missing)}")
     
     return registry_updates
+
+
+def read_generated_files(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Read all generated files for verification."""
+    # Get the registry updates which contains file paths
+    registry_updates = inputs.get('registry_updates', {})
+    files_generated = registry_updates.get('files_generated', [])
+    
+    file_contents = {}
+    read_errors = []
+    
+    for file_path in files_generated:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                file_contents[file_path] = {
+                    'content': content,
+                    'size': len(content),
+                    'lines': content.count('\n') + 1
+                }
+        except Exception as e:
+            read_errors.append({
+                'file': file_path,
+                'error': str(e)
+            })
+    
+    result = {
+        'files_read': len(file_contents),
+        'file_contents': file_contents,
+        'read_errors': read_errors,
+        'summary': f"Successfully read {len(file_contents)} out of {len(files_generated)} files"
+    }
+    
+    if read_errors:
+        print(f"Errors reading files: {[e['file'] for e in read_errors]}")
+    
+    return result

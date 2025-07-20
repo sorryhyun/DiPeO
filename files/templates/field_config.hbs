@@ -3,7 +3,7 @@ export const {{camelCase nodeType}}Fields: UnifiedFieldDefinition[] = [
   {{#each fields}}
   {
     name: '{{name}}',
-    type: '{{#if (eq type 'enum')}}select{{else if (eq type 'boolean')}}checkbox{{else if (eq type 'number')}}number{{else if (eq type 'code')}}code{{else}}text{{/if}}',
+    type: '{{#if (eq type 'enum')}}select{{else}}{{#if (eq type 'boolean')}}checkbox{{else}}{{#if (eq type 'number')}}number{{else}}{{#if (eq type 'code')}}code{{else}}text{{/if}}{{/if}}{{/if}}{{/if}}',
     label: '{{humanize name}}',
     required: {{required}},
     {{#if defaultValue}}

@@ -39,7 +39,7 @@ nodes:
   props:
     template_path: files/templates/typescript_model.hbs
     output_path: "output/generated/{{nodeType}}Node.ts"
-    engine: internal
+    engine: handlebars
 
 - label: Generate Python Models
   type: code_job
@@ -55,7 +55,7 @@ nodes:
   props:
     template_path: files/templates/graphql_schema.hbs
     output_path: "output/generated/{{nodeType}}.graphql"
-    engine: internal
+    engine: handlebars
 
 - label: Generate React Component
   type: template_job
@@ -63,7 +63,7 @@ nodes:
   props:
     template_path: files/templates/react_component.hbs
     output_path: "output/generated/{{nodeType}}Node.tsx"
-    engine: internal
+    engine: handlebars
 
 - label: Generate Node Config
   type: template_job
@@ -71,7 +71,7 @@ nodes:
   props:
     template_path: files/templates/node_config.hbs
     output_path: "output/generated/{{nodeType}}Config.ts"
-    engine: internal
+    engine: handlebars
 
 - label: Generate Field Config
   type: template_job
@@ -79,7 +79,7 @@ nodes:
   props:
     template_path: files/templates/field_config.hbs
     output_path: "output/generated/{{nodeType}}Fields.ts"
-    engine: internal
+    engine: handlebars
 
 - label: Update Registry Files
   type: code_job
@@ -89,9 +89,39 @@ nodes:
     code: files/code/codegen/codegen_functions.py
     functionName: update_registry
 
-- label: Success Report
+- label: Verify Generated Code
   type: person_job
   position: {x: 900, y: 700}
+  props:
+    person: Person 2
+    default_prompt: |
+      Please verify the generated code for the {{spec.nodeType}} node type.
+      
+      Generated files:
+      {{#each registry_updates.files_generated}}
+      - {{this}}
+      {{/each}}
+      
+      Verification checklist:
+      1. Check TypeScript model for type safety and proper imports
+      2. Verify GraphQL schema has correct types and enum values
+      3. Ensure React component follows project patterns
+      4. Validate field configurations match the specification
+      5. Check for any security vulnerabilities or malicious patterns
+      6. Verify naming conventions are consistent
+      
+      Review the generated code and report:
+      - Any syntax errors or type mismatches
+      - Security concerns or suspicious patterns
+      - Missing imports or dependencies
+      - Deviations from DiPeO coding standards
+      
+      Provide a PASS/FAIL verdict with specific issues if any.
+    max_iteration: 1
+
+- label: Success Report
+  type: person_job
+  position: {x: 1100, y: 700}
   props:
     person: Person 1
     default_prompt: |
@@ -101,6 +131,8 @@ nodes:
       {{#each registry_updates.files_generated}}
       - {{this}}
       {{/each}}
+      
+      Verification result: {{verification_result}}
       
       Next manual steps required:
       {{#each registry_updates.next_steps}}
@@ -115,7 +147,7 @@ nodes:
 
 - label: End
   type: endpoint
-  position: {x: 1100, y: 700}
+  position: {x: 1300, y: 700}
   props:
     save_to_file: true
     file_path: output/generated/codegen_report.md
@@ -135,6 +167,7 @@ connections:
   to: Parse Spec Data
   content_type: object
   label: raw_data
+  source_output: data
 
 - from: Parse Spec Data
   to: Generate TypeScript Model
@@ -202,6 +235,21 @@ connections:
   label: spec
 
 - from: Update Registry Files
+  to: Verify Generated Code
+  content_type: object
+  label: registry_updates
+
+- from: Parse Spec Data
+  to: Verify Generated Code
+  content_type: object
+  label: spec
+
+- from: Verify Generated Code
+  to: Success Report
+  content_type: raw_text
+  label: verification_result
+
+- from: Update Registry Files
   to: Success Report
   content_type: object
   label: registry_updates
@@ -221,3 +269,8 @@ persons:
     model: gpt-4.1-nano
     api_key_id: APIKEY_52609F
     description: Code generation reporter
+  Person 2:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F
+    description: Code security and quality verifier

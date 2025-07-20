@@ -67,6 +67,13 @@ class TypedInputResolutionService:
                         output_value = {"condtrue": source_output.true_output or {}}
                     else:  # False branch
                         output_value = {"condfalse": source_output.false_output or {}}
+                elif source_output.__class__.__name__ == 'DataOutput':
+                    # DataOutput stores dict directly in value
+                    output_value = source_output.value
+                    # Ensure it's wrapped properly for output key access
+                    if isinstance(output_value, dict) and 'default' not in output_value:
+                        # If no 'default' key, wrap the entire dict
+                        output_value = {"default": output_value}
                 else:
                     # Regular protocol output - get value directly
                     output_value = source_output.value
@@ -126,8 +133,16 @@ class TypedInputResolutionService:
                     # This preserves the entire structure for dot notation access
                     value = output_value[output_key]
                     
+                    # Special handling for DataOutput - if output_key is 'default' and the source
+                    # is a DataOutput with a dict value, pass the entire dict
+                    if (output_key == 'default' and 
+                        isinstance(source_output, NodeOutputProtocol) and 
+                        source_output.__class__.__name__ == 'DataOutput' and
+                        isinstance(value, dict)):
+                        # Pass the entire dict from DataOutput
+                        inputs[input_key] = value
                     # If value is a string that looks like JSON, try to parse it
-                    if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                    elif isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
                         try:
                             import json
                             parsed_value = json.loads(value)
