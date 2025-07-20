@@ -21,6 +21,8 @@ class NodeType(str, Enum):
     notion = "notion"
     person_batch_job = "person_batch_job"
     hook = "hook"
+    template_job = "template_job"
+    json_schema_validator = "json_schema_validator"
 
 class HandleDirection(str, Enum):
     input = "input"
@@ -388,6 +390,35 @@ class HookNodeData(BaseNodeData):
     timeout: Optional[float] = Field(default=None)
     retry_count: Optional[float] = Field(default=None)
     retry_delay: Optional[float] = Field(default=None)
+
+class TemplateJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    template_path: Optional[str] = Field(default=None)
+    template_content: Optional[str] = Field(default=None)
+    output_path: Optional[str] = Field(default=None)
+    variables: Optional[Dict[str, Any]] = Field(default=None)
+    engine: Optional[Union[Literal["internal"], Literal["jinja2"], Literal["handlebars"]]] = Field(default=None)
+
+class ShellJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    command: str
+    args: Optional[List[str]] = Field(default=None)
+    cwd: Optional[str] = Field(default=None)
+    env: Optional[Dict[str, Any]] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    capture_output: Optional[bool] = Field(default=None)
+    shell: Optional[bool] = Field(default=None)
+
+class JsonSchemaValidatorNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    schema_path: Optional[str] = Field(default=None)
+    schema: Optional[Dict[str, Any]] = Field(default=None)
+    data_path: Optional[str] = Field(default=None)
+    strict_mode: Optional[bool] = Field(default=None)
+    error_on_extra: Optional[bool] = Field(default=None)
 
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)

@@ -55,7 +55,8 @@ export const CodeJobNodeConfig: UnifiedNodeConfig<CodeJobNodeData> = {
       options: [
         { value: 'python', label: 'Python' },
         { value: 'typescript', label: 'TypeScript' },
-        { value: 'bash', label: 'Bash' }
+        { value: 'bash', label: 'Bash' },
+        { value: 'shell', label: 'Shell' }
       ],
       column: 1,
       helpText: 'Select the programming language of your code file'

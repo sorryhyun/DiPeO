@@ -71,7 +71,9 @@ export type {
   UserResponseNodeData,
   NotionNodeData,
   PersonBatchJobNodeData,
-  HookNodeData
+  HookNodeData,
+  TemplateJobNodeData,
+  JsonSchemaValidatorNodeData
 } from '@dipeo/domain-models';
 
 // Execution Types

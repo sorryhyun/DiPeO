@@ -69,7 +69,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             return "No file path provided"
         
         # Validate language is supported
-        supported_languages = ["python", "typescript", "bash"]
+        supported_languages = ["python", "typescript", "bash", "shell"]
         language = node.language.value if hasattr(node.language, 'value') else node.language
         if language not in supported_languages:
             return f"Unsupported language: {language}. Supported: {', '.join(supported_languages)}"
@@ -115,7 +115,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 result = await self._execute_python(file_path, inputs, timeout, context, function_name)
             elif language == "typescript":
                 result = await self._execute_typescript(file_path, inputs, timeout, function_name)
-            elif language == "bash":
+            elif language == "bash" or language == "shell":
                 result = await self._execute_bash(file_path, inputs, timeout)
             else:
                 return ErrorOutput(

@@ -1,0 +1,223 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 300}
+  props:
+    trigger_mode: manual
+    custom_data:
+      node_spec_path: "{{NODE_SPEC_PATH}}"
+    output_data_structure:
+      node_spec_path: string
+
+- label: Load Node Spec
+  type: db
+  position: {x: 300, y: 300}
+  props:
+    operation: read
+    sub_type: file
+    source_details: files/specifications/nodes/example_hook.json
+
+- label: Validate Spec
+  type: json_schema_validator
+  position: {x: 500, y: 300}
+  props:
+    schema_path: files/schemas/node_specification.schema.json
+    strict_mode: true
+
+- label: Parse Spec Data
+  type: code_job
+  position: {x: 700, y: 300}
+  props:
+    code_type: python
+    code: files/code/codegen/codegen_functions.py
+    functionName: parse_spec_data
+
+- label: Generate TypeScript Model
+  type: template_job
+  position: {x: 300, y: 500}
+  props:
+    template_path: files/templates/typescript_model.hbs
+    output_path: "output/generated/{{nodeType}}Node.ts"
+    engine: internal
+
+- label: Generate Python Models
+  type: code_job
+  position: {x: 500, y: 500}
+  props:
+    code_type: python
+    code: files/code/codegen/codegen_functions.py
+    functionName: generate_python_model
+
+- label: Generate GraphQL Schema
+  type: template_job
+  position: {x: 700, y: 500}
+  props:
+    template_path: files/templates/graphql_schema.hbs
+    output_path: "output/generated/{{nodeType}}.graphql"
+    engine: internal
+
+- label: Generate React Component
+  type: template_job
+  position: {x: 900, y: 500}
+  props:
+    template_path: files/templates/react_component.hbs
+    output_path: "output/generated/{{nodeType}}Node.tsx"
+    engine: internal
+
+- label: Generate Node Config
+  type: template_job
+  position: {x: 1100, y: 500}  
+  props:
+    template_path: files/templates/node_config.hbs
+    output_path: "output/generated/{{nodeType}}Config.ts"
+    engine: internal
+
+- label: Generate Field Config
+  type: template_job
+  position: {x: 500, y: 700}
+  props:
+    template_path: files/templates/field_config.hbs
+    output_path: "output/generated/{{nodeType}}Fields.ts"
+    engine: internal
+
+- label: Update Registry Files
+  type: code_job
+  position: {x: 700, y: 700}
+  props:
+    code_type: python
+    code: files/code/codegen/codegen_functions.py
+    functionName: update_registry
+
+- label: Success Report
+  type: person_job
+  position: {x: 900, y: 700}
+  props:
+    person: Person 1
+    default_prompt: |
+      Generate a comprehensive report of the code generation for {{spec.nodeType}} node:
+      
+      Summary of generated files:
+      {{#each registry_updates.files_generated}}
+      - {{this}}
+      {{/each}}
+      
+      Next manual steps required:
+      {{#each registry_updates.next_steps}}
+      {{this}}
+      {{/each}}
+      
+      Please provide:
+      1. A brief summary of what was generated
+      2. Any warnings or considerations for the {{spec.nodeType}} node type
+      3. Suggested testing approach for the new node
+    max_iteration: 1
+
+- label: End
+  type: endpoint
+  position: {x: 1100, y: 700}
+  props:
+    save_to_file: true
+    file_path: output/generated/codegen_report.md
+    file_format: md
+
+connections:
+- from: Start
+  to: Load Node Spec
+  content_type: object
+  label: config
+
+- from: Load Node Spec
+  to: Validate Spec
+  content_type: raw_text
+
+- from: Validate Spec
+  to: Parse Spec Data
+  content_type: object
+  label: raw_data
+
+- from: Parse Spec Data
+  to: Generate TypeScript Model
+  content_type: object
+  label: spec_data
+
+- from: Parse Spec Data
+  to: Generate Python Models
+  content_type: object
+  label: spec
+
+- from: Parse Spec Data
+  to: Generate GraphQL Schema
+  content_type: object
+  label: spec_data
+
+- from: Parse Spec Data
+  to: Generate React Component
+  content_type: object
+  label: spec_data
+
+- from: Parse Spec Data
+  to: Generate Node Config
+  content_type: object
+  label: spec_data
+
+- from: Parse Spec Data
+  to: Generate Field Config
+  content_type: object
+  label: spec_data
+
+- from: Generate TypeScript Model
+  to: Update Registry Files
+  content_type: raw_text
+  label: ts_result
+
+- from: Generate Python Models
+  to: Update Registry Files
+  content_type: raw_text
+  label: py_result
+
+- from: Generate GraphQL Schema
+  to: Update Registry Files
+  content_type: raw_text
+  label: gql_result
+
+- from: Generate React Component
+  to: Update Registry Files
+  content_type: raw_text
+  label: react_result
+
+- from: Generate Node Config
+  to: Update Registry Files
+  content_type: raw_text
+  label: config_result
+
+- from: Generate Field Config
+  to: Update Registry Files
+  content_type: raw_text
+  label: field_result
+
+- from: Parse Spec Data
+  to: Update Registry Files
+  content_type: object
+  label: spec
+
+- from: Update Registry Files
+  to: Success Report
+  content_type: object
+  label: registry_updates
+
+- from: Parse Spec Data
+  to: Success Report
+  content_type: object
+  label: spec
+
+- from: Success Report
+  to: End
+  content_type: raw_text
+
+persons:
+  Person 1:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F
+    description: Code generation reporter

@@ -219,6 +219,44 @@ class HookNode(BaseExecutableNode):
         return data
 
 @dataclass(frozen=True)
+class TemplateJobNode(BaseExecutableNode):
+    type: NodeType = field(default=NodeType.template_job, init=False)
+    template_path: str = None
+    template_content: str = None
+    output_path: str = None
+    variables: Dict[str, Any] = field(default_factory=dict)
+    engine: str = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["template_path"] = self.template_path
+        data["template_content"] = self.template_content
+        data["output_path"] = self.output_path
+        data["variables"] = self.variables
+        data["engine"] = self.engine
+        return data
+
+@dataclass(frozen=True)
+class JsonSchemaValidatorNode(BaseExecutableNode):
+    type: NodeType = field(default=NodeType.json_schema_validator, init=False)
+    schema_path: str = None
+    schema: Dict[str, Any] = None
+    data_path: str = None
+    strict_mode: bool = None
+    error_on_extra: bool = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["schema_path"] = self.schema_path
+        data["schema"] = self.schema
+        data["data_path"] = self.data_path
+        data["strict_mode"] = self.strict_mode
+        data["error_on_extra"] = self.error_on_extra
+        return data
+
+@dataclass(frozen=True)
 class PersonBatchJobNode(PersonJobNode):
     """Person batch job node - same as PersonJobNode but with different type."""
     type: NodeType = field(default=NodeType.person_batch_job, init=False)
@@ -235,7 +273,9 @@ ExecutableNode = Union[
     UserResponseNode,
     NotionNode,
     PersonBatchJobNode,
-    HookNode
+    HookNode,
+    TemplateJobNode,
+    JsonSchemaValidatorNode
 ]
 
 
@@ -400,6 +440,34 @@ def create_executable_node(
             memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
             memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
             tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None
+        )
+    
+    if node_type == NodeType.template_job:
+        return TemplateJobNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            template_path=data.get("template_path"),
+            template_content=data.get("template_content"),
+            output_path=data.get("output_path"),
+            variables=data.get("variables", {}),
+            engine=data.get("engine"),
+        )
+    
+    if node_type == NodeType.json_schema_validator:
+        return JsonSchemaValidatorNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            schema_path=data.get("schema_path"),
+            schema=data.get("schema"),
+            data_path=data.get("data_path"),
+            strict_mode=data.get("strict_mode"),
+            error_on_extra=data.get("error_on_extra"),
         )
     
     raise ValueError(f"Unknown node type: {node_type}")

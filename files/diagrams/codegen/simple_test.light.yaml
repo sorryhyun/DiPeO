@@ -24,15 +24,13 @@ nodes:
   props:
     template_content: |
       // Generated field configuration for {{nodeType}}
-      export const {{nodeType}}Fields = [
-        {{#each fields}}
+      export const {{nodeType}}Fields = [{{#each fields}}
         {
-          name: '{{name}}',
-          type: '{{type}}',
-          required: {{required}},
-          defaultValue: '{{defaultValue}}'
-        },
-        {{/each}}
+          name: '{{this.name}}',
+          type: '{{this.type}}',
+          required: {{this.required}},
+          defaultValue: '{{this.defaultValue}}'
+        }{{#unless @last}},{{/unless}}{{/each}}
       ];
     output_path: output/test_field_config.ts
     variables:

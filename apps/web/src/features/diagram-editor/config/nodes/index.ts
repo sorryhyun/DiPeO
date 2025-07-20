@@ -13,6 +13,8 @@ export { PersonBatchJobNodeConfig } from './person-batch-job';
 export { UserResponseNodeConfig } from './user-response';
 export { NotionNodeConfig } from './notion';
 export { HookNodeConfig } from './hook';
+export { TemplateJobNodeConfig } from './template-job';
+export { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
 
 // Import all configurations for the map
 import { StartNodeConfig } from './start';
@@ -27,6 +29,8 @@ import { PersonBatchJobNodeConfig } from './person-batch-job';
 import { UserResponseNodeConfig } from './user-response';
 import { NotionNodeConfig } from './notion';
 import { HookNodeConfig } from './hook';
+import { TemplateJobNodeConfig } from './template-job';
+import { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
 
 import { NodeType } from '@dipeo/domain-models';
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
@@ -48,6 +52,8 @@ export const NODE_CONFIGS_MAP: Record<NodeType, UnifiedNodeConfig<any>> = {
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig,
   [NodeType.NOTION]: NotionNodeConfig,
   [NodeType.HOOK]: HookNodeConfig,
+  [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig,
+  [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig,
 };
 
 /**

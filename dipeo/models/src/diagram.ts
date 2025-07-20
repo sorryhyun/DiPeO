@@ -88,7 +88,8 @@ export enum ContentType {
 export enum SupportedLanguage {
   PYTHON = 'python',
   TYPESCRIPT = 'typescript',
-  BASH = 'bash'
+  BASH = 'bash',
+  SHELL = 'shell'
 }
 
 export enum HttpMethod {
