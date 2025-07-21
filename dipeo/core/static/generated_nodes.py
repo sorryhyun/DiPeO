@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List, Union, Literal
 from dipeo.models.models import (
     NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
-    NotionOperation, HookType, PersonLLMConfig, LLMService
+    NotionOperation, HookType, PersonLLMConfig, LLMService, ExtractPattern
 )
 
 
@@ -260,7 +260,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 class TypescriptAstNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.typescript_ast, init=False)
     source: Optional[str] = None
-    extractPatterns: Optional[List[str]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    extractPatterns: Optional[List[ExtractPattern]] = field(default_factory=lambda: ["interface", "type", "enum"])
     includeJSDoc: Optional[bool] = False
     parseMode: Optional[Literal["module", "script"]] = "module"
 
@@ -290,10 +290,7 @@ ExecutableNode = Union[
     UserResponseNode,
     NotionNode,
     PersonBatchJobNode,
-    HookNode,
-    TemplateJobNode,
-    JsonSchemaValidatorNode,
-    TypescriptAstNode
+    HookNode
 ]
 
 

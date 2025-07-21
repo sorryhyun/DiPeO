@@ -427,7 +427,7 @@ class TypescriptAstNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     source: Optional[str] = Field(default=None)
-    extractPatterns: Optional[List[Literal["interface", "type", "enum", "class", "function", "const", "export"]]] = Field(default=None)
+    extractPatterns: Optional[List[ExtractPattern]] = Field(default=None)
     includeJSDoc: Optional[bool] = Field(default=None)
     parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
 
@@ -592,6 +592,8 @@ ApiKeyID = ApiKeyID
 DiagramID = DiagramID
 
 PersonBatchJobNodeData = PersonJobNodeData
+
+ExtractPattern = Literal["interface", "type", "enum", "class", "function", "const", "export"]
 
 ExecutionID = ExecutionID
 

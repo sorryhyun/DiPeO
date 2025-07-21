@@ -1,6 +1,3 @@
-import os
-import sys
-from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
@@ -10,6 +7,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.core.static.generated_nodes import TypescriptAstNode
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.ports.ast_parser_port import ASTParserPort
 from dipeo.models import TypescriptAstNodeData, NodeType
 
 if TYPE_CHECKING:
@@ -20,6 +18,14 @@ if TYPE_CHECKING:
 @register_handler
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     """Handler for TypeScript AST parsing node."""
+    
+    def __init__(self, typescript_parser=None):
+        """Initialize with TypeScript parser.
+        
+        Args:
+            typescript_parser: The TypeScript AST parser implementation
+        """
+        self._parser = typescript_parser
     
     @property
     def node_class(self) -> type[TypescriptAstNode]:
@@ -35,7 +41,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return []
+        return ["typescript_parser"]
     
     @property
     def description(self) -> str:
@@ -83,66 +89,52 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     error_type="ValidationError"
                 )
             
-            # Import the parser module
-            parser_path = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd())) / 'files' / 'code' / 'codegen'
-            sys.path.insert(0, str(parser_path))
+            # Check if parser is available
+            if not self._parser:
+                return ErrorOutput(
+                    value="TypeScript parser service not available",
+                    node_id=node.id,
+                    error_type="ServiceError"
+                )
             
-            try:
-                from typescript_parser import parse_typescript
-                
-                # Parse the TypeScript code
-                result = parse_typescript({
-                    'source': source,
-                    'extractPatterns': node.extractPatterns or ['interface', 'type', 'enum'],
+            # Parse the TypeScript code using the injected parser
+            result = await self._parser.parse(
+                source=source,
+                extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
+                options={
                     'includeJSDoc': node.includeJSDoc or False,
                     'parseMode': node.parseMode or 'module'
-                })
-                
-                # Check for errors
-                if result.get('error'):
-                    return ErrorOutput(
-                        value=f"TypeScript parsing failed: {result['error']}",
-                        node_id=node.id,
-                        error_type="ParseError"
-                    )
-                
-                # Return successful result with all extracted data
-                return DataOutput(
-                    value={
-                        'ast': result['ast'],
-                        'interfaces': result['interfaces'],
-                        'types': result['types'],
-                        'enums': result['enums'],
-                        'classes': result.get('classes', []),
-                        'functions': result.get('functions', [])
-                    },
-                    node_id=node.id,
-                    metadata={
-                        'interfaces_count': len(result['interfaces']),
-                        'types_count': len(result['types']),
-                        'enums_count': len(result['enums']),
-                        'classes_count': len(result.get('classes', [])),
-                        'functions_count': len(result.get('functions', [])),
-                        'success': True
-                    }
-                )
-                
-            finally:
-                # Clean up sys.path
-                if str(parser_path) in sys.path:
-                    sys.path.remove(str(parser_path))
-        
-        except ImportError as e:
-            return ErrorOutput(
-                value=f"Failed to import TypeScript parser: {str(e)}",
+                }
+            )
+            
+            # Extract AST data from the result
+            ast_data = result.get('ast', {})
+            metadata = result.get('metadata', {})
+            
+            # Return successful result with all extracted data
+            return DataOutput(
+                value={
+                    'ast': metadata.get('astSummary', {}),
+                    'interfaces': ast_data.get('interfaces', []),
+                    'types': ast_data.get('types', []),
+                    'enums': ast_data.get('enums', []),
+                    'classes': ast_data.get('classes', []),
+                    'functions': ast_data.get('functions', [])
+                },
                 node_id=node.id,
-                error_type="ImportError",
-                metadata={"parser_path": str(parser_path)}
+                metadata={
+                    'interfaces_count': len(ast_data.get('interfaces', [])),
+                    'types_count': len(ast_data.get('types', [])),
+                    'enums_count': len(ast_data.get('enums', [])),
+                    'classes_count': len(ast_data.get('classes', [])),
+                    'functions_count': len(ast_data.get('functions', [])),
+                    'success': True
+                }
             )
         
         except Exception as e:
             return ErrorOutput(
-                value=f"Unexpected error during TypeScript parsing: {str(e)}",
+                value=f"TypeScript parsing failed: {str(e)}",
                 node_id=node.id,
                 error_type=type(e).__name__
             )

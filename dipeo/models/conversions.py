@@ -29,6 +29,7 @@ NODE_TYPE_MAP: dict[str, NodeType] = {
     "hook": NodeType.hook,
     "template_job": NodeType.template_job,
     "json_schema_validator": NodeType.json_schema_validator,
+    "typescript_ast": NodeType.typescript_ast,
 }
 
 NODE_TYPE_REVERSE_MAP: dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.items()}

@@ -54,6 +54,10 @@ class HandlerRegistry:
         for param_name, param in sig.parameters.items():
             if param_name == 'self':
                 continue
+            
+            # Skip *args and **kwargs parameters
+            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                continue
 
             service_name = param_name
 

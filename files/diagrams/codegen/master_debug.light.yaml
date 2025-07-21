@@ -1,0 +1,81 @@
+version: light
+nodes:
+  - label: Start
+    type: start
+    position: {x: 100, y: 200}
+    props:
+      trigger_mode: manual
+      custom_data:
+        mode: full  # full | models | nodes
+        
+  - label: Debug Inputs
+    type: person_job
+    position: {x: 300, y: 100}
+    props:
+      person: DebugReporter
+      first_only_prompt: |
+        Debug: Check what inputs we received:
+        
+        All inputs: {{.}}
+        Mode: {{mode}}
+        
+        Just output the mode value that was received.
+      max_iteration: 1
+      
+  - label: Route by Mode
+    type: condition
+    position: {x: 500, y: 200}
+    props:
+      condition_type: expression
+      expression: inputs.mode === 'full' || inputs.mode === 'models'
+      
+  - label: Domain Model Codegen
+    type: person_job
+    position: {x: 700, y: 100}
+    props:
+      person: CodegenReporter
+      first_only_prompt: |
+        Running domain model generation (placeholder).
+        Mode: {{mode}}
+        Would run: make codegen
+      max_iteration: 1
+      
+  - label: End
+    type: endpoint
+    position: {x: 900, y: 200}
+    props:
+      save_to_file: true
+      file_name: logs/codegen/master_debug_{{timestamp}}.log
+
+connections:
+  - from: Start
+    to: Debug Inputs
+    content_type: object
+    
+  - from: Debug Inputs
+    to: Route by Mode
+    content_type: object
+    
+  - from: Route by Mode
+    to: Domain Model Codegen
+    label: condtrue
+    content_type: object
+    
+  - from: Domain Model Codegen
+    to: End
+    content_type: raw_text
+    
+  - from: Route by Mode
+    to: End
+    label: condfalse
+    content_type: raw_text
+
+persons:
+  DebugReporter:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F
+  CodegenReporter:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F

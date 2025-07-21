@@ -15,6 +15,7 @@ export { NotionNodeConfig } from './notion';
 export { HookNodeConfig } from './hook';
 export { TemplateJobNodeConfig } from './template-job';
 export { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
+export { TypescriptAstNodeConfig } from './generated/typescriptAstConfig';
 
 // Import all configurations for the map
 import { StartNodeConfig } from './start';
@@ -31,6 +32,7 @@ import { NotionNodeConfig } from './notion';
 import { HookNodeConfig } from './hook';
 import { TemplateJobNodeConfig } from './template-job';
 import { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
+import { TypescriptAstNodeConfig } from './generated/typescriptAstConfig';
 
 import { NodeType } from '@dipeo/domain-models';
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
@@ -54,6 +56,7 @@ export const NODE_CONFIGS_MAP: Record<NodeType, UnifiedNodeConfig<any>> = {
   [NodeType.HOOK]: HookNodeConfig,
   [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig,
   [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig,
+  [NodeType.TYPESCRIPT_AST]: TypescriptAstNodeConfig,
 };
 
 /**

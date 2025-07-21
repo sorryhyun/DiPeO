@@ -4,7 +4,7 @@
  * Parses TypeScript source code and extracts interfaces, types, enums, etc.
  */
 
-import { Project, SourceFile, Node, TypeAliasDeclaration, InterfaceDeclaration, EnumDeclaration } from 'ts-morph'
+import { Project, SourceFile, Node } from 'ts-morph'
 
 interface ParseResult {
   ast: any
@@ -81,9 +81,12 @@ interface FunctionInfo {
 }
 
 function getJSDoc(node: Node): string | undefined {
-  const jsDocs = node.getJsDocs()
-  if (jsDocs.length > 0) {
-    return jsDocs[0].getDescription().trim()
+  // Check if the node has JSDoc support
+  if ('getJsDocs' in node && typeof node.getJsDocs === 'function') {
+    const jsDocs = (node as any).getJsDocs()
+    if (jsDocs.length > 0) {
+      return jsDocs[0].getDescription().trim()
+    }
   }
   return undefined
 }

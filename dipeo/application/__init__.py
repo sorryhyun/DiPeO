@@ -9,10 +9,13 @@ from dipeo.application.execution.handlers import (
     DBTypedNodeHandler,
     EndpointNodeHandler,
     HookNodeHandler,
+    JsonSchemaValidatorNodeHandler,
     NotionNodeHandler,
     PersonBatchJobNodeHandler,
     PersonJobNodeHandler,
     StartNodeHandler,
+    TemplateJobNodeHandler,
+    TypescriptAstNodeHandler,
     UserResponseNodeHandler,
 )
 
@@ -51,10 +54,13 @@ __all__ = [
     "ConditionNodeHandler",
     "DBTypedNodeHandler",
     "HookNodeHandler",
+    "JsonSchemaValidatorNodeHandler",
     "PersonJobNodeHandler",
     "PersonBatchJobNodeHandler",
     "ApiJobNodeHandler",
     "CodeJobNodeHandler",
     "NotionNodeHandler",
+    "TemplateJobNodeHandler",
+    "TypescriptAstNodeHandler",
     "UserResponseNodeHandler"
 ]
