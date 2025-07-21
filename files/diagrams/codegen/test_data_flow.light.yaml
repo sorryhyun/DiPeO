@@ -5,12 +5,6 @@ nodes:
   position: {x: 100, y: 100}
   props:
     trigger_mode: manual
-    custom_data:
-      test_value: "hello"
-      node_spec_path: "files/specifications/nodes/example_hook.json"
-    output_data_structure:
-      test_value: string
-      node_spec_path: string
 
 - label: Load Spec
   type: db
@@ -20,27 +14,33 @@ nodes:
     sub_type: file
     source_details: "files/specifications/nodes/example_hook.json"
 
+- label: Validate
+  type: json_schema_validator
+  position: {x: 500, y: 100}
+  props:
+    schema_path: files/schemas/node_specification.schema.json
+    strict_mode: true
+
 - label: Debug Output
   type: code_job
-  position: {x: 500, y: 100}
+  position: {x: 700, y: 100}
   props:
     code_type: python
     code: files/code/test_data_flow.py
 
 - label: End
   type: endpoint
-  position: {x: 700, y: 100}
+  position: {x: 900, y: 100}
 
 connections:
 - from: Start
   to: Load Spec
-  content_type: object
-  label: config
-
 - from: Load Spec
-  to: Debug Output
+  to: Validate
   content_type: raw_text
-
+- from: Validate
+  to: Debug Output
+  content_type: object
+  label: raw_data
 - from: Debug Output
   to: End
-  content_type: object

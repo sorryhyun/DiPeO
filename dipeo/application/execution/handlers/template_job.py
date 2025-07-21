@@ -52,19 +52,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         if not node.template_path and not node.template_content:
             return "Either template_path or template_content must be provided"
         
-        # If template_path is provided, validate it exists
-        if node.template_path:
-            template_path = Path(node.template_path)
-            if not template_path.is_absolute():
-                base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                template_path = Path(base_dir) / node.template_path
-            
-            if not template_path.exists():
-                return f"Template file not found: {node.template_path}"
-            
-            if not template_path.is_file():
-                return f"Template path is not a file: {node.template_path}"
-        
         return None
     
     async def execute_request(self, request: ExecutionRequest[TemplateJobNode]) -> NodeOutputProtocol:
@@ -103,24 +90,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Add inputs from connected nodes
             if inputs:
-                for key, value in inputs.items():
-                    # Try to parse JSON strings
-                    if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
-                        try:
-                            parsed_value = json.loads(value)
-                            template_vars[key] = parsed_value
-                            # If it's a dict and this is the only/default input, also flatten it to top level
-                            if isinstance(parsed_value, dict) and (key == 'default' or len(inputs) == 1):
-                                template_vars.update(parsed_value)
-                        except json.JSONDecodeError:
-                            template_vars[key] = value
-                    else:
-                        template_vars[key] = value
-                        # If it's a dict, flatten it to top level for easier access
-                        if isinstance(value, dict):
-                            # For labeled inputs like 'spec_data' or single/default inputs
-                            if key in ['default', 'spec_data'] or len(inputs) == 1:
-                                template_vars.update(value)
+                template_vars.update(inputs)
             
             # Choose template engine
             engine = node.engine or "internal"

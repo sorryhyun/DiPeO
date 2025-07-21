@@ -44,8 +44,8 @@ class StartNode(BaseExecutableNode):
     custom_data: Dict[str, Union[str, int, bool]] = field(default_factory=dict)
     output_data_structure: Dict[str, str] = field(default_factory=dict)
     trigger_mode: Optional[HookTriggerMode] = None
-    hook_event: str = None
-    hook_filters: Dict[str, Any] = None
+    hook_event: Optional[str] = None
+    hook_filters: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -61,7 +61,7 @@ class StartNode(BaseExecutableNode):
 class EndpointNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.endpoint, init=False)
     save_to_file: bool = False
-    file_name: str = None
+    file_name: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -75,7 +75,7 @@ class PersonJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.person_job, init=False)
     person_id: Optional[PersonID] = None
     first_only_prompt: str = ""
-    default_prompt: str = None
+    default_prompt: Optional[str] = None
     max_iteration: int = 1
     memory_config: Optional[MemoryConfig] = None
     memory_settings: Optional[MemorySettings] = None
@@ -97,7 +97,7 @@ class PersonJobNode(BaseExecutableNode):
 class ConditionNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.condition, init=False)
     condition_type: str = ""
-    expression: str = None
+    expression: Optional[str] = None
     node_indices: Optional[List[str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -113,8 +113,8 @@ class CodeJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.code_job, init=False)
     language: SupportedLanguage = SupportedLanguage.python
     filePath: str = ""
-    functionName: str = None
-    timeout: int = None
+    functionName: Optional[str] = None
+    timeout: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -130,12 +130,12 @@ class ApiJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.api_job, init=False)
     url: str = ""
     method: HttpMethod = HttpMethod.GET
-    headers: Dict[str, str] = None
-    params: Dict[str, Any] = None
-    body: Any = None
-    timeout: int = None
+    headers: Optional[Dict[str, str]] = None
+    params: Optional[Dict[str, Any]] = None
+    body: Optional[Any] = None
+    timeout: Optional[int] = None
     auth_type: Optional[Literal["none", "bearer", "basic", "api_key"]] = None
-    auth_config: Dict[str, str] = None
+    auth_config: Optional[Dict[str, str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -153,12 +153,12 @@ class ApiJobNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class DBNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.db, init=False)
-    file: str = None
-    collection: str = None
+    file: Optional[str] = None
+    collection: Optional[str] = None
     sub_type: DBBlockSubType = DBBlockSubType.fixed_prompt
     operation: str = ""
-    query: str = None
-    data: Dict[str, Any] = None
+    query: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -188,8 +188,8 @@ class UserResponseNode(BaseExecutableNode):
 class NotionNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.notion, init=False)
     operation: NotionOperation = NotionOperation.read_page
-    page_id: str = None
-    database_id: str = None
+    page_id: Optional[str] = None
+    database_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -204,9 +204,9 @@ class HookNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.hook, init=False)
     hook_type: HookType = HookType.shell
     config: Dict[str, Any] = field(default_factory=dict)
-    timeout: int = None
-    retry_count: int = None
-    retry_delay: int = None
+    timeout: Optional[int] = None
+    retry_count: Optional[int] = None
+    retry_delay: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -221,10 +221,10 @@ class HookNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class TemplateJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.template_job, init=False)
-    template_path: str = None
-    template_content: str = None
-    output_path: str = None
-    variables: Dict[str, Any] = None
+    template_path: Optional[str] = None
+    template_content: Optional[str] = None
+    output_path: Optional[str] = None
+    variables: Optional[Dict[str, Any]] = None
     engine: Optional[Literal["internal", "jinja2", "handlebars"]] = "internal"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -240,11 +240,11 @@ class TemplateJobNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class JsonSchemaValidatorNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.json_schema_validator, init=False)
-    schema_path: str = None
-    schema: Dict[str, Any] = None
-    data_path: str = None
-    strict_mode: bool = False
-    error_on_extra: bool = False
+    schema_path: Optional[str] = None
+    schema: Optional[Dict[str, Any]] = None
+    data_path: Optional[str] = None
+    strict_mode: Optional[bool] = False
+    error_on_extra: Optional[bool] = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""

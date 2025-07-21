@@ -232,7 +232,14 @@ class StaticNodeGenerator {
           continue;
         }
         
-        const pyType = this.getPythonType(prop.type, prop.optional || false);
+        const isOptional = prop.optional || false;
+        let pyType = this.getPythonType(prop.type, isOptional);
+        
+        // Ensure Optional is added if field has = None
+        if (isOptional && !pyType.includes('Optional[')) {
+          pyType = `Optional[${pyType}]`;
+        }
+        
         let fieldDef = `    ${field.pyName}: ${pyType}`;
         
         if (field.defaultValue) {
@@ -241,11 +248,11 @@ class StaticNodeGenerator {
           } else {
             fieldDef += ` = ${field.defaultValue}`;
           }
-        } else if (prop.optional || pyType.includes('Optional[')) {
+        } else if (isOptional) {
           fieldDef += ' = None';
-        } else if (!prop.optional && pyType.includes('Dict[') && !pyType.includes('Optional[')) {
+        } else if (!isOptional && pyType.includes('Dict[') && !pyType.includes('Optional[')) {
           fieldDef += ' = field(default_factory=dict)';
-        } else if (!prop.optional && pyType.includes('List[') && !pyType.includes('Optional[')) {
+        } else if (!isOptional && pyType.includes('List[') && !pyType.includes('Optional[')) {
           fieldDef += ' = field(default_factory=list)';
         }
         

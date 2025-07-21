@@ -9,6 +9,9 @@ import os
 from pathlib import Path
 from typing import Dict, Any, List
 
+# Get project root from environment or use current working directory
+PROJECT_ROOT = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
+
 
 def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -29,42 +32,62 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
 
 def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Parse the spec data from validation output and prepare context for templates."""
-    # Get the raw data from inputs
-    raw_data = inputs.get('raw_data', inputs.get('default', {}))
-    
     print(f"DEBUG: parse_spec_data - inputs keys: {list(inputs.keys())}")
-    print(f"DEBUG: parse_spec_data - raw_data type: {type(raw_data)}")
     
-    # Parse the spec data from validation output
+    # The validation node outputs data in the 'raw_data' input key
+    raw_data = inputs.get('raw_data', {})
+    print(f"DEBUG: raw_data type: {type(raw_data)}")
+    
+    # The validator outputs a dict with 'valid', 'data', etc.
+    # Extract the actual spec from raw_data.data
+    spec = None
     if isinstance(raw_data, dict) and 'data' in raw_data:
         spec = raw_data['data']
-        print(f"DEBUG: Found wrapped data, extracted spec")
-    elif isinstance(raw_data, str):
-        try:
-            parsed = json.loads(raw_data)
-            if isinstance(parsed, dict) and 'data' in parsed:
-                spec = parsed['data']
-                print(f"DEBUG: Parsed string and found wrapped data")
-            else:
-                spec = parsed
-                print(f"DEBUG: Parsed string directly")
-        except:
-            print(f"DEBUG: Failed to parse as JSON, using raw string")
-            spec = raw_data
-    else:
+        print(f"DEBUG: Extracted spec from raw_data.data")
+    elif isinstance(raw_data, dict) and 'nodeType' in raw_data:
+        # Fallback: raw_data might already be the spec
         spec = raw_data
-        print(f"DEBUG: Using raw_data as-is")
+        print(f"DEBUG: raw_data appears to be the spec itself")
+    else:
+        # Try to find spec data in other inputs
+        for key, value in inputs.items():
+            if isinstance(value, dict) and 'nodeType' in value:
+                spec = value
+                print(f"DEBUG: Found spec data in key '{key}'")
+                break
+        else:
+            spec = {}
+            print(f"DEBUG: No spec data found, using empty dict")
+    
+    # If it's a string, try to parse it
+    if isinstance(spec, str):
+        try:
+            spec = json.loads(spec)
+            print(f"DEBUG: Parsed JSON string")
+        except:
+            print(f"DEBUG: Failed to parse as JSON")
+            return {"error": "Invalid JSON input"}
     
     print(f"DEBUG: Final spec type: {type(spec)}")
     if isinstance(spec, dict):
-        print(f"DEBUG: spec keys: {list(spec.keys())[:5]}")  # First 5 keys
+        print(f"DEBUG: spec keys: {list(spec.keys())[:10]}")  # First 10 keys
         print(f"DEBUG: nodeType in spec: {'nodeType' in spec}")
+        if 'nodeType' in spec:
+            print(f"DEBUG: nodeType value: {spec['nodeType']}")
+    else:
+        print(f"ERROR: spec is not a dict, it's {type(spec)}")
+        return {"error": f"Expected dict, got {type(spec)}"}
 
     # Helper function to convert to camelCase
     def to_camel_case(snake_str):
         components = snake_str.split('_')
         return components[0] + ''.join(x.capitalize() for x in components[1:])
 
+    # Ensure we have the required nodeType field
+    if 'nodeType' not in spec:
+        print(f"ERROR: Missing 'nodeType' field in spec")
+        return {"error": "Missing required field 'nodeType' in specification"}
+    
     # Prepare context for templates
     result = {
         'spec': spec,
@@ -79,73 +102,28 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'description': spec.get('description', '')
     }
 
-    # Keep boolean and other values as-is for the safeJson helper
-    # The template helper will handle proper formatting
+    # Add spec_data for template compatibility
+    result['spec_data'] = result
 
     print(f"Parsed spec for node type: {result['nodeType']}")
+    print(f"Number of fields: {len(result['fields'])}")
     
     return result
 
 
-def generate_python_model(inputs: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate a placeholder Python model for the node type."""
+def generate_python_model(inputs: Dict[str, Any]) -> str:
+    """Skip Python model generation - models are already generated from TypeScript."""
     # Get spec from inputs
     spec = inputs.get('spec', inputs.get('default', {}))
     if isinstance(spec, str):
         spec = json.loads(spec)
     
     node_type = spec['nodeType']
-    node_type_capitalized = node_type.capitalize()
     
-    # Create output directory - using the actual Python models location
-    # Use absolute path from project root
-    project_root = Path(__file__).parent.parent.parent.parent  # Navigate from files/code/codegen to project root
-    output_dir = project_root / 'dipeo/core/static/nodes'
-    output_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Python model generation skipped for {node_type} - models are generated from TypeScript")
+    print(f"The model should already exist in dipeo/core/static/generated_nodes.py")
     
-    # Generate Python model content
-    model_content = f"""# Generated Python model for {node_type} node
-from dataclasses import dataclass, field
-from typing import Optional, Literal
-from dipeo.core.static.generated_nodes import BaseNode
-from dipeo.models import NodeType
-
-@dataclass
-class {node_type_capitalized}Node(BaseNode):
-    type: NodeType = field(default=NodeType.{node_type}, init=False)
-"""
-
-    # Add fields based on spec
-    if 'fields' in spec:
-        for field_spec in spec['fields']:
-            field_name = field_spec['name']
-            field_type = field_spec.get('type', 'string')
-            required = field_spec.get('required', False)
-            
-            # Map field types to Python types
-            type_map = {
-                'string': 'str',
-                'number': 'float',
-                'boolean': 'bool',
-                'enum': f"Literal{field_spec.get('values', [])}"
-            }
-            python_type = type_map.get(field_type, 'str')
-            
-            # Check if field is required (handle both boolean and string)
-            if isinstance(required, str):
-                required = required.lower() == 'true'
-            if not required:
-                python_type = f"Optional[{python_type}]"
-                
-            model_content += f"    {field_name}: {python_type}\n"
-    
-    # Write the model file
-    output_path = output_dir / f"{node_type}_node.py"
-    with open(output_path, 'w') as f:
-        f.write(model_content)
-    
-    print(f"Generated Python model for {node_type} node at {output_path}")
-    return f"Generated Python model at {output_path}"
+    return f"Python model generation skipped - {node_type} model exists in generated_nodes.py"
 
 
 def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -165,15 +143,12 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
     camel_case_name = to_camel_case(spec['nodeType'])
     
     # Create list of expected generated files
-    # Use project root for absolute paths
-    project_root = Path(__file__).parent.parent.parent.parent
     expected_files = [
-        str(project_root / f"dipeo/models/src/nodes/{spec['nodeType']}Node.ts"),
-        str(project_root / f"dipeo/core/static/nodes/{spec['nodeType']}_node.py"), 
-        str(project_root / f"apps/server/src/dipeo_server/api/graphql/schema/nodes/{spec['nodeType']}.graphql"),
-        str(project_root / f"apps/web/src/features/diagram-editor/components/nodes/generated/{spec['nodeType']}Node.tsx"),
-        str(project_root / f"apps/web/src/features/diagram-editor/config/nodes/generated/{camel_case_name}Config.ts"),
-        str(project_root / f"apps/web/src/features/diagram-editor/config/nodes/generated/{camel_case_name}Fields.ts")
+        str(PROJECT_ROOT / f"dipeo/models/src/nodes/{spec['nodeType']}Node.ts"),
+        str(PROJECT_ROOT / f"apps/server/src/dipeo_server/api/graphql/schema/nodes/{spec['nodeType']}.graphql"),
+        str(PROJECT_ROOT / f"apps/web/src/features/diagram-editor/components/nodes/generated/{spec['nodeType']}Node.tsx"),
+        str(PROJECT_ROOT / f"apps/web/src/features/diagram-editor/config/nodes/generated/{camel_case_name}Config.ts"),
+        str(PROJECT_ROOT / f"apps/web/src/features/diagram-editor/config/nodes/generated/{camel_case_name}Fields.ts")
     ]
     
     # Check which files were actually generated
@@ -193,7 +168,7 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'files_missing': files_missing,
         'next_steps': [
             f"1. Add {spec['nodeType']} to NODE_TYPE_MAP in dipeo/models/src/conversions.ts",
-            f"2. Import and register {spec['nodeType']}Node in dipeo/core/static/generated_nodes.py",
+            f"2. Ensure {spec['nodeType']}Node is generated in dipeo/core/static/generated_nodes.py by running 'make codegen-models'",
             f"3. Add {spec['nodeType']} to the GraphQL schema union types",
             f"4. Register the node config in the frontend node registry",
             f"5. Run 'make codegen' to regenerate all derived files",
@@ -207,11 +182,13 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     # Write summary file
-    os.makedirs('output/generated', exist_ok=True)
-    with open('output/generated/registry_updates.json', 'w') as f:
+    output_dir = PROJECT_ROOT / 'output' / 'generated'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_dir / 'registry_updates.json', 'w') as f:
         json.dump(registry_updates, f, indent=2)
 
-    print(f"\nRegistry update summary written to output/generated/registry_updates.json")
+    print(f"\nRegistry update summary written to {output_dir / 'registry_updates.json'}")
     print(f"Generated {len(files_generated)} out of {len(expected_files)} expected files for {spec['nodeType']} node")
     
     if files_missing:
@@ -235,7 +212,6 @@ def register_node_types(inputs: Dict[str, Any]) -> Dict[str, Any]:
     pascal_case = node_type.capitalize()
     
     files_updated = []
-    errors = []
     
     print(f"Starting node registration for: {node_type}")
     

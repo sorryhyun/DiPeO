@@ -81,10 +81,13 @@ class TypedInputResolutionService:
             if not isinstance(output_value, dict):
                 output_value = {"default": output_value}
             
-            # Get the specific output key
             output_key = edge.source_output or "default"
             
-            # Log the output structure for debugging
+            # Debug logging
+            log.debug(f"    Edge from {edge.source_node_id} to {edge.target_node_id}")
+            log.debug(f"    edge.source_output: {edge.source_output}")
+            log.debug(f"    output_key: {output_key}")
+            log.debug(f"    output_value keys: {list(output_value.keys()) if isinstance(output_value, dict) else 'not a dict'}")
 
             # Check if the output has the requested key
             if output_key not in output_value:
@@ -98,7 +101,6 @@ class TypedInputResolutionService:
             
             # Get the input key where this should be placed
             input_key = edge.metadata.get("label") or edge.target_input or "default"
-            log.debug(f"    Will place at input key: {input_key}, value type: {type(output_value.get(output_key)) if isinstance(output_value, dict) else type(output_value)}")
 
             # Apply transformations or pass value directly
             value = output_value[output_key]
@@ -123,7 +125,6 @@ class TypedInputResolutionService:
             
             inputs[input_key] = value
         
-        log.debug(f"  Final inputs for {node_id}: {list(inputs.keys())}")
         return inputs
     
     def _should_process_edge(
@@ -154,9 +155,7 @@ class TypedInputResolutionService:
                     return edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
                 else:
                     return not edge.target_input or edge.target_input == "default"
-            # On subsequent executions, process all non-_first inputs
             else:
                 return not edge.target_input or not (edge.target_input == "first" or edge.target_input.endswith("_first"))
         
-        # For all other node types, process all edges
         return True
