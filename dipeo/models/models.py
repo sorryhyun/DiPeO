@@ -23,6 +23,7 @@ class NodeType(str, Enum):
     hook = "hook"
     template_job = "template_job"
     json_schema_validator = "json_schema_validator"
+    typescript_ast = "typescript_ast"
 
 class HandleDirection(str, Enum):
     input = "input"
@@ -421,6 +422,14 @@ class JsonSchemaValidatorNodeData(BaseNodeData):
     data_path: Optional[str] = Field(default=None)
     strict_mode: Optional[bool] = Field(default=None)
     error_on_extra: Optional[bool] = Field(default=None)
+
+class TypescriptAstNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    source: Optional[str] = Field(default=None)
+    extractPatterns: Optional[List[Literal["interface", "type", "enum", "class", "function", "const", "export"]]] = Field(default=None)
+    includeJSDoc: Optional[bool] = Field(default=None)
+    parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
 
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)

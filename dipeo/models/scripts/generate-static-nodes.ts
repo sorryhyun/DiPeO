@@ -124,6 +124,15 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
       { tsName: 'strict_mode', pyName: 'strict_mode', defaultValue: 'False' },
       { tsName: 'error_on_extra', pyName: 'error_on_extra', defaultValue: 'False' }
     ]
+  },
+  TypescriptAstNodeData: {
+    nodeType: 'typescript_ast',
+    fields: [
+      { tsName: 'source', pyName: 'source' },
+      { tsName: 'extractPatterns', pyName: 'extractPatterns', defaultValue: 'field(default_factory=lambda: ["interface", "type", "enum"])' },
+      { tsName: 'includeJSDoc', pyName: 'includeJSDoc', defaultValue: 'False' },
+      { tsName: 'parseMode', pyName: 'parseMode', defaultValue: '"module"' }
+    ]
   }
 };
 

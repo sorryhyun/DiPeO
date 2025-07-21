@@ -6,14 +6,14 @@ nodes:
   props:
     trigger_mode: manual
     custom_data:
-      node_spec_path: files/specifications/nodes/example_hook.json
+      node_spec_path: files/specifications/nodes/typescript_ast_parser.json
 - label: Load Node Spec
   type: db
   position: {x: 296, y: 89}
   props:
     operation: read
     sub_type: file
-    source_details: files/specifications/nodes/example_hook.json
+    source_details: files/specifications/nodes/typescript_ast_parser.json
 - label: Validate Spec
   type: json_schema_validator
   position: {x: 569, y: 248}
@@ -161,7 +161,7 @@ nodes:
     save_to_file: true
     file_format: md
     flipped: [false, false]
-    file_path: logs/codegen/hook_codegen_report.md
+    file_path: logs/codegen/typescript_ast_codegen_report.md
 connections:
 - from: Start
   to: Load Node Spec

@@ -10,6 +10,7 @@ from .person_batch_job import PersonBatchJobNodeHandler
 from .person_job import PersonJobNodeHandler
 from .start import StartNodeHandler
 from .template_job import TemplateJobNodeHandler
+from .typescript_ast import TypescriptAstNodeHandler
 from .user_response import UserResponseNodeHandler
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     "PersonJobNodeHandler",
     "StartNodeHandler",
     "TemplateJobNodeHandler",
+    "TypescriptAstNodeHandler",
     "UserResponseNodeHandler",
 ]

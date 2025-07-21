@@ -26,7 +26,8 @@ export enum NodeType {
   PERSON_BATCH_JOB = 'person_batch_job',
   HOOK = 'hook',
   TEMPLATE_JOB = 'template_job',
-  JSON_SCHEMA_VALIDATOR = 'json_schema_validator'
+  JSON_SCHEMA_VALIDATOR = 'json_schema_validator',
+  TYPESCRIPT_AST = 'typescript_ast'
 }
 
 export enum HandleDirection {
@@ -341,5 +342,12 @@ export interface JsonSchemaValidatorNodeData extends BaseNodeData {
   data_path?: string;  // Path to data file to validate
   strict_mode?: boolean;  // Whether to use strict validation
   error_on_extra?: boolean;  // Error on extra properties
+}
+
+export interface TypescriptAstNodeData extends BaseNodeData {
+  source?: string;  // TypeScript source code to parse
+  extractPatterns?: ('interface' | 'type' | 'enum' | 'class' | 'function' | 'const' | 'export')[];  // Patterns to extract
+  includeJSDoc?: boolean;  // Include JSDoc comments in the extracted data
+  parseMode?: 'module' | 'script';  // TypeScript parsing mode
 }
 

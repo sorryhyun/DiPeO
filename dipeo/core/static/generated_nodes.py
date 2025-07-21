@@ -257,6 +257,23 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
         return data
 
 @dataclass(frozen=True)
+class TypescriptAstNode(BaseExecutableNode):
+    type: NodeType = field(default=NodeType.typescript_ast, init=False)
+    source: Optional[str] = None
+    extractPatterns: Optional[List[str]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    includeJSDoc: Optional[bool] = False
+    parseMode: Optional[Literal["module", "script"]] = "module"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["source"] = self.source
+        data["extractPatterns"] = self.extractPatterns
+        data["includeJSDoc"] = self.includeJSDoc
+        data["parseMode"] = self.parseMode
+        return data
+
+@dataclass(frozen=True)
 class PersonBatchJobNode(PersonJobNode):
     """Person batch job node - same as PersonJobNode but with different type."""
     type: NodeType = field(default=NodeType.person_batch_job, init=False)
@@ -273,7 +290,10 @@ ExecutableNode = Union[
     UserResponseNode,
     NotionNode,
     PersonBatchJobNode,
-    HookNode
+    HookNode,
+    TemplateJobNode,
+    JsonSchemaValidatorNode,
+    TypescriptAstNode
 ]
 
 
@@ -450,6 +470,19 @@ def create_executable_node(
             data_path=data.get("data_path"),
             strict_mode=data.get("strict_mode", False),
             error_on_extra=data.get("error_on_extra", False),
+        )
+    
+    if node_type == NodeType.typescript_ast:
+        return TypescriptAstNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            source=data.get("source"),
+            extractPatterns=data.get("extractPatterns"),
+            includeJSDoc=data.get("includeJSDoc", False),
+            parseMode=data.get("parseMode", "module"),
         )
     
     if node_type == NodeType.person_batch_job:
