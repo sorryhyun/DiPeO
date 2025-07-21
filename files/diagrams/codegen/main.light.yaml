@@ -33,7 +33,7 @@ nodes:
   position: {x: 221, y: 785}
   props:
     template_path: files/templates/typescript_model.hbs
-    output_path: dipeo/models/src/nodes/{{nodeType}}Node.ts
+    output_path: dipeo/models/src/nodes/{{spec_data.nodeType}}Node.ts
     engine: handlebars
 - label: Generate Python Models
   type: code_job
@@ -48,14 +48,14 @@ nodes:
   position: {x: 211, y: 947}
   props:
     template_path: files/templates/graphql_schema.hbs
-    output_path: apps/server/src/dipeo_server/api/graphql/schema/nodes/{{nodeType}}.graphql
+    output_path: apps/server/src/dipeo_server/api/graphql/schema/nodes/{{spec_data.nodeType}}.graphql
     engine: handlebars
 - label: Generate React Component
   type: template_job
   position: {x: 218, y: 1275}
   props:
     template_path: files/templates/react_component.hbs
-    output_path: apps/web/src/features/diagram-editor/components/nodes/generated/{{nodeType}}Node.tsx
+    output_path: apps/web/src/features/diagram-editor/components/nodes/generated/{{spec_data.nodeType}}Node.tsx
     engine: handlebars
     flipped: [false, false]
 - label: Generate Node Config
@@ -230,10 +230,6 @@ connections:
   to: Register Node Types
   content_type: object
   label: registry_updates
-- from: Parse Spec Data
-  to: Register Node Types
-  content_type: object
-  label: spec
 - from: Register Node Types
   to: Verify Generated Code
   content_type: object
@@ -242,10 +238,6 @@ connections:
   to: Verify Generated Code
   content_type: object
   label: registry_updates
-- from: Parse Spec Data
-  to: Verify Generated Code
-  content_type: object
-  label: spec
 - from: Verify Generated Code
   to: Success Report
   content_type: raw_text
@@ -268,9 +260,9 @@ connections:
 persons:
   Person 1:
     service: openai
-    model: gpt-4.1-nano
+    model: gpt-4.1-mini
     api_key_id: APIKEY_52609F
   Person 2:
     service: openai
-    model: gpt-4.1-nano
+    model: gpt-4.1-mini
     api_key_id: APIKEY_52609F

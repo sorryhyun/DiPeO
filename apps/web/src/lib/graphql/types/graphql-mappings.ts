@@ -50,6 +50,6 @@ export interface ArrowData {
   controlPointOffsetY?: number;
   loopRadius?: number;
   branch?: 'true' | 'false';
-  content_type?: 'raw_text' | 'variable_in_object' | 'conversation_state' | 'object' | 'empty' | 'generic';
+  content_type?: 'raw_text' | 'conversation_state' | 'object' | 'empty' | 'generic';
   [key: string]: unknown;
 }

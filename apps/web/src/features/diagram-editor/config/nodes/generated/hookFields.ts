@@ -31,6 +31,12 @@ export const hookFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: 'https://api.example.com/webhook',
     description: 'Webhook URL (for HTTP hooks)',
+    validate: (value: unknown) => {
+      if (typeof value === 'string' && !new RegExp('^https?://').test(value)) {
+        return { isValid: false, error: 'Invalid format' };
+      }
+      return { isValid: true };
+    },
   },
   {
     name: 'timeout',
@@ -39,6 +45,15 @@ export const hookFields: UnifiedFieldDefinition[] = [
     required: false,
     defaultValue: 60,
     description: 'Execution timeout in seconds',
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value < 1) {
+        return { isValid: false, error: 'Value must be at least 1' };
+      }
+      if (typeof value === 'number' && value > 300) {
+        return { isValid: false, error: 'Value must be at most 300' };
+      }
+      return { isValid: true };
+    },
   },
   {
     name: 'retry_count',
@@ -46,5 +61,11 @@ export const hookFields: UnifiedFieldDefinition[] = [
     label: 'Retry Count',
     required: false,
     description: 'Number of retries on failure',
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value > 5) {
+        return { isValid: false, error: 'Value must be at most 5' };
+      }
+      return { isValid: true };
+    },
   },
 ];

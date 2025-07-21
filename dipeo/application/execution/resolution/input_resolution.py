@@ -111,11 +111,6 @@ class TypedInputResolutionService:
                         except json.JSONDecodeError:
                             log.debug(f"Could not parse JSON for object content type")
                 
-                elif content_type == 'variable':
-                    # Legacy variable extraction
-                    extract_field = edge.data_transform.get('rules', {}).get('extract_variable')
-                    if extract_field and isinstance(value, dict):
-                        value = value.get(extract_field)
             
             inputs[input_key] = value
         

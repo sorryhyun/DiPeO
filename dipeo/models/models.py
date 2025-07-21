@@ -69,7 +69,6 @@ class DBBlockSubType(str, Enum):
     api_tool = "api_tool"
 
 class ContentType(str, Enum):
-    variable = "variable"
     raw_text = "raw_text"
     conversation_state = "conversation_state"
     object = "object"

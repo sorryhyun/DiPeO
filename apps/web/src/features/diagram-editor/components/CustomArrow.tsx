@@ -63,7 +63,6 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
     if (arrowData?.content_type) {
       const icons: Record<string, string> = {
         'conversation_state': '💬',
-        'variable_in_object': '📦',
         'object': '🔗',
         'raw_text': '📝',
         'empty': '⚪',

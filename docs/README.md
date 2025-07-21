@@ -198,9 +198,8 @@ Control how agents remember conversations:
 ### Connection Types
 
 1. **raw_text**: Plain text output
-2. **variable**: Structured data from code
-3. **conversation_state**: Full conversation history
-4. **object**: Complex data structures
+2. **conversation_state**: Full conversation history
+3. **object**: Complex data structures
 
 ### Using Labels
 

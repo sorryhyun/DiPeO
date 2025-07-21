@@ -37,7 +37,6 @@ export const arrowFields: TypedPanelFieldConfig<ExtendedArrowData>[] = [
     column: 2,
     options: [
       { value: 'raw_text', label: 'Raw Text' },
-      { value: 'variable_in_object', label: 'Variable in Object' },
       { value: 'conversation_state', label: 'Conversation State' },
       { value: 'object', label: 'Object' }
     ],
@@ -54,7 +53,6 @@ export const arrowFields: TypedPanelFieldConfig<ExtendedArrowData>[] = [
     column: 2,
     options: [
       { value: 'raw_text', label: 'Raw Text' },
-      { value: 'variable_in_object', label: 'Variable in Object' },
       { value: 'conversation_state', label: 'Conversation State' },
       { value: 'object', label: 'Object' },
       { value: 'generic', label: 'Generic' }
@@ -81,17 +79,6 @@ export const arrowFields: TypedPanelFieldConfig<ExtendedArrowData>[] = [
       operator: 'equals'
     }
   },
-  {
-    name: 'objectKeyPath' as keyof ExtendedArrowData & string,
-    type: 'text',
-    label: 'Object Key Path',
-    placeholder: 'e.g., user.name or data.items[0].value',
-    column: 1,
-    conditional: {
-      field: 'content_type',
-      values: ['variable_in_object']
-    }
-  }
 ];
 
 /**

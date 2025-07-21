@@ -1,8 +1,8 @@
-// Generated field configuration for {{nodeType}}
+// Generated field configuration for {{spec_data.nodeType}}
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
-export const {{camelCase nodeType}}Fields: UnifiedFieldDefinition[] = [
-  {{#each fields}}
+export const {{spec_data.camelCase}}Fields: UnifiedFieldDefinition[] = [
+  {{#each spec_data.fields}}
   {
     name: '{{name}}',
     type: '{{#if (eq type 'enum')}}select{{else}}{{#if (eq type 'boolean')}}checkbox{{else}}{{#if (eq type 'number')}}number{{else}}{{#if (eq type 'code')}}textarea{{else}}text{{/if}}{{/if}}{{/if}}{{/if}}',
@@ -25,7 +25,24 @@ export const {{camelCase nodeType}}Fields: UnifiedFieldDefinition[] = [
     ],
     {{/if}}
     {{#if validation}}
-    validate: {{{safeJson validation}}},
+    validate: (value: unknown) => {
+      {{#if validation.pattern}}
+      if (typeof value === 'string' && !new RegExp('{{{validation.pattern}}}').test(value)) {
+        return { isValid: false, error: 'Invalid format' };
+      }
+      {{/if}}
+      {{#if validation.min}}
+      if (typeof value === 'number' && value < {{validation.min}}) {
+        return { isValid: false, error: 'Value must be at least {{validation.min}}' };
+      }
+      {{/if}}
+      {{#if validation.max}}
+      if (typeof value === 'number' && value > {{validation.max}}) {
+        return { isValid: false, error: 'Value must be at most {{validation.max}}' };
+      }
+      {{/if}}
+      return { isValid: true };
+    },
     {{/if}}
   },
   {{/each}}

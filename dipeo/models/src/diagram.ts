@@ -81,7 +81,6 @@ export enum DBBlockSubType {
 }
 
 export enum ContentType {
-  VARIABLE = 'variable',
   RAW_TEXT = 'raw_text',
   CONVERSATION_STATE = 'conversation_state',
   OBJECT = 'object'

@@ -1,4 +1,7 @@
+import React from 'react';
+import type { NodeProps } from '@xyflow/react';
 import ConfigurableNode from '../ConfigurableNode';
 
-// HookNode is just ConfigurableNode - React Flow will pass all necessary props
-export const HookNode = ConfigurableNode;
+export function HookNode(props: NodeProps) {
+  return <ConfigurableNode {...props} />;
+}

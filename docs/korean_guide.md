@@ -54,6 +54,47 @@ c에서 a와 b 대화를 로드 -> ?
 그래서 현실 업무와 최대한 유사한 'person' 개념을 도입했습니다. person은 LLM API 그 자체로, 다이어그램 플로우대로 실행하는 작업들과 별개로 자체적인 컨텍스트와 기억을 가지고 있습니다. 때문에, person job을 통해 person이 수행하는 작업 블록을 놓고 각각 person a와 b를 할당한 다음, 다음 작업에서 person c를 할당하더라도 기존의 대화를 전부 기억합니다.
 다만 기억하기 원하지 않는 경우, person job 블록에서 'forget' 속성을 눌러 'forget upon request'를 사용하면 앞서서 한 대화를 잊고 오로지 자신에게 온 요청만 읽어들입니다.
 
+## Install guide
 
+### node, pnpm 설치
+
+[여기](https://nodejs.org/ko/download)서 윈도우, 맥, 리눅스 각자 맞는 환경에서, 아무 방식이나 고른 다음 pnpm을 설치하시면 됩니다.
+
+### 파이썬 설치
+
+[여기](https://www.python.org/downloads/release/python-3130/)서 맨 아래로 내려간 다음, 윈도우의 경우 windows installer 64-bit, 맥 유저의 경우 다른거 등 version 쪽의 링크를 클릭하여 설치하시면 됩니다.
+
+### git 설치
+
+[여기](https://git-scm.com/book/ko/v2/%EC%8B%9C%EC%9E%91%ED%95%98%EA%B8%B0-Git-%EC%84%A4%EC%B9%98)서 git을 설치해주세요.
+
+### 프로젝트 복사
+
+적당한 위치에서 powershell을 연 다음, `git clone https://github.com/sorryhyun/DiPeO.git` 을 입력하면 프로젝트가 받아집니다.
+
+### 환경 설치
+
+프로젝트를 받은 다음 DiPeO 폴더로 들어가서, 다음 명령어들을 실행합니다:
+
+```bash
+make install    # 모든 필요 요소 설치
+make codegen    # 코드 생성
+```
+
+### 실행
+
+다음 중 하나를 선택하여 실행합니다:
+
+### 방법 1: 모든 서버 동시 실행 (권장)
+```bash
+make dev-all
+```
+
+### 방법 2: 개별 서버 실행
+터미널을 두 개 열어서:
+- 첫 번째 터미널에서 `make dev-server` 실행 (백엔드 서버)
+- 두 번째 터미널에서 `make dev-web` 실행 (프론트엔드 서버)
+
+브라우저 주소에 http://localhost:3000/ 을 입력하고 누르면 다이어그램을 만드는 창이 나오게 됩니다.
 
 

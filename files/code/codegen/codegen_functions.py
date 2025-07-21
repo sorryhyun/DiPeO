@@ -83,6 +83,11 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     def to_camel_case(snake_str):
         components = snake_str.split('_')
         return components[0] + ''.join(x.capitalize() for x in components[1:])
+    
+    # Helper function to convert to PascalCase
+    def to_pascal_case(snake_str):
+        components = snake_str.split('_')
+        return ''.join(x.capitalize() for x in components)
 
     # Ensure we have the required nodeType field
     if 'nodeType' not in spec:
@@ -94,6 +99,7 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'spec': spec,
         'nodeType': spec['nodeType'],
         'camelCase': to_camel_case(spec['nodeType']),
+        'pascalCase': to_pascal_case(spec['nodeType']),
         'displayName': spec.get('displayName', spec['nodeType']),
         'fields': spec.get('fields', []),
         'handles': spec.get('handles', {}),
@@ -202,6 +208,7 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
     # Return with default key for connection resolution
     return {
         'default': registry_updates,
+        'spec': spec,  # Pass spec through for register_node_types
         **registry_updates
     }
 

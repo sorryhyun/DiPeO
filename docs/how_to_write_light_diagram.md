@@ -29,7 +29,7 @@ nodes:
 connections:
   - from: Source Node
     to: Target Node
-    content_type: raw_text  # or variable, conversation_state
+    content_type: raw_text  # or conversation_state, object
     label: optional_label
 ```
 
@@ -95,14 +95,16 @@ Control flow based on conditions:
 
 ### 4. **code_job** - Code Execution
 
-Execute Python, JavaScript, or Bash code:
+Execute Python, TypeScript, Bash, or Shell code either inline or from external files:
+
+#### Option 1: Inline Code
 
 ```yaml
 - label: Process Data
   type: code_job
   position: {x: 400, y: 200}
   props:
-    code_type: python  # or javascript, bash
+    code_type: python  # or typescript, bash, shell
     code: |
       # Access input variables from connections
       data = raw_data  # Variable from connection labeled 'raw_data'
@@ -121,12 +123,34 @@ Execute Python, JavaScript, or Bash code:
       # Variables not assigned to 'result' won't be passed forward
 ```
 
+#### Option 2: External Code File (Recommended for complex logic)
+
+```yaml
+- label: Process Data
+  type: code_job
+  position: {x: 400, y: 200}
+  props:
+    code_type: python  # or typescript, bash, shell
+    code: files/code/my_functions.py  # Path to code file
+    functionName: process_data  # Specific function to call
+
+# The external file should contain:
+# def process_data(raw_data, other_input):
+#     processed = raw_data.upper()
+#     return processed
+```
+
 **Important Notes for code_job:**
 - Variables from incoming connections are available by their label names
-- To pass data to subsequent nodes, you MUST either:
+- For inline code, you MUST either:
   - Assign the output to a variable named `result`
   - Use a `return` statement (the code will be wrapped in a function)
-- If neither `result` nor `return` is used, the node outputs "Code executed successfully"
+- For external files:
+  - Specify the file path in the `code` field
+  - Use `functionName` to specify which function to call
+  - The function receives input variables as arguments
+  - The function's return value is passed to subsequent nodes
+- If neither `result` nor `return` is used (inline), the node outputs "Code executed successfully"
 - The `print()` function is not supported and won't produce output
 
 ### 5. **endpoint** - Output/Save
@@ -225,7 +249,7 @@ connections:
     
   - from: Code Job
     to: Person Job
-    content_type: variable        # Variables from code execution
+    content_type: object          # Structured data from code execution
 ```
 
 ### Named Connections (Important!)
@@ -372,7 +396,7 @@ connections:
     
   - from: Pessimist View
     to: Optimist View
-    content_type: variable
+    content_type: raw_text
 ```
 
 ## Complete Examples
@@ -425,10 +449,18 @@ connections:
     to: Save Answer
 ```
 
-### Example 2: Iterative Code Execution
+### Example 2: Iterative Code Execution with External Files
 
 ```yaml
 version: light
+
+# The external file (files/code/iteration_functions.py) would contain:
+# def initialize_counter():
+#     return {"counter": 0, "status": "Starting..."}
+#
+# def increment_counter(counter, status):
+#     new_counter = counter + 1
+#     return {"counter": new_counter, "status": f"Processed {new_counter} times"}
 
 nodes:
   - label: Start
@@ -440,19 +472,16 @@ nodes:
     position: {x: 200, y: 200}
     props:
       code_type: python
-      code: |
-        counter = 0
-        result = "Starting..."
+      code: files/code/iteration_functions.py
+      functionName: initialize_counter
         
   - label: Process
     type: code_job
     position: {x: 400, y: 200}
     props:
       code_type: python
-      code: |
-        counter += 1
-        print(f"Iteration {counter}")
-        result = f"Processed {counter} times"
+      code: files/code/iteration_functions.py
+      functionName: increment_counter
         
   - label: Check Done
     type: condition
@@ -491,6 +520,7 @@ connections:
 5. **Use Comments** - YAML supports # comments for documentation
 6. **Variable Naming** - Use clear, consistent variable names in templates
 7. **Position Nodes Logically** - Left-to-right flow improves readability
+8. **Code Organization** - Use external files for complex logic (10+ lines) or reusable functions
 
 ## Running Light Diagrams
 

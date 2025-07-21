@@ -1,14 +1,7 @@
 import React from 'react';
-import type { {{pascalCase nodeType}}NodeData } from '@/core/types';
+import type { NodeProps } from '@xyflow/react';
 import ConfigurableNode from '../ConfigurableNode';
 
-export function {{pascalCase nodeType}}Node({ data }: { data: {{pascalCase nodeType}}NodeData }) {
-  return (
-    <ConfigurableNode
-      nodeType="{{nodeType}}"
-      data={data}
-      icon="{{icon}}"
-      color="{{color}}"
-    />
-  );
+export function {{spec_data.pascalCase}}Node(props: NodeProps) {
+  return <ConfigurableNode {...props} />;
 }

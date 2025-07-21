@@ -1,5 +1,4 @@
 import { Position } from '@xyflow/react';
-import { HandleLabel } from '@dipeo/domain-models';
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import type { HookNodeData } from '@/core/types';
 import { hookFields } from './hookFields';
@@ -12,11 +11,11 @@ export const HookNodeConfig: UnifiedNodeConfig<HookNodeData> = {
   
   handles: {
     input: [
-      { id: HandleLabel.DEFAULT, position: Position.Left },
+      { id: 'trigger', position: Position.Left },
     ],
     output: [
-      { id: HandleLabel.SUCCESS, position: Position.Right },
-      { id: HandleLabel.ERROR, position: Position.Right },
+      { id: 'success', position: Position.Right },
+      { id: 'error', position: Position.Right },
     ]
   },
   
