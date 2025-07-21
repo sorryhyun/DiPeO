@@ -223,8 +223,24 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                     return ' '.join(word.capitalize() for word in result.split())
                 return str(value)
             
+            def safe_json(this, value):
+                """Serialize value to JSON for use in TypeScript/JavaScript code."""
+                if value is None:
+                    return 'null'
+                elif isinstance(value, bool):
+                    return 'true' if value else 'false'
+                elif isinstance(value, str):
+                    # For string values in TypeScript, use single quotes
+                    return f"'{value}'"
+                elif isinstance(value, (list, dict)):
+                    # For objects and arrays, use JSON serialization without indentation
+                    return json.dumps(value, separators=(', ', ': '))
+                else:
+                    return json.dumps(value)
+            
             helpers = {
                 'json': lambda this, value: json.dumps(value),
+                'safeJson': safe_json,
                 'pascalCase': lambda this, value: ''.join(word.capitalize() for word in value.split('_')),
                 'camelCase': lambda this, value: value[0].lower() + ''.join(word.capitalize() for word in value.split('_'))[1:] if value else '',
                 'upperCase': lambda this, value: value.upper(),

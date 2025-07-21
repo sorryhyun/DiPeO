@@ -2,9 +2,9 @@
 
 import json
 import logging
-import re
 from typing import Any
 
+from dipeo.application.utils.template import TemplateProcessor
 from dipeo.core import ServiceError, ValidationError
 from dipeo.domain.api.value_objects import RetryPolicy, RetryStrategy
 from dipeo.models.models import HttpMethod
@@ -14,6 +14,9 @@ log = logging.getLogger(__name__)
 
 class APIBusinessLogic:
     """Pure business logic for API operations."""
+    
+    def __init__(self):
+        self._template_processor = TemplateProcessor()
 
     def validate_api_response(
         self,
@@ -92,13 +95,8 @@ class APIBusinessLogic:
     def substitute_variables(self, data: Any, context: dict[str, Any]) -> Any:
         """Substitute template variables in data."""
         if isinstance(data, str):
-            pattern = r"\{(\w+)\}"
-            
-            def replacer(match):
-                var_name = match.group(1)
-                return str(context.get(var_name, match.group(0)))
-                
-            return re.sub(pattern, replacer, data)
+            # Use TemplateProcessor for single brace variable substitution
+            return self._template_processor.process_single_brace(data, context)
             
         if isinstance(data, dict):
             return {k: self.substitute_variables(v, context) for k, v in data.items()}

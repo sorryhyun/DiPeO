@@ -1,15 +1,14 @@
 {
   "nodeType": "hook",
   "files_generated": [
-    "output/generated/python/hook_node.py"
+    "/home/soryhyun/DiPeO/dipeo/models/src/nodes/hookNode.ts",
+    "/home/soryhyun/DiPeO/dipeo/core/static/nodes/hook_node.py",
+    "/home/soryhyun/DiPeO/apps/server/src/dipeo_server/api/graphql/schema/nodes/hook.graphql",
+    "/home/soryhyun/DiPeO/apps/web/src/features/diagram-editor/components/nodes/generated/hookNode.tsx",
+    "/home/soryhyun/DiPeO/apps/web/src/features/diagram-editor/config/nodes/generated/hookConfig.ts",
+    "/home/soryhyun/DiPeO/apps/web/src/features/diagram-editor/config/nodes/generated/hookFields.ts"
   ],
-  "files_missing": [
-    "output/generated/hookNode.ts",
-    "output/generated/hook.graphql",
-    "output/generated/hookNode.tsx",
-    "output/generated/hookConfig.ts",
-    "output/generated/hookFields.ts"
-  ],
+  "files_missing": [],
   "next_steps": [
     "1. Add hook to NODE_TYPE_MAP in dipeo/models/src/conversions.ts",
     "2. Import and register hookNode in dipeo/core/static/generated_nodes.py",
@@ -20,7 +19,7 @@
   ],
   "generation_summary": {
     "total_expected": 6,
-    "total_generated": 1,
-    "success_rate": "16.7%"
+    "total_generated": 6,
+    "success_rate": "100.0%"
   }
 }

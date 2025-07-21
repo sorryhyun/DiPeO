@@ -104,6 +104,26 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
       { tsName: 'retry_count', pyName: 'retry_count' },
       { tsName: 'retry_delay', pyName: 'retry_delay' }
     ]
+  },
+  TemplateJobNodeData: {
+    nodeType: 'template_job',
+    fields: [
+      { tsName: 'template_path', pyName: 'template_path' },
+      { tsName: 'template_content', pyName: 'template_content' },
+      { tsName: 'output_path', pyName: 'output_path' },
+      { tsName: 'variables', pyName: 'variables' },
+      { tsName: 'engine', pyName: 'engine', defaultValue: '"internal"' }
+    ]
+  },
+  JsonSchemaValidatorNodeData: {
+    nodeType: 'json_schema_validator',
+    fields: [
+      { tsName: 'schema_path', pyName: 'schema_path' },
+      { tsName: 'schema', pyName: 'schema' },
+      { tsName: 'data_path', pyName: 'data_path' },
+      { tsName: 'strict_mode', pyName: 'strict_mode', defaultValue: 'False' },
+      { tsName: 'error_on_extra', pyName: 'error_on_extra', defaultValue: 'False' }
+    ]
   }
 };
 

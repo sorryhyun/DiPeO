@@ -29,14 +29,7 @@ if TYPE_CHECKING:
 @register_handler
 class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     
-    def __init__(self, template_service=None):
-        if template_service is not None:
-            warnings.warn(
-                "Passing template_service to CodeJobNodeHandler is deprecated. "
-                "It now uses the unified TemplateProcessor internally.",
-                DeprecationWarning,
-                stacklevel=2
-            )
+    def __init__(self):
         self._processor = TemplateProcessor()
 
     @property

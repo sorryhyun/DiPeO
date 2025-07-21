@@ -59,35 +59,27 @@ class TypedInputResolutionService:
             if not source_output:
                 continue
             
-            # Handle different source_output formats
+            # Extract value from source output
             if isinstance(source_output, NodeOutputProtocol):
-                # Protocol output - extract value based on type
                 if isinstance(source_output, ConditionOutput):
+                    # Special handling for condition outputs
                     if source_output.value:  # True branch
                         output_value = {"condtrue": source_output.true_output or {}}
                     else:  # False branch
                         output_value = {"condfalse": source_output.false_output or {}}
-                elif source_output.__class__.__name__ == 'DataOutput':
-                    # DataOutput stores dict directly in value
-                    output_value = source_output.value
-                    # Ensure it's wrapped properly for output key access
-                    if isinstance(output_value, dict) and 'default' not in output_value:
-                        # If no 'default' key, wrap the entire dict
-                        output_value = {"default": output_value}
                 else:
-                    # Regular protocol output - get value directly
+                    # All other protocol outputs - get value directly
                     output_value = source_output.value
-                    # Wrap non-dict values
-                    if not isinstance(output_value, dict):
-                        output_value = {"default": output_value}
             elif isinstance(source_output, dict) and "value" in source_output:
-                # Dict with proper structure
+                # Legacy dict format
                 output_value = source_output["value"]
-                if not isinstance(output_value, dict):
-                    output_value = {"default": output_value}
             else:
-                # Raw value - wrap as dict
-                output_value = {"default": source_output}
+                # Raw value
+                output_value = source_output
+            
+            # Ensure output_value is a dict for key access
+            if not isinstance(output_value, dict):
+                output_value = {"default": output_value}
             
             # Get the specific output key
             output_key = edge.source_output or "default"
@@ -108,70 +100,28 @@ class TypedInputResolutionService:
             input_key = edge.metadata.get("label") or edge.target_input or "default"
             log.debug(f"    Will place at input key: {input_key}, value type: {type(output_value.get(output_key)) if isinstance(output_value, dict) else type(output_value)}")
 
-            # Special handling for condition node outputs with labels
-            if (edge.source_output in ["condtrue", "condfalse"] and 
-                input_key != "default" and 
-                isinstance(output_value.get(output_key), dict) and 
-                input_key in output_value[output_key]):
-                # Extract the specific value to avoid nesting
-                output_value[output_key] = output_value[output_key][input_key]
-
-            # Apply any transformations if specified
+            # Apply transformations or pass value directly
+            value = output_value[output_key]
+            
             if edge.data_transform:
                 content_type = edge.data_transform.get('content_type')
                 
-                if content_type == 'conversation_state':
-                    # For conversation_state, pass the conversation data directly
-                    value = output_value[output_key]
-                    if isinstance(value, dict) and 'messages' in value:
-                        inputs[input_key] = value
-                    else:
-                        inputs[input_key] = value
-                
-                elif content_type == 'object':
-                    # For object type, pass the complete output value as-is
-                    # This preserves the entire structure for dot notation access
-                    value = output_value[output_key]
-                    
-                    # Special handling for DataOutput - if output_key is 'default' and the source
-                    # is a DataOutput with a dict value, pass the entire dict
-                    if (output_key == 'default' and 
-                        isinstance(source_output, NodeOutputProtocol) and 
-                        source_output.__class__.__name__ == 'DataOutput' and
-                        isinstance(value, dict)):
-                        # Pass the entire dict from DataOutput
-                        inputs[input_key] = value
-                    # If value is a string that looks like JSON, try to parse it
-                    elif isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                if content_type == 'object' and isinstance(value, str):
+                    # Try to parse JSON strings for object content type
+                    if value.strip() and value.strip()[0] in '{[':
                         try:
                             import json
-                            parsed_value = json.loads(value)
-                            inputs[input_key] = parsed_value
+                            value = json.loads(value)
                         except json.JSONDecodeError:
-                            # Fallback: if parsing fails, pass the raw text
-                            log.warning(f"Failed to parse JSON for object content type on edge to {node_id}, using raw text")
-                            inputs[input_key] = value
-                    else:
-                        # Value is already an object or not a JSON string
-                        inputs[input_key] = value
+                            log.debug(f"Could not parse JSON for object content type")
                 
                 elif content_type == 'variable':
-                    # Legacy variable extraction - extract specific field if specified
-                    # This maintains backward compatibility
+                    # Legacy variable extraction
                     extract_field = edge.data_transform.get('rules', {}).get('extract_variable')
-                    if extract_field and isinstance(output_value[output_key], dict):
-                        # Extract the specific field
-                        inputs[input_key] = output_value[output_key].get(extract_field)
-                    else:
-                        # No extraction specified, pass value directly
-                        inputs[input_key] = output_value[output_key]
-                
-                else:
-                    # Default behavior - pass the value directly
-                    inputs[input_key] = output_value[output_key]
-            else:
-                # Store the input directly
-                inputs[input_key] = output_value[output_key]
+                    if extract_field and isinstance(value, dict):
+                        value = value.get(extract_field)
+            
+            inputs[input_key] = value
         
         log.debug(f"  Final inputs for {node_id}: {list(inputs.keys())}")
         return inputs

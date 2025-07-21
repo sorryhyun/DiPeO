@@ -1,10 +1,10 @@
 import { Position } from '@xyflow/react';
-import { UnifiedNodeConfig } from '../types';
-import { {{pascalCase nodeType}}NodeData } from '@/core/types';
-import { {{camelCase nodeType}}Fields } from './__generated__/fields';
+import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import type { {{pascalCase nodeType}}NodeData } from '@/core/types';
+import { {{camelCase nodeType}}Fields } from './{{camelCase nodeType}}Fields';
 
 export const {{pascalCase nodeType}}NodeConfig: UnifiedNodeConfig<{{pascalCase nodeType}}NodeData> = {
-  nodeType: '{{nodeType}}',
+  nodeType: '{{nodeType}}' as const,
   label: '{{displayName}}',
   icon: '{{icon}}',
   color: '{{color}}',
@@ -30,7 +30,7 @@ export const {{pascalCase nodeType}}NodeConfig: UnifiedNodeConfig<{{pascalCase n
     label: '{{displayName}}',
     {{#each fields}}
     {{#if defaultValue}}
-    {{name}}: {{json defaultValue}},
+    {{name}}: {{{safeJson defaultValue}}},
     {{/if}}
     {{/each}}
   },

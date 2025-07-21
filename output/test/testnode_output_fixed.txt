@@ -1,2 +1,0 @@
-Node Type: testnode
-Display Name: Test Node

@@ -7,7 +7,7 @@ type {{pascalCase nodeType}}NodeData implements NodeData {
   label: String!
   position: Position!
   {{#each fields}}
-  {{name}}: {{#if (eq type 'string')}}String{{else}}{{#if (eq type 'number')}}Float{{else}}{{#if (eq type 'boolean')}}Boolean{{else}}{{#if (eq type 'enum')}}{{pascalCase name}}Type{{else}}String{{/if}}{{/if}}{{/if}}{{/if}}{{#unless required}}{{/unless}}
+  {{name}}: {{#if (eq type 'string')}}String{{else}}{{#if (eq type 'number')}}Float{{else}}{{#if (eq type 'boolean')}}Boolean{{else}}{{#if (eq type 'enum')}}{{pascalCase name}}{{else}}String{{/if}}{{/if}}{{/if}}{{/if}}{{#unless required}}{{/unless}}
   {{/each}}
   flipped: Boolean
 }
@@ -16,14 +16,14 @@ input {{pascalCase nodeType}}NodeInput {
   label: String!
   position: PositionInput!
   {{#each fields}}
-  {{name}}: {{#if (eq type 'string')}}String{{else}}{{#if (eq type 'number')}}Float{{else}}{{#if (eq type 'boolean')}}Boolean{{else}}{{#if (eq type 'enum')}}{{pascalCase name}}Type{{else}}String{{/if}}{{/if}}{{/if}}{{/if}}{{#unless required}}{{/unless}}
+  {{name}}: {{#if (eq type 'string')}}String{{else}}{{#if (eq type 'number')}}Float{{else}}{{#if (eq type 'boolean')}}Boolean{{else}}{{#if (eq type 'enum')}}{{pascalCase name}}{{else}}String{{/if}}{{/if}}{{/if}}{{/if}}{{#unless required}}{{/unless}}
   {{/each}}
   flipped: Boolean
 }
 
 {{#each fields}}
 {{#if (eq type 'enum')}}
-enum {{pascalCase name}}Type {
+enum {{pascalCase name}} {
   {{#each values}}
   {{upperCase this}}
   {{/each}}

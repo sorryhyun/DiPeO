@@ -1,4 +1,6 @@
 // Generated field configuration for {{nodeType}}
+import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+
 export const {{camelCase nodeType}}Fields: UnifiedFieldDefinition[] = [
   {{#each fields}}
   {
@@ -7,7 +9,7 @@ export const {{camelCase nodeType}}Fields: UnifiedFieldDefinition[] = [
     label: '{{humanize name}}',
     required: {{required}},
     {{#if defaultValue}}
-    defaultValue: {{json defaultValue}},
+    defaultValue: {{{safeJson defaultValue}}},
     {{/if}}
     {{#if placeholder}}
     placeholder: '{{placeholder}}',
@@ -23,7 +25,7 @@ export const {{camelCase nodeType}}Fields: UnifiedFieldDefinition[] = [
     ],
     {{/if}}
     {{#if validation}}
-    validation: {{json validation}},
+    validation: {{{safeJson validation}}},
     {{/if}}
   },
   {{/each}}

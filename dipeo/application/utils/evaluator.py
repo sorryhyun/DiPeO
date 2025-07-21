@@ -5,13 +5,9 @@ import operator
 from typing import Any
 
 from dipeo.models import DomainDiagram, NodeType
-from dipeo.application.utils.template import TemplateProcessor
 
 
 class ConditionEvaluator:
-    
-    def __init__(self):
-        self._processor = TemplateProcessor()
 
     
     def check_nodes_executed(

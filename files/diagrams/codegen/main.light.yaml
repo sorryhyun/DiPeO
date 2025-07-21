@@ -6,7 +6,7 @@ nodes:
   props:
     trigger_mode: manual
     custom_data:
-      node_spec_path: "{{NODE_SPEC_PATH}}"
+      node_spec_path: "files/specifications/nodes/example_hook.json"
     output_data_structure:
       node_spec_path: string
 
@@ -16,7 +16,7 @@ nodes:
   props:
     operation: read
     sub_type: file
-    source_details: files/specifications/nodes/example_hook.json
+    source_details: "files/specifications/nodes/example_hook.json"
 
 - label: Validate Spec
   type: json_schema_validator
@@ -38,7 +38,7 @@ nodes:
   position: {x: 300, y: 500}
   props:
     template_path: files/templates/typescript_model.hbs
-    output_path: "output/generated/{{nodeType}}Node.ts"
+    output_path: "dipeo/models/src/nodes/{{spec_data.nodeType}}Node.ts"
     engine: handlebars
 
 - label: Generate Python Models
@@ -54,7 +54,7 @@ nodes:
   position: {x: 700, y: 500}
   props:
     template_path: files/templates/graphql_schema.hbs
-    output_path: "output/generated/{{nodeType}}.graphql"
+    output_path: "apps/server/src/dipeo_server/api/graphql/schema/nodes/{{spec_data.nodeType}}.graphql"
     engine: handlebars
 
 - label: Generate React Component
@@ -62,7 +62,7 @@ nodes:
   position: {x: 900, y: 500}
   props:
     template_path: files/templates/react_component.hbs
-    output_path: "output/generated/{{nodeType}}Node.tsx"
+    output_path: "apps/web/src/features/diagram-editor/components/nodes/generated/{{spec_data.nodeType}}Node.tsx"
     engine: handlebars
 
 - label: Generate Node Config
@@ -70,7 +70,7 @@ nodes:
   position: {x: 1100, y: 500}  
   props:
     template_path: files/templates/node_config.hbs
-    output_path: "output/generated/{{nodeType}}Config.ts"
+    output_path: "apps/web/src/features/diagram-editor/config/nodes/generated/{{spec_data.camelCase}}Config.ts"
     engine: handlebars
 
 - label: Generate Field Config
@@ -78,7 +78,7 @@ nodes:
   position: {x: 500, y: 700}
   props:
     template_path: files/templates/field_config.hbs
-    output_path: "output/generated/{{nodeType}}Fields.ts"
+    output_path: "apps/web/src/features/diagram-editor/config/nodes/generated/{{spec_data.camelCase}}Fields.ts"
     engine: handlebars
 
 - label: Update Registry Files
@@ -88,6 +88,14 @@ nodes:
     code_type: python
     code: files/code/codegen/codegen_functions.py
     functionName: update_registry
+
+- label: Register Node Types
+  type: code_job
+  position: {x: 800, y: 800}
+  props:
+    code_type: python
+    code: files/code/codegen/codegen_functions.py
+    functionName: register_node_types
 
 - label: Verify Generated Code
   type: person_job
@@ -132,6 +140,17 @@ nodes:
       - {{this}}
       {{/each}}
       
+      Node registration result:
+      {{#if registration_result.success}}
+      ✓ Successfully registered {{spec.nodeType}} node type
+      Files updated by registration:
+      {{#each registration_result.filesUpdated}}
+      - {{this}}
+      {{/each}}
+      {{else}}
+      ✗ Failed to register node: {{registration_result.message}}
+      {{/if}}
+      
       Verification result: {{verification_result}}
       
       Next manual steps required:
@@ -150,7 +169,7 @@ nodes:
   position: {x: 1300, y: 700}
   props:
     save_to_file: true
-    file_path: output/generated/codegen_report.md
+    file_path: logs/codegen/hook_codegen_report.md
     file_format: md
 
 connections:
@@ -235,6 +254,21 @@ connections:
   label: spec
 
 - from: Update Registry Files
+  to: Register Node Types
+  content_type: object
+  label: registry_updates
+
+- from: Parse Spec Data
+  to: Register Node Types
+  content_type: object
+  label: spec
+
+- from: Register Node Types
+  to: Verify Generated Code
+  content_type: object
+  label: registration_result
+
+- from: Update Registry Files
   to: Verify Generated Code
   content_type: object
   label: registry_updates
@@ -253,6 +287,11 @@ connections:
   to: Success Report
   content_type: object
   label: registry_updates
+
+- from: Register Node Types
+  to: Success Report
+  content_type: object
+  label: registration_result
 
 - from: Parse Spec Data
   to: Success Report

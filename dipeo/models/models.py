@@ -76,6 +76,7 @@ class SupportedLanguage(str, Enum):
     python = "python"
     typescript = "typescript"
     bash = "bash"
+    shell = "shell"
 
 class HttpMethod(str, Enum):
     GET = "GET"
