@@ -82,12 +82,6 @@ class TypedInputResolutionService:
                 output_value = {"default": output_value}
             
             output_key = edge.source_output or "default"
-            
-            # Debug logging
-            log.debug(f"    Edge from {edge.source_node_id} to {edge.target_node_id}")
-            log.debug(f"    edge.source_output: {edge.source_output}")
-            log.debug(f"    output_key: {output_key}")
-            log.debug(f"    output_value keys: {list(output_value.keys()) if isinstance(output_value, dict) else 'not a dict'}")
 
             # Check if the output has the requested key
             if output_key not in output_value:

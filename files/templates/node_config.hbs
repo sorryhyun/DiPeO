@@ -14,14 +14,14 @@ export const {{pascalCase nodeType}}NodeConfig: UnifiedNodeConfig<{{pascalCase n
   {{/if}}
   
   handles: {
-    sources: [
-      {{#each handles.outputs}}
-      { id: '{{this}}', position: Position.Right },
-      {{/each}}
-    ],
-    targets: [
+    input: [
       {{#each handles.inputs}}
       { id: '{{this}}', position: Position.Left },
+      {{/each}}
+    ],
+    output: [
+      {{#each handles.outputs}}
+      { id: '{{this}}', position: Position.Right },
       {{/each}}
     ]
   },

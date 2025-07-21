@@ -37,6 +37,7 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     # The validation node outputs data in the 'raw_data' input key
     raw_data = inputs.get('raw_data', {})
     print(f"DEBUG: raw_data type: {type(raw_data)}")
+    print(f"DEBUG: raw_data content: {raw_data}")
     
     # The validator outputs a dict with 'valid', 'data', etc.
     # Extract the actual spec from raw_data.data
@@ -89,7 +90,7 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": "Missing required field 'nodeType' in specification"}
     
     # Prepare context for templates
-    result = {
+    base_result = {
         'spec': spec,
         'nodeType': spec['nodeType'],
         'camelCase': to_camel_case(spec['nodeType']),
@@ -102,11 +103,15 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'description': spec.get('description', '')
     }
 
-    # Add spec_data for template compatibility
-    result['spec_data'] = result
-
-    print(f"Parsed spec for node type: {result['nodeType']}")
-    print(f"Number of fields: {len(result['fields'])}")
+    print(f"Parsed spec for node type: {base_result['nodeType']}")
+    print(f"Number of fields: {len(base_result['fields'])}")
+    
+    # Create result with spec_data pointing to base_result
+    result = {
+        **base_result,
+        'spec_data': base_result,
+        'default': base_result
+    }
     
     return result
 
@@ -194,7 +199,11 @@ def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if files_missing:
         print(f"Missing files: {', '.join(files_missing)}")
     
-    return registry_updates
+    # Return with default key for connection resolution
+    return {
+        'default': registry_updates,
+        **registry_updates
+    }
 
 
 def register_node_types(inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -236,7 +245,17 @@ def register_node_types(inputs: Dict[str, Any]) -> Dict[str, Any]:
     for step in manual_steps:
         print(f"  {step}")
     
-    return result
+    # Run the registration helper script
+    helper_script = PROJECT_ROOT / 'scripts' / 'register_generated_node.py'
+    if helper_script.exists():
+        print(f"\n📋 Running registration helper script...")
+        print(f"You can also run it manually: python {helper_script}")
+    
+    # Return with default key for connection resolution
+    return {
+        'default': result,
+        **result
+    }
 
 
 def read_generated_files(inputs: Dict[str, Any]) -> Dict[str, Any]:

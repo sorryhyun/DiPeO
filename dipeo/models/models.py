@@ -33,6 +33,8 @@ class HandleLabel(str, Enum):
     first = "first"
     condtrue = "condtrue"
     condfalse = "condfalse"
+    success = "success"
+    error = "error"
 
 class DataType(str, Enum):
     any = "any"

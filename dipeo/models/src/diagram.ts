@@ -38,7 +38,9 @@ export enum HandleLabel {
   DEFAULT = 'default',
   FIRST = 'first',
   CONDITION_TRUE = 'condtrue',
-  CONDITION_FALSE = 'condfalse'
+  CONDITION_FALSE = 'condfalse',
+  SUCCESS = 'success',
+  ERROR = 'error'
 }
 
 export enum DataType {

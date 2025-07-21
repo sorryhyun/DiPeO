@@ -59,7 +59,7 @@ export const CodeJobNodeConfig: UnifiedNodeConfig<CodeJobNodeData> = {
         { value: 'shell', label: 'Shell' }
       ],
       column: 1,
-      helpText: 'Select the programming language of your code file'
+      description: 'Select the programming language of your code file'
     },
     {
       name: 'filePath',
@@ -68,7 +68,7 @@ export const CodeJobNodeConfig: UnifiedNodeConfig<CodeJobNodeData> = {
       required: true,
       placeholder: 'e.g., files/code_examples/my_script.py',
       column: 2,
-      helpText: 'Path to the code file (relative to project root or absolute)',
+      description: 'Path to the code file (relative to project root or absolute)',
       validate: (value: unknown) => {
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
           return { isValid: false, error: 'File path is required' };
@@ -88,8 +88,7 @@ export const CodeJobNodeConfig: UnifiedNodeConfig<CodeJobNodeData> = {
       required: false,
       placeholder: 'main',
       column: 2,
-      helpText: 'Name of the function to call (Python/TypeScript only, defaults to "main")',
-      visible: (data: any) => data.language === 'python' || data.language === 'typescript'
+      description: 'Name of the function to call (Python/TypeScript only, defaults to "main")'
     }
   ]
 };

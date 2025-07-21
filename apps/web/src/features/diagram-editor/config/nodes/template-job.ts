@@ -56,7 +56,8 @@ export const TemplateJobNodeConfig: UnifiedNodeConfig<TemplateJobNodeData> = {
       placeholder: 'Path to template file (e.g., files/templates/example.hbs)',
       conditional: {
         field: 'template_content',
-        operator: 'empty'
+        operator: 'equals',
+        values: ['', null, undefined]
       }
     },
     {
@@ -67,7 +68,8 @@ export const TemplateJobNodeConfig: UnifiedNodeConfig<TemplateJobNodeData> = {
       rows: 10,
       conditional: {
         field: 'template_path',
-        operator: 'empty'
+        operator: 'equals',
+        values: ['', null, undefined]
       }
     },
     {
@@ -78,10 +80,9 @@ export const TemplateJobNodeConfig: UnifiedNodeConfig<TemplateJobNodeData> = {
     },
     {
       name: 'variables',
-      type: 'code',
+      type: 'textarea',
       label: 'Template Variables',
       placeholder: '{\n  "name": "value",\n  "items": ["item1", "item2"]\n}',
-      language: 'json',
       required: false
     }
   ]

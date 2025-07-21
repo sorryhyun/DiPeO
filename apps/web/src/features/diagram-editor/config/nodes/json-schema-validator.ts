@@ -18,7 +18,7 @@ export const JsonSchemaValidatorNodeConfig: UnifiedNodeConfig<JsonSchemaValidato
     input: [{ id: HandleLabel.DEFAULT, position: 'left' }],
     output: [
       { id: HandleLabel.DEFAULT, position: 'right' },
-      { id: 'error', position: 'right' }
+      { id: HandleLabel.ERROR, position: 'right' }
     ]
   },
   
@@ -49,19 +49,20 @@ export const JsonSchemaValidatorNodeConfig: UnifiedNodeConfig<JsonSchemaValidato
       placeholder: 'Path to JSON schema file (e.g., files/schemas/node.schema.json)',
       conditional: {
         field: 'schema',
-        operator: 'empty'
+        operator: 'equals',
+        values: ['', null, undefined]
       }
     },
     {
       name: 'schema',
-      type: 'code',
+      type: 'textarea',
       label: 'Inline Schema',
       placeholder: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "type": "object",\n  "properties": {\n    "name": { "type": "string" }\n  }\n}',
-      language: 'json',
       rows: 15,
       conditional: {
         field: 'schema_path',
-        operator: 'empty'
+        operator: 'equals',
+        values: ['', null, undefined]
       }
     },
     {

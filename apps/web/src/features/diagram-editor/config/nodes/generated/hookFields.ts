@@ -31,7 +31,6 @@ export const hookFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: 'https://api.example.com/webhook',
     description: 'Webhook URL (for HTTP hooks)',
-    validation: {"pattern": "^https?://"},
   },
   {
     name: 'timeout',
@@ -40,7 +39,6 @@ export const hookFields: UnifiedFieldDefinition[] = [
     required: false,
     defaultValue: 60,
     description: 'Execution timeout in seconds',
-    validation: {"min": 1, "max": 300},
   },
   {
     name: 'retry_count',
@@ -48,6 +46,5 @@ export const hookFields: UnifiedFieldDefinition[] = [
     label: 'Retry Count',
     required: false,
     description: 'Number of retries on failure',
-    validation: {"min": 0, "max": 5},
   },
 ];
