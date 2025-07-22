@@ -24,6 +24,7 @@ class NodeType(str, Enum):
     template_job = "template_job"
     json_schema_validator = "json_schema_validator"
     typescript_ast = "typescript_ast"
+    sub_diagram = "sub_diagram"
 
 class HandleDirection(str, Enum):
     input = "input"
@@ -431,6 +432,16 @@ class TypescriptAstNodeData(BaseNodeData):
     includeJSDoc: Optional[bool] = Field(default=None)
     parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
 
+class SubDiagramNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    diagram_name: Optional[str] = Field(default=None)
+    diagram_data: Optional[Dict[str, Any]] = Field(default=None)
+    input_mapping: Optional[Dict[str, Any]] = Field(default=None)
+    output_mapping: Optional[Dict[str, Any]] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    wait_for_completion: Optional[bool] = Field(default=None)
+
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
@@ -592,8 +603,6 @@ ApiKeyID = ApiKeyID
 DiagramID = DiagramID
 
 PersonBatchJobNodeData = PersonJobNodeData
-
-ExtractPattern = Literal["interface", "type", "enum", "class", "function", "const", "export"]
 
 ExecutionID = ExecutionID
 

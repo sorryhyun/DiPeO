@@ -27,7 +27,8 @@ export enum NodeType {
   HOOK = 'hook',
   TEMPLATE_JOB = 'template_job',
   JSON_SCHEMA_VALIDATOR = 'json_schema_validator',
-  TYPESCRIPT_AST = 'typescript_ast'
+  TYPESCRIPT_AST = 'typescript_ast',
+  SUB_DIAGRAM = 'sub_diagram'
 }
 
 export enum HandleDirection {
@@ -351,5 +352,14 @@ export interface TypescriptAstNodeData extends BaseNodeData {
   extractPatterns?: ExtractPattern[];  // Patterns to extract
   includeJSDoc?: boolean;  // Include JSDoc comments in the extracted data
   parseMode?: 'module' | 'script';  // TypeScript parsing mode
+}
+
+export interface SubDiagramNodeData extends BaseNodeData {
+  diagram_name?: string;  // Name of the diagram to execute (e.g., "workflow/process")
+  diagram_data?: Record<string, any>;  // Inline diagram data (alternative to diagram_name)
+  input_mapping?: Record<string, string>;  // Map node inputs to sub-diagram variables
+  output_mapping?: Record<string, string>;  // Map sub-diagram outputs to node outputs
+  timeout?: number;  // Execution timeout in seconds
+  wait_for_completion?: boolean;  // Whether to wait for sub-diagram completion (default: true)
 }
 

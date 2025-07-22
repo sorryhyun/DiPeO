@@ -1,6 +1,7 @@
 # Handler registry, base classes, and factory for DiPeO
 
 import inspect
+import logging
 from typing import TYPE_CHECKING, TypeVar
 
 from pydantic import BaseModel
@@ -12,6 +13,8 @@ if TYPE_CHECKING:
     pass
 
 T = TypeVar("T", bound=BaseModel)
+
+log = logging.getLogger(__name__)
 
 
 class HandlerRegistry:
@@ -30,19 +33,28 @@ class HandlerRegistry:
         temp_instance = handler_class()
         node_type = temp_instance.node_type
         self._handler_classes[node_type] = handler_class
+        log.info(f"Registered handler {handler_class.__name__} for node type: {node_type}")
 
     def create_handler(self, node_type: str) -> TypedNodeHandler:
         handler_class = self._handler_classes.get(node_type)
         if not handler_class:
+            available_types = list(self._handler_classes.keys())
+            log.error(f"No handler class registered for node type: {node_type}. Available types: {available_types}")
             raise ValueError(f"No handler class registered for node type: {node_type}")
 
+        log.debug(f"Creating handler {handler_class.__name__} for node type: {node_type}")
+        
         sig = inspect.signature(handler_class.__init__)
         params = list(sig.parameters.keys())
 
         if len(params) == 1 and params[0] == 'self':
-            return handler_class()
+            handler = handler_class()
+            log.debug(f"Created handler {handler_class.__name__} without services")
+            return handler
         else:
-            return self._create_handler_with_services(handler_class)
+            handler = self._create_handler_with_services(handler_class)
+            log.debug(f"Created handler {handler_class.__name__} with services")
+            return handler
 
     def _create_handler_with_services(self, handler_class: type[TypedNodeHandler]) -> TypedNodeHandler:
         if not self._service_registry:

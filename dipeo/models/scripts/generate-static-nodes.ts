@@ -133,6 +133,17 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
       { tsName: 'includeJSDoc', pyName: 'includeJSDoc', defaultValue: 'False' },
       { tsName: 'parseMode', pyName: 'parseMode', defaultValue: '"module"' }
     ]
+  },
+  SubDiagramNodeData: {
+    nodeType: 'sub_diagram',
+    fields: [
+      { tsName: 'diagram_name', pyName: 'diagram_name' },
+      { tsName: 'diagram_data', pyName: 'diagram_data' },
+      { tsName: 'input_mapping', pyName: 'input_mapping' },
+      { tsName: 'output_mapping', pyName: 'output_mapping' },
+      { tsName: 'timeout', pyName: 'timeout' },
+      { tsName: 'wait_for_completion', pyName: 'wait_for_completion', defaultValue: 'True' }
+    ]
   }
 };
 

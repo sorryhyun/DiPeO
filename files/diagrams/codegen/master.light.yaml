@@ -17,12 +17,16 @@ nodes:
       expression: inputs.mode === 'full' || inputs.mode === 'models'
       
   - label: Domain Model Codegen
-    type: code_job
+    type: sub_diagram
     position: {x: 600, y: 100}
     props:
-      code_type: bash
-      code: files/code/codegen/phase2/run_domain_codegen.sh
+      diagram_name: codegen/domain_model_codegen
+      input_mapping:
+        mode: inputs.mode
+      output_mapping:
+        result: result
       timeout: 30
+      wait_for_completion: true
       
   - label: Check Node Mode
     type: condition
@@ -32,12 +36,16 @@ nodes:
       expression: inputs.mode === 'full' || inputs.mode === 'nodes'
       
   - label: Node UI Codegen
-    type: code_job
+    type: sub_diagram
     position: {x: 600, y: 350}
     props:
-      code_type: bash
-      code: files/code/codegen/phase2/run_node_codegen.sh
+      diagram_name: codegen/node_ui_codegen
+      input_mapping:
+        node_spec_path: inputs.node_spec_path
+      output_mapping:
+        result: result
       timeout: 30
+      wait_for_completion: true
       
   - label: Merge Results
     type: code_job

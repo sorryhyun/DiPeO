@@ -128,6 +128,7 @@ class TypedExecutionEngine:
                     HandlerFactory(self.service_registry)
                 
                 handler = registry.create_handler(node.type)
+                log.info(f"Executing node {node.id} of type {node.type} with handler {handler.__class__.__name__}")
                 
                 # Get inputs
                 inputs = execution_runtime.resolve_inputs(node)
