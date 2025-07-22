@@ -1,11 +1,6 @@
 version: light
 description: Convert TypeScript models to Python using diagram-based approach
 
-# Variables for paths
-variables:
-  source_dir: dipeo/models/src
-  output_dir: dipeo/models
-  
 nodes:
   - label: Start
     type: start
@@ -18,63 +13,87 @@ nodes:
     props:
       functionName: glob_typescript_files
       code: files/codegen/code/domain_model_functions.py
-    position: {x: 100, y: 100}
+      code_type: python
+    position: {x: 250, y: 100}
+    
+  - label: Read TypeScript Files
+    type: code_job
+    props:
+      functionName: read_typescript_files
+      code: files/codegen/code/domain_model_functions.py
+      code_type: python
+    position: {x: 450, y: 100}
         
+    
   - label: Parse TypeScript Files
     type: typescript_ast
     props:
       extractPatterns: ["interface", "type", "enum", "class"]
-      includeImports: true
-      includeExports: true
-    position: {x: 300, y: 100}
+      includeJSDoc: true
+      parseMode: module
+    position: {x: 750, y: 100}
       
   - label: Transform to Python Models
     type: code_job
     props:
       functionName: transform_typescript_to_python
-      codeFile: files/codegen/code/type_transformers.py
-    position: {x: 500, y: 100}
+      code: files/codegen/code/type_transformers.py
+      code_type: python
+    position: {x: 850, y: 100}
       
   - label: Generate Pydantic Models
     type: code_job
     props:
       functionName: generate_pydantic_models
       code: files/codegen/code/domain_model_functions.py
-    position: {x: 700, y: 100}
+      code_type: python
+    position: {x: 700, y: 250}
       
   - label: Generate Conversions
     type: code_job
     props:
       functionName: generate_conversions
       code: files/codegen/code/domain_model_functions.py
-    position: {x: 700, y: 200}
+      code_type: python
+    position: {x: 900, y: 250}
     
   - label: Generate Zod Schemas
     type: code_job
     props:
       functionName: generate_zod_schemas
       code: files/codegen/code/domain_model_functions.py
-    position: {x: 700, y: 300}
+      code_type: python
+    position: {x: 1100, y: 250}
     
   - label: Generate JSON Schemas
     type: code_job
     props:
       functionName: generate_json_schemas
-      codeFile: files/codegen/code/json_schema_generator.py
-    position: {x: 700, y: 400}
+      code: files/codegen/code/json_schema_generator.py
+      code_type: python
+    position: {x: 1300, y: 250}
+    
+  - label: Combine Results
+    type: code_job
+    props:
+      functionName: combine_generation_results
+      code: files/codegen/code/domain_model_functions.py
+      code_type: python
+    position: {x: 1200, y: 400}
     
   - label: Verify Generated Code
     type: code_job
     props:
       functionName: verify_generated_code
       code: files/codegen/code/domain_model_functions.py
-    position: {x: 900, y: 250}
+      code_type: python
+    position: {x: 1200, y: 550}
     
   - label: Generate Summary Report
     type: person_job
-    person_id: reporter
     props:
-      promptTemplate: |
+      person: reporter
+      default_prompt: |
         Code generation completed for TypeScript → Python models.
         
         Files processed: {{file_count}}
@@ -100,11 +119,12 @@ nodes:
         {{/if}}
         
         Please provide a summary of the code generation results.
-    position: {x: 1100, y: 250}
+      max_iteration: 1
+    position: {x: 1200, y: 700}
     
   - label: Save Results
     type: code_job
-    position: {x: 1300, y: 250}
+    position: {x: 1200, y: 850}
     props:
       code_type: python
       code: files/codegen/code/phase3/sub_diagram_helpers.py
@@ -112,7 +132,7 @@ nodes:
       
   - label: End
     type: endpoint
-    position: {x: 1500, y: 250}
+    position: {x: 1200, y: 1000}
     props:
       save_to_file: false
 
@@ -122,64 +142,71 @@ connections:
     content_type: object
     
   - from: Glob TypeScript Files
+    to: Read TypeScript Files
+    content_type: object
+    
+  - from: Read TypeScript Files
     to: Parse TypeScript Files
-    fromHandle: out
-    toHandle: source_files
+    content_type: object
     
   - from: Parse TypeScript Files
     to: Transform to Python Models
-    fromHandle: out
-    toHandle: parsed_ast
+    content_type: object
     
-  - from: Transform to Python Models
+  - from: Transform to Python Models_model_data
     to: Generate Pydantic Models
-    fromHandle: model_data
-    toHandle: in
+    content_type: object
     
-  - from: Transform to Python Models
+  - from: Transform to Python Models_conversion_data
     to: Generate Conversions
-    fromHandle: conversion_data
-    toHandle: in
+    content_type: object
     
-  - from: Transform to Python Models
+  - from: Transform to Python Models_zod_data
     to: Generate Zod Schemas
-    fromHandle: zod_data
-    toHandle: in
+    content_type: object
     
-  - from: Transform to Python Models
+  - from: Transform to Python Models_schema_data
     to: Generate JSON Schemas
-    fromHandle: schema_data
-    toHandle: in
+    content_type: object
     
   - from: Generate Pydantic Models
-    to: Verify Generated Code
-    fromHandle: out
-    toHandle: generated_files[0]
+    to: Combine Results
+    content_type: object
+    label: pydantic_result
     
   - from: Generate Conversions
-    to: Verify Generated Code
-    fromHandle: out
-    toHandle: generated_files[1]
+    to: Combine Results
+    content_type: object
+    label: conversion_result
     
   - from: Generate Zod Schemas
-    to: Verify Generated Code
-    fromHandle: out
-    toHandle: generated_files[2]
+    to: Combine Results
+    content_type: object
+    label: zod_result
     
   - from: Generate JSON Schemas
+    to: Combine Results
+    content_type: object
+    label: schema_result
+    
+  - from: Read TypeScript Files
+    to: Combine Results
+    content_type: object
+    label: file_info
+    
+  - from: Combine Results
     to: Verify Generated Code
-    fromHandle: generated_files
-    toHandle: generated_files[3]
+    content_type: object
     
   - from: Verify Generated Code
     to: Generate Summary Report
-    fromHandle: out
-    toHandle: verification_results
+    content_type: object
+    label: verification_results
     
-  - from: Glob TypeScript Files
+  - from: Combine Results
     to: Generate Summary Report
-    fromHandle: file_count
-    toHandle: file_count
+    content_type: object
+    label: generation_info
     
   - from: Generate Summary Report
     to: Save Results
@@ -189,6 +216,11 @@ connections:
     to: Save Results
     content_type: object
     label: verification_result
+    
+  - from: Combine Results
+    to: Save Results
+    content_type: object
+    label: combined_results
     
   - from: Save Results
     to: End

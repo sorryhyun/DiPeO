@@ -81,7 +81,17 @@ class TypeScriptToPythonTransformer:
         
     def transform_typescript_to_python(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Main entry point for transformation."""
+        # DiPeO may pass data under 'default' key or directly
         parsed_ast = inputs.get('parsed_ast', {})
+        if not parsed_ast and 'default' in inputs:
+            parsed_ast = inputs['default'].get('parsed_ast', {})
+        if not parsed_ast and 'ast' in inputs:
+            # TypeScript AST parser outputs under 'ast' key
+            parsed_ast = inputs['ast']
+        if not parsed_ast and 'default' in inputs and 'ast' in inputs['default']:
+            parsed_ast = inputs['default']['ast']
+        
+        print(f"[transform_typescript_to_python] Received AST keys: {list(parsed_ast.keys()) if parsed_ast else 'None'}")
         
         # Process each parsed item
         for item_type, items in parsed_ast.items():
@@ -99,7 +109,8 @@ class TypeScriptToPythonTransformer:
                     self._transform_class(cls)
         
         # Prepare output data for templates
-        return {
+        # Each key becomes a handle that can be referenced in connections
+        result = {
             'model_data': {
                 'models': self.models,
                 'imports': self._consolidate_imports(),
@@ -117,6 +128,14 @@ class TypeScriptToPythonTransformer:
                 'models': self.models,
             }
         }
+        
+        # Add 'default' key containing all data for DiPeO
+        result['default'] = result.copy()
+        
+        print(f"[transform_typescript_to_python] Generated {len(self.models)} models")
+        print(f"Output handles: {list(result.keys())}")
+        
+        return result
     
     def _transform_interface(self, interface: Dict[str, Any]) -> None:
         """Transform TypeScript interface to Python dataclass."""
