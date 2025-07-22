@@ -9,6 +9,8 @@ from dipeo.models import NodeExecutionStatus
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.container.container import Container
+    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 
 # Type variable for node types
 T = TypeVar('T', bound=ExecutableNode)
@@ -35,6 +37,10 @@ class ExecutionRequest(Generic[T]):
     
     # Runtime references
     runtime: Optional["ExecutionRuntime"] = None
+    
+    # Parent context for sub-diagrams
+    parent_container: Optional["Container"] = None
+    parent_registry: Optional["UnifiedServiceRegistry"] = None
     
     @property
     def node_id(self) -> str:
@@ -81,6 +87,22 @@ class ExecutionRequest(Generic[T]):
         """Check if an input is available."""
         return name in self.inputs
     
+    def create_sub_registry(self) -> Optional["UnifiedServiceRegistry"]:
+        """Create a hierarchical registry for sub-execution.
+        
+        This creates a child registry that inherits from the parent registry,
+        allowing for selective service isolation in sub-diagrams.
+        
+        Returns:
+            New hierarchical registry or None if no parent registry
+        """
+        if self.parent_registry:
+            return self.parent_registry.create_child()
+        elif self.runtime and hasattr(self.runtime, '_service_registry'):
+            # Fallback to runtime's service registry
+            return self.runtime._service_registry.create_child()
+        return None
+    
     def with_inputs(self, inputs: dict[str, Any]) -> "ExecutionRequest[T]":
         """Create a new request with updated inputs."""
         return ExecutionRequest(
@@ -91,7 +113,9 @@ class ExecutionRequest(Generic[T]):
             metadata=self.metadata,
             execution_id=self.execution_id,
             iteration=self.iteration,
-            runtime=self.runtime
+            runtime=self.runtime,
+            parent_container=self.parent_container,
+            parent_registry=self.parent_registry
         )
     
     def with_metadata(self, metadata: dict[str, Any]) -> "ExecutionRequest[T]":
@@ -104,7 +128,9 @@ class ExecutionRequest(Generic[T]):
             metadata={**self.metadata, **metadata},
             execution_id=self.execution_id,
             iteration=self.iteration,
-            runtime=self.runtime
+            runtime=self.runtime,
+            parent_container=self.parent_container,
+            parent_registry=self.parent_registry
         )
 
 

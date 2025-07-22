@@ -84,6 +84,7 @@ class DiPeOCLI:
         no_browser: bool = False,
         timeout: int = 300,
         format_type: str | None = None,
+        input_variables: dict[str, Any] | None = None,
     ):
         """Run a diagram via server."""
         # Resolve diagram path
@@ -103,8 +104,10 @@ class DiPeOCLI:
 
         # Execute diagram
         print("🔄 Executing diagram...")
+        if input_variables:
+            print(f"📥 With input variables: {json.dumps(input_variables, indent=2)}")
         try:
-            result = self.server.execute_diagram(diagram_data)
+            result = self.server.execute_diagram(diagram_data, input_variables)
 
             if not result["success"]:
                 print(f"❌ Execution failed: {result.get('error', 'Unknown error')}")

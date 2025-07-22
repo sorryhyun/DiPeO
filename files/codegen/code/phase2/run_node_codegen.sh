@@ -23,7 +23,7 @@ fi
 # Run the main codegen diagram
 echo ""
 echo "Executing node codegen diagram..."
-dipeo run codegen/main --light --no-browser --timeout=30
+dipeo run codegen/node_ui_codegen --light --no-browser --timeout=30 --vars "node_spec_path=$NODE_SPEC"
 
 # Note: In a real implementation, we would parse the spec file
 # and generate appropriate UI components. For now, we'll list

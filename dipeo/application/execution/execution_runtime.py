@@ -11,9 +11,7 @@ import logging
 import threading
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from dipeo.core.dynamic.execution_context import ExecutionContext
 from dipeo.core.execution.execution_tracker import ExecutionTracker
-from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.models import (
     ExecutionState,
     NodeExecutionStatus,
@@ -22,7 +20,7 @@ from dipeo.models import (
 )
 
 from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker
-from dipeo.application.execution.states.state_transition_manager import StateTransitionManager
+from dipeo.application.execution.states.state_transition_mixin import StateTransitionMixin
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
 
 if TYPE_CHECKING:
@@ -33,8 +31,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ExecutionRuntime(ExecutionContext):
-    """Simplified execution runtime using extracted components."""
+class ExecutionRuntime(StateTransitionMixin):
+    """Simplified execution runtime using extracted components and mixin.
+    
+    Implements the ExecutionContext protocol.
+    """
     
     def __init__(
         self,
@@ -60,9 +61,6 @@ class ExecutionRuntime(ExecutionContext):
         
         # Initialize extracted components
         self._readiness_checker = NodeReadinessChecker(diagram, self._tracker)
-        self._transition_manager = StateTransitionManager(
-            diagram, self._tracker, self._state_lock
-        )
         
         # Load state
         ExecutionStatePersistence.load_from_state(
@@ -101,39 +99,6 @@ class ExecutionRuntime(ExecutionContext):
         # Any nodes ready to run?
         return len(self.get_ready_nodes()) == 0
     
-    # ========== Simplified State Transitions (No Wrappers!) ==========
-    
-    def transition_node_to_running(self, node_id: NodeID) -> int:
-        """Transition a node to running state."""
-        return self._transition_manager.transition_to_running(
-            node_id, self._node_states, self._current_node_id
-        )
-    
-    def transition_node_to_completed(
-        self, 
-        node_id: NodeID, 
-        output: Any = None,
-        token_usage: dict[str, int] = None
-    ) -> None:
-        """Transition a node to completed state."""
-        self._transition_manager.transition_to_completed(
-            node_id, self._node_states, self._current_node_id, output, token_usage
-        )
-    
-    def transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
-        """Transition a node to failed state."""
-        self._transition_manager.transition_to_failed(
-            node_id, self._node_states, self._current_node_id, error
-        )
-    
-    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
-        self._transition_manager.transition_to_maxiter(node_id, self._node_states, output)
-    
-    def transition_node_to_skipped(self, node_id: NodeID) -> None:
-        self._transition_manager.transition_to_skipped(node_id, self._node_states)
-    
-    def reset_node(self, node_id: NodeID) -> None:
-        self._transition_manager.reset_node(node_id, self._node_states)
     
     # ========== ExecutionContext Protocol Implementation ==========
     

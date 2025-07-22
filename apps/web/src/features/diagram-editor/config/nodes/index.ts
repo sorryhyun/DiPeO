@@ -16,6 +16,7 @@ export { HookNodeConfig } from './hook';
 export { TemplateJobNodeConfig } from './template-job';
 export { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
 export { TypescriptAstNodeConfig } from './generated/typescriptAstConfig';
+export { SubDiagramNodeConfig } from './generated/subDiagramConfig';
 
 // Import all configurations for the map
 import { StartNodeConfig } from './start';
@@ -33,6 +34,7 @@ import { HookNodeConfig } from './hook';
 import { TemplateJobNodeConfig } from './template-job';
 import { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
 import { TypescriptAstNodeConfig } from './generated/typescriptAstConfig';
+import { SubDiagramNodeConfig } from './generated/subDiagramConfig';
 
 import { NodeType } from '@dipeo/domain-models';
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
@@ -57,6 +59,7 @@ export const NODE_CONFIGS_MAP: Record<NodeType, UnifiedNodeConfig<any>> = {
   [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig,
   [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig,
   [NodeType.TYPESCRIPT_AST]: TypescriptAstNodeConfig,
+  [NodeType.SUB_DIAGRAM]: SubDiagramNodeConfig,
 };
 
 /**

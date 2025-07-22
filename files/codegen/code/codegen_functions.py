@@ -21,6 +21,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         "message": "DiPeO Code Generation Functions",
         "available_functions": [
             "parse_spec_data",
+            "parse_spec_data_with_paths",
             "generate_python_model", 
             "update_registry",
             "register_node_types",
@@ -32,25 +33,15 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
 
 def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Parse the spec data from validation output and prepare context for templates."""
-    print(f"DEBUG: parse_spec_data - inputs keys: {list(inputs.keys())}")
     
-    # The validation node outputs data in the 'raw_data' input key
+    # The validation node now outputs data directly in the 'raw_data' input key
     raw_data = inputs.get('raw_data', {})
-    print(f"DEBUG: raw_data type: {type(raw_data)}")
-    print(f"DEBUG: raw_data content: {raw_data}")
     
-    # The validator outputs a dict with 'valid', 'data', etc.
-    # Extract the actual spec from raw_data.data
-    spec = None
-    if isinstance(raw_data, dict) and 'data' in raw_data:
-        spec = raw_data['data']
-        print(f"DEBUG: Extracted spec from raw_data.data")
-    elif isinstance(raw_data, dict) and 'nodeType' in raw_data:
-        # Fallback: raw_data might already be the spec
-        spec = raw_data
-        print(f"DEBUG: raw_data appears to be the spec itself")
-    else:
-        # Try to find spec data in other inputs
+    # The validator now outputs the validated data directly
+    spec = raw_data
+    
+    # Fallback: if raw_data is empty, try to find spec data in other inputs
+    if not spec or not isinstance(spec, dict):
         for key, value in inputs.items():
             if isinstance(value, dict) and 'nodeType' in value:
                 spec = value
@@ -122,6 +113,56 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
+def parse_spec_data_with_paths(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse spec data and merge with path configuration."""
+    # First, get the base parsed spec data
+    result = parse_spec_data(inputs)
+    
+    # Load path configuration directly from file
+    import os
+    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+    path_config_file = os.path.join(base_dir, 'files/codegen/paths.json')
+    
+    try:
+        with open(path_config_file, 'r') as f:
+            path_config = json.load(f)
+    except Exception as e:
+        print(f"WARNING: Could not load paths.json: {e}")
+        path_config = {}
+    
+    # If we have spec_data in the result, add path information
+    if 'spec_data' in result:
+        spec_data = result['spec_data']
+        
+        # Add resolved template paths to spec_data itself
+        spec_data['template_paths'] = {
+            'typescript_model': path_config.get('template_files', {}).get('typescript_model', 'files/codegen/templates/typescript_model.hbs'),
+            'graphql_schema': path_config.get('template_files', {}).get('graphql_schema', 'files/codegen/templates/graphql_schema.hbs'),
+            'react_component': path_config.get('template_files', {}).get('react_component', 'files/codegen/templates/react_component.hbs'),
+            'node_config': path_config.get('template_files', {}).get('node_config', 'files/codegen/templates/node_config.hbs'),
+            'field_config': path_config.get('template_files', {}).get('field_config', 'files/codegen/templates/field_config.hbs')
+        }
+        
+        # Add resolved output paths with actual node type
+        node_type = spec_data.get('nodeType', '')
+        camel_case = spec_data.get('camelCase', '')
+        
+        spec_data['output_paths'] = {
+            'typescript_model': f"dipeo/models/src/nodes/{node_type}Node.ts",
+            'graphql_schema': f"apps/server/src/dipeo_server/api/graphql/schema/nodes/{node_type}.graphql",
+            'react_component': f"apps/web/src/features/diagram-editor/components/nodes/generated/{node_type}Node.tsx",
+            'node_config': f"apps/web/src/features/diagram-editor/config/nodes/generated/{camel_case}Config.ts",
+            'field_config': f"apps/web/src/features/diagram-editor/config/nodes/generated/{camel_case}Fields.ts"
+        }
+        
+        # Also add to result root for backwards compatibility
+        result['template_paths'] = spec_data['template_paths']
+        result['output_paths'] = spec_data['output_paths']
+        result['path_config'] = path_config
+    
+    return result
+
+
 def generate_python_model(inputs: Dict[str, Any]) -> str:
     """Skip Python model generation - models are already generated from TypeScript."""
     # Get spec from inputs
@@ -139,8 +180,6 @@ def generate_python_model(inputs: Dict[str, Any]) -> str:
 
 def update_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Create registry update summary with all generated files and next steps."""
-    print(f"DEBUG: update_registry - inputs keys: {list(inputs.keys())}")
-    
     # Get spec from inputs
     spec = inputs.get('spec', inputs.get('default', {}))
     if isinstance(spec, str):
@@ -224,7 +263,8 @@ def register_node_types(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(registry_updates, str):
         registry_updates = json.loads(registry_updates)
     
-    node_type = spec.get('nodeType', '')
+    # Get node_type from registry_updates since spec is not being passed
+    node_type = registry_updates.get('nodeType', '')
     pascal_case = node_type.capitalize()
     
     files_updated = []
@@ -245,7 +285,8 @@ def register_node_types(inputs: Dict[str, Any]) -> Dict[str, Any]:
         "message": f"Generated files for {node_type} node. Manual registration required.",
         "filesUpdated": files_updated,
         "manualSteps": manual_steps,
-        "generatedFiles": registry_updates.get('files_generated', [])
+        "generatedFiles": registry_updates.get('files_generated', []),
+        "registry_updates": registry_updates  # Pass through the registry_updates
     }
     
     print(f"Registration complete. Manual steps required:")

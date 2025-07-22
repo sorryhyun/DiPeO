@@ -12,6 +12,10 @@ import {
   NotionNodeData,
   PersonBatchJobNodeData,
   HookNodeData,
+  TemplateJobNodeData,
+  JsonSchemaValidatorNodeData,
+  TypescriptAstNodeData,
+  SubDiagramNodeData,
   WithUI
 } from './domain';
 
@@ -31,6 +35,10 @@ export interface NodeTypeRegistry {
   notion: NotionNodeData;
   person_batch_job: PersonBatchJobNodeData;
   hook: HookNodeData;
+  template_job: TemplateJobNodeData;
+  json_schema_validator: JsonSchemaValidatorNodeData;
+  typescript_ast: TypescriptAstNodeData;
+  sub_diagram: SubDiagramNodeData;
 }
 
 /**
@@ -77,7 +85,8 @@ export type NodeFormData<K extends NodeTypeKey> = NodeFormDataTypes[K];
 export function isNodeTypeKey(key: string): key is NodeTypeKey {
   const validKeys: NodeTypeKey[] = [
     'start', 'condition', 'person_job', 'endpoint', 'db', 'job',
-    'code_job', 'api_job', 'user_response', 'notion', 'person_batch_job', 'hook'
+    'code_job', 'api_job', 'user_response', 'notion', 'person_batch_job', 'hook',
+    'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram'
   ];
   return validKeys.includes(key as NodeTypeKey);
 }
@@ -86,7 +95,8 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
 // These now include UI properties like 'flipped'
 export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeData,
   DBNodeData, JobNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
-  NotionNodeData, PersonBatchJobNodeData, HookNodeData } from './domain';
+  NotionNodeData, PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
+  JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData } from './domain';
 
 /**
  * Form data type aliases for backward compatibility
@@ -103,3 +113,7 @@ export type UserResponseFormData = NodeFormData<'user_response'>;
 export type NotionFormData = NodeFormData<'notion'>;
 export type PersonBatchJobFormData = NodeFormData<'person_batch_job'>;
 export type HookFormData = NodeFormData<'hook'>;
+export type TemplateJobFormData = NodeFormData<'template_job'>;
+export type JsonSchemaValidatorFormData = NodeFormData<'json_schema_validator'>;
+export type TypescriptAstFormData = NodeFormData<'typescript_ast'>;
+export type SubDiagramFormData = NodeFormData<'sub_diagram'>;

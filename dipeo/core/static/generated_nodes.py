@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List, Union, Literal
 from dipeo.models.models import (
     NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
-    NotionOperation, HookType, PersonLLMConfig, LLMService
+    NotionOperation, HookType, PersonLLMConfig, LLMService, ExtractPattern
 )
 
 
@@ -260,7 +260,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 class TypescriptAstNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.typescript_ast, init=False)
     source: Optional[str] = None
-    extractPatterns: Optional[List[str]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    extractPatterns: Optional[List[ExtractPattern]] = field(default_factory=lambda: ["interface", "type", "enum"])
     includeJSDoc: Optional[bool] = False
     parseMode: Optional[Literal["module", "script"]] = "module"
 
@@ -282,6 +282,7 @@ class SubDiagramNode(BaseExecutableNode):
     output_mapping: Optional[Dict[str, str]] = None
     timeout: Optional[int] = None
     wait_for_completion: Optional[bool] = True
+    isolate_conversation: Optional[bool] = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -292,6 +293,7 @@ class SubDiagramNode(BaseExecutableNode):
         data["output_mapping"] = self.output_mapping
         data["timeout"] = self.timeout
         data["wait_for_completion"] = self.wait_for_completion
+        data["isolate_conversation"] = self.isolate_conversation
         return data
 
 @dataclass(frozen=True)
@@ -516,6 +518,7 @@ def create_executable_node(
             output_mapping=data.get("output_mapping"),
             timeout=data.get("timeout"),
             wait_for_completion=data.get("wait_for_completion", True),
+            isolate_conversation=data.get("isolate_conversation", False),
         )
     
     if node_type == NodeType.person_batch_job:

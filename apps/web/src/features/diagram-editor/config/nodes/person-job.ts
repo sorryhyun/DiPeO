@@ -1,5 +1,4 @@
-import { HandleLabel } from '@/core/types';
-import type { PersonJobNodeData } from '@/core/types';
+import { HandleLabel, type PersonJobNodeData } from '@/core/types';
 import { createNodeConfig } from './createNodeConfig';
 
 /**

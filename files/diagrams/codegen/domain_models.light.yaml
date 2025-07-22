@@ -7,6 +7,12 @@ variables:
   output_dir: dipeo/models
   
 nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+    props:
+      trigger_mode: manual
+      
   - label: Glob TypeScript Files
     type: code_job
     props:
@@ -95,8 +101,26 @@ nodes:
         
         Please provide a summary of the code generation results.
     position: {x: 1100, y: 250}
+    
+  - label: Save Results
+    type: code_job
+    position: {x: 1300, y: 250}
+    props:
+      code_type: python
+      code: files/codegen/code/phase3/sub_diagram_helpers.py
+      functionName: save_domain_model_results
+      
+  - label: End
+    type: endpoint
+    position: {x: 1500, y: 250}
+    props:
+      save_to_file: false
 
 connections:
+  - from: Start
+    to: Glob TypeScript Files
+    content_type: object
+    
   - from: Glob TypeScript Files
     to: Parse TypeScript Files
     fromHandle: out
@@ -156,6 +180,19 @@ connections:
     to: Generate Summary Report
     fromHandle: file_count
     toHandle: file_count
+    
+  - from: Generate Summary Report
+    to: Save Results
+    content_type: raw_text
+    
+  - from: Verify Generated Code
+    to: Save Results
+    content_type: object
+    label: verification_result
+    
+  - from: Save Results
+    to: End
+    content_type: object
 
 persons:
   reporter:

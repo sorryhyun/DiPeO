@@ -1,5 +1,6 @@
 """Utility functions for container management."""
 
+import asyncio
 import logging
 
 from dipeo.core.dynamic.conversation_manager import ConversationManager
@@ -131,14 +132,113 @@ async def init_resources(container) -> None:
 
 
 async def shutdown_resources(container) -> None:
-    """Cleanup all resources."""
-    message_router = container.persistence.message_router()
-    if hasattr(message_router, 'cleanup'):
-        await message_router.cleanup()
+    """Cleanup all resources comprehensively.
     
-    state_store = container.persistence.state_store()
-    if hasattr(state_store, 'cleanup'):
-        await state_store.cleanup()
+    This function ensures all services with cleanup methods are properly
+    shut down to prevent resource leaks.
+    """
+    # Track services that have been cleaned up
+    cleaned_services = set()
+    
+    # Define the order of cleanup (reverse order of initialization)
+    cleanup_order = [
+        # Application layer (highest level)
+        ('application', ['execution_service', 'execution_preparation_service']),
+        
+        # Dynamic services (stateful, cleanup first)
+        ('dynamic', ['conversation_manager', 'person_manager']),
+        
+        # Integration services
+        ('integration', ['llm_service', 'notion_service', 'api_service', 
+                        'integrated_diagram_service', 'typescript_parser']),
+        
+        # Persistence services
+        ('persistence', ['message_router', 'state_store', 'file_service',
+                        'diagram_loader', 'api_key_service', 'diagram_storage_service',
+                        'db_operations_service']),
+        
+        # Static services (usually no cleanup needed, but check anyway)
+        ('static', ['diagram_validator', 'diagram_compiler', 'template_processor']),
+        
+        # Business logic (usually no cleanup needed)
+        ('business', ['validation_service', 'condition_evaluator'])
+    ]
+    
+    logger.info("Starting comprehensive resource cleanup...")
+    
+    for container_name, service_names in cleanup_order:
+        # Get the sub-container
+        sub_container = None
+        if hasattr(container, container_name):
+            sub_container_provider = getattr(container, container_name)
+            try:
+                sub_container = sub_container_provider()
+            except Exception as e:
+                logger.warning(f"Failed to access {container_name} container: {e}")
+                continue
+        
+        if not sub_container:
+            continue
+            
+        # Cleanup services in this container
+        for service_name in service_names:
+            if service_name in cleaned_services:
+                continue
+                
+            try:
+                # Get the service provider
+                if hasattr(sub_container, service_name):
+                    service_provider = getattr(sub_container, service_name)
+                    service = service_provider()
+                    
+                    # Check if service has cleanup method
+                    if hasattr(service, 'cleanup'):
+
+                        # Handle both sync and async cleanup methods
+                        cleanup_method = getattr(service, 'cleanup')
+                        if asyncio.iscoroutinefunction(cleanup_method):
+                            await cleanup_method()
+                        else:
+                            cleanup_method()
+                            
+                        cleaned_services.add(service_name)
+
+                    # Also check for close() method (common pattern)
+                    elif hasattr(service, 'close'):
+                        close_method = getattr(service, 'close')
+                        if asyncio.iscoroutinefunction(close_method):
+                            await close_method()
+                        else:
+                            close_method()
+                        cleaned_services.add(service_name)
+
+            except Exception as e:
+                logger.warning(f"Error cleaning up {container_name}.{service_name}: {e}")
+    
+    # Special handling for services accessed via service registry
+    if hasattr(container, 'application') and hasattr(container.application, 'service_registry'):
+        try:
+            service_registry = container.application.service_registry()
+            
+            # Additional services that might be in registry but not in containers
+            additional_services = ['template', 'file']  # Legacy aliases
+            
+            for service_name in additional_services:
+                if service_name in cleaned_services:
+                    continue
+                    
+                service = service_registry.get(service_name)
+                if service and hasattr(service, 'cleanup'):
+                    cleanup_method = getattr(service, 'cleanup')
+                    if asyncio.iscoroutinefunction(cleanup_method):
+                        await cleanup_method()
+                    else:
+                        cleanup_method()
+                    cleaned_services.add(service_name)
+                    
+        except Exception as e:
+            logger.warning(f"Error cleaning up registry services: {e}")
+    
 
 
 def validate_protocol_compliance(container) -> None:

@@ -1,14 +1,13 @@
 {
   "nodeType": "typescript_ast",
   "files_generated": [
+    "/home/soryhyun/DiPeO/dipeo/models/src/nodes/typescript_astNode.ts",
     "/home/soryhyun/DiPeO/apps/server/src/dipeo_server/api/graphql/schema/nodes/typescript_ast.graphql",
     "/home/soryhyun/DiPeO/apps/web/src/features/diagram-editor/components/nodes/generated/typescript_astNode.tsx",
     "/home/soryhyun/DiPeO/apps/web/src/features/diagram-editor/config/nodes/generated/typescriptAstConfig.ts",
     "/home/soryhyun/DiPeO/apps/web/src/features/diagram-editor/config/nodes/generated/typescriptAstFields.ts"
   ],
-  "files_missing": [
-    "/home/soryhyun/DiPeO/dipeo/models/src/nodes/typescript_astNode.ts"
-  ],
+  "files_missing": [],
   "next_steps": [
     "1. Add typescript_ast to NODE_TYPE_MAP in dipeo/models/src/conversions.ts",
     "2. Ensure typescript_astNode is generated in dipeo/core/static/generated_nodes.py by running 'make codegen-models'",
@@ -19,7 +18,7 @@
   ],
   "generation_summary": {
     "total_expected": 5,
-    "total_generated": 4,
-    "success_rate": "80.0%"
+    "total_generated": 5,
+    "success_rate": "100.0%"
   }
 }

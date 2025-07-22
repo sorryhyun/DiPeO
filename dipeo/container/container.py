@@ -108,6 +108,68 @@ class Container(containers.DeclarativeContainer):
             cls._profile = get_profile('full')  # Default profile
         return cls._profile
     
+    @classmethod
+    def with_overrides(cls, **overrides) -> type["Container"]:
+        """Create a new container class with specific overrides.
+        
+        This helper method simplifies creating container variations by allowing
+        selective overrides without manually recreating all dependent containers.
+        
+        Args:
+            **overrides: Provider overrides (e.g., base_dir=..., persistence=...)
+            
+        Returns:
+            New container class with overrides applied
+            
+        Example:
+            ServerContainer = Container.with_overrides(
+                base_dir=providers.Factory(lambda: SERVER_BASE_DIR),
+                persistence=providers.Container(ServerPersistenceContainer, ...)
+            )
+        """
+        class_name = f"{cls.__name__}WithOverrides"
+        
+        # Create new container class inheriting from the current one
+        new_class = type(class_name, (cls,), overrides)
+        
+        # Handle dependent container updates automatically
+        if "persistence" in overrides and hasattr(cls, "integration"):
+            # If persistence is overridden, update containers that depend on it
+            new_class.integration = providers.Container(
+                IntegrationServicesContainer,
+                config=cls.config,
+                base_dir=overrides.get("base_dir", cls.base_dir),
+                business=cls.business,
+                persistence=overrides["persistence"],
+            )
+            
+            new_class.static = providers.Container(
+                StaticServicesContainer,
+                config=cls.config,
+                persistence=overrides["persistence"],
+            )
+            
+            new_class.dynamic = providers.Container(
+                DynamicServicesContainer,
+                config=cls.config,
+                static=new_class.static,
+                business=cls.business,
+                persistence=overrides["persistence"],
+                integration=new_class.integration,
+            )
+            
+            new_class.application = providers.Container(
+                ApplicationContainer,
+                config=cls.config,
+                static=new_class.static,
+                business=cls.business,
+                dynamic=new_class.dynamic,
+                persistence=overrides["persistence"],
+                integration=new_class.integration,
+            )
+        
+        return new_class
+    
     def create_sub_container(
         self, 
         parent_execution_id: str,

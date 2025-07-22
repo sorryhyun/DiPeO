@@ -142,7 +142,8 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
       { tsName: 'input_mapping', pyName: 'input_mapping' },
       { tsName: 'output_mapping', pyName: 'output_mapping' },
       { tsName: 'timeout', pyName: 'timeout' },
-      { tsName: 'wait_for_completion', pyName: 'wait_for_completion', defaultValue: 'True' }
+      { tsName: 'wait_for_completion', pyName: 'wait_for_completion', defaultValue: 'True' },
+      { tsName: 'isolate_conversation', pyName: 'isolate_conversation', defaultValue: 'False' }
     ]
   }
 };
@@ -398,7 +399,7 @@ class StaticNodeGenerator {
     lines.push('from dipeo.models.models import (');
     lines.push('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,');
     lines.push('    HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,');
-    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService');
+    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService, ExtractPattern');
     lines.push(')');
     lines.push('');
     lines.push('');

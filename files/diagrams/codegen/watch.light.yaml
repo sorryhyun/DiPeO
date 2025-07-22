@@ -86,7 +86,7 @@ nodes:
       # For each changed spec, run the code generation
       for spec in {{#each changed_specs}}"{{this}}" {{/each}}; do
         echo "Regenerating code for: $spec"
-        dipeo run codegen/main --light --vars "NODE_SPEC_PATH=$spec" --no-browser
+        dipeo run codegen/node_ui_codegen --light --vars "node_spec_path=$spec" --no-browser
       done
     functionName: trigger_codegen
 

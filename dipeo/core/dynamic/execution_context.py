@@ -81,12 +81,13 @@ class ExecutionContext(Protocol):
         ...
     
     @abstractmethod
-    def transition_node_to_completed(self, node_id: NodeID, output: Any = None) -> None:
+    def transition_node_to_completed(self, node_id: NodeID, output: Any = None, token_usage: dict[str, int] | None = None) -> None:
         """Transition a node to completed state with optional output.
         
         Args:
             node_id: The ID of the node to transition
             output: Optional output from the node execution
+            token_usage: Optional token usage statistics
         """
         ...
     

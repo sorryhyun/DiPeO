@@ -15,6 +15,8 @@ import { NotionNodeConfig } from './notion';
 import { HookNodeConfig } from './hook';
 import { TemplateJobNodeConfig } from './template-job';
 import { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
+import { TypescriptAstNodeConfig } from './generated/typescriptAstConfig';
+import { SubDiagramNodeConfig } from './generated/subDiagramConfig';
 
 /**
  * Node visual metadata extracted from configurations
@@ -34,6 +36,8 @@ export const NODE_ICONS: Record<NodeType, string> = {
   [NodeType.HOOK]: HookNodeConfig.icon,
   [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig.icon,
   [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig.icon,
+  [NodeType.TYPESCRIPT_AST]: TypescriptAstNodeConfig.icon,
+  [NodeType.SUB_DIAGRAM]: SubDiagramNodeConfig.icon,
 };
 
 export const NODE_COLORS: Record<NodeType, string> = {
@@ -51,6 +55,8 @@ export const NODE_COLORS: Record<NodeType, string> = {
   [NodeType.HOOK]: HookNodeConfig.color,
   [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig.color,
   [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig.color,
+  [NodeType.TYPESCRIPT_AST]: TypescriptAstNodeConfig.color,
+  [NodeType.SUB_DIAGRAM]: SubDiagramNodeConfig.color,
 };
 
 export const NODE_LABELS: Record<NodeType, string> = {
@@ -68,6 +74,8 @@ export const NODE_LABELS: Record<NodeType, string> = {
   [NodeType.HOOK]: HookNodeConfig.label,
   [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig.label,
   [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig.label,
+  [NodeType.TYPESCRIPT_AST]: TypescriptAstNodeConfig.label,
+  [NodeType.SUB_DIAGRAM]: SubDiagramNodeConfig.label,
 };
 
 /**

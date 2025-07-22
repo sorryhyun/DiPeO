@@ -361,5 +361,6 @@ export interface SubDiagramNodeData extends BaseNodeData {
   output_mapping?: Record<string, string>;  // Map sub-diagram outputs to node outputs
   timeout?: number;  // Execution timeout in seconds
   wait_for_completion?: boolean;  // Whether to wait for sub-diagram completion (default: true)
+  isolate_conversation?: boolean;  // Whether to create isolated conversation context (default: false)
 }
 

@@ -1,0 +1,35 @@
+# GraphQL Schema for Sub-Diagram Node
+# Generated from node specification
+
+type SubDiagramNodeData implements NodeData {
+  id: ID!
+  type: NodeType!
+  label: String!
+  position: Position!
+  diagram_name: String
+  diagram_data: String
+  input_mapping: String
+  output_mapping: String
+  timeout: Float
+  wait_for_completion: Boolean
+  isolate_conversation: Boolean
+  flipped: Boolean
+}
+
+input SubDiagramNodeInput {
+  label: String!
+  position: PositionInput!
+  diagram_name: String
+  diagram_data: String
+  input_mapping: String
+  output_mapping: String
+  timeout: Float
+  wait_for_completion: Boolean
+  isolate_conversation: Boolean
+  flipped: Boolean
+}
+
+
+# Update these union types to include the new node type:
+# union NodeData = ... | SubDiagramNodeData
+# union NodeInput = ... | SubDiagramNodeInput

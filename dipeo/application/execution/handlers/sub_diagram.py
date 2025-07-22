@@ -117,41 +117,28 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
             from dipeo.application.unified_service_registry import UnifiedServiceRegistry
             
-            # For sub-diagrams, we want to inherit the same infrastructure session
-            # as the parent diagram. Get the full service registry from the execution context.
-            service_registry = None
-            container = None
+            # Use the new infrastructure with parent context from ExecutionRequest
+            container = request.parent_container
+            service_registry = request.parent_registry
             
-            # First try to get from context (ExecutionRuntime)
-            if hasattr(context, '_service_registry'):
-                service_registry = context._service_registry
-                log.debug(f"Got service registry from context for sub-diagram {node.id}")
+            # If not provided in request, fall back to runtime
+            if not container and request.runtime:
+                container = request.runtime._container
+                log.debug(f"Got container from runtime for sub-diagram {node.id}")
             
-            # Also try to get container from context
-            if hasattr(context, 'get_container'):
-                container = context.get_container()
-                log.debug(f"Got container from context for sub-diagram {node.id}")
-            elif hasattr(context, '_container'):
-                container = context._container
-                log.debug(f"Got container from context._container for sub-diagram {node.id}")
-            
-            # Fallback: try to get from runtime if available
-            if not service_registry and request.runtime and hasattr(request.runtime, '_service_registry'):
+            if not service_registry and request.runtime:
                 service_registry = request.runtime._service_registry
                 log.debug(f"Got service registry from runtime for sub-diagram {node.id}")
             
-            # Also get container from runtime if not found
-            if not container and request.runtime:
-                if hasattr(request.runtime, 'get_container'):
-                    container = request.runtime.get_container()
-                    log.debug(f"Got container from runtime.get_container() for sub-diagram {node.id}")
-                elif hasattr(request.runtime, '_container'):
-                    container = request.runtime._container
-                    log.debug(f"Got container from runtime._container for sub-diagram {node.id}")
-            
-            # If still not found, create a minimal registry from available services
-            # This should only happen in test scenarios
-            if not service_registry:
+            # Create hierarchical service registry for sub-diagram
+            if service_registry:
+                # Create a child registry that can selectively override services
+                sub_registry = request.create_sub_registry()
+                if sub_registry:
+                    service_registry = sub_registry
+                    log.debug(f"Created hierarchical service registry for sub-diagram {node.id}")
+            else:
+                # Fallback: create minimal registry (test scenarios)
                 log.warning(f"Creating minimal service registry for sub-diagram {node.id}")
                 service_registry = UnifiedServiceRegistry()
                 # Add all services from request.services dict
@@ -196,6 +183,10 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 if node.config and isinstance(node.config, dict):
                     config_overrides = node.config.get('isolation', {})
                 
+                # Check if we need to isolate conversation based on node configuration
+                if node.isolate_conversation:
+                    config_overrides['isolate_conversation'] = True
+                
                 try:
                     sub_container = container.create_sub_container(
                         parent_execution_id=request.execution_id,
@@ -206,6 +197,14 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                         log.info(f"Created sub-container for sub-diagram {node.id}")
                         # Update the execute_use_case to use the sub-container
                         execute_use_case.container = sub_container
+                        
+                        # If conversation is isolated, override the conversation service
+                        if node.isolate_conversation and service_registry:
+                            # Get the new conversation manager from sub-container
+                            new_conversation_manager = sub_container.dynamic.conversation_manager()
+                            service_registry.override('conversation_manager', new_conversation_manager)
+                            service_registry.override('conversation_service', new_conversation_manager)
+                            log.info(f"Isolated conversation for sub-diagram {node.id}")
                 except Exception as e:
                     log.warning(f"Failed to create sub-container: {e}")
             

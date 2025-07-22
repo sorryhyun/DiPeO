@@ -2,51 +2,260 @@ version: light
 nodes:
   - label: Start
     type: start
-    position: {x: 100, y: 200}
+    position: {x: 100, y: 300}
     props:
       trigger_mode: manual
-      custom_data:
-        node_spec_path: ""  # Optional: specific node spec
+      custom_data: {}  # Will use inputs.node_spec_path if provided
         
-  - label: Run Node Codegen
-    type: sub_diagram
-    position: {x: 350, y: 200}
-    props:
-      diagram_name: codegen/main
-      input_mapping:
-        node_spec_path: inputs.node_spec_path
-      output_mapping:
-        result: result
-      timeout: 30
-      wait_for_completion: true
-      
-  - label: Extract Results
+  - label: Get Node Spec Path
     type: code_job
-    position: {x: 600, y: 200}
+    position: {x: 250, y: 300}
+    props:
+      code: files/codegen/code/node_spec_loader.py
+      code_type: python
+      functionName: get_node_spec_path
+        
+  - label: Load Node Spec
+    type: code_job
+    position: {x: 450, y: 300}
+    props:
+      code: files/codegen/code/node_spec_loader.py
+      code_type: python
+      functionName: load_node_spec
+      
+  - label: Validate Spec
+    type: json_schema_validator
+    position: {x: 650, y: 300}
+    props:
+      schema_path: files/codegen/schemas/node_specification.schema.json
+      strict_mode: true
+      
+  - label: Parse Spec Data
+    type: code_job
+    position: {x: 850, y: 300}
+    props:
+      functionName: parse_spec_data_with_paths
+      code_type: python
+      code: files/codegen/code/codegen_functions.py
+      
+  - label: Generate TypeScript Model
+    type: template_job
+    position: {x: 1050, y: 100}
+    props:
+      template_path: "{{spec_data.template_paths.typescript_model}}"
+      output_path: "{{spec_data.output_paths.typescript_model}}"
+      engine: handlebars
+      
+  - label: Generate Python Models
+    type: code_job
+    position: {x: 1050, y: 200}
+    props:
+      functionName: generate_python_model
+      code_type: python
+      code: files/codegen/code/codegen_functions.py
+      
+  - label: Generate GraphQL Schema
+    type: template_job
+    position: {x: 1050, y: 300}
+    props:
+      template_path: "{{spec_data.template_paths.graphql_schema}}"
+      output_path: "{{spec_data.output_paths.graphql_schema}}"
+      engine: handlebars
+      
+  - label: Generate React Component
+    type: template_job
+    position: {x: 1050, y: 400}
+    props:
+      template_path: "{{spec_data.template_paths.react_component}}"
+      output_path: "{{spec_data.output_paths.react_component}}"
+      engine: handlebars
+      
+  - label: Generate Node Config
+    type: template_job
+    position: {x: 1050, y: 500}
+    props:
+      template_path: "{{spec_data.template_paths.node_config}}"
+      output_path: "{{spec_data.output_paths.node_config}}"
+      engine: handlebars
+      
+  - label: Generate Field Config
+    type: template_job
+    position: {x: 1050, y: 600}
+    props:
+      template_path: "{{spec_data.template_paths.field_config}}"
+      output_path: "{{spec_data.output_paths.field_config}}"
+      engine: handlebars
+      
+  - label: Update Registry Files
+    type: code_job
+    position: {x: 1350, y: 350}
+    props:
+      functionName: update_registry
+      code_type: python
+      code: files/codegen/code/codegen_functions.py
+      
+  - label: Register Node Types
+    type: code_job
+    position: {x: 1550, y: 350}
+    props:
+      functionName: register_node_types
+      code_type: python
+      code: files/codegen/code/codegen_functions.py
+      
+  - label: Generate Report
+    type: person_job
+    position: {x: 1750, y: 350}
+    props:
+      person: NodeReporter
+      default_prompt: |
+        Generate a summary of the node UI code generation for {{registration_result.registry_updates.nodeType}}:
+        
+        Generated files:
+        {{#each registration_result.registry_updates.files_generated}}
+        - {{this}}
+        {{/each}}
+        
+        Registration result:
+        {{#if registration_result.success}}
+        ✓ Successfully registered {{registration_result.registry_updates.nodeType}} node type
+        {{else}}
+        ✗ Failed to register node: {{registration_result.message}}
+        {{/if}}
+        
+        Provide a brief summary including:
+        1. What was successfully generated
+        2. Any warnings or issues
+        3. Next steps for testing the new node
+      max_iteration: 1
+      
+  - label: Save Results
+    type: code_job
+    position: {x: 1950, y: 350}
     props:
       code_type: python
-      code: |
-        # Simple inline code to format the output
-        result = inputs.get('result', '')
-        
-        # Return formatted message
-        return f"Node UI generation completed\n{result}"
+      code: files/codegen/code/phase3/sub_diagram_helpers.py
+      functionName: save_node_ui_results
       
   - label: End
     type: endpoint
-    position: {x: 850, y: 200}
+    position: {x: 2150, y: 350}
     props:
       save_to_file: false
 
 connections:
   - from: Start
-    to: Run Node Codegen
+    to: Get Node Spec Path
     content_type: object
     
-  - from: Run Node Codegen
-    to: Extract Results
+  - from: Get Node Spec Path
+    to: Load Node Spec
     content_type: object
     
-  - from: Extract Results
-    to: End
+  - from: Load Node Spec
+    to: Validate Spec
+    content_type: object
+    
+  - from: Validate Spec
+    to: Parse Spec Data
+    content_type: object
+    label: raw_data
+    
+  - from: Parse Spec Data
+    to: Generate TypeScript Model
+    content_type: object
+    label: spec_data
+    
+  - from: Parse Spec Data
+    to: Generate Python Models
+    content_type: object
+    label: spec
+    
+  - from: Parse Spec Data
+    to: Generate GraphQL Schema
+    content_type: object
+    label: spec_data
+    
+  - from: Parse Spec Data
+    to: Generate React Component
+    content_type: object
+    label: spec_data
+    
+  - from: Parse Spec Data
+    to: Generate Node Config
+    content_type: object
+    label: spec_data
+    
+  - from: Parse Spec Data
+    to: Generate Field Config
+    content_type: object
+    label: spec_data
+    
+  - from: Generate TypeScript Model
+    to: Update Registry Files
     content_type: raw_text
+    label: ts_result
+    
+  - from: Generate Python Models
+    to: Update Registry Files
+    content_type: raw_text
+    label: py_result
+    
+  - from: Generate GraphQL Schema
+    to: Update Registry Files
+    content_type: raw_text
+    label: gql_result
+    
+  - from: Generate React Component
+    to: Update Registry Files
+    content_type: raw_text
+    label: react_result
+    
+  - from: Generate Node Config
+    to: Update Registry Files
+    content_type: raw_text
+    label: config_result
+    
+  - from: Generate Field Config
+    to: Update Registry Files
+    content_type: raw_text
+    label: field_result
+    
+  - from: Parse Spec Data
+    to: Update Registry Files
+    content_type: object
+    label: spec
+    
+  - from: Update Registry Files
+    to: Register Node Types
+    content_type: object
+    label: registry_updates
+    
+  - from: Register Node Types
+    to: Generate Report
+    content_type: object
+    label: registration_result
+    
+    
+  - from: Generate Report
+    to: Save Results
+    content_type: raw_text
+    
+  - from: Update Registry Files
+    to: Save Results
+    content_type: object
+    label: registry_updates_save
+    
+  - from: Register Node Types  
+    to: Save Results
+    content_type: object
+    label: registration_result_save
+    
+  - from: Save Results
+    to: End
+    content_type: object
+
+persons:
+  NodeReporter:
+    service: openai
+    model: gpt-4.1-mini
+    api_key_id: APIKEY_52609F
