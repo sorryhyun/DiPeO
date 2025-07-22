@@ -26,10 +26,10 @@ def main():
         "files/diagrams/codegen/render_template_sub.light.yaml",
         "files/diagrams/codegen/registry_update.light.yaml",
         "files/diagrams/codegen/verification_and_report.light.yaml",
-        "files/manifests/codegen/templates.yaml",
-        "files/code/codegen/diagram_helpers.py",
-        "files/code/codegen/post_processors.py",
-        "files/code/codegen/registry_functions.py"
+        "files/codegen/manifests/codegen/templates.yaml",
+        "files/codegen/code/diagram_helpers.py",
+        "files/codegen/code/post_processors.py",
+        "files/codegen/code/registry_functions.py"
     ]
     
     print("\nChecking required files:")

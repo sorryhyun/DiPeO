@@ -80,7 +80,7 @@ export interface ExecutionState {
   node_outputs: Record<string, Record<string, any>>;  // Serialized protocol outputs
   token_usage: TokenUsage;
   error?: string | null;
-  variables: Record<string, any>;
+  variables?: Record<string, any>;
   duration_seconds?: number | null; // Computed field
   is_active?: boolean; // Computed field
   // Execution tracking for loops and iterations

@@ -34,6 +34,8 @@ from .execution import (
 # Execution
 from .execution.use_cases import ExecuteDiagramUseCase
 
+# Service Registry
+
 __all__ = [
     # Context
     "ExecutionRuntime",
@@ -41,6 +43,7 @@ __all__ = [
     "TypedExecutionEngine",
     # Execution
     "ExecuteDiagramUseCase",
+    # Service Registry
     # Execution framework (moved from core)
     "TypedNodeHandler",
     "HandlerRegistry",

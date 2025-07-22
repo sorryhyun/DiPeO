@@ -28,6 +28,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
     from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
+    from dipeo.container.container import Container
 
 logger = logging.getLogger(__name__)
 
@@ -40,15 +41,16 @@ class ExecutionRuntime(ExecutionContext):
         diagram: "ExecutableDiagram",
         execution_state: ExecutionState,
         service_registry: "UnifiedServiceRegistry",
+        container: Optional["Container"] = None,
     ):
         self.diagram = diagram
         self._execution_id = execution_state.id
         self._diagram_id = execution_state.diagram_id
         self._service_registry = service_registry
+        self._container = container
         
         # Core state
         self._node_states: dict[NodeID, NodeState] = {}
-        self._variables: dict[str, Any] = {}
         self._current_node_id: list[Optional[NodeID]] = [None]  # Mutable reference
         self.metadata: dict[str, Any] = {}  # Metadata for execution context
         
@@ -66,8 +68,7 @@ class ExecutionRuntime(ExecutionContext):
         ExecutionStatePersistence.load_from_state(
             execution_state, 
             self._node_states, 
-            self._tracker, 
-            self._variables
+            self._tracker
         )
         
         # Initialize missing node states
@@ -161,14 +162,6 @@ class ExecutionRuntime(ExecutionContext):
             if state.status == NodeExecutionStatus.COMPLETED
         ]
     
-    def get_variable(self, key: str) -> Any:
-        return self._variables.get(key)
-    
-    def set_variable(self, key: str, value: Any) -> None:
-        """Set a variable in the execution context."""
-        with self._state_lock:
-            self._variables[key] = value
-    
     def get_node_execution_count(self, node_id: NodeID) -> int:
         """Get the execution count for a node."""
         return self._tracker.get_execution_count(node_id)
@@ -234,8 +227,7 @@ class ExecutionRuntime(ExecutionContext):
             self._diagram_id,
             self.diagram,
             self._node_states,
-            self._tracker,
-            self._variables
+            self._tracker
         )
     
     # ========== Convenience Methods ==========
@@ -266,28 +258,6 @@ class ExecutionRuntime(ExecutionContext):
             if state.status in status_enums
         )
     
-    def update_node_state_without_tracker(self, node_id: NodeID, output: Any) -> None:
-        """Update node state and store output without calling tracker.
-        
-        This is used when the tracker has already been updated elsewhere 
-        (e.g., by ModernNodeExecutor).
-        """
-        state = self._node_states.get(node_id)
-        if state and output:
-            # Convert output to dict format if needed
-            if hasattr(output, 'to_dict'):
-                output_dict = output.to_dict()
-            elif hasattr(output, 'value'):
-                output_dict = {"value": output.value}
-                if hasattr(output, 'metadata'):
-                    output_dict["metadata"] = output.metadata
-            else:
-                output_dict = {"value": output}
-            
-            # Store the output in the node state if it has a place for it
-            if hasattr(state, 'output'):
-                state.output = output_dict
-    
     @property
     def current_node_id(self) -> Optional[NodeID]:
         return self._current_node_id[0]
@@ -299,3 +269,28 @@ class ExecutionRuntime(ExecutionContext):
     @property
     def execution_id(self) -> str:
         return str(self._execution_id)
+    
+    @property
+    def container(self) -> Optional["Container"]:
+        """Get the container reference if available."""
+        return self._container
+    
+    def create_sub_container(self, sub_execution_id: str, config_overrides: Optional[dict] = None) -> Optional["Container"]:
+        """Create a sub-container for sub-diagram execution.
+        
+        Args:
+            sub_execution_id: ID for the sub-execution
+            config_overrides: Optional configuration overrides
+            
+        Returns:
+            Sub-container if parent container exists, None otherwise
+        """
+        if self._container is None:
+            return None
+            
+        # Delegate to container's create_sub_container method
+        return self._container.create_sub_container(
+            parent_execution_id=self.execution_id,
+            sub_execution_id=sub_execution_id,
+            config_overrides=config_overrides or {}
+        )

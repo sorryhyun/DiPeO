@@ -9,13 +9,24 @@ from dipeo.models import (
     NodeExecutionStatus,
     NodeState,
 )
+try:
+    from .scoped_observer import ObserverMetadata
+except ImportError:
+    # Fallback for when module is imported differently
+    from dipeo.application.execution.observers import ObserverMetadata
 
 
 class StateStoreObserver(ExecutionObserver):
     """Observer that persists execution state."""
 
-    def __init__(self, state_store):
+    def __init__(self, state_store, propagate_to_sub: bool = True):
         self.state_store = state_store
+        # Configure metadata for sub-diagram propagation
+        self.metadata = ObserverMetadata(
+            propagate_to_sub=propagate_to_sub,
+            scope_to_execution=False,  # StateStore should track all executions
+            filter_events=None  # Track all events
+        )
 
     async def on_execution_start(self, execution_id: str, diagram_id: str | None):
         import logging

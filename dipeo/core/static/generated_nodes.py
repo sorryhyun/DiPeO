@@ -13,9 +13,6 @@ from dipeo.models.models import (
     NotionOperation, HookType, PersonLLMConfig, LLMService
 )
 
-# Type aliases
-ExtractPattern = Literal['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
-
 
 @dataclass(frozen=True)
 class BaseExecutableNode:
@@ -263,7 +260,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 class TypescriptAstNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.typescript_ast, init=False)
     source: Optional[str] = None
-    extractPatterns: Optional[List[ExtractPattern]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    extractPatterns: Optional[List[str]] = field(default_factory=lambda: ["interface", "type", "enum"])
     includeJSDoc: Optional[bool] = False
     parseMode: Optional[Literal["module", "script"]] = "module"
 

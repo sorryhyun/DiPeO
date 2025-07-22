@@ -16,7 +16,7 @@ nodes:
     props:
       functionName: run_automated_verification
       code_type: python
-      code: files/code/codegen/phase2/verification_report_helpers.py
+      code: files/codegen/code/phase2/verification_report_helpers.py
             
   - label: Evaluate Check Results
     type: condition
@@ -31,7 +31,7 @@ nodes:
     props:
       functionName: generate_success_report
       code_type: python
-      code: files/code/codegen/phase2/verification_report_helpers.py
+      code: files/codegen/code/phase2/verification_report_helpers.py
             
   - label: Request Human Review
     type: person_job
@@ -78,7 +78,7 @@ nodes:
     props:
       functionName: process_review_decision
       code_type: python
-      code: files/code/codegen/phase2/verification_report_helpers.py
+      code: files/codegen/code/phase2/verification_report_helpers.py
             
   - label: Format Final Report
     type: template_job

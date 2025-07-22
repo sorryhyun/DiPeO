@@ -53,7 +53,7 @@ export const TemplateJobNodeConfig: UnifiedNodeConfig<TemplateJobNodeData> = {
       name: 'template_path',
       type: 'text',
       label: 'Template File Path',
-      placeholder: 'Path to template file (e.g., files/templates/example.hbs)',
+      placeholder: 'Path to template file (e.g., files/codegen/templates/example.hbs)',
       conditional: {
         field: 'template_content',
         operator: 'equals',

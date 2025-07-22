@@ -38,7 +38,7 @@ nodes:
     props:
       functionName: apply_post_processors
       code_type: python
-      code: files/code/codegen/phase2/render_template_helpers.py
+      code: files/codegen/code/phase2/render_template_helpers.py
             
   - label: Hash Content
     type: code_job
@@ -46,7 +46,7 @@ nodes:
     props:
       functionName: compute_content_hash
       code_type: python
-      code: files/code/codegen/phase2/render_template_helpers.py
+      code: files/codegen/code/phase2/render_template_helpers.py
             
   - label: Check Cache
     type: code_job
@@ -54,7 +54,7 @@ nodes:
     props:
       functionName: check_write_cache
       code_type: python
-      code: files/code/codegen/phase2/render_template_helpers.py
+      code: files/codegen/code/phase2/render_template_helpers.py
             
   - label: Write File Atomic
     type: code_job
@@ -62,7 +62,7 @@ nodes:
     props:
       functionName: write_file_atomic
       code_type: python
-      code: files/code/codegen/phase2/render_template_helpers.py
+      code: files/codegen/code/phase2/render_template_helpers.py
             
   - label: Format Code
     type: code_job
@@ -70,7 +70,7 @@ nodes:
     props:
       functionName: format_generated_code
       code_type: python
-      code: files/code/codegen/phase2/render_template_helpers.py
+      code: files/codegen/code/phase2/render_template_helpers.py
             
   - label: Skip Write
     type: code_job
@@ -78,7 +78,7 @@ nodes:
     props:
       functionName: log_cache_hit
       code_type: python
-      code: files/code/codegen/phase2/render_template_helpers.py
+      code: files/codegen/code/phase2/render_template_helpers.py
             
   - label: Collect Result
     type: code_job
@@ -86,7 +86,7 @@ nodes:
     props:
       functionName: collect_render_result
       code_type: python
-      code: files/code/codegen/phase2/render_template_helpers.py
+      code: files/codegen/code/phase2/render_template_helpers.py
             
   - label: End
     type: endpoint

@@ -6,19 +6,19 @@ nodes:
   props:
     trigger_mode: manual
     custom_data:
-      node_spec_path: files/specifications/nodes/typescript_ast_parser.json
+      node_spec_path: files/codegen/specifications/nodes/typescript_ast_parser.json
 - label: Load Node Spec
   type: db
   position: {x: 296, y: 89}
   props:
     operation: read
     sub_type: file
-    source_details: files/specifications/nodes/typescript_ast_parser.json
+    source_details: files/codegen/specifications/nodes/typescript_ast_parser.json
 - label: Validate Spec
   type: json_schema_validator
   position: {x: 569, y: 248}
   props:
-    schema_path: files/schemas/node_specification.schema.json
+    schema_path: files/codegen/schemas/node_specification.schema.json
     strict_mode: true
 - label: Parse Spec Data
   type: code_job
@@ -27,12 +27,12 @@ nodes:
     functionName: parse_spec_data
     flipped: [true, false]
     code_type: python
-    code: files/code/codegen/codegen_functions.py
+    code: files/codegen/code/codegen_functions.py
 - label: Generate TypeScript Model
   type: template_job
   position: {x: 221, y: 785}
   props:
-    template_path: files/templates/typescript_model.hbs
+    template_path: files/codegen/templates/typescript_model.hbs
     output_path: dipeo/models/src/nodes/{{spec_data.nodeType}}Node.ts
     engine: handlebars
 - label: Generate Python Models
@@ -42,19 +42,19 @@ nodes:
     functionName: generate_python_model
     flipped: [false, false]
     code_type: python
-    code: files/code/codegen/codegen_functions.py
+    code: files/codegen/code/codegen_functions.py
 - label: Generate GraphQL Schema
   type: template_job
   position: {x: 211, y: 947}
   props:
-    template_path: files/templates/graphql_schema.hbs
+    template_path: files/codegen/templates/graphql_schema.hbs
     output_path: apps/server/src/dipeo_server/api/graphql/schema/nodes/{{spec_data.nodeType}}.graphql
     engine: handlebars
 - label: Generate React Component
   type: template_job
   position: {x: 218, y: 1275}
   props:
-    template_path: files/templates/react_component.hbs
+    template_path: files/codegen/templates/react_component.hbs
     output_path: apps/web/src/features/diagram-editor/components/nodes/generated/{{spec_data.nodeType}}Node.tsx
     engine: handlebars
     flipped: [false, false]
@@ -62,7 +62,7 @@ nodes:
   type: template_job
   position: {x: 207, y: 606}
   props:
-    template_path: files/templates/node_config.hbs
+    template_path: files/codegen/templates/node_config.hbs
     output_path: apps/web/src/features/diagram-editor/config/nodes/generated/{{spec_data.camelCase}}Config.ts
     engine: handlebars
     flipped: [false, false]
@@ -70,7 +70,7 @@ nodes:
   type: template_job
   position: {x: 218, y: 1111}
   props:
-    template_path: files/templates/field_config.hbs
+    template_path: files/codegen/templates/field_config.hbs
     output_path: apps/web/src/features/diagram-editor/config/nodes/generated/{{spec_data.camelCase}}Fields.ts
     engine: handlebars
 - label: Update Registry Files
@@ -79,7 +79,7 @@ nodes:
   props:
     functionName: update_registry
     code_type: python
-    code: files/code/codegen/codegen_functions.py
+    code: files/codegen/code/codegen_functions.py
 - label: Register Node Types
   type: code_job
   position: {x: 1212, y: 688}
@@ -87,7 +87,7 @@ nodes:
     functionName: register_node_types
     flipped: [false, false]
     code_type: python
-    code: files/code/codegen/codegen_functions.py
+    code: files/codegen/code/codegen_functions.py
 - label: Verify Generated Code
   type: person_job
   position: {x: 1364, y: 1319}

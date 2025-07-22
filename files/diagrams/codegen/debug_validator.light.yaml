@@ -12,7 +12,7 @@ nodes:
   props:
     operation: read
     sub_type: file
-    source_details: "files/specifications/nodes/example_hook.json"
+    source_details: "files/codegen/specifications/nodes/example_hook.json"
 
 - label: Debug Loaded
   type: code_job
@@ -34,7 +34,7 @@ nodes:
   type: json_schema_validator
   position: {x: 700, y: 100}
   props:
-    schema_path: files/schemas/node_specification.schema.json
+    schema_path: files/codegen/schemas/node_specification.schema.json
     strict_mode: true
 
 - label: Debug Validated

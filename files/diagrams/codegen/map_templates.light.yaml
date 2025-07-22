@@ -15,7 +15,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      file: files/manifests/codegen/templates.yaml
+      file: files/codegen/manifests/codegen/templates.yaml
       
   - label: Parse Manifest
     type: code_job
@@ -23,7 +23,7 @@ nodes:
     props:
       functionName: parse_template_manifest
       code_type: python
-      code: files/code/codegen/phase2/map_templates_helpers.py
+      code: files/codegen/code/phase2/map_templates_helpers.py
             
   - label: Process Templates
     type: code_job
@@ -31,7 +31,7 @@ nodes:
     props:
       functionName: process_template_batch
       code_type: python
-      code: files/code/codegen/phase2/map_templates_helpers.py
+      code: files/codegen/code/phase2/map_templates_helpers.py
             
   - label: Render All Templates
     type: code_job
@@ -39,7 +39,7 @@ nodes:
     props:
       functionName: batch_render_templates
       code_type: python
-      code: files/code/codegen/phase2/map_templates_helpers.py
+      code: files/codegen/code/phase2/map_templates_helpers.py
             
   - label: Collect Results
     type: code_job
@@ -47,7 +47,7 @@ nodes:
     props:
       functionName: collect_render_results
       code_type: python
-      code: files/code/codegen/phase2/map_templates_helpers.py
+      code: files/codegen/code/phase2/map_templates_helpers.py
             
   - label: End
     type: endpoint  

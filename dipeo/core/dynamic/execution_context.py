@@ -51,29 +51,6 @@ class ExecutionContext(Protocol):
         """
         ...
     
-    
-    @abstractmethod
-    def get_variable(self, key: str) -> Any:
-        """Get a variable from the execution context.
-        
-        Args:
-            key: The variable key
-            
-        Returns:
-            The variable value, or None if not found
-        """
-        ...
-    
-    @abstractmethod
-    def set_variable(self, key: str, value: Any) -> None:
-        """Set a variable in the execution context.
-        
-        Args:
-            key: The variable key
-            value: The variable value
-        """
-        ...
-    
     @abstractmethod
     def get_node_execution_count(self, node_id: NodeID) -> int:
         """Get the execution count for a specific node.

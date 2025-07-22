@@ -46,7 +46,7 @@ export const JsonSchemaValidatorNodeConfig: UnifiedNodeConfig<JsonSchemaValidato
       name: 'schema_path',
       type: 'text',
       label: 'Schema File Path',
-      placeholder: 'Path to JSON schema file (e.g., files/schemas/node.schema.json)',
+      placeholder: 'Path to JSON schema file (e.g., files/codegen/schemas/node.schema.json)',
       conditional: {
         field: 'schema',
         operator: 'equals',

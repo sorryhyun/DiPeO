@@ -20,7 +20,7 @@ nodes:
     type: json_schema_validator
     position: {x: 500, y: 200}
     props:
-      schema_path: files/schemas/node_specification.schema.json
+      schema_path: files/codegen/schemas/node_specification.schema.json
       strict_mode: true
       error_on_extra: false
       
@@ -30,7 +30,7 @@ nodes:
     props:
       functionName: normalize_spec_data
       code_type: python
-      code: files/code/codegen/phase2/spec_ingestion_helpers.py
+      code: files/codegen/code/phase2/spec_ingestion_helpers.py
             
   - label: Add Metadata
     type: code_job
@@ -38,7 +38,7 @@ nodes:
     props:
       functionName: add_generation_metadata
       code_type: python
-      code: files/code/codegen/phase2/spec_ingestion_helpers.py
+      code: files/codegen/code/phase2/spec_ingestion_helpers.py
             
   - label: End
     type: endpoint

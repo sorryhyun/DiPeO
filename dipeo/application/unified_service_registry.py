@@ -66,9 +66,10 @@ class UnifiedServiceRegistry(DynamicRegistry):
     # Unified service registry that supports both static and dynamic service registration.
     # Can be used in server, local/CLI, and test modes.
     
-    def __init__(self, **services):
+    def __init__(self, parent: Optional["UnifiedServiceRegistry"] = None, **services):
         # Initialize with optional services.
         super().__init__()
+        self._parent = parent
         
         # Register any provided services
         for name, service in services.items():
@@ -128,8 +129,105 @@ class UnifiedServiceRegistry(DynamicRegistry):
         
         return registry
     
+    @classmethod
+    def from_container(cls, container: Any) -> "UnifiedServiceRegistry":
+        """Create registry by automatically discovering services from a container.
+        
+        This method introspects the container's sub-containers and providers
+        to automatically register services, reducing manual configuration.
+        
+        Args:
+            container: A dependency_injector Container with sub-containers
+            
+        Returns:
+            UnifiedServiceRegistry with all discovered services registered
+        """
+        from dependency_injector import containers, providers
+        
+        registry = cls()
+        
+        # Service name mapping for consistent naming
+        # Maps provider names to standardized service names
+        name_mappings = {
+            # Keep consistent with existing names
+            "llm_service": "llm_service",
+            "notion_service": "notion_service", 
+            "api_service": "api_service",
+            "file_service": "file_service",
+            "template_processor": "template_service",
+            "conversation_manager": "conversation_manager",
+            # Add more mappings as needed
+        }
+        
+        # Legacy aliases that should be registered
+        legacy_aliases = {
+            "file_service": ["file"],  # file_service also registered as "file"
+            "template_processor": ["template"],  # template_processor also as "template"
+            "conversation_manager": ["conversation_service"],  # Also register as conversation_service
+        }
+        
+        # Sub-containers to process in order
+        sub_container_names = [
+            "integration",
+            "persistence", 
+            "business",
+            "static",
+            "dynamic"
+        ]
+        
+        # Process each sub-container
+        for container_name in sub_container_names:
+            if hasattr(container, container_name):
+                sub_container_provider = getattr(container, container_name)
+                
+                # Get the actual container instance
+                if isinstance(sub_container_provider, providers.Container):
+                    try:
+                        sub_container = sub_container_provider()
+                        
+                        # Process providers in the sub-container
+                        if hasattr(sub_container, 'providers'):
+                            for provider_name, provider in sub_container.providers.items():
+                                # Skip special providers
+                                if provider_name.startswith('_') or provider_name == 'config':
+                                    continue
+                                
+                                # Try to get the service instance
+                                try:
+                                    if isinstance(provider, (providers.Singleton, providers.Factory)):
+                                        service = provider()
+                                        
+                                        # Determine the service name
+                                        service_name = name_mappings.get(provider_name, provider_name)
+                                        
+                                        # Register the service
+                                        registry.register(service_name, service)
+                                        
+                                        # Register legacy aliases if any
+                                        if provider_name in legacy_aliases:
+                                            for alias in legacy_aliases[provider_name]:
+                                                registry.register(alias, service)
+                                                
+                                except Exception:
+                                    # Skip services that fail to instantiate
+                                    # This might happen for services with unmet dependencies
+                                    pass
+                                    
+                    except Exception:
+                        # Skip containers that fail to instantiate
+                        pass
+        
+        return registry
+    
+    @property
+    def parent(self) -> Optional["UnifiedServiceRegistry"]:
+        """Get parent registry."""
+        return self._parent
+    
     def get(self, key: ServiceKey[T] | str, default: Optional[T] = None) -> Optional[T]:
         """Get a service by typed key or string.
+        
+        First checks local registry, then traverses up parent chain.
         
         Args:
             key: Either a ServiceKey[T] or string name
@@ -139,7 +237,15 @@ class UnifiedServiceRegistry(DynamicRegistry):
             The service instance or default
         """
         name = key.name if isinstance(key, ServiceKey) else key
-        result = super().get(name)
+        
+        # Check local registry first
+        if name in self._items:
+            result = self._items[name]
+        # Check parent if available
+        elif self._parent is not None:
+            return self._parent.get(key, default)
+        else:
+            result = None
         
         if isinstance(key, ServiceKey):
             return cast(Optional[T], result if result is not None else default)
@@ -210,6 +316,78 @@ class UnifiedServiceRegistry(DynamicRegistry):
             service = self.get(service_name)
             validation_results[service_name] = service is not None
         return validation_results
+    
+    def has_local(self, key: ServiceKey[T] | str) -> bool:
+        """Check if service exists in local registry only.
+        
+        Does not check parent registries.
+        
+        Args:
+            key: Service key or name
+            
+        Returns:
+            True if exists locally
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        return name in self._items
+        
+    def override(self, key: ServiceKey[T] | str, service: T) -> None:
+        """Override a service in the local registry.
+        
+        This allows child registries to override parent services
+        without modifying the parent.
+        
+        Args:
+            key: Service key or name
+            service: Service instance
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        self.register(name, service)
+        
+    def get_ancestry_chain(self) -> list["UnifiedServiceRegistry"]:
+        """Get full ancestry chain from this registry to root.
+        
+        Returns:
+            List of registries from self to root
+        """
+        chain = [self]
+        current = self._parent
+        
+        while current is not None:
+            chain.append(current)
+            current = current._parent
+            
+        return chain
+        
+    def get_all_services(self) -> dict[str, Any]:
+        """Get all services including inherited ones.
+        
+        Services from child registries override parent services.
+        
+        Returns:
+            Combined service dictionary
+        """
+        # Start with parent services
+        if self._parent:
+            all_services = self._parent.get_all_services()
+        else:
+            all_services = {}
+            
+        # Override with local services
+        all_services.update(self._items)
+        
+        return all_services
+        
+    def create_child(self, **services) -> "UnifiedServiceRegistry":
+        """Create a child registry inheriting from this one.
+        
+        Args:
+            **services: Initial services for child
+            
+        Returns:
+            New child registry
+        """
+        return UnifiedServiceRegistry(parent=self, **services)
     
     def __repr__(self) -> str:
         # String representation of the registry.

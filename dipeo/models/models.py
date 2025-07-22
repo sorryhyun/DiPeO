@@ -428,7 +428,7 @@ class TypescriptAstNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     source: Optional[str] = Field(default=None)
-    extractPatterns: Optional[List[ExtractPattern]] = Field(default=None)
+    extractPatterns: Optional[List[str]] = Field(default=None)
     includeJSDoc: Optional[bool] = Field(default=None)
     parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
 
@@ -472,7 +472,7 @@ class ExecutionState(BaseModel):
     node_outputs: Dict[str, Dict[str, Any]]
     token_usage: TokenUsage
     error: Optional[str] = Field(default=None)
-    variables: Dict[str, Any]
+    variables: Optional[Dict[str, Any]] = Field(default=None)
     duration_seconds: Optional[float] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
     exec_counts: Dict[str, float]

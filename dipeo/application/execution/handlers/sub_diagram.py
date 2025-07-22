@@ -117,29 +117,97 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
             from dipeo.application.unified_service_registry import UnifiedServiceRegistry
             
-            # Create a service registry for the sub-diagram execution
-            # We need to get the registry from the execution context
-            service_registry = context.get_service_registry() if hasattr(context, 'get_service_registry') else None
+            # For sub-diagrams, we want to inherit the same infrastructure session
+            # as the parent diagram. Get the full service registry from the execution context.
+            service_registry = None
+            container = None
             
+            # First try to get from context (ExecutionRuntime)
+            if hasattr(context, '_service_registry'):
+                service_registry = context._service_registry
+                log.debug(f"Got service registry from context for sub-diagram {node.id}")
+            
+            # Also try to get container from context
+            if hasattr(context, 'get_container'):
+                container = context.get_container()
+                log.debug(f"Got container from context for sub-diagram {node.id}")
+            elif hasattr(context, '_container'):
+                container = context._container
+                log.debug(f"Got container from context._container for sub-diagram {node.id}")
+            
+            # Fallback: try to get from runtime if available
+            if not service_registry and request.runtime and hasattr(request.runtime, '_service_registry'):
+                service_registry = request.runtime._service_registry
+                log.debug(f"Got service registry from runtime for sub-diagram {node.id}")
+            
+            # Also get container from runtime if not found
+            if not container and request.runtime:
+                if hasattr(request.runtime, 'get_container'):
+                    container = request.runtime.get_container()
+                    log.debug(f"Got container from runtime.get_container() for sub-diagram {node.id}")
+                elif hasattr(request.runtime, '_container'):
+                    container = request.runtime._container
+                    log.debug(f"Got container from runtime._container for sub-diagram {node.id}")
+            
+            # If still not found, create a minimal registry from available services
+            # This should only happen in test scenarios
             if not service_registry:
-                # Fallback: create minimal registry with available services
+                log.warning(f"Creating minimal service registry for sub-diagram {node.id}")
                 service_registry = UnifiedServiceRegistry()
-                service_registry.register("state_store", state_store)
-                service_registry.register("message_router", message_router)
+                # Add all services from request.services dict
+                for service_name, service in request.services.items():
+                    service_registry.register(service_name, service)
+                # Ensure diagram_storage_service is available
                 if diagram_loader:
-                    service_registry.register("diagram_loader", diagram_loader)
-                    # Also register as diagram_storage_service for backward compatibility
                     service_registry.register("diagram_storage_service", diagram_loader)
+                    service_registry.register("diagram_loader", diagram_loader)
             
+            # Create the execution use case with the inherited services
             execute_use_case = ExecuteDiagramUseCase(
                 service_registry=service_registry,
                 state_store=state_store,
-                message_router=message_router
+                message_router=message_router,
+                diagram_storage_service=diagram_loader,  # Pass diagram_loader explicitly
+                container=container  # Pass container for sub-diagram isolation
+            )
+            
+            # Try to get observers from the execution context/options
+            # This requires the parent execution to pass observers via options
+            parent_observers = options.get("observers", [])
+            
+            # Create scoped observers for sub-diagram execution
+            from dipeo.application.execution.observers import create_scoped_observers
+            scoped_observers = create_scoped_observers(
+                observers=parent_observers,
+                parent_execution_id=request.execution_id,
+                sub_execution_id=sub_execution_id,
+                inherit_all=True  # Can be configured via node.config if needed
             )
             
             # Log sub-diagram execution start
             log.info(f"Starting sub-diagram execution: {sub_execution_id}")
             request.add_metadata("sub_execution_id", sub_execution_id)
+            
+            # If we have a container, create a sub-container for this sub-diagram
+            sub_container = None
+            if container and hasattr(container, 'create_sub_container'):
+                # Get configuration for sub-diagram isolation from node config
+                config_overrides = {}
+                if node.config and isinstance(node.config, dict):
+                    config_overrides = node.config.get('isolation', {})
+                
+                try:
+                    sub_container = container.create_sub_container(
+                        parent_execution_id=request.execution_id,
+                        sub_execution_id=sub_execution_id,
+                        config_overrides=config_overrides
+                    )
+                    if sub_container:
+                        log.info(f"Created sub-container for sub-diagram {node.id}")
+                        # Update the execute_use_case to use the sub-container
+                        execute_use_case.container = sub_container
+                except Exception as e:
+                    log.warning(f"Failed to create sub-container: {e}")
             
             # Collect results from the sub-diagram execution
             execution_results = {}
@@ -149,7 +217,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 diagram=diagram_data,
                 options=options,
                 execution_id=sub_execution_id,
-                interactive_handler=None
+                interactive_handler=None,
+                observers=scoped_observers  # Pass scoped observers to sub-diagram
             ):
                 # Process execution updates
                 if update.get("type") == "node_complete":
@@ -219,33 +288,66 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         if not diagram_loader:
             raise ValueError("Diagram loader not available")
         
-        # Load the diagram
-        # The diagram name might include format suffix like .light.yaml
+        # Normalize the diagram name
         diagram_name = node.diagram_name
         
-        # Try to load from different formats
-        formats = [".native.json", ".light.yaml", ".readable.yaml"]
-        domain_diagram = None
-        
-        for fmt in formats:
-            try:
-                file_path = f"files/diagrams/{diagram_name}"
-                if not diagram_name.endswith(fmt):
-                    file_path = f"files/diagrams/{diagram_name}{fmt}"
-                
-                # Use the diagram loader to load from file
-                domain_diagram = await diagram_loader.load_from_file(file_path)
+        # Remove any file extension if present
+        for ext in ['.light.yaml', '.native.json', '.readable.yaml', '.yaml', '.json']:
+            if diagram_name.endswith(ext):
+                diagram_name = diagram_name[:-len(ext)]
                 break
-            except Exception:
-                continue
         
-        if not domain_diagram:
-            raise ValueError(f"Diagram '{diagram_name}' not found in any format")
-        
-        # Convert domain diagram to dict for execution
-        # The diagram loader returns a DomainDiagram, we need a dict
-        from dipeo.domain.diagram.utils import domain_diagram_to_dict
-        return domain_diagram_to_dict(domain_diagram)
+        # Use the integrated diagram service to load the diagram
+        # This service handles format detection and conversion properly
+        try:
+            # Try to get the integrated diagram service from the file service
+            file_service = getattr(diagram_loader, 'file_service', None)
+            if file_service:
+                # Read the diagram file directly using file service
+                # Try different formats in order of preference
+                formats = ['light.yaml', 'native.json', 'readable.yaml']
+                
+                for fmt in formats:
+                    try:
+                        file_path = f"files/diagrams/{diagram_name}.{fmt}"
+                        result = file_service.read(file_path)
+                        
+                        if result.get("success") and result.get("content"):
+                            content = result["content"]
+                            
+                            # If content is already a dict (parsed YAML/JSON), use it directly
+                            if isinstance(content, dict):
+                                # Validate it's a proper diagram format
+                                if "nodes" in content and ("connections" in content or "flow" in content):
+                                    log.info(f"Successfully loaded sub-diagram from: {file_path}")
+                                    return content
+                            # If content is a string, parse it based on format
+                            elif isinstance(content, str):
+                                if fmt.endswith('.yaml'):
+                                    import yaml
+                                    diagram_dict = yaml.safe_load(content)
+                                elif fmt.endswith('.json'):
+                                    import json
+                                    diagram_dict = json.loads(content)
+                                else:
+                                    continue
+                                
+                                if isinstance(diagram_dict, dict) and "nodes" in diagram_dict:
+                                    log.info(f"Successfully loaded and parsed sub-diagram from: {file_path}")
+                                    return diagram_dict
+                    except Exception as e:
+                        log.debug(f"Failed to load {file_path}: {str(e)}")
+                        continue
+                
+                raise ValueError(f"Unable to load diagram '{diagram_name}' in any format")
+            else:
+                # Fallback: try using the diagram loader's prepare_diagram method
+                # This might work if it's an IntegratedDiagramService
+                raise ValueError("File service not available in diagram loader")
+                
+        except Exception as e:
+            log.error(f"Error loading diagram '{diagram_name}': {str(e)}")
+            raise ValueError(f"Failed to load diagram '{diagram_name}': {str(e)}")
     
     def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> dict[str, Any]:
         """Process output mapping from sub-diagram results."""

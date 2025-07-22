@@ -52,7 +52,7 @@ nodes:
     position: {x: 900, y: 225}
     props:
       code_type: python
-      code: files/code/codegen/phase2/master_codegen_helpers.py
+      code: files/codegen/code/phase2/master_codegen_helpers.py
       functionName: merge_codegen_results
         
   - label: Generate Report

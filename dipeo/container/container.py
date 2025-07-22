@@ -107,6 +107,104 @@ class Container(containers.DeclarativeContainer):
         if cls._profile is None:
             cls._profile = get_profile('full')  # Default profile
         return cls._profile
+    
+    def create_sub_container(
+        self, 
+        parent_execution_id: str,
+        sub_execution_id: str,
+        config_overrides: dict = None
+    ) -> "Container":
+        """Create a sub-container for sub-diagram execution.
+        
+        This implements the simplified architecture where:
+        - Infrastructure layers (persistence, integration, static, business) are always shared
+        - Only dynamic (execution state) is isolated
+        - Conversation can optionally be isolated based on config
+        
+        Args:
+            parent_execution_id: Parent execution ID for context
+            sub_execution_id: Sub-execution ID for isolation
+            config_overrides: Configuration overrides (e.g., isolation settings)
+            
+        Returns:
+            New container instance with selective isolation
+        """
+        from .application_container import ApplicationContainer
+        from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+        
+        # Get sub_diagram profile as base
+        sub_profile = get_profile('sub_diagram')
+        
+        # Merge config overrides
+        if config_overrides:
+            if sub_profile.config_overrides:
+                sub_profile.config_overrides.update(config_overrides)
+            else:
+                sub_profile.config_overrides = config_overrides
+        
+        # Create new container instance
+        sub_container = Container()
+        sub_container._profile = sub_profile
+        
+        # Copy configuration from parent
+        sub_container.config.from_dict(self.config())
+        
+        # Apply sub-container specific config
+        if sub_profile.config_overrides:
+            sub_container.config.update(sub_profile.config_overrides)
+        
+        # IMPORTANT: Share infrastructure containers (no isolation)
+        # These are always shared per the simplified architecture
+        sub_container.business.override(self.business())
+        sub_container.persistence.override(self.persistence())
+        sub_container.static.override(self.static())
+        sub_container.integration.override(self.integration())
+        
+        # Create new dynamic container (always isolated)
+        # This provides isolated execution state
+        sub_container.dynamic.override(
+            providers.Container(
+                DynamicServicesContainer,
+                config=sub_container.config,
+                static=sub_container.static,
+                business=sub_container.business,
+                persistence=sub_container.persistence,
+                integration=sub_container.integration,
+            )
+        )
+        
+        # Create new application container with hierarchical service registry
+        # This allows selective service overrides
+        parent_registry = self.application().unified_service_registry()
+        
+        # Create hierarchical registry for inheritance
+        sub_registry = UnifiedServiceRegistry(parent=parent_registry)
+        
+        # Override application container with new registry
+        sub_container.application.override(
+            providers.Container(
+                ApplicationContainer,
+                config=sub_container.config,
+                static=sub_container.static,
+                business=sub_container.business,
+                dynamic=sub_container.dynamic,
+                persistence=sub_container.persistence,
+                integration=sub_container.integration,
+                # Use hierarchical registry for service inheritance
+                unified_service_registry=providers.Factory(
+                    lambda: sub_registry
+                )
+            )
+        )
+        
+        # Store parent context
+        sub_container.config.update({
+            'parent_execution_id': parent_execution_id,
+            'sub_execution_id': sub_execution_id,
+            'is_sub_container': True
+        })
+        
+        return sub_container
 
 
 # Export utility functions at module level for backward compatibility

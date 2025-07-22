@@ -19,6 +19,9 @@ async def init_resources(container) -> None:
     profile = ContainerClass.get_profile() if hasattr(ContainerClass, 'get_profile') else None
     # Profile is now available for conditional initialization
     
+    # Check if this is a sub-container
+    is_sub_container = container.config.get('is_sub_container', False)
+    
     # Initialize infrastructure
     # Initialize state store first (from persistence container)
     if not profile or profile.include_state_management:
@@ -44,32 +47,35 @@ async def init_resources(container) -> None:
                 await message_router.initialize()
 
     # Initialize services
-    # Always initialize diagram storage (needed for all modes)
-    if profiler:
-        async with profiler.profile_async("persistence.diagram_storage"):
+    # Always initialize diagram storage (needed for all modes) - but skip for sub-containers
+    if not is_sub_container:
+        if profiler:
+            async with profiler.profile_async("persistence.diagram_storage"):
+                await container.persistence.diagram_storage_service().initialize()
+        else:
             await container.persistence.diagram_storage_service().initialize()
-    else:
-        await container.persistence.diagram_storage_service().initialize()
     
-    # Initialize LLM service only if needed
-    if not profile or profile.include_llm_services:
-        if not profile or not profile.lazy_load_llm:
-            if profiler:
-                async with profiler.profile_async("integration.llm_service"):
+    # Initialize LLM service only if needed - skip for sub-containers
+    if not is_sub_container:
+        if not profile or profile.include_llm_services:
+            if not profile or not profile.lazy_load_llm:
+                if profiler:
+                    async with profiler.profile_async("integration.llm_service"):
+                        await container.integration.llm_service().initialize()
+                else:
                     await container.integration.llm_service().initialize()
-            else:
-                await container.integration.llm_service().initialize()
     
-    # Initialize API key service
-    if profiler:
-        async with profiler.profile_async("persistence.api_key_service"):
+    # Initialize API key service - skip for sub-containers
+    if not is_sub_container:
+        if profiler:
+            async with profiler.profile_async("persistence.api_key_service"):
+                api_key_service = container.persistence.api_key_service()
+                if hasattr(api_key_service, 'initialize'):
+                    await api_key_service.initialize()
+        else:
             api_key_service = container.persistence.api_key_service()
             if hasattr(api_key_service, 'initialize'):
                 await api_key_service.initialize()
-    else:
-        api_key_service = container.persistence.api_key_service()
-        if hasattr(api_key_service, 'initialize'):
-            await api_key_service.initialize()
     
     # Initialize optional services
     if not profile or profile.include_notion_service:
@@ -112,7 +118,7 @@ async def init_resources(container) -> None:
         "llm_service",
         "api_key_service",
         "file_service",
-        "diagram_storage_domain_service"
+        "diagram_storage_service"
     ]
     
     validation_results = service_registry.validate_required_services(required_services)

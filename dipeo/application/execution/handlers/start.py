@@ -91,19 +91,10 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         context: "ExecutionContext",
         services: dict[str, Any]
     ) -> dict[str, Any] | None:
-        # Check if hook event data was provided in the execution state
-        event_data = context.get_variable('hook_event_data')
-        if event_data:
-            
-            # Validate event matches filters if specified
-            if node.hook_filters:
-                for key, expected_value in node.hook_filters.items():
-                    if key not in event_data or event_data[key] != expected_value:
-                        return None
-            
-            return event_data
+        # TODO: In a real implementation, hook event data should be provided
+        # through infrastructure services (e.g., message queue, webhook receiver)
+        # rather than execution variables
         
-        # In a real implementation, we would wait for events here
         # For now, return None to indicate no event data
         return None
     

@@ -7,13 +7,24 @@ from dipeo.models import (
     NodeExecutionStatus,
     NodeState,
 )
+try:
+    from .scoped_observer import ObserverMetadata
+except ImportError:
+    # Fallback for when module is imported differently
+    from dipeo.application.execution.observers import ObserverMetadata
 
 class StreamingObserver(ExecutionObserver):
     """Observer that publishes real-time updates."""
 
-    def __init__(self, message_router):
+    def __init__(self, message_router, propagate_to_sub: bool = True, scope_to_parent: bool = False):
         self.message_router = message_router
         self._queues: dict[str, asyncio.Queue] = {}
+        # Configure metadata for sub-diagram propagation
+        self.metadata = ObserverMetadata(
+            propagate_to_sub=propagate_to_sub,
+            scope_to_execution=scope_to_parent,  # Can be set to True to only stream parent events
+            filter_events=None  # Stream all events by default
+        )
 
     async def subscribe(self, execution_id: str) -> asyncio.Queue:
         """Subscribe to execution updates."""

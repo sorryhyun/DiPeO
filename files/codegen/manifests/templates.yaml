@@ -21,7 +21,7 @@ templates:
     name: "Python Pydantic Models"
     runner: python_function
     function: generate_python_model
-    module: files/code/codegen/codegen_functions.py
+    module: files/codegen/code/codegen_functions.py
     output: apps/server/src/dipeo_server/models/nodes/{{spec_data.nodeType}}.py
     formatter: black
     category: models
@@ -75,7 +75,7 @@ templates:
     name: "Node Type Registration"
     runner: python_function
     function: update_node_registration
-    module: files/code/codegen/registry_functions.py
+    module: files/codegen/code/registry_functions.py
     output: dipeo/application/container/node_registry.py
     category: registry
     
@@ -83,7 +83,7 @@ templates:
     name: "GraphQL Schema Registration"
     runner: python_function
     function: update_graphql_registry
-    module: files/code/codegen/registry_functions.py
+    module: files/codegen/code/registry_functions.py
     output: apps/server/src/dipeo_server/api/graphql/registry.py
     category: registry
     
@@ -91,7 +91,7 @@ templates:
     name: "Frontend Export Index"
     runner: python_function
     function: update_frontend_exports
-    module: files/code/codegen/registry_functions.py
+    module: files/codegen/code/registry_functions.py
     output: apps/web/src/features/diagram-editor/config/nodes/index.ts
     formatter: prettier
     category: registry
@@ -139,15 +139,15 @@ formatters:
 post_processors:
   sort_graphql_defs:
     function: sort_graphql_definitions
-    module: files/code/codegen/post_processors.py
+    module: files/codegen/code/post_processors.py
     
   add_header_comment:
     function: add_generated_header
-    module: files/code/codegen/post_processors.py
+    module: files/codegen/code/post_processors.py
     
   validate_imports:
     function: validate_and_fix_imports
-    module: files/code/codegen/post_processors.py
+    module: files/codegen/code/post_processors.py
 
 # Generation modes
 modes:

@@ -15,7 +15,7 @@ nodes:
     props:
       functionName: collect_generated_files
       code_type: python
-      code: files/code/codegen/phase2/registry_update_helpers.py
+      code: files/codegen/code/phase2/registry_update_helpers.py
             
   - label: Update Node Registry
     type: code_job
@@ -23,7 +23,7 @@ nodes:
     props:
       functionName: update_node_type_registry
       code_type: python
-      code: files/code/codegen/phase2/registry_update_helpers.py
+      code: files/codegen/code/phase2/registry_update_helpers.py
             
   - label: Update Export Indices
     type: code_job
@@ -31,7 +31,7 @@ nodes:
     props:
       functionName: update_export_indices
       code_type: python
-      code: files/code/codegen/phase2/registry_update_helpers.py
+      code: files/codegen/code/phase2/registry_update_helpers.py
             
   - label: Generate Registry Report
     type: code_job
@@ -39,7 +39,7 @@ nodes:
     props:
       functionName: generate_registry_report
       code_type: python
-      code: files/code/codegen/phase2/registry_update_helpers.py
+      code: files/codegen/code/phase2/registry_update_helpers.py
             
   - label: End
     type: endpoint

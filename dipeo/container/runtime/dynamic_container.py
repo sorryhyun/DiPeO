@@ -36,7 +36,7 @@ def _create_execution_engine(
     )
 
 
-# NodeExecutor removed - using ModernNodeExecutor in TypedExecutionEngine
+# NodeExecutor removed - execution handled directly in TypedExecutionEngine
 
 
 # PersonJobOrchestratorV2 removed - functionality integrated into PersonJobNodeHandler
@@ -86,7 +86,7 @@ class DynamicServicesContainer(MutableBaseContainer):
         observers=providers.List(),  # Optional observers
     )
     
-    # NodeExecutor removed - ModernNodeExecutor is created directly in TypedExecutionEngine
+    # NodeExecutor removed - execution handled directly in TypedExecutionEngine
     
     # LLM executor - Can be singleton as it's stateless
     
