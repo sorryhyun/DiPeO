@@ -74,7 +74,7 @@ class FieldConfigGenerator {
     // Generate TypeScript file with proper imports
     const tsOutput = this.generateTypeScriptOutput(nodeConfigs);
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const tsOutputPath = join(__dirname, '../../../apps/web/src/features/diagram-editor/config/nodes/generated-fields.ts');
+    const tsOutputPath = join(__dirname, '../../../apps/web/src/__generated__/nodes/fields.ts');
     await mkdir(dirname(tsOutputPath), { recursive: true });
     await writeFile(tsOutputPath, tsOutput);
 

@@ -1,12 +1,14 @@
 # DiPeO Makefile
 
-.PHONY: install codegen dev-server dev-web dev-all clean help lint format graphql-schema lint-imports
+.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema lint-imports
 
 # Default target
 help:
 	@echo "DiPeO Commands:"
 	@echo "  make install      - Install all dependencies"
 	@echo "  make codegen      - Generate code from domain models (Python, GraphQL)"
+	@echo "  make codegen-node NODE_SPEC=path/to/spec.json - Generate code for a specific node"
+	@echo "  make codegen-watch - Watch node specifications for changes"
 	@echo "  make dev-all      - Run both backend and frontend servers"
 	@echo "  make dev-server   - Run backend server"
 	@echo "  make dev-web      - Run frontend server"
@@ -28,11 +30,26 @@ install:
 codegen:
 	@echo "🔄 Generating code from domain models..."
 	cd dipeo/models && pnpm generate:all
-	@echo "📝 Exporting GraphQL schema from server..."
-	make graphql-schema
 	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen
 	@echo "✅ All code generation completed!"
+
+# Generate code for a specific node type
+codegen-node:
+	@if [ -z "$(NODE_SPEC)" ]; then \
+		echo "❌ Error: NODE_SPEC is required"; \
+		echo "Usage: make codegen-node NODE_SPEC=path/to/spec.json"; \
+		exit 1; \
+	fi
+	@echo "🔄 Generating code for node specification: $(NODE_SPEC)"
+	@python scripts/run_codegen.py $(NODE_SPEC)
+	@echo "✅ Node code generation completed!"
+
+# Watch for changes in node specifications
+codegen-watch:
+	@echo "👀 Starting file watcher for node specifications..."
+	@echo "Press Ctrl+C to stop watching"
+	@python scripts/watch_codegen.py
 
 # Development servers
 dev-server:

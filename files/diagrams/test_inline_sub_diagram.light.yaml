@@ -1,0 +1,93 @@
+version: light
+nodes:
+  - label: Start with Inline Sub
+    type: start
+    position: {x: 100, y: 100}
+    props:
+      trigger_mode: manual
+      custom_data:
+        value: 42
+        
+  - label: Inline Sub-Diagram
+    type: sub_diagram
+    position: {x: 300, y: 100}
+    props:
+      diagram_data:
+        version: light
+        nodes:
+          - label: Start Sub
+            type: start
+            position: {x: 100, y: 100}
+            props:
+              trigger_mode: manual
+              
+          - label: Process Value
+            type: code_job
+            position: {x: 300, y: 100}
+            props:
+              code_type: python
+              code: |
+                # Multiply input value by 2
+                input_value = inputs.get('input_value', 0)
+                return {"result": input_value * 2}
+                
+          - label: End Sub
+            type: endpoint
+            position: {x: 500, y: 100}
+            props:
+              save_to_file: false
+              
+        connections:
+          - from: Start Sub
+            to: Process Value
+            content_type: object
+          - from: Process Value
+            to: End Sub
+            content_type: object
+            
+        persons: []
+        
+      input_mapping:
+        input_value: inputs.value
+      output_mapping:
+        processed: result
+      timeout: 10
+      wait_for_completion: true
+      
+  - label: Show Result
+    type: person_job
+    position: {x: 500, y: 100}
+    props:
+      person: ResultReporter
+      first_only_prompt: |
+        The original value was: {{value}}
+        The processed value is: {{processed}}
+        
+        Please summarize what the sub-diagram did.
+      max_iteration: 1
+      
+  - label: End Main
+    type: endpoint
+    position: {x: 700, y: 100}
+    props:
+      save_to_file: true
+      file_name: logs/test_inline_sub_diagram_result.log
+
+connections:
+  - from: Start with Inline Sub
+    to: Inline Sub-Diagram
+    content_type: object
+    
+  - from: Inline Sub-Diagram
+    to: Show Result
+    content_type: object
+    
+  - from: Show Result
+    to: End Main
+    content_type: raw_text
+
+persons:
+  ResultReporter:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F

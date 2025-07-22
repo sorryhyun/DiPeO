@@ -1,0 +1,25 @@
+version: readable
+persons:
+- Drawer:
+    service: openai
+    model: gpt-4.1-mini
+    api_key_id: APIKEY_52609F
+nodes:
+- Start @(180,290):
+    trigger_mode: manual
+- Image_drawings @(483,304):
+    default_prompt: Draw about CLAUDE
+    flipped: false
+    max_iteration: 1
+    person: person_Drawer
+    tools:
+    - enabled: true
+      type: image_generation
+- result @(792,281):
+    file_format: txt
+    flipped: true
+    save_to_file: true
+    file_name: files/results/drawing_result.jpg
+flow:
+- Start: Image_drawings (raw_text)
+- Image_drawings: result (raw_text)

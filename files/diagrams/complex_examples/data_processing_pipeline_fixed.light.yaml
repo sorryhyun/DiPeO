@@ -1,0 +1,282 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: -728, y: 348}
+  props:
+    trigger_mode: manual
+    custom_data:
+      processing_config:
+        quality_threshold: 70
+        output_format: "json"
+- label: Load Raw Data
+  type: db
+  position: {x: -386, y: 146}
+  props:
+    operation: read
+    sub_type: file
+    source_details: files/uploads/raw_data.csv
+- label: Load Config
+  type: db
+  position: {x: -413, y: 481}
+  props:
+    flipped: [false, true]
+    operation: read
+    sub_type: file
+    source_details: files/config/processing_rules.json
+- label: Parse Data
+  type: code_job
+  position: {x: 19, y: 342}
+  props:
+    code: files/code_examples/data_processor.py
+    code_type: python
+    functionName: parse_data
+- label: Quality Check
+  type: person_job
+  position: {x: 355, y: 233}
+  props:
+    default_prompt: |
+      Analyze this data summary and provide a quality score (0-100):
+      Total rows: {{parsed_data.total_rows}}
+      Valid rows: {{parsed_data.valid_rows}}
+      Invalid rows: {{parsed_data.invalid_rows}}
+      Columns: {{parsed_data.columns}}
+      Statistics: {{parsed_data.statistics}}
+
+      IMPORTANT: You MUST respond with ONLY a valid JSON object with score and issues.
+      
+      Required format:
+      {
+        "score": <number 0-100>,
+        "issues": ["issue1", "issue2"]
+      }
+      
+      Example response:
+      {
+        "score": 85,
+        "issues": ["Missing data in row 9", "Invalid region in 1 row"]
+      }
+      
+      DO NOT include any explanatory text before or after the JSON.
+    max_iteration: 1
+    person: QualityChecker
+- label: Extract Score
+  type: code_job
+  position: {x: 731, y: 425}
+  props:
+    code: files/code_examples/data_processor.py
+    code_type: python
+    functionName: extract_score
+- label: Check Quality Threshold
+  type: condition
+  position: {x: 720, y: 775}
+  props:
+    condition_type: custom
+    expression: processing_result.quality_score >= 70
+    flipped: [true, false]
+- label: Transform Data
+  type: code_job
+  position: {x: 271, y: 943}
+  props:
+    code: files/code_examples/data_processor.py
+    code_type: python
+    functionName: transform_data
+    flipped: [true, false]
+- label: Enrich with API
+  type: api_job
+  position: {x: -79, y: 995}
+  props:
+    flipped: [true, false]
+    headers:
+      Accept: application/json
+    method: GET
+    url: https://api.exchangerate-api.com/v4/latest/USD
+- label: Merge Enriched Data
+  type: code_job
+  position: {x: -393, y: 854}
+  props:
+    code: files/code_examples/data_processor.py
+    flipped: [true, false]
+    code_type: python
+    functionName: enrich_data
+- label: Pattern Analysis
+  type: code_job
+  position: {x: -550, y: 950}
+  props:
+    code: files/code_examples/data_processor.py
+    code_type: python
+    functionName: analyze_patterns
+    flipped: [true, false]
+- label: Analyze Patterns
+  type: person_job
+  position: {x: -722, y: 1054}
+  props:
+    default_prompt: |
+      Analyze these patterns in the enriched data:
+      {{enriched_result.patterns}}
+
+      Provide insights on:
+      1. Key trends
+      2. Anomalies
+      3. Recommendations
+
+      Format as JSON with sections for each.
+    flipped: [true, false]
+    max_iteration: 1
+    memory_profile: FOCUSED
+    person: DataAnalyst
+- label: Handle Low Quality
+  type: code_job
+  position: {x: 276, y: 655}
+  props:
+    code: files/code_examples/data_processor.py
+    flipped: [true, false]
+    code_type: python
+    functionName: handle_error
+- label: Generate Report
+  type: person_job
+  position: {x: -1040, y: 836}
+  props:
+    default_prompt: |
+      Create a comprehensive data processing report combining:
+      - Processing summary: {{final_data.enriched_data}}
+      - Pattern analysis: {{final_data.analysis}}
+      - Quality metrics: Score {{final_data.quality_score}}
+
+      Format as a professional markdown report with sections, tables, and recommendations.
+    flipped: [true, false]
+    max_iteration: 1
+    memory_profile: FULL
+    person: ReportWriter
+- label: Save Success Report
+  type: endpoint
+  position: {x: -1305, y: 657}
+  props:
+    file_format: md
+    save_to_file: true
+    file_path: files/results/data_processing_report.md
+- label: Save Processed Data
+  type: endpoint
+  position: {x: -869, y: 638}
+  props:
+    file_format: json
+    save_to_file: true
+    file_path: files/results/processed_data.json
+- label: Save Error Report
+  type: endpoint
+  position: {x: -102, y: 600}
+  props:
+    file_format: json
+    save_to_file: true
+    file_path: files/results/error_report.json
+connections:
+- from: Start
+  to: Load Raw Data
+  content_type: object
+  label: config
+- from: Start
+  to: Load Config
+  content_type: object
+  label: config
+- from: Start
+  to: Parse Data
+  content_type: object
+  label: processing_config
+- from: Load Raw Data
+  to: Parse Data
+  content_type: raw_text
+  label: raw_data
+- from: Load Config
+  to: Parse Data
+  content_type: raw_text
+  label: config_data
+- from: Parse Data
+  to: Quality Check
+  content_type: object
+  label: parsed_data
+- from: Quality Check
+  to: Extract Score
+  content_type: raw_text
+  label: quality_result
+- from: Parse Data
+  to: Extract Score
+  content_type: object
+  label: parsed_data
+- from: Extract Score
+  to: Check Quality Threshold
+  content_type: object
+  label: processing_result
+- from: Start
+  to: Check Quality Threshold
+  content_type: object
+  label: processing_config
+- from: Check Quality Threshold_condtrue
+  to: Transform Data
+  content_type: object
+  label: processing_result
+- from: Transform Data
+  to: Enrich with API
+  content_type: object
+  label: transformed_data
+- from: Enrich with API
+  to: Merge Enriched Data
+  content_type: raw_text
+  label: api_response
+- from: Transform Data
+  to: Merge Enriched Data
+  content_type: object
+  label: transformed_data
+- from: Merge Enriched Data
+  to: Pattern Analysis
+  content_type: object
+  label: enriched_data
+- from: Pattern Analysis
+  to: Analyze Patterns
+  content_type: object
+  label: enriched_result
+- from: Analyze Patterns
+  to: Generate Report
+  content_type: raw_text
+  label: analysis
+- from: Pattern Analysis
+  to: Generate Report
+  content_type: object
+  label: final_data
+- from: Generate Report
+  to: Save Success Report
+  content_type: raw_text
+- from: Pattern Analysis
+  to: Save Processed Data
+  content_type: object
+  label: enriched_result
+- from: Check Quality Threshold_condfalse
+  to: Handle Low Quality
+  content_type: object
+  label: processing_result
+- from: Handle Low Quality
+  to: Save Error Report
+  content_type: object
+  label: error_result
+persons:
+  DataAnalyst:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: You are a data analyst expert. Analyze data patterns and provide
+      insights in JSON format.
+    api_key_id: APIKEY_52609F
+  QualityChecker:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: 'You are a data quality expert. ALWAYS respond with ONLY valid JSON in the exact format {"score": number, "issues": []}. Never include explanatory text.'
+    api_key_id: APIKEY_52609F
+  ReportWriter:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: You write comprehensive data analysis reports in markdown format.
+    api_key_id: APIKEY_52609F
+  Transformer:
+    service: openai
+    model: gpt-4.1-nano
+    system_prompt: You transform data according to business rules. Output clean, structured
+      data.
+    api_key_id: APIKEY_52609F

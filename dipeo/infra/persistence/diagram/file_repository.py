@@ -71,6 +71,14 @@ class DiagramFileRepository:
             return json.loads(content)
         else:
             raise ValueError(f"Unsupported file format: {file_path.suffix}")
+    
+    async def read_raw_content(self, path: str) -> str:
+        """Read a diagram file and return raw content."""
+        file_path = self.diagrams_dir / path
+        if not file_path.exists():
+            raise FileNotFoundError(f"Diagram file not found: {path}")
+        
+        return file_path.read_text(encoding="utf-8")
 
     async def write_file(self, path: str, data: dict[str, Any]) -> None:
         """Write data to a diagram file."""

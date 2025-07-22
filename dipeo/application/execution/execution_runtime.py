@@ -33,15 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutionRuntime(ExecutionContext):
-    """Simplified execution runtime using extracted components.
-    
-    Key improvements:
-    1. Delegates node readiness checking to NodeReadinessChecker
-    2. Delegates state transitions to StateTransitionManager
-    3. Delegates persistence to ExecutionStatePersistence
-    4. Removes async/sync wrapper duplication
-    5. Cleaner, more focused interface
-    """
+    """Simplified execution runtime using extracted components."""
     
     def __init__(
         self,
@@ -134,15 +126,12 @@ class ExecutionRuntime(ExecutionContext):
         )
     
     def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
-        """Transition a node to max iterations reached state."""
         self._transition_manager.transition_to_maxiter(node_id, self._node_states, output)
     
     def transition_node_to_skipped(self, node_id: NodeID) -> None:
-        """Transition a node to skipped state."""
         self._transition_manager.transition_to_skipped(node_id, self._node_states)
     
     def reset_node(self, node_id: NodeID) -> None:
-        """Reset a node to pending state."""
         self._transition_manager.reset_node(node_id, self._node_states)
     
     # ========== ExecutionContext Protocol Implementation ==========
@@ -173,7 +162,6 @@ class ExecutionRuntime(ExecutionContext):
         ]
     
     def get_variable(self, key: str) -> Any:
-        """Get a variable from the execution context."""
         return self._variables.get(key)
     
     def set_variable(self, key: str, value: Any) -> None:
@@ -253,7 +241,6 @@ class ExecutionRuntime(ExecutionContext):
     # ========== Convenience Methods ==========
     
     def get_node(self, node_id: NodeID) -> Optional["ExecutableNode"]:
-        """Get a node by ID from the diagram."""
         return self.diagram.get_node(node_id)
     
     def get_node_output(self, node_id: str) -> Any:
@@ -262,7 +249,6 @@ class ExecutionRuntime(ExecutionContext):
         return protocol_output.value if protocol_output else None
     
     def get_execution_summary(self) -> dict[str, Any]:
-        """Get execution summary from the tracker."""
         return self._tracker.get_execution_summary()
     
     def has_running_nodes(self) -> bool:
@@ -304,15 +290,12 @@ class ExecutionRuntime(ExecutionContext):
     
     @property
     def current_node_id(self) -> Optional[NodeID]:
-        """Get the currently executing node ID."""
         return self._current_node_id[0]
     
     @property
     def diagram_id(self) -> str:
-        """Get diagram ID."""
         return str(self._diagram_id) if self._diagram_id else ""
     
     @property
     def execution_id(self) -> str:
-        """Get execution ID."""
         return str(self._execution_id)

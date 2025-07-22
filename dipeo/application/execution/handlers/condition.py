@@ -147,12 +147,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                         if node_result:
                             # Handle result dict
                             value = node_result.get('value')
-                            # Check if value is a list (ConversationOutput) or dict with 'conversation' key
                             if isinstance(value, list) and len(value) > 0:
-                                # Direct list of messages from ConversationOutput
                                 latest_conversation = {"messages": value}
                             elif isinstance(value, dict) and 'conversation' in value:
-                                # Legacy format
                                 latest_conversation = {"messages": value['conversation']}
                 
                 # Pass conversation state if found, otherwise pass inputs
@@ -202,8 +199,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 node_result = context.get_node_result(node.id)
                 if node_result:
                     person_job_nodes.append(node)
-        
-        logger.debug(f"_aggregate_conversation_states: Found {len(person_job_nodes)} person_job nodes with outputs")
 
         # Collect conversations from each person_job node's output
         for node in person_job_nodes:

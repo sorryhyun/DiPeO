@@ -51,7 +51,8 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
     nodeType: 'code_job',
     fields: [
       { tsName: 'language', pyName: 'language', defaultValue: 'SupportedLanguage.python' },
-      { tsName: 'code', pyName: 'code', defaultValue: '""' },
+      { tsName: 'filePath', pyName: 'filePath', defaultValue: '""' },
+      { tsName: 'functionName', pyName: 'functionName' },
       { tsName: 'timeout', pyName: 'timeout' }
     ]
   },
@@ -102,6 +103,46 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
       { tsName: 'timeout', pyName: 'timeout' },
       { tsName: 'retry_count', pyName: 'retry_count' },
       { tsName: 'retry_delay', pyName: 'retry_delay' }
+    ]
+  },
+  TemplateJobNodeData: {
+    nodeType: 'template_job',
+    fields: [
+      { tsName: 'template_path', pyName: 'template_path' },
+      { tsName: 'template_content', pyName: 'template_content' },
+      { tsName: 'output_path', pyName: 'output_path' },
+      { tsName: 'variables', pyName: 'variables' },
+      { tsName: 'engine', pyName: 'engine', defaultValue: '"internal"' }
+    ]
+  },
+  JsonSchemaValidatorNodeData: {
+    nodeType: 'json_schema_validator',
+    fields: [
+      { tsName: 'schema_path', pyName: 'schema_path' },
+      { tsName: 'schema', pyName: 'schema' },
+      { tsName: 'data_path', pyName: 'data_path' },
+      { tsName: 'strict_mode', pyName: 'strict_mode', defaultValue: 'False' },
+      { tsName: 'error_on_extra', pyName: 'error_on_extra', defaultValue: 'False' }
+    ]
+  },
+  TypescriptAstNodeData: {
+    nodeType: 'typescript_ast',
+    fields: [
+      { tsName: 'source', pyName: 'source' },
+      { tsName: 'extractPatterns', pyName: 'extractPatterns', defaultValue: 'field(default_factory=lambda: ["interface", "type", "enum"])' },
+      { tsName: 'includeJSDoc', pyName: 'includeJSDoc', defaultValue: 'False' },
+      { tsName: 'parseMode', pyName: 'parseMode', defaultValue: '"module"' }
+    ]
+  },
+  SubDiagramNodeData: {
+    nodeType: 'sub_diagram',
+    fields: [
+      { tsName: 'diagram_name', pyName: 'diagram_name' },
+      { tsName: 'diagram_data', pyName: 'diagram_data' },
+      { tsName: 'input_mapping', pyName: 'input_mapping' },
+      { tsName: 'output_mapping', pyName: 'output_mapping' },
+      { tsName: 'timeout', pyName: 'timeout' },
+      { tsName: 'wait_for_completion', pyName: 'wait_for_completion', defaultValue: 'True' }
     ]
   }
 };
@@ -211,7 +252,14 @@ class StaticNodeGenerator {
           continue;
         }
         
-        const pyType = this.getPythonType(prop.type, prop.optional || false);
+        const isOptional = prop.optional || false;
+        let pyType = this.getPythonType(prop.type, isOptional);
+        
+        // Ensure Optional is added if field has = None
+        if (isOptional && !pyType.includes('Optional[')) {
+          pyType = `Optional[${pyType}]`;
+        }
+        
         let fieldDef = `    ${field.pyName}: ${pyType}`;
         
         if (field.defaultValue) {
@@ -220,11 +268,11 @@ class StaticNodeGenerator {
           } else {
             fieldDef += ` = ${field.defaultValue}`;
           }
-        } else if (prop.optional || pyType.includes('Optional[')) {
+        } else if (isOptional) {
           fieldDef += ' = None';
-        } else if (!prop.optional && pyType.includes('Dict[') && !pyType.includes('Optional[')) {
+        } else if (!isOptional && pyType.includes('Dict[') && !pyType.includes('Optional[')) {
           fieldDef += ' = field(default_factory=dict)';
-        } else if (!prop.optional && pyType.includes('List[') && !pyType.includes('Optional[')) {
+        } else if (!isOptional && pyType.includes('List[') && !pyType.includes('Optional[')) {
           fieldDef += ' = field(default_factory=list)';
         }
         

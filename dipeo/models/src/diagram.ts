@@ -24,7 +24,11 @@ export enum NodeType {
   USER_RESPONSE = 'user_response',
   NOTION = 'notion',
   PERSON_BATCH_JOB = 'person_batch_job',
-  HOOK = 'hook'
+  HOOK = 'hook',
+  TEMPLATE_JOB = 'template_job',
+  JSON_SCHEMA_VALIDATOR = 'json_schema_validator',
+  TYPESCRIPT_AST = 'typescript_ast',
+  SUB_DIAGRAM = 'sub_diagram'
 }
 
 export enum HandleDirection {
@@ -36,7 +40,9 @@ export enum HandleLabel {
   DEFAULT = 'default',
   FIRST = 'first',
   CONDITION_TRUE = 'condtrue',
-  CONDITION_FALSE = 'condfalse'
+  CONDITION_FALSE = 'condfalse',
+  SUCCESS = 'success',
+  ERROR = 'error'
 }
 
 export enum DataType {
@@ -77,15 +83,16 @@ export enum DBBlockSubType {
 }
 
 export enum ContentType {
-  VARIABLE = 'variable',
   RAW_TEXT = 'raw_text',
-  CONVERSATION_STATE = 'conversation_state'
+  CONVERSATION_STATE = 'conversation_state',
+  OBJECT = 'object'
 }
 
 export enum SupportedLanguage {
   PYTHON = 'python',
-  JAVASCRIPT = 'javascript',
-  BASH = 'bash'
+  TYPESCRIPT = 'typescript',
+  BASH = 'bash',
+  SHELL = 'shell'
 }
 
 export enum HttpMethod {
@@ -255,7 +262,8 @@ export interface JobNodeData extends BaseNodeData {
 
 export interface CodeJobNodeData extends BaseNodeData {
   language: SupportedLanguage;
-  code: string;
+  filePath: string;
+  functionName?: string;  // Function to call (default: 'main' for Python)
   timeout?: number;  // in seconds
 }
 
@@ -310,4 +318,48 @@ export interface HookNodeData extends BaseNodeData {
   retry_delay?: number;  // in seconds
 }
 
+
+export interface TemplateJobNodeData extends BaseNodeData {
+  template_path?: string;  // Path to template file
+  template_content?: string;  // Inline template content
+  output_path?: string;  // Where to write the rendered output
+  variables?: Record<string, any>;  // Variables to pass to the template
+  engine?: 'internal' | 'jinja2' | 'handlebars';  // Template engine (default: internal)
+}
+
+export interface ShellJobNodeData extends BaseNodeData {
+  command: string;  // Shell command to execute
+  args?: string[];  // Command arguments
+  cwd?: string;  // Working directory
+  env?: Record<string, string>;  // Environment variables
+  timeout?: number;  // Execution timeout in seconds
+  capture_output?: boolean;  // Whether to capture stdout/stderr
+  shell?: boolean;  // Whether to run through shell
+}
+
+export interface JsonSchemaValidatorNodeData extends BaseNodeData {
+  schema_path?: string;  // Path to JSON schema file
+  schema?: Record<string, any>;  // Inline schema definition
+  data_path?: string;  // Path to data file to validate
+  strict_mode?: boolean;  // Whether to use strict validation
+  error_on_extra?: boolean;  // Error on extra properties
+}
+
+export type ExtractPattern = 'interface' | 'type' | 'enum' | 'class' | 'function' | 'const' | 'export';
+
+export interface TypescriptAstNodeData extends BaseNodeData {
+  source?: string;  // TypeScript source code to parse
+  extractPatterns?: ExtractPattern[];  // Patterns to extract
+  includeJSDoc?: boolean;  // Include JSDoc comments in the extracted data
+  parseMode?: 'module' | 'script';  // TypeScript parsing mode
+}
+
+export interface SubDiagramNodeData extends BaseNodeData {
+  diagram_name?: string;  // Name of the diagram to execute (e.g., "workflow/process")
+  diagram_data?: Record<string, any>;  // Inline diagram data (alternative to diagram_name)
+  input_mapping?: Record<string, string>;  // Map node inputs to sub-diagram variables
+  output_mapping?: Record<string, string>;  // Map sub-diagram outputs to node outputs
+  timeout?: number;  // Execution timeout in seconds
+  wait_for_completion?: boolean;  // Whether to wait for sub-diagram completion (default: true)
+}
 

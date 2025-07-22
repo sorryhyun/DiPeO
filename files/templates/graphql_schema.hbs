@@ -1,0 +1,36 @@
+# GraphQL Schema for {{spec_data.displayName}} Node
+# Generated from node specification
+
+type {{spec_data.pascalCase}}NodeData implements NodeData {
+  id: ID!
+  type: NodeType!
+  label: String!
+  position: Position!
+  {{#each spec_data.fields}}
+  {{name}}: {{#if (eq type 'string')}}String{{else}}{{#if (eq type 'number')}}Float{{else}}{{#if (eq type 'boolean')}}Boolean{{else}}{{#if (eq type 'enum')}}{{pascalCase name}}{{else}}String{{/if}}{{/if}}{{/if}}{{/if}}{{#unless required}}{{/unless}}
+  {{/each}}
+  flipped: Boolean
+}
+
+input {{spec_data.pascalCase}}NodeInput {
+  label: String!
+  position: PositionInput!
+  {{#each spec_data.fields}}
+  {{name}}: {{#if (eq type 'string')}}String{{else}}{{#if (eq type 'number')}}Float{{else}}{{#if (eq type 'boolean')}}Boolean{{else}}{{#if (eq type 'enum')}}{{pascalCase name}}{{else}}String{{/if}}{{/if}}{{/if}}{{/if}}{{#unless required}}{{/unless}}
+  {{/each}}
+  flipped: Boolean
+}
+
+{{#each spec_data.fields}}
+{{#if (eq type 'enum')}}
+enum {{pascalCase name}} {
+  {{#each values}}
+  {{upperCase this}}
+  {{/each}}
+}
+{{/if}}
+{{/each}}
+
+# Update these union types to include the new node type:
+# union NodeData = ... | {{spec_data.pascalCase}}NodeData
+# union NodeInput = ... | {{spec_data.pascalCase}}NodeInput

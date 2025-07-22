@@ -141,7 +141,11 @@ class ArrowTransformer:
         elif source_node.type == NodeType.job:
             return ContentType.raw_text
         elif source_node.type == NodeType.db:
-            return ContentType.variable
+            # Use object type by default for DB nodes to preserve structure
+            return ContentType.object
+        elif source_node.type in [NodeType.code_job, NodeType.api_job]:
+            # Code and API jobs typically return structured data
+            return ContentType.object
         else:
             return ContentType.raw_text
     

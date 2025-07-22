@@ -53,13 +53,16 @@ function extractNodeTypeEntries(srcPath: string): [string, string][] {
   const varDecl = source.getVariableDeclarationOrThrow('NODE_TYPE_MAP');
   const obj = varDecl.getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-  return obj.getProperties().flatMap(prop => {
+  const results = obj.getProperties().flatMap(prop => {
     if (!PropertyAssignment.isPropertyAssignment(prop)) return [];
     const key = prop.getName().replace(/['"`]/g, '');
     const match = prop.getInitializerOrThrow().getText().match(/NodeType\.([A-Z0-9_]+)/);
     if (!match) return [];
     return [[key, match[1]]] as [string, string][];
   });
+  
+  console.log('Extraction found entries:', results);
+  return results;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -163,6 +166,7 @@ export async function generateConversions() {
     await readFile(src);
 
     const entries = extractNodeTypeEntries(src);
+    console.log('Extracted entries:', entries);
     if (entries.length === 0) throw new Error('NODE_TYPE_MAP is empty or not found.');
 
     const pyCode = buildPython(entries);

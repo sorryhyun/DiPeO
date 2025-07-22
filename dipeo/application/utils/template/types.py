@@ -5,15 +5,8 @@ from typing import Any
 
 
 @dataclass
-class TemplateContext:
-    # Context for template processing
-    variables: dict[str, Any]
-    metadata: dict[str, Any] | None = None
-
-
-@dataclass
 class TemplateResult:
-    # Result of template processing
+    # Result of template processing with detailed feedback
     content: str
     missing_keys: list[str] = field(default_factory=list)
     used_keys: list[str] = field(default_factory=list)

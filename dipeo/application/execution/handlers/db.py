@@ -9,7 +9,7 @@ from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import DB_OPERATIONS_SERVICE
 from dipeo.core.static.generated_nodes import DBNode
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
 from dipeo.models import DBNodeData, NodeType
 
 if TYPE_CHECKING:
@@ -102,12 +102,20 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     f"{meta['file_path']} ({meta.get('size', 0)} bytes)"
                 )
 
-            logger.debug("DB node output_value: %s", repr(output_value))
-            return TextOutput(
-                value=str(output_value),
-                node_id=node.id,
-                metadata={}
-            )
+            # Convert structured data to JSON string for consistent handling
+            if isinstance(output_value, (dict, list)):
+                import json
+                return TextOutput(
+                    value=json.dumps(output_value),
+                    node_id=node.id,
+                    metadata={"serialized": True, "original_type": type(output_value).__name__}
+                )
+            else:
+                return TextOutput(
+                    value=str(output_value),
+                    node_id=node.id,
+                    metadata={}
+                )
 
         except Exception as exc:
             logger.exception("DB operation failed: %s", exc)

@@ -152,3 +152,5 @@ yarn.lock
 /apps/server/test-pyinstaller.py
 /apps/server/test-paths.py
 /build-with-rust.bat
+/files/test/
+/files/debug/

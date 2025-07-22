@@ -162,23 +162,8 @@ class ExecuteDiagramUseCase(BaseService):
         # Use the infrastructure adapter to prepare the diagram
         domain_diagram = diagram_loader.prepare_diagram(diagram)
         
-        # Validate execution flow using domain service
-        from dipeo.domain.validators import ExecutionValidator
-        execution_validator = ExecutionValidator()
-        validation_result = execution_validator.validate_execution_flow(domain_diagram)
-        
-        if not validation_result.is_valid:
-            critical_issues = validation_result.critical_issues
-            if critical_issues:
-                # Raise error for critical issues
-                error_messages = [f"- {issue.message}" for issue in critical_issues]
-                raise ValueError("Diagram validation failed:\n" + "\n".join(error_messages))
-            else:
-                # Log warnings for non-critical issues
-                import logging
-                logger = logging.getLogger(__name__)
-                for warning in validation_result.warnings:
-                    logger.warning(f"Diagram validation warning: {warning.message}")
+        # TODO: Add updated validation logic if needed
+        # Validation has been temporarily removed while updating the flow validation system
         
         # Apply diagram compilation pipeline with static types
         from ...resolution import StaticDiagramCompiler

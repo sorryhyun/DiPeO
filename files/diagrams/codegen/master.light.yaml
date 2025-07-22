@@ -1,0 +1,147 @@
+version: light
+nodes:
+  - label: Start
+    type: start
+    position: {x: 100, y: 200}
+    props:
+      trigger_mode: manual
+      custom_data:
+        mode: full  # full | models | nodes
+        node_spec_path: ""  # Optional: specific node spec for nodes mode
+        
+  - label: Route by Mode
+    type: condition
+    position: {x: 300, y: 200}
+    props:
+      condition_type: custom
+      expression: inputs.mode === 'full' || inputs.mode === 'models'
+      
+  - label: Domain Model Codegen
+    type: sub_diagram
+    position: {x: 600, y: 100}
+    props:
+      diagram_name: codegen/domain_model_codegen
+      input_mapping:
+        mode: inputs.mode
+      output_mapping:
+        result: result
+      timeout: 30
+      wait_for_completion: true
+      
+  - label: Check Node Mode
+    type: condition
+    position: {x: 300, y: 350}
+    props:
+      condition_type: custom
+      expression: inputs.mode === 'full' || inputs.mode === 'nodes'
+      
+  - label: Node UI Codegen
+    type: sub_diagram
+    position: {x: 600, y: 350}
+    props:
+      diagram_name: codegen/node_ui_codegen
+      input_mapping:
+        node_spec_path: inputs.node_spec_path
+      output_mapping:
+        result: result
+      timeout: 30
+      wait_for_completion: true
+      
+  - label: Merge Results
+    type: code_job
+    position: {x: 900, y: 225}
+    props:
+      code_type: python
+      code: files/code/codegen/phase2/master_codegen_helpers.py
+      functionName: merge_codegen_results
+        
+  - label: Generate Report
+    type: person_job
+    position: {x: 1200, y: 225}
+    props:
+      person: CodegenReporter
+      first_only_prompt: |
+        Generate a concise summary of the code generation run:
+        
+        Mode: {{mode}}
+        Total files generated: {{total_files}}
+        
+        {{#if models_generated}}
+        Domain Model Files:
+        {{#each models_generated}}
+        - {{this}}
+        {{/each}}
+        {{/if}}
+        
+        {{#if nodes_generated}}
+        Node UI Files:
+        {{#each nodes_generated}}
+        - {{this}}
+        {{/each}}
+        {{/if}}
+        
+        {{#each messages}}
+        {{this}}
+        {{/each}}
+        
+        Provide a brief summary including:
+        1. What was successfully generated
+        2. Any warnings or issues to be aware of
+        3. Suggested next steps
+      max_iteration: 1
+      
+  - label: End
+    type: endpoint
+    position: {x: 1500, y: 225}
+    props:
+      save_to_file: true
+      file_name: logs/codegen/master_codegen.log
+
+connections:
+  - from: Start
+    to: Route by Mode
+    content_type: object
+    
+  - from: Route by Mode_condtrue
+    to: Domain Model Codegen
+    content_type: object
+    
+  - from: Start
+    to: Check Node Mode
+    content_type: object
+    
+  - from: Check Node Mode_condtrue
+    to: Node UI Codegen
+    content_type: object
+    
+  - from: Domain Model Codegen
+    to: Merge Results
+    content_type: object
+    label: models
+    
+  - from: Node UI Codegen
+    to: Merge Results
+    content_type: object
+    label: nodes
+    
+  - from: Route by Mode_condfalse
+    to: Merge Results
+    content_type: object
+    
+  - from: Check Node Mode_condfalse
+    to: Merge Results
+    content_type: object
+    
+  - from: Merge Results
+    to: Generate Report
+    content_type: object
+    
+  - from: Generate Report
+    to: End
+    content_type: raw_text
+
+persons:
+  CodegenReporter:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F

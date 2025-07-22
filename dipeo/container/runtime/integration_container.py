@@ -20,7 +20,7 @@ def _create_notion_service():
 
 def _create_api_service(api_business_logic, file_service):
     """Create infrastructure API service."""
-    from dipeo.infra.services.api import APIService
+    from dipeo.infra.adapters.http import APIService
     return APIService(
         business_logic=api_business_logic,
         file_service=file_service
@@ -73,6 +73,12 @@ def _create_email_service():
     return None
 
 
+def _create_typescript_parser():
+    """Create TypeScript AST parser service."""
+    from dipeo.infra.parsers.typescript.parser import TypeScriptParser
+    return TypeScriptParser()
+
+
 class IntegrationServicesContainer(MutableBaseContainer):
     """Mutable services for external integrations.
     
@@ -116,6 +122,9 @@ class IntegrationServicesContainer(MutableBaseContainer):
         file_repository=persistence.diagram_storage_service,
         loader_adapter=persistence.diagram_loader,
     )
+    
+    # Parser services
+    typescript_parser = providers.Singleton(_create_typescript_parser)
     
     # Future integrations
     webhook_service = providers.Singleton(_create_webhook_service)

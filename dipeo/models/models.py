@@ -21,6 +21,10 @@ class NodeType(str, Enum):
     notion = "notion"
     person_batch_job = "person_batch_job"
     hook = "hook"
+    template_job = "template_job"
+    json_schema_validator = "json_schema_validator"
+    typescript_ast = "typescript_ast"
+    sub_diagram = "sub_diagram"
 
 class HandleDirection(str, Enum):
     input = "input"
@@ -31,6 +35,8 @@ class HandleLabel(str, Enum):
     first = "first"
     condtrue = "condtrue"
     condfalse = "condfalse"
+    success = "success"
+    error = "error"
 
 class DataType(str, Enum):
     any = "any"
@@ -65,14 +71,15 @@ class DBBlockSubType(str, Enum):
     api_tool = "api_tool"
 
 class ContentType(str, Enum):
-    variable = "variable"
     raw_text = "raw_text"
     conversation_state = "conversation_state"
+    object = "object"
 
 class SupportedLanguage(str, Enum):
     python = "python"
-    javascript = "javascript"
+    typescript = "typescript"
     bash = "bash"
+    shell = "shell"
 
 class HttpMethod(str, Enum):
     GET = "GET"
@@ -350,7 +357,8 @@ class CodeJobNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     language: SupportedLanguage
-    code: str
+    filePath: str
+    functionName: Optional[str] = Field(default=None)
     timeout: Optional[float] = Field(default=None)
 
 class ApiJobNodeData(BaseNodeData):
@@ -386,6 +394,53 @@ class HookNodeData(BaseNodeData):
     timeout: Optional[float] = Field(default=None)
     retry_count: Optional[float] = Field(default=None)
     retry_delay: Optional[float] = Field(default=None)
+
+class TemplateJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    template_path: Optional[str] = Field(default=None)
+    template_content: Optional[str] = Field(default=None)
+    output_path: Optional[str] = Field(default=None)
+    variables: Optional[Dict[str, Any]] = Field(default=None)
+    engine: Optional[Union[Literal["internal"], Literal["jinja2"], Literal["handlebars"]]] = Field(default=None)
+
+class ShellJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    command: str
+    args: Optional[List[str]] = Field(default=None)
+    cwd: Optional[str] = Field(default=None)
+    env: Optional[Dict[str, Any]] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    capture_output: Optional[bool] = Field(default=None)
+    shell: Optional[bool] = Field(default=None)
+
+class JsonSchemaValidatorNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    schema_path: Optional[str] = Field(default=None)
+    schema: Optional[Dict[str, Any]] = Field(default=None)
+    data_path: Optional[str] = Field(default=None)
+    strict_mode: Optional[bool] = Field(default=None)
+    error_on_extra: Optional[bool] = Field(default=None)
+
+class TypescriptAstNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    source: Optional[str] = Field(default=None)
+    extractPatterns: Optional[List[ExtractPattern]] = Field(default=None)
+    includeJSDoc: Optional[bool] = Field(default=None)
+    parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
+
+class SubDiagramNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    diagram_name: Optional[str] = Field(default=None)
+    diagram_data: Optional[Dict[str, Any]] = Field(default=None)
+    input_mapping: Optional[Dict[str, Any]] = Field(default=None)
+    output_mapping: Optional[Dict[str, Any]] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    wait_for_completion: Optional[bool] = Field(default=None)
 
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)

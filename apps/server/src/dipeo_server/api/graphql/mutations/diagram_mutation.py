@@ -55,7 +55,9 @@ class DiagramMutations:
             from dipeo.domain.diagram.utils import domain_diagram_to_dict
 
             storage_dict = domain_diagram_to_dict(diagram_model)
-            filename = await integrated_service.create_diagram(input.name, storage_dict, "json")
+            filename = await integrated_service.create_diagram(
+                input.name, storage_dict, "json"
+            )
 
             # Use domain model directly
             return DiagramResult(

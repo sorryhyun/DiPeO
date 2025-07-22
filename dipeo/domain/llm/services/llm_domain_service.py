@@ -33,6 +33,11 @@ class LLMDomainService:
         "gemini-pro-vision": TokenLimits(context_window=16384, max_output_tokens=2048),
         "gemini-1.5-pro": TokenLimits(context_window=1048576, max_output_tokens=8192),
         "gemini-1.5-flash": TokenLimits(context_window=1048576, max_output_tokens=8192),
+        "gemini-2.0-flash": TokenLimits(context_window=1048576, max_output_tokens=8192),
+        "gemini-2.0-flash-exp": TokenLimits(context_window=1048576, max_output_tokens=8192),
+        "gemini-2.5-pro": TokenLimits(context_window=2097152, max_output_tokens=8192),  # 2M context
+        "gemini-2.5-flash": TokenLimits(context_window=1048576, max_output_tokens=8192),
+        "gemini-2.5-flash-lite": TokenLimits(context_window=1048576, max_output_tokens=8192),
     }
     
     # Provider-specific validation rules

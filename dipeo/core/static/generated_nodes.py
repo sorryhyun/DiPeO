@@ -13,6 +13,9 @@ from dipeo.models.models import (
     NotionOperation, HookType, PersonLLMConfig, LLMService
 )
 
+# Type aliases
+ExtractPattern = Literal['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
+
 
 @dataclass(frozen=True)
 class BaseExecutableNode:
@@ -44,8 +47,8 @@ class StartNode(BaseExecutableNode):
     custom_data: Dict[str, Union[str, int, bool]] = field(default_factory=dict)
     output_data_structure: Dict[str, str] = field(default_factory=dict)
     trigger_mode: Optional[HookTriggerMode] = None
-    hook_event: str = None
-    hook_filters: Dict[str, Any] = None
+    hook_event: Optional[str] = None
+    hook_filters: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -61,7 +64,7 @@ class StartNode(BaseExecutableNode):
 class EndpointNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.endpoint, init=False)
     save_to_file: bool = False
-    file_name: str = None
+    file_name: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -75,7 +78,7 @@ class PersonJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.person_job, init=False)
     person_id: Optional[PersonID] = None
     first_only_prompt: str = ""
-    default_prompt: str = None
+    default_prompt: Optional[str] = None
     max_iteration: int = 1
     memory_config: Optional[MemoryConfig] = None
     memory_settings: Optional[MemorySettings] = None
@@ -97,7 +100,7 @@ class PersonJobNode(BaseExecutableNode):
 class ConditionNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.condition, init=False)
     condition_type: str = ""
-    expression: str = None
+    expression: Optional[str] = None
     node_indices: Optional[List[str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -112,14 +115,16 @@ class ConditionNode(BaseExecutableNode):
 class CodeJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.code_job, init=False)
     language: SupportedLanguage = SupportedLanguage.python
-    code: str = ""
-    timeout: int = None
+    filePath: str = ""
+    functionName: Optional[str] = None
+    timeout: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         data = super().to_dict()
         data["language"] = self.language
-        data["code"] = self.code
+        data["filePath"] = self.filePath
+        data["functionName"] = self.functionName
         data["timeout"] = self.timeout
         return data
 
@@ -128,12 +133,12 @@ class ApiJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.api_job, init=False)
     url: str = ""
     method: HttpMethod = HttpMethod.GET
-    headers: Dict[str, str] = None
-    params: Dict[str, Any] = None
-    body: Any = None
-    timeout: int = None
+    headers: Optional[Dict[str, str]] = None
+    params: Optional[Dict[str, Any]] = None
+    body: Optional[Any] = None
+    timeout: Optional[int] = None
     auth_type: Optional[Literal["none", "bearer", "basic", "api_key"]] = None
-    auth_config: Dict[str, str] = None
+    auth_config: Optional[Dict[str, str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -151,12 +156,12 @@ class ApiJobNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class DBNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.db, init=False)
-    file: str = None
-    collection: str = None
+    file: Optional[str] = None
+    collection: Optional[str] = None
     sub_type: DBBlockSubType = DBBlockSubType.fixed_prompt
     operation: str = ""
-    query: str = None
-    data: Dict[str, Any] = None
+    query: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -186,8 +191,8 @@ class UserResponseNode(BaseExecutableNode):
 class NotionNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.notion, init=False)
     operation: NotionOperation = NotionOperation.read_page
-    page_id: str = None
-    database_id: str = None
+    page_id: Optional[str] = None
+    database_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -202,9 +207,9 @@ class HookNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.hook, init=False)
     hook_type: HookType = HookType.shell
     config: Dict[str, Any] = field(default_factory=dict)
-    timeout: int = None
-    retry_count: int = None
-    retry_delay: int = None
+    timeout: Optional[int] = None
+    retry_count: Optional[int] = None
+    retry_delay: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -214,6 +219,82 @@ class HookNode(BaseExecutableNode):
         data["timeout"] = self.timeout
         data["retry_count"] = self.retry_count
         data["retry_delay"] = self.retry_delay
+        return data
+
+@dataclass(frozen=True)
+class TemplateJobNode(BaseExecutableNode):
+    type: NodeType = field(default=NodeType.template_job, init=False)
+    template_path: Optional[str] = None
+    template_content: Optional[str] = None
+    output_path: Optional[str] = None
+    variables: Optional[Dict[str, Any]] = None
+    engine: Optional[Literal["internal", "jinja2", "handlebars"]] = "internal"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["template_path"] = self.template_path
+        data["template_content"] = self.template_content
+        data["output_path"] = self.output_path
+        data["variables"] = self.variables
+        data["engine"] = self.engine
+        return data
+
+@dataclass(frozen=True)
+class JsonSchemaValidatorNode(BaseExecutableNode):
+    type: NodeType = field(default=NodeType.json_schema_validator, init=False)
+    schema_path: Optional[str] = None
+    schema: Optional[Dict[str, Any]] = None
+    data_path: Optional[str] = None
+    strict_mode: Optional[bool] = False
+    error_on_extra: Optional[bool] = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["schema_path"] = self.schema_path
+        data["schema"] = self.schema
+        data["data_path"] = self.data_path
+        data["strict_mode"] = self.strict_mode
+        data["error_on_extra"] = self.error_on_extra
+        return data
+
+@dataclass(frozen=True)
+class TypescriptAstNode(BaseExecutableNode):
+    type: NodeType = field(default=NodeType.typescript_ast, init=False)
+    source: Optional[str] = None
+    extractPatterns: Optional[List[ExtractPattern]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    includeJSDoc: Optional[bool] = False
+    parseMode: Optional[Literal["module", "script"]] = "module"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["source"] = self.source
+        data["extractPatterns"] = self.extractPatterns
+        data["includeJSDoc"] = self.includeJSDoc
+        data["parseMode"] = self.parseMode
+        return data
+
+@dataclass(frozen=True)
+class SubDiagramNode(BaseExecutableNode):
+    type: NodeType = field(default=NodeType.sub_diagram, init=False)
+    diagram_name: Optional[str] = None
+    diagram_data: Optional[Dict[str, Any]] = None
+    input_mapping: Optional[Dict[str, str]] = None
+    output_mapping: Optional[Dict[str, str]] = None
+    timeout: Optional[int] = None
+    wait_for_completion: Optional[bool] = True
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["diagram_name"] = self.diagram_name
+        data["diagram_data"] = self.diagram_data
+        data["input_mapping"] = self.input_mapping
+        data["output_mapping"] = self.output_mapping
+        data["timeout"] = self.timeout
+        data["wait_for_completion"] = self.wait_for_completion
         return data
 
 @dataclass(frozen=True)
@@ -310,7 +391,8 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             language=data.get("language", SupportedLanguage.python),
-            code=data.get("code", ""),
+            filePath=data.get("filePath", ""),
+            functionName=data.get("functionName"),
             timeout=data.get("timeout"),
         )
     
@@ -381,6 +463,62 @@ def create_executable_node(
             timeout=data.get("timeout"),
             retry_count=data.get("retry_count"),
             retry_delay=data.get("retry_delay"),
+        )
+    
+    if node_type == NodeType.template_job:
+        return TemplateJobNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            template_path=data.get("template_path"),
+            template_content=data.get("template_content"),
+            output_path=data.get("output_path"),
+            variables=data.get("variables"),
+            engine=data.get("engine", "internal"),
+        )
+    
+    if node_type == NodeType.json_schema_validator:
+        return JsonSchemaValidatorNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            schema_path=data.get("schema_path"),
+            schema=data.get("schema"),
+            data_path=data.get("data_path"),
+            strict_mode=data.get("strict_mode", False),
+            error_on_extra=data.get("error_on_extra", False),
+        )
+    
+    if node_type == NodeType.typescript_ast:
+        return TypescriptAstNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            source=data.get("source"),
+            extractPatterns=data.get("extractPatterns"),
+            includeJSDoc=data.get("includeJSDoc", False),
+            parseMode=data.get("parseMode", "module"),
+        )
+    
+    if node_type == NodeType.sub_diagram:
+        return SubDiagramNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            diagram_name=data.get("diagram_name"),
+            diagram_data=data.get("diagram_data"),
+            input_mapping=data.get("input_mapping"),
+            output_mapping=data.get("output_mapping"),
+            timeout=data.get("timeout"),
+            wait_for_completion=data.get("wait_for_completion", True),
         )
     
     if node_type == NodeType.person_batch_job:

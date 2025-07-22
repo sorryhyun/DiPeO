@@ -69,6 +69,22 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         timeout = node.timeout or 30
         auth_type = node.auth_type or "none"
         auth_config = node.auth_config or {}
+        
+        # Debug logging
+        print(f"[ApiJobNode] URL: {url}")
+        print(f"[ApiJobNode] Method type: {type(method)}, value: {method}")
+        print(f"[ApiJobNode] Headers: {headers}")
+        
+        # Convert method to HttpMethod if it's a string
+        if isinstance(method, str):
+            try:
+                method = HttpMethod(method.upper())
+            except ValueError:
+                return ErrorOutput(
+                    value=f"Invalid HTTP method: {method}",
+                    node_id=node.id,
+                    error_type="ValidationError"
+                )
 
         if not url:
             return ErrorOutput(
@@ -102,9 +118,12 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             request_data = self._prepare_request_data(method, params, body)
             
             # Execute request using API service with retry logic
+            # Get method value - handle both enum and string cases
+            method_value = method.value if hasattr(method, 'value') else str(method)
+            
             response_data = await api_service.execute_with_retry(
                 url=url,
-                method=method.value,
+                method=method_value,
                 data=request_data,
                 headers=headers,
                 max_retries=node.max_retries if hasattr(node, "max_retries") else 3,
@@ -123,7 +142,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 metadata={
                     "success": True,
                     "url": url,
-                    "method": method.value
+                    "method": method_value
                 }
             )
 
@@ -136,7 +155,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 error_type=type(e).__name__,
                 metadata={
                     "url": url,
-                    "method": method.value
+                    "method": method.value if hasattr(method, 'value') else str(method)
                 }
             )
 

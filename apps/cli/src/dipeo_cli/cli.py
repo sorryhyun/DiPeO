@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from dipeo.core.constants import FILES_DIR
 
 from .server_manager import ServerManager
@@ -27,45 +26,24 @@ class DiPeOCLI:
             return diagram
 
         # If it has a file extension, check if it exists relative to current dir
-        if diagram.endswith(
-            (".json", ".yaml", ".yml", ".native.json", ".light.yaml", ".readable.yaml")
-        ):
-            if Path(diagram).exists():
-                return diagram
+        if diagram.endswith((".native.json", ".light.yaml", ".readable.yaml")) and Path(diagram).exists():
+            return diagram
 
         # Otherwise, construct path based on format within diagrams directory
         diagrams_dir = FILES_DIR / "diagrams"
 
         if not format_type:
-            # Try to find the diagram with new extensions first
-            new_extensions = [
+            # Try to find the diagram with known extensions
+            extensions = [
                 (".native.json", "native"),
                 (".light.yaml", "light"),
                 (".readable.yaml", "readable"),
             ]
 
-            # Check new extension format
-            for ext, _ in new_extensions:
+            for ext, _ in extensions:
                 path = diagrams_dir / f"{diagram}{ext}"
                 if path.exists():
                     return str(path)
-
-            # Fallback to old format (backward compatibility)
-            for fmt, ext in [
-                ("native", ".json"),
-                ("light", ".yaml"),
-                ("readable", ".yaml"),
-            ]:
-                # Handle subdirectories in old format
-                if "/" in diagram:
-                    parts = diagram.split("/")
-                    old_path = (
-                        diagrams_dir / fmt / "/".join(parts[:-1]) / f"{parts[-1]}{ext}"
-                    )
-                else:
-                    old_path = diagrams_dir / fmt / f"{diagram}{ext}"
-                if old_path.exists():
-                    return str(old_path)
 
             raise FileNotFoundError(f"Diagram '{diagram}' not found in any format")
 
@@ -76,31 +54,11 @@ class DiPeOCLI:
             "readable": ".readable.yaml",
         }
 
-        # Try new extension format first
-        ext = format_map[format_type]
+        ext = format_map.get(format_type)
+        if not ext:
+            raise ValueError(f"Unknown format type: {format_type}")
+
         path = diagrams_dir / f"{diagram}{ext}"
-        if path.exists():
-            return str(path)
-
-        # Fallback to old format
-        old_format_map = {
-            "light": ("light", ".yaml"),
-            "native": ("native", ".json"),
-            "readable": ("readable", ".yaml"),
-        }
-        fmt_dir, old_ext = old_format_map[format_type]
-        # Handle subdirectories in old format
-        if "/" in diagram:
-            parts = diagram.split("/")
-            old_path = (
-                diagrams_dir / fmt_dir / "/".join(parts[:-1]) / f"{parts[-1]}{old_ext}"
-            )
-        else:
-            old_path = diagrams_dir / fmt_dir / f"{diagram}{old_ext}"
-        if old_path.exists():
-            return str(old_path)
-
-        # If neither exists, return the new format path (for creating new files)
         return str(path)
 
     def load_diagram(self, file_path: str) -> dict[str, Any]:
@@ -109,23 +67,15 @@ class DiPeOCLI:
         if not path.exists():
             raise FileNotFoundError(f"Diagram file not found: {file_path}")
 
-        with open(file_path) as f:
+        with path.open() as f:
             content = f.read()
 
         # Parse based on extension
-        if str(path).endswith((".light.yaml", ".readable.yaml")) or path.suffix in [
-            ".yaml",
-            ".yml",
-        ]:
+        if str(path).endswith((".light.yaml", ".readable.yaml")):
             return yaml.safe_load(content)
-        elif str(path).endswith(".native.json") or path.suffix == ".json":
+        if str(path).endswith(".native.json"):
             return json.loads(content)
-        else:
-            # Try to parse as YAML first, then JSON
-            try:
-                return yaml.safe_load(content)
-            except:
-                return json.loads(content)
+        raise ValueError(f"Unknown diagram file format: {file_path}")
 
     def run(
         self,
@@ -219,26 +169,84 @@ class DiPeOCLI:
                 traceback.print_exc()
             return False
 
-    def convert(self, input_path: str, output_path: str):
-        """Convert between JSON and YAML formats."""
+    def convert(
+        self,
+        input_path: str,
+        output_path: str,
+        from_format: str | None = None,
+        to_format: str | None = None,
+    ):
+        """Convert between diagram formats using the integrated diagram service."""
         print(f"📝 Converting: {input_path} → {output_path}")
 
-        # Load input
-        data = self.load_diagram(input_path)
-
-        # Ensure parent directory exists
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-
-        # Save in target format
-        output_ext = Path(output_path).suffix.lower()
-
-        with open(output_path, "w") as f:
-            if output_ext in [".yaml", ".yml"]:
-                yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+        # Auto-detect formats from file extensions if not provided
+        if not from_format:
+            input_name = Path(input_path).name.lower()
+            if input_name.endswith(".native.json"):
+                from_format = "native"
+            elif input_name.endswith(".light.yaml"):
+                from_format = "light"
+            elif input_name.endswith(".readable.yaml"):
+                from_format = "readable"
             else:
-                json.dump(data, f, indent=2)
+                raise ValueError(
+                    f"Cannot determine format from input file: {input_path}"
+                )
 
-        print("✓ Conversion complete")
+        if not to_format:
+            output_name = Path(output_path).name.lower()
+            if output_name.endswith(".native.json"):
+                to_format = "native"
+            elif output_name.endswith(".light.yaml"):
+                to_format = "light"
+            elif output_name.endswith(".readable.yaml"):
+                to_format = "readable"
+            else:
+                raise ValueError(
+                    f"Cannot determine format from output file: {output_path}"
+                )
+
+        print(f"  Format: {from_format} → {to_format}")
+
+        # If same format, just copy the file
+        if from_format == to_format:
+            # Load and save to handle any formatting differences
+            data = self.load_diagram(input_path)
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            with Path(output_path).open("w") as f:
+                if output_path.endswith(".json"):
+                    json.dump(data, f, indent=2)
+                else:
+                    yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            print("✓ Conversion complete")
+            return
+
+        # Use the unified converter for format conversion
+        try:
+            # Import required modules
+            from dipeo.infra.diagram.unified_converter import UnifiedDiagramConverter
+
+            # Create converter
+            converter = UnifiedDiagramConverter()
+
+            # Load the diagram data
+            with Path(input_path).open() as f:
+                content = f.read()
+
+            # Convert: deserialize from source format, serialize to target format
+            diagram = converter.deserialize(content, format_id=from_format)
+            output_content = converter.serialize(diagram, format_id=to_format)
+
+            # Save the converted content
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            with Path(output_path).open("w") as f:
+                f.write(output_content)
+
+            print("✓ Conversion complete")
+
+        except Exception as e:
+            print(f"❌ Conversion failed: {e}")
+            raise
 
     def stats(self, diagram_path: str):
         """Show diagram statistics."""

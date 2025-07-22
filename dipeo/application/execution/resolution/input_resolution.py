@@ -27,7 +27,7 @@ class TypedInputResolutionService:
         """Resolve inputs for a node using ExecutableDiagram edges."""
         import logging
         log = logging.getLogger(__name__)
-        
+
         inputs = {}
         
         # Find all edges pointing to this node
@@ -59,33 +59,30 @@ class TypedInputResolutionService:
             if not source_output:
                 continue
             
-            # Handle different source_output formats
+            # Extract value from source output
             if isinstance(source_output, NodeOutputProtocol):
-                # Protocol output - extract value based on type
                 if isinstance(source_output, ConditionOutput):
-                    # For condition outputs, create dict with branch keys
+                    # Special handling for condition outputs
                     if source_output.value:  # True branch
                         output_value = {"condtrue": source_output.true_output or {}}
                     else:  # False branch
                         output_value = {"condfalse": source_output.false_output or {}}
                 else:
-                    # Regular protocol output - get value directly
+                    # All other protocol outputs - get value directly
                     output_value = source_output.value
-                    # Wrap non-dict values
-                    if not isinstance(output_value, dict):
-                        output_value = {"default": output_value}
             elif isinstance(source_output, dict) and "value" in source_output:
-                # Dict with proper structure
+                # Legacy dict format
                 output_value = source_output["value"]
-                if not isinstance(output_value, dict):
-                    output_value = {"default": output_value}
             else:
-                # Raw value - wrap as dict
-                output_value = {"default": source_output}
+                # Raw value
+                output_value = source_output
             
-            # Get the specific output key
+            # Ensure output_value is a dict for key access
+            if not isinstance(output_value, dict):
+                output_value = {"default": output_value}
+            
             output_key = edge.source_output or "default"
-            
+
             # Check if the output has the requested key
             if output_key not in output_value:
                 # Try default if specific key not found
@@ -93,29 +90,29 @@ class TypedInputResolutionService:
                     output_key = "default"
                 else:
                     # Skip if no matching output
+                    log.debug(f"    Skipping - output key '{output_key}' not found in output")
                     continue
             
             # Get the input key where this should be placed
-            # Use label from metadata if available, otherwise use target_input
             input_key = edge.metadata.get("label") or edge.target_input or "default"
 
-            # Apply any transformations if specified
+            # Apply transformations or pass value directly
+            value = output_value[output_key]
+            
             if edge.data_transform:
-                # Check if this is a conversation_state content type
-                if edge.data_transform.get('content_type') == 'conversation_state':
-                    # For conversation_state, pass the conversation data directly
-                    value = output_value[output_key]
-                    if isinstance(value, dict) and 'messages' in value:
-                        # Pass the messages directly to the target node
-                        inputs[input_key] = value
-                    else:
-                        inputs[input_key] = value
-                else:
-                    # Pass the value directly without memory configuration
-                    inputs[input_key] = output_value[output_key]
-            else:
-                # Store the input directly
-                inputs[input_key] = output_value[output_key]
+                content_type = edge.data_transform.get('content_type')
+                
+                if content_type == 'object' and isinstance(value, str):
+                    # Try to parse JSON strings for object content type
+                    if value.strip() and value.strip()[0] in '{[':
+                        try:
+                            import json
+                            value = json.loads(value)
+                        except json.JSONDecodeError:
+                            log.debug(f"Could not parse JSON for object content type")
+                
+            
+            inputs[input_key] = value
         
         return inputs
     
@@ -136,10 +133,8 @@ class TypedInputResolutionService:
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
 
             # On first execution (exec_count == 1 because it's incremented before execution),
-            # handle "first" inputs specially
             if exec_count == 1:
                 # Special case: Always process conversation_state inputs from condition nodes
-                # These provide context for judging/decision-making
                 if hasattr(edge, 'data_transform') and edge.data_transform:
                     if edge.data_transform.get('content_type') == 'conversation_state':
                         return True
@@ -147,14 +142,9 @@ class TypedInputResolutionService:
                 # If there are "first" inputs, only process those
                 if has_first_inputs:
                     return edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
-                # If no "first" inputs exist, fall back to processing default inputs
                 else:
-                    # Process edges without target_input (default) or explicitly "default"
                     return not edge.target_input or edge.target_input == "default"
-            # On subsequent executions, process all non-_first inputs
             else:
-                # Process edges without target_input (regular edges) or non-_first inputs
                 return not edge.target_input or not (edge.target_input == "first" or edge.target_input.endswith("_first"))
         
-        # For all other node types, process all edges
         return True

@@ -101,44 +101,34 @@ class PromptBuilder:
             
             elif isinstance(value, dict):
                 if "messages" in value:
-                    # Extract the last message content as the argument to respond to
+                    # Handle conversation data
                     messages = value.get("messages", [])
                     if messages:
-                        # Convert Message objects to dicts if needed
+                        # Convert to simple dicts
                         messages_as_dicts = []
                         for msg in messages:
                             if hasattr(msg, 'model_dump'):
-                                # Pydantic model - convert to dict
                                 messages_as_dicts.append(msg.model_dump())
-                            elif hasattr(msg, '__dict__'):
-                                # Regular object - convert attributes to dict
-                                messages_as_dicts.append({
-                                    'from_person_id': str(getattr(msg, 'from_person_id', '')),
-                                    'to_person_id': str(getattr(msg, 'to_person_id', '')),
-                                    'content': getattr(msg, 'content', ''),
-                                    'message_type': getattr(msg, 'message_type', ''),
-                                    'timestamp': getattr(msg, 'timestamp', '')
-                                })
                             elif isinstance(msg, dict):
-                                # Already a dict
                                 messages_as_dicts.append(msg)
+                            else:
+                                # Convert object to dict
+                                messages_as_dicts.append({
+                                    'content': getattr(msg, 'content', ''),
+                                    'from_person_id': str(getattr(msg, 'from_person_id', '')),
+                                    'to_person_id': str(getattr(msg, 'to_person_id', ''))
+                                })
                         
-                        # Get the last message content
-                        last_message = messages_as_dicts[-1] if messages_as_dicts else None
-                        if last_message and "content" in last_message:
-                            template_values[f"{key}_last_message"] = last_message["content"]
-                            # Also make the full conversation available
+                        # Make last message and full conversation available
+                        if messages_as_dicts:
+                            last_msg = messages_as_dicts[-1]
+                            if "content" in last_msg:
+                                template_values[f"{key}_last_message"] = last_msg["content"]
                             template_values[f"{key}_messages"] = messages_as_dicts
-                            
-                        import logging
-                        logger = logging.getLogger(__name__)
-                        logger.debug(f"Prepared {key}_messages with {len(messages_as_dicts)} messages")
                     continue
                     
-                if "value" in value and isinstance(value["value"], dict) and "default" in value["value"]:
-                    template_values[key] = value["value"]["default"]
-                elif all(isinstance(v, (str, int, float, bool, type(None))) for v in value.values()):
-                    template_values[key] = value
+                # For any dict value, make it available for dot notation access
+                template_values[key] = value
             
             elif isinstance(value, list) and all(isinstance(v, (str, int, float, bool)) for v in value):
                 template_values[key] = value

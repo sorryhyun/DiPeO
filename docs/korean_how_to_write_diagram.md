@@ -1,6 +1,6 @@
-# DiPeO Light 포맷 가이드
+# DiPeO Light 형식 가이드
 
-Light 포맷은 DiPeO 다이어그램을 생성하기 위한 간소화된 YAML 문법입니다. ID 대신 사람이 읽을 수 있는 레이블을 사용하여 워크플로우를 더 쉽게 작성하고 이해할 수 있습니다.
+Light 형식은 DiPeO 다이어그램을 생성하기 위한 간소화된 YAML 구문입니다. ID 대신 사람이 읽을 수 있는 레이블을 사용하여 워크플로우를 더 쉽게 작성하고 이해할 수 있게 해줍니다.
 
 ## 기본 구조
 
@@ -17,19 +17,19 @@ persons:
     api_key_id: APIKEY_123456
     system_prompt: 선택적 시스템 프롬프트
 
-# 필수: nodes 정의
+# 필수: 노드 정의
 nodes:
-  - label: Node Label
+  - label: 노드 레이블
     type: node_type
     position: {x: 100, y: 200}
     props:
       # 노드별 속성
 
-# 선택사항: connections 정의
+# 선택사항: 연결 정의
 connections:
-  - from: Source Node
-    to: Target Node
-    content_type: raw_text  # 또는 variable, conversation_state
+  - from: 소스 노드
+    to: 대상 노드
+    content_type: raw_text  # 또는 conversation_state, object
     label: optional_label
 ```
 
@@ -37,7 +37,7 @@ connections:
 
 ### 1. **start** - 진입점
 
-모든 다이어그램은 정확히 하나의 start 노드를 가져야 합니다:
+모든 다이어그램은 정확히 하나의 시작 노드를 가져야 합니다:
 
 ```yaml
 - label: Start
@@ -57,7 +57,7 @@ LLM 에이전트로 프롬프트 실행:
   position: {x: 400, y: 200}
   props:
     person: Person 1  # persons 섹션 참조
-    default_prompt: '{{topic}}에 대한 이야기를 작성하세요'
+    default_prompt: '{{topic}}에 대한 이야기를 써주세요'
     first_only_prompt: '{{topic}}에 대한 이야기를 시작하세요'  # 첫 번째 반복에서만 사용
     max_iteration: 3
     memory_profile: FULL  # 또는 FOCUSED, MINIMAL, GOLDFISH
@@ -70,7 +70,7 @@ LLM 에이전트로 프롬프트 실행:
 - **FULL**: 모든 메시지 보존
 - **FOCUSED**: 최근 20개 대화 쌍
 - **MINIMAL**: 시스템 메시지 + 최근 5개 메시지
-- **GOLDFISH**: 마지막 2개 메시지만, 시스템 보존 안 함
+- **GOLDFISH**: 마지막 2개 메시지만, 시스템 보존 없음
 
 ### 3. **condition** - 분기 로직
 
@@ -82,7 +82,7 @@ LLM 에이전트로 프롬프트 실행:
   position: {x: 600, y: 400}
   props:
     condition_type: detect_max_iterations  # 모든 person_job 노드가 최대치에 도달했는지 확인
-    flipped: true  # 선택사항: true/false 출력 반전
+    flipped: true  # 선택사항: true/false 출력 뒤집기
 
 # 사용자 정의 표현식 조건
 - label: Check Value
@@ -95,20 +95,63 @@ LLM 에이전트로 프롬프트 실행:
 
 ### 4. **code_job** - 코드 실행
 
-Python, JavaScript, 또는 Bash 코드 실행:
+Python, TypeScript, Bash 또는 Shell 코드를 인라인이나 외부 파일에서 실행:
+
+#### 옵션 1: 인라인 코드
 
 ```yaml
 - label: Process Data
   type: code_job
   position: {x: 400, y: 200}
   props:
-    code_type: python  # 또는 javascript, bash
+    code_type: python  # 또는 typescript, bash, shell
     code: |
-      # 컨텍스트에서 변수 접근
-      print(f"입력값: {input_value}")
-      result = input_value * 2
-      # 'result' 변수는 자동으로 다음 노드로 전달됨
+      # 연결에서 입력 변수 접근
+      data = raw_data  # 'raw_data' 레이블이 붙은 연결의 변수
+      
+      # 데이터 처리
+      processed = data.upper()
+      
+      # 중요: 다음 노드에 데이터를 전달하려면 다음 중 하나를 사용:
+      # 1. 'result' 변수에 할당
+      result = processed
+      
+      # 2. 또는 return 문 사용
+      # return processed
+      
+      # 주의: print()는 code_job 노드에서 지원되지 않음
+      # 'result'에 할당되지 않은 변수는 전달되지 않음
 ```
+
+#### 옵션 2: 외부 코드 파일 (복잡한 로직에 권장)
+
+```yaml
+- label: Process Data
+  type: code_job
+  position: {x: 400, y: 200}
+  props:
+    code_type: python  # 또는 typescript, bash, shell
+    code: files/code/my_functions.py  # 코드 파일 경로
+    functionName: process_data  # 호출할 특정 함수
+
+# 외부 파일에는 다음이 포함되어야 함:
+# def process_data(raw_data, other_input):
+#     processed = raw_data.upper()
+#     return processed
+```
+
+**code_job 중요 사항:**
+- 들어오는 연결의 변수는 레이블 이름으로 사용 가능
+- 인라인 코드의 경우, 반드시 다음 중 하나를 수행해야 함:
+  - 출력을 `result`라는 변수에 할당
+  - `return` 문 사용 (코드가 함수로 래핑됨)
+- 외부 파일의 경우:
+  - `code` 필드에 파일 경로 지정
+  - `functionName`으로 호출할 함수 지정
+  - 함수는 입력 변수를 인수로 받음
+  - 함수의 반환값이 후속 노드로 전달됨
+- (인라인에서) `result`나 `return`을 사용하지 않으면, 노드는 "Code executed successfully"를 출력
+- `print()` 함수는 지원되지 않으며 출력을 생성하지 않음
 
 ### 5. **endpoint** - 출력/저장
 
@@ -140,7 +183,7 @@ Python, JavaScript, 또는 Bash 코드 실행:
 
 ### 7. **api_job** - HTTP 요청
 
-API 호출하기:
+API 호출:
 
 ```yaml
 - label: Call API
@@ -170,7 +213,7 @@ API 호출하기:
 
 ### 기본 연결
 
-노드 간 단순 흐름:
+노드 간 단순한 흐름:
 
 ```yaml
 connections:
@@ -180,7 +223,7 @@ connections:
 
 ### 조건 분기
 
-조건 노드는 두 개의 출력 핸들을 가집니다:
+조건은 두 개의 출력 핸들을 가집니다:
 
 ```yaml
 connections:
@@ -206,25 +249,41 @@ connections:
     
   - from: Code Job
     to: Person Job
-    content_type: variable        # 코드 실행에서의 변수
+    content_type: object          # 코드 실행의 구조화된 데이터
 ```
 
-### 이름이 지정된 연결
+### 이름이 지정된 연결 (중요!)
 
-변수 접근을 위한 연결 레이블:
+**노드 간 데이터 전달을 위해서는 레이블이 필수입니다.** 레이블이 없으면 수신 노드가 데이터에 접근할 수 없습니다:
 
 ```yaml
 connections:
+  # 레이블 없음 - 데이터에 접근 불가
   - from: Load Data
-    to: Process_first  # 첫 번째 전용 입력을 위한 특수 핸들
-    label: topic       # 프롬프트에서 {{topic}}으로 접근
+    to: Process Data
+    
+  # 레이블 있음 - 'raw_data' 변수로 데이터 접근 가능
+  - from: Load Data
+    to: Process Data
+    label: raw_data    # code_job에서: raw_data로 접근
+                      # 템플릿에서: {{raw_data}}로 접근
+    
+  # 서로 다른 레이블로 여러 입력
+  - from: Load Config
+    to: Process Data
+    label: config     # 별도의 'config' 변수로 접근 가능
 ```
+
+**핵심 사항:**
+- DB 노드(파일 작업)는 파일 내용을 반환
+- 레이블은 수신 노드에서 변수 이름이 됨
+- 레이블이 없으면 데이터는 전달되지만 이름으로 접근할 수 없음
 
 ## 변수와 데이터 흐름
 
 ### 템플릿 변수
 
-프롬프트에서 `{{variable_name}}` 문법 사용:
+프롬프트에서 `{{variable_name}}` 구문 사용:
 
 ```yaml
 # 데이터를 제공하는 노드
@@ -238,7 +297,7 @@ connections:
   type: person_job
   props:
     person: Assistant
-    default_prompt: '안녕하세요 {{name}}님! 오늘 어떻게 도와드릴까요?'
+    default_prompt: '안녕하세요 {{name}}님! 무엇을 도와드릴까요?'
 
 connections:
   - from: Get User Name
@@ -248,7 +307,7 @@ connections:
 
 ### 코드 변수
 
-코드에서 설정된 변수는 자동으로 후속 노드에서 사용 가능:
+코드에서 설정된 변수는 후속 노드에서 자동으로 사용 가능:
 
 ```yaml
 - label: Calculate
@@ -257,7 +316,7 @@ connections:
     code: |
       a = 10
       b = 20
-      result = a + b  # 'result'는 다음 노드로 전달됨
+      result = a + b  # 'result'가 다음 노드로 전달됨
 
 - label: Check Result
   type: condition
@@ -290,7 +349,7 @@ connections:
     content_type: conversation_state
     
   - from: Check Complete_condfalse
-    to: Counter  # 루프백
+    to: Counter  # 다시 돌아가기
     
   - from: Check Complete_condtrue
     to: End  # 루프 종료
@@ -298,7 +357,7 @@ connections:
 
 ### 토론 패턴
 
-여러 에이전트 상호작용:
+여러 에이전트의 상호작용:
 
 ```yaml
 persons:
@@ -310,15 +369,15 @@ persons:
   Pessimist:
     service: openai
     model: gpt-4.1-nano
-    system_prompt: 잠재적인 문제점을 지적하세요
+    system_prompt: 잠재적인 문제를 지적하세요
 
 nodes:
   - label: Optimist View
     type: person_job
     props:
       person: Optimist
-      first_only_prompt: '다음에 대한 해결책을 제안하세요: {{problem}}'
-      default_prompt: '비판에 응답하세요'
+      first_only_prompt: '다음 문제에 대한 해결책 제안: {{problem}}'
+      default_prompt: '비판에 대해 응답하세요'
       max_iteration: 3
       memory_profile: GOLDFISH  # 이전 라운드 잊기
       
@@ -337,10 +396,10 @@ connections:
     
   - from: Pessimist View
     to: Optimist View
-    content_type: variable
+    content_type: raw_text
 ```
 
-## 완전한 예제
+## 전체 예제
 
 ### 예제 1: 간단한 Q&A 봇
 
@@ -362,7 +421,7 @@ nodes:
     type: user_response
     position: {x: 200, y: 200}
     props:
-      prompt: '무엇을 알고 싶으신가요?'
+      prompt: '무엇이 궁금하신가요?'
       
   - label: Answer
     type: person_job
@@ -390,10 +449,18 @@ connections:
     to: Save Answer
 ```
 
-### 예제 2: 반복 코드 실행
+### 예제 2: 외부 파일을 사용한 반복적 코드 실행
 
 ```yaml
 version: light
+
+# 외부 파일 (files/code/iteration_functions.py)에는 다음이 포함:
+# def initialize_counter():
+#     return {"counter": 0, "status": "시작하는 중..."}
+#
+# def increment_counter(counter, status):
+#     new_counter = counter + 1
+#     return {"counter": new_counter, "status": f"{new_counter}번 처리됨"}
 
 nodes:
   - label: Start
@@ -405,19 +472,16 @@ nodes:
     position: {x: 200, y: 200}
     props:
       code_type: python
-      code: |
-        counter = 0
-        result = "시작..."
+      code: files/code/iteration_functions.py
+      functionName: initialize_counter
         
   - label: Process
     type: code_job
     position: {x: 400, y: 200}
     props:
       code_type: python
-      code: |
-        counter += 1
-        print(f"반복 {counter}")
-        result = f"{counter}번 처리됨"
+      code: files/code/iteration_functions.py
+      functionName: increment_counter
         
   - label: Check Done
     type: condition
@@ -442,7 +506,7 @@ connections:
   - from: Process
     to: Check Done
   - from: Check Done_condfalse
-    to: Process  # 루프백
+    to: Process  # 다시 돌아가기
   - from: Check Done_condtrue
     to: End
 ```
@@ -450,12 +514,13 @@ connections:
 ## 모범 사례
 
 1. **설명적인 레이블 사용** - 레이블은 고유 식별자이므로 의미 있게 만드세요
-2. **적절한 메모리 프로필 설정** - 토론 패턴에는 GOLDFISH, 컨텍스트 인식 대화에는 FULL 사용
-3. **에러를 우아하게 처리** - 에러 확인을 위한 조건 노드 추가
-4. **반복적으로 테스트** - 단순하게 시작하여 점진적으로 복잡성 추가
+2. **적절한 메모리 프로필 설정** - 토론 패턴에는 GOLDFISH, 문맥 인식 대화에는 FULL 사용
+3. **오류를 우아하게 처리** - 오류 확인을 위한 조건 노드 추가
+4. **반복적으로 테스트** - 단순하게 시작하여 점진적으로 복잡도 추가
 5. **주석 사용** - YAML은 문서화를 위한 # 주석 지원
-6. **변수 이름 지정** - 템플릿에서 명확하고 일관된 변수 이름 사용
-7. **노드를 논리적으로 배치** - 왼쪽에서 오른쪽 흐름이 가독성을 향상시킴
+6. **변수 명명** - 명확하고 일관된 변수 이름을 템플릿에서 사용
+7. **노드를 논리적으로 배치** - 왼쪽에서 오른쪽 흐름이 가독성 향상
+8. **코드 구성** - 복잡한 로직(10줄 이상)이나 재사용 가능한 함수에는 외부 파일 사용
 
 ## Light 다이어그램 실행
 
@@ -472,11 +537,11 @@ http://localhost:3000/?diagram=light/your_diagram.yaml
 
 ## 팁
 
-- 공백이 있는 레이블도 잘 작동합니다: `label: My Complex Node`
-- 중복 레이블은 자동으로 번호가 매겨집니다: `Process` → `Process~1`
-- 노드의 `flipped` 속성은 핸들 위치를 시각적으로 반전시킵니다
+- 공백이 있는 레이블도 문제없음: `label: My Complex Node`
+- 중복 레이블은 자동으로 번호가 매겨짐: `Process` → `Process~1`
+- 노드의 `flipped` 속성은 핸들 위치를 시각적으로 반전
 - 초기화에는 `first_only_prompt`, 반복에는 `default_prompt` 사용
-- `web_search_preview` 같은 도구는 확장된 기능을 활성화합니다
-- `_first` 핸들 접미사는 특별한 첫 번째 입력을 허용합니다
+- `web_search_preview` 같은 도구로 확장 기능 활성화
+- `_first` 핸들 접미사는 특별한 첫 번째 입력 허용
 
-Light 포맷은 완전성보다 가독성과 편집의 용이성을 우선시하므로 빠른 프로토타이핑과 간단한 워크플로우에 이상적입니다.
+Light 형식은 완전성보다 가독성과 편집 용이성을 우선시하여 빠른 프로토타이핑과 간단한 워크플로우에 이상적입니다.

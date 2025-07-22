@@ -40,6 +40,10 @@ export const NODE_TYPE_MAP: Record<string, NodeType> = {
   'db': NodeType.DB,
   'notion': NodeType.NOTION,
   'hook': NodeType.HOOK,
+  'template_job': NodeType.TEMPLATE_JOB,
+  'json_schema_validator': NodeType.JSON_SCHEMA_VALIDATOR,
+  'typescript_ast': NodeType.TYPESCRIPT_AST,
+  'sub_diagram': NodeType.SUB_DIAGRAM,
 } as const;
 
 /**

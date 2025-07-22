@@ -1,0 +1,58 @@
+version: light
+nodes:
+  - label: Start
+    type: start
+    position: {x: 100, y: 200}
+    props:
+      trigger_mode: manual
+      custom_data:
+        message: "Hello from parent"
+        
+  - label: Run Sub Diagram
+    type: sub_diagram
+    position: {x: 350, y: 200}
+    props:
+      diagram_name: test_sub_diagram
+      input_mapping:
+        parent_message: inputs.message
+      output_mapping:
+        result: result
+      timeout: 10
+      wait_for_completion: true
+      
+  - label: Show Result
+    type: person_job
+    position: {x: 600, y: 200}
+    props:
+      person: SimpleReporter
+      first_only_prompt: |
+        The sub-diagram returned: {{result}}
+        
+        Please summarize what happened.
+      max_iteration: 1
+      
+  - label: End
+    type: endpoint
+    position: {x: 850, y: 200}
+    props:
+      save_to_file: true
+      file_name: logs/test_sub_diagram_result.log
+
+connections:
+  - from: Start
+    to: Run Sub Diagram
+    content_type: object
+    
+  - from: Run Sub Diagram
+    to: Show Result
+    content_type: object
+    
+  - from: Show Result
+    to: End
+    content_type: raw_text
+
+persons:
+  SimpleReporter:
+    service: openai
+    model: gpt-4.1-nano
+    api_key_id: APIKEY_52609F

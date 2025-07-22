@@ -1,0 +1,37 @@
+# GraphQL Schema for Hook Node
+# Generated from node specification
+
+type HookNodeData implements NodeData {
+  id: ID!
+  type: NodeType!
+  label: String!
+  position: Position!
+  hook_type: HookType
+  command: String
+  url: String
+  timeout: Float
+  retry_count: Float
+  flipped: Boolean
+}
+
+input HookNodeInput {
+  label: String!
+  position: PositionInput!
+  hook_type: HookType
+  command: String
+  url: String
+  timeout: Float
+  retry_count: Float
+  flipped: Boolean
+}
+
+enum HookType {
+  SHELL
+  HTTP
+  PYTHON
+  FILE
+}
+
+# Update these union types to include the new node type:
+# union NodeData = ... | HookNodeData
+# union NodeInput = ... | HookNodeInput

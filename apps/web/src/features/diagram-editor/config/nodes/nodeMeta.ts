@@ -13,6 +13,8 @@ import { PersonBatchJobNodeConfig } from './person-batch-job';
 import { UserResponseNodeConfig } from './user-response';
 import { NotionNodeConfig } from './notion';
 import { HookNodeConfig } from './hook';
+import { TemplateJobNodeConfig } from './template-job';
+import { JsonSchemaValidatorNodeConfig } from './json-schema-validator';
 
 /**
  * Node visual metadata extracted from configurations
@@ -30,6 +32,8 @@ export const NODE_ICONS: Record<NodeType, string> = {
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig.icon,
   [NodeType.NOTION]: NotionNodeConfig.icon,
   [NodeType.HOOK]: HookNodeConfig.icon,
+  [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig.icon,
+  [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig.icon,
 };
 
 export const NODE_COLORS: Record<NodeType, string> = {
@@ -45,6 +49,8 @@ export const NODE_COLORS: Record<NodeType, string> = {
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig.color,
   [NodeType.NOTION]: NotionNodeConfig.color,
   [NodeType.HOOK]: HookNodeConfig.color,
+  [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig.color,
+  [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig.color,
 };
 
 export const NODE_LABELS: Record<NodeType, string> = {
@@ -60,6 +66,8 @@ export const NODE_LABELS: Record<NodeType, string> = {
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig.label,
   [NodeType.NOTION]: NotionNodeConfig.label,
   [NodeType.HOOK]: HookNodeConfig.label,
+  [NodeType.TEMPLATE_JOB]: TemplateJobNodeConfig.label,
+  [NodeType.JSON_SCHEMA_VALIDATOR]: JsonSchemaValidatorNodeConfig.label,
 };
 
 /**

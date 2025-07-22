@@ -1,0 +1,9 @@
+{
+  "result": {
+    "nodeType": "mynode",
+    "displayName": "My Custom Node",
+    "fields": [],
+    "handles": {}
+  },
+  "result_type": "dict"
+}

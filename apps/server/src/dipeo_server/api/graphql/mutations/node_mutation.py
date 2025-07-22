@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @strawberry.type
 class NodeMutations:
-    """Handles node CRUD operations."""
+    """Handles node CRUD operat ions."""
 
     @strawberry.mutation
     async def create_node(

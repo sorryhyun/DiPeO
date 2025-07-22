@@ -1,0 +1,44 @@
+# Code Generation Report
+
+**Status**: {{final_report.status}}
+**Timestamp**: {{final_report.timestamp}}
+**Node Type**: {{final_report.node_type}}
+
+## Summary
+- Files Generated: {{final_report.summary.files_generated}}
+{{#if final_report.summary.checks_passed}}
+- All automated checks passed ✓
+{{else}}
+- Issues found: {{final_report.summary.issues_found}}
+{{/if}}
+{{#if final_report.summary.manual_review_required}}
+- Manual review was required
+- Review decision: {{final_report.summary.decision}}
+{{/if}}
+
+{{#if final_report.message}}
+## Result
+{{final_report.message}}
+{{/if}}
+
+{{#if final_report.reviewer_notes}}
+## Reviewer Notes
+{{final_report.reviewer_notes}}
+{{/if}}
+
+{{#if final_report.next_steps}}
+## Next Steps
+{{#each final_report.next_steps}}
+{{this}}
+{{/each}}
+{{/if}}
+
+{{#if final_report.retry_instructions}}
+## Retry Instructions
+{{final_report.retry_instructions}}
+{{/if}}
+
+{{#if final_report.abort_reason}}
+## Abort Reason
+{{final_report.abort_reason}}
+{{/if}}
