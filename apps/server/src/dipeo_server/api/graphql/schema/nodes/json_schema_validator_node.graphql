@@ -1,0 +1,40 @@
+# Auto-generated GraphQL schema for json_schema_validator node
+
+type Json_schema_validatorNode implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: Json_schema_validatorNodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type Json_schema_validatorNodeData {
+  "Schema Path configuration"
+  schema_path: String  "Schema configuration"
+  schema: JSON  "Data Path configuration"
+  data_path: String  "Strict Mode configuration"
+  strict_mode: Boolean  "Error On Extra configuration"
+  error_on_extra: Boolean}
+
+input Json_schema_validatorNodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: Json_schema_validatorNodeDataInput!
+}
+
+input Json_schema_validatorNodeDataInput {
+  schema_path: String  schema: JSON  data_path: String  strict_mode: Boolean  error_on_extra: Boolean}
+
+# Add to schema extensions
+extend type Query {
+  json_schema_validatorNodes: [Json_schema_validatorNode!]!
+  json_schema_validatorNode(id: ID!): Json_schema_validatorNode
+}
+
+extend type Mutation {
+  createJson_schema_validatorNode(input: Json_schema_validatorNodeInput!): Json_schema_validatorNode!
+  updateJson_schema_validatorNode(id: ID!, input: Json_schema_validatorNodeDataInput!): Json_schema_validatorNode!
+  deleteJson_schema_validatorNode(id: ID!): Boolean!
+}

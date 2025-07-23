@@ -24,6 +24,7 @@ def create_jinja_env(template_dir):
     # Add utility filters
     env.filters['endsWith'] = lambda text, suffix: str(text).endswith(suffix)
     env.filters['startsWith'] = lambda text, prefix: str(text).startswith(prefix)
+    env.filters['toNodeType'] = to_node_type
     
     return env
 
@@ -59,3 +60,21 @@ def pascal_case(text: str) -> str:
     """Convert to PascalCase."""
     words = re.split(r'[\s_\-]+', str(text))
     return ''.join(w.capitalize() for w in words)
+
+
+def to_node_type(text: str) -> str:
+    """Convert from NodeData class name to node_type.
+    
+    Examples:
+        PersonJobNodeData -> person_job
+        StartNodeData -> start
+        ApiJobNodeData -> api_job
+    """
+    # Remove 'NodeData' suffix
+    if text.endswith('NodeData'):
+        text = text[:-8]  # Remove 'NodeData'
+    elif text.endswith('Node'):
+        text = text[:-4]  # Remove 'Node'
+    
+    # Convert to snake_case
+    return snake_case(text)

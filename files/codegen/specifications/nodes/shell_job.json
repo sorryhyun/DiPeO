@@ -1,0 +1,99 @@
+{
+  "nodeType": "shell_job",
+  "displayName": "Shell Job",
+  "category": "compute",
+  "icon": "\ud83d\udc1a",
+  "color": "#009688",
+  "description": "Execute shell commands",
+  "fields": [
+    {
+      "name": "command",
+      "type": "string",
+      "required": true,
+      "description": "Command configuration",
+      "uiConfig": {
+        "inputType": "text"
+      }
+    },
+    {
+      "name": "args",
+      "type": "array",
+      "required": false,
+      "description": "Args configuration",
+      "validation": {
+        "itemType": "string"
+      },
+      "uiConfig": {
+        "inputType": "text"
+      }
+    },
+    {
+      "name": "cwd",
+      "type": "string",
+      "required": false,
+      "description": "Cwd configuration",
+      "uiConfig": {
+        "inputType": "text"
+      }
+    },
+    {
+      "name": "env",
+      "type": "object",
+      "required": false,
+      "description": "Env configuration",
+      "uiConfig": {
+        "inputType": "code",
+        "language": "json",
+        "collapsible": true
+      }
+    },
+    {
+      "name": "timeout",
+      "type": "number",
+      "required": false,
+      "description": "Timeout configuration",
+      "uiConfig": {
+        "inputType": "number",
+        "min": 0,
+        "max": 3600
+      }
+    },
+    {
+      "name": "capture_output",
+      "type": "boolean",
+      "required": false,
+      "description": "Capture Output configuration",
+      "uiConfig": {
+        "inputType": "checkbox"
+      }
+    },
+    {
+      "name": "shell",
+      "type": "boolean",
+      "required": false,
+      "description": "Shell configuration",
+      "uiConfig": {
+        "inputType": "checkbox"
+      }
+    }
+  ],
+  "handles": {
+    "inputs": [
+      "in"
+    ],
+    "outputs": [
+      "out"
+    ]
+  },
+  "outputs": {
+    "result": {
+      "type": "any",
+      "description": "Node execution result"
+    }
+  },
+  "execution": {
+    "timeout": 300,
+    "retryable": true,
+    "maxRetries": 3
+  }
+}

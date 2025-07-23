@@ -1,8 +1,8 @@
-// Generated field configuration for {{ spec_data.nodeType }}
+// Generated field configuration for {{ nodeType }}
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
-export const {{ spec_data.camelCase }}Fields: UnifiedFieldDefinition[] = [
-  {%- for field in spec_data.fields %}
+export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
+  {%- for field in fields %}
   {
     name: '{{ field.name }}',
     type: '{% if field.type == 'enum' %}select{% elif field.type == 'boolean' %}checkbox{% elif field.type == 'number' %}number{% elif field.type == 'code' %}textarea{% else %}text{% endif %}',
@@ -17,9 +17,9 @@ export const {{ spec_data.camelCase }}Fields: UnifiedFieldDefinition[] = [
     {%- if field.description %}
     description: '{{ field.description }}',
     {%- endif %}
-    {%- if field.type == 'enum' and field.values %}
+    {%- if field.type == 'enum' and field['values'] %}
     options: [
-      {%- for value in field.values %}
+      {%- for value in field['values'] %}
       { value: '{{ value }}', label: '{{ value | humanize }}' },
       {%- endfor %}
     ],

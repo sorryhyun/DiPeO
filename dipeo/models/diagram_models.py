@@ -270,7 +270,11 @@ class HookTriggerMode(str, Enum):
 class GraphQLDomainPersonType(BaseModel):
     """GraphQLDomainPersonType model."""
     # Fields
-    id: str    label: str    llm_config: PersonLLMConfig    type: str    
+    id: str
+    label: str
+    llm_config: PersonLLMConfig
+    type: str
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -282,7 +286,12 @@ class GraphQLDomainPersonType(BaseModel):
 class StoreDiagram(BaseModel):
     """StoreDiagram model."""
     # Fields
-    nodes: Dict[NodeID, DomainNode]    handles: Dict[HandleID, DomainHandle]    arrows: Dict[ArrowID, DomainArrow]    persons: Dict[PersonID, DomainPerson]    metadata: Optional[Any] = Field(default=None)    
+    nodes: Dict[NodeID, DomainNode]
+    handles: Dict[HandleID, DomainHandle]
+    arrows: Dict[ArrowID, DomainArrow]
+    persons: Dict[PersonID, DomainPerson]
+    metadata: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -294,7 +303,10 @@ class StoreDiagram(BaseModel):
 class ToolConfig(BaseModel):
     """ToolConfig model."""
     # Fields
-    type: ToolType    enabled: Optional[bool] = Field(default=None)    config: Optional[Any] = Field(default=None)    
+    type: ToolType
+    enabled: Optional[bool] = Field(default=None)
+    config: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -306,7 +318,11 @@ class ToolConfig(BaseModel):
 class WebSearchResult(BaseModel):
     """WebSearchResult model."""
     # Fields
-    url: str    title: str    snippet: str    score: Optional[float] = Field(default=None)    
+    url: str
+    title: str
+    snippet: str
+    score: Optional[float] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -318,7 +334,11 @@ class WebSearchResult(BaseModel):
 class ImageGenerationResult(BaseModel):
     """ImageGenerationResult model."""
     # Fields
-    image_data: str    format: str    width: Optional[float] = Field(default=None)    height: Optional[float] = Field(default=None)    
+    image_data: str
+    format: str
+    width: Optional[float] = Field(default=None)
+    height: Optional[float] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -330,7 +350,10 @@ class ImageGenerationResult(BaseModel):
 class ToolOutput(BaseModel):
     """ToolOutput model."""
     # Fields
-    type: ToolType    result: Any    raw_response: Optional[Any] = Field(default=None)    
+    type: ToolType
+    result: Any
+    raw_response: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -342,7 +365,11 @@ class ToolOutput(BaseModel):
 class ChatResult(BaseModel):
     """ChatResult model."""
     # Fields
-    text: str    token_usage: Optional[Any] = Field(default=None)    raw_response: Optional[Any] = Field(default=None)    tool_outputs: Optional[Dict[str, Any]] = Field(default=None)    
+    text: str
+    token_usage: Optional[Any] = Field(default=None)
+    raw_response: Optional[Any] = Field(default=None)
+    tool_outputs: Optional[{} | null | undefined] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -354,7 +381,13 @@ class ChatResult(BaseModel):
 class LLMRequestOptions(BaseModel):
     """LLMRequestOptions model."""
     # Fields
-    temperature: Optional[float] = Field(default=None)    max_tokens: Optional[float] = Field(default=None)    top_p: Optional[float] = Field(default=None)    n: Optional[float] = Field(default=None)    tools: Optional[Dict[str, Any]] = Field(default=None)    response_format: Optional[Any] = Field(default=None)    
+    temperature: Optional[float] = Field(default=None)
+    max_tokens: Optional[float] = Field(default=None)
+    top_p: Optional[float] = Field(default=None)
+    n: Optional[float] = Field(default=None)
+    tools: Optional[{} | undefined] = Field(default=None)
+    response_format: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -366,7 +399,11 @@ class LLMRequestOptions(BaseModel):
 class TokenUsage(BaseModel):
     """TokenUsage model."""
     # Fields
-    input: float    output: float    cached: Optional[float] = Field(default=None)    total: Optional[float] = Field(default=None)    
+    input: float
+    output: float
+    cached: Optional[float] = Field(default=None)
+    total: Optional[float] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -378,7 +415,13 @@ class TokenUsage(BaseModel):
 class NodeState(BaseModel):
     """NodeState model."""
     # Fields
-    status: NodeExecutionStatus    started_at: Optional[str] = Field(default=None)    ended_at: Optional[str] = Field(default=None)    error: Optional[str] = Field(default=None)    token_usage: Optional[Any] = Field(default=None)    output: Optional[Any] = Field(default=None)    
+    status: NodeExecutionStatus
+    started_at: Optional[str] = Field(default=None)
+    ended_at: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    token_usage: Optional[Any] = Field(default=None)
+    output: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -390,7 +433,21 @@ class NodeState(BaseModel):
 class ExecutionState(BaseModel):
     """ExecutionState model."""
     # Fields
-    id: ExecutionID    status: ExecutionStatus    diagram_id: Optional[Any] = Field(default=None)    started_at: str    ended_at: Optional[str] = Field(default=None)    node_states: Dict[str, NodeState]    node_outputs: Dict[str, Dict[str, Any]]    token_usage: TokenUsage    error: Optional[str] = Field(default=None)    variables: Optional[Any] = Field(default=None)    duration_seconds: Optional[float] = Field(default=None)    is_active: Optional[bool] = Field(default=None)    exec_counts: Dict[str, float]    executed_nodes: Dict[str, Any]    
+    id: ExecutionID
+    status: ExecutionStatus
+    diagram_id: Optional[Any] = Field(default=None)
+    started_at: str
+    ended_at: Optional[str] = Field(default=None)
+    node_states: Dict[str, NodeState]
+    node_outputs: Dict[str, Dict[str, Any]]
+    token_usage: TokenUsage
+    error: Optional[str] = Field(default=None)
+    variables: Optional[Any] = Field(default=None)
+    duration_seconds: Optional[float] = Field(default=None)
+    is_active: Optional[bool] = Field(default=None)
+    exec_counts: Dict[str, float]
+    executed_nodes: Dict[str, Any]
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -402,7 +459,11 @@ class ExecutionState(BaseModel):
 class ExecutionOptions(BaseModel):
     """ExecutionOptions model."""
     # Fields
-    mode: Optional[Union[Literal["normal"], Literal["debug"], Literal["monitor"], None]] = Field(default=None)    timeout: Optional[float] = Field(default=None)    variables: Optional[Any] = Field(default=None)    debug: Optional[bool] = Field(default=None)    
+    mode: Optional[Union[Literal["normal"], Literal["debug"], Literal["monitor"], None]] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    variables: Optional[Any] = Field(default=None)
+    debug: Optional[bool] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -414,7 +475,11 @@ class ExecutionOptions(BaseModel):
 class InteractivePromptData(BaseModel):
     """InteractivePromptData model."""
     # Fields
-    node_id: NodeID    prompt: str    timeout: Optional[float] = Field(default=None)    default_value: Optional[str] = Field(default=None)    
+    node_id: NodeID
+    prompt: str
+    timeout: Optional[float] = Field(default=None)
+    default_value: Optional[str] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -426,7 +491,10 @@ class InteractivePromptData(BaseModel):
 class InteractiveResponse(BaseModel):
     """InteractiveResponse model."""
     # Fields
-    node_id: NodeID    response: str    timestamp: str    
+    node_id: NodeID
+    response: str
+    timestamp: str
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -438,7 +506,18 @@ class InteractiveResponse(BaseModel):
 class ExecutionUpdate(BaseModel):
     """ExecutionUpdate model."""
     # Fields
-    type: EventType    execution_id: ExecutionID    node_id: Optional[Any] = Field(default=None)    status: Optional[NodeExecutionStatus] = Field(default=None)    result: Optional[Any] = Field(default=None)    error: Optional[str] = Field(default=None)    timestamp: Optional[str] = Field(default=None)    total_tokens: Optional[float] = Field(default=None)    node_type: Optional[str] = Field(default=None)    tokens: Optional[float] = Field(default=None)    data: Optional[Any] = Field(default=None)    
+    type: EventType
+    execution_id: ExecutionID
+    node_id: Optional[Any] = Field(default=None)
+    status: Optional[NodeExecutionStatus] = Field(default=None)
+    result: Optional[Any] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    timestamp: Optional[str] = Field(default=None)
+    total_tokens: Optional[float] = Field(default=None)
+    node_type: Optional[str] = Field(default=None)
+    tokens: Optional[float] = Field(default=None)
+    data: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -450,7 +529,12 @@ class ExecutionUpdate(BaseModel):
 class NodeDefinition(BaseModel):
     """NodeDefinition model."""
     # Fields
-    type: str    node_schema: Any    handler: Any    requires_services: Optional[Dict[str, Any]] = Field(default=None)    description: Optional[str] = Field(default=None)    
+    type: str
+    node_schema: Any
+    handler: Any
+    requires_services: Optional[{} | undefined] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -462,7 +546,9 @@ class NodeDefinition(BaseModel):
 class Vec2(BaseModel):
     """Vec2 model."""
     # Fields
-    x: float    y: float    
+    x: float
+    y: float
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -474,7 +560,13 @@ class Vec2(BaseModel):
 class DomainHandle(BaseModel):
     """DomainHandle model."""
     # Fields
-    id: HandleID    node_id: NodeID    label: HandleLabel    direction: HandleDirection    data_type: DataType    position: Optional[str] = Field(default=None)    
+    id: HandleID
+    node_id: NodeID
+    label: HandleLabel
+    direction: HandleDirection
+    data_type: DataType
+    position: Optional[str] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -486,7 +578,11 @@ class DomainHandle(BaseModel):
 class DomainNode(BaseModel):
     """DomainNode model."""
     # Fields
-    id: NodeID    type: NodeType    position: Vec2    data: Dict[str, Any]    
+    id: NodeID
+    type: NodeType
+    position: Vec2
+    data: Dict[str, Any]
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -498,7 +594,13 @@ class DomainNode(BaseModel):
 class DomainArrow(BaseModel):
     """DomainArrow model."""
     # Fields
-    id: ArrowID    source: HandleID    target: HandleID    content_type: Optional[ContentType] = Field(default=None)    label: Optional[str] = Field(default=None)    data: Optional[Any] = Field(default=None)    
+    id: ArrowID
+    source: HandleID
+    target: HandleID
+    content_type: Optional[ContentType] = Field(default=None)
+    label: Optional[str] = Field(default=None)
+    data: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -510,7 +612,10 @@ class DomainArrow(BaseModel):
 class MemoryConfig(BaseModel):
     """MemoryConfig model."""
     # Fields
-    forget_mode: Optional[ForgettingMode] = Field(default=None)    max_messages: Optional[float] = Field(default=None)    temperature: Optional[float] = Field(default=None)    
+    forget_mode: Optional[ForgettingMode] = Field(default=None)
+    max_messages: Optional[float] = Field(default=None)
+    temperature: Optional[float] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -522,7 +627,10 @@ class MemoryConfig(BaseModel):
 class MemorySettings(BaseModel):
     """MemorySettings model."""
     # Fields
-    view: MemoryView    max_messages: Optional[float] = Field(default=None)    preserve_system: Optional[bool] = Field(default=None)    
+    view: MemoryView
+    max_messages: Optional[float] = Field(default=None)
+    preserve_system: Optional[bool] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -534,7 +642,11 @@ class MemorySettings(BaseModel):
 class PersonLLMConfig(BaseModel):
     """PersonLLMConfig model."""
     # Fields
-    service: LLMService    model: str    api_key_id: ApiKeyID    system_prompt: Optional[str] = Field(default=None)    
+    service: LLMService
+    model: str
+    api_key_id: ApiKeyID
+    system_prompt: Optional[str] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -546,7 +658,11 @@ class PersonLLMConfig(BaseModel):
 class DomainPerson(BaseModel):
     """DomainPerson model."""
     # Fields
-    id: PersonID    label: str    llm_config: PersonLLMConfig    type: Literal["person"]    
+    id: PersonID
+    label: str
+    llm_config: PersonLLMConfig
+    type: Literal["person"]
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -558,7 +674,11 @@ class DomainPerson(BaseModel):
 class DomainApiKey(BaseModel):
     """DomainApiKey model."""
     # Fields
-    id: ApiKeyID    label: str    service: APIServiceType    key: Optional[str] = Field(default=None)    
+    id: ApiKeyID
+    label: str
+    service: APIServiceType
+    key: Optional[str] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -570,7 +690,15 @@ class DomainApiKey(BaseModel):
 class DiagramMetadata(BaseModel):
     """DiagramMetadata model."""
     # Fields
-    id: Optional[Any] = Field(default=None)    name: Optional[str] = Field(default=None)    description: Optional[str] = Field(default=None)    version: str    created: str    modified: str    author: Optional[str] = Field(default=None)    tags: Optional[Dict[str, Any]] = Field(default=None)    
+    id: Optional[Any] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    version: str
+    created: str
+    modified: str
+    author: Optional[str] = Field(default=None)
+    tags: Optional[{} | null | undefined] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -582,7 +710,12 @@ class DiagramMetadata(BaseModel):
 class DomainDiagram(BaseModel):
     """DomainDiagram model."""
     # Fields
-    nodes: Dict[str, Any]    handles: Dict[str, Any]    arrows: Dict[str, Any]    persons: Dict[str, Any]    metadata: Optional[Any] = Field(default=None)    
+    nodes: Dict[str, Any]
+    handles: Dict[str, Any]
+    arrows: Dict[str, Any]
+    persons: Dict[str, Any]
+    metadata: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -594,7 +727,9 @@ class DomainDiagram(BaseModel):
 class BaseNodeData(BaseModel):
     """BaseNodeData model."""
     # Fields
-    label: str    flipped: Optional[bool] = Field(default=None)    
+    label: str
+    flipped: Optional[bool] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -606,7 +741,12 @@ class BaseNodeData(BaseModel):
 class StartNodeData(BaseModel):
     """StartNodeData model."""
     # Fields
-    custom_data: Dict[str, Union[str, float, bool]]    output_data_structure: Dict[str, str]    trigger_mode: Optional[HookTriggerMode] = Field(default=None)    hook_event: Optional[str] = Field(default=None)    hook_filters: Optional[Any] = Field(default=None)    
+    custom_data: Dict[str, Union[str, float, bool]]
+    output_data_structure: Dict[str, str]
+    trigger_mode: Optional[HookTriggerMode] = Field(default=None)
+    hook_event: Optional[str] = Field(default=None)
+    hook_filters: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -618,7 +758,10 @@ class StartNodeData(BaseModel):
 class ConditionNodeData(BaseModel):
     """ConditionNodeData model."""
     # Fields
-    condition_type: str    expression: Optional[str] = Field(default=None)    node_indices: Optional[Dict[str, Any]] = Field(default=None)    
+    condition_type: str
+    expression: Optional[str] = Field(default=None)
+    node_indices: Optional[{} | undefined] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -630,7 +773,14 @@ class ConditionNodeData(BaseModel):
 class PersonJobNodeData(BaseModel):
     """PersonJobNodeData model."""
     # Fields
-    person: Optional[Any] = Field(default=None)    first_only_prompt: str    default_prompt: Optional[str] = Field(default=None)    max_iteration: float    memory_config: Optional[Any] = Field(default=None)    memory_settings: Optional[MemorySettings] = Field(default=None)    tools: Optional[Dict[str, Any]] = Field(default=None)    
+    person: Optional[Any] = Field(default=None)
+    first_only_prompt: str
+    default_prompt: Optional[str] = Field(default=None)
+    max_iteration: float
+    memory_config: Optional[Any] = Field(default=None)
+    memory_settings: Optional[MemorySettings] = Field(default=None)
+    tools: Optional[{} | null | undefined] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -642,7 +792,9 @@ class PersonJobNodeData(BaseModel):
 class EndpointNodeData(BaseModel):
     """EndpointNodeData model."""
     # Fields
-    save_to_file: bool    file_name: Optional[str] = Field(default=None)    
+    save_to_file: bool
+    file_name: Optional[str] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -654,7 +806,13 @@ class EndpointNodeData(BaseModel):
 class DBNodeData(BaseModel):
     """DBNodeData model."""
     # Fields
-    file: Optional[str] = Field(default=None)    collection: Optional[str] = Field(default=None)    sub_type: DBBlockSubType    operation: str    query: Optional[str] = Field(default=None)    data: Optional[Any] = Field(default=None)    
+    file: Optional[str] = Field(default=None)
+    collection: Optional[str] = Field(default=None)
+    sub_type: DBBlockSubType
+    operation: str
+    query: Optional[str] = Field(default=None)
+    data: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -666,7 +824,9 @@ class DBNodeData(BaseModel):
 class JobNodeData(BaseModel):
     """JobNodeData model."""
     # Fields
-    code_type: SupportedLanguage    code: str    
+    code_type: SupportedLanguage
+    code: str
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -678,7 +838,11 @@ class JobNodeData(BaseModel):
 class CodeJobNodeData(BaseModel):
     """CodeJobNodeData model."""
     # Fields
-    language: SupportedLanguage    filePath: str    functionName: Optional[str] = Field(default=None)    timeout: Optional[float] = Field(default=None)    
+    language: SupportedLanguage
+    filePath: str
+    functionName: Optional[str] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -690,7 +854,15 @@ class CodeJobNodeData(BaseModel):
 class ApiJobNodeData(BaseModel):
     """ApiJobNodeData model."""
     # Fields
-    url: str    method: HttpMethod    headers: Optional[Any] = Field(default=None)    params: Optional[Any] = Field(default=None)    body: Optional[Any] = Field(default=None)    timeout: Optional[float] = Field(default=None)    auth_type: Optional[Union[Literal["none"], Literal["bearer"], Literal["basic"], Literal["api_key"], None]] = Field(default=None)    auth_config: Optional[Any] = Field(default=None)    
+    url: str
+    method: HttpMethod
+    headers: Optional[Any] = Field(default=None)
+    params: Optional[Any] = Field(default=None)
+    body: Optional[Any] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    auth_type: Optional[Union[Literal["none"], Literal["bearer"], Literal["basic"], Literal["api_key"], None]] = Field(default=None)
+    auth_config: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -702,7 +874,9 @@ class ApiJobNodeData(BaseModel):
 class UserResponseNodeData(BaseModel):
     """UserResponseNodeData model."""
     # Fields
-    prompt: str    timeout: float    
+    prompt: str
+    timeout: float
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -714,7 +888,10 @@ class UserResponseNodeData(BaseModel):
 class NotionNodeData(BaseModel):
     """NotionNodeData model."""
     # Fields
-    operation: NotionOperation    page_id: Optional[str] = Field(default=None)    database_id: Optional[str] = Field(default=None)    
+    operation: NotionOperation
+    page_id: Optional[str] = Field(default=None)
+    database_id: Optional[str] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -726,7 +903,12 @@ class NotionNodeData(BaseModel):
 class HookNodeData(BaseModel):
     """HookNodeData model."""
     # Fields
-    hook_type: HookType    config: Union[{ command?: string, undefined; args?: {}, undefined; env?: any; cwd?: string, undefined; url?: string, undefined; method?: HttpMethod, undefined; headers?: any; script?: string, undefined; function_name?: string, undefined; file_path?: string, undefined; format?: "json", Literal["yaml"], Literal["text"], undefined; }]    timeout: Optional[float] = Field(default=None)    retry_count: Optional[float] = Field(default=None)    retry_delay: Optional[float] = Field(default=None)    
+    hook_type: HookType
+    config: Dict[str, Any]
+    timeout: Optional[float] = Field(default=None)
+    retry_count: Optional[float] = Field(default=None)
+    retry_delay: Optional[float] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -738,7 +920,12 @@ class HookNodeData(BaseModel):
 class TemplateJobNodeData(BaseModel):
     """TemplateJobNodeData model."""
     # Fields
-    template_path: Optional[str] = Field(default=None)    template_content: Optional[str] = Field(default=None)    output_path: Optional[str] = Field(default=None)    variables: Optional[Any] = Field(default=None)    engine: Optional[Union[Literal["internal"], Literal["jinja2"], Literal["handlebars"], None]] = Field(default=None)    
+    template_path: Optional[str] = Field(default=None)
+    template_content: Optional[str] = Field(default=None)
+    output_path: Optional[str] = Field(default=None)
+    variables: Optional[Any] = Field(default=None)
+    engine: Optional[Union[Literal["internal"], Literal["jinja2"], Literal["handlebars"], None]] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -750,7 +937,14 @@ class TemplateJobNodeData(BaseModel):
 class ShellJobNodeData(BaseModel):
     """ShellJobNodeData model."""
     # Fields
-    command: str    args: Optional[Dict[str, Any]] = Field(default=None)    cwd: Optional[str] = Field(default=None)    env: Optional[Any] = Field(default=None)    timeout: Optional[float] = Field(default=None)    capture_output: Optional[bool] = Field(default=None)    shell: Optional[bool] = Field(default=None)    
+    command: str
+    args: Optional[{} | undefined] = Field(default=None)
+    cwd: Optional[str] = Field(default=None)
+    env: Optional[Any] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    capture_output: Optional[bool] = Field(default=None)
+    shell: Optional[bool] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -762,7 +956,12 @@ class ShellJobNodeData(BaseModel):
 class JsonSchemaValidatorNodeData(BaseModel):
     """JsonSchemaValidatorNodeData model."""
     # Fields
-    schema_path: Optional[str] = Field(default=None)    schema: Optional[Any] = Field(default=None)    data_path: Optional[str] = Field(default=None)    strict_mode: Optional[bool] = Field(default=None)    error_on_extra: Optional[bool] = Field(default=None)    
+    schema_path: Optional[str] = Field(default=None)
+    schema: Optional[Any] = Field(default=None)
+    data_path: Optional[str] = Field(default=None)
+    strict_mode: Optional[bool] = Field(default=None)
+    error_on_extra: Optional[bool] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -774,7 +973,11 @@ class JsonSchemaValidatorNodeData(BaseModel):
 class TypescriptAstNodeData(BaseModel):
     """TypescriptAstNodeData model."""
     # Fields
-    source: Optional[str] = Field(default=None)    extractPatterns: Optional[Dict[str, Any]] = Field(default=None)    includeJSDoc: Optional[bool] = Field(default=None)    parseMode: Optional[Union[Literal["module"], Literal["script"], None]] = Field(default=None)    
+    source: Optional[str] = Field(default=None)
+    extractPatterns: Optional[{} | undefined] = Field(default=None)
+    includeJSDoc: Optional[bool] = Field(default=None)
+    parseMode: Optional[Union[Literal["module"], Literal["script"], None]] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -786,7 +989,14 @@ class TypescriptAstNodeData(BaseModel):
 class SubDiagramNodeData(BaseModel):
     """SubDiagramNodeData model."""
     # Fields
-    diagram_name: Optional[str] = Field(default=None)    diagram_data: Optional[Any] = Field(default=None)    input_mapping: Optional[Any] = Field(default=None)    output_mapping: Optional[Any] = Field(default=None)    timeout: Optional[float] = Field(default=None)    wait_for_completion: Optional[bool] = Field(default=None)    isolate_conversation: Optional[bool] = Field(default=None)    
+    diagram_name: Optional[str] = Field(default=None)
+    diagram_data: Optional[Any] = Field(default=None)
+    input_mapping: Optional[Any] = Field(default=None)
+    output_mapping: Optional[Any] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    wait_for_completion: Optional[bool] = Field(default=None)
+    isolate_conversation: Optional[bool] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -798,7 +1008,15 @@ class SubDiagramNodeData(BaseModel):
 class Message(BaseModel):
     """Message model."""
     # Fields
-    id: Optional[str] = Field(default=None)    from_person_id: Any    to_person_id: PersonID    content: str    timestamp: Optional[str] = Field(default=None)    token_count: Optional[float] = Field(default=None)    message_type: Union[Literal["person_to_person"], Literal["system_to_person"], Literal["person_to_system"]]    metadata: Optional[Any] = Field(default=None)    
+    id: Optional[str] = Field(default=None)
+    from_person_id: Any
+    to_person_id: PersonID
+    content: str
+    timestamp: Optional[str] = Field(default=None)
+    token_count: Optional[float] = Field(default=None)
+    message_type: Union[Literal["person_to_person"], Literal["system_to_person"], Literal["person_to_system"]]
+    metadata: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -810,7 +1028,12 @@ class Message(BaseModel):
 class ConversationMetadata(BaseModel):
     """ConversationMetadata model."""
     # Fields
-    started_at: str    last_message_at: str    total_tokens: float    message_count: float    context_resets: float    
+    started_at: str
+    last_message_at: str
+    total_tokens: float
+    message_count: float
+    context_resets: float
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -822,7 +1045,9 @@ class ConversationMetadata(BaseModel):
 class Conversation(BaseModel):
     """Conversation model."""
     # Fields
-    messages: Dict[str, Any]    metadata: Optional[ConversationMetadata] = Field(default=None)    
+    messages: Dict[str, Any]
+    metadata: Optional[ConversationMetadata] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -834,7 +1059,10 @@ class Conversation(BaseModel):
 class MemoryState(BaseModel):
     """MemoryState model."""
     # Fields
-    visible_messages: float    has_more: Optional[bool] = Field(default=None)    config: Optional[Any] = Field(default=None)    
+    visible_messages: float
+    has_more: Optional[bool] = Field(default=None)
+    config: Optional[Any] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -846,7 +1074,14 @@ class MemoryState(BaseModel):
 class SubDiagramNodeData(BaseModel):
     """SubDiagramNodeData model."""
     # Fields
-    diagram_name: Optional[str] = Field(default=None)    diagram_data: Optional[Any] = Field(default=None)    input_mapping: Optional[Any] = Field(default=None)    output_mapping: Optional[Any] = Field(default=None)    timeout: Optional[float] = Field(default=None)    wait_for_completion: Optional[bool] = Field(default=None)    isolate_conversation: Optional[bool] = Field(default=None)    
+    diagram_name: Optional[str] = Field(default=None)
+    diagram_data: Optional[Any] = Field(default=None)
+    input_mapping: Optional[Any] = Field(default=None)
+    output_mapping: Optional[Any] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    wait_for_completion: Optional[bool] = Field(default=None)
+    isolate_conversation: Optional[bool] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -858,7 +1093,12 @@ class SubDiagramNodeData(BaseModel):
 class HookNodeData(BaseModel):
     """HookNodeData model."""
     # Fields
-    hook_type: HookType    command: Optional[str] = Field(default=None)    url: Optional[str] = Field(default=None)    timeout: Optional[float] = Field(default=None)    retry_count: Optional[float] = Field(default=None)    
+    hook_type: HookType
+    command: Optional[str] = Field(default=None)
+    url: Optional[str] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    retry_count: Optional[float] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:
@@ -870,7 +1110,11 @@ class HookNodeData(BaseModel):
 class TypescriptAstNodeData(BaseModel):
     """TypescriptAstNodeData model."""
     # Fields
-    source: Optional[str]    extractPatterns: Optional[Dict[str, Any]] = Field(default=None)    includeJSDoc: Optional[bool] = Field(default=None)    parseMode: Optional[Union[Literal["module"], Literal["script"], None]] = Field(default=None)    
+    source: Optional[str]
+    extractPatterns: Optional[{} | undefined] = Field(default=None)
+    includeJSDoc: Optional[bool] = Field(default=None)
+    parseMode: Optional[Union[Literal["module"], Literal["script"], None]] = Field(default=None)
+    
     
     
     def dict(self, **kwargs) -> Dict[str, Any]:

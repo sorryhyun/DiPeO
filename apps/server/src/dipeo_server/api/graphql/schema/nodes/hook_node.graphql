@@ -1,0 +1,40 @@
+# Auto-generated GraphQL schema for hook node
+
+type HookNode implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: HookNodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type HookNodeData {
+  "Type of hook to execute"
+  hook_type: String!  "Shell command to run (for shell hooks)"
+  command: String  "Webhook URL (for HTTP hooks)"
+  url: String  "Execution timeout in seconds"
+  timeout: Float  "Number of retries on failure"
+  retry_count: Float}
+
+input HookNodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: HookNodeDataInput!
+}
+
+input HookNodeDataInput {
+  hook_type: String!  command: String  url: String  timeout: Float  retry_count: Float}
+
+# Add to schema extensions
+extend type Query {
+  hookNodes: [HookNode!]!
+  hookNode(id: ID!): HookNode
+}
+
+extend type Mutation {
+  createHookNode(input: HookNodeInput!): HookNode!
+  updateHookNode(id: ID!, input: HookNodeDataInput!): HookNode!
+  deleteHookNode(id: ID!): Boolean!
+}

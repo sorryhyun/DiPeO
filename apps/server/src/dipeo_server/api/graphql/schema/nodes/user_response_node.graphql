@@ -1,0 +1,37 @@
+# Auto-generated GraphQL schema for user_response node
+
+type User_responseNode implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: User_responseNodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type User_responseNodeData {
+  "Prompt configuration"
+  prompt: String!  "Timeout configuration"
+  timeout: Float!}
+
+input User_responseNodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: User_responseNodeDataInput!
+}
+
+input User_responseNodeDataInput {
+  prompt: String!  timeout: Float!}
+
+# Add to schema extensions
+extend type Query {
+  user_responseNodes: [User_responseNode!]!
+  user_responseNode(id: ID!): User_responseNode
+}
+
+extend type Mutation {
+  createUser_responseNode(input: User_responseNodeInput!): User_responseNode!
+  updateUser_responseNode(id: ID!, input: User_responseNodeDataInput!): User_responseNode!
+  deleteUser_responseNode(id: ID!): Boolean!
+}

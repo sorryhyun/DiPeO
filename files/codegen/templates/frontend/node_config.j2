@@ -1,18 +1,18 @@
 // Auto-generated node configuration for {{ nodeType }}
 import { NodeConfig } from '@/features/diagram-editor/types';
 import { {{ nodeType | title }}Node } from '@/features/diagram-editor/components/nodes/generated/{{ nodeType | title }}Node';
-import { {{ camelCase }}Fields } from './{{ camelCase }}Fields';
-import { {{ icon | default('Activity') }} } from 'lucide-react';
+import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeType }}FieldConfigs';
+import { {{ icon | emoji_to_icon }} } from 'lucide-react';
 
-export const {{ camelCase }}Config: NodeConfig = {
+export const {{ nodeTypeCamel }}Config: NodeConfig = {
   type: '{{ nodeType }}',
   displayName: '{{ displayName }}',
   category: '{{ category | default('custom') }}',
   description: '{{ description | default(displayName + ' node') }}',
-  icon: {{ icon | default('Activity') }},
+  icon: {{ icon | emoji_to_icon }},
   color: '{{ color | default('#6366f1') }}',
   component: {{ nodeType | title }}Node,
-  fields: {{ camelCase }}Fields,
+  fields: {{ nodeTypeCamel }}Fields,
   handles: {
 {% if handles.inputs %}
     inputs: [
@@ -45,4 +45,4 @@ export const {{ camelCase }}Config: NodeConfig = {
   },
 };
 
-export default {{ camelCase }}Config;
+export default {{ nodeTypeCamel }}Config;

@@ -126,7 +126,7 @@ def dicts_to_models(data_list: List[Dict[str, Any]], model_type: Type[T]) -> Lis
 # Node-specific conversion helpers
 NODE_TYPE_MAP = {
     {% for model in conversion_data.models %}
-    {% if model.name|endsWith("Node") %}
+    {% if model.name|endsWith("NodeData") %}
     "{{ model.name|toNodeType }}": {{ model.name }},
     {% endif %}
     {% endfor %}
@@ -150,8 +150,14 @@ def node_to_dict(node: BaseModel) -> Dict[str, Any]:
     if "type" not in data:
         # Infer node type from class name
         class_name = type(node).__name__
-        if class_name.endswith("Node"):
-            node_type = class_name[:-4].lower()
+        if class_name.endswith("NodeData"):
+            node_type = class_name[:-8].lower()  # Remove 'NodeData'
+            # Convert camelCase to snake_case
+            import re
+            node_type = re.sub(r'(?<!^)(?=[A-Z])', '_', node_type).lower()
+            data["type"] = node_type
+        elif class_name.endswith("Node"):
+            node_type = class_name[:-4].lower()  # Remove 'Node'
             # Convert camelCase to snake_case
             import re
             node_type = re.sub(r'(?<!^)(?=[A-Z])', '_', node_type).lower()

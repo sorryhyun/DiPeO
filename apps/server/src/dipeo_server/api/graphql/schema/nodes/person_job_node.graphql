@@ -1,0 +1,42 @@
+# Auto-generated GraphQL schema for person_job node
+
+type Person_jobNode implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: Person_jobNodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type Person_jobNodeData {
+  "Person configuration"
+  person: String  "First Only Prompt configuration"
+  first_only_prompt: String!  "Default Prompt configuration"
+  default_prompt: String  "Max Iteration configuration"
+  max_iteration: Float!  "Memory Config configuration"
+  memory_config: JSON  "Memory Settings configuration"
+  memory_settings: JSON  "Tools configuration"
+  tools: [JSON!]}
+
+input Person_jobNodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: Person_jobNodeDataInput!
+}
+
+input Person_jobNodeDataInput {
+  person: String  first_only_prompt: String!  default_prompt: String  max_iteration: Float!  memory_config: JSON  memory_settings: JSON  tools: [JSON!]}
+
+# Add to schema extensions
+extend type Query {
+  person_jobNodes: [Person_jobNode!]!
+  person_jobNode(id: ID!): Person_jobNode
+}
+
+extend type Mutation {
+  createPerson_jobNode(input: Person_jobNodeInput!): Person_jobNode!
+  updatePerson_jobNode(id: ID!, input: Person_jobNodeDataInput!): Person_jobNode!
+  deletePerson_jobNode(id: ID!): Boolean!
+}

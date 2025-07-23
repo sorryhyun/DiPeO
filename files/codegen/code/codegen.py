@@ -13,6 +13,38 @@ import re
 from pathlib import Path
 from typing import Dict, Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+# Emoji to icon mapping
+EMOJI_TO_ICON_MAP = {
+    "🤖": "Bot",
+    "🔧": "Wrench",
+    "📝": "FileText",
+    "🔀": "GitBranch",
+    "🔄": "RefreshCw",
+    "📊": "BarChart",
+    "🚀": "Rocket",
+    "⚡": "Zap",
+    "📦": "Package",
+    "🔑": "Key",
+    "💾": "Save",
+    "🌐": "Globe",
+    "🔍": "Search",
+    "⚙️": "Settings",
+    "📨": "Send",
+    "📥": "Download",
+    "📤": "Upload",
+    "🏁": "Flag",
+    "🎯": "Target",
+    "💡": "Lightbulb",
+    "🔗": "Link",
+    "🔒": "Lock",
+    "🔓": "Unlock",
+    "📁": "Folder",
+    "📂": "FolderOpen",
+}
+
+def emoji_to_icon_name(emoji: str) -> str:
+    """Convert emoji to Lucide React icon name."""
+    return EMOJI_TO_ICON_MAP.get(emoji, "Activity")
 
 # Base paths
 BASE_DIR = Path.cwd()
@@ -280,6 +312,8 @@ def render_template(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Utility filters
     env.filters['humanize'] = humanize_filter
+    env.filters['quote'] = lambda s: f'"{s}"'
+    env.filters['emoji_to_icon'] = emoji_to_icon_name
     
     # Render template
     template = env.get_template(template_name)
@@ -358,3 +392,67 @@ def load_temp_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         return {'error': f'Temp file not found: {temp_file}'}
     
     return json.loads(temp_file.read_text())
+
+def generate_all_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate code for all node specifications in the specifications directory."""
+    # Allow filtering by specific nodes
+    node_filter = inputs.get('nodes', [])
+    
+    results = {
+        'succeeded': [],
+        'failed': [],
+        'total_files': 0
+    }
+    
+    # Find all JSON specifications
+    spec_files = list(SPEC_DIR.glob('*.json'))
+    
+    if node_filter:
+        # Filter to only requested nodes
+        spec_files = [f for f in spec_files if f.stem in node_filter]
+    
+    print(f"\n🔍 Found {len(spec_files)} node specifications to process")
+    
+    for spec_file in spec_files:
+        node_name = spec_file.stem
+        print(f"\n📄 Processing {node_name}...")
+        
+        try:
+            # Load the specification
+            spec_data = json.loads(spec_file.read_text())
+            
+            # Generate all files for this node
+            result = generate_all({'raw_data': spec_data})
+            
+            if result.get('success'):
+                results['succeeded'].append({
+                    'node': node_name,
+                    'files': result.get('files_generated', [])
+                })
+                results['total_files'] += len(result.get('files_generated', []))
+            else:
+                results['failed'].append({
+                    'node': node_name,
+                    'error': result.get('error', 'Unknown error')
+                })
+                
+        except Exception as e:
+            results['failed'].append({
+                'node': node_name,
+                'error': str(e)
+            })
+            print(f"  ❌ Error: {e}")
+    
+    # Summary
+    print(f"\n{'='*60}")
+    print(f"📊 Batch Generation Summary:")
+    print(f"  ✅ Succeeded: {len(results['succeeded'])} nodes")
+    print(f"  ❌ Failed: {len(results['failed'])} nodes")
+    print(f"  📁 Total files generated: {results['total_files']}")
+    
+    if results['failed']:
+        print(f"\n❌ Failed nodes:")
+        for failure in results['failed']:
+            print(f"  - {failure['node']}: {failure['error']}")
+    
+    return results

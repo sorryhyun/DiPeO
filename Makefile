@@ -34,6 +34,35 @@ codegen:
 	pnpm --filter web codegen
 	@echo "✅ All code generation completed!"
 
+# Diagram-based code generation for node UI
+codegen-diagram:
+	@echo "🎨 Running diagram-based node UI code generation..."
+	dipeo run files/diagrams/codegen/node_ui_codegen --light --debug --no-browser --timeout=30
+	@echo "✅ Diagram-based code generation completed!"
+
+# Generate all nodes using diagram approach
+codegen-diagram-all:
+	@echo "🎨 Generating UI for all node types using diagram..."
+	@python files/codegen/generate_all_nodes.py
+	@echo "✅ All nodes generated via diagram!"
+
+# New codegen approach using diagram-based generation
+codegen-new:
+	@echo "🚀 Starting new diagram-based code generation..."
+	@echo "🎨 Step 1: Generating all node UI components from JSON specifications..."
+	@python files/codegen/generate_all_nodes.py
+	@echo "📝 Step 2: Registering generated nodes..."
+	@python files/codegen/code/node_registrar.py
+	@echo "🔄 Step 3: Generating GraphQL types for frontend..."
+	pnpm --filter web codegen
+	@echo "✅ New code generation completed!"
+
+# Register generated nodes separately
+register-nodes:
+	@echo "📝 Registering generated nodes..."
+	@python files/codegen/code/node_registrar.py
+	@echo "✅ Node registration completed!"
+
 # Generate code for a specific node type
 codegen-node:
 	@if [ -z "$(NODE_SPEC)" ]; then \

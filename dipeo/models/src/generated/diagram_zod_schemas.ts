@@ -261,7 +261,7 @@ export const ChatResultSchema = z.object({
   text: z.string(),
   token_usage: z.any(),
   raw_response: z.any(),
-  tool_outputs: z.record(z.string(), z.any()).optional(),
+  tool_outputs: {} | null | undefinedSchema,
 });
 
 export type ChatResult = z.infer<typeof ChatResultSchema>;
@@ -271,7 +271,7 @@ export const LLMRequestOptionsSchema = z.object({
   max_tokens: z.number().optional(),
   top_p: z.number().optional(),
   n: z.number().optional(),
-  tools: z.record(z.string(), z.any()).optional(),
+  tools: {} | undefinedSchema,
   response_format: z.any(),
 });
 
@@ -362,7 +362,7 @@ export const NodeDefinitionSchema = z.object({
   type: z.string(),
   node_schema: z.any(),
   handler: z.any(),
-  requires_services: z.record(z.string(), z.any()).optional(),
+  requires_services: {} | undefinedSchema,
   description: z.string().optional(),
 });
 
@@ -457,7 +457,7 @@ export const DiagramMetadataSchema = z.object({
   created: z.string(),
   modified: z.string(),
   author: z.string().optional(),
-  tags: z.record(z.string(), z.any()).optional(),
+  tags: {} | null | undefinedSchema,
 });
 
 export type DiagramMetadata = z.infer<typeof DiagramMetadataSchema>;
@@ -492,7 +492,7 @@ export type StartNodeData = z.infer<typeof StartNodeDataSchema>;
 export const ConditionNodeDataSchema = z.object({
   condition_type: z.string(),
   expression: z.string().optional(),
-  node_indices: z.record(z.string(), z.any()).optional(),
+  node_indices: {} | undefinedSchema,
 });
 
 export type ConditionNodeData = z.infer<typeof ConditionNodeDataSchema>;
@@ -504,7 +504,7 @@ export const PersonJobNodeDataSchema = z.object({
   max_iteration: z.number(),
   memory_config: z.any(),
   memory_settings: MemorySettingsSchema.optional(),
-  tools: z.record(z.string(), z.any()).optional(),
+  tools: {} | null | undefinedSchema,
 });
 
 export type PersonJobNodeData = z.infer<typeof PersonJobNodeDataSchema>;
@@ -573,7 +573,7 @@ export type NotionNodeData = z.infer<typeof NotionNodeDataSchema>;
 
 export const HookNodeDataSchema = z.object({
   hook_type: HookTypeSchema,
-  config: z.union([{ command?: stringSchema, undefined; args?: {}Schema, undefined; env?: any; cwd?: stringSchema, undefined; url?: stringSchema, undefined; method?: HttpMethodSchema, undefined; headers?: any; script?: stringSchema, undefined; function_name?: stringSchema, undefined; file_path?: stringSchema, undefined; format?: "json"Schema, z.literal("yaml"), z.literal("text"), undefined; }Schema]),
+  config: z.record(z.string(), z.any()),
   timeout: z.number().optional(),
   retry_count: z.number().optional(),
   retry_delay: z.number().optional(),
@@ -593,7 +593,7 @@ export type TemplateJobNodeData = z.infer<typeof TemplateJobNodeDataSchema>;
 
 export const ShellJobNodeDataSchema = z.object({
   command: z.string(),
-  args: z.record(z.string(), z.any()).optional(),
+  args: {} | undefinedSchema,
   cwd: z.string().optional(),
   env: z.any(),
   timeout: z.number().optional(),
@@ -615,7 +615,7 @@ export type JsonSchemaValidatorNodeData = z.infer<typeof JsonSchemaValidatorNode
 
 export const TypescriptAstNodeDataSchema = z.object({
   source: z.string().optional(),
-  extractPatterns: z.record(z.string(), z.any()).optional(),
+  extractPatterns: {} | undefinedSchema,
   includeJSDoc: z.boolean().optional(),
   parseMode: z.union([z.literal("module"), z.literal("script"), z.null()]),
 });
@@ -696,7 +696,7 @@ export type HookNodeData = z.infer<typeof HookNodeDataSchema>;
 
 export const TypescriptAstNodeDataSchema = z.object({
   source: z.string().optional(),
-  extractPatterns: z.record(z.string(), z.any()).optional(),
+  extractPatterns: {} | undefinedSchema,
   includeJSDoc: z.boolean().optional(),
   parseMode: z.union([z.literal("module"), z.literal("script"), z.null()]),
 });

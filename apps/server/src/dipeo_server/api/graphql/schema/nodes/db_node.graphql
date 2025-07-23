@@ -1,0 +1,41 @@
+# Auto-generated GraphQL schema for db node
+
+type DbNode implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: DbNodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type DbNodeData {
+  "File configuration"
+  file: String  "Collection configuration"
+  collection: String  "Sub Type configuration"
+  sub_type: String!  "Operation configuration"
+  operation: String!  "Query configuration"
+  query: String  "Data configuration"
+  data: JSON}
+
+input DbNodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: DbNodeDataInput!
+}
+
+input DbNodeDataInput {
+  file: String  collection: String  sub_type: String!  operation: String!  query: String  data: JSON}
+
+# Add to schema extensions
+extend type Query {
+  dbNodes: [DbNode!]!
+  dbNode(id: ID!): DbNode
+}
+
+extend type Mutation {
+  createDbNode(input: DbNodeInput!): DbNode!
+  updateDbNode(id: ID!, input: DbNodeDataInput!): DbNode!
+  deleteDbNode(id: ID!): Boolean!
+}

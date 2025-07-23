@@ -1,0 +1,42 @@
+# Auto-generated GraphQL schema for shell_job node
+
+type Shell_jobNode implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: Shell_jobNodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type Shell_jobNodeData {
+  "Command configuration"
+  command: String!  "Args configuration"
+  args: [JSON!]  "Cwd configuration"
+  cwd: String  "Env configuration"
+  env: JSON  "Timeout configuration"
+  timeout: Float  "Capture Output configuration"
+  capture_output: Boolean  "Shell configuration"
+  shell: Boolean}
+
+input Shell_jobNodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: Shell_jobNodeDataInput!
+}
+
+input Shell_jobNodeDataInput {
+  command: String!  args: [JSON!]  cwd: String  env: JSON  timeout: Float  capture_output: Boolean  shell: Boolean}
+
+# Add to schema extensions
+extend type Query {
+  shell_jobNodes: [Shell_jobNode!]!
+  shell_jobNode(id: ID!): Shell_jobNode
+}
+
+extend type Mutation {
+  createShell_jobNode(input: Shell_jobNodeInput!): Shell_jobNode!
+  updateShell_jobNode(id: ID!, input: Shell_jobNodeDataInput!): Shell_jobNode!
+  deleteShell_jobNode(id: ID!): Boolean!
+}

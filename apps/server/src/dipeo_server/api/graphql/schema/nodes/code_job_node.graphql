@@ -1,0 +1,39 @@
+# Auto-generated GraphQL schema for code_job node
+
+type Code_jobNode implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: Code_jobNodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type Code_jobNodeData {
+  "Language configuration"
+  language: String!  "Filepath configuration"
+  filePath: String!  "Functionname configuration"
+  functionName: String  "Timeout configuration"
+  timeout: Float}
+
+input Code_jobNodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: Code_jobNodeDataInput!
+}
+
+input Code_jobNodeDataInput {
+  language: String!  filePath: String!  functionName: String  timeout: Float}
+
+# Add to schema extensions
+extend type Query {
+  code_jobNodes: [Code_jobNode!]!
+  code_jobNode(id: ID!): Code_jobNode
+}
+
+extend type Mutation {
+  createCode_jobNode(input: Code_jobNodeInput!): Code_jobNode!
+  updateCode_jobNode(id: ID!, input: Code_jobNodeDataInput!): Code_jobNode!
+  deleteCode_jobNode(id: ID!): Boolean!
+}

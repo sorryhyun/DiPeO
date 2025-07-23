@@ -285,8 +285,35 @@ def transform_ts_type_to_python(ts_type: str, required_imports: Dict[str, Set[st
         return f'Set[{python_inner}]'
     
     # Handle union types
-    if ' | ' in ts_type:
-        parts = [p.strip() for p in ts_type.split(' | ')]
+    if ' | ' in ts_type and not (ts_type.startswith('Union[') or ts_type.startswith('{')):
+        # For complex types with nested structures, we need smarter parsing
+        parts = []
+        current_part = ""
+        brace_count = 0
+        i = 0
+        
+        while i < len(ts_type):
+            char = ts_type[i]
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+            
+            # Only split on | when not inside braces
+            if char == '|' and brace_count == 0:
+                # Check if this is actually a union separator (has spaces around it)
+                if i > 0 and i < len(ts_type) - 1 and ts_type[i-1] == ' ' and ts_type[i+1] == ' ':
+                    parts.append(current_part.strip())
+                    current_part = ""
+                    i += 2  # Skip the '| ' part
+                    continue
+            
+            current_part += char
+            i += 1
+        
+        if current_part:
+            parts.append(current_part.strip())
+        
         if 'null' in parts or 'undefined' in parts:
             # Optional type
             non_null_parts = [p for p in parts if p not in ('null', 'undefined')]
@@ -310,6 +337,20 @@ def transform_ts_type_to_python(ts_type: str, required_imports: Dict[str, Set[st
         # This is a Zod type inference, convert to Any for Python
         required_imports['typing'].add('Any')
         return 'Any'
+    
+    # Handle object literal types { ... }
+    if ts_type.startswith('{') and ts_type.endswith('}'):
+        # Complex object types become Dict[str, Any] in Python
+        required_imports['typing'].add('Dict')
+        required_imports['typing'].add('Any')
+        return 'Dict[str, Any]'
+    
+    # Handle Union[{ ... }] where the union contains a single object literal
+    if ts_type.startswith('Union[{') and ts_type.endswith('}]'):
+        # This is a union with a single object literal, just convert to Dict
+        required_imports['typing'].add('Dict')
+        required_imports['typing'].add('Any')
+        return 'Dict[str, Any]'
     
     # Check if it's a known DiPeO type
     dipeo_types = {'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'DiagramID', 'ExecutionID', 
