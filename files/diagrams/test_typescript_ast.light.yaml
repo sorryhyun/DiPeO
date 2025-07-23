@@ -1,0 +1,51 @@
+version: light
+description: Test TypeScript AST parsing
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 100, y: 100}
+    props:
+      trigger_mode: manual
+      initial_data:
+        source: |
+          interface User {
+            id: string;
+            name: string;
+            age?: number;
+          }
+          
+          type Status = 'active' | 'inactive';
+          
+          enum Role {
+            Admin = 'admin',
+            User = 'user'
+          }
+
+  - label: Parse TypeScript
+    type: typescript_ast
+    position: {x: 300, y: 100}
+    props:
+      extractPatterns: ["interface", "type", "enum"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: End
+    type: endpoint
+    position: {x: 500, y: 100}
+    props:
+      save_to_file: true
+      file_path: test_ast_output.json
+
+connections:
+  - from: Start
+    to: Parse TypeScript
+    from_handle: default
+    to_handle: source
+    content_type: object
+    
+  - from: Parse TypeScript
+    to: End
+    from_handle: default
+    to_handle: default
+    content_type: object

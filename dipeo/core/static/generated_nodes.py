@@ -202,20 +202,16 @@ class NotionNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class HookNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.hook, init=False)
-    hook_type: HookType = HookType.shell
-    config: Dict[str, Any] = field(default_factory=dict)
+    hook_type: Literal["shell", "http", "python", "file"] = HookType.shell
     timeout: Optional[int] = None
     retry_count: Optional[int] = None
-    retry_delay: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         data = super().to_dict()
         data["hook_type"] = self.hook_type
-        data["config"] = self.config
         data["timeout"] = self.timeout
         data["retry_count"] = self.retry_count
-        data["retry_delay"] = self.retry_delay
         return data
 
 @dataclass(frozen=True)
@@ -260,7 +256,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 class TypescriptAstNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.typescript_ast, init=False)
     source: Optional[str] = None
-    extractPatterns: Optional[List[ExtractPattern]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    extractPatterns: Optional[List[Any]] = field(default_factory=lambda: ["interface", "type", "enum"])
     includeJSDoc: Optional[bool] = False
     parseMode: Optional[Literal["module", "script"]] = "module"
 

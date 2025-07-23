@@ -23,20 +23,28 @@ nodes:
       code: files/codegen/code/domain_model_functions.py
       code_type: python
     position: {x: 450, y: 100}
-        
-  - label: Parse and Save AST
+    
+  - label: Extract Source
     type: code_job
     props:
-      functionName: save_ast
-      code: files/codegen/code/simple_ast.py
+      functionName: extract_source_for_ast
+      code: files/codegen/code/domain_model_functions.py
       code_type: python
+    position: {x: 550, y: 100}
+        
+  - label: Parse TypeScript AST
+    type: typescript_ast
+    props:
+      extractPatterns: ["interface", "type", "enum", "class"]
+      includeJSDoc: true
+      parseMode: module
     position: {x: 650, y: 100}
       
   - label: Transform to Python Models
     type: code_job
     props:
-      functionName: load_ast
-      code: files/codegen/code/simple_ast.py
+      functionName: transform_ast_to_python_models
+      code: files/codegen/code/transformers/ast_to_python_models.py
       code_type: python
     position: {x: 850, y: 100}
       
@@ -145,10 +153,14 @@ connections:
     content_type: object
     
   - from: Read TypeScript Files
-    to: Parse and Save AST
+    to: Extract Source
     content_type: object
     
-  - from: Parse and Save AST
+  - from: Extract Source
+    to: Parse TypeScript AST
+    content_type: object
+    
+  - from: Parse TypeScript AST
     to: Transform to Python Models
     content_type: object
     

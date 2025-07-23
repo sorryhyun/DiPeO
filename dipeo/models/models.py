@@ -591,26 +591,9 @@ class LLMRequestOptions(BaseModel):
     tools: Optional[List[ToolConfig]] = Field(default=None)
     response_format: Optional[Any] = Field(default=None)
 
-NodeID = NodeID
-
-ArrowID = ArrowID
-
-HandleID = HandleID
-
-PersonID = PersonID
-
-ApiKeyID = ApiKeyID
-
-DiagramID = DiagramID
-
+# Type aliases for backwards compatibility
+ExtractPattern = Literal['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
 PersonBatchJobNodeData = PersonJobNodeData
-
-ExtractPattern = Literal["interface", "type", "enum", "class", "function", "const", "export"]
-
-ExecutionID = ExecutionID
-
 PersonMemoryMessage = Message
-
 PersonMemoryState = MemoryState
-
 PersonMemoryConfig = MemoryConfig

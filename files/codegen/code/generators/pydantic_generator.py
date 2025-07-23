@@ -34,7 +34,7 @@ def generate_pydantic_models(inputs):
         # Write output file
         output_dir = Path(temp_dir) / 'dipeo' / 'models'
         output_dir.mkdir(exist_ok=True)
-        output_path = output_dir / '__generated_models__.py'
+        output_path = output_dir / 'models.py'
         
         with open(output_path, 'w') as f:
             f.write(content)

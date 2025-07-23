@@ -12,9 +12,9 @@ def generate_zod_schemas(inputs):
     print("[generate_zod_schemas] Starting generation")
     
     try:
-        # Load zod data
-        zod_data = load_model_data('zod_data.json')
-        print(f"[generate_zod_schemas] Loaded zod data")
+        # Load model data
+        model_data = load_model_data()
+        print(f"[generate_zod_schemas] Loaded model data")
         
         # Setup Jinja2 environment
         temp_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
@@ -22,19 +22,15 @@ def generate_zod_schemas(inputs):
         env = create_jinja_env(template_dir)
         
         # Register enum filter
-        register_enum_filter(env, zod_data.get('enums', []))
-        
-        # Create is_enum function for to_zod_type
-        enums = {enum['name'] for enum in zod_data.get('enums', [])}
-        is_enum_func = lambda type_name: type_name in enums
+        register_enum_filter(env, model_data.get('enums', []))
         
         # Register additional filters for Zod
         env.filters['toZodSchema'] = to_zod_schema
-        env.filters['toZodType'] = lambda field: to_zod_type(field, is_enum_func)
+        env.filters['toZodType'] = to_zod_type
         
         # Load and render template
         template = env.get_template('zod_schemas.j2')
-        content = template.render(zod_data=zod_data)
+        content = template.render(model_data=model_data)
         
         # Write output file
         output_dir = Path(temp_dir) / 'dipeo' / 'models' / 'src' / 'generated'
