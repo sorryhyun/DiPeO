@@ -1,5 +1,5 @@
 version: light
-description: Convert TypeScript models to Python using diagram-based approach
+description: Convert TypeScript models to Python using diagram-based approach (fixed data flow)
 
 nodes:
   - label: Start
@@ -24,19 +24,19 @@ nodes:
       code_type: python
     position: {x: 450, y: 100}
         
-  - label: Parse TypeScript Files
-    type: typescript_ast
+  - label: Parse and Save AST
+    type: code_job
     props:
-      extractPatterns: ["interface", "type", "enum", "class"]
-      includeJSDoc: true
-      parseMode: module
+      functionName: parse_and_save_ast
+      code: files/codegen/code/ast_data_handler.py
+      code_type: python
     position: {x: 650, y: 100}
       
   - label: Transform to Python Models
     type: code_job
     props:
-      functionName: transform_typescript_to_python
-      code: files/codegen/code/type_transformers.py
+      functionName: load_and_transform_ast
+      code: files/codegen/code/ast_data_handler.py
       code_type: python
     position: {x: 850, y: 100}
       
@@ -46,7 +46,7 @@ nodes:
       functionName: generate_pydantic_models
       code: files/codegen/code/domain_model_functions.py
       code_type: python
-    position: {x: 700, y: 250}
+    position: {x: 600, y: 250}
       
   - label: Generate Conversions
     type: code_job
@@ -54,7 +54,7 @@ nodes:
       functionName: generate_conversions
       code: files/codegen/code/domain_model_functions.py
       code_type: python
-    position: {x: 900, y: 250}
+    position: {x: 800, y: 250}
     
   - label: Generate Zod Schemas
     type: code_job
@@ -62,7 +62,7 @@ nodes:
       functionName: generate_zod_schemas
       code: files/codegen/code/domain_model_functions.py
       code_type: python
-    position: {x: 1100, y: 250}
+    position: {x: 1000, y: 250}
     
   - label: Generate JSON Schemas
     type: code_job
@@ -70,7 +70,7 @@ nodes:
       functionName: generate_json_schemas
       code: files/codegen/code/json_schema_generator.py
       code_type: python
-    position: {x: 1300, y: 250}
+    position: {x: 1200, y: 250}
     
   - label: Combine Results
     type: code_job
@@ -78,7 +78,7 @@ nodes:
       functionName: combine_generation_results
       code: files/codegen/code/domain_model_functions.py
       code_type: python
-    position: {x: 1200, y: 400}
+    position: {x: 900, y: 400}
     
   - label: Verify Generated Code
     type: code_job
@@ -86,7 +86,7 @@ nodes:
       functionName: verify_generated_code
       code: files/codegen/code/domain_model_functions.py
       code_type: python
-    position: {x: 1200, y: 550}
+    position: {x: 900, y: 550}
     
   - label: Generate Summary Report
     type: person_job
@@ -119,11 +119,11 @@ nodes:
         
         Please provide a summary of the code generation results.
       max_iteration: 1
-    position: {x: 1200, y: 700}
+    position: {x: 900, y: 700}
     
   - label: Save Results
     type: code_job
-    position: {x: 1200, y: 850}
+    position: {x: 900, y: 850}
     props:
       code_type: python
       code: files/codegen/code/phase3/sub_diagram_helpers.py
@@ -131,7 +131,7 @@ nodes:
       
   - label: End
     type: endpoint
-    position: {x: 1200, y: 1000}
+    position: {x: 900, y: 1000}
     props:
       save_to_file: false
 
@@ -145,57 +145,44 @@ connections:
     content_type: object
     
   - from: Read TypeScript Files
-    to: Parse TypeScript Files
+    to: Parse and Save AST
     content_type: object
     
-  - from: Parse TypeScript Files
+  - from: Parse and Save AST
     to: Transform to Python Models
     content_type: object
     
   - from: Transform to Python Models
     to: Generate Pydantic Models
     content_type: object
-    label: model_data
     
   - from: Transform to Python Models
     to: Generate Conversions
     content_type: object
-    label: conversion_data
     
   - from: Transform to Python Models
     to: Generate Zod Schemas
     content_type: object
-    label: zod_data
     
   - from: Transform to Python Models
     to: Generate JSON Schemas
     content_type: object
-    label: schema_data
     
   - from: Generate Pydantic Models
     to: Combine Results
     content_type: object
-    label: pydantic_result
     
   - from: Generate Conversions
     to: Combine Results
     content_type: object
-    label: conversion_result
     
   - from: Generate Zod Schemas
     to: Combine Results
     content_type: object
-    label: zod_result
     
   - from: Generate JSON Schemas
     to: Combine Results
     content_type: object
-    label: schema_result
-    
-  - from: Read TypeScript Files
-    to: Combine Results
-    content_type: object
-    label: file_info
     
   - from: Combine Results
     to: Verify Generated Code
@@ -204,12 +191,10 @@ connections:
   - from: Verify Generated Code
     to: Generate Summary Report
     content_type: object
-    label: verification_results
     
   - from: Combine Results
     to: Generate Summary Report
     content_type: object
-    label: generation_info
     
   - from: Generate Summary Report
     to: Save Results
@@ -218,12 +203,10 @@ connections:
   - from: Verify Generated Code
     to: Save Results
     content_type: object
-    label: verification_result
     
   - from: Combine Results
     to: Save Results
     content_type: object
-    label: combined_results
     
   - from: Save Results
     to: End

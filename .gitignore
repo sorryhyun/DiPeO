@@ -154,3 +154,5 @@ yarn.lock
 /build-with-rust.bat
 /files/test/
 /files/debug/
+/dipeo/models/schemas/
+

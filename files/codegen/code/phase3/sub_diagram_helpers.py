@@ -13,35 +13,50 @@ def save_domain_model_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
     execution_id = inputs.get('execution_id', 'unknown')
     output_dir = inputs.get('output_dir', 'logs/codegen/runs/unknown')
     
-    # Collect results from the generation process
+    # Read results from temp files
+    temp_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+    temp_base = os.path.join(temp_dir, '.temp', 'codegen')
+    
+    # Load combined results
+    combined_file = os.path.join(temp_base, 'combined_results.json')
+    combined_results = {}
+    if os.path.exists(combined_file):
+        with open(combined_file, 'r') as f:
+            combined_results = json.load(f)
+    
+    # Load verification results
+    verification_file = os.path.join(temp_base, 'verification_results.json')
+    verification_result = {}
+    if os.path.exists(verification_file):
+        with open(verification_file, 'r') as f:
+            verification_result = json.load(f)
+    
+    # Collect generated files
     files_generated = []
+    for file_info in combined_results.get('generated_files', []):
+        if isinstance(file_info, dict) and 'path' in file_info:
+            files_generated.append(file_info['path'])
     
-    # These would come from actual generation steps
-    # For now, using placeholder data
-    verification_result = inputs.get('verification_result', {})
-    
-    # In real implementation, collect actual generated files
-    # For phase 3, we expect these files:
+    # Also check for the main expected files
     expected_files = [
-        'dipeo/models/__generated_models__.py',
-        'dipeo/models/__generated_conversions__.py', 
-        'dipeo/core/static/generated_nodes.py',
-        'apps/web/src/graphql/__generated__/types.ts'
+        os.path.join(temp_dir, 'dipeo/models/__generated_models__.py'),
+        os.path.join(temp_dir, 'dipeo/models/__generated_conversions__.py'),
+        os.path.join(temp_dir, 'dipeo/models/src/generated/zod_schemas.ts')
     ]
     
-    # Check which files actually exist
     for file_path in expected_files:
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and file_path not in files_generated:
             files_generated.append(file_path)
     
     # Build result object
     result = {
-        'success': len(files_generated) > 0,
+        'success': len(files_generated) > 0 and len(verification_result.get('errors', [])) == 0,
         'files_generated': files_generated,
         'message': f'Generated {len(files_generated)} domain model files',
         'timestamp': datetime.now().isoformat(),
         'execution_id': execution_id,
-        'verification': verification_result
+        'verification': verification_result,
+        'file_count': combined_results.get('file_count', 0)
     }
     
     # Save to file
@@ -51,9 +66,13 @@ def save_domain_model_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
     with open(output_file, 'w') as f:
         json.dump(result, f, indent=2)
     
+    print(f"[save_domain_model_results] Saved results to: {output_file}")
+    print(f"[save_domain_model_results] Generated {len(files_generated)} files")
+    
     return {
         'saved_to': output_file,
-        'files_count': len(files_generated)
+        'files_count': len(files_generated),
+        'success': result['success']
     }
 
 

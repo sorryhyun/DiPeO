@@ -1,13 +1,30 @@
 """Generate JSON Schema from model definitions."""
 
 import json
+import os
 from typing import Any, Dict, List, Optional
 
 
 def generate_json_schemas(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Generate JSON Schema definitions from model data."""
-    schema_data = inputs.get('schema_data', {})
+    # Read schema_data from saved file
+    temp_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+    temp_base = os.path.join(temp_dir, '.temp', 'codegen')
+    schema_data_file = os.path.join(temp_base, 'schema_data.json')
+    
+    print(f"[generate_json_schemas] Loading schema data from: {schema_data_file}")
+    
+    if not os.path.exists(schema_data_file):
+        print(f"[generate_json_schemas] ERROR: Schema data file not found: {schema_data_file}")
+        return {'error': 'Schema data file not found'}
+    
+    # Load the schema data
+    with open(schema_data_file, 'r') as f:
+        schema_data = json.load(f)
+    
     models = schema_data.get('models', [])
+    
+    print(f"[generate_json_schemas] Processing {len(models)} models")
     
     schemas = {}
     generated_files = []
@@ -17,12 +34,18 @@ def generate_json_schemas(inputs: Dict[str, Any]) -> Dict[str, Any]:
             schema = generate_model_schema(model)
             schemas[model['name']] = schema
             
+            # Create schema directory
+            schema_dir = os.path.join(temp_dir, 'dipeo', 'models', 'schemas')
+            os.makedirs(schema_dir, exist_ok=True)
+            
             # Write individual schema file
-            file_path = f"dipeo/models/schemas/{model['name']}.json"
+            file_path = os.path.join(schema_dir, f"{model['name']}.json")
+            with open(file_path, 'w') as f:
+                json.dump(schema, f, indent=2)
+            
             generated_files.append({
                 'path': file_path,
-                'type': 'json_schema',
-                'content': json.dumps(schema, indent=2)
+                'type': 'json_schema'
             })
     
     # Generate master schema file with all definitions
@@ -33,15 +56,27 @@ def generate_json_schemas(inputs: Dict[str, Any]) -> Dict[str, Any]:
         "description": "Generated JSON Schema definitions for DiPeO models"
     }
     
+    # Write master schema
+    master_path = os.path.join(schema_dir, 'all.json')
+    with open(master_path, 'w') as f:
+        json.dump(master_schema, f, indent=2)
+    
     generated_files.append({
-        'path': 'dipeo/models/schemas/all.json',
-        'type': 'json_schema',
-        'content': json.dumps(master_schema, indent=2)
+        'path': master_path,
+        'type': 'json_schema'
     })
+    
+    print(f"[generate_json_schemas] Generated {len(generated_files)} schema files")
+    
+    # Save result info to file for combine_results
+    result_file = os.path.join(temp_base, 'schema_result.json')
+    with open(result_file, 'w') as f:
+        json.dump({'generated_files': generated_files}, f)
     
     return {
         'schemas': schemas,
-        'generated_files': generated_files
+        'generated_files': generated_files,
+        'success': True
     }
 
 

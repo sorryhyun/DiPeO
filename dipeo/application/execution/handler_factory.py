@@ -73,20 +73,23 @@ class HandlerRegistry:
             elif service_name == 'conversation_service':
                 service_name = 'conversation_service'
 
-            try:
-                service = self._service_registry.get_service(service_name)
+            # Try to get the service
+            service = self._service_registry.get(service_name)
+            
+            if service is not None:
                 kwargs[param_name] = service
-            except Exception:
+            else:
+                # If service not found, try alternative name
+                if service_name.endswith('_service'):
+                    alt_name = service_name[:-8]
+                    service = self._service_registry.get(alt_name)
+                    if service is not None:
+                        kwargs[param_name] = service
+                        continue
+                
+                # If parameter has no default, it's required
                 if param.default is inspect.Parameter.empty:
-                    if service_name.endswith('_service'):
-                        alt_name = service_name[:-8]
-                        try:
-                            service = self._service_registry.get_service(alt_name)
-                            kwargs[param_name] = service
-                            continue
-                        except Exception:
-                            pass
-                    raise ValueError(f"Required service '{service_name}' not found for handler {handler_class.__name__}") from None
+                    raise ValueError(f"Required service '{service_name}' not found for handler {handler_class.__name__}")
 
         return handler_class(**kwargs)
 

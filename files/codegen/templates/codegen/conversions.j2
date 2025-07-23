@@ -14,43 +14,43 @@ T = TypeVar('T')
 
 
 # Enum conversion helpers
-{{#each conversion_data.enums}}
-def {{snakeCase this.name}}_to_string(value: {{this.name}}) -> str:
-    """Convert {{this.name}} enum to string."""
-    return value.value if isinstance(value, {{this.name}}) else str(value)
+{% for enum in conversion_data.enums %}
+def {{ enum.name|snakeCase }}_to_string(value: {{ enum.name }}) -> str:
+    """Convert {{ enum.name }} enum to string."""
+    return value.value if isinstance(value, {{ enum.name }}) else str(value)
 
 
-def string_to_{{snakeCase this.name}}(value: str) -> {{this.name}}:
-    """Convert string to {{this.name}} enum."""
+def string_to_{{ enum.name|snakeCase }}(value: str) -> {{ enum.name }}:
+    """Convert string to {{ enum.name }} enum."""
     try:
-        return {{this.name}}(value)
+        return {{ enum.name }}(value)
     except ValueError:
-        raise ValueError(f"Invalid {{this.name}} value: {value}")
+        raise ValueError(f"Invalid {{ enum.name }} value: {value}")
 
-{{/each}}
+{% endfor %}
 
 # Model conversion functions
-{{#each conversion_data.models}}
-def {{snakeCase this.name}}_to_dict(model: {{this.name}}) -> Dict[str, Any]:
-    """Convert {{this.name}} to dictionary."""
-    if not isinstance(model, {{this.name}}):
-        raise TypeError(f"Expected {{this.name}}, got {type(model)}")
+{% for model in conversion_data.models %}
+def {{ model.name|snakeCase }}_to_dict(model: {{ model.name }}) -> Dict[str, Any]:
+    """Convert {{ model.name }} to dictionary."""
+    if not isinstance(model, {{ model.name }}):
+        raise TypeError(f"Expected {{ model.name }}, got {type(model)}")
     
     data = model.dict(exclude_none=True)
     
     # Handle enum conversions
-    {{#each this.fields}}
-    {{#if (isEnum this.type)}}
-    if "{{this.name}}" in data and data["{{this.name}}"] is not None:
-        data["{{this.name}}"] = {{snakeCase this.type}}_to_string(data["{{this.name}}"])
-    {{/if}}
-    {{/each}}
+    {% for field in model.fields %}
+    {% if field.type|isEnum %}
+    if "{{ field.name }}" in data and data["{{ field.name }}"] is not None:
+        data["{{ field.name }}"] = {{ field.type|snakeCase }}_to_string(data["{{ field.name }}"])
+    {% endif %}
+    {% endfor %}
     
     return data
 
 
-def dict_to_{{snakeCase this.name}}(data: Dict[str, Any]) -> {{this.name}}:
-    """Convert dictionary to {{this.name}}."""
+def dict_to_{{ model.name|snakeCase }}(data: Dict[str, Any]) -> {{ model.name }}:
+    """Convert dictionary to {{ model.name }}."""
     if not isinstance(data, dict):
         raise TypeError(f"Expected dict, got {type(data)}")
     
@@ -58,16 +58,16 @@ def dict_to_{{snakeCase this.name}}(data: Dict[str, Any]) -> {{this.name}}:
     data_copy = data.copy()
     
     # Handle enum conversions
-    {{#each this.fields}}
-    {{#if (isEnum this.type)}}
-    if "{{this.name}}" in data_copy and data_copy["{{this.name}}"] is not None:
-        data_copy["{{this.name}}"] = string_to_{{snakeCase this.type}}(data_copy["{{this.name}}"])
-    {{/if}}
-    {{/each}}
+    {% for field in model.fields %}
+    {% if field.type|isEnum %}
+    if "{{ field.name }}" in data_copy and data_copy["{{ field.name }}"] is not None:
+        data_copy["{{ field.name }}"] = string_to_{{ field.type|snakeCase }}(data_copy["{{ field.name }}"])
+    {% endif %}
+    {% endfor %}
     
-    return {{this.name}}(**data_copy)
+    return {{ model.name }}(**data_copy)
 
-{{/each}}
+{% endfor %}
 
 # Generic conversion helpers
 def model_to_dict(model: BaseModel) -> Dict[str, Any]:

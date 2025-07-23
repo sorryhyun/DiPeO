@@ -6,47 +6,47 @@
 import { z } from 'zod';
 
 // Type aliases as Zod schemas
-{{#each zod_data.models}}
-{{#if (eq this.type "type_alias")}}
-export const {{this.name}}Schema = {{toZodSchema this.definition}};
-export type {{this.name}} = z.infer<typeof {{this.name}}Schema>;
-{{/if}}
-{{/each}}
+{% for model in zod_data.models %}
+{% if model.type == "type_alias" %}
+export const {{ model.name }}Schema = {{ model.definition|toZodSchema }};
+export type {{ model.name }} = z.infer<typeof {{ model.name }}Schema>;
+{% endif %}
+{% endfor %}
 
 // Enum schemas
-{{#each zod_data.models}}
-{{#if (eq this.type "enum")}}
-export const {{this.name}}Schema = z.enum([
-  {{#each this.enum_values}}
-  "{{this.[1]}}",
-  {{/each}}
+{% for model in zod_data.models %}
+{% if model.type == "enum" %}
+export const {{ model.name }}Schema = z.enum([
+  {% for enum_value in model.enum_values %}
+  "{{ enum_value[1] }}",
+  {% endfor %}
 ]);
-export type {{this.name}} = z.infer<typeof {{this.name}}Schema>;
+export type {{ model.name }} = z.infer<typeof {{ model.name }}Schema>;
 
-{{/if}}
-{{/each}}
+{% endif %}
+{% endfor %}
 
 // Interface/Class schemas
-{{#each zod_data.models}}
-{{#if (eq this.type "class")}}
-export const {{this.name}}Schema = z.object({
-  {{#each this.fields}}
-  {{this.name}}: {{toZodType this.type this.required}},
-  {{/each}}
-}){{#if this.strict}}.strict(){{/if}};
+{% for model in zod_data.models %}
+{% if model.type == "class" %}
+export const {{ model.name }}Schema = z.object({
+  {% for field in model.fields.values() %}
+  {{ field.name }}: {{ field|toZodType }},
+  {% endfor %}
+}){% if model.strict %}.strict(){% endif %};
 
-export type {{this.name}} = z.infer<typeof {{this.name}}Schema>;
+export type {{ model.name }} = z.infer<typeof {{ model.name }}Schema>;
 
-{{/if}}
-{{/each}}
+{% endif %}
+{% endfor %}
 
 // Union schemas for node types
 export const NodeDataSchema = z.discriminatedUnion('type', [
-  {{#each zod_data.models}}
-  {{#if (endsWith this.name "NodeData")}}
-  {{this.name}}Schema,
-  {{/if}}
-  {{/each}}
+  {% for model in zod_data.models %}
+  {% if model.name|endsWith("NodeData") %}
+  {{ model.name }}Schema,
+  {% endif %}
+  {% endfor %}
 ]);
 
 export type NodeData = z.infer<typeof NodeDataSchema>;

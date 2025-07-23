@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(frozen=True)
 class PythonImport:
     """Represents a Python import statement."""
     module: str
-    items: List[str] = field(default_factory=list)
+    items: Tuple[str, ...] = field(default_factory=tuple)  # Changed to tuple for immutability
     is_type_import: bool = False
 
 
@@ -180,7 +180,7 @@ class TypeScriptToPythonTransformer:
             union_types = [t.strip() for t in ts_type.split('|')]
             python_types = [self._map_type(t).python_type for t in union_types]
             self.type_aliases[name] = f"Union[{', '.join(python_types)}]"
-            self.imports.add(PythonImport(module='typing', items=['Union'], is_type_import=True))
+            self.imports.add(PythonImport(module='typing', items=('Union',), is_type_import=True))
         else:
             type_info = self._map_type(ts_type)
             self.type_aliases[name] = type_info.python_type
@@ -200,7 +200,7 @@ class TypeScriptToPythonTransformer:
             value = member.get('value', member['name'])
             model.enum_values.append((member['name'], value))
         
-        self.imports.add(PythonImport(module='enum', items=['Enum'], is_type_import=False))
+        self.imports.add(PythonImport(module='enum', items=('Enum',), is_type_import=False))
         self.models.append(model)
     
     def _transform_class(self, cls: Dict[str, Any]) -> None:
@@ -247,7 +247,7 @@ class TypeScriptToPythonTransformer:
             
         if field_attrs:
             field_info['field_definition'] = f"Field({', '.join(field_attrs)})"
-            self.imports.add(PythonImport(module='pydantic', items=['Field'], is_type_import=False))
+            self.imports.add(PythonImport(module='pydantic', items=('Field',), is_type_import=False))
         
         return field_info
     
@@ -270,7 +270,7 @@ class TypeScriptToPythonTransformer:
             inner_type_info = self._map_type(inner_type)
             type_info.python_type = f"List[{inner_type_info.python_type}]"
             type_info.imports.extend(inner_type_info.imports)
-            type_info.imports.append(PythonImport(module='typing', items=['List'], is_type_import=True))
+            type_info.imports.append(PythonImport(module='typing', items=('List',), is_type_import=True))
             return type_info
         
         # Check for generic types
@@ -282,7 +282,7 @@ class TypeScriptToPythonTransformer:
             if container_type == 'Array':
                 inner_type_info = self._map_type(inner_types)
                 type_info.python_type = f"List[{inner_type_info.python_type}]"
-                type_info.imports.append(PythonImport(module='typing', items=['List'], is_type_import=True))
+                type_info.imports.append(PythonImport(module='typing', items=('List',), is_type_import=True))
             elif container_type == 'Record':
                 # Record<K, V> -> Dict[K, V]
                 key_value = inner_types.split(',', 1)
@@ -290,11 +290,11 @@ class TypeScriptToPythonTransformer:
                     key_type = self._map_type(key_value[0].strip())
                     value_type = self._map_type(key_value[1].strip())
                     type_info.python_type = f"Dict[{key_type.python_type}, {value_type.python_type}]"
-                    type_info.imports.append(PythonImport(module='typing', items=['Dict'], is_type_import=True))
+                    type_info.imports.append(PythonImport(module='typing', items=('Dict',), is_type_import=True))
             elif container_type == 'Promise':
                 inner_type_info = self._map_type(inner_types)
                 type_info.python_type = f"Awaitable[{inner_type_info.python_type}]"
-                type_info.imports.append(PythonImport(module='typing', items=['Awaitable'], is_type_import=True))
+                type_info.imports.append(PythonImport(module='typing', items=('Awaitable',), is_type_import=True))
             else:
                 # Generic custom type
                 type_info.python_type = f"{container_type}[{inner_types}]"
@@ -311,13 +311,13 @@ class TypeScriptToPythonTransformer:
                 python_types.append(t_info.python_type)
                 type_info.imports.extend(t_info.imports)
             type_info.python_type = f"Union[{', '.join(python_types)}]"
-            type_info.imports.append(PythonImport(module='typing', items=['Union'], is_type_import=True))
+            type_info.imports.append(PythonImport(module='typing', items=('Union',), is_type_import=True))
             return type_info
         
         # Check for branded types
         if ts_type in self.BRANDED_TYPES:
             type_info.python_type = self.BRANDED_TYPES[ts_type]
-            type_info.imports.append(PythonImport(module='dipeo.models', items=[ts_type], is_type_import=True))
+            type_info.imports.append(PythonImport(module='dipeo.models', items=(ts_type,), is_type_import=True))
             return type_info
         
         # Check for basic type mappings
@@ -326,11 +326,11 @@ class TypeScriptToPythonTransformer:
             
             # Add necessary imports
             if ts_type == 'any' or ts_type == 'unknown':
-                type_info.imports.append(PythonImport(module='typing', items=['Any'], is_type_import=True))
+                type_info.imports.append(PythonImport(module='typing', items=('Any',), is_type_import=True))
             elif ts_type == 'Date':
-                type_info.imports.append(PythonImport(module='datetime', items=['datetime'], is_type_import=False))
+                type_info.imports.append(PythonImport(module='datetime', items=('datetime',), is_type_import=False))
             elif ts_type == 'RegExp':
-                type_info.imports.append(PythonImport(module='re', items=['Pattern'], is_type_import=True))
+                type_info.imports.append(PythonImport(module='re', items=('Pattern',), is_type_import=True))
                 
             return type_info
         
