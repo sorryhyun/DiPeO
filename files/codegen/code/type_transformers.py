@@ -81,32 +81,36 @@ class TypeScriptToPythonTransformer:
         
     def transform_typescript_to_python(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Main entry point for transformation."""
+        # The typescript_ast node outputs parsed data directly with keys: interfaces, types, enums, classes, functions
         # DiPeO may pass data under 'default' key or directly
-        parsed_ast = inputs.get('parsed_ast', {})
-        if not parsed_ast and 'default' in inputs:
-            parsed_ast = inputs['default'].get('parsed_ast', {})
-        if not parsed_ast and 'ast' in inputs:
-            # TypeScript AST parser outputs under 'ast' key
-            parsed_ast = inputs['ast']
-        if not parsed_ast and 'default' in inputs and 'ast' in inputs['default']:
-            parsed_ast = inputs['default']['ast']
+        parsed_ast = inputs
+        if 'default' in inputs and isinstance(inputs['default'], dict):
+            # If wrapped in default, use that
+            parsed_ast = inputs['default']
         
-        print(f"[transform_typescript_to_python] Received AST keys: {list(parsed_ast.keys()) if parsed_ast else 'None'}")
+        print(f"[transform_typescript_to_python] Received inputs keys: {list(inputs.keys())}")
+        print(f"[transform_typescript_to_python] Using parsed_ast keys: {list(parsed_ast.keys())}")
         
-        # Process each parsed item
-        for item_type, items in parsed_ast.items():
-            if item_type == 'interfaces':
-                for interface in items:
-                    self._transform_interface(interface)
-            elif item_type == 'types':
-                for type_alias in items:
-                    self._transform_type_alias(type_alias)
-            elif item_type == 'enums':
-                for enum in items:
-                    self._transform_enum(enum)
-            elif item_type == 'classes':
-                for cls in items:
-                    self._transform_class(cls)
+        # Debug: print the actual content
+        if 'default' in parsed_ast:
+            print(f"[transform_typescript_to_python] Content of default: {list(parsed_ast['default'].keys()) if isinstance(parsed_ast['default'], dict) else type(parsed_ast['default'])}")
+        
+        # Process each parsed item type directly
+        if 'interfaces' in parsed_ast and isinstance(parsed_ast['interfaces'], list):
+            for interface in parsed_ast['interfaces']:
+                self._transform_interface(interface)
+                
+        if 'types' in parsed_ast and isinstance(parsed_ast['types'], list):
+            for type_alias in parsed_ast['types']:
+                self._transform_type_alias(type_alias)
+                
+        if 'enums' in parsed_ast and isinstance(parsed_ast['enums'], list):
+            for enum in parsed_ast['enums']:
+                self._transform_enum(enum)
+                
+        if 'classes' in parsed_ast and isinstance(parsed_ast['classes'], list):
+            for cls in parsed_ast['classes']:
+                self._transform_class(cls)
         
         # Prepare output data for templates
         # Each key becomes a handle that can be referenced in connections

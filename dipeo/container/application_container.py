@@ -74,6 +74,7 @@ def _create_unified_service_registry_from_dependencies(static, business, dynamic
                 "api_service",
                 "notion_service",
                 "integrated_diagram_service",
+                "typescript_parser",
             ],
             "optional_services": [
                 "api_integration_service",

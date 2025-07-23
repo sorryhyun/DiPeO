@@ -24,14 +24,13 @@ nodes:
       code_type: python
     position: {x: 450, y: 100}
         
-    
   - label: Parse TypeScript Files
     type: typescript_ast
     props:
       extractPatterns: ["interface", "type", "enum", "class"]
       includeJSDoc: true
       parseMode: module
-    position: {x: 750, y: 100}
+    position: {x: 650, y: 100}
       
   - label: Transform to Python Models
     type: code_job
@@ -153,21 +152,25 @@ connections:
     to: Transform to Python Models
     content_type: object
     
-  - from: Transform to Python Models_model_data
+  - from: Transform to Python Models
     to: Generate Pydantic Models
     content_type: object
+    label: model_data
     
-  - from: Transform to Python Models_conversion_data
+  - from: Transform to Python Models
     to: Generate Conversions
     content_type: object
+    label: conversion_data
     
-  - from: Transform to Python Models_zod_data
+  - from: Transform to Python Models
     to: Generate Zod Schemas
     content_type: object
+    label: zod_data
     
-  - from: Transform to Python Models_schema_data
+  - from: Transform to Python Models
     to: Generate JSON Schemas
     content_type: object
+    label: schema_data
     
   - from: Generate Pydantic Models
     to: Combine Results

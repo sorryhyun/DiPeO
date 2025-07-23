@@ -50,9 +50,15 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     def validate(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[str]:
         """Validate the TypeScript AST parser configuration."""
         node = request.node
+        inputs = request.inputs
+        
+        # Check for source in multiple locations
+        source_in_node = bool(node.source)
+        source_in_inputs = bool(inputs.get('source'))
+        source_in_default = bool(inputs.get('default', {}).get('source') if isinstance(inputs.get('default'), dict) else False)
         
         # Must have source code to parse
-        if not node.source and not request.inputs.get('source'):
+        if not source_in_node and not source_in_inputs and not source_in_default:
             return "TypeScript source code must be provided either in node configuration or via input connection"
         
         # Validate extract patterns
@@ -80,7 +86,17 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         try:
             # Get source code from node config or inputs
-            source = node.source or inputs.get('source', '')
+            # Also check in 'default' key as DiPeO may pass data there
+            print(f"[TypeScript AST] Received inputs keys: {list(inputs.keys())}")
+            
+            source = node.source
+            if not source:
+                source = inputs.get('source', '')
+            if not source and 'default' in inputs and isinstance(inputs['default'], dict):
+                source = inputs['default'].get('source', '')
+            
+            # Debug: print what we found
+            print(f"[TypeScript AST] Source length: {len(source) if source else 0}")
             
             if not source:
                 return ErrorOutput(
@@ -98,29 +114,47 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 )
             
             # Parse the TypeScript code using the injected parser
-            result = await self._parser.parse(
-                source=source,
-                extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
-                options={
-                    'includeJSDoc': node.includeJSDoc or False,
-                    'parseMode': node.parseMode or 'module'
-                }
-            )
+            print(f"[TypeScript AST] About to call parser with source length: {len(source)}")
+            try:
+                result = await self._parser.parse(
+                    source=source,
+                    extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
+                    options={
+                        'includeJSDoc': node.includeJSDoc or False,
+                        'parseMode': node.parseMode or 'module'
+                    }
+                )
+            except Exception as parser_error:
+                print(f"[TypeScript AST] Parser error: {str(parser_error)}")
+                raise
+            
+            print(f"[TypeScript AST] Parser returned successfully")
             
             # Extract AST data from the result
             ast_data = result.get('ast', {})
             metadata = result.get('metadata', {})
             
+            # Debug logging
+            print(f"[TypeScript AST] Parsed result keys: {list(result.keys())}")
+            print(f"[TypeScript AST] AST data keys: {list(ast_data.keys())}")
+            print(f"[TypeScript AST] Found {len(ast_data.get('interfaces', []))} interfaces")
+            print(f"[TypeScript AST] Found {len(ast_data.get('types', []))} types")
+            print(f"[TypeScript AST] Found {len(ast_data.get('enums', []))} enums")
+            
+            output_data = {
+                'ast': metadata.get('astSummary', {}),
+                'interfaces': ast_data.get('interfaces', []),
+                'types': ast_data.get('types', []),
+                'enums': ast_data.get('enums', []),
+                'classes': ast_data.get('classes', []),
+                'functions': ast_data.get('functions', [])
+            }
+            
+            print(f"[TypeScript AST] Returning output with keys: {list(output_data.keys())}")
+            
             # Return successful result with all extracted data
             return DataOutput(
-                value={
-                    'ast': metadata.get('astSummary', {}),
-                    'interfaces': ast_data.get('interfaces', []),
-                    'types': ast_data.get('types', []),
-                    'enums': ast_data.get('enums', []),
-                    'classes': ast_data.get('classes', []),
-                    'functions': ast_data.get('functions', [])
-                },
+                value=output_data,
                 node_id=node.id,
                 metadata={
                     'interfaces_count': len(ast_data.get('interfaces', [])),
