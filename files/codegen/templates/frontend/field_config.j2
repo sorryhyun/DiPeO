@@ -1,0 +1,49 @@
+// Generated field configuration for {{ spec_data.nodeType }}
+import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+
+export const {{ spec_data.camelCase }}Fields: UnifiedFieldDefinition[] = [
+  {%- for field in spec_data.fields %}
+  {
+    name: '{{ field.name }}',
+    type: '{% if field.type == 'enum' %}select{% elif field.type == 'boolean' %}checkbox{% elif field.type == 'number' %}number{% elif field.type == 'code' %}textarea{% else %}text{% endif %}',
+    label: '{{ field.name | humanize }}',
+    required: {{ field.required | lower }},
+    {%- if field.defaultValue is defined %}
+    defaultValue: {{ field.defaultValue | tojson }},
+    {%- endif %}
+    {%- if field.placeholder %}
+    placeholder: '{{ field.placeholder }}',
+    {%- endif %}
+    {%- if field.description %}
+    description: '{{ field.description }}',
+    {%- endif %}
+    {%- if field.type == 'enum' and field.values %}
+    options: [
+      {%- for value in field.values %}
+      { value: '{{ value }}', label: '{{ value | humanize }}' },
+      {%- endfor %}
+    ],
+    {%- endif %}
+    {%- if field.validation %}
+    validate: (value: unknown) => {
+      {%- if field.validation.pattern %}
+      if (typeof value === 'string' && !new RegExp('{{ field.validation.pattern }}').test(value)) {
+        return { isValid: false, error: 'Invalid format' };
+      }
+      {%- endif %}
+      {%- if field.validation.min is defined %}
+      if (typeof value === 'number' && value < {{ field.validation.min }}) {
+        return { isValid: false, error: 'Value must be at least {{ field.validation.min }}' };
+      }
+      {%- endif %}
+      {%- if field.validation.max is defined %}
+      if (typeof value === 'number' && value > {{ field.validation.max }}) {
+        return { isValid: false, error: 'Value must be at most {{ field.validation.max }}' };
+      }
+      {%- endif %}
+      return { isValid: true };
+    },
+    {%- endif %}
+  },
+  {%- endfor %}
+];

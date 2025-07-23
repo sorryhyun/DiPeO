@@ -84,8 +84,8 @@ nodes:
     type: template_job
     position: {x: 1100, y: 200}
     props:
-      template_path: files/templates/codegen/phase2/verification_report.hbs
-      engine: handlebars
+      template_path: files/codegen/templates/backend/verification_report.j2
+      engine: jinja2
       
   - label: End
     type: endpoint

@@ -1,0 +1,29 @@
+// Auto-generated TypeScript model for {{ nodeType }} node
+import { z } from 'zod';
+import { BaseNode } from '../base';
+{% if fields | selectattr("type", "equalto", "select") | list %}
+import { createOptionsSchema } from '../utils';
+{% endif %}
+
+export interface {{ nodeType | title }}NodeData {
+{% for field in fields %}
+  {{ field.name }}{% if not field.required %}?{% endif %}: {{ field | typescript_type }};
+{% endfor %}
+}
+
+export interface {{ nodeType | title }}Node extends BaseNode {
+  type: '{{ nodeType }}';
+  data: {{ nodeType | title }}NodeData;
+}
+
+// Zod schema for validation
+export const {{ nodeType | title }}NodeDataSchema = z.object({
+{% for field in fields %}
+  {{ field.name }}: {{ field | zod_schema }}{% if not loop.last %},{% endif %}
+{% endfor %}
+});
+
+export const {{ nodeType | title }}NodeSchema = z.object({
+  type: z.literal('{{ nodeType }}'),
+  data: {{ nodeType | title }}NodeDataSchema,
+});

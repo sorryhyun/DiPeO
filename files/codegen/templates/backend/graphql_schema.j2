@@ -1,0 +1,50 @@
+# Auto-generated GraphQL schema for {{ nodeType }} node
+
+type {{ nodeType | title }}Node implements Node {
+  id: ID!
+  type: String!
+  position: Position!
+  data: {{ nodeType | title }}NodeData!
+  selected: Boolean
+  dragging: Boolean
+}
+
+type {{ nodeType | title }}NodeData {
+{% for field in fields %}
+{% if field.description %}
+  "{{ field.description }}"
+{% endif %}
+  {{ field.name }}: {{ field | graphql_type }}{% if field.required %}!{% endif %}
+{% endfor %}
+{% if not fields %}
+  _empty: String
+{% endif %}
+}
+
+input {{ nodeType | title }}NodeInput {
+  id: ID!
+  type: String!
+  position: PositionInput!
+  data: {{ nodeType | title }}NodeDataInput!
+}
+
+input {{ nodeType | title }}NodeDataInput {
+{% for field in fields %}
+  {{ field.name }}: {{ field | graphql_type }}{% if field.required %}!{% endif %}
+{% endfor %}
+{% if not fields %}
+  _empty: String
+{% endif %}
+}
+
+# Add to schema extensions
+extend type Query {
+  {{ nodeType }}Nodes: [{{ nodeType | title }}Node!]!
+  {{ nodeType }}Node(id: ID!): {{ nodeType | title }}Node
+}
+
+extend type Mutation {
+  create{{ nodeType | title }}Node(input: {{ nodeType | title }}NodeInput!): {{ nodeType | title }}Node!
+  update{{ nodeType | title }}Node(id: ID!, input: {{ nodeType | title }}NodeDataInput!): {{ nodeType | title }}Node!
+  delete{{ nodeType | title }}Node(id: ID!): Boolean!
+}

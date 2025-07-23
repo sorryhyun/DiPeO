@@ -41,14 +41,15 @@
   },
   
   "template_files": {
-    "typescript_model": "files/codegen/templates/typescript_model.hbs",
-    "python_model": "files/codegen/templates/pydantic_models.j2",
-    "graphql_schema": "files/codegen/templates/graphql_schema.hbs",
-    "react_component": "files/codegen/templates/react_component.hbs",
-    "node_config": "files/codegen/templates/node_config.hbs",
-    "field_config": "files/codegen/templates/field_config.hbs",
-    "conversions": "files/codegen/templates/codegen/conversions.j2",
-    "zod_schemas": "files/codegen/templates/codegen/zod_schemas.j2"
+    "typescript_model": "files/codegen/templates/frontend/typescript_model.j2",
+    "python_model": "files/codegen/templates/backend/pydantic_models.j2",
+    "graphql_schema": "files/codegen/templates/backend/graphql_schema.j2",
+    "react_component": "files/codegen/templates/frontend/react_component.j2",
+    "node_config": "files/codegen/templates/frontend/node_config.j2",
+    "field_config": "files/codegen/templates/frontend/field_config.j2",
+    "static_nodes": "files/codegen/templates/backend/static_nodes.j2",
+    "conversions": "files/codegen/templates/backend/conversions.j2",
+    "zod_schemas": "files/codegen/templates/shared/zod_schemas.j2"
   },
   
   "schema_files": {

@@ -27,16 +27,16 @@ nodes:
   - label: Parse and Save AST
     type: code_job
     props:
-      functionName: parse_and_save_ast
-      code: files/codegen/code/ast_data_handler.py
+      functionName: save_ast
+      code: files/codegen/code/simple_ast.py
       code_type: python
     position: {x: 650, y: 100}
       
   - label: Transform to Python Models
     type: code_job
     props:
-      functionName: load_and_transform_ast
-      code: files/codegen/code/ast_data_handler.py
+      functionName: load_ast
+      code: files/codegen/code/simple_ast.py
       code_type: python
     position: {x: 850, y: 100}
       
@@ -68,7 +68,7 @@ nodes:
     type: code_job
     props:
       functionName: generate_json_schemas
-      code: files/codegen/code/json_schema_generator.py
+      code: files/codegen/code/domain_model_functions.py
       code_type: python
     position: {x: 1200, y: 250}
     

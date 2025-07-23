@@ -22,7 +22,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       condition_type: custom
-      expression: inputs.should_run_models === true
+      expression: default.should_run_models == True
       
   - label: Domain Model Codegen
     type: sub_diagram
@@ -40,7 +40,7 @@ nodes:
     position: {x: 500, y: 350}
     props:
       condition_type: custom
-      expression: inputs.should_run_nodes === true
+      expression: default.should_run_nodes == True
       
   - label: Node UI Codegen
     type: sub_diagram
