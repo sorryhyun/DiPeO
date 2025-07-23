@@ -1,10 +1,15 @@
 """Zod schemas generator for TypeScript runtime validation."""
 
 import os
+import sys
 from pathlib import Path
-from ..utils.template_utils import create_jinja_env, register_enum_filter
-from ..utils.file_utils import load_model_data, save_result_info
-from ..utils.type_converters import to_zod_type, to_zod_schema
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.template_utils import create_jinja_env, register_enum_filter
+from utils.file_utils import load_model_data, save_result_info
+from utils.type_converters import to_zod_type, to_zod_schema
 
 
 def generate_zod_schemas(inputs):
@@ -18,7 +23,7 @@ def generate_zod_schemas(inputs):
         
         # Setup Jinja2 environment
         temp_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-        template_dir = Path(temp_dir) / 'files' / 'codegen' / 'templates' / 'backend'
+        template_dir = Path(temp_dir) / 'files' / 'codegen' / 'templates' / 'shared'
         env = create_jinja_env(template_dir)
         
         # Register enum filter
@@ -30,12 +35,12 @@ def generate_zod_schemas(inputs):
         
         # Load and render template
         template = env.get_template('zod_schemas.j2')
-        content = template.render(model_data=model_data)
+        content = template.render(zod_data=model_data)
         
-        # Write output file
+        # Write output file with diagram_ prefix to avoid conflicts
         output_dir = Path(temp_dir) / 'dipeo' / 'models' / 'src' / 'generated'
         output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = output_dir / 'zod_schemas.ts'
+        output_path = output_dir / 'diagram_zod_schemas.ts'
         
         with open(output_path, 'w') as f:
             f.write(content)

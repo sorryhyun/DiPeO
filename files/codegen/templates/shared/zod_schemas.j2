@@ -31,7 +31,7 @@ export type {{ model.name }} = z.infer<typeof {{ model.name }}Schema>;
 {% if model.type == "class" %}
 export const {{ model.name }}Schema = z.object({
   {% for field in model.fields.values() %}
-  {{ field.name }}: {{ field|toZodType }},
+  {{ field.name }}: {{ field.type|toZodType }},
   {% endfor %}
 }){% if model.strict %}.strict(){% endif %};
 
@@ -62,14 +62,14 @@ export function isValidNodeData(data: unknown): data is NodeData {
 
 // Schema registry for dynamic validation
 export const SchemaRegistry = {
-  {{#each zod_data.models}}
-  {{this.name}}: {{this.name}}Schema,
-  {{/each}}
+  {% for model in zod_data.models %}
+  {{ model.name }}: {{ model.name }}Schema,
+  {% endfor %}
 } as const;
 
 // Export all schemas
 export {
-  {{#each zod_data.models}}
-  {{this.name}}Schema,
-  {{/each}}
+  {% for model in zod_data.models %}
+  {{ model.name }}Schema,
+  {% endfor %}
 };

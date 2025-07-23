@@ -40,6 +40,14 @@ nodes:
       parseMode: module
     position: {x: 650, y: 100}
       
+  - label: Save AST Output
+    type: code_job
+    props:
+      functionName: save_ast_output
+      code: files/codegen/code/adapters/save_ast_output.py
+      code_type: python
+    position: {x: 750, y: 100}
+      
   - label: Transform to Python Models
     type: code_job
     props:
@@ -56,6 +64,14 @@ nodes:
       code_type: python
     position: {x: 600, y: 250}
       
+  - label: Prepare Conversion Data
+    type: code_job
+    props:
+      functionName: prepare_conversion_data
+      code: files/codegen/code/adapters/prepare_generator_data.py
+      code_type: python
+    position: {x: 800, y: 200}
+      
   - label: Generate Conversions
     type: code_job
     props:
@@ -64,6 +80,14 @@ nodes:
       code_type: python
     position: {x: 800, y: 250}
     
+  - label: Prepare Zod Data
+    type: code_job
+    props:
+      functionName: prepare_zod_data
+      code: files/codegen/code/adapters/prepare_generator_data.py
+      code_type: python
+    position: {x: 1000, y: 200}
+    
   - label: Generate Zod Schemas
     type: code_job
     props:
@@ -71,6 +95,14 @@ nodes:
       code: files/codegen/code/domain_model_functions.py
       code_type: python
     position: {x: 1000, y: 250}
+    
+  - label: Prepare Schema Data
+    type: code_job
+    props:
+      functionName: prepare_schema_data
+      code: files/codegen/code/adapters/prepare_generator_data.py
+      code_type: python
+    position: {x: 1200, y: 200}
     
   - label: Generate JSON Schemas
     type: code_job
@@ -161,6 +193,10 @@ connections:
     content_type: object
     
   - from: Parse TypeScript AST
+    to: Save AST Output
+    content_type: object
+    
+  - from: Save AST Output
     to: Transform to Python Models
     content_type: object
     
@@ -169,14 +205,26 @@ connections:
     content_type: object
     
   - from: Transform to Python Models
+    to: Prepare Conversion Data
+    content_type: object
+    
+  - from: Prepare Conversion Data
     to: Generate Conversions
     content_type: object
     
   - from: Transform to Python Models
+    to: Prepare Zod Data
+    content_type: object
+    
+  - from: Prepare Zod Data
     to: Generate Zod Schemas
     content_type: object
     
   - from: Transform to Python Models
+    to: Prepare Schema Data
+    content_type: object
+    
+  - from: Prepare Schema Data
     to: Generate JSON Schemas
     content_type: object
     

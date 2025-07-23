@@ -84,8 +84,6 @@ class TypedInputResolutionService:
             output_key = edge.source_output or "default"
             
             # Debug logging
-            log.debug(f"    Edge from {source_node_id} to {node_id}: edge.source_output={edge.source_output}, output_key='{output_key}', output_value keys={list(output_value.keys()) if isinstance(output_value, dict) else 'not-dict'}")
-
             # Check if the output has the requested key
             if output_key not in output_value:
                 # For edges with default output key and no "default" in the output,
@@ -93,13 +91,11 @@ class TypedInputResolutionService:
                 if output_key == "default" and (not edge.source_output or edge.source_output == "default"):
                     # Use the entire output value as is
                     value = output_value
-                    log.debug(f"    Using entire output value as context for default edge")
                 elif "default" in output_value:
                     output_key = "default"
                     value = output_value[output_key]
                 else:
                     # Skip if no matching output
-                    log.debug(f"    Skipping - output key '{output_key}' not found in output")
                     continue
             else:
                 value = output_value[output_key]

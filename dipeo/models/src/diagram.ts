@@ -345,11 +345,9 @@ export interface JsonSchemaValidatorNodeData extends BaseNodeData {
   error_on_extra?: boolean;  // Error on extra properties
 }
 
-export type ExtractPattern = 'interface' | 'type' | 'enum' | 'class' | 'function' | 'const' | 'export';
-
 export interface TypescriptAstNodeData extends BaseNodeData {
   source?: string;  // TypeScript source code to parse
-  extractPatterns?: ExtractPattern[];  // Patterns to extract
+  extractPatterns?: string[];  // Patterns to extract (e.g., 'interface', 'type', 'enum', 'class', 'function', 'const', 'export')
   includeJSDoc?: boolean;  // Include JSDoc comments in the extracted data
   parseMode?: 'module' | 'script';  // TypeScript parsing mode
 }

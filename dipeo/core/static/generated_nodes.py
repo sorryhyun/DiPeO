@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List, Union, Literal
 from dipeo.models.models import (
     NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
-    NotionOperation, HookType, PersonLLMConfig, LLMService, ExtractPattern
+    NotionOperation, HookType, PersonLLMConfig, LLMService
 )
 
 
@@ -202,16 +202,20 @@ class NotionNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class HookNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.hook, init=False)
-    hook_type: Literal["shell", "http", "python", "file"] = HookType.shell
+    hook_type: HookType = HookType.shell
+    config: Dict[str, Any] = field(default_factory=dict)
     timeout: Optional[int] = None
     retry_count: Optional[int] = None
+    retry_delay: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         data = super().to_dict()
         data["hook_type"] = self.hook_type
+        data["config"] = self.config
         data["timeout"] = self.timeout
         data["retry_count"] = self.retry_count
+        data["retry_delay"] = self.retry_delay
         return data
 
 @dataclass(frozen=True)
@@ -256,7 +260,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 class TypescriptAstNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.typescript_ast, init=False)
     source: Optional[str] = None
-    extractPatterns: Optional[List[Any]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    extractPatterns: Optional[List[str]] = field(default_factory=lambda: ["interface", "type", "enum"])
     includeJSDoc: Optional[bool] = False
     parseMode: Optional[Literal["module", "script"]] = "module"
 

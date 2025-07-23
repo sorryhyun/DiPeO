@@ -1,9 +1,14 @@
 """Conversion functions generator between TypeScript and Python models."""
 
 import os
+import sys
 from pathlib import Path
-from ..utils.template_utils import create_jinja_env, register_enum_filter
-from ..utils.file_utils import load_model_data, save_result_info
+
+# Add parent directory to sys.path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.template_utils import create_jinja_env, register_enum_filter
+from utils.file_utils import load_model_data, save_result_info
 
 
 def generate_conversions(inputs):
@@ -27,9 +32,9 @@ def generate_conversions(inputs):
         template = env.get_template('conversions.j2')
         content = template.render(conversion_data=conversion_data)
         
-        # Write output file
+        # Write output file with diagram_ prefix to avoid conflicts
         output_dir = Path(temp_dir) / 'dipeo' / 'models'
-        output_path = output_dir / '__generated_conversions__.py'
+        output_path = output_dir / 'diagram_generated_conversions.py'
         
         with open(output_path, 'w') as f:
             f.write(content)

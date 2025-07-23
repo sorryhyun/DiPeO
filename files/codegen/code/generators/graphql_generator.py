@@ -1,10 +1,15 @@
 """GraphQL schema generator from Python models."""
 
 import os
+import sys
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from ..utils.file_utils import load_model_data, save_result_info
-from ..utils.type_converters import python_to_graphql_type
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.file_utils import load_model_data, save_result_info
+from utils.type_converters import python_to_graphql_type
 
 
 def generate_graphql_schema(inputs):

@@ -3,8 +3,19 @@
 from typing import Dict, Set
 
 
-def to_zod_type(python_type: str) -> str:
-    """Convert Python type to Zod schema type."""
+def to_zod_type(field_or_type) -> str:
+    """Convert Python type to Zod schema type.
+    
+    Can accept either a string type or a field dictionary with 'type' key.
+    """
+    # Handle both string and dict inputs
+    if isinstance(field_or_type, dict):
+        python_type = field_or_type.get('type', 'Any')
+        is_required = field_or_type.get('required', True)
+    else:
+        python_type = str(field_or_type)
+        is_required = True
+    
     # Basic type mappings
     type_map = {
         'str': 'z.string()',

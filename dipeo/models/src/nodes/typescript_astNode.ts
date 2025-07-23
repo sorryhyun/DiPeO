@@ -1,5 +1,5 @@
 // Generated from specification: typescript_ast
-import { BaseNodeData } from './BaseNode';
+import { BaseNodeData } from '../diagram';
 
 export interface TypescriptAstNodeData extends BaseNodeData {
   source: string;

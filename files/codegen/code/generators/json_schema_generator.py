@@ -34,8 +34,8 @@ def generate_json_schemas(inputs: Dict[str, Any]) -> Dict[str, Any]:
             schema = generate_model_schema(model)
             schemas[model['name']] = schema
             
-            # Create schema directory
-            schema_dir = os.path.join(temp_dir, 'dipeo', 'models', 'schemas')
+            # Create schema directory with diagram_ prefix to avoid conflicts
+            schema_dir = os.path.join(temp_dir, 'dipeo', 'models', 'diagram_schemas')
             os.makedirs(schema_dir, exist_ok=True)
             
             # Write individual schema file
@@ -57,7 +57,7 @@ def generate_json_schemas(inputs: Dict[str, Any]) -> Dict[str, Any]:
     }
     
     # Write master schema
-    master_path = os.path.join(schema_dir, 'all.json')
+    master_path = os.path.join(schema_dir, 'diagram_all.json')
     with open(master_path, 'w') as f:
         json.dump(master_schema, f, indent=2)
     

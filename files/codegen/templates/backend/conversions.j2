@@ -31,6 +31,7 @@ def string_to_{{ enum.name|snakeCase }}(value: str) -> {{ enum.name }}:
 
 # Model conversion functions
 {% for model in conversion_data.models %}
+{% if model.type == 'class' %}
 def {{ model.name|snakeCase }}_to_dict(model: {{ model.name }}) -> Dict[str, Any]:
     """Convert {{ model.name }} to dictionary."""
     if not isinstance(model, {{ model.name }}):
@@ -39,7 +40,7 @@ def {{ model.name|snakeCase }}_to_dict(model: {{ model.name }}) -> Dict[str, Any
     data = model.dict(exclude_none=True)
     
     # Handle enum conversions
-    {% for field in model.fields %}
+    {% for field in model.fields.values() %}
     {% if field.type|isEnum %}
     if "{{ field.name }}" in data and data["{{ field.name }}"] is not None:
         data["{{ field.name }}"] = {{ field.type|snakeCase }}_to_string(data["{{ field.name }}"])
@@ -58,7 +59,7 @@ def dict_to_{{ model.name|snakeCase }}(data: Dict[str, Any]) -> {{ model.name }}
     data_copy = data.copy()
     
     # Handle enum conversions
-    {% for field in model.fields %}
+    {% for field in model.fields.values() %}
     {% if field.type|isEnum %}
     if "{{ field.name }}" in data_copy and data_copy["{{ field.name }}"] is not None:
         data_copy["{{ field.name }}"] = string_to_{{ field.type|snakeCase }}(data_copy["{{ field.name }}"])
@@ -66,6 +67,7 @@ def dict_to_{{ model.name|snakeCase }}(data: Dict[str, Any]) -> {{ model.name }}
     {% endfor %}
     
     return {{ model.name }}(**data_copy)
+{% endif %}
 
 {% endfor %}
 
@@ -123,11 +125,11 @@ def dicts_to_models(data_list: List[Dict[str, Any]], model_type: Type[T]) -> Lis
 
 # Node-specific conversion helpers
 NODE_TYPE_MAP = {
-    {{#each conversion_data.models}}
-    {{#if (endsWith this.name "Node")}}
-    "{{toNodeType this.name}}": {{this.name}},
-    {{/if}}
-    {{/each}}
+    {% for model in conversion_data.models %}
+    {% if model.name|endsWith("Node") %}
+    "{{ model.name|toNodeType }}": {{ model.name }},
+    {% endif %}
+    {% endfor %}
 }
 
 
@@ -161,15 +163,15 @@ def node_to_dict(node: BaseModel) -> Dict[str, Any]:
 # Export all conversion functions
 __all__ = [
     # Enum converters
-    {{#each conversion_data.enums}}
-    "{{snakeCase this.name}}_to_string",
-    "string_to_{{snakeCase this.name}}",
-    {{/each}}
+    {% for enum in conversion_data.enums %}
+    "{{ enum.name|snakeCase }}_to_string",
+    "string_to_{{ enum.name|snakeCase }}",
+    {% endfor %}
     # Model converters
-    {{#each conversion_data.models}}
-    "{{snakeCase this.name}}_to_dict",
-    "dict_to_{{snakeCase this.name}}",
-    {{/each}}
+    {% for model in conversion_data.models %}
+    "{{ model.name|snakeCase }}_to_dict",
+    "dict_to_{{ model.name|snakeCase }}",
+    {% endfor %}
     # Generic helpers
     "model_to_dict",
     "dict_to_model",

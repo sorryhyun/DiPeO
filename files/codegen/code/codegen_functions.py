@@ -19,8 +19,6 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-
-
 def parse_spec_data_with_paths(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Parse spec data and add output paths."""
     # Get spec from inputs
@@ -50,16 +48,3 @@ def parse_spec_data_with_paths(inputs: Dict[str, Any]) -> Dict[str, Any]:
 
 # Removed generate_python_model, update_registry, register_node_types functions
 # These have been replaced by the simplified codegen.py
-    """Create registry update summary with all generated files and next steps."""
-    # Get spec from inputs
-    spec = inputs.get('spec', inputs.get('default', {}))
-    if isinstance(spec, str):
-        spec = json.loads(spec)
-    
-    # Helper function to convert to camelCase
-    def to_camel_case(snake_str):
-        components = snake_str.split('_')
-        return components[0] + ''.join(x.capitalize() for x in components[1:])
-    
-    camel_case_name = to_camel_case(spec['nodeType'])
-    

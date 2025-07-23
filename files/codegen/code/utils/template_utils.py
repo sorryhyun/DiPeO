@@ -18,7 +18,12 @@ def create_jinja_env(template_dir):
     env.filters['camelCase'] = camel_case
     env.filters['PascalCase'] = pascal_case
     env.filters['snake_case'] = snake_case
+    env.filters['snakeCase'] = snake_case  # Alias for backward compatibility
     env.filters['UPPER_CASE'] = lambda text: snake_case(text).upper()
+    
+    # Add utility filters
+    env.filters['endsWith'] = lambda text, suffix: str(text).endswith(suffix)
+    env.filters['startsWith'] = lambda text, prefix: str(text).startswith(prefix)
     
     return env
 
@@ -32,6 +37,7 @@ def register_enum_filter(env, enum_data):
         return clean_type in [enum['name'] for enum in enum_data]
     
     env.filters['is_enum'] = is_enum
+    env.filters['isEnum'] = is_enum  # Alias for backward compatibility
 
 
 # Case conversion functions

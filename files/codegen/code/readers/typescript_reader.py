@@ -48,6 +48,8 @@ def read_typescript_files(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     print(f"Returning combined source of length: {len(combined_source)}")
     print(f"Result keys: {list(result.keys())}")
+    if len(combined_source) > 0:
+        print(f"First 100 chars of source: {combined_source[:100]}...")
     
     # For DiPeO handle-based data passing, return with both direct keys and default
     result['default'] = result.copy()

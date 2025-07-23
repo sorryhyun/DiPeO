@@ -2,8 +2,13 @@
 
 import os
 from pathlib import Path
-from ..utils.template_utils import create_jinja_env, register_enum_filter
-from ..utils.file_utils import load_model_data, save_result_info
+import sys
+import os
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.template_utils import create_jinja_env, register_enum_filter
+from utils.file_utils import load_model_data, save_result_info
 
 
 def generate_pydantic_models(inputs):
@@ -31,10 +36,10 @@ def generate_pydantic_models(inputs):
         template = env.get_template('pydantic_models.j2')
         content = template.render(model_data=model_data)
         
-        # Write output file
+        # Write output file with diagram_ prefix to avoid conflicts
         output_dir = Path(temp_dir) / 'dipeo' / 'models'
         output_dir.mkdir(exist_ok=True)
-        output_path = output_dir / 'models.py'
+        output_path = output_dir / 'diagram_models.py'
         
         with open(output_path, 'w') as f:
             f.write(content)

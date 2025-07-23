@@ -53,6 +53,12 @@ def transform_ast_to_python_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
         type_name = type_def.get('name', '')
         type_value = type_def.get('type', 'Any')
         
+        # Handle branded types specially - they should be imported, not redefined
+        if ' & ' in type_value and '__brand' in type_value:
+            # These are already defined in dipeo.models, just import them
+            required_imports['dipeo.models'].add(type_name)
+            continue
+        
         # Transform TypeScript type to Python
         python_type = transform_ts_type_to_python(type_value, required_imports)
         result['type_aliases'][type_name] = python_type
@@ -106,8 +112,12 @@ def transform_ast_to_python_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
             
             # Add Field() for optional fields or fields with defaults
             if is_optional:
-                field_def['field_definition'] = 'Field(default=None)'
-                required_imports['typing'].add('Optional')
+                # Don't add Optional wrapper if the type already has Optional
+                if not python_type.startswith('Optional['):
+                    field_def['field_definition'] = 'Field(default=None)'
+                    required_imports['typing'].add('Optional')
+                else:
+                    field_def['field_definition'] = 'Field(default=None)'
             
             class_model['fields'][field_name] = field_def
         
@@ -160,18 +170,33 @@ def transform_ast_to_python_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
     print(f"[transform_ast_to_python_models] Generated {len(result['models'])} models with {len(import_statements)} import groups")
     
     # Save the transformed data for the generators to use
-    from ..utils.file_utils import save_result_info
+    try:
+        from ..utils.file_utils import save_result_info
+        print("[transform_ast_to_python_models] Import successful")
+    except ImportError as e:
+        print(f"[transform_ast_to_python_models] Import error: {e}")
+    
     import json
     from pathlib import Path
+    import os
     
-    # Save to model data file
-    model_data_file = Path('.temp/codegen/model_data.json')
-    model_data_file.parent.mkdir(parents=True, exist_ok=True)
+    # Get base directory from environment or use current working directory
+    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
     
-    with open(model_data_file, 'w') as f:
-        json.dump(result, f, indent=2)
+    # Save to model data file with absolute path
+    model_data_file = Path(base_dir) / '.temp' / 'codegen' / 'model_data.json'
+    print(f"[transform_ast_to_python_models] Attempting to save to: {model_data_file}")
+    print(f"[transform_ast_to_python_models] Base dir: {base_dir}")
     
-    print(f"[transform_ast_to_python_models] Saved model data to {model_data_file}")
+    try:
+        model_data_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(model_data_file, 'w') as f:
+            json.dump(result, f, indent=2)
+        
+        print(f"[transform_ast_to_python_models] Successfully saved model data to {model_data_file}")
+    except Exception as e:
+        print(f"[transform_ast_to_python_models] Error saving model data: {e}")
     
     return result
 
@@ -180,8 +205,18 @@ def transform_ts_type_to_python(ts_type: str, required_imports: Dict[str, Set[st
     """Transform TypeScript type to Python type."""
     # Handle null/undefined
     if ts_type in ('null', 'undefined', 'void'):
-        required_imports['typing'].add('None')
         return 'None'
+    
+    # Handle branded types (e.g., string & { readonly __brand: 'NodeID'; })
+    if ' & ' in ts_type and '__brand' in ts_type:
+        # Extract the brand name
+        import re
+        brand_match = re.search(r"__brand:\s*['\"]([^'\"]+)['\"]", ts_type)
+        if brand_match:
+            brand_name = brand_match.group(1)
+            # These are NewType aliases in Python
+            required_imports['typing'].add('NewType')
+            return f"NewType('{brand_name}', str)"
     
     # Basic type mappings
     type_map = {
@@ -202,6 +237,21 @@ def transform_ts_type_to_python(ts_type: str, required_imports: Dict[str, Set[st
             required_imports['typing'].add('Dict')
             required_imports['typing'].add('Any')
         return type_map[ts_type]
+    
+    # Handle Record<K, V> types
+    if ts_type.startswith('Record<') and ts_type.endswith('>'):
+        inner = ts_type[7:-1]
+        parts = inner.split(', ', 1)
+        if len(parts) == 2:
+            # Record types become Dict in Python
+            key_type = transform_ts_type_to_python(parts[0], required_imports)
+            value_type = transform_ts_type_to_python(parts[1], required_imports)
+            required_imports['typing'].add('Dict')
+            return f'Dict[{key_type}, {value_type}]'
+        # Fallback for simple Record
+        required_imports['typing'].add('Dict')
+        required_imports['typing'].add('Any')
+        return 'Dict[str, Any]'
     
     # Handle arrays
     if ts_type.endswith('[]'):
@@ -255,9 +305,15 @@ def transform_ts_type_to_python(ts_type: str, required_imports: Dict[str, Set[st
         required_imports['typing'].add('Literal')
         return f'Literal[{ts_type}]'
     
+    # Handle z.infer<...> types
+    if ts_type.startswith('z.infer<') and ts_type.endswith('>'):
+        # This is a Zod type inference, convert to Any for Python
+        required_imports['typing'].add('Any')
+        return 'Any'
+    
     # Check if it's a known DiPeO type
     dipeo_types = {'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'DiagramID', 'ExecutionID', 
-                   'NodeType', 'ExecutionStatus', 'LLMService', 'NodeExecutionStatus'}
+                   'NodeType', 'ExecutionStatus', 'LLMService', 'NodeExecutionStatus', 'ApiKeyID'}
     if ts_type in dipeo_types:
         required_imports['dipeo.models'].add(ts_type)
     

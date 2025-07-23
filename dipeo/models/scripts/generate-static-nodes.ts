@@ -399,7 +399,7 @@ class StaticNodeGenerator {
     lines.push('from dipeo.models.models import (');
     lines.push('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,');
     lines.push('    HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,');
-    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService, ExtractPattern');
+    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService');
     lines.push(')');
     lines.push('');
     lines.push('');

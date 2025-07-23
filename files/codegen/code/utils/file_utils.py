@@ -5,25 +5,44 @@ from pathlib import Path
 from typing import Dict, Any
 
 
-def load_model_data():
-    """Load parsed model data from temporary storage."""
-    # First try to load from the transformed model data
-    model_data_file = Path('.temp/codegen/model_data.json')
+def load_model_data(filename='model_data.json'):
+    """Load parsed model data from temporary storage.
+    
+    Args:
+        filename: Optional filename to load from. Defaults to 'model_data.json'
+    """
+    import os
+    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+    
+    # First try to load from the specified file
+    model_data_file = Path(base_dir) / '.temp' / 'codegen' / filename
     
     if model_data_file.exists():
         try:
             with open(model_data_file, 'r') as f:
                 data = json.load(f)
-                print(f"[load_model_data] Loaded model data with keys: {list(data.keys())}")
+                print(f"[load_model_data] Loaded {filename} with keys: {list(data.keys())}")
                 return data
         except Exception as e:
-            print(f"[load_model_data] Error loading model data: {e}")
+            print(f"[load_model_data] Error loading {filename}: {e}")
+    
+    # Fallback to default model data if specified file doesn't exist
+    if filename != 'model_data.json':
+        model_data_file = Path(base_dir) / '.temp' / 'codegen' / 'model_data.json'
+        if model_data_file.exists():
+            try:
+                with open(model_data_file, 'r') as f:
+                    data = json.load(f)
+                    print(f"[load_model_data] Loaded model data with keys: {list(data.keys())}")
+                    return data
+            except Exception as e:
+                print(f"[load_model_data] Error loading model data: {e}")
     
     # Fallback to AST file if model data doesn't exist
-    ast_file = Path('.temp/codegen/parsed_ast.json')
+    ast_file = Path(base_dir) / '.temp' / 'codegen' / 'parsed_ast.json'
     
     if not ast_file.exists():
-        print(f"[load_model_data] Neither model data nor AST file found")
+        print(f"[load_model_data] Neither {filename} nor AST file found")
         return {}
     
     try:
@@ -38,7 +57,9 @@ def load_model_data():
 
 def save_result_info(result_type: str, result_data: Dict[str, Any]):
     """Save generation result info for later combination."""
-    result_dir = Path('.temp/codegen/results')
+    import os
+    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+    result_dir = Path(base_dir) / '.temp' / 'codegen' / 'results'
     result_dir.mkdir(parents=True, exist_ok=True)
     
     result_file = result_dir / f"{result_type}_result.json"
@@ -53,7 +74,9 @@ def save_result_info(result_type: str, result_data: Dict[str, Any]):
 
 def load_all_results():
     """Load all generation results for combination."""
-    result_dir = Path('.temp/codegen/results')
+    import os
+    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+    result_dir = Path(base_dir) / '.temp' / 'codegen' / 'results'
     results = {}
     
     if not result_dir.exists():

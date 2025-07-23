@@ -55,9 +55,9 @@ class {{ model.name }}({{ model.bases|join(", ") }}):
     """{% if model.docstring %}{{ model.docstring }}{% else %}{{ model.name }} model.{% endif %}"""
     {% if model.fields %}
     # Fields
-{% for field in model.fields.values() %}
-    {{ field.name }}: {% if field.required %}{{ field.type }}{% else %}Optional[{{ field.type }}]{% endif %}{% if field.field_definition %} = {{ field.field_definition }}{% else %}{% if not field.required %} = None{% endif %}{% endif %}
-{% endfor %}
+    {% for field in model.fields.values() %}
+    {{ field.name }}: {% if field.required %}{{ field.type }}{% else %}{% if field.type.startswith('Optional[') %}{{ field.type }}{% else %}Optional[{{ field.type }}]{% endif %}{% endif %}{% if field.field_definition %} = {{ field.field_definition }}{% else %}{% if not field.required %} = None{% endif %}{% endif %}
+    {% endfor %}
     {% else %}
     pass
     {% endif %}

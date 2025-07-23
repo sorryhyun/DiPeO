@@ -1,5 +1,5 @@
 // Generated from specification: hook
-import { BaseNodeData } from './BaseNode';
+import { BaseNodeData } from '../diagram';
 
 export interface HookNodeData extends BaseNodeData {
   hook_type: 'shell' | 'http' | 'python' | 'file';

@@ -50,16 +50,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     def validate(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[str]:
         """Validate the TypeScript AST parser configuration."""
         node = request.node
-        inputs = request.inputs
         
-        # Check for source in multiple locations
-        source_in_node = bool(node.source)
-        source_in_inputs = bool(inputs.get('source'))
-        source_in_default = bool(inputs.get('default', {}).get('source') if isinstance(inputs.get('default'), dict) else False)
-        
-        # Must have source code to parse
-        if not source_in_node and not source_in_inputs and not source_in_default:
-            return "TypeScript source code must be provided either in node configuration or via input connection"
+        # Only validate static configuration, not input data
+        # Input validation will happen during execute_request
         
         # Validate extract patterns
         if node.extractPatterns:

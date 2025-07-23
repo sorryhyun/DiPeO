@@ -428,7 +428,7 @@ class TypescriptAstNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     source: Optional[str] = Field(default=None)
-    extractPatterns: Optional[List[ExtractPattern]] = Field(default=None)
+    extractPatterns: Optional[List[str]] = Field(default=None)
     includeJSDoc: Optional[bool] = Field(default=None)
     parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
 
@@ -591,9 +591,10 @@ class LLMRequestOptions(BaseModel):
     tools: Optional[List[ToolConfig]] = Field(default=None)
     response_format: Optional[Any] = Field(default=None)
 
-# Type aliases for backwards compatibility
-ExtractPattern = Literal['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
 PersonBatchJobNodeData = PersonJobNodeData
+
 PersonMemoryMessage = Message
+
 PersonMemoryState = MemoryState
+
 PersonMemoryConfig = MemoryConfig

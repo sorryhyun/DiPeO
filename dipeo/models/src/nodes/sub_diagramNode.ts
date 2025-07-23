@@ -1,8 +1,8 @@
 // Auto-generated TypeScript model for sub_diagram node
 import { z } from 'zod';
-import { BaseNode } from '../base';
+import { BaseNodeData } from '../diagram';
 
-export interface Sub_diagramNodeData {
+export interface SubDiagramNodeData extends BaseNodeData {
   diagram_name?: string;
   diagram_data?: Record<string, any>;
   input_mapping?: Record<string, any>;
@@ -12,16 +12,10 @@ export interface Sub_diagramNodeData {
   isolate_conversation?: boolean;
 }
 
-export interface Sub_diagramNode extends BaseNode {
-  type: 'sub_diagram';
-  data: Sub_diagramNodeData;
-}
+// Node interface is not needed - will use DomainNode with this data type
 
 // Zod schema for validation
-export const Sub_diagramNodeDataSchema = z.object({
+export const SubDiagramNodeDataSchema = z.object({
   diagram_name: z.string().optional(),  diagram_data: z.record(z.any()).optional(),  input_mapping: z.record(z.any()).optional(),  output_mapping: z.record(z.any()).optional(),  timeout: z.number().optional(),  wait_for_completion: z.boolean().optional(),  isolate_conversation: z.boolean().optional()});
 
-export const Sub_diagramNodeSchema = z.object({
-  type: z.literal('sub_diagram'),
-  data: Sub_diagramNodeDataSchema,
-});
+// Schema for the node is handled by the main node schema

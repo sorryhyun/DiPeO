@@ -131,7 +131,8 @@ class SchemaGenerator {
     const entries = await readdir(dir, { recursive: true, withFileTypes: true });
     return entries
       .filter(e => e.isFile() && e.name.endsWith('.ts') && !e.name.endsWith('.test.ts'))
-      .map(e => join(e.path, e.name));
+      .map(e => join(e.path, e.name))
+      .filter(filePath => !filePath.includes('/nodes/'));  // Exclude generated node files
   }
 
 }
