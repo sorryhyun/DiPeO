@@ -56,8 +56,12 @@ class {{ model.name }}({{ model.bases|join(", ") }}):
     {% if model.fields %}
     # Fields
     {% for field in model.fields.values() %}
-    {{ field.name }}: {% if field.required %}{{ field.type }}{% else %}{% if field.type.startswith('Optional[') %}{{ field.type }}{% else %}Optional[{{ field.type }}]{% endif %}{% endif %}{% if field.field_definition %} = {{ field.field_definition }}{% else %}{% if not field.required %} = None{% endif %}{% endif %}
-
+    {{ field.name }}: {%- if field.required %} {{ field.type }}
+    {%- else %} {% if field.type.startswith('Optional[') %}{{ field.type }}{% else %}Optional[{{ field.type }}]{% endif %}
+    {%- endif -%}
+    {%- if field.field_definition %} = {{ field.field_definition }}
+    {%- elif not field.required %} = None
+    {%- endif %}
     {% endfor %}
     {% else %}
     pass

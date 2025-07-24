@@ -1,8 +1,9 @@
 """Pure generator for frontend node configuration."""
 from typing import Dict, Any
-from ...shared.template_env import create_template_env
-from ...shared.spec_loader import group_fields_by_category
-from ..utils.react_helpers import (
+from files.codegen.code.shared.template_env import create_template_env
+from files.codegen.code.shared.spec_loader import group_fields_by_category
+from files.codegen.code.shared.filters import camel_case, pascal_case
+from files.codegen.code.frontend.utils.react_helpers import (
     get_field_component,
     get_field_props,
     get_icon_for_node_type,
@@ -24,14 +25,20 @@ def generate_node_config(spec_data: Dict[str, Any], template_content: str) -> st
     """
     env = create_template_env()
     
+    # Get node type from spec
+    node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
+    
     # Add UI-specific transformations
     config_spec = {
         **spec_data,
+        'nodeType': node_type,
+        'nodeTypeCamel': camel_case(node_type),
+        'nodeTypePascal': pascal_case(node_type),
         'field_groups': group_fields_by_category(spec_data),
         'default_values': calculate_default_form_values(spec_data.get('fields', [])),
-        'icon': get_icon_for_node_type(spec_data.get('type', '')),
-        'color': get_node_color(spec_data.get('type', '')),
-        'config_name': f"{spec_data.get('type', 'unknown').replace('_', '')}NodeConfig",
+        'icon': spec_data.get('icon', '🔧'),
+        'color': spec_data.get('color', '#6366f1'),
+        'config_name': f"{camel_case(node_type)}NodeConfig",
     }
     
     # Process fields for UI components
@@ -39,13 +46,12 @@ def generate_node_config(spec_data: Dict[str, Any], template_content: str) -> st
         field['component'] = get_field_component(field)
         field['props'] = get_field_props(field)
     
-    # Add handle configuration
-    config_spec['handles'] = {
-        'inputs': spec_data.get('inputs', 1),
-        'outputs': spec_data.get('outputs', 1),
-        'input_labels': spec_data.get('input_labels', []),
-        'output_labels': spec_data.get('output_labels', []),
-    }
+    # Add handle configuration - use the actual handles from spec
+    if 'handles' not in spec_data:
+        config_spec['handles'] = {
+            'inputs': [{'id': 'input', 'label': ''}],
+            'outputs': [{'id': 'output', 'label': ''}],
+        }
     
     # Add behavior configuration
     config_spec['behavior'] = {
@@ -84,8 +90,9 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     generated_code = generate_node_config(spec_data, template_content)
     
     # Generate filename from node type
-    node_type = spec_data.get('type', 'unknown')
-    filename = f"{node_type}Config.ts"
+    node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
+    node_name = pascal_case(node_type)
+    filename = f"{node_name}Config.ts"
     
     return {
         'generated_code': generated_code,

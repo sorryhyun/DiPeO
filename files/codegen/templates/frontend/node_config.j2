@@ -1,6 +1,6 @@
 // Auto-generated node configuration for {{ nodeType }}
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeTypeCamel }}FieldConfigs';
+import { {{ nodeTypeCamel }}Fields } from '../{{ nodeTypePascal }}Fields';
 import { {{ icon | emoji_to_icon }} } from 'lucide-react';
 
 export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
@@ -12,14 +12,14 @@ export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
 {% if handles.inputs %}
     input: [
 {% for input in handles.inputs %}
-      { id: '{{ input.id | default('input') }}', label: '{{ input.label | default('') }}' },
+      { id: '{{ input.id | default('input') }}', label: '{{ input.label | default('') }}', position: '{{ input.position | default('left') }}' },
 {% endfor %}
     ],
 {% endif %}
 {% if handles.outputs %}
     output: [
 {% for output in handles.outputs %}
-      { id: '{{ output.id | default('output') }}', label: '{{ output.label | default('') }}' },
+      { id: '{{ output.id | default('output') }}', label: '{{ output.label | default('') }}', position: '{{ output.position | default('right') }}' },
 {% endfor %}
     ],
 {% endif %}

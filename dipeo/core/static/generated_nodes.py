@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List, Union, Literal
 from dipeo.models.models import (
     NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
-    NotionOperation, HookType, PersonLLMConfig, LLMService
+    NotionOperation, HookType, PersonLLMConfig, LLMService, DiagramFormat
 )
 
 
@@ -279,6 +279,7 @@ class TypescriptAstNode(BaseExecutableNode):
 class SubDiagramNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.sub_diagram, init=False)
     diagram_name: Optional[str] = None
+    diagram_format: Optional[DiagramFormat] = None
     diagram_data: Optional[Dict[str, Any]] = None
     input_mapping: Optional[Dict[str, str]] = None
     output_mapping: Optional[Dict[str, str]] = None
@@ -290,6 +291,7 @@ class SubDiagramNode(BaseExecutableNode):
         """Convert node to dictionary representation."""
         data = super().to_dict()
         data["diagram_name"] = self.diagram_name
+        data["diagram_format"] = self.diagram_format
         data["diagram_data"] = self.diagram_data
         data["input_mapping"] = self.input_mapping
         data["output_mapping"] = self.output_mapping
@@ -516,6 +518,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             diagram_name=data.get("diagram_name"),
+            diagram_format=data.get("diagram_format"),
             diagram_data=data.get("diagram_data"),
             input_mapping=data.get("input_mapping"),
             output_mapping=data.get("output_mapping"),

@@ -11,15 +11,29 @@ def build_validators(spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         
         # Custom validation logic
         if field.get('validation'):
-            for rule in field['validation']:
-                validator = {
-                    'name': f"validate_{field_name}_{rule['type']}",
-                    'field': field_name,
-                    'type': rule['type'],
-                    'params': rule.get('params', {}),
-                    'message': rule.get('message', f"Validation failed for {field_name}")
-                }
-                validators.append(validator)
+            validation = field['validation']
+            # Check if validation is a list of rules or a single validation object
+            if isinstance(validation, list):
+                for rule in validation:
+                    validator = {
+                        'name': f"validate_{field_name}_{rule['type']}",
+                        'field': field_name,
+                        'type': rule['type'],
+                        'params': rule.get('params', {}),
+                        'message': rule.get('message', f"Validation failed for {field_name}")
+                    }
+                    validators.append(validator)
+            elif isinstance(validation, dict):
+                # Handle single validation object (e.g., itemType)
+                if 'itemType' in validation:
+                    validator = {
+                        'name': f"validate_{field_name}_items",
+                        'field': field_name,
+                        'type': 'array_items',
+                        'params': {'item_type': validation['itemType']},
+                        'message': f"Array items must be of type {validation['itemType']}"
+                    }
+                    validators.append(validator)
         
         # Cross-field validation
         if field.get('depends_on'):

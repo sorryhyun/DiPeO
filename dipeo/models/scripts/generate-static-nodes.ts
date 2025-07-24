@@ -139,6 +139,7 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
     nodeType: 'sub_diagram',
     fields: [
       { tsName: 'diagram_name', pyName: 'diagram_name' },
+      { tsName: 'diagram_format', pyName: 'diagram_format' },
       { tsName: 'diagram_data', pyName: 'diagram_data' },
       { tsName: 'input_mapping', pyName: 'input_mapping' },
       { tsName: 'output_mapping', pyName: 'output_mapping' },
@@ -400,7 +401,7 @@ class StaticNodeGenerator {
     lines.push('from dipeo.models.models import (');
     lines.push('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,');
     lines.push('    HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,');
-    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService');
+    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService, DiagramFormat');
     lines.push(')');
     lines.push('');
     lines.push('');

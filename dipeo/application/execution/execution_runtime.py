@@ -54,6 +54,7 @@ class ExecutionRuntime(StateTransitionMixin):
         self._node_states: dict[NodeID, NodeState] = {}
         self._current_node_id: list[Optional[NodeID]] = [None]  # Mutable reference
         self.metadata: dict[str, Any] = {}  # Metadata for execution context
+        self._variables: dict[str, Any] = execution_state.variables or {}  # Store execution variables
         
         # Components
         self._tracker = ExecutionTracker()
@@ -98,6 +99,10 @@ class ExecutionRuntime(StateTransitionMixin):
         
         # Any nodes ready to run?
         return len(self.get_ready_nodes()) == 0
+    
+    def get_variables(self) -> dict[str, Any]:
+        """Get execution variables."""
+        return self._variables.copy()
     
     
     # ========== ExecutionContext Protocol Implementation ==========

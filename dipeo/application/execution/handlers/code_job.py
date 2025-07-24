@@ -107,13 +107,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         if node.code:
             # Handle inline code execution
             request.add_metadata("inline_code", True)
-            
-            # Log execution details
-            logger.info(f"Executing code_job: {node.label} (inline)")
-            logger.debug(f"Language: {language}")
-            logger.debug(f"Code length: {len(node.code)} characters")
-            logger.debug(f"Inputs: {inputs}")
-            
+
             try:
                 if language == "python":
                     result = await self._execute_inline_python(node.code, inputs, timeout, context, function_name)
@@ -133,13 +127,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         else:
             # Handle file-based execution
             request.add_metadata("filePath", node.filePath)
-            
-            # Log execution details
-            logger.info(f"Executing code_job: {node.label}")
-            logger.debug(f"Language: {language}")
-            logger.debug(f"Source: {node.filePath}")
-            logger.debug(f"Inputs: {inputs}")
-            
+
             # Resolve file path
             file_path = Path(node.filePath)
             if not file_path.is_absolute():
@@ -173,10 +161,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                     error_type=type(e).__name__,
                     metadata={"language": language}
                 )
-                
-        # Log the result
-        logger.debug(f"Result: {result}")
-        
+
         # Return appropriate output type based on result
         if isinstance(result, dict):
             # For dict results, return DataOutput so object content type works
@@ -249,11 +234,17 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         module = importlib.util.module_from_spec(spec)
         
         # Add the file's directory to sys.path temporarily for imports
-        sys_path_added = False
+        sys_path_added = []
         file_dir = str(file_path.parent)
         if file_dir not in sys.path:
             sys.path.insert(0, file_dir)
-            sys_path_added = True
+            sys_path_added.append(file_dir)
+        
+        # Also add project root for relative imports
+        project_root = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+            sys_path_added.append(project_root)
         
         try:
             # Execute the module
@@ -281,8 +272,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             
         finally:
             # Clean up sys.path
-            if sys_path_added:
-                sys.path.remove(file_dir)
+            for path in reversed(sys_path_added):
+                if path in sys.path:
+                    sys.path.remove(path)
 
     async def _execute_typescript(self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main") -> Any:
         """Execute TypeScript file using tsx."""

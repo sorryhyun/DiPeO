@@ -1,7 +1,7 @@
 """Shared template environment creation for codegen."""
 from jinja2 import Environment, BaseLoader
 from typing import Dict, Any
-from .filters import register_custom_filters
+from files.codegen.code.shared.filters import register_custom_filters
 
 
 class StringLoader(BaseLoader):

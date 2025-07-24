@@ -1,6 +1,6 @@
 """Pure generator for static node implementations."""
 from typing import Dict, Any, List
-from ...shared.template_env import create_template_env
+from files.codegen.code.shared.template_env import create_template_env
 
 
 def generate_static_node(spec_data: Dict[str, Any], template_content: str) -> str:
@@ -19,8 +19,8 @@ def generate_static_node(spec_data: Dict[str, Any], template_content: str) -> st
     # Add execution-specific data
     node_spec = {
         **spec_data,
-        'handler_class': f"{spec_data['type'].title().replace('_', '')}NodeHandler",
-        'node_class': f"{spec_data['type'].title().replace('_', '')}Node",
+        'handler_class': f"{spec_data['nodeType'].title().replace('_', '')}NodeHandler",
+        'node_class': f"{spec_data['nodeType'].title().replace('_', '')}Node",
         'execution_logic': _build_execution_logic(spec_data),
         'input_handlers': _build_input_handlers(spec_data),
         'output_handlers': _build_output_handlers(spec_data),
@@ -28,13 +28,19 @@ def generate_static_node(spec_data: Dict[str, Any], template_content: str) -> st
         'imports': _calculate_imports(spec_data),
     }
     
+    # Create context with both original spec and enhanced data
+    context = {
+        **spec_data,  # All original fields (nodeType, displayName, fields, etc.)
+        **node_spec,  # Enhanced node-specific data
+    }
+    
     template = env.from_string(template_content)
-    return template.render(node_spec)
+    return template.render(context)
 
 
 def _build_execution_logic(spec_data: Dict[str, Any]) -> Dict[str, Any]:
     """Build the execution logic structure for the node."""
-    node_type = spec_data.get('type', '')
+    node_type = spec_data.get('nodeType', '')
     
     execution = {
         'pre_execute': [],
@@ -150,7 +156,7 @@ def _build_output_handlers(spec_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     handlers = []
     
     # Output formatting based on node type
-    node_type = spec_data.get('type', '')
+    node_type = spec_data.get('nodeType', '')
     
     if node_type in ['person_job', 'code_job']:
         handlers.append({
@@ -198,7 +204,7 @@ def _build_validation_logic(spec_data: Dict[str, Any]) -> Dict[str, Any]:
             )
     
     # Add type-specific validations
-    node_type = spec_data.get('type', '')
+    node_type = spec_data.get('nodeType', '')
     if node_type == 'api_job':
         validation['pre_validation'].extend([
             "if not node.props.get('url'):",
@@ -223,7 +229,7 @@ def _calculate_imports(spec_data: Dict[str, Any]) -> List[str]:
     ]
     
     # Add type-specific imports
-    node_type = spec_data.get('type', '')
+    node_type = spec_data.get('nodeType', '')
     if node_type == 'person_job':
         imports.append("from dipeo.core.services import LLMService")
     elif node_type == 'code_job':
@@ -249,30 +255,39 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
             - filename: Suggested filename for the output
             - metadata: Handler metadata
     """
-    spec_data = inputs.get('spec_data', {})
-    template_content = inputs.get('template_content', '')
-    
-    if not spec_data:
-        raise ValueError("spec_data is required")
-    if not template_content:
-        raise ValueError("template_content is required")
-    
-    generated_code = generate_static_node(spec_data, template_content)
-    
-    # Generate filename from node type
-    node_type = spec_data.get('type', 'unknown')
-    filename = f"{node_type}_node.py"
-    
-    # Generate metadata
-    metadata = {
-        'node_type': node_type,
-        'handler': f"{node_type}_handler",
-        'validator': f"validate_{node_type}",
-        'executor': f"execute_{node_type}",
-    }
-    
-    return {
-        'generated_code': generated_code,
-        'filename': filename,
-        'metadata': metadata
-    }
+    try:
+        spec_data = inputs.get('spec_data', {})
+        template_content = inputs.get('template_content', '')
+        
+        if not spec_data:
+            raise ValueError("spec_data is required")
+        if not template_content:
+            raise ValueError("template_content is required")
+        
+        generated_code = generate_static_node(spec_data, template_content)
+        
+        # Generate filename from node type
+        node_type = spec_data.get('nodeType', 'unknown')
+        filename = f"{node_type}_node.py"
+        
+        # Generate metadata
+        metadata = {
+            'node_type': node_type,
+            'handler': f"{node_type}_handler",
+            'validator': f"validate_{node_type}",
+            'executor': f"execute_{node_type}",
+        }
+        
+        return {
+            'generated_code': generated_code,
+            'filename': filename,
+            'metadata': metadata
+        }
+    except Exception as e:
+        # Return the error in the expected format for debugging
+        import traceback
+        return {
+            'generated_code': f"# ERROR in static_nodes.py:\n# {str(e)}\n# Traceback:\n# {traceback.format_exc()}",
+            'filename': 'error.py',
+            'metadata': {'error': str(e)}
+        }

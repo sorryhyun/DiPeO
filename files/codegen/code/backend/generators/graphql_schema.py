@@ -1,6 +1,6 @@
 """Pure generator for GraphQL schemas."""
 from typing import Dict, Any, List
-from ...shared.template_env import create_template_env
+from files.codegen.code.shared.template_env import create_template_env
 
 
 def map_to_graphql_type(field_type: str, required: bool = False) -> str:
@@ -58,8 +58,8 @@ def generate_graphql_schema(spec_data: Dict[str, Any], template_content: str) ->
     # Transform spec for GraphQL
     gql_spec = {
         **spec_data,
-        'type_name': f"{spec_data['type'].title().replace('_', '')}Node",
-        'input_type_name': f"{spec_data['type'].title().replace('_', '')}NodeInput",
+        'type_name': f"{spec_data['nodeType'].title().replace('_', '')}Node",
+        'input_type_name': f"{spec_data['nodeType'].title().replace('_', '')}NodeInput",
         'fields': [],
         'enums': [],
         'interfaces': spec_data.get('interfaces', ['Node']),
@@ -114,7 +114,7 @@ def generate_graphql_schema(spec_data: Dict[str, Any], template_content: str) ->
 def _generate_queries(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Generate GraphQL queries for the node type."""
     type_name = spec['type_name']
-    type_lower = spec['type'].replace('_', '')
+    type_lower = spec['nodeType'].replace('_', '')
     
     return [
         {
@@ -181,18 +181,18 @@ def _generate_subscriptions(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
     
     return [
         {
-            'name': f"{spec['type']}Created",
+            'name': f"{spec['nodeType']}Created",
             'return_type': type_name,
             'description': f"Subscribe to new {type_name} creations"
         },
         {
-            'name': f"{spec['type']}Updated",
+            'name': f"{spec['nodeType']}Updated",
             'args': [{'name': 'id', 'type': 'ID'}],
             'return_type': type_name,
             'description': f"Subscribe to {type_name} updates"
         },
         {
-            'name': f"{spec['type']}Deleted",
+            'name': f"{spec['nodeType']}Deleted",
             'return_type': 'ID!',
             'description': f"Subscribe to {type_name} deletions"
         }
@@ -224,7 +224,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     generated_code = generate_graphql_schema(spec_data, template_content)
     
     # Generate filename from node type
-    node_type = spec_data.get('type', 'unknown')
+    node_type = spec_data.get('nodeType', 'unknown')
     filename = f"{node_type}.graphql"
     
     return {

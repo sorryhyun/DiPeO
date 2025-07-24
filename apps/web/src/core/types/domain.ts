@@ -65,7 +65,6 @@ export type {
   PersonJobNodeData,
   EndpointNodeData,
   DBNodeData,
-  JobNodeData,
   CodeJobNodeData,
   ApiJobNodeData,
   UserResponseNodeData,

@@ -1,12 +1,13 @@
 """Pure generator for frontend field configuration."""
 from typing import Dict, Any, List
-from ...shared.template_env import create_template_env
-from ..utils.react_helpers import (
+from files.codegen.code.shared.template_env import create_template_env
+from files.codegen.code.shared.filters import camel_case, pascal_case
+from files.codegen.code.frontend.utils.react_helpers import (
     get_field_component,
     get_field_props,
     group_fields_for_ui
 )
-from ..utils.typescript_mapper import map_to_typescript_type
+from files.codegen.code.frontend.utils.typescript_mapper import map_to_typescript_type
 
 
 def generate_field_config(spec_data: Dict[str, Any], template_content: str) -> str:
@@ -58,12 +59,17 @@ def generate_field_config(spec_data: Dict[str, Any], template_content: str) -> s
     # Sort fields by order, then by name
     field_configs.sort(key=lambda f: (f['order'], f['name']))
     
+    # Get node type from spec
+    node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
+    
     # Prepare context for template
     context = {
         **spec_data,
+        'nodeType': node_type,
+        'nodeTypeCamel': camel_case(node_type),
         'fields': field_configs,
         'field_groups': group_fields_for_ui(field_configs),
-        'config_name': f"{spec_data.get('type', 'unknown').replace('_', '')}FieldConfig",
+        'config_name': f"{camel_case(node_type)}FieldConfig",
         'has_validation': any(f.get('validation') for f in field_configs),
         'has_categories': len(set(f['category'] for f in field_configs)) > 1,
     }
@@ -97,8 +103,9 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     generated_code = generate_field_config(spec_data, template_content)
     
     # Generate filename from node type
-    node_type = spec_data.get('type', 'unknown')
-    filename = f"{node_type}Fields.ts"
+    node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
+    node_name = pascal_case(node_type)
+    filename = f"{node_name}Fields.ts"
     
     return {
         'generated_code': generated_code,

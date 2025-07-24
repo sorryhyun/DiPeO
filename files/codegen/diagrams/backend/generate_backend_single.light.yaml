@@ -4,6 +4,13 @@
 version: light
 
 nodes:
+  # Start node to capture input variables
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+    props:
+      output_type: object
+      
   # Load node specification
   - label: Load Node Spec
     type: db
@@ -20,7 +27,7 @@ nodes:
     props:
       operation: read
       sub_type: file  
-      source_details: files/codegen/templates/backend/pydantic_model.j2
+      source_details: files/codegen/templates/backend/pydantic_single_model.j2
 
   - label: Load GraphQL Template
     type: db
@@ -43,24 +50,24 @@ nodes:
     type: code_job
     position: {x: 400, y: 300}
     props:
-      code_type: file
-      source_details: files/codegen/code/backend/generators/pydantic_model.py
+      language: python
+      filePath: files/codegen/code/backend/generators/pydantic_model.py
       functionName: main
 
   - label: Generate GraphQL Schema
     type: code_job
     position: {x: 400, y: 400}
     props:
-      code_type: file
-      source_details: files/codegen/code/backend/generators/graphql_schema.py
+      language: python
+      filePath: files/codegen/code/backend/generators/graphql_schema.py
       functionName: main
 
   - label: Generate Static Node
     type: code_job
     position: {x: 400, y: 500}
     props:
-      code_type: file
-      source_details: files/codegen/code/backend/generators/static_nodes.py
+      language: python
+      filePath: files/codegen/code/backend/generators/static_nodes.py
       functionName: main
 
   # Extract node type from spec for file paths
@@ -68,11 +75,11 @@ nodes:
     type: code_job
     position: {x: 250, y: 100}
     props:
-      code_type: python
+      language: python
       code: |
         # Extract node type from spec for use in file paths
         spec = spec_data
-        node_type = spec.get('type', 'unknown')
+        node_type = spec.get('nodeType', 'unknown')
         node_name = node_type.title().replace('_', '')
         result = {
             'node_type': node_type,
@@ -86,7 +93,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/models/{node_type}_model.py
+      source_details: dipeo/diagram_generated/models/{node_naming.node_type}_model.py
 
   - label: Write GraphQL Schema
     type: db
@@ -94,7 +101,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/server/src/graphql/schemas/{node_type}.graphql
+      source_details: apps/server/src/__generated__/{node_naming.node_type}.graphql
 
   - label: Write Static Node
     type: db
@@ -102,9 +109,14 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/core/static/generated/{node_type}_node.py
+      source_details: dipeo/diagram_generated/{node_naming.node_type}_node.py
 
 connections:
+  # Pass input variables to DB nodes
+  - from: Start
+    to: Load Node Spec
+    label: input_data
+    
   # Pass spec to extract node type
   - from: Load Node Spec
     to: Extract Node Type

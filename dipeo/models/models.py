@@ -430,6 +430,7 @@ class SubDiagramNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     diagram_name: Optional[str] = Field(default=None)
+    diagram_format: Optional[DiagramFormat] = Field(default=None)
     diagram_data: Optional[Dict[str, Any]] = Field(default=None)
     input_mapping: Optional[Dict[str, Any]] = Field(default=None)
     output_mapping: Optional[Dict[str, Any]] = Field(default=None)

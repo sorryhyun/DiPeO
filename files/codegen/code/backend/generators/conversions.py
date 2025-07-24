@@ -1,6 +1,6 @@
 """Pure generator for model conversions between TypeScript and Python."""
 from typing import Dict, Any, List
-from ...shared.template_env import create_template_env
+from files.codegen.code.shared.template_env import create_template_env
 
 
 def generate_conversions(pydantic_models: List[Dict[str, Any]], template_content: str) -> str:

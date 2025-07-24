@@ -1,7 +1,7 @@
 """Pure generator for TypeScript node models."""
 from typing import Dict, Any
-from ...shared.template_env import create_template_env
-from ..utils.typescript_mapper import (
+from files.codegen.code.shared.template_env import create_template_env
+from files.codegen.code.frontend.utils.typescript_mapper import (
     map_to_typescript_type,
     calculate_typescript_imports,
     get_typescript_default,
@@ -22,14 +22,18 @@ def generate_typescript_model(spec_data: Dict[str, Any], template_content: str) 
     """
     env = create_template_env()
     
+    # Get node type from spec
+    node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
+    
     # Transform spec for TypeScript
     ts_spec = {
         **spec_data,
+        'nodeType': node_type,
         'imports': calculate_typescript_imports(spec_data),
         'type_mappings': {},
         'default_values': {},
         'zod_schemas': {},
-        'interface_name': f"{spec_data['type'].title().replace('_', '')}Node",
+        'interface_name': f"{node_type.title().replace('_', '')}Node",
     }
     
     # Process each field
@@ -84,8 +88,9 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     generated_code = generate_typescript_model(spec_data, template_content)
     
     # Generate filename from node type
-    node_type = spec_data.get('type', 'unknown')
-    filename = f"{node_type.title().replace('_', '')}Node.ts"
+    node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
+    node_name = node_type.title().replace('_', '')
+    filename = f"{node_name}Node.ts"
     
     return {
         'generated_code': generated_code,

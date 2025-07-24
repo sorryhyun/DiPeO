@@ -1,0 +1,24 @@
+# Auto-generated Pydantic model for {{ nodeType }} node
+
+from typing import Optional, Dict, Any, List
+from pydantic import BaseModel, Field
+
+{% if nodeType == 'person_job' %}
+from dipeo.models import PersonID, MemoryConfig, MemorySettings, ToolConfig
+{% endif %}
+
+
+class {{ nodeType | pascal_case }}NodeData(BaseModel):
+    """Data model for {{ displayName | default(nodeType) }} node."""
+{% for field in fields %}
+    {{ field.name }}: {%- if field.required %} {{ field | python_type }}
+    {%- else %} Optional[{{ field | python_type }}]
+    {%- endif -%}
+    {%- if field.description %} = Field(description="{{ field.description }}")
+    {%- elif not field.required %} = None
+    {%- endif %}
+{% endfor %}
+
+    class Config:
+        extra = "forbid"
+        validate_assignment = True

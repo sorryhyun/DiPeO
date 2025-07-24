@@ -4,6 +4,15 @@
 version: light
 
 nodes:
+  # Start node to capture input variables
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+    props:
+      output_type: object
+      custom_data:
+        node_spec_path: "{node_spec_path}"
+
   # Load node specification
   - label: Load Node Spec
     type: db
@@ -43,24 +52,24 @@ nodes:
     type: code_job
     position: {x: 400, y: 300}
     props:
-      code_type: file
-      source_details: files/codegen/code/frontend/generators/typescript_model.py
+      language: python
+      filePath: files/codegen/code/frontend/generators/typescript_model.py
       functionName: main
   
   - label: Generate Node Config
     type: code_job
     position: {x: 400, y: 400}
     props:
-      code_type: file
-      source_details: files/codegen/code/frontend/generators/node_config.py
+      language: python
+      filePath: files/codegen/code/frontend/generators/node_config.py
       functionName: main
 
   - label: Generate Field Config
     type: code_job
     position: {x: 400, y: 500}
     props:
-      code_type: file
-      source_details: files/codegen/code/frontend/generators/field_config.py
+      language: python
+      filePath: files/codegen/code/frontend/generators/field_config.py
       functionName: main
 
   # Extract node type from spec for file paths
@@ -68,12 +77,13 @@ nodes:
     type: code_job
     position: {x: 250, y: 100}
     props:
-      code_type: python
+      language: python
       code: |
         # Extract node type from spec for use in file paths
+        from files.codegen.code.shared.filters import pascal_case
         spec = spec_data
-        node_type = spec.get('type', 'unknown')
-        node_name = node_type.title().replace('_', '')
+        node_type = spec.get('nodeType', 'unknown')
+        node_name = pascal_case(node_type)
         result = {
             'node_type': node_type,
             'node_name': node_name
@@ -86,7 +96,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/models/src/nodes/{node_name}Node.ts
+      source_details: apps/web/src/__generated__/{node_naming.node_name}Node.ts
   
   - label: Write Node Config
     type: db
@@ -94,7 +104,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/web/src/features/diagram-editor/config/nodes/{node_type}Config.ts
+      source_details: apps/web/src/__generated__/nodes/{node_naming.node_name}Config.ts
 
   - label: Write Field Config
     type: db
@@ -102,9 +112,14 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/web/src/core/config/fields/{node_type}Fields.ts
+      source_details: apps/web/src/__generated__/{node_naming.node_name}Fields.ts
 
 connections:
+  # Pass input variables to DB nodes
+  - from: Start
+    to: Load Node Spec
+    label: input_data
+    
   # Pass spec to extract node type
   - from: Load Node Spec
     to: Extract Node Type

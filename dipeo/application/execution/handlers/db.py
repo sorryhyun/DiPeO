@@ -11,6 +11,7 @@ from dipeo.application.unified_service_registry import DB_OPERATIONS_SERVICE
 from dipeo.core.static.generated_nodes import DBNode
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
 from dipeo.models import DBNodeData, NodeType
+from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -79,26 +80,49 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
         """Run the DB operation with a strongly-typed `DBNode` instance."""
-        # Log the operation details
-        logger.info(f"DB operation: {node.operation} on {node.file}")
-        logger.debug(f"Input values: {inputs}")
+        # Resolve placeholders in file path
+        file_path = node.file
+        if file_path and '{' in file_path and '}' in file_path:
+            # Get execution variables from context
+            variables = {}
+            if hasattr(context, 'get_variables'):
+                variables = context.get_variables()
+            
+            # Merge input values with context variables
+            # Input values take precedence over context variables
+            merged_variables = {**variables, **inputs}
+            
+            # Use TemplateProcessor to resolve single-brace placeholders
+            template_processor = TemplateProcessor()
+            file_path = template_processor.process_single_brace(file_path, merged_variables)
+
         
         # Get service from services dict
         db_service = services.get(DB_OPERATIONS_SERVICE.name)
         if db_service is None:  # Hard failure early
             raise RuntimeError("db_operations_service not available")
 
-        input_val = self._first_non_empty(inputs)
-        logger.debug(f"Using input value: {input_val}")
+        # For write operations, prefer specific input keys
+        if node.operation == "write":
+            # Try common keys for write content
+            input_val = inputs.get('generated_code') or inputs.get('content') or inputs.get('value') or self._first_non_empty(inputs)
+            
+            # If input_val is a dictionary, try to extract the actual content
+            if isinstance(input_val, dict):
+                # Try to extract the actual code/content from common keys
+                actual_content = input_val.get('generated_code') or input_val.get('content') or input_val.get('value')
+                if actual_content is not None:
+                    input_val = actual_content
+        else:
+            input_val = self._first_non_empty(inputs)
 
         try:
             result = await db_service.execute_operation(
-                db_name=node.file,
+                db_name=file_path,
                 operation=node.operation,
                 value=input_val,
             )
-            logger.debug(f"Result: {result}")
-            
+
             # ----------------- Format output ----------------- #
             if node.operation == "read":
                 output_value = result["value"]

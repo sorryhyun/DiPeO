@@ -84,10 +84,10 @@ def _generate_imports(registry_entries: List[Dict[str, Any]]) -> List[str]:
         imports.append(f"import {{ {pascal_case}NodeComponent }} from '../components/nodes/{pascal_case}Node';")
         
         # Import config
-        imports.append(f"import {{ {node_type}Config }} from './nodes/{node_type}Config';")
+        imports.append(f"import {{ {node_type}Config }} from './nodes/{pascal_case}Config';")
         
         # Import fields
-        imports.append(f"import {{ {node_type}Fields }} from '../core/config/fields/{node_type}Fields';")
+        imports.append(f"import {{ {node_type}Fields }} from '../core/config/fields/{pascal_case}Fields';")
     
     # Add icon imports
     unique_icons = set(entry.get('icon', 'BoxIcon') for entry in registry_entries)

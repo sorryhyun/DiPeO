@@ -9,14 +9,13 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.core.static.generated_nodes import SubDiagramNode
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
-from dipeo.models import NodeType, ExecutionStatus
+from dipeo.models import NodeType
 from dipeo.models.models import SubDiagramNodeData
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
     from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
 
@@ -68,7 +67,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def execute_request(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute the sub-diagram node."""
         node = request.node
-        context = request.context
         
         # Log execution start
         log.info(f"Executing sub_diagram: {node.label}")
@@ -90,159 +88,59 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Load the diagram to execute
             diagram_data = await self._load_diagram(node, diagram_loader)
             
-            # Prepare execution options
+            # Prepare execution options - simple like CLI does it
             options = {
-                "variables": {},  # Initialize with empty variables
+                "variables": request.inputs or {},  # Pass inputs directly as variables
                 "parent_execution_id": request.execution_id,
                 "is_sub_diagram": True
             }
             
-            # Pass inputs as variables to the sub-diagram
-            if request.inputs:
-                # Flatten inputs into variables
-                for key, value in request.inputs.items():
-                    if isinstance(value, dict) and "value" in value:
-                        # Extract value from wrapped inputs
-                        options["variables"][key] = value["value"]
-                    else:
-                        options["variables"][key] = value
-            
-            # Add any additional variables from the node configuration
-            if node.input_mapping:
-                for target_key, source_key in node.input_mapping.items():
-                    if source_key in request.inputs:
-                        value = request.inputs[source_key]
-                        if isinstance(value, dict) and "value" in value:
-                            options["variables"][target_key] = value["value"]
-                        else:
-                            options["variables"][target_key] = value
-            
             # Create a unique execution ID for the sub-diagram
-            import uuid
-            sub_execution_id = f"{request.execution_id}_sub_{uuid.uuid4().hex[:8]}"
+            sub_execution_id = self._create_sub_execution_id(request.execution_id)
             
             # Execute the sub-diagram using the execute_diagram use case
-            from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
             from dipeo.application.unified_service_registry import UnifiedServiceRegistry
             
-            # Use the new infrastructure with parent context from ExecutionRequest
-            container = request.parent_container
+            # Get service registry from request or runtime
             service_registry = request.parent_registry
-            
-            # If not provided in request, fall back to runtime
-            if not container and request.runtime:
-                container = request.runtime._container
-                log.debug(f"Got container from runtime for sub-diagram {node.id}")
-            
             if not service_registry and request.runtime:
                 service_registry = request.runtime._service_registry
-                log.debug(f"Got service registry from runtime for sub-diagram {node.id}")
             
-            # Create hierarchical service registry for sub-diagram
-            if service_registry:
-                # Create a child registry that can selectively override services
-                sub_registry = request.create_sub_registry()
-                if sub_registry:
-                    service_registry = sub_registry
-                    log.debug(f"Created hierarchical service registry for sub-diagram {node.id}")
-            else:
-                # Fallback: create minimal registry (test scenarios)
-                log.warning(f"Creating minimal service registry for sub-diagram {node.id}")
+            # For tests, create minimal registry if needed
+            if not service_registry:
                 service_registry = UnifiedServiceRegistry()
-                # Add all services from request.services dict
                 for service_name, service in request.services.items():
                     service_registry.register(service_name, service)
-                # Ensure diagram_storage_service is available
-                if diagram_loader:
-                    service_registry.register("diagram_storage_service", diagram_loader)
-                    service_registry.register("diagram_loader", diagram_loader)
+            
+            # Get container from request or runtime
+            container = request.parent_container
+            if not container and request.runtime:
+                container = request.runtime._container
             
             # Create the execution use case with the inherited services
             execute_use_case = ExecuteDiagramUseCase(
                 service_registry=service_registry,
                 state_store=state_store,
                 message_router=message_router,
-                diagram_storage_service=diagram_loader,  # Pass diagram_loader explicitly
-                container=container  # Pass container for sub-diagram isolation
+                diagram_storage_service=diagram_loader,
+                container=container
             )
             
-            # Try to get observers from the execution context/options
-            # This requires the parent execution to pass observers via options
+            # Get parent observers if available
             parent_observers = options.get("observers", [])
-            
-            # Create scoped observers for sub-diagram execution
-            from dipeo.application.execution.observers import create_scoped_observers
-            scoped_observers = create_scoped_observers(
-                observers=parent_observers,
-                parent_execution_id=request.execution_id,
-                sub_execution_id=sub_execution_id,
-                inherit_all=True  # Can be configured via node.config if needed
-            )
             
             # Log sub-diagram execution start
             log.info(f"Starting sub-diagram execution: {sub_execution_id}")
             request.add_metadata("sub_execution_id", sub_execution_id)
             
-            # If we have a container, create a sub-container for this sub-diagram
-            sub_container = None
-            if container and hasattr(container, 'create_sub_container'):
-                # Get configuration for sub-diagram isolation from node config
-                config_overrides = {}
-                if node.config and isinstance(node.config, dict):
-                    config_overrides = node.config.get('isolation', {})
-                
-                # Check if we need to isolate conversation based on node configuration
-                if node.isolate_conversation:
-                    config_overrides['isolate_conversation'] = True
-                
-                try:
-                    sub_container = container.create_sub_container(
-                        parent_execution_id=request.execution_id,
-                        sub_execution_id=sub_execution_id,
-                        config_overrides=config_overrides
-                    )
-                    if sub_container:
-                        log.info(f"Created sub-container for sub-diagram {node.id}")
-                        # Update the execute_use_case to use the sub-container
-                        execute_use_case.container = sub_container
-                        
-                        # If conversation is isolated, override the conversation service
-                        if node.isolate_conversation and service_registry:
-                            # Get the new conversation manager from sub-container
-                            new_conversation_manager = sub_container.dynamic.conversation_manager()
-                            service_registry.override('conversation_manager', new_conversation_manager)
-                            service_registry.override('conversation_service', new_conversation_manager)
-                            log.info(f"Isolated conversation for sub-diagram {node.id}")
-                except Exception as e:
-                    log.warning(f"Failed to create sub-container: {e}")
-            
-            # Collect results from the sub-diagram execution
-            execution_results = {}
-            execution_error = None
-            
-            async for update in execute_use_case.execute_diagram(
-                diagram=diagram_data,
+            # Execute the sub-diagram and collect results
+            execution_results, execution_error = await self._execute_sub_diagram(
+                execute_use_case=execute_use_case,
+                diagram_data=diagram_data,
                 options=options,
-                execution_id=sub_execution_id,
-                interactive_handler=None,
-                observers=scoped_observers  # Pass scoped observers to sub-diagram
-            ):
-                # Process execution updates
-                if update.get("type") == "node_complete":
-                    # Collect outputs from completed nodes
-                    node_id = update.get("node_id")
-                    node_output = update.get("output")
-                    if node_id and node_output:
-                        execution_results[node_id] = node_output
-                
-                elif update.get("type") == "execution_complete":
-                    log.info(f"Sub-diagram execution completed: {sub_execution_id}")
-                    break
-                
-                elif update.get("type") == "execution_error":
-                    execution_error = update.get("error", "Unknown error")
-                    log.error(f"Sub-diagram execution failed: {execution_error}")
-                    break
+                sub_execution_id=sub_execution_id,
+                parent_observers=parent_observers
+            )
             
             # Handle execution error
             if execution_error:
@@ -292,126 +190,125 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         if not node.diagram_name:
             raise ValueError("No diagram specified for execution")
         
-        # Check if diagram loader is available
         if not diagram_loader:
             raise ValueError("Diagram loader not available")
         
-        # Normalize the diagram name
+        # Construct file path based on diagram name and format
         diagram_name = node.diagram_name
+        format_suffix = ".light.yaml"  # Default format
         
-        # Remove any file extension if present
-        for ext in ['.light.yaml', '.native.json', '.readable.yaml', '.yaml', '.json']:
-            if diagram_name.endswith(ext):
-                diagram_name = diagram_name[:-len(ext)]
-                break
+        if node.diagram_format:
+            format_map = {
+                'light': '.light.yaml',
+                'native': '.native.json',
+                'readable': '.readable.yaml'
+            }
+            format_suffix = format_map.get(node.diagram_format, '.light.yaml')
         
-        # Use the integrated diagram service to load the diagram
-        # This service handles format detection and conversion properly
+        # Construct full file path
+        if diagram_name.startswith('codegen/'):
+            file_path = f"files/{diagram_name}{format_suffix}"
+        else:
+            file_path = f"files/diagrams/{diagram_name}{format_suffix}"
+        
         try:
-            # Try to get the integrated diagram service from the file service
+            # Get the file service from diagram loader to read the file
             file_service = getattr(diagram_loader, 'file_service', None)
-            if file_service:
-                # Read the diagram file directly using file service
-                # Try different formats in order of preference
-                formats = ['light.yaml', 'native.json', 'readable.yaml']
-                
-                for fmt in formats:
-                    try:
-                        file_path = f"files/diagrams/{diagram_name}.{fmt}"
-                        result = file_service.read(file_path)
-                        
-                        if result.get("success") and result.get("content"):
-                            content = result["content"]
-                            
-                            # If content is already a dict (parsed YAML/JSON), use it directly
-                            if isinstance(content, dict):
-                                # Validate it's a proper diagram format
-                                if "nodes" in content and ("connections" in content or "flow" in content):
-                                    log.info(f"Successfully loaded sub-diagram from: {file_path}")
-                                    return content
-                            # If content is a string, parse it based on format
-                            elif isinstance(content, str):
-                                if fmt.endswith('.yaml'):
-                                    import yaml
-                                    diagram_dict = yaml.safe_load(content)
-                                elif fmt.endswith('.json'):
-                                    import json
-                                    diagram_dict = json.loads(content)
-                                else:
-                                    continue
-                                
-                                if isinstance(diagram_dict, dict) and "nodes" in diagram_dict:
-                                    log.info(f"Successfully loaded and parsed sub-diagram from: {file_path}")
-                                    return diagram_dict
-                    except Exception as e:
-                        log.debug(f"Failed to load {file_path}: {str(e)}")
-                        continue
-                
-                raise ValueError(f"Unable to load diagram '{diagram_name}' in any format")
-            else:
-                # Fallback: try using the diagram loader's prepare_diagram method
-                # This might work if it's an IntegratedDiagramService
+            if not file_service:
                 raise ValueError("File service not available in diagram loader")
-                
+            
+            # Read the diagram file
+            result = file_service.read(file_path)
+            if not result.get("success") or not result.get("content"):
+                raise ValueError(f"Failed to read diagram file: {file_path}")
+            
+            content = result["content"]
+            
+            # If content is already a dict (parsed YAML/JSON), return it
+            if isinstance(content, dict):
+                log.info(f"Successfully loaded sub-diagram from: {file_path}")
+                return content
+            
+            # Otherwise parse based on format
+            if file_path.endswith('.yaml'):
+                import yaml
+                diagram_dict = yaml.safe_load(content)
+            elif file_path.endswith('.json'):
+                import json
+                diagram_dict = json.loads(content)
+            else:
+                raise ValueError(f"Unknown file format: {file_path}")
+            
+            log.info(f"Successfully loaded sub-diagram from: {file_path}")
+            return diagram_dict
         except Exception as e:
-            log.error(f"Error loading diagram '{diagram_name}': {str(e)}")
-            raise ValueError(f"Failed to load diagram '{diagram_name}': {str(e)}")
+            log.error(f"Error loading diagram from '{file_path}': {str(e)}")
+            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {str(e)}")
     
     def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> dict[str, Any]:
         """Process output mapping from sub-diagram results."""
-        output = {}
+        # Simple output - just return all results
+        if not execution_results:
+            return {}
         
-        # If no output mapping specified, return all results
-        if not node.output_mapping:
-            return {"results": execution_results}
+        # Find endpoint outputs
+        endpoint_outputs = {
+            k: v for k, v in execution_results.items() 
+            if k.startswith("endpoint") or k.startswith("end")
+        }
         
-        # Apply output mapping
-        for output_key, source_path in node.output_mapping.items():
-            # source_path might be like "node_id.output_field"
-            parts = source_path.split(".", 1)
+        if endpoint_outputs:
+            # If there's one endpoint, return its value directly
+            if len(endpoint_outputs) == 1:
+                return list(endpoint_outputs.values())[0]
+            # Multiple endpoints, return all
+            return endpoint_outputs
+        
+        # No endpoints, return the last output
+        return list(execution_results.values())[-1] if execution_results else {}
+    
+    def _create_sub_execution_id(self, parent_execution_id: str) -> str:
+        """Create a unique execution ID for sub-diagram."""
+        import uuid
+        return f"{parent_execution_id}_sub_{uuid.uuid4().hex[:8]}"
+    
+    async def _execute_sub_diagram(
+        self,
+        execute_use_case: "ExecuteDiagramUseCase",
+        diagram_data: dict[str, Any],
+        options: dict[str, Any],
+        sub_execution_id: str,
+        parent_observers: list[Any]
+    ) -> tuple[dict[str, Any], Optional[str]]:
+        """Execute the sub-diagram and return results and any error."""
+        execution_results = {}
+        execution_error = None
+        
+        async for update in execute_use_case.execute_diagram(
+            diagram=diagram_data,
+            options=options,
+            execution_id=sub_execution_id,
+            interactive_handler=None,
+            observers=parent_observers
+        ):
+            # Process execution updates
+            if update.get("type") == "node_complete":
+                # Collect outputs from completed nodes
+                node_id = update.get("node_id")
+                node_output = update.get("output")
+                if node_id and node_output:
+                    execution_results[node_id] = node_output
             
-            if len(parts) == 1:
-                # Direct node output
-                node_id = parts[0]
-                if node_id in execution_results:
-                    output[output_key] = execution_results[node_id]
-            else:
-                # Nested field access
-                node_id, field_path = parts
-                if node_id in execution_results:
-                    result = execution_results[node_id]
-                    
-                    # Navigate to the field
-                    try:
-                        value = result
-                        for field in field_path.split("."):
-                            if isinstance(value, dict):
-                                value = value.get(field)
-                            else:
-                                value = None
-                                break
-                        
-                        if value is not None:
-                            output[output_key] = value
-                    except Exception as e:
-                        log.warning(f"Failed to extract field {field_path} from node {node_id}: {e}")
-        
-        # Include default output if specified
-        if "default" not in output and execution_results:
-            # Try to find endpoint nodes or the last executed node
-            endpoint_outputs = {
-                k: v for k, v in execution_results.items() 
-                if k.startswith("endpoint") or k.startswith("end")
-            }
+            elif update.get("type") == "execution_complete":
+                log.info(f"Sub-diagram execution completed: {sub_execution_id}")
+                break
             
-            if endpoint_outputs:
-                # Use the first endpoint output as default
-                output["default"] = list(endpoint_outputs.values())[0]
-            else:
-                # Use the last output as default
-                output["default"] = list(execution_results.values())[-1]
+            elif update.get("type") == "execution_error":
+                execution_error = update.get("error", "Unknown error")
+                log.error(f"Sub-diagram execution failed: {execution_error}")
+                break
         
-        return output
+        return execution_results, execution_error
     
     def post_execute(
         self,

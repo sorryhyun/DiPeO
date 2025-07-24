@@ -1,0 +1,58 @@
+# Simple child diagram that uses variables for DB node placeholders
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      custom_data:
+        # These variables come from parent and are needed for DB placeholder resolution
+        node_spec_path: "{node_spec_path}"
+        test_message: "{test_message}"
+    
+  - label: Use DB with Placeholder
+    type: db
+    position: {x: 250, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      # This placeholder should resolve using variables from parent
+      source_details: files/codegen/specifications/nodes/{node_spec_path}.json
+      
+  - label: Process Result
+    type: code_job
+    position: {x: 450, y: 200}
+    props:
+      code_type: python
+      code: |
+        # file_info comes from the DB node
+        print(f"Successfully read file for: {file_info.get('path', 'unknown')}")
+        print(f"File exists: {file_info.get('exists', False)}")
+        
+        # Variables from parent are available
+        print(f"node_spec_path: {globals().get('node_spec_path', 'not found')}")
+        print(f"test_message: {globals().get('test_message', 'not found')}")
+        
+        result = {
+            'status': 'success',
+            'file_path': file_info.get('path'),
+            'variables_worked': True
+        }
+      
+  - label: End
+    type: endpoint
+    position: {x: 650, y: 200}
+
+connections:
+  - from: Start
+    to: Use DB with Placeholder
+    
+  - from: Use DB with Placeholder
+    to: Process Result
+    label: file_info
+    
+  - from: Process Result
+    to: End
+    label: result
