@@ -67,8 +67,7 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/specifications/nodes/{node_spec_path}.json
-    id: load_spec
-  
+      
   # Load frontend templates
   - label: Load TypeScript Template
     type: db
@@ -77,7 +76,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/templates/frontend/typescript_model.j2
-    id: load_ts_template
   
   - label: Load Node Config Template
     type: db
@@ -86,7 +84,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/templates/frontend/node_config.j2
-    id: load_config_template
 
   - label: Load Field Config Template
     type: db
@@ -95,7 +92,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/templates/frontend/field_config.j2
-    id: load_field_template
 
   # Generate frontend code
   - label: Generate TypeScript Model
@@ -104,7 +100,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/frontend/generators/typescript_model.py
-    id: gen_typescript
   
   - label: Generate Node Config
     type: code_job
@@ -112,7 +107,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/frontend/generators/node_config.py
-    id: gen_config
 
   - label: Generate Field Config
     type: code_job
@@ -120,7 +114,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/frontend/generators/field_config.py
-    id: gen_field
 
   # Write frontend outputs
   - label: Write TypeScript Model
@@ -130,7 +123,6 @@ nodes:
       operation: write
       sub_type: file
       source_details: dipeo/models/src/nodes/{node_name}Node.ts
-    id: write_ts
   
   - label: Write Node Config
     type: db
@@ -139,7 +131,6 @@ nodes:
       operation: write
       sub_type: file
       source_details: apps/web/src/features/diagram-editor/config/nodes/{node_name}Config.ts
-    id: write_config
 
   - label: Write Field Config
     type: db
@@ -148,32 +139,31 @@ nodes:
       operation: write
       sub_type: file
       source_details: apps/web/src/core/config/fields/{node_name}Fields.ts
-    id: write_field
 
 connections:
   # Connect spec and templates to generators
-  - source: Load Node Spec.out
-    target: Generate TypeScript Model.spec_data
-  - source: Load TypeScript Template.out
-    target: Generate TypeScript Model.template_content
+  - from: Load Node Spec
+    to: Generate TypeScript Model.spec_data
+  - from: Load TypeScript Template
+    to: Generate TypeScript Model.template_content
   
-  - source: Load Node Spec.out
-    target: Generate Node Config.spec_data
-  - source: Load Node Config Template.out
-    target: Generate Node Config.template_content
+  - from: Load Node Spec
+    to: Generate Node Config.spec_data
+  - from: Load Node Config Template
+    to: Generate Node Config.template_content
 
-  - source: Load Node Spec.out
-    target: Generate Field Config.spec_data
-  - source: Load Field Config Template.out
-    target: Generate Field Config.template_content
+  - from: Load Node Spec
+    to: Generate Field Config.spec_data
+  - from: Load Field Config Template
+    to: Generate Field Config.template_content
   
   # Connect generators to writers
-  - source: Generate TypeScript Model.out
-    target: Write TypeScript Model.in
-  - source: Generate Node Config.out
-    target: Write Node Config.in
-  - source: Generate Field Config.out
-    target: Write Field Config.in
+  - from: Generate TypeScript Model
+    to: Write TypeScript Model
+  - from: Generate Node Config
+    to: Write Node Config
+  - from: Generate Field Config
+    to: Write Field Config
 ```
 
 #### Backend Generation Diagram
@@ -189,7 +179,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/specifications/nodes/{node_spec_path}.json
-    id: load_spec
   
   # Load backend templates
   - label: Load Pydantic Template
@@ -199,7 +188,6 @@ nodes:
       operation: read
       sub_type: file  
       source_details: files/codegen/templates/backend/pydantic_model.j2
-    id: load_py_template
 
   - label: Load GraphQL Template
     type: db
@@ -208,7 +196,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/templates/backend/graphql_schema.j2
-    id: load_gql_template
 
   - label: Load Static Node Template
     type: db
@@ -217,7 +204,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/templates/backend/static_nodes.j2
-    id: load_static_template
 
   # Generate backend code
   - label: Generate Pydantic Model
@@ -226,7 +212,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/backend/generators/pydantic_model.py
-    id: gen_pydantic
 
   - label: Generate GraphQL Schema
     type: code_job
@@ -234,7 +219,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/backend/generators/graphql_schema.py
-    id: gen_graphql
 
   - label: Generate Static Node
     type: code_job
@@ -242,7 +226,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/backend/generators/static_nodes.py
-    id: gen_static
 
   # Write backend outputs
   - label: Write Pydantic Model
@@ -252,7 +235,6 @@ nodes:
       operation: write
       sub_type: file
       source_details: dipeo/diagram_generated/models/{node_name}_model.py
-    id: write_py
 
   - label: Write GraphQL Schema
     type: db
@@ -261,7 +243,6 @@ nodes:
       operation: write
       sub_type: file
       source_details: apps/server/src/graphql/schemas/{node_name}.graphql
-    id: write_gql
 
   - label: Write Static Node
     type: db
@@ -270,32 +251,31 @@ nodes:
       operation: write
       sub_type: file
       source_details: dipeo/core/static/generated/{node_name}_node.py
-    id: write_static
 
 connections:
   # Connect spec and templates to generators
-  - source: Load Node Spec.out
-    target: Generate Pydantic Model.spec_data
-  - source: Load Pydantic Template.out
-    target: Generate Pydantic Model.template_content
+  - from: Load Node Spec
+    to: Generate Pydantic Model.spec_data
+  - from: Load Pydantic Template
+    to: Generate Pydantic Model.template_content
   
-  - source: Load Node Spec.out
-    target: Generate GraphQL Schema.spec_data
-  - source: Load GraphQL Template.out
-    target: Generate GraphQL Schema.template_content
+  - from: Load Node Spec
+    to: Generate GraphQL Schema.spec_data
+  - from: Load GraphQL Template
+    to: Generate GraphQL Schema.template_content
 
-  - source: Load Node Spec.out
-    target: Generate Static Node.spec_data
-  - source: Load Static Node Template.out
-    target: Generate Static Node.template_content
+  - from: Load Node Spec
+    to: Generate Static Node.spec_data
+  - from: Load Static Node Template
+    to: Generate Static Node.template_content
   
   # Connect generators to writers
-  - source: Generate Pydantic Model.out
-    target: Write Pydantic Model.in
-  - source: Generate GraphQL Schema.out
-    target: Write GraphQL Schema.in
-  - source: Generate Static Node.out
-    target: Write Static Node.in
+  - from: Generate Pydantic Model
+    to: Write Pydantic Model
+  - from: Generate GraphQL Schema
+    to: Write GraphQL Schema
+  - from: Generate Static Node
+    to: Write Static Node
 ```
 
 ### 3. New Module Structure
@@ -484,7 +464,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/manifests/all.json
-    id: load_manifest
 
   - label: Process Manifest
     type: code_job
@@ -492,7 +471,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/shared/manifest_processor.py
-    id: process_manifest
 
   # Frontend and Backend sub-diagrams
   - label: Generate All Frontend
@@ -500,14 +478,12 @@ nodes:
     position: {x: 500, y: 200}
     props:
       diagram_path: codegen/frontend/generate_frontend_all
-    id: gen_frontend
 
   - label: Generate All Backend
     type: sub_diagram
     position: {x: 500, y: 400}
     props:
       diagram_path: codegen/backend/generate_backend_all
-    id: gen_backend
 
   # Registry generation (combines frontend and backend info)
   - label: Generate Node Registry
@@ -516,7 +492,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/frontend/generators/node_registry.py
-    id: gen_registry
 
   - label: Write Node Registry
     type: db
@@ -525,26 +500,25 @@ nodes:
       operation: write
       sub_type: file
       source_details: apps/web/src/features/diagram-editor/config/nodeRegistry.ts
-    id: write_registry
 
 connections:
-  - source: Load Generation Manifest.out
-    target: Process Manifest.in
+  - from: Load Generation Manifest
+    to: Process Manifest
   
   # Send node specs to frontend and backend
-  - source: Process Manifest.frontend_specs
-    target: Generate All Frontend.in
-  - source: Process Manifest.backend_specs
-    target: Generate All Backend.in
+  - from: Process Manifest.frontend_specs
+    to: Generate All Frontend
+  - from: Process Manifest.backend_specs
+    to: Generate All Backend
   
   # Registry needs results from both
-  - source: Generate All Frontend.node_configs
-    target: Generate Node Registry.frontend_configs
-  - source: Generate All Backend.node_metadata
-    target: Generate Node Registry.backend_metadata
+  - from: Generate All Frontend.node_configs
+    to: Generate Node Registry.frontend_configs
+  - from: Generate All Backend.node_metadata
+    to: Generate Node Registry.backend_metadata
   
-  - source: Generate Node Registry.out
-    target: Write Node Registry.in
+  - from: Generate Node Registry
+    to: Write Node Registry
 ```
 
 #### Frontend Batch Generation
@@ -559,7 +533,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/manifests/frontend.json
-    id: load_manifest
 
   - label: Batch Process Frontend
     type: code_job
@@ -567,7 +540,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/frontend/batch_processor.py
-    id: batch_processor
 
   # Parallel generation for each artifact type
   - label: Generate All TypeScript Models
@@ -575,32 +547,29 @@ nodes:
     position: {x: 500, y: 200}
     props:
       diagram_path: codegen/frontend/batch_typescript
-    id: gen_ts_batch
 
   - label: Generate All Node Configs
     type: sub_diagram
     position: {x: 500, y: 300}
     props:
       diagram_path: codegen/frontend/batch_node_configs
-    id: gen_config_batch
 
   - label: Generate All Field Configs
     type: sub_diagram
     position: {x: 500, y: 400}
     props:
       diagram_path: codegen/frontend/batch_field_configs
-    id: gen_field_batch
 
 connections:
-  - source: Load Frontend Manifest.out
-    target: Batch Process Frontend.in
+  - from: Load Frontend Manifest
+    to: Batch Process Frontend
   
-  - source: Batch Process Frontend.typescript_tasks
-    target: Generate All TypeScript Models.in
-  - source: Batch Process Frontend.config_tasks
-    target: Generate All Node Configs.in
-  - source: Batch Process Frontend.field_tasks
-    target: Generate All Field Configs.in
+  - from: Batch Process Frontend.typescript_tasks
+    to: Generate All TypeScript Models
+  - from: Batch Process Frontend.config_tasks
+    to: Generate All Node Configs
+  - from: Batch Process Frontend.field_tasks
+    to: Generate All Field Configs
 ```
 
 #### Backend Batch Generation
@@ -615,7 +584,6 @@ nodes:
       operation: read
       sub_type: file
       source_details: files/codegen/manifests/backend.json
-    id: load_manifest
 
   - label: Batch Process Backend
     type: code_job
@@ -623,7 +591,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/backend/batch_processor.py
-    id: batch_processor
 
   # Parallel generation for each artifact type
   - label: Generate All Pydantic Models
@@ -631,21 +598,18 @@ nodes:
     position: {x: 500, y: 200}
     props:
       diagram_path: codegen/backend/batch_pydantic
-    id: gen_pydantic_batch
 
   - label: Generate All GraphQL Schemas
     type: sub_diagram
     position: {x: 500, y: 300}
     props:
       diagram_path: codegen/backend/batch_graphql
-    id: gen_graphql_batch
 
   - label: Generate All Static Nodes
     type: sub_diagram
     position: {x: 500, y: 400}
     props:
       diagram_path: codegen/backend/batch_static_nodes
-    id: gen_static_batch
 
   - label: Generate Conversions
     type: code_job
@@ -653,7 +617,6 @@ nodes:
     props:
       code_type: file
       source_details: files/codegen/code/backend/generators/conversions.py
-    id: gen_conversions
 
   - label: Write Conversions
     type: db
@@ -662,24 +625,23 @@ nodes:
       operation: write
       sub_type: file
       source_details: dipeo/diagram_generated/__generated_conversions__.py
-    id: write_conversions
 
 connections:
-  - source: Load Backend Manifest.out
-    target: Batch Process Backend.in
+  - from: Load Backend Manifest
+    to: Batch Process Backend
   
-  - source: Batch Process Backend.pydantic_tasks
-    target: Generate All Pydantic Models.in
-  - source: Batch Process Backend.graphql_tasks
-    target: Generate All GraphQL Schemas.in
-  - source: Batch Process Backend.static_tasks
-    target: Generate All Static Nodes.in
+  - from: Batch Process Backend.pydantic_tasks
+    to: Generate All Pydantic Models
+  - from: Batch Process Backend.graphql_tasks
+    to: Generate All GraphQL Schemas
+  - from: Batch Process Backend.static_tasks
+    to: Generate All Static Nodes
   
   # Conversions need all models generated first
-  - source: Generate All Pydantic Models.results
-    target: Generate Conversions.pydantic_models
-  - source: Generate Conversions.out
-    target: Write Conversions.in
+  - from: Generate All Pydantic Models.results
+    to: Generate Conversions.pydantic_models
+  - from: Generate Conversions
+    to: Write Conversions
 ```
 
 ### 6. Benefits of Revised Architecture
@@ -804,10 +766,34 @@ dipeo run codegen/master/validate_specs --light
 
 ## Key Improvements
 
-1. **DB Nodes for I/O**: All file operations use native DiPeO DB nodes
-2. **File-Based Code**: No complex inline code in YAML
-3. **Pure Functions**: Complete separation of concerns
-4. **Visual Debugging**: Can see data flow in diagram
-5. **Native Integration**: Leverages DiPeO's strengths
+1. **Clear Separation**: Frontend and backend generation are completely separated
+   - Different directories, diagrams, and generators
+   - Can run frontend-only or backend-only generation
+   - Easier to maintain and debug
 
-This approach fully embraces DiPeO's visual programming paradigm while maintaining clean, testable code architecture.
+2. **DB Nodes for I/O**: All file operations use native DiPeO DB nodes
+   - No file I/O in generator code
+   - Leverages DiPeO's caching and error handling
+   - Visual representation of data flow
+
+3. **File-Based Code**: No complex inline code in YAML
+   - All logic in proper Python files
+   - Easy to test and debug
+   - Better IDE support
+
+4. **Pure Functions**: Complete separation of concerns
+   - Generators are pure data transformations
+   - No side effects or hidden dependencies
+   - Highly testable
+
+5. **Modular Architecture**:
+   - Frontend: TypeScript models, React configs, UI components
+   - Backend: Pydantic models, GraphQL schemas, execution logic
+   - Shared: Common utilities and filters
+
+6. **Visual Debugging**: Can see and monitor data flow in diagrams
+   - Each step is visible
+   - Can inspect intermediate results
+   - Easy to identify bottlenecks
+
+This approach fully embraces DiPeO's visual programming paradigm while maintaining clean, testable code architecture with clear separation between frontend and backend concerns.
