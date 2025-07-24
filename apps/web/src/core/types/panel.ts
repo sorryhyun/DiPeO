@@ -15,7 +15,11 @@ export const FIELD_TYPES = {
   MAX_ITERATION: 'maxIteration',
   LABEL_PERSON_ROW: 'labelPersonRow',
   ROW: 'row',
-  CUSTOM: 'custom'
+  CUSTOM: 'custom',
+  URL: 'url',
+  CODE: 'code',
+  FILEPATH: 'filepath',
+  PASSWORD: 'password'
 } as const;
 
 export type FieldType = typeof FIELD_TYPES[keyof typeof FIELD_TYPES];

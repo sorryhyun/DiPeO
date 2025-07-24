@@ -1,35 +1,30 @@
 // Auto-generated node configuration for {{ nodeType }}
-import { NodeConfig } from '@/features/diagram-editor/types';
-import { {{ nodeType | title }}Node } from '@/features/diagram-editor/components/nodes/generated/{{ nodeType | title }}Node';
-import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeType }}FieldConfigs';
+import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeTypeCamel }}FieldConfigs';
 import { {{ icon | emoji_to_icon }} } from 'lucide-react';
 
-export const {{ nodeTypeCamel }}Config: NodeConfig = {
-  type: '{{ nodeType }}',
-  displayName: '{{ displayName }}',
-  category: '{{ category | default('custom') }}',
-  description: '{{ description | default(displayName + ' node') }}',
-  icon: {{ icon | emoji_to_icon }},
+export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
+  label: '{{ displayName }}',
+  icon: '{{ icon | emoji_to_icon }}',
   color: '{{ color | default('#6366f1') }}',
-  component: {{ nodeType | title }}Node,
-  fields: {{ nodeTypeCamel }}Fields,
+  nodeType: '{{ nodeType }}',
   handles: {
 {% if handles.inputs %}
-    inputs: [
+    input: [
 {% for input in handles.inputs %}
       { id: '{{ input.id | default('input') }}', label: '{{ input.label | default('') }}' },
 {% endfor %}
     ],
 {% endif %}
 {% if handles.outputs %}
-    outputs: [
+    output: [
 {% for output in handles.outputs %}
       { id: '{{ output.id | default('output') }}', label: '{{ output.label | default('') }}' },
 {% endfor %}
     ],
 {% endif %}
   },
-  defaultData: {
+  defaults: {
 {% for field in fields if field.default is defined %}
 {% if field.default is string %}
     {{ field.name }}: '{{ field.default }}',
@@ -40,9 +35,7 @@ export const {{ nodeTypeCamel }}Config: NodeConfig = {
 {% endif %}
 {% endfor %}
   },
-  validation: {
-    required: [{{ fields | selectattr("required", "equalto", true) | map(attribute="name") | map("quote") | join(", ") }}],
-  },
+  customFields: {{ nodeTypeCamel }}Fields,
 };
 
 export default {{ nodeTypeCamel }}Config;

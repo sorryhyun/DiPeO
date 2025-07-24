@@ -2,48 +2,67 @@
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
-  {%- for field in fields %}
+{% for field in fields %}
   {
     name: '{{ field.name }}',
-    type: '{% if field.type == 'enum' %}select{% elif field.type == 'boolean' %}checkbox{% elif field.type == 'number' %}number{% elif field.type == 'code' %}textarea{% else %}text{% endif %}',
-    label: '{{ field.name | humanize }}',
+    type: '{{ field | ui_field_type }}',
+    label: '{{ field.name | humanize | escape_js }}',
     required: {{ field.required | lower }},
-    {%- if field.defaultValue is defined %}
+    {% if field.defaultValue is defined %}
     defaultValue: {{ field.defaultValue | tojson }},
-    {%- endif %}
-    {%- if field.placeholder %}
-    placeholder: '{{ field.placeholder }}',
-    {%- endif %}
-    {%- if field.description %}
-    description: '{{ field.description }}',
-    {%- endif %}
-    {%- if field.type == 'enum' and field['values'] %}
+    {% endif %}
+    {% if field.uiConfig and field.uiConfig.placeholder %}
+    placeholder: '{{ field.uiConfig.placeholder | escape_js }}',
+    {% elif field.placeholder %}
+    placeholder: '{{ field.placeholder | escape_js }}',
+    {% endif %}
+    {% if field.description %}
+    description: '{{ field.description | escape_js }}',
+    {% endif %}
+    {% if field.type == 'enum' and field['values'] %}
     options: [
-      {%- for value in field['values'] %}
-      { value: '{{ value }}', label: '{{ value | humanize }}' },
-      {%- endfor %}
+      {% for value in field['values'] %}
+      { value: '{{ value | escape_js }}', label: '{{ value | humanize | escape_js }}' },
+      {% endfor %}
     ],
-    {%- endif %}
-    {%- if field.validation %}
+    {% endif %}
+    {% if field.uiConfig %}
+      {% if field.uiConfig.rows %}
+    rows: {{ field.uiConfig.rows }},
+      {% endif %}
+      {% if field.uiConfig.min is defined %}
+    min: {{ field.uiConfig.min }},
+      {% endif %}
+      {% if field.uiConfig.max is defined %}
+    max: {{ field.uiConfig.max }},
+      {% endif %}
+      {% if field.uiConfig.language %}
+    language: '{{ field.uiConfig.language }}',
+      {% endif %}
+      {% if field.uiConfig.readOnly %}
+    readOnly: {{ field.uiConfig.readOnly | lower }},
+      {% endif %}
+    {% endif %}
+    {% if field.validation %}
     validate: (value: unknown) => {
-      {%- if field.validation.pattern %}
+      {% if field.validation.pattern %}
       if (typeof value === 'string' && !new RegExp('{{ field.validation.pattern }}').test(value)) {
         return { isValid: false, error: 'Invalid format' };
       }
-      {%- endif %}
-      {%- if field.validation.min is defined %}
+      {% endif %}
+      {% if field.validation.min is defined %}
       if (typeof value === 'number' && value < {{ field.validation.min }}) {
         return { isValid: false, error: 'Value must be at least {{ field.validation.min }}' };
       }
-      {%- endif %}
-      {%- if field.validation.max is defined %}
+      {% endif %}
+      {% if field.validation.max is defined %}
       if (typeof value === 'number' && value > {{ field.validation.max }}) {
         return { isValid: false, error: 'Value must be at most {{ field.validation.max }}' };
       }
-      {%- endif %}
+      {% endif %}
       return { isValid: true };
     },
-    {%- endif %}
+    {% endif %}
   },
-  {%- endfor %}
+{% endfor %}
 ];

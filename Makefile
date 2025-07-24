@@ -36,9 +36,9 @@ codegen:
 
 # Diagram-based code generation for node UI
 codegen-diagram:
-	@echo "🎨 Running diagram-based node UI code generation..."
-	dipeo run files/diagrams/codegen/node_ui_codegen --light --debug --no-browser --timeout=30
-	@echo "✅ Diagram-based code generation completed!"
+	@echo "🎨 Running diagram-based node UI code generation for all nodes..."
+	dipeo run codegen/node_ui_codegen --light --debug --no-browser --timeout=120
+	@echo "✅ Diagram-based code generation completed for all nodes!"
 
 # Generate all nodes using diagram approach
 codegen-diagram-all:

@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { BaseNode } from '../base';
 {% if fields | selectattr("type", "equalto", "select") | list %}
-import { createOptionsSchema } from '../utils';
+import { createOptionsSchema } from '../../utils';
 {% endif %}
 
 export interface {{ nodeType | title }}NodeData {

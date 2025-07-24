@@ -1,14 +1,15 @@
 """Conversion functions generator between TypeScript and Python models."""
 
-import os
-import sys
 from pathlib import Path
 
-# Add parent directory to sys.path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Import from parent utils module
+from ..utils.template_utils import create_jinja_env, register_enum_filter
+from ..utils.file_utils import load_model_data, save_result_info
 
-from utils.template_utils import create_jinja_env, register_enum_filter
-from utils.file_utils import load_model_data, save_result_info
+# Get paths relative to this file
+# generators/ -> code/ -> codegen/ -> files/ -> project_root
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
+TEMPLATES_DIR = PROJECT_ROOT / "files/codegen/templates"
 
 
 def generate_conversions(inputs):
@@ -21,9 +22,8 @@ def generate_conversions(inputs):
         print(f"[generate_conversions] Loaded conversion data")
         
         # Setup Jinja2 environment
-        temp_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-        template_dir = Path(temp_dir) / 'files' / 'codegen' / 'templates' / 'backend'
-        env = create_jinja_env(template_dir)
+        template_dir = TEMPLATES_DIR / 'backend'
+        env = create_jinja_env(str(template_dir))
         
         # Register enum filter with specific enum data
         register_enum_filter(env, conversion_data.get('enums', []))
@@ -33,7 +33,7 @@ def generate_conversions(inputs):
         content = template.render(conversion_data=conversion_data)
         
         # Write output file with diagram_ prefix to avoid conflicts
-        output_dir = Path(temp_dir) / 'dipeo' / 'models'
+        output_dir = PROJECT_ROOT / 'dipeo' / 'diagram_generated'
         output_path = output_dir / 'diagram_generated_conversions.py'
         
         with open(output_path, 'w') as f:

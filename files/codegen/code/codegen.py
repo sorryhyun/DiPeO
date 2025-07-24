@@ -9,227 +9,44 @@ Core functionality:
 """
 
 import json
-import re
+import sys
 from pathlib import Path
-from typing import Dict, Any
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-# Emoji to icon mapping
-EMOJI_TO_ICON_MAP = {
-    "🤖": "Bot",
-    "🔧": "Wrench",
-    "📝": "FileText",
-    "🔀": "GitBranch",
-    "🔄": "RefreshCw",
-    "📊": "BarChart",
-    "🚀": "Rocket",
-    "⚡": "Zap",
-    "📦": "Package",
-    "🔑": "Key",
-    "💾": "Save",
-    "🌐": "Globe",
-    "🔍": "Search",
-    "⚙️": "Settings",
-    "📨": "Send",
-    "📥": "Download",
-    "📤": "Upload",
-    "🏁": "Flag",
-    "🎯": "Target",
-    "💡": "Lightbulb",
-    "🔗": "Link",
-    "🔒": "Lock",
-    "🔓": "Unlock",
-    "📁": "Folder",
-    "📂": "FolderOpen",
-}
+from typing import Dict, Any, List
 
-def emoji_to_icon_name(emoji: str) -> str:
-    """Convert emoji to Lucide React icon name."""
-    return EMOJI_TO_ICON_MAP.get(emoji, "Activity")
+# Add parent directory to import from files/codegen/
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-# Base paths
-BASE_DIR = Path.cwd()
-TEMPLATE_DIR = BASE_DIR / "files/codegen/templates"
-SPEC_DIR = BASE_DIR / "files/codegen/specifications/nodes"
-TEMP_DIR = BASE_DIR / ".temp/codegen"
+from files.codegen.paths import (
+    PROJECT_ROOT,
+    SPECS_DIR,
+    TEMPLATES_DIR,
+    TEMP_DIR,
+    NODE_REGISTRY_PATH,
+    TEMPLATES,
+    get_output_paths,
+    ensure_temp_dir,
+)
+
+# Import utilities
+from .utils import (
+    create_jinja_env,
+    snake_case,
+    camel_case,
+    pascal_case,
+    emoji_to_icon_name,
+    typescript_type_filter,
+    python_type_filter,
+    python_default_filter,
+    graphql_type_filter,
+    zod_schema_filter,
+    default_value_filter,
+    humanize_filter,
+    ui_field_type_filter,
+)
 
 # Ensure temp dir exists
-TEMP_DIR.mkdir(parents=True, exist_ok=True)
+ensure_temp_dir()
 
-# Case conversion utilities
-def snake_case(text: str) -> str:
-    """Convert to snake_case."""
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', str(text))
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-
-def camel_case(text: str) -> str:
-    """Convert to camelCase."""
-    words = re.split(r'[\s_\-]+', str(text))
-    if not words:
-        return ''
-    return words[0].lower() + ''.join(w.capitalize() for w in words[1:])
-
-def pascal_case(text: str) -> str:
-    """Convert to PascalCase."""
-    words = re.split(r'[\s_\-]+', str(text))
-    return ''.join(w.capitalize() for w in words)
-
-# Type conversion filters
-def typescript_type_filter(field: Dict[str, Any]) -> str:
-    """Convert field to TypeScript type."""
-    type_map = {
-        'string': 'string',
-        'number': 'number',
-        'boolean': 'boolean',
-        'select': 'string',
-        'multiselect': 'string[]',
-        'json': 'any',
-        'array': 'any[]',
-        'object': 'Record<string, any>'
-    }
-    return type_map.get(field.get('type', 'string'), 'any')
-
-def python_type_filter(field: Dict[str, Any]) -> str:
-    """Convert field to Python type hint."""
-    type_map = {
-        'string': 'str',
-        'number': 'float',
-        'boolean': 'bool',
-        'select': 'str',
-        'multiselect': 'List[str]',
-        'json': 'Dict[str, Any]',
-        'array': 'List[Any]',
-        'object': 'Dict[str, Any]'
-    }
-    
-    py_type = type_map.get(field.get('type', 'string'), 'Any')
-    
-    # Handle arrays
-    if field.get('array', False) and not py_type.startswith('List'):
-        py_type = f'List[{py_type}]'
-    
-    # Handle optional
-    if not field.get('required', False):
-        py_type = f'Optional[{py_type}]'
-    
-    return py_type
-
-def python_default_filter(field: Dict[str, Any]) -> str:
-    """Generate Python default value based on field type."""
-    if 'default' in field:
-        default = field['default']
-        if isinstance(default, str):
-            return f'"{default}"'
-        elif isinstance(default, bool):
-            return str(default)
-        else:
-            return json.dumps(default)
-    
-    # Return None for optional fields
-    if not field.get('required', False):
-        return 'None'
-    
-    # No default for required fields
-    return ''
-
-def graphql_type_filter(field: Dict[str, Any]) -> str:
-    """Convert field to GraphQL type."""
-    type_map = {
-        'string': 'String',
-        'number': 'Float',
-        'boolean': 'Boolean',
-        'select': 'String',
-        'multiselect': '[String!]',
-        'json': 'JSON',
-        'array': '[JSON!]',
-        'object': 'JSON'
-    }
-    
-    graphql_type = type_map.get(field.get('type', 'string'), 'String')
-    
-    # Handle arrays
-    if field.get('array', False):
-        graphql_type = f'[{graphql_type}!]'
-    
-    return graphql_type
-
-def zod_schema_filter(field: Dict[str, Any]) -> str:
-    """Convert field to Zod schema."""
-    field_type = field.get('type', 'string')
-    required = field.get('required', False)
-    
-    # Build base schema
-    if field_type == 'string':
-        schema = "z.string()"
-    elif field_type == 'number':
-        schema = "z.number()"
-    elif field_type == 'boolean':
-        schema = "z.boolean()"
-    elif field_type == 'select':
-        options = field.get('options', [])
-        if options:
-            option_values = [f'"{opt["value"]}"' for opt in options]
-            schema = f"z.enum([{', '.join(option_values)}])"
-        else:
-            schema = "z.string()"
-    elif field_type == 'multiselect':
-        schema = "z.array(z.string())"
-    elif field_type == 'json':
-        schema = "z.any()"
-    elif field_type == 'array':
-        schema = "z.array(z.any())"
-    elif field_type == 'object':
-        schema = "z.record(z.any())"
-    else:
-        schema = "z.any()"
-    
-    # Add optional if not required
-    if not required:
-        schema += ".optional()"
-    
-    # Add default if provided
-    if 'default' in field:
-        default_val = field['default']
-        if isinstance(default_val, str):
-            schema += f'.default("{default_val}")'
-        else:
-            schema += f'.default({json.dumps(default_val)})'
-    
-    return schema
-
-def default_value_filter(field: Dict[str, Any]) -> str:
-    """Generate default value based on field type."""
-    if 'default' in field:
-        default = field['default']
-        if isinstance(default, str):
-            return f'"{default}"'
-        elif isinstance(default, bool):
-            return str(default).lower()
-        else:
-            return json.dumps(default)
-    
-    # Generate default based on type
-    type_defaults = {
-        'string': '""',
-        'number': '0',
-        'boolean': 'false',
-        'select': '""',
-        'multiselect': '[]',
-        'json': '{}',
-        'array': '[]',
-        'object': '{}'
-    }
-    
-    return type_defaults.get(field.get('type', 'string'), 'null')
-
-def humanize_filter(text: str) -> str:
-    """Convert snake_case or camelCase to human readable format."""
-    # Handle snake_case
-    if '_' in text:
-        return ' '.join(word.capitalize() for word in text.split('_'))
-    
-    # Handle camelCase
-    result = re.sub('([a-z])([A-Z])', r'\1 \2', str(text))
-    return result[0].upper() + result[1:] if result else ''
 
 # Main functions
 def load_node_spec(inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -241,7 +58,7 @@ def load_node_spec(inputs: Dict[str, Any]) -> Dict[str, Any]:
     spec_file = Path(spec_path)
     if not spec_file.exists():
         # Try relative to spec dir
-        spec_file = SPEC_DIR / spec_path
+        spec_file = SPECS_DIR / spec_path
         if not spec_file.suffix:
             spec_file = spec_file.with_suffix('.json')
     
@@ -249,6 +66,62 @@ def load_node_spec(inputs: Dict[str, Any]) -> Dict[str, Any]:
         return {'error': f'Spec file not found: {spec_file}'}
     
     return json.loads(spec_file.read_text())
+
+def load_all_node_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Load all node specifications from a directory or single file."""
+    print(f"📂 Loading node specs with inputs: {list(inputs.keys())}")
+    print(f"📂 Full inputs: {inputs}")
+    
+    # Write debug info to file
+    debug_file = Path(".temp/codegen_debug.txt")
+    debug_file.parent.mkdir(exist_ok=True)
+    with open(debug_file, 'a') as f:
+        f.write(f"\n=== load_all_node_specs called ===\n")
+        f.write(f"Inputs: {inputs}\n")
+    
+    # Can accept either node_spec_path (single) or node_specs_dir (directory)
+    single_path = inputs.get('node_spec_path', '')
+    dir_path = inputs.get('node_specs_dir', '')
+    
+    # Default to specifications directory if nothing provided
+    if not single_path and not dir_path:
+        dir_path = 'files/codegen/specifications/nodes'
+        print(f"📁 Using default directory: {dir_path}")
+    
+    specs = []
+    
+    if single_path:
+        # Load single spec (backward compatible)
+        result = load_node_spec({'node_spec_path': single_path})
+        if 'error' not in result:
+            specs.append({'node_spec': result})
+    else:
+        # Load all specs from directory
+        spec_dir = Path(dir_path)
+        if not spec_dir.is_absolute():
+            spec_dir = SPECS_DIR if dir_path == 'files/codegen/specifications/nodes' else Path(dir_path)
+        
+        if not spec_dir.exists():
+            return {'error': f'Directory not found: {spec_dir}'}
+        
+        # Find all JSON files in the directory
+        for spec_file in sorted(spec_dir.glob('*.json')):
+            try:
+                spec_data = json.loads(spec_file.read_text())
+                specs.append({'node_spec': spec_data})
+            except Exception as e:
+                # Skip invalid files but log them
+                print(f"Warning: Failed to load {spec_file}: {e}")
+    
+    if not specs:
+        return {'error': 'No valid node specifications found'}
+    
+    # Merge with existing state and return
+    return {
+        **inputs,  # Preserve all existing state
+        'specs': specs,
+        'total_nodes': len(specs)
+    }
 
 def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Parse spec data and add output paths."""
@@ -260,20 +133,13 @@ def parse_spec_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if not node_type:
         return {'error': 'No nodeType in spec'}
     
-    # Add output paths
-    spec['output_paths'] = {
-        'typescript_model': f'dipeo/models/src/nodes/{node_type}Node.ts',
-        'graphql_schema': f'apps/server/src/dipeo_server/api/graphql/schema/nodes/{snake_case(node_type)}_node.graphql',
-        'react_component': f'apps/web/src/__generated__/nodes/{node_type}NodeForm.tsx',
-        'node_config': f'apps/web/src/__generated__/nodes/{node_type}NodeConfig.ts',
-        'field_config': f'apps/web/src/__generated__/fields/{node_type}FieldConfigs.ts',
-        'static_node': f'dipeo/core/static/nodes/{snake_case(node_type)}_node.py'
-    }
-    
     # Add case variations for templates
     spec['nodeTypeSnake'] = snake_case(node_type)
     spec['nodeTypeCamel'] = camel_case(node_type)
     spec['nodeTypePascal'] = pascal_case(node_type)
+    
+    # Get output paths for this node type
+    spec['output_paths'] = get_output_paths(node_type, spec)
     
     return spec
 
@@ -289,31 +155,21 @@ def render_template(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(spec_data, str):
         spec_data = json.loads(spec_data)
     
-    # Create Jinja2 environment
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATE_DIR)),
-        autoescape=select_autoescape(['html', 'xml']),
-        trim_blocks=True,
-        lstrip_blocks=True
-    )
+    # Use create_jinja_env from utilities
+    env = create_jinja_env(str(TEMPLATES_DIR))
     
-    # Case conversion filters
-    env.filters['camelCase'] = camel_case
-    env.filters['PascalCase'] = pascal_case
-    env.filters['snake_case'] = snake_case
-    
-    # Type conversion filters
+    # Add additional filters specific to codegen
     env.filters['typescript_type'] = typescript_type_filter
     env.filters['python_type'] = python_type_filter
     env.filters['python_default'] = python_default_filter
     env.filters['graphql_type'] = graphql_type_filter
     env.filters['zod_schema'] = zod_schema_filter
     env.filters['default_value'] = default_value_filter
-    
-    # Utility filters
     env.filters['humanize'] = humanize_filter
+    env.filters['ui_field_type'] = ui_field_type_filter
     env.filters['quote'] = lambda s: f'"{s}"'
     env.filters['emoji_to_icon'] = emoji_to_icon_name
+    env.filters['escape_js'] = lambda s: str(s).replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
     
     # Render template
     template = env.get_template(template_name)
@@ -334,21 +190,29 @@ def generate_all(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Generate all files for a node specification."""
     spec = parse_spec_data(inputs)
     if 'error' in spec:
-        return spec
+        return {**inputs, 'error': spec['error']}
     
+    # Map template names to their output paths
     templates = [
-        ('frontend/typescript_model.j2', spec['output_paths']['typescript_model']),
-        ('backend/graphql_schema.j2', spec['output_paths']['graphql_schema']),
-        ('frontend/react_component.j2', spec['output_paths']['react_component']),
-        ('frontend/node_config.j2', spec['output_paths']['node_config']),
-        ('frontend/field_config.j2', spec['output_paths']['field_config']),
-        ('backend/static_nodes.j2', spec['output_paths']['static_node'])
+        ('typescript_model', spec['output_paths']['typescript_model']),
+        ('graphql_schema', spec['output_paths']['graphql_schema']),
+        # React components are not used - all nodes use ConfigurableNode
+        # ('react_component', spec['output_paths']['react_component']),
+        ('node_config', spec['output_paths']['node_config']),
+        ('field_config', spec['output_paths']['field_config']),
+        ('static_nodes', spec['output_paths']['static_node'])
     ]
     
     generated_files = []
-    for template, output_path in templates:
+    for template_name, output_path in templates:
+        # Get the template path from our constants
+        template_path = TEMPLATES.get(template_name)
+        if not template_path:
+            print(f"Warning: Unknown template {template_name}")
+            continue
+        
         result = render_template({
-            'template': template,
+            'template': template_path,
             'output_path': output_path,
             'spec_data': spec
         })
@@ -362,15 +226,178 @@ def generate_all(inputs: Dict[str, Any]) -> Dict[str, Any]:
     print(f"1. Add {node_type} to NODE_TYPE_MAP in dipeo/models/src/conversions.ts")
     print(f"2. Import and register {pascal_case(node_type)}Node in dipeo/core/static/generated_nodes.py")
     print(f"3. Add {node_type} to GraphQL schema unions in apps/server/src/dipeo_server/api/graphql/schema/nodes.graphql")
-    print(f"4. Register node config in apps/web/src/features/diagram/config/nodeRegistry.ts")
-    print(f"5. Create handler in dipeo/application/execution/handlers/{snake_case(node_type)}.py")
+    print(f"4. Create handler in dipeo/application/execution/handlers/{snake_case(node_type)}.py")
+    print(f"5. Run 'dipeo run codegen/main --light' to regenerate the node registry")
     
     return {
+        **inputs,  # Preserve all existing state
         'success': True,
         'files_generated': generated_files,
         'node_type': node_type,
         'message': f'Generated {len(generated_files)} files for {node_type} node'
     }
+
+def initialize_codegen(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Initialize the codegen process with empty state."""
+    print("🔧 Initializing codegen...")
+    print(f"🔧 Received inputs: {inputs}")
+    
+    # Write to a file to confirm function is called
+    with open('.temp/codegen_trace.txt', 'w') as f:
+        f.write(f"initialize_codegen called with: {inputs}\n")
+    
+    # Check for 'default' wrapper from Start node
+    if 'default' in inputs and isinstance(inputs['default'], dict):
+        # Unwrap the default data
+        unwrapped_inputs = inputs['default']
+        print(f"🔧 Unwrapped inputs from 'default': {unwrapped_inputs}")
+    else:
+        unwrapped_inputs = inputs
+    
+    return {
+        **unwrapped_inputs,  # Preserve input data (unwrapped)
+        'specs': [],
+        'current_index': 0,
+        'results': [],
+        'failures': [],
+        'total_files': 0
+    }
+
+def get_next_spec(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Get the next spec from the list."""
+    specs = inputs.get('specs', [])
+    current_index = inputs.get('current_index', 0)
+    
+    if current_index < len(specs):
+        current_spec = specs[current_index]['node_spec']
+        return {
+            **inputs,
+            'current_spec': current_spec,
+            'raw_data': current_spec  # For generate_all compatibility
+        }
+    else:
+        return {
+            **inputs,
+            'current_spec': None,
+            'raw_data': None
+        }
+
+def update_progress(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Update progress after processing a spec."""
+    results = inputs.get('results', [])
+    failures = inputs.get('failures', [])
+    total_files = inputs.get('total_files', 0)
+    current_index = inputs.get('current_index', 0)
+    
+    # Check if generation was successful
+    if inputs.get('success'):
+        node_type = inputs.get('node_type', 'unknown')
+        files_generated = inputs.get('files_generated', [])
+        
+        results.append({
+            'node_type': node_type,
+            'status': 'success',
+            'files_count': len(files_generated)
+        })
+        total_files += len(files_generated)
+        print(f"✅ Generated {len(files_generated)} files for {node_type}")
+    else:
+        # Handle validation or generation failure
+        current_spec = inputs.get('current_spec', {})
+        node_type = current_spec.get('nodeType', 'unknown')
+        error = inputs.get('error', inputs.get('message', 'Unknown error'))
+        
+        failures.append({
+            'node_type': node_type,
+            'error': error
+        })
+        print(f"❌ Failed to generate {node_type}: {error}")
+    
+    return {
+        **inputs,
+        'current_index': current_index + 1,
+        'results': results,
+        'failures': failures,
+        'total_files': total_files
+    }
+
+def generate_node_registry(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate the node registry file."""
+    results = inputs.get('results', [])
+    
+    if not results:
+        return {**inputs, 'registry_error': 'No successful node generations'}
+    
+    # Extract node types
+    node_types = []
+    for result in results:
+        if result.get('status') == 'success':
+            node_type = result.get('node_type', '')
+            if node_type:
+                node_types.append({
+                    'nodeType': node_type,
+                    'nodeTypeCamel': camel_case(node_type),
+                    'nodeTypePascal': pascal_case(node_type)
+                })
+    
+    # Sort for consistent output
+    node_types.sort(key=lambda x: x['nodeType'])
+    
+    # Use the node registry template
+    registry_template = TEMPLATES['node_registry']
+    registry_output = str(NODE_REGISTRY_PATH)
+    
+    result = render_template({
+        'template': registry_template,
+        'output_path': registry_output,
+        'spec_data': {'nodes': node_types}
+    })
+    
+    if result.get('success'):
+        print(f"\n✅ Generated node registry with {len(node_types)} nodes")
+        return {**inputs, 'registry_generated': True}
+    else:
+        return {**inputs, 'registry_error': result.get('error', 'Failed')}
+
+def generate_summary(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate a summary of the codegen process."""
+    print(f"\n📊 Generating summary...")
+    
+    specs = inputs.get('specs', [])
+    results = inputs.get('results', [])
+    failures = inputs.get('failures', [])
+    total_files = inputs.get('total_files', 0)
+    
+    # Write debug info to file
+    debug_file = Path(".temp/codegen_debug.txt")
+    with open(debug_file, 'a') as f:
+        f.write(f"\n=== generate_summary called ===\n")
+        f.write(f"Results: {len(results)}, Failures: {len(failures)}, Total files: {total_files}\n")
+    
+    # Count file types
+    field_configs = len([r for r in results if r['status'] == 'success'])
+    node_configs = field_configs  # Same count
+    components = field_configs  # Same count
+    
+    summary = {
+        'total_nodes': len(specs),
+        'succeeded': len(results),
+        'failed': len(failures),
+        'total_files': total_files,
+        'field_configs': field_configs,
+        'node_configs': node_configs,
+        'components': components,
+        'results': results,
+        'failures': failures,
+        'summary': f"Successfully generated {len(results)} out of {len(specs)} node configurations"
+    }
+    
+    print(f"\n📊 Summary: {summary['summary']}")
+    print(f"   Total files: {total_files}")
+    if failures:
+        print(f"   ⚠️  Failed: {len(failures)} nodes")
+    
+    return summary
 
 # Convenience functions for diagrams
 def save_temp_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -393,6 +420,7 @@ def load_temp_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     return json.loads(temp_file.read_text())
 
+
 def generate_all_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Generate code for all node specifications in the specifications directory."""
     # Allow filtering by specific nodes
@@ -405,7 +433,7 @@ def generate_all_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     }
     
     # Find all JSON specifications
-    spec_files = list(SPEC_DIR.glob('*.json'))
+    spec_files = list(SPECS_DIR.glob('*.json'))
     
     if node_filter:
         # Filter to only requested nodes
@@ -455,4 +483,35 @@ def generate_all_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
         for failure in results['failed']:
             print(f"  - {failure['node']}: {failure['error']}")
     
+    # Generate the node registry if we have successful nodes
+    if results['succeeded']:
+        print(f"\n📝 Generating node registry...")
+        # Load all successful node specifications
+        node_specs = []
+        for spec_file in spec_files:
+            if any(s['node'] == spec_file.stem for s in results['succeeded']):
+                spec_data = json.loads(spec_file.read_text())
+                node_specs.append(spec_data)
+        
+        # Convert to the expected format for generate_node_registry
+        registry_inputs = {
+            'results': [{'status': 'success', 'node_type': spec['nodeType']} for spec in node_specs]
+        }
+        registry_result = generate_node_registry(registry_inputs)
+        if registry_result.get('registry_generated'):
+            print(f"  ✅ Generated node registry")
+            results['registry_generated'] = True
+        else:
+            print(f"  ❌ Failed to generate registry: {registry_result.get('registry_error', 'Unknown error')}")
+            results['registry_generated'] = False
+    
     return results
+
+
+# Main entry point for command line usage
+if __name__ == "__main__":
+    # Run batch generation
+    result = generate_all_nodes({})
+    
+    # Exit with error code if any failures
+    sys.exit(len(result.get('failed', [])))

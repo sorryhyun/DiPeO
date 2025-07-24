@@ -16,12 +16,12 @@ from dipeo.core.static.generated_nodes import BaseExecutableNode
 
 
 @dataclass(frozen=True)
-class {{ spec_data.pascalCase }}Node(BaseExecutableNode):
+class {{ spec_data.nodeTypePascal }}Node(BaseExecutableNode):
     """{{ spec_data.description }}"""
     type: NodeType = field(default=NodeType.{{ spec_data.nodeType | replace('-', '_') }}, init=False)
-    {%- for field in spec_data.fields %}
+    {% for field in spec_data.fields %}
     {{ field.name }}: {{ field | python_type }}{% if field.required == false %} = {{ field | python_default }}{% endif %}
-    {%- endfor %}
+    {% endfor %}
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""

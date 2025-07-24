@@ -24,6 +24,10 @@ export type UnifiedFieldType =
   | typeof FIELD_TYPES.PERSON_SELECT
   | typeof FIELD_TYPES.MAX_ITERATION
   | typeof FIELD_TYPES.VARIABLE_TEXTAREA
+  | typeof FIELD_TYPES.URL
+  | typeof FIELD_TYPES.CODE
+  | typeof FIELD_TYPES.FILEPATH
+  | typeof FIELD_TYPES.PASSWORD
   | 'file'; // File is UI-specific, not in base types
 
 export interface UnifiedFormFieldProps {
@@ -246,7 +250,61 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
         </div>
       </div>
     );
-  }
+  },
+
+  [FIELD_TYPES.URL]: (p) => (
+    <Input
+      id={p.fieldId}
+      type="url"
+      value={String(p.value || '')}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
+      placeholder={p.placeholder || 'https://example.com'}
+      disabled={p.disabled}
+      className={FULL_WIDTH}
+      {...p.customProps}
+    />
+  ),
+
+  [FIELD_TYPES.CODE]: (p) => (
+    <textarea
+      id={p.fieldId}
+      value={String(p.value || '')}
+      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => p.onChange(e.target.value)}
+      placeholder={p.placeholder || '// Enter code here'}
+      disabled={p.disabled}
+      rows={p.rows || 10}
+      className={`${TEXTAREA_CLASSES} font-mono text-sm`}
+      spellCheck={false}
+      {...p.customProps}
+    />
+  ),
+
+  [FIELD_TYPES.FILEPATH]: (p) => (
+    <Input
+      id={p.fieldId}
+      type="text"
+      value={String(p.value || '')}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
+      placeholder={p.placeholder || '/path/to/file'}
+      disabled={p.disabled}
+      className={`${FULL_WIDTH} font-mono`}
+      {...p.customProps}
+    />
+  ),
+
+  [FIELD_TYPES.PASSWORD]: (p) => (
+    <Input
+      id={p.fieldId}
+      type="password"
+      value={String(p.value || '')}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
+      placeholder={p.placeholder || '••••••••'}
+      disabled={p.disabled}
+      className={FULL_WIDTH}
+      autoComplete="new-password"
+      {...p.customProps}
+    />
+  )
 };
 
 /**

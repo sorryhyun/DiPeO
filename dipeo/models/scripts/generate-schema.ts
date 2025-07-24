@@ -132,7 +132,7 @@ class SchemaGenerator {
     return entries
       .filter(e => e.isFile() && e.name.endsWith('.ts') && !e.name.endsWith('.test.ts'))
       .map(e => join(e.path, e.name))
-      .filter(filePath => !filePath.includes('/nodes/'));  // Exclude generated node files
+      .filter(filePath => !filePath.includes('/generated/'));  // Exclude generated files
   }
 
 }

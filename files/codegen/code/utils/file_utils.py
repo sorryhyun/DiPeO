@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 
+# Get temp directory relative to this file
+# utils/ -> code/ -> codegen/ -> files/ -> project_root
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
+TEMP_DIR = PROJECT_ROOT / ".temp/codegen"
+
 
 def load_model_data(filename='model_data.json'):
     """Load parsed model data from temporary storage.
@@ -11,11 +16,8 @@ def load_model_data(filename='model_data.json'):
     Args:
         filename: Optional filename to load from. Defaults to 'model_data.json'
     """
-    import os
-    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-    
     # First try to load from the specified file
-    model_data_file = Path(base_dir) / '.temp' / 'codegen' / filename
+    model_data_file = TEMP_DIR / filename
     
     if model_data_file.exists():
         try:
@@ -28,7 +30,7 @@ def load_model_data(filename='model_data.json'):
     
     # Fallback to default model data if specified file doesn't exist
     if filename != 'model_data.json':
-        model_data_file = Path(base_dir) / '.temp' / 'codegen' / 'model_data.json'
+        model_data_file = TEMP_DIR / 'model_data.json'
         if model_data_file.exists():
             try:
                 with open(model_data_file, 'r') as f:
@@ -39,7 +41,7 @@ def load_model_data(filename='model_data.json'):
                 print(f"[load_model_data] Error loading model data: {e}")
     
     # Fallback to AST file if model data doesn't exist
-    ast_file = Path(base_dir) / '.temp' / 'codegen' / 'parsed_ast.json'
+    ast_file = TEMP_DIR / 'parsed_ast.json'
     
     if not ast_file.exists():
         print(f"[load_model_data] Neither {filename} nor AST file found")
@@ -57,9 +59,7 @@ def load_model_data(filename='model_data.json'):
 
 def save_result_info(result_type: str, result_data: Dict[str, Any]):
     """Save generation result info for later combination."""
-    import os
-    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-    result_dir = Path(base_dir) / '.temp' / 'codegen' / 'results'
+    result_dir = TEMP_DIR / 'results'
     result_dir.mkdir(parents=True, exist_ok=True)
     
     result_file = result_dir / f"{result_type}_result.json"
@@ -74,9 +74,7 @@ def save_result_info(result_type: str, result_data: Dict[str, Any]):
 
 def load_all_results():
     """Load all generation results for combination."""
-    import os
-    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-    result_dir = Path(base_dir) / '.temp' / 'codegen' / 'results'
+    result_dir = TEMP_DIR / 'results'
     results = {}
     
     if not result_dir.exists():

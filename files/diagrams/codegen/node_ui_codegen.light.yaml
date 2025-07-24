@@ -2,72 +2,111 @@ version: light
 nodes:
 - label: Start
   type: start
-  position: {x: 373, y: -278}
+  position: {x: 300, y: -300}
   props:
     trigger_mode: manual
-- label: Load Node Spec
+    custom_data:
+      node_specs_dir: files/codegen/specifications/nodes
+- label: Initialize
   type: code_job
-  position: {x: 703, y: -296}
+  position: {x: 600, y: -300}
   props:
-    functionName: load_node_spec
+    functionName: initialize_codegen
     code_type: python
-    code: files/codegen/code/codegen.py
+    code: files/codegen/code/codegen_wrapper.py
+- label: Load All Node Specs
+  type: code_job
+  position: {x: 900, y: -300}
+  props:
+    functionName: load_all_node_specs
+    code_type: python
+    code: files/codegen/code/codegen_wrapper.py
+- label: Get Next Spec
+  type: code_job
+  position: {x: 1200, y: -300}
+  props:
+    functionName: get_next_spec
+    code_type: python
+    code: files/codegen/code/codegen_wrapper.py
+- label: Has More Specs?
+  type: condition
+  position: {x: 1500, y: -300}
+  props:
+    condition_type: custom
+    expression: "{{current_spec}} is not None"
 - label: Validate Spec
   type: json_schema_validator
-  position: {x: 1050, y: -296}
+  position: {x: 1800, y: -400}
   props:
     schema_path: files/codegen/schemas/node_specification.schema.json
-    strict_mode: true
+    strict_mode: false
 - label: Generate All Files
   type: code_job
-  position: {x: 1400, y: -296}
+  position: {x: 2100, y: -400}
   props:
     functionName: generate_all
     code_type: python
-    code: files/codegen/code/codegen.py
-- label: Generate Report
-  type: person_job
-  position: {x: 1750, y: -296}
+    code: files/codegen/code/codegen_wrapper.py
+- label: Update Progress
+  type: code_job
+  position: {x: 2400, y: -400}
   props:
-    person: NodeReporter
-    default_prompt: |
-      Generate a summary of the node UI code generation for {{node_type}}:
-
-      Generated files:
-      {{#each files_generated}}
-      - {{this}}
-      {{/each}}
-
-      Result: {{message}}
-
-      Provide a brief summary including:
-      1. What was successfully generated
-      2. Any manual registration steps needed
-      3. Next steps for testing the new node
-    max_iteration: 1
+    functionName: update_progress
+    code_type: python
+    code: files/codegen/code/codegen_wrapper.py
+- label: Generate Registry
+  type: code_job
+  position: {x: 1800, y: -200}
+  props:
+    functionName: generate_node_registry
+    code_type: python
+    code: files/codegen/code/codegen_wrapper.py
+- label: Generate Summary
+  type: code_job
+  position: {x: 2100, y: -200}
+  props:
+    functionName: generate_summary
+    code_type: python
+    code: files/codegen/code/codegen_wrapper.py
 - label: End
   type: endpoint
-  position: {x: 2100, y: -296}
+  position: {x: 2400, y: -200}
   props:
-    save_to_file: false
+    save_to_file: true
+    output_path: .temp/codegen_summary.json
 connections:
 - from: Start
-  to: Load Node Spec
+  to: Initialize
   content_type: object
-- from: Load Node Spec
+- from: Initialize
+  to: Load All Node Specs
+  content_type: object
+- from: Load All Node Specs
+  to: Get Next Spec
+  content_type: object
+  label: specs_state
+- from: Get Next Spec
+  to: Has More Specs?
+  content_type: object
+  label: current_spec
+- from: Has More Specs?_condtrue
   to: Validate Spec
+  content_type: object
+- from: Has More Specs?_condfalse
+  to: Generate Registry
   content_type: object
 - from: Validate Spec
   to: Generate All Files
   content_type: object
 - from: Generate All Files
-  to: Generate Report
+  to: Update Progress
   content_type: object
-- from: Generate Report
+- from: Update Progress
+  to: Get Next Spec
+  content_type: object
+- from: Generate Registry
+  to: Generate Summary
+  content_type: object
+- from: Generate Summary
   to: End
-  content_type: raw_text
-persons:
-  NodeReporter:
-    service: openai
-    model: gpt-4.1-mini
-    api_key_id: APIKEY_52609F
+  content_type: object

@@ -10,10 +10,7 @@
       "name": "file",
       "type": "string",
       "required": false,
-      "description": "File configuration",
-      "uiConfig": {
-        "inputType": "text"
-      }
+      "description": "File configuration"
     },
     {
       "name": "collection",
@@ -52,10 +49,7 @@
       "name": "query",
       "type": "string",
       "required": false,
-      "description": "Query configuration",
-      "uiConfig": {
-        "inputType": "text"
-      }
+      "description": "Query configuration"
     },
     {
       "name": "data",
