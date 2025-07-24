@@ -281,11 +281,6 @@ class SubDiagramNode(BaseExecutableNode):
     diagram_name: Optional[str] = None
     diagram_format: Optional[DiagramFormat] = None
     diagram_data: Optional[Dict[str, Any]] = None
-    input_mapping: Optional[Dict[str, str]] = None
-    output_mapping: Optional[Dict[str, str]] = None
-    timeout: Optional[int] = None
-    wait_for_completion: Optional[bool] = True
-    isolate_conversation: Optional[bool] = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -293,11 +288,6 @@ class SubDiagramNode(BaseExecutableNode):
         data["diagram_name"] = self.diagram_name
         data["diagram_format"] = self.diagram_format
         data["diagram_data"] = self.diagram_data
-        data["input_mapping"] = self.input_mapping
-        data["output_mapping"] = self.output_mapping
-        data["timeout"] = self.timeout
-        data["wait_for_completion"] = self.wait_for_completion
-        data["isolate_conversation"] = self.isolate_conversation
         return data
 
 @dataclass(frozen=True)
@@ -520,11 +510,6 @@ def create_executable_node(
             diagram_name=data.get("diagram_name"),
             diagram_format=data.get("diagram_format"),
             diagram_data=data.get("diagram_data"),
-            input_mapping=data.get("input_mapping"),
-            output_mapping=data.get("output_mapping"),
-            timeout=data.get("timeout"),
-            wait_for_completion=data.get("wait_for_completion", True),
-            isolate_conversation=data.get("isolate_conversation", False),
         )
     
     if node_type == NodeType.person_batch_job:

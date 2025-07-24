@@ -4,14 +4,31 @@
 version: light
 
 nodes:
-  # Start node to capture input variables
+  # Start node - no custom_data needed
   - label: Start
     type: start
     position: {x: 50, y: 100}
+
+  # Parse input to handle both direct variables and nested inputs
+  - label: Parse Input
+    type: code_job
+    position: {x: 50, y: 150}
     props:
-      output_type: object
-      custom_data:
-        node_spec_path: "{node_spec_path}"
+      language: python
+      code: |
+        # Handle both direct input (from CLI) and nested input (from sub_diagram)
+        # Input could be:
+        # 1. Direct: {"node_spec_path": "person_job"} (from CLI --input-data)
+        # 2. Nested: {"default": {"node_spec_path": "person_job"}} (from sub_diagram)
+        
+        if "node_spec_path" in default:
+            # Direct case - pass through the dict
+            result = {"node_spec_path": default["node_spec_path"]}
+        elif "default" in default and isinstance(default["default"], dict) and "node_spec_path" in default["default"]:
+            # Nested case from sub_diagram - extract and restructure
+            result = {"node_spec_path": default["default"]["node_spec_path"]}
+        else:
+            raise ValueError(f"node_spec_path not found in input: {default}")
 
   # Load node specification
   - label: Load Node Spec
@@ -20,7 +37,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: files/codegen/specifications/nodes/{node_spec_path}.json
+      source_details: files/codegen/specifications/nodes/{default.node_spec_path}.json
       
   # Load frontend templates
   - label: Load TypeScript Template
@@ -115,10 +132,13 @@ nodes:
       source_details: apps/web/src/__generated__/{node_naming.node_name}Fields.ts
 
 connections:
-  # Pass input variables to DB nodes
+  # Parse input first to handle nested structures
   - from: Start
+    to: Parse Input
+    
+  # Pass parsed node_spec_path for placeholder resolution
+  - from: Parse Input
     to: Load Node Spec
-    label: input_data
     
   # Pass spec to extract node type
   - from: Load Node Spec

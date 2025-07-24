@@ -69,12 +69,12 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         node = request.node
         
         # Log execution start
-        log.info(f"Executing sub_diagram: {node.label}")
-        log.debug(f"Diagram name: {node.diagram_name}")
-        log.debug(f"Has diagram data: {node.diagram_data is not None}")
-        log.debug(f"Input mapping: {node.input_mapping}")
-        log.debug(f"Output mapping: {node.output_mapping}")
-        log.debug(f"Inputs: {request.inputs}")
+        log.info(f"[SUB_DIAGRAM START] Executing sub_diagram: {node.label} (node_id: {node.id})")
+        log.debug(f"[SUB_DIAGRAM] Diagram name: {node.diagram_name}")
+        log.debug(f"[SUB_DIAGRAM] Has diagram data: {node.diagram_data is not None}")
+        log.debug(f"[SUB_DIAGRAM] Request inputs: {request.inputs}")
+        log.debug(f"[SUB_DIAGRAM] Request inputs type: {type(request.inputs)}")
+        log.debug(f"[SUB_DIAGRAM] Request inputs keys: {list(request.inputs.keys()) if isinstance(request.inputs, dict) else 'Not a dict'}")
         
         try:
             # Get required services
@@ -86,7 +86,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 raise ValueError("Required services not available")
             
             # Load the diagram to execute
+            log.debug(f"[SUB_DIAGRAM] Loading diagram for node {node.id}")
             diagram_data = await self._load_diagram(node, diagram_loader)
+            log.debug(f"[SUB_DIAGRAM] Diagram loaded successfully. Keys: {list(diagram_data.keys()) if isinstance(diagram_data, dict) else 'Not a dict'}")
             
             # Prepare execution options - simple like CLI does it
             options = {
@@ -94,6 +96,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 "parent_execution_id": request.execution_id,
                 "is_sub_diagram": True
             }
+            log.debug(f"[SUB_DIAGRAM] Execution options prepared: {options}")
             
             # Create a unique execution ID for the sub-diagram
             sub_execution_id = self._create_sub_execution_id(request.execution_id)
@@ -130,10 +133,12 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             parent_observers = options.get("observers", [])
             
             # Log sub-diagram execution start
-            log.info(f"Starting sub-diagram execution: {sub_execution_id}")
+            log.info(f"[SUB_DIAGRAM] Starting sub-diagram execution: {sub_execution_id}")
+            log.debug(f"[SUB_DIAGRAM] Parent execution ID: {request.execution_id}")
             request.add_metadata("sub_execution_id", sub_execution_id)
             
             # Execute the sub-diagram and collect results
+            log.debug(f"[SUB_DIAGRAM] Calling _execute_sub_diagram with diagram_data keys: {list(diagram_data.keys())}")
             execution_results, execution_error = await self._execute_sub_diagram(
                 execute_use_case=execute_use_case,
                 diagram_data=diagram_data,
@@ -141,6 +146,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 sub_execution_id=sub_execution_id,
                 parent_observers=parent_observers
             )
+            log.debug(f"[SUB_DIAGRAM] Execution completed. Results: {len(execution_results)} nodes, Error: {execution_error}")
             
             # Handle execution error
             if execution_error:
@@ -182,8 +188,11 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     
     async def _load_diagram(self, node: SubDiagramNode, diagram_loader: Optional["DiagramLoaderAdapter"]) -> dict[str, Any]:
         """Load the diagram to execute."""
+        log.info(f"[SUB_DIAGRAM] _load_diagram called for node {node.id}, diagram_name: {node.diagram_name}")
+        
         # If diagram_data is provided directly, use it
         if node.diagram_data:
+            log.debug("[SUB_DIAGRAM] Using provided diagram_data")
             return node.diagram_data
         
         # Otherwise, load by name from storage
@@ -284,6 +293,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         execution_results = {}
         execution_error = None
         
+        log.debug(f"[SUB_DIAGRAM] Starting execute_diagram for {sub_execution_id}")
+        update_count = 0
+        
         async for update in execute_use_case.execute_diagram(
             diagram=diagram_data,
             options=options,
@@ -291,6 +303,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             interactive_handler=None,
             observers=parent_observers
         ):
+            update_count += 1
+            log.debug(f"[SUB_DIAGRAM] Update #{update_count}: type={update.get('type')}, node_id={update.get('node_id')}")
+            
             # Process execution updates
             if update.get("type") == "node_complete":
                 # Collect outputs from completed nodes

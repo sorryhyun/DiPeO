@@ -352,10 +352,5 @@ export interface SubDiagramNodeData extends BaseNodeData {
   diagram_name?: string;  // Name of the diagram to execute (e.g., "workflow/process")
   diagram_format?: DiagramFormat;  // Format of the diagram file (native, light, readable)
   diagram_data?: Record<string, any>;  // Inline diagram data (alternative to diagram_name)
-  input_mapping?: Record<string, string>;  // Map node inputs to sub-diagram variables
-  output_mapping?: Record<string, string>;  // Map sub-diagram outputs to node outputs
-  timeout?: number;  // Execution timeout in seconds
-  wait_for_completion?: boolean;  // Whether to wait for sub-diagram completion (default: true)
-  isolate_conversation?: boolean;  // Whether to create isolated conversation context (default: false)
 }
 

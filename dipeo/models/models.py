@@ -432,11 +432,6 @@ class SubDiagramNodeData(BaseNodeData):
     diagram_name: Optional[str] = Field(default=None)
     diagram_format: Optional[DiagramFormat] = Field(default=None)
     diagram_data: Optional[Dict[str, Any]] = Field(default=None)
-    input_mapping: Optional[Dict[str, Any]] = Field(default=None)
-    output_mapping: Optional[Dict[str, Any]] = Field(default=None)
-    timeout: Optional[float] = Field(default=None)
-    wait_for_completion: Optional[bool] = Field(default=None)
-    isolate_conversation: Optional[bool] = Field(default=None)
 
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
