@@ -41,7 +41,7 @@ class ValidationRules:
             "max_inputs": 0,
             "max_outputs": None,
             "required_handles": [HandleLabel.default],
-            "allowed_targets": [NodeType.person_job, NodeType.job, NodeType.condition, NodeType.db]
+            "allowed_targets": [NodeType.person_job, NodeType.condition, NodeType.db, NodeType.code_job]
         },
         NodeType.endpoint: {
             "max_inputs": None,
@@ -56,19 +56,12 @@ class ValidationRules:
             "allowed_targets": None,  # Can connect to any node
             "allowed_sources": None   # Any node can connect
         },
-        NodeType.job: {
-            "max_inputs": None,
-            "max_outputs": None,
-            "required_handles": [HandleLabel.default],
-            "allowed_targets": None,
-            "allowed_sources": None
-        },
         NodeType.condition: {
             "max_inputs": 1,  # Conditions typically have single input
             "max_outputs": None,  # Multiple branches allowed
             "required_handles": [HandleLabel.default, HandleLabel.condtrue, HandleLabel.condfalse],
             "allowed_targets": None,
-            "allowed_sources": [NodeType.person_job, NodeType.job, NodeType.db]
+            "allowed_sources": [NodeType.person_job, NodeType.code_job, NodeType.db]
         },
         NodeType.db: {
             "max_inputs": None,

@@ -112,7 +112,8 @@ class ConditionNode(BaseExecutableNode):
 class CodeJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.code_job, init=False)
     language: SupportedLanguage = SupportedLanguage.python
-    filePath: str = ""
+    filePath: Optional[str] = None
+    code: Optional[str] = None
     functionName: Optional[str] = None
     timeout: Optional[int] = None
 
@@ -121,6 +122,7 @@ class CodeJobNode(BaseExecutableNode):
         data = super().to_dict()
         data["language"] = self.language
         data["filePath"] = self.filePath
+        data["code"] = self.code
         data["functionName"] = self.functionName
         data["timeout"] = self.timeout
         return data
@@ -390,7 +392,8 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             language=data.get("language", SupportedLanguage.python),
-            filePath=data.get("filePath", ""),
+            filePath=data.get("filePath"),
+            code=data.get("code"),
             functionName=data.get("functionName"),
             timeout=data.get("timeout"),
         )

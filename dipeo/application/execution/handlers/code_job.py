@@ -1,6 +1,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import sys
 import warnings
@@ -23,6 +24,8 @@ from dipeo.application.utils.template import TemplateProcessor
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.dynamic.execution_context import ExecutionContext
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -51,15 +54,18 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
     @property
     def description(self) -> str:
-        return "Executes Python, TypeScript, or Bash code from files with enhanced capabilities"
+        return "Executes Python, TypeScript, or Bash code from files or inline with enhanced capabilities"
 
     def validate(self, request: ExecutionRequest[CodeJobNode]) -> Optional[str]:
         """Validate the code job configuration."""
         node = request.node
         
-        # Validate file path is provided
-        if not node.filePath:
-            return "No file path provided"
+        # Check if either filePath or code is provided
+        if not node.filePath and not node.code:
+            return "Either filePath or code must be provided"
+        
+        if node.filePath and node.code:
+            return "Cannot provide both filePath and code. Use one or the other."
         
         # Validate language is supported
         supported_languages = ["python", "typescript", "bash", "shell"]
@@ -67,18 +73,19 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         if language not in supported_languages:
             return f"Unsupported language: {language}. Supported: {', '.join(supported_languages)}"
         
-        # Validate file exists
-        file_path = Path(node.filePath)
-        if not file_path.is_absolute():
-            # Try relative to project root
-            base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-            file_path = Path(base_dir) / node.filePath
-        
-        if not file_path.exists():
-            return f"File not found: {node.filePath}"
-        
-        if not file_path.is_file():
-            return f"Path is not a file: {node.filePath}"
+        # If using file path, validate file exists
+        if node.filePath:
+            file_path = Path(node.filePath)
+            if not file_path.is_absolute():
+                # Try relative to project root
+                base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+                file_path = Path(base_dir) / node.filePath
+            
+            if not file_path.exists():
+                return f"File not found: {node.filePath}"
+            
+            if not file_path.is_file():
+                return f"Path is not a file: {node.filePath}"
         
         return None
     
@@ -87,66 +94,104 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         node = request.node
         context = request.context
         inputs = request.inputs
-        # Store execution metadata
+        
         language = node.language.value if hasattr(node.language, 'value') else node.language
-        request.add_metadata("language", language)
-        request.add_metadata("filePath", node.filePath)
-        request.add_metadata("functionName", node.functionName)
-        request.add_metadata("timeout", node.timeout)
-        
-        # Resolve file path
-        file_path = Path(node.filePath)
-        if not file_path.is_absolute():
-            base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-            file_path = Path(base_dir) / node.filePath
-        
         timeout = node.timeout or 30  # Default 30 seconds
         function_name = node.functionName or "main"  # Default to 'main'
+        
+        # Store execution metadata
+        request.add_metadata("language", language)
+        request.add_metadata("timeout", timeout)
+        request.add_metadata("functionName", function_name)
+        
+        if node.code:
+            # Handle inline code execution
+            request.add_metadata("inline_code", True)
+            
+            # Log execution details
+            logger.info(f"Executing code_job: {node.label} (inline)")
+            logger.debug(f"Language: {language}")
+            logger.debug(f"Code length: {len(node.code)} characters")
+            logger.debug(f"Inputs: {inputs}")
+            
+            try:
+                if language == "python":
+                    result = await self._execute_inline_python(node.code, inputs, timeout, context, function_name)
+                elif language == "typescript":
+                    result = await self._execute_inline_typescript(node.code, inputs, timeout, function_name)
+                elif language == "bash" or language == "shell":
+                    result = await self._execute_inline_bash(node.code, inputs, timeout)
+                else:
+                    return ErrorOutput(
+                        value=f"Unsupported language: {language}",
+                        node_id=node.id,
+                        error_type="UnsupportedLanguageError"
+                    )
+            except Exception as e:
+                logger.error(f"Inline code execution failed: {e}")
+                raise
+        else:
+            # Handle file-based execution
+            request.add_metadata("filePath", node.filePath)
+            
+            # Log execution details
+            logger.info(f"Executing code_job: {node.label}")
+            logger.debug(f"Language: {language}")
+            logger.debug(f"Source: {node.filePath}")
+            logger.debug(f"Inputs: {inputs}")
+            
+            # Resolve file path
+            file_path = Path(node.filePath)
+            if not file_path.is_absolute():
+                base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+                file_path = Path(base_dir) / node.filePath
 
-        try:
-            if language == "python":
-                result = await self._execute_python(file_path, inputs, timeout, context, function_name)
-            elif language == "typescript":
-                result = await self._execute_typescript(file_path, inputs, timeout, function_name)
-            elif language == "bash" or language == "shell":
-                result = await self._execute_bash(file_path, inputs, timeout)
-            else:
+            try:
+                if language == "python":
+                    result = await self._execute_python(file_path, inputs, timeout, context, function_name)
+                elif language == "typescript":
+                    result = await self._execute_typescript(file_path, inputs, timeout, function_name)
+                elif language == "bash" or language == "shell":
+                    result = await self._execute_bash(file_path, inputs, timeout)
+                else:
+                    return ErrorOutput(
+                        value=f"Unsupported language: {language}",
+                        node_id=node.id,
+                        error_type="UnsupportedLanguageError"
+                    )
+            except TimeoutError:
                 return ErrorOutput(
-                    value=f"Unsupported language: {language}",
+                    value=f"Code execution timed out after {timeout} seconds",
                     node_id=node.id,
-                    error_type="UnsupportedLanguageError"
+                    error_type="TimeoutError",
+                    metadata={"language": language}
                 )
-
-            # Return appropriate output type based on result
-            if isinstance(result, dict):
-                # For dict results, return DataOutput so object content type works
-                return DataOutput(
-                    value=result,
+            except Exception as e:
+                return ErrorOutput(
+                    value=str(e),
                     node_id=node.id,
-                    metadata={"language": language, "success": True}
+                    error_type=type(e).__name__,
+                    metadata={"language": language}
                 )
-            else:
-                # For non-dict results, convert to string
-                output = str(result)
-                return TextOutput(
-                    value=output,
-                    node_id=node.id,
-                    metadata={"language": language, "success": True}
-                )
-
-        except TimeoutError:
-            return ErrorOutput(
-                value=f"Code execution timed out after {timeout} seconds",
+                
+        # Log the result
+        logger.debug(f"Result: {result}")
+        
+        # Return appropriate output type based on result
+        if isinstance(result, dict):
+            # For dict results, return DataOutput so object content type works
+            return DataOutput(
+                value=result,
                 node_id=node.id,
-                error_type="TimeoutError",
-                metadata={"language": language}
+                metadata={"language": language, "success": True}
             )
-        except Exception as e:
-            return ErrorOutput(
-                value=str(e),
+        else:
+            # For non-dict results, convert to string
+            output = str(result)
+            return TextOutput(
+                value=output,
                 node_id=node.id,
-                error_type=type(e).__name__,
-                metadata={"language": language}
+                metadata={"language": language, "success": True}
             )
     
     def post_execute(
@@ -365,3 +410,106 @@ run();
             raise Exception(f"Bash execution failed: {stderr.decode()}")
         
         return stdout.decode().strip()
+    
+    async def _execute_inline_python(self, code: str, inputs: dict[str, Any], timeout: int, context: Optional["ExecutionContext"] = None, function_name: str = "main") -> Any:
+        """Execute inline Python code."""
+        # Prepare inputs dictionary with connection labels as keys
+        prepared_inputs = {}
+        if inputs:
+            for key, value in inputs.items():
+                # Try to parse JSON strings
+                if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                    try:
+                        prepared_inputs[key] = json.loads(value)
+                    except json.JSONDecodeError:
+                        prepared_inputs[key] = value
+                else:
+                    prepared_inputs[key] = value
+        
+        # Create a module from the inline code
+        module_code = code
+        
+        # If the code doesn't define the function, wrap it
+        if f"def {function_name}" not in code:
+            # Create a function that unpacks inputs as local variables
+            input_vars = '\n'.join(f'    {k} = inputs.get("{k}")' for k in prepared_inputs.keys())
+            indented_code = '\n'.join('    ' + line for line in code.split('\n') if line.strip())
+            module_code = f"""def {function_name}(inputs):
+{input_vars}
+{indented_code}
+    return locals().get('result', None)"""
+        
+        # Create a temporary file to execute the code
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as temp_file:
+            temp_file.write(module_code)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Execute using the existing file-based method
+            result = await self._execute_python(Path(temp_file_path), inputs, timeout, context, function_name)
+            return result
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+    
+    async def _execute_inline_typescript(self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main") -> Any:
+        """Execute inline TypeScript code."""
+        # Prepare inputs as before
+        prepared_inputs = {}
+        if inputs:
+            for key, value in inputs.items():
+                if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                    try:
+                        prepared_inputs[key] = json.loads(value)
+                    except json.JSONDecodeError:
+                        prepared_inputs[key] = value
+                else:
+                    prepared_inputs[key] = value
+        
+        # Create a module from the inline code
+        module_code = code
+        
+        # If the code doesn't export the function, wrap it
+        if f"export function {function_name}" not in code and f"export const {function_name}" not in code:
+            # Wrap the code in a function
+            module_code = f"""export function {function_name}(inputs: any): any {{
+    {code}
+    return (typeof result !== 'undefined') ? result : null;
+}}"""
+        
+        # Create a temporary file to execute the code
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.ts', delete=False) as temp_file:
+            temp_file.write(module_code)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Execute using the existing file-based method
+            result = await self._execute_typescript(Path(temp_file_path), inputs, timeout, function_name)
+            return result
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+    
+    async def _execute_inline_bash(self, code: str, inputs: dict[str, Any], timeout: int) -> Any:
+        """Execute inline Bash code."""
+        # Create a temporary file with the bash code
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as temp_file:
+            # Add shebang if not present
+            if not code.startswith('#!'):
+                temp_file.write('#!/bin/bash\n')
+            temp_file.write(code)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Make it executable
+            os.chmod(temp_file_path, os.stat(temp_file_path).st_mode | 0o111)
+            
+            # Execute using the existing file-based method
+            result = await self._execute_bash(Path(temp_file_path), inputs, timeout)
+            return result
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)

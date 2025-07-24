@@ -9,791 +9,213 @@ Transform the codegen system from a file-based approach to a pure data-driven ap
 - All templates and specs are loaded/saved by DB nodes
 - Code lives in proper Python files, not inline in diagrams
 
-## Current Problems
+## Phase 1: Core Architecture (COMPLETED ✓)
 
-1. **Mixed Concerns**: Generators handle both logic AND file I/O
-2. **Path Resolution**: Complex path resolution scattered throughout code
-3. **Template Loading**: Templates loaded inside functions
-4. **Hard to Test**: Can't test generators without file system
-5. **Inline Code**: Complex logic embedded in YAML diagrams
+### What Was Accomplished
 
-## Proposed Architecture
+1. **Created Directory Structure**:
+   - Separated frontend and backend generators
+   - Organized code into logical modules
+   - Clear separation of concerns
 
-### 1. Pure Generator Functions
+2. **Implemented Pure Generators**:
+   - Frontend: TypeScript model, node config, field config, node registry
+   - Backend: Pydantic model, GraphQL schema, static nodes, conversions
+   - All generators are pure functions (no file I/O)
 
-```python
-# files/codegen/code/generators/pure_generators.py
-from jinja2 import Environment
-from typing import Dict, Any
-from ..utils.filters import create_template_env
+3. **Created Light Diagrams**:
+   - Frontend single/batch generation diagrams with proper labels
+   - Backend single/batch generation diagrams with proper labels
+   - Master orchestrator diagram
+   - All using DB nodes for I/O operations
 
-def generate_typescript_model(spec_data: Dict[str, Any], template_content: str) -> str:
-    """Pure function: Generate TypeScript model from spec and template."""
-    env = create_template_env()
-    template = env.from_string(template_content)
-    return template.render(spec_data)
+4. **Shared Utilities**:
+   - Template environment with Jinja2
+   - Custom filters for code generation
+   - Type mappers for TypeScript and Python
+   - Helper functions for UI and Pydantic
 
-def generate_pydantic_model(spec_data: Dict[str, Any], template_content: str) -> str:
-    """Pure function: Generate Pydantic model from spec and template."""
-    env = create_template_env()
-    template = env.from_string(template_content)
-    return template.render(spec_data)
+## Phase 2: Diagram Testing and Debugging (COMPLETED ✓)
 
-def generate_graphql_schema(spec_data: Dict[str, Any], template_content: str) -> str:
-    """Pure function: Generate GraphQL schema from spec and template."""
-    env = create_template_env()
-    template = env.from_string(template_content)
-    return template.render(spec_data)
+### What Was Accomplished
 
-def generate_node_config(spec_data: Dict[str, Any], template_content: str) -> str:
-    """Pure function: Generate frontend node config from spec and template."""
-    env = create_template_env()
-    template = env.from_string(template_content)
-    return template.render(spec_data)
-```
+1. **Fixed Inline Code Execution** ✓:
+   - Simplified code_job handler to use explicit `code` and `filePath` fields
+   - Fixed field mapping in `strategy_common.py` to keep fields separate
+   - Successfully tested with `simple_db_test` diagram
 
-### 2. Separated Frontend and Backend Orchestration
+2. **Fixed CLI Path Resolution** ✓:
+   - Simplified to support `files/` directory paths
+   - Can now use `dipeo run codegen/diagrams/test/simple_db_test` directly
+   - Automatically prepends `files/` when needed
 
-#### Frontend Generation Diagram
+3. **Removed Unused Job Node** ✓:
+   - Deleted `JobNodeData` from TypeScript models
+   - Updated all references in Python code
+   - Regenerated all models and conversions
 
-```yaml
-# files/diagrams/codegen/frontend/generate_frontend_single.light.yaml
-nodes:
-  # Load node specification
-  - label: Load Node Spec
-    type: db
-    position: {x: 100, y: 200}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/specifications/nodes/{node_spec_path}.json
-      
-  # Load frontend templates
-  - label: Load TypeScript Template
-    type: db
-    position: {x: 100, y: 300}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/frontend/typescript_model.j2
-  
-  - label: Load Node Config Template
-    type: db
-    position: {x: 100, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/frontend/node_config.j2
+4. **Updated Documentation** ✓:
+   - Updated CLAUDE.md and CLAUDE.local.md with correct codegen diagram paths
+   - Clarified that codegen diagrams are in `files/codegen/diagrams/`
 
-  - label: Load Field Config Template
-    type: db
-    position: {x: 100, y: 500}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/frontend/field_config.j2
+## Phase 2.5: Test Single Node Generation (NEXT)
 
-  # Generate frontend code
-  - label: Generate TypeScript Model
-    type: code_job
-    position: {x: 400, y: 300}
-    props:
-      code_type: file
-      source_details: files/codegen/code/frontend/generators/typescript_model.py
-  
-  - label: Generate Node Config
-    type: code_job
-    position: {x: 400, y: 400}
-    props:
-      code_type: file
-      source_details: files/codegen/code/frontend/generators/node_config.py
+### What Needs Testing
 
-  - label: Generate Field Config
-    type: code_job
-    position: {x: 400, y: 500}
-    props:
-      code_type: file
-      source_details: files/codegen/code/frontend/generators/field_config.py
-
-  # Write frontend outputs
-  - label: Write TypeScript Model
-    type: db
-    position: {x: 700, y: 300}
-    props:
-      operation: write
-      sub_type: file
-      source_details: dipeo/models/src/nodes/{node_name}Node.ts
-  
-  - label: Write Node Config
-    type: db
-    position: {x: 700, y: 400}
-    props:
-      operation: write
-      sub_type: file
-      source_details: apps/web/src/features/diagram-editor/config/nodes/{node_name}Config.ts
-
-  - label: Write Field Config
-    type: db
-    position: {x: 700, y: 500}
-    props:
-      operation: write
-      sub_type: file
-      source_details: apps/web/src/core/config/fields/{node_name}Fields.ts
-
-connections:
-  # Connect spec and templates to generators
-  - from: Load Node Spec
-    to: Generate TypeScript Model.spec_data
-  - from: Load TypeScript Template
-    to: Generate TypeScript Model.template_content
-  
-  - from: Load Node Spec
-    to: Generate Node Config.spec_data
-  - from: Load Node Config Template
-    to: Generate Node Config.template_content
-
-  - from: Load Node Spec
-    to: Generate Field Config.spec_data
-  - from: Load Field Config Template
-    to: Generate Field Config.template_content
-  
-  # Connect generators to writers
-  - from: Generate TypeScript Model
-    to: Write TypeScript Model
-  - from: Generate Node Config
-    to: Write Node Config
-  - from: Generate Field Config
-    to: Write Field Config
-```
-
-#### Backend Generation Diagram
-
-```yaml
-# files/diagrams/codegen/backend/generate_backend_single.light.yaml
-nodes:
-  # Load node specification
-  - label: Load Node Spec
-    type: db
-    position: {x: 100, y: 200}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/specifications/nodes/{node_spec_path}.json
-  
-  # Load backend templates
-  - label: Load Pydantic Template
-    type: db
-    position: {x: 100, y: 300}
-    props:
-      operation: read
-      sub_type: file  
-      source_details: files/codegen/templates/backend/pydantic_model.j2
-
-  - label: Load GraphQL Template
-    type: db
-    position: {x: 100, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/backend/graphql_schema.j2
-
-  - label: Load Static Node Template
-    type: db
-    position: {x: 100, y: 500}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/backend/static_nodes.j2
-
-  # Generate backend code
-  - label: Generate Pydantic Model
-    type: code_job
-    position: {x: 400, y: 300}
-    props:
-      code_type: file
-      source_details: files/codegen/code/backend/generators/pydantic_model.py
-
-  - label: Generate GraphQL Schema
-    type: code_job
-    position: {x: 400, y: 400}
-    props:
-      code_type: file
-      source_details: files/codegen/code/backend/generators/graphql_schema.py
-
-  - label: Generate Static Node
-    type: code_job
-    position: {x: 400, y: 500}
-    props:
-      code_type: file
-      source_details: files/codegen/code/backend/generators/static_nodes.py
-
-  # Write backend outputs
-  - label: Write Pydantic Model
-    type: db
-    position: {x: 700, y: 300}
-    props:
-      operation: write
-      sub_type: file
-      source_details: dipeo/diagram_generated/models/{node_name}_model.py
-
-  - label: Write GraphQL Schema
-    type: db
-    position: {x: 700, y: 400}
-    props:
-      operation: write
-      sub_type: file
-      source_details: apps/server/src/graphql/schemas/{node_name}.graphql
-
-  - label: Write Static Node
-    type: db
-    position: {x: 700, y: 500}
-    props:
-      operation: write
-      sub_type: file
-      source_details: dipeo/core/static/generated/{node_name}_node.py
-
-connections:
-  # Connect spec and templates to generators
-  - from: Load Node Spec
-    to: Generate Pydantic Model.spec_data
-  - from: Load Pydantic Template
-    to: Generate Pydantic Model.template_content
-  
-  - from: Load Node Spec
-    to: Generate GraphQL Schema.spec_data
-  - from: Load GraphQL Template
-    to: Generate GraphQL Schema.template_content
-
-  - from: Load Node Spec
-    to: Generate Static Node.spec_data
-  - from: Load Static Node Template
-    to: Generate Static Node.template_content
-  
-  # Connect generators to writers
-  - from: Generate Pydantic Model
-    to: Write Pydantic Model
-  - from: Generate GraphQL Schema
-    to: Write GraphQL Schema
-  - from: Generate Static Node
-    to: Write Static Node
-```
-
-### 3. New Module Structure
-
-```
-files/codegen/
-├── code/
-│   ├── frontend/                    # Frontend-specific generators
-│   │   ├── __init__.py
-│   │   ├── generators/
-│   │   │   ├── typescript_model.py
-│   │   │   ├── node_config.py
-│   │   │   ├── node_registry.py
-│   │   │   └── field_config.py
-│   │   └── utils/
-│   │       ├── typescript_mapper.py
-│   │       └── react_helpers.py
-│   ├── backend/                     # Backend-specific generators
-│   │   ├── __init__.py
-│   │   ├── generators/
-│   │   │   ├── pydantic_model.py
-│   │   │   ├── graphql_schema.py
-│   │   │   ├── static_nodes.py
-│   │   │   └── conversions.py
-│   │   └── utils/
-│   │       ├── python_mapper.py
-│   │       └── pydantic_helpers.py
-│   └── shared/                      # Shared utilities
-│       ├── __init__.py
-│       ├── spec_loader.py
-│       ├── template_env.py
-│       └── filters.py              # Common Jinja2 filters
-├── templates/
-│   ├── backend/
-│   │   ├── pydantic_model.j2
-│   │   ├── graphql_schema.j2
-│   │   ├── static_nodes.j2
-│   │   └── conversions.j2
-│   └── frontend/
-│       ├── typescript_model.j2
-│       ├── node_config.j2
-│       ├── node_registry.j2
-│       └── field_config.j2
-├── specifications/nodes/           # Node specifications
-├── manifests/                      # Generation manifests
-│   ├── frontend.json              # Frontend generation config
-│   ├── backend.json               # Backend generation config
-│   └── all.json                   # Complete generation config
-└── diagrams/                       # Orchestration diagrams
-    ├── frontend/
-    │   ├── generate_frontend_single.light.yaml
-    │   └── generate_frontend_all.light.yaml
-    ├── backend/
-    │   ├── generate_backend_single.light.yaml
-    │   └── generate_backend_all.light.yaml
-    └── master/
-        ├── generate_all.light.yaml
-        └── validate_specs.light.yaml
-```
-
-### 4. Frontend and Backend Separation
-
-#### Frontend Generators
-
-##### TypeScript Model Generator
-```python
-# files/codegen/code/frontend/generators/typescript_model.py
-from jinja2 import Environment
-from ..utils.typescript_mapper import map_to_typescript_type
-from ...shared.template_env import create_template_env
-
-def generate_typescript_model(spec_data: dict, template_content: str) -> str:
-    """Pure function: Generate TypeScript model from spec."""
-    env = create_template_env()
-    
-    # Transform spec for TypeScript
-    ts_spec = {
-        **spec_data,
-        'imports': _calculate_imports(spec_data),
-        'type_mappings': {
-            field['name']: map_to_typescript_type(field['type'])
-            for field in spec_data.get('fields', [])
-        }
-    }
-    
-    template = env.from_string(template_content)
-    return template.render(ts_spec)
-
-def main(inputs):
-    """Entry point for code_job node."""
-    return {
-        'generated_code': generate_typescript_model(
-            inputs['spec_data'], 
-            inputs['template_content']
-        ),
-        'filename': f"{inputs['spec_data']['type']}Node.ts"
-    }
-```
-
-##### Node Config Generator
-```python
-# files/codegen/code/frontend/generators/node_config.py
-from ...shared.template_env import create_template_env
-
-def generate_node_config(spec_data: dict, template_content: str) -> str:
-    """Pure function: Generate frontend node configuration."""
-    env = create_template_env()
-    
-    # Add UI-specific transformations
-    config_spec = {
-        **spec_data,
-        'field_groups': _group_fields_by_category(spec_data),
-        'default_values': _calculate_default_values(spec_data)
-    }
-    
-    template = env.from_string(template_content)
-    return template.render(config_spec)
-```
-
-#### Backend Generators
-
-##### Pydantic Model Generator
-```python
-# files/codegen/code/backend/generators/pydantic_model.py
-from ...shared.template_env import create_template_env
-from ..utils.python_mapper import map_to_python_type
-
-def generate_pydantic_model(spec_data: dict, template_content: str) -> str:
-    """Pure function: Generate Pydantic model from spec."""
-    env = create_template_env()
-    
-    # Transform spec for Python/Pydantic
-    py_spec = {
-        **spec_data,
-        'imports': _calculate_python_imports(spec_data),
-        'type_mappings': {
-            field['name']: map_to_python_type(field['type'])
-            for field in spec_data.get('fields', [])
-        },
-        'validators': _build_validators(spec_data)
-    }
-    
-    template = env.from_string(template_content)
-    return template.render(py_spec)
-
-def main(inputs):
-    """Entry point for code_job node."""
-    return {
-        'generated_code': generate_pydantic_model(
-            inputs['spec_data'],
-            inputs['template_content']
-        ),
-        'filename': f"{inputs['spec_data']['type']}_model.py"
-    }
-```
-
-##### Static Nodes Generator
-```python
-# files/codegen/code/backend/generators/static_nodes.py
-from ...shared.template_env import create_template_env
-
-def generate_static_node(spec_data: dict, template_content: str) -> str:
-    """Pure function: Generate static node implementation."""
-    env = create_template_env()
-    
-    # Add execution-specific data
-    node_spec = {
-        **spec_data,
-        'handler_class': f"{spec_data['type'].title()}NodeHandler",
-        'execution_logic': _build_execution_logic(spec_data)
-    }
-    
-    template = env.from_string(template_content)
-    return template.render(node_spec)
-```
-
-### 5. Master Orchestrator with Separated Frontend/Backend
-
-```yaml
-# files/diagrams/codegen/master/generate_all.light.yaml
-nodes:
-  - label: Load Generation Manifest
-    type: db
-    position: {x: 100, y: 300}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/manifests/all.json
-
-  - label: Process Manifest
-    type: code_job
-    position: {x: 300, y: 300}
-    props:
-      code_type: file
-      source_details: files/codegen/code/shared/manifest_processor.py
-
-  # Frontend and Backend sub-diagrams
-  - label: Generate All Frontend
-    type: sub_diagram
-    position: {x: 500, y: 200}
-    props:
-      diagram_path: codegen/frontend/generate_frontend_all
-
-  - label: Generate All Backend
-    type: sub_diagram
-    position: {x: 500, y: 400}
-    props:
-      diagram_path: codegen/backend/generate_backend_all
-
-  # Registry generation (combines frontend and backend info)
-  - label: Generate Node Registry
-    type: code_job
-    position: {x: 700, y: 300}
-    props:
-      code_type: file
-      source_details: files/codegen/code/frontend/generators/node_registry.py
-
-  - label: Write Node Registry
-    type: db
-    position: {x: 900, y: 300}
-    props:
-      operation: write
-      sub_type: file
-      source_details: apps/web/src/features/diagram-editor/config/nodeRegistry.ts
-
-connections:
-  - from: Load Generation Manifest
-    to: Process Manifest
-  
-  # Send node specs to frontend and backend
-  - from: Process Manifest.frontend_specs
-    to: Generate All Frontend
-  - from: Process Manifest.backend_specs
-    to: Generate All Backend
-  
-  # Registry needs results from both
-  - from: Generate All Frontend.node_configs
-    to: Generate Node Registry.frontend_configs
-  - from: Generate All Backend.node_metadata
-    to: Generate Node Registry.backend_metadata
-  
-  - from: Generate Node Registry
-    to: Write Node Registry
-```
-
-#### Frontend Batch Generation
-
-```yaml
-# files/diagrams/codegen/frontend/generate_frontend_all.light.yaml
-nodes:
-  - label: Load Frontend Manifest
-    type: db
-    position: {x: 100, y: 100}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/manifests/frontend.json
-
-  - label: Batch Process Frontend
-    type: code_job
-    position: {x: 300, y: 100}
-    props:
-      code_type: file
-      source_details: files/codegen/code/frontend/batch_processor.py
-
-  # Parallel generation for each artifact type
-  - label: Generate All TypeScript Models
-    type: sub_diagram
-    position: {x: 500, y: 200}
-    props:
-      diagram_path: codegen/frontend/batch_typescript
-
-  - label: Generate All Node Configs
-    type: sub_diagram
-    position: {x: 500, y: 300}
-    props:
-      diagram_path: codegen/frontend/batch_node_configs
-
-  - label: Generate All Field Configs
-    type: sub_diagram
-    position: {x: 500, y: 400}
-    props:
-      diagram_path: codegen/frontend/batch_field_configs
-
-connections:
-  - from: Load Frontend Manifest
-    to: Batch Process Frontend
-  
-  - from: Batch Process Frontend.typescript_tasks
-    to: Generate All TypeScript Models
-  - from: Batch Process Frontend.config_tasks
-    to: Generate All Node Configs
-  - from: Batch Process Frontend.field_tasks
-    to: Generate All Field Configs
-```
-
-#### Backend Batch Generation
-
-```yaml
-# files/diagrams/codegen/backend/generate_backend_all.light.yaml
-nodes:
-  - label: Load Backend Manifest
-    type: db
-    position: {x: 100, y: 100}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/manifests/backend.json
-
-  - label: Batch Process Backend
-    type: code_job
-    position: {x: 300, y: 100}
-    props:
-      code_type: file
-      source_details: files/codegen/code/backend/batch_processor.py
-
-  # Parallel generation for each artifact type
-  - label: Generate All Pydantic Models
-    type: sub_diagram
-    position: {x: 500, y: 200}
-    props:
-      diagram_path: codegen/backend/batch_pydantic
-
-  - label: Generate All GraphQL Schemas
-    type: sub_diagram
-    position: {x: 500, y: 300}
-    props:
-      diagram_path: codegen/backend/batch_graphql
-
-  - label: Generate All Static Nodes
-    type: sub_diagram
-    position: {x: 500, y: 400}
-    props:
-      diagram_path: codegen/backend/batch_static_nodes
-
-  - label: Generate Conversions
-    type: code_job
-    position: {x: 700, y: 300}
-    props:
-      code_type: file
-      source_details: files/codegen/code/backend/generators/conversions.py
-
-  - label: Write Conversions
-    type: db
-    position: {x: 900, y: 300}
-    props:
-      operation: write
-      sub_type: file
-      source_details: dipeo/diagram_generated/__generated_conversions__.py
-
-connections:
-  - from: Load Backend Manifest
-    to: Batch Process Backend
-  
-  - from: Batch Process Backend.pydantic_tasks
-    to: Generate All Pydantic Models
-  - from: Batch Process Backend.graphql_tasks
-    to: Generate All GraphQL Schemas
-  - from: Batch Process Backend.static_tasks
-    to: Generate All Static Nodes
-  
-  # Conversions need all models generated first
-  - from: Generate All Pydantic Models.results
-    to: Generate Conversions.pydantic_models
-  - from: Generate Conversions
-    to: Write Conversions
-```
-
-### 6. Benefits of Revised Architecture
-
-1. **DiPeO-Native**: Uses DB nodes for all I/O operations
-2. **No Inline Code**: All logic in proper Python files
-3. **Pure Functions**: Complete separation of I/O and logic
-4. **Testability**: Each generator can be unit tested
-5. **Scalability**: Easy to add new generators and templates
-6. **Visibility**: Visual diagram shows entire data flow
-7. **Debugging**: Can inspect data at each node
-8. **Caching**: DB nodes can leverage DiPeO's caching
-
-### 7. Migration Steps
-
-1. **Create Generator Files**:
+1. **Frontend Single Node Generation**:
    ```bash
-   # Create pure generator functions
-   mkdir -p files/codegen/code/generators
-   # Move logic from inline code to Python files
+   dipeo run codegen/diagrams/frontend/generate_frontend_single --light --debug \
+     --no-browser --timeout=15 --input-data '{"node_spec_path": "person_job"}'
    ```
+   - Generates TypeScript model, node config, and field config
+   - Uses template: `files/codegen/templates/frontend/*.j2`
+   - Outputs to: `dipeo/models/src/nodes/`, `apps/web/src/features/`, etc.
 
-2. **Update Diagrams to Use DB Nodes**:
-   - Replace file I/O code_job nodes with DB nodes
-   - Use `code_type: file` for all code execution
-
-3. **Implement Batch Processing**:
-   ```python
-   # files/codegen/code/batch_processor.py
-   def process_batch(inputs):
-       """Process multiple nodes in parallel."""
-       specs = inputs['specs']
-       template = inputs['template']
-       
-       results = []
-       for spec in specs:
-           result = generate_code(spec, template)
-           results.append({
-               'node_type': spec['type'],
-               'code': result,
-               'path': calculate_output_path(spec)
-           })
-       
-       return {'batch_results': results}
+2. **Backend Single Node Generation**:
+   ```bash
+   dipeo run codegen/diagrams/backend/generate_backend_single --light --debug \
+     --no-browser --timeout=15 --input-data '{"node_spec_path": "person_job"}'
    ```
+   - Generates Pydantic model, GraphQL schema, and static node
+   - Uses template: `files/codegen/templates/backend/*.j2`
+   - Outputs to: `dipeo/diagram_generated/`, `apps/server/src/graphql/`, etc.
 
-4. **Add Validation Layer**:
-   ```yaml
-   # Validation diagram using DB nodes
-   - label: Validate Spec
-     type: code_job
-     props:
-       code_type: file
-       source_details: files/codegen/code/validators/spec_validator.py
-   ```
+### Key Observations
 
-## Example Usage
+Both diagrams use:
+- `code_type: file` for generator code (need to update to `language: python` + `filePath`)
+- `code_type: python` with inline `code` for extracting node type
+- Dynamic path resolution with `{node_spec_path}` and `{node_type}` placeholders
+- DB nodes for all file I/O operations
 
-```bash
-# Generate frontend code for a single node
-dipeo run codegen/frontend/generate_frontend_single --light --input-data '{"node_spec_path": "person_job"}'
+### Issues to Fix Before Testing
 
-# Generate backend code for a single node  
-dipeo run codegen/backend/generate_backend_single --light --input-data '{"node_spec_path": "person_job"}'
+1. **Update code_job props** in both diagrams:
+   - Change `code_type: file` to `language: python`
+   - Change `source_details` to `filePath`
+   - Keep inline code blocks as-is (already using correct format)
 
-# Generate all frontend code
-dipeo run codegen/frontend/generate_frontend_all --light --debug
+2. **Verify generator code exists**:
+   - Check all files in `files/codegen/code/frontend/generators/`
+   - Check all files in `files/codegen/code/backend/generators/`
 
-# Generate all backend code
-dipeo run codegen/backend/generate_backend_all --light --debug
+3. **Verify node specifications exist**:
+   - Need at least `files/codegen/specifications/nodes/person_job.json`
+   - Other test nodes: `condition.json`, `db.json`, etc.
 
-# Generate everything (frontend + backend + registry)
-dipeo run codegen/master/generate_all --light --debug
+## Phase 3: Advanced Features (FUTURE)
 
-# Validate all specifications
-dipeo run codegen/master/validate_specs --light
+### 1. Dynamic Path Resolution
+
+Current issue: DB nodes use hardcoded paths with `{node_type}` placeholders.
+
+Solution needed:
+- Dynamic path calculation in code_job nodes
+- Pass calculated paths to DB nodes via labels
+- Support for custom output locations
+
+### 2. Code_job with Multiple Inline Code Blocks
+
+**Issue**: Current code_job implementation only supports a single code block or file reference.
+
+**Proposed Enhancement**:
+```yaml
+- label: Multi-Step Processing
+  type: code_job
+  position: {x: 400, y: 300}
+  props:
+    code_type: python
+    # Multiple code blocks executed in sequence
+    code_blocks:
+      - name: validate_input
+        code: |
+          # First block: Validate input
+          if not spec_data or 'type' not in spec_data:
+              raise ValueError("Invalid spec data")
+          validated_spec = spec_data
+          
+      - name: transform_data
+        code: |
+          # Second block: Transform data (can access previous results)
+          transformed = {
+              **validated_spec,
+              'timestamp': datetime.now().isoformat(),
+              'version': '1.0.0'
+          }
+          
+      - name: prepare_output
+        code: |
+          # Third block: Prepare final output
+          result = {
+              'data': transformed,
+              'status': 'success',
+              'metadata': {'blocks_executed': 3}
+          }
 ```
 
-### Manifest Examples
+**Benefits**:
+- Step-by-step processing with intermediate results
+- Better error handling (know which block failed)
+- Easier debugging and testing
+- Can share context between blocks
+- More readable than one large code block
 
-#### Frontend Manifest (`frontend.json`)
-```json
-{
-  "nodes": ["person_job", "condition", "api_job", "code_job"],
-  "generators": {
-    "typescript_model": {
-      "template": "frontend/typescript_model.j2",
-      "output_pattern": "dipeo/models/src/nodes/{node_name}Node.ts"
-    },
-    "node_config": {
-      "template": "frontend/node_config.j2",
-      "output_pattern": "apps/web/src/features/diagram-editor/config/nodes/{node_name}Config.ts"
-    },
-    "field_config": {
-      "template": "frontend/field_config.j2",
-      "output_pattern": "apps/web/src/core/config/fields/{node_name}Fields.ts"
-    }
-  }
-}
-```
+**Implementation Considerations**:
+- Each block has access to previous blocks' variables
+- Error in any block stops execution
+- Optional continue_on_error flag per block
+- Return value from last block is the node output
 
-#### Backend Manifest (`backend.json`)
-```json
-{
-  "nodes": ["person_job", "condition", "api_job", "code_job"],
-  "generators": {
-    "pydantic_model": {
-      "template": "backend/pydantic_model.j2",
-      "output_pattern": "dipeo/diagram_generated/models/{node_name}_model.py"
-    },
-    "graphql_schema": {
-      "template": "backend/graphql_schema.j2",
-      "output_pattern": "apps/server/src/graphql/schemas/{node_name}.graphql"
-    },
-    "static_node": {
-      "template": "backend/static_nodes.j2",
-      "output_pattern": "dipeo/core/static/generated/{node_name}_node.py"
-    }
-  }
-}
-```
+### 3. Validation and Error Handling
 
-## Key Improvements
+- JSON Schema validation for specifications
+- Template validation before generation
+- Comprehensive error messages
+- Rollback on failure
 
-1. **Clear Separation**: Frontend and backend generation are completely separated
-   - Different directories, diagrams, and generators
-   - Can run frontend-only or backend-only generation
-   - Easier to maintain and debug
+### 4. Performance Optimizations
 
-2. **DB Nodes for I/O**: All file operations use native DiPeO DB nodes
-   - No file I/O in generator code
-   - Leverages DiPeO's caching and error handling
-   - Visual representation of data flow
+- Parallel generation for multiple nodes
+- Template caching
+- Incremental generation (only changed specs)
 
-3. **File-Based Code**: No complex inline code in YAML
-   - All logic in proper Python files
-   - Easy to test and debug
-   - Better IDE support
+## Immediate Next Steps
 
-4. **Pure Functions**: Complete separation of concerns
-   - Generators are pure data transformations
-   - No side effects or hidden dependencies
-   - Highly testable
+1. **Fix Inline Code Execution** (Priority: Critical)
+   - Simplify code_job handler implementation
+   - Choose one approach: file-only, separate nodes, or proper property handling
+   - Current complex implementation with `__pydantic_extra__` is not working
 
-5. **Modular Architecture**:
-   - Frontend: TypeScript models, React configs, UI components
-   - Backend: Pydantic models, GraphQL schemas, execution logic
-   - Shared: Common utilities and filters
+2. **Fix CLI Path Resolution** (Priority: Critical)
+   ```bash
+   # Should work without relative paths:
+   dipeo run codegen/diagrams/test/simple_db_test --light --debug --no-browser
+   
+   # Not this:
+   dipeo run ../codegen/diagrams/test/simple_db_test --light --debug --no-browser
+   ```
 
-6. **Visual Debugging**: Can see and monitor data flow in diagrams
-   - Each step is visible
-   - Can inspect intermediate results
-   - Easy to identify bottlenecks
+3. **Remove Job Node** (Priority: High)
+   - Delete JobNodeData from TypeScript models
+   - Regenerate all models
+   - Ensure only CodeJobNode is used
 
-This approach fully embraces DiPeO's visual programming paradigm while maintaining clean, testable code architecture with clear separation between frontend and backend concerns.
+4. **Test Single Node Generation** (Priority: High)
+   ```bash
+   # After fixing inline code execution
+   dipeo run codegen/diagrams/frontend/generate_frontend_single --light --debug \
+     --no-browser --timeout=15 --input-data '{"node_spec_path": "person_job"}'
+   ```
+
+5. **Test Batch and Full Pipeline** (Priority: Medium)
+   - Only after single node generation works
+   - May need to implement batch processors
+   - Test master orchestrator
+
+## Key Architecture Benefits
+
+1. **Pure Functions**: All generators are testable pure functions
+2. **Visual Debugging**: Can see and debug the entire flow
+3. **Separation of Concerns**: Frontend/backend completely separated
+4. **DiPeO Native**: Uses platform features (DB nodes, sub-diagrams)
+5. **Maintainable**: Code in files, not embedded in YAML

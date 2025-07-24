@@ -138,8 +138,6 @@ class ArrowTransformer:
         # Default based on node type
         if source_node.type == NodeType.person_job:
             return ContentType.conversation_state
-        elif source_node.type == NodeType.job:
-            return ContentType.raw_text
         elif source_node.type == NodeType.db:
             # Use object type by default for DB nodes to preserve structure
             return ContentType.object

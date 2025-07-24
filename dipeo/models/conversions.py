@@ -15,7 +15,6 @@ from .models import (
 # ---------------------------------------------------------------------------
 
 NODE_TYPE_MAP: dict[str, NodeType] = {
-    "job": NodeType.job,
     "code_job": NodeType.code_job,
     "api_job": NodeType.api_job,
     "person_job": NodeType.person_job,

@@ -12,7 +12,6 @@ class NodeType(str, Enum):
     start = "start"
     person_job = "person_job"
     condition = "condition"
-    job = "job"
     code_job = "code_job"
     api_job = "api_job"
     endpoint = "endpoint"
@@ -347,17 +346,12 @@ class DBNodeData(BaseNodeData):
     query: Optional[str] = Field(default=None)
     data: Optional[Dict[str, Any]] = Field(default=None)
 
-class JobNodeData(BaseNodeData):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    code_type: SupportedLanguage
-    code: str
-
 class CodeJobNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     language: SupportedLanguage
-    filePath: str
+    filePath: Optional[str] = Field(default=None)
+    code: Optional[str] = Field(default=None)
     functionName: Optional[str] = Field(default=None)
     timeout: Optional[float] = Field(default=None)
 

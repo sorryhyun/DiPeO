@@ -70,6 +70,14 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         node = request.node
         context = request.context
         
+        # Log execution start
+        log.info(f"Executing sub_diagram: {node.label}")
+        log.debug(f"Diagram name: {node.diagram_name}")
+        log.debug(f"Has diagram data: {node.diagram_data is not None}")
+        log.debug(f"Input mapping: {node.input_mapping}")
+        log.debug(f"Output mapping: {node.output_mapping}")
+        log.debug(f"Inputs: {request.inputs}")
+        
         try:
             # Get required services
             state_store = request.services.get("state_store")
@@ -250,6 +258,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # Process output mapping
             output_value = self._process_output_mapping(node, execution_results)
+            log.debug(f"Processed output value: {output_value}")
             
             # Return success output
             return DataOutput(

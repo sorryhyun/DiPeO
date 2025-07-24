@@ -199,11 +199,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             )
             if not node_has_handles:
                 # Convert node type string to enum
-                node_type_str = node.get("type", "job")
+                node_type_str = node.get("type", "code_job")
                 try:
                     node_type = node_kind_to_domain_type(node_type_str)
                 except ValueError:
-                    node_type = NodeType.job
+                    node_type = NodeType.code_job
                 
                 handle_generator.generate_for_node(
                     diagram_dict, node_id, node_type

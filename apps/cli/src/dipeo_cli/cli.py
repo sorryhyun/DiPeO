@@ -20,28 +20,36 @@ class DiPeOCLI:
 
     def resolve_diagram_path(self, diagram: str, format_type: str | None = None) -> str:
         """Resolve diagram path based on format type."""
-        # If it's an absolute path or starts with files/, use as-is
+        # If it's an absolute path, use as-is
         path = Path(diagram)
-        if path.is_absolute() or diagram.startswith("files/"):
+        if path.is_absolute():
             return diagram
 
-        # If it has a file extension, check if it exists relative to current dir
-        if diagram.endswith((".native.json", ".light.yaml", ".readable.yaml")) and Path(diagram).exists():
-            return diagram
+        # If it has a file extension, check if it exists
+        if diagram.endswith((".native.json", ".light.yaml", ".readable.yaml")):
+            # Check if it exists as-is
+            if Path(diagram).exists():
+                return diagram
+            # Try with files/ prefix
+            path_with_files = FILES_DIR / diagram
+            if path_with_files.exists():
+                return str(path_with_files)
+            # If it starts with files/, also try resolving from project root
+            if diagram.startswith("files/"):
+                return str(FILES_DIR.parent / diagram)
 
-        # Otherwise, construct path based on format within diagrams directory
-        diagrams_dir = FILES_DIR / "diagrams"
-
+        # For paths without extension, auto-prepend files/ if not present
+        if diagram.startswith("files/"):
+            diagram_path = diagram[6:]  # Remove "files/"
+        else:
+            diagram_path = diagram
+        
         if not format_type:
             # Try to find the diagram with known extensions
-            extensions = [
-                (".native.json", "native"),
-                (".light.yaml", "light"),
-                (".readable.yaml", "readable"),
-            ]
-
-            for ext, _ in extensions:
-                path = diagrams_dir / f"{diagram}{ext}"
+            extensions = [".native.json", ".light.yaml", ".readable.yaml"]
+            
+            for ext in extensions:
+                path = FILES_DIR / f"{diagram_path}{ext}"
                 if path.exists():
                     return str(path)
 
@@ -58,7 +66,7 @@ class DiPeOCLI:
         if not ext:
             raise ValueError(f"Unknown format type: {format_type}")
 
-        path = diagrams_dir / f"{diagram}{ext}"
+        path = FILES_DIR / f"{diagram_path}{ext}"
         return str(path)
 
     def load_diagram(self, file_path: str) -> dict[str, Any]:

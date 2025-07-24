@@ -1,0 +1,22 @@
+{
+  "nodes": ["person_job", "condition", "api_job", "code_job", "db", "endpoint", "user_response", "sub_diagram"],
+  "generators": {
+    "frontend": {
+      "enabled": true,
+      "manifest": "frontend.json"
+    },
+    "backend": {
+      "enabled": true,
+      "manifest": "backend.json"
+    }
+  },
+  "registry": {
+    "output": "apps/web/src/features/diagram-editor/config/nodeRegistry.ts",
+    "template": "frontend/node_registry.j2"
+  },
+  "options": {
+    "parallel": true,
+    "validate_specs": true,
+    "generate_tests": false
+  }
+}

@@ -65,13 +65,10 @@ export const NODE_DATA_SCHEMAS = {
     query: z.string().optional(),
     data: z.record(z.string(), z.any()).optional()
   }),
-  'job': z.object({
-    code_type: z.any(),
-    code: z.string()
-  }),
   'code_job': z.object({
     language: z.any(),
-    filePath: z.string(),
+    filePath: z.string().optional(),
+    code: z.string().optional(),
     functionName: z.string().optional(),
     timeout: z.number().optional()
   }),
@@ -109,7 +106,6 @@ export type PersonJobNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['person_j
 export type ConditionNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['condition']>;
 export type EndpointNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['endpoint']>;
 export type DBNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['db']>;
-export type JobNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['job']>;
 export type CodeJobNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['code_job']>;
 export type ApiJobNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['api_job']>;
 export type UserResponseNodeDataSchema = z.infer<typeof NODE_DATA_SCHEMAS['user_response']>;

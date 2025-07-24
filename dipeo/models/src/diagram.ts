@@ -16,7 +16,6 @@ export enum NodeType {
   START = 'start',
   PERSON_JOB = 'person_job',
   CONDITION = 'condition',
-  JOB = 'job',  // Deprecated: use CODE_JOB or API_JOB instead
   CODE_JOB = 'code_job',
   API_JOB = 'api_job',
   ENDPOINT = 'endpoint',
@@ -255,14 +254,11 @@ export interface DBNodeData extends BaseNodeData {
   data?: Record<string, any>;
 }
 
-export interface JobNodeData extends BaseNodeData {
-  code_type: SupportedLanguage;
-  code: string;
-}
 
 export interface CodeJobNodeData extends BaseNodeData {
   language: SupportedLanguage;
-  filePath: string;
+  filePath?: string;  // Path to code file (required if code is not provided)
+  code?: string;      // Inline code (required if filePath is not provided)
   functionName?: string;  // Function to call (default: 'main' for Python)
   timeout?: number;  // in seconds
 }

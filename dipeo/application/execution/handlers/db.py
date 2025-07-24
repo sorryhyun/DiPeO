@@ -79,12 +79,17 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
         """Run the DB operation with a strongly-typed `DBNode` instance."""
+        # Log the operation details
+        logger.info(f"DB operation: {node.operation} on {node.file}")
+        logger.debug(f"Input values: {inputs}")
+        
         # Get service from services dict
         db_service = services.get(DB_OPERATIONS_SERVICE.name)
         if db_service is None:  # Hard failure early
             raise RuntimeError("db_operations_service not available")
 
         input_val = self._first_non_empty(inputs)
+        logger.debug(f"Using input value: {input_val}")
 
         try:
             result = await db_service.execute_operation(
@@ -92,6 +97,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 operation=node.operation,
                 value=input_val,
             )
+            logger.debug(f"Result: {result}")
+            
             # ----------------- Format output ----------------- #
             if node.operation == "read":
                 output_value = result["value"]
