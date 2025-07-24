@@ -1,0 +1,141 @@
+# Master Generation Diagram
+# Orchestrates complete code generation for all node types
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+
+  - label: Load Generation Manifest
+    type: db
+    position: {x: 200, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/manifests/all.json
+
+  - label: Process Manifest
+    type: code_job
+    position: {x: 350, y: 300}
+    props:
+      code_type: python
+      code: |
+        # Process the manifest to extract node specs for frontend and backend
+        manifest = manifest_data
+        
+        # Extract node types to generate
+        node_types = manifest.get('nodes', [])
+        
+        # Prepare specs for frontend and backend
+        frontend_specs = []
+        backend_specs = []
+        
+        for node_type in node_types:
+            spec_info = {
+                'node_type': node_type,
+                'spec_path': f"nodes/{node_type}"
+            }
+            
+            # Check which generators are enabled
+            if manifest.get('generators', {}).get('frontend', {}).get('enabled', True):
+                frontend_specs.append(spec_info)
+                
+            if manifest.get('generators', {}).get('backend', {}).get('enabled', True):
+                backend_specs.append(spec_info)
+        
+        result = {
+            'frontend_specs': frontend_specs,
+            'backend_specs': backend_specs,
+            'registry_config': manifest.get('registry', {})
+        }
+
+  # Frontend and Backend sub-diagrams
+  - label: Generate All Frontend
+    type: sub_diagram
+    position: {x: 550, y: 200}
+    props:
+      diagram_path: codegen/frontend/generate_frontend_all
+
+  - label: Generate All Backend
+    type: sub_diagram
+    position: {x: 550, y: 400}
+    props:
+      diagram_path: codegen/backend/generate_backend_all
+
+  # Load registry template
+  - label: Load Registry Template
+    type: db
+    position: {x: 700, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/frontend/node_registry.j2
+
+  # Registry generation (combines frontend and backend info)
+  - label: Generate Node Registry
+    type: code_job
+    position: {x: 850, y: 300}
+    props:
+      code_type: file
+      source_details: files/codegen/code/frontend/generators/node_registry.py
+      functionName: main
+
+  - label: Write Node Registry
+    type: db
+    position: {x: 1000, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/web/src/features/diagram-editor/config/nodeRegistry.ts
+
+  - label: End
+    type: endpoint
+    position: {x: 1150, y: 300}
+    props:
+      file_format: json
+      save_to_file: true
+      file_path: files/codegen/generation_report.json
+
+connections:
+  - from: Start
+    to: Load Generation Manifest
+    
+  - from: Load Generation Manifest
+    to: Process Manifest
+    label: manifest_data
+  
+  # Send node specs to frontend and backend
+  - from: Process Manifest
+    to: Generate All Frontend
+    label: frontend_specs
+  - from: Process Manifest
+    to: Generate All Backend
+    label: backend_specs
+  
+  # Registry needs results from both frontend and backend
+  - from: Generate All Frontend
+    to: Generate Node Registry
+    label: frontend_configs
+  - from: Generate All Backend
+    to: Generate Node Registry
+    label: backend_metadata
+  - from: Load Registry Template
+    to: Generate Node Registry
+    label: template_content
+  
+  - from: Generate Node Registry
+    to: Write Node Registry
+    label: generated_code
+    
+  # Collect all results for final report
+  - from: Generate All Frontend
+    to: End
+    label: frontend_results
+  - from: Generate All Backend
+    to: End
+    label: backend_results
+  - from: Generate Node Registry
+    to: End
+    label: registry_result

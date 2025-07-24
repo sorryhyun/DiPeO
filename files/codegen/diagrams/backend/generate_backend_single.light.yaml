@@ -1,0 +1,157 @@
+# Backend Single Node Generation Diagram
+# Generates Pydantic model, GraphQL schema, and static node for a single node type
+
+version: light
+
+nodes:
+  # Load node specification
+  - label: Load Node Spec
+    type: db
+    position: {x: 100, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/specifications/nodes/{node_spec_path}.json
+  
+  # Load backend templates
+  - label: Load Pydantic Template
+    type: db
+    position: {x: 100, y: 300}
+    props:
+      operation: read
+      sub_type: file  
+      source_details: files/codegen/templates/backend/pydantic_model.j2
+
+  - label: Load GraphQL Template
+    type: db
+    position: {x: 100, y: 400}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/backend/graphql_schema.j2
+
+  - label: Load Static Node Template
+    type: db
+    position: {x: 100, y: 500}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/backend/static_nodes.j2
+
+  # Generate backend code
+  - label: Generate Pydantic Model
+    type: code_job
+    position: {x: 400, y: 300}
+    props:
+      code_type: file
+      source_details: files/codegen/code/backend/generators/pydantic_model.py
+      functionName: main
+
+  - label: Generate GraphQL Schema
+    type: code_job
+    position: {x: 400, y: 400}
+    props:
+      code_type: file
+      source_details: files/codegen/code/backend/generators/graphql_schema.py
+      functionName: main
+
+  - label: Generate Static Node
+    type: code_job
+    position: {x: 400, y: 500}
+    props:
+      code_type: file
+      source_details: files/codegen/code/backend/generators/static_nodes.py
+      functionName: main
+
+  # Extract node type from spec for file paths
+  - label: Extract Node Type
+    type: code_job
+    position: {x: 250, y: 100}
+    props:
+      code_type: python
+      code: |
+        # Extract node type from spec for use in file paths
+        spec = spec_data
+        node_type = spec.get('type', 'unknown')
+        node_name = node_type.title().replace('_', '')
+        result = {
+            'node_type': node_type,
+            'node_name': node_name
+        }
+
+  # Write backend outputs
+  - label: Write Pydantic Model
+    type: db
+    position: {x: 700, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/diagram_generated/models/{node_type}_model.py
+
+  - label: Write GraphQL Schema
+    type: db
+    position: {x: 700, y: 400}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/server/src/graphql/schemas/{node_type}.graphql
+
+  - label: Write Static Node
+    type: db
+    position: {x: 700, y: 500}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/core/static/generated/{node_type}_node.py
+
+connections:
+  # Pass spec to extract node type
+  - from: Load Node Spec
+    to: Extract Node Type
+    label: spec_data
+    
+  # Pass node naming to all writers (for file paths)
+  - from: Extract Node Type
+    to: Write Pydantic Model
+    label: node_naming
+  - from: Extract Node Type
+    to: Write GraphQL Schema
+    label: node_naming
+  - from: Extract Node Type
+    to: Write Static Node
+    label: node_naming
+
+  # Connect spec and templates to Pydantic generator
+  - from: Load Node Spec
+    to: Generate Pydantic Model
+    label: spec_data
+  - from: Load Pydantic Template
+    to: Generate Pydantic Model
+    label: template_content
+  
+  # Connect spec and templates to GraphQL generator
+  - from: Load Node Spec
+    to: Generate GraphQL Schema
+    label: spec_data
+  - from: Load GraphQL Template
+    to: Generate GraphQL Schema
+    label: template_content
+
+  # Connect spec and templates to Static Node generator
+  - from: Load Node Spec
+    to: Generate Static Node
+    label: spec_data
+  - from: Load Static Node Template
+    to: Generate Static Node
+    label: template_content
+  
+  # Connect generators to writers (passing generated code)
+  - from: Generate Pydantic Model
+    to: Write Pydantic Model
+    label: generated_code
+  - from: Generate GraphQL Schema
+    to: Write GraphQL Schema
+    label: generated_code
+  - from: Generate Static Node
+    to: Write Static Node
+    label: generated_code

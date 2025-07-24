@@ -1,0 +1,213 @@
+# Frontend Batch Generation Diagram
+# Generates all frontend artifacts for multiple node types
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+
+  - label: Load Frontend Manifest
+    type: db
+    position: {x: 200, y: 100}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/manifests/frontend.json
+
+  - label: Batch Process Frontend
+    type: code_job
+    position: {x: 350, y: 100}
+    props:
+      code_type: python
+      code: |
+        # Process frontend manifest to prepare batch tasks
+        manifest = manifest_data
+        node_specs = frontend_specs if 'frontend_specs' in locals() else []
+        
+        # If we have specs from parent, use those
+        # Otherwise get from manifest
+        if not node_specs:
+            node_specs = [
+                {'node_type': node, 'spec_path': f"nodes/{node}"}
+                for node in manifest.get('nodes', [])
+            ]
+        
+        # Prepare tasks for each generator type
+        generators = manifest.get('generators', {})
+        
+        typescript_tasks = []
+        config_tasks = []
+        field_tasks = []
+        
+        for spec in node_specs:
+            node_type = spec['node_type']
+            
+            if 'typescript_model' in generators:
+                typescript_tasks.append({
+                    'node_type': node_type,
+                    'spec_path': spec['spec_path'],
+                    'template': generators['typescript_model']['template'],
+                    'output_pattern': generators['typescript_model']['output_pattern']
+                })
+            
+            if 'node_config' in generators:
+                config_tasks.append({
+                    'node_type': node_type,
+                    'spec_path': spec['spec_path'],
+                    'template': generators['node_config']['template'],
+                    'output_pattern': generators['node_config']['output_pattern']
+                })
+            
+            if 'field_config' in generators:
+                field_tasks.append({
+                    'node_type': node_type,
+                    'spec_path': spec['spec_path'],
+                    'template': generators['field_config']['template'],
+                    'output_pattern': generators['field_config']['output_pattern']
+                })
+        
+        result = {
+            'typescript_tasks': typescript_tasks,
+            'config_tasks': config_tasks,
+            'field_tasks': field_tasks
+        }
+
+  # Parallel generation for each artifact type
+  - label: Generate All TypeScript Models
+    type: code_job
+    position: {x: 550, y: 200}
+    props:
+      code_type: python
+      code: |
+        # Process all TypeScript model generation tasks
+        tasks = typescript_tasks
+        results = []
+        
+        for task in tasks:
+            results.append({
+                'node_type': task['node_type'],
+                'status': 'generated',
+                'output_file': task['output_pattern'].format(
+                    node_name=task['node_type'].title().replace('_', ''),
+                    node_type=task['node_type']
+                )
+            })
+        
+        result = {'typescript_results': results}
+
+  - label: Generate All Node Configs
+    type: code_job
+    position: {x: 550, y: 300}
+    props:
+      code_type: python
+      code: |
+        # Process all node config generation tasks
+        tasks = config_tasks
+        results = []
+        
+        for task in tasks:
+            results.append({
+                'node_type': task['node_type'],
+                'displayName': task['node_type'].replace('_', ' ').title(),
+                'status': 'generated',
+                'output_file': task['output_pattern'].format(
+                    node_name=task['node_type'].title().replace('_', ''),
+                    node_type=task['node_type']
+                )
+            })
+        
+        result = {
+            'config_results': results,
+            'node_configs': results  # For registry
+        }
+
+  - label: Generate All Field Configs
+    type: code_job
+    position: {x: 550, y: 400}
+    props:
+      code_type: python
+      code: |
+        # Process all field config generation tasks
+        tasks = field_tasks
+        results = []
+        
+        for task in tasks:
+            results.append({
+                'node_type': task['node_type'],
+                'status': 'generated',
+                'output_file': task['output_pattern'].format(
+                    node_name=task['node_type'].title().replace('_', ''),
+                    node_type=task['node_type']
+                )
+            })
+        
+        result = {'field_results': results}
+
+  - label: Aggregate Frontend Results
+    type: code_job
+    position: {x: 750, y: 300}
+    props:
+      code_type: python
+      code: |
+        # Aggregate all frontend generation results
+        all_results = {
+            'typescript': typescript_results,
+            'node_configs': config_results,
+            'field_configs': field_results,
+            'summary': {
+                'total_nodes': len(typescript_results),
+                'typescript_generated': len(typescript_results),
+                'configs_generated': len(config_results),
+                'fields_generated': len(field_results)
+            }
+        }
+        
+        # Extract node configs for registry
+        node_configs = config_results
+        
+        result = {
+            'frontend_results': all_results,
+            'node_configs': node_configs
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 900, y: 300}
+    props:
+      file_format: json
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Load Frontend Manifest
+  
+  - from: Load Frontend Manifest
+    to: Batch Process Frontend
+    label: manifest_data
+  
+  # Pass tasks to generators
+  - from: Batch Process Frontend
+    to: Generate All TypeScript Models
+    label: typescript_tasks
+  - from: Batch Process Frontend
+    to: Generate All Node Configs
+    label: config_tasks
+  - from: Batch Process Frontend
+    to: Generate All Field Configs
+    label: field_tasks
+  
+  # Aggregate results
+  - from: Generate All TypeScript Models
+    to: Aggregate Frontend Results
+    label: typescript_results
+  - from: Generate All Node Configs
+    to: Aggregate Frontend Results
+    label: config_results
+  - from: Generate All Field Configs
+    to: Aggregate Frontend Results
+    label: field_results
+  
+  - from: Aggregate Frontend Results
+    to: End

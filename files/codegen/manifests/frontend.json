@@ -1,0 +1,20 @@
+{
+  "nodes": ["person_job", "condition", "api_job", "code_job", "db", "endpoint", "user_response", "sub_diagram"],
+  "generators": {
+    "typescript_model": {
+      "template": "frontend/typescript_model.j2",
+      "output_pattern": "dipeo/models/src/nodes/{node_name}Node.ts",
+      "enabled": true
+    },
+    "node_config": {
+      "template": "frontend/node_config.j2",
+      "output_pattern": "apps/web/src/features/diagram-editor/config/nodes/{node_type}Config.ts",
+      "enabled": true
+    },
+    "field_config": {
+      "template": "frontend/field_config.j2",
+      "output_pattern": "apps/web/src/core/config/fields/{node_type}Fields.ts",
+      "enabled": true
+    }
+  }
+}

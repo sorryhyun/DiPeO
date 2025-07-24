@@ -1,0 +1,20 @@
+{
+  "nodes": ["person_job", "condition", "api_job", "code_job", "db", "endpoint", "user_response", "sub_diagram"],
+  "generators": {
+    "pydantic_model": {
+      "template": "backend/pydantic_model.j2",
+      "output_pattern": "dipeo/diagram_generated/models/{node_type}_model.py",
+      "enabled": true
+    },
+    "graphql_schema": {
+      "template": "backend/graphql_schema.j2",
+      "output_pattern": "apps/server/src/graphql/schemas/{node_type}.graphql",
+      "enabled": true
+    },
+    "static_node": {
+      "template": "backend/static_nodes.j2",
+      "output_pattern": "dipeo/core/static/generated/{node_type}_node.py",
+      "enabled": true
+    }
+  }
+}

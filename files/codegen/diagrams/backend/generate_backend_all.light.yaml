@@ -1,0 +1,260 @@
+# Backend Batch Generation Diagram
+# Generates all backend artifacts for multiple node types
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+
+  - label: Load Backend Manifest
+    type: db
+    position: {x: 200, y: 100}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/manifests/backend.json
+
+  - label: Batch Process Backend
+    type: code_job
+    position: {x: 350, y: 100}
+    props:
+      code_type: python
+      code: |
+        # Process backend manifest to prepare batch tasks
+        manifest = manifest_data
+        node_specs = backend_specs if 'backend_specs' in locals() else []
+        
+        # If we have specs from parent, use those
+        # Otherwise get from manifest
+        if not node_specs:
+            node_specs = [
+                {'node_type': node, 'spec_path': f"nodes/{node}"}
+                for node in manifest.get('nodes', [])
+            ]
+        
+        # Prepare tasks for each generator type
+        generators = manifest.get('generators', {})
+        
+        pydantic_tasks = []
+        graphql_tasks = []
+        static_tasks = []
+        
+        for spec in node_specs:
+            node_type = spec['node_type']
+            
+            if 'pydantic_model' in generators:
+                pydantic_tasks.append({
+                    'node_type': node_type,
+                    'spec_path': spec['spec_path'],
+                    'template': generators['pydantic_model']['template'],
+                    'output_pattern': generators['pydantic_model']['output_pattern']
+                })
+            
+            if 'graphql_schema' in generators:
+                graphql_tasks.append({
+                    'node_type': node_type,
+                    'spec_path': spec['spec_path'],
+                    'template': generators['graphql_schema']['template'],
+                    'output_pattern': generators['graphql_schema']['output_pattern']
+                })
+            
+            if 'static_node' in generators:
+                static_tasks.append({
+                    'node_type': node_type,
+                    'spec_path': spec['spec_path'],
+                    'template': generators['static_node']['template'],
+                    'output_pattern': generators['static_node']['output_pattern']
+                })
+        
+        result = {
+            'pydantic_tasks': pydantic_tasks,
+            'graphql_tasks': graphql_tasks,
+            'static_tasks': static_tasks
+        }
+
+  # Parallel generation for each artifact type
+  - label: Generate All Pydantic Models
+    type: code_job
+    position: {x: 550, y: 200}
+    props:
+      code_type: python
+      code: |
+        # Process all Pydantic model generation tasks
+        tasks = pydantic_tasks
+        results = []
+        
+        for task in tasks:
+            # Simulate metadata that would come from actual generation
+            results.append({
+                'node_type': task['node_type'],
+                'class_name': f"{task['node_type'].title().replace('_', '')}Node",
+                'fields': ['id', 'type', 'label', 'props'],  # Example fields
+                'has_validators': False,
+                'has_enums': False,
+                'status': 'generated',
+                'output_file': task['output_pattern'].format(
+                    node_name=task['node_type'].title().replace('_', ''),
+                    node_type=task['node_type']
+                )
+            })
+        
+        result = {
+            'pydantic_results': results,
+            'pydantic_models': results  # For conversions
+        }
+
+  - label: Generate All GraphQL Schemas
+    type: code_job
+    position: {x: 550, y: 300}
+    props:
+      code_type: python
+      code: |
+        # Process all GraphQL schema generation tasks
+        tasks = graphql_tasks
+        results = []
+        
+        for task in tasks:
+            results.append({
+                'node_type': task['node_type'],
+                'status': 'generated',
+                'output_file': task['output_pattern'].format(
+                    node_name=task['node_type'].title().replace('_', ''),
+                    node_type=task['node_type']
+                )
+            })
+        
+        result = {'graphql_results': results}
+
+  - label: Generate All Static Nodes
+    type: code_job
+    position: {x: 550, y: 400}
+    props:
+      code_type: python
+      code: |
+        # Process all static node generation tasks
+        tasks = static_tasks
+        results = []
+        
+        for task in tasks:
+            # Generate metadata for registry
+            results.append({
+                'node_type': task['node_type'],
+                'handler': f"{task['node_type']}_handler",
+                'validator': f"validate_{task['node_type']}",
+                'executor': f"execute_{task['node_type']}",
+                'status': 'generated',
+                'output_file': task['output_pattern'].format(
+                    node_name=task['node_type'].title().replace('_', ''),
+                    node_type=task['node_type']
+                )
+            })
+        
+        result = {
+            'static_results': results,
+            'node_metadata': results  # For registry
+        }
+
+  - label: Load Conversions Template
+    type: db
+    position: {x: 700, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/backend/conversions.j2
+
+  - label: Generate Conversions
+    type: code_job
+    position: {x: 850, y: 250}
+    props:
+      code_type: file
+      source_details: files/codegen/code/backend/generators/conversions.py
+      functionName: main
+
+  - label: Write Conversions
+    type: db
+    position: {x: 1000, y: 250}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/diagram_generated/__generated_conversions__.py
+
+  - label: Aggregate Backend Results
+    type: code_job
+    position: {x: 750, y: 400}
+    props:
+      code_type: python
+      code: |
+        # Aggregate all backend generation results
+        all_results = {
+            'pydantic': pydantic_results,
+            'graphql': graphql_results,
+            'static_nodes': static_results,
+            'conversions': {'status': 'generated'},
+            'summary': {
+                'total_nodes': len(pydantic_results),
+                'pydantic_generated': len(pydantic_results),
+                'graphql_generated': len(graphql_results),
+                'static_generated': len(static_results)
+            }
+        }
+        
+        # Extract metadata for registry
+        backend_metadata = static_results
+        
+        result = {
+            'backend_results': all_results,
+            'backend_metadata': backend_metadata
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 900, y: 400}
+    props:
+      file_format: json
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Load Backend Manifest
+  
+  - from: Load Backend Manifest
+    to: Batch Process Backend
+    label: manifest_data
+  
+  # Pass tasks to generators
+  - from: Batch Process Backend
+    to: Generate All Pydantic Models
+    label: pydantic_tasks
+  - from: Batch Process Backend
+    to: Generate All GraphQL Schemas
+    label: graphql_tasks
+  - from: Batch Process Backend
+    to: Generate All Static Nodes
+    label: static_tasks
+  
+  # Conversions need Pydantic models and template
+  - from: Generate All Pydantic Models
+    to: Generate Conversions
+    label: pydantic_models
+  - from: Load Conversions Template
+    to: Generate Conversions
+    label: template_content
+  - from: Generate Conversions
+    to: Write Conversions
+    label: generated_code
+  
+  # Aggregate results
+  - from: Generate All Pydantic Models
+    to: Aggregate Backend Results
+    label: pydantic_results
+  - from: Generate All GraphQL Schemas
+    to: Aggregate Backend Results
+    label: graphql_results
+  - from: Generate All Static Nodes
+    to: Aggregate Backend Results
+    label: static_results
+  
+  - from: Aggregate Backend Results
+    to: End
