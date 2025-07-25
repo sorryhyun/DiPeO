@@ -64,28 +64,35 @@ export const codeJobFields: UnifiedFieldDefinition[] = [
     description: 'Language configuration',
     
     
+    
+      
+      
+      
+      
+      
+      
+      
     options: [
-      
+        
       { value: 'python', label: 'Python' },
-      
-      { value: 'typescript', label: 'Typescript' },
-      
+        
+      { value: 'typescript', label: 'TypeScript' },
+        
       { value: 'bash', label: 'Bash' },
-      
+        
       { value: 'shell', label: 'Shell' },
-      
+        
     ],
-    
-    
-      
-      
-      
-      
-      
-      
       
     
     
+    
+    validate: (value: unknown) => {
+      
+      
+      
+      return { isValid: true };
+    },
     
   },
 

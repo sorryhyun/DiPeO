@@ -8,7 +8,7 @@ export interface StartNodeData {
 
   output_data_structure: Record<string, any>;
 
-  trigger_mode?: 'manual' | 'hook';
+  trigger_mode?: string;
 
   hook_event?: string;
 
@@ -23,7 +23,7 @@ export const StartNodeDataSchema = z.object({
 
   output_data_structure: z.record(z.any()),
 
-  trigger_mode: z.enum(["manual", "hook"]).optional(),
+  trigger_mode: z.any().optional(),
 
   hook_event: z.string().optional(),
 

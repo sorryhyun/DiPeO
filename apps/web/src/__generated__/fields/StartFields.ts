@@ -68,8 +68,6 @@ export const startFields: UnifiedFieldDefinition[] = [
       
       
       
-    language: 'json',
-      
       
       
     
@@ -94,8 +92,6 @@ export const startFields: UnifiedFieldDefinition[] = [
       
       
       
-    language: 'json',
-      
       
       
     
@@ -114,24 +110,31 @@ export const startFields: UnifiedFieldDefinition[] = [
     description: 'Trigger Mode configuration',
     
     
+    
+      
+      
+      
+      
+      
+      
+      
     options: [
-      
+        
       { value: 'manual', label: 'Manual' },
-      
+        
       { value: 'hook', label: 'Hook' },
-      
+        
     ],
-    
-    
-      
-      
-      
-      
-      
-      
       
     
     
+    
+    validate: (value: unknown) => {
+      
+      
+      
+      return { isValid: true };
+    },
     
   },
 

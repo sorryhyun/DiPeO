@@ -75,23 +75,34 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
             - generated_code: The generated field configuration code
             - filename: Suggested filename for the output
     """
-    spec_data = inputs.get('spec_data', {})
-    template_content = inputs.get('template_content', '')
-    
-    if not spec_data:
-        raise ValueError("spec_data is required")
-    if not template_content:
-        raise ValueError("template_content is required")
-    
-    generated_code = generate_field_config(spec_data, template_content)
-    
-    # Generate filename from node type
-    node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
-    node_name = pascal_case(node_type)
-    filename = f"{node_name}Fields.ts"
-    
-    return {
-        'generated_code': generated_code,
-        'filename': filename,
-        'node_type': node_type
-    }
+    try:
+        spec_data = inputs.get('spec_data', {})
+        template_content = inputs.get('template_content', '')
+        
+        if not spec_data:
+            raise ValueError("spec_data is required")
+        if not template_content:
+            raise ValueError("template_content is required")
+        
+        generated_code = generate_field_config(spec_data, template_content)
+        
+        # Generate filename from node type
+        node_type = spec_data.get('nodeType', spec_data.get('type', 'unknown'))
+        node_name = pascal_case(node_type)
+        filename = f"{node_name}Fields.ts"
+        
+        return {
+            'generated_code': generated_code,
+            'filename': filename,
+            'node_type': node_type
+        }
+    except Exception as e:
+        # Return the error as generated_code so we can see what's happening
+        import traceback
+        error_msg = f"{str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+        print(f"[Field Config Error] {error_msg}")
+        return {
+            'generated_code': str(e),  # This is what gets written to the file
+            'filename': 'error.ts',
+            'node_type': 'error'
+        }

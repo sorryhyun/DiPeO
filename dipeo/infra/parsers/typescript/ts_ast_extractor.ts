@@ -14,6 +14,7 @@ interface ParseResult {
   enums: EnumInfo[]
   classes?: ClassInfo[]
   functions?: FunctionInfo[]
+  constants?: ConstantInfo[]
   error?: string
 }
 
@@ -77,6 +78,14 @@ interface FunctionInfo {
   parameters: ParameterInfo[]
   returnType: string
   isAsync: boolean
+  isExported: boolean
+  jsDoc?: string
+}
+
+interface ConstantInfo {
+  name: string
+  type: string
+  value: any
   isExported: boolean
   jsDoc?: string
 }
@@ -227,6 +236,133 @@ function parseFunctions(sourceFile: SourceFile, includeJSDoc: boolean): Function
   return functions
 }
 
+function parseConstants(sourceFile: SourceFile, includeJSDoc: boolean): ConstantInfo[] {
+  const constants: ConstantInfo[] = []
+  
+  sourceFile.getVariableDeclarations().forEach(varDecl => {
+    // Only process const declarations
+    const statement = varDecl.getVariableStatement()
+    if (!statement || !statement.isExported() || statement.getDeclarationKind() !== 'const') {
+      return
+    }
+    
+    const name = varDecl.getName()
+    const type = varDecl.getType().getText(varDecl)
+    const initializer = varDecl.getInitializer()
+    
+    let value: any = undefined
+    
+    if (initializer) {
+      try {
+        // Attempt to evaluate the initializer to get the actual value
+        // For object literals, we'll parse them into a JavaScript object
+        const initText = initializer.getText()
+        
+        // Use the proper expression parser
+        value = parseExpression(initializer)
+      } catch (e) {
+        // If parsing fails, store the text representation
+        value = initializer.getText()
+      }
+    }
+    
+    constants.push({
+      name,
+      type,
+      value,
+      isExported: true,
+      jsDoc: includeJSDoc ? getJSDoc(varDecl) : undefined
+    })
+  })
+  
+  return constants
+}
+
+function parseObjectLiteral(node: Node): any {
+  const result: any = {}
+  
+  // Use ts-morph's proper API to get object literal properties
+  if (Node.isObjectLiteralExpression(node)) {
+    const objLiteral = node
+    
+    objLiteral.getProperties().forEach(prop => {
+      if (Node.isPropertyAssignment(prop)) {
+        const propName = prop.getName()
+        const propInit = prop.getInitializer()
+        
+        if (propInit) {
+          result[propName] = parseExpression(propInit)
+        }
+      } else if (Node.isShorthandPropertyAssignment(prop)) {
+        // Handle shorthand properties like { foo } where foo is a variable
+        const propName = prop.getName()
+        result[propName] = propName // Just use the name as value for now
+      }
+    })
+  }
+  
+  return result
+}
+
+function parseExpression(node: Node): any {
+  // Handle different expression types
+  if (Node.isStringLiteral(node)) {
+    return node.getLiteralValue()
+  } else if (Node.isNumericLiteral(node)) {
+    return node.getLiteralValue()
+  } else if (node.getText() === 'true' || node.getText() === 'false') {
+    return node.getText() === 'true'
+  } else if (Node.isNullLiteral(node)) {
+    return null
+  } else if (Node.isObjectLiteralExpression(node)) {
+    return parseObjectLiteral(node)
+  } else if (Node.isArrayLiteralExpression(node)) {
+    return parseArrayLiteral(node)
+  } else if (Node.isPropertyAccessExpression(node)) {
+    // Handle enum references like NodeType.PERSON_JOB
+    return node.getText() // Keep as string representation
+  } else if (Node.isIdentifier(node)) {
+    // Handle simple identifiers
+    return node.getText()
+  } else {
+    // For any other expression, return the text representation
+    return node.getText()
+  }
+}
+
+function parseArrayLiteral(node: Node): any[] {
+  const result: any[] = []
+  
+  if (Node.isArrayLiteralExpression(node)) {
+    node.getElements().forEach(element => {
+      result.push(parseExpression(element))
+    })
+  }
+  
+  return result
+}
+
+function parsePrimitiveValue(text: string): any {
+  // Remove quotes if present
+  if ((text.startsWith('"') && text.endsWith('"')) || 
+      (text.startsWith("'") && text.endsWith("'"))) {
+    return text.slice(1, -1)
+  }
+  
+  // Boolean
+  if (text === 'true' || text === 'false') {
+    return text === 'true'
+  }
+  
+  // Number
+  if (text.match(/^-?\d+(\.\d+)?$/)) {
+    return parseFloat(text)
+  }
+  
+  // Return as string for other cases
+  return text
+}
+
 function parseTypeScript(
   source: string,
   extractPatterns: string[] = ['interface', 'type', 'enum'],
@@ -274,6 +410,10 @@ function parseTypeScript(
       result.functions = parseFunctions(sourceFile, includeJSDoc)
     }
     
+    if (extractPatterns.includes('const') || extractPatterns.includes('constants')) {
+      result.constants = parseConstants(sourceFile, includeJSDoc)
+    }
+    
     // Simple AST representation (for debugging/visualization)
     result.ast = {
       kind: sourceFile.getKindName(),
@@ -282,7 +422,8 @@ function parseTypeScript(
       hasTypes: result.types.length > 0,
       hasEnums: result.enums.length > 0,
       hasClasses: (result.classes?.length || 0) > 0,
-      hasFunctions: (result.functions?.length || 0) > 0
+      hasFunctions: (result.functions?.length || 0) > 0,
+      hasConstants: (result.constants?.length || 0) > 0
     }
     
     return result

@@ -6,7 +6,7 @@ export interface ApiJobNodeData {
 
   url: string;
 
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: string;
 
   headers?: Record<string, any>;
 
@@ -16,7 +16,7 @@ export interface ApiJobNodeData {
 
   timeout?: number;
 
-  auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
+  auth_type?: string;
 
   auth_config?: Record<string, any>;
 
@@ -27,7 +27,7 @@ export const ApiJobNodeDataSchema = z.object({
 
   url: z.string(),
 
-  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
+  method: z.any(),
 
   headers: z.record(z.any()).optional(),
 
@@ -37,7 +37,7 @@ export const ApiJobNodeDataSchema = z.object({
 
   timeout: z.number().optional(),
 
-  auth_type: z.enum(["none", "bearer", "basic", "api_key"]).optional(),
+  auth_type: z.any().optional(),
 
   auth_config: z.record(z.any()).optional(),
 

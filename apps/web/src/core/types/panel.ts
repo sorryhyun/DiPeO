@@ -19,7 +19,8 @@ export const FIELD_TYPES = {
   URL: 'url',
   CODE: 'code',
   FILEPATH: 'filepath',
-  PASSWORD: 'password'
+  PASSWORD: 'password',
+  GROUP: 'group'
 } as const;
 
 export type FieldType = typeof FIELD_TYPES[keyof typeof FIELD_TYPES];

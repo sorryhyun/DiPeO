@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 export interface CodeJobNodeData {
 
-  language: 'python' | 'typescript' | 'bash' | 'shell';
+  language: string;
 
   filePath: string;
 
@@ -17,7 +17,7 @@ export interface CodeJobNodeData {
 // Zod schema for validation
 export const CodeJobNodeDataSchema = z.object({
 
-  language: z.enum(["python", "typescript", "bash", "shell"]),
+  language: z.any(),
 
   filePath: z.string(),
 

@@ -70,8 +70,6 @@ export const jsonSchemaValidatorFields: UnifiedFieldDefinition[] = [
       
       
       
-    language: 'json',
-      
       
       
     

@@ -8,7 +8,7 @@ export interface DbNodeData {
 
   collection?: string;
 
-  sub_type: 'fixed_prompt' | 'file' | 'code' | 'api_tool';
+  sub_type: string;
 
   operation: string;
 
@@ -25,7 +25,7 @@ export const DbNodeDataSchema = z.object({
 
   collection: z.string().optional(),
 
-  sub_type: z.enum(["fixed_prompt", "file", "code", "api_tool"]),
+  sub_type: z.any(),
 
   operation: z.string(),
 

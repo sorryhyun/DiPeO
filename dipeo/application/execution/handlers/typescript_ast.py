@@ -130,17 +130,15 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             # Debug logging
             print(f"[TypeScript AST] Parsed result keys: {list(result.keys())}")
             print(f"[TypeScript AST] AST data keys: {list(ast_data.keys())}")
-            print(f"[TypeScript AST] Found {len(ast_data.get('interfaces', []))} interfaces")
-            print(f"[TypeScript AST] Found {len(ast_data.get('types', []))} types")
-            print(f"[TypeScript AST] Found {len(ast_data.get('enums', []))} enums")
-            
+
             output_data = {
                 'ast': metadata.get('astSummary', {}),
                 'interfaces': ast_data.get('interfaces', []),
                 'types': ast_data.get('types', []),
                 'enums': ast_data.get('enums', []),
                 'classes': ast_data.get('classes', []),
-                'functions': ast_data.get('functions', [])
+                'functions': ast_data.get('functions', []),
+                'constants': ast_data.get('constants', [])
             }
             
             print(f"[TypeScript AST] Returning output with keys: {list(output_data.keys())}")
@@ -155,6 +153,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     'enums_count': len(ast_data.get('enums', [])),
                     'classes_count': len(ast_data.get('classes', [])),
                     'functions_count': len(ast_data.get('functions', [])),
+                    'constants_count': len(ast_data.get('constants', [])),
                     'success': True
                 }
             )
@@ -175,7 +174,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Log execution details if in debug mode
         if request.metadata.get("debug"):
             success = output.metadata.get("success", False)
-            print(f"[TypescriptAstNode] TypeScript parsing - Success: {success}")
             
             if success and isinstance(output, DataOutput):
                 stats = []

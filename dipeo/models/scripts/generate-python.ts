@@ -90,6 +90,12 @@ class PythonGenerator {
         const T = `List[${unionType}]`;
         return save(opt ? this.optional(T) : T);
       }
+      // Handle inline object types like { value: string; label: string; }
+      if (inner.startsWith('{') && inner.endsWith('}')) {
+        this.add('typing', 'List', 'Dict', 'Any');
+        const T = `List[Dict[str, Any]]`;
+        return save(opt ? this.optional(T) : T);
+      }
       const innerType = this.py(inner);
       this.add('typing', 'List');
       const T = `List[${innerType}]`;

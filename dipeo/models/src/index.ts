@@ -6,3 +6,5 @@ export * from './integration.js';
 export * from './conversions.js';
 export * from './graphql-conversions.js';
 export * from './service-utils.js';
+export * from './node-specifications.js';
+export * from './node-specs/index.js';

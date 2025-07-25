@@ -1,0 +1,255 @@
+"""
+Generator for Python domain models from TypeScript AST.
+Handles complex type conversions and generates Pydantic models.
+"""
+import re
+from typing import Any, Dict, List, Optional, Set, Tuple
+from jinja2 import Environment, DictLoader
+
+
+# Type mapping from TypeScript to Python
+TYPE_MAP = {
+    'string': 'str',
+    'number': 'float',
+    'boolean': 'bool',
+    'any': 'Any',
+    'unknown': 'Any',
+    'void': 'None',
+    'null': 'None',
+    'undefined': 'None',
+    'object': 'Dict[str, Any]'
+}
+
+# Fields that should be integers instead of floats
+INTEGER_FIELDS = {
+    'maxIteration', 'sequence', 'messageCount', 'timeout', 'timeoutSeconds',
+    'durationSeconds', 'maxTokens', 'statusCode', 'totalTokens', 'promptTokens',
+    'completionTokens', 'input', 'output', 'cached', 'total', 'retries',
+    'maxRetries', 'port', 'x', 'y'
+}
+
+# Branded ID types
+BRANDED_IDS = {
+    'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 
+    'DiagramID', 'ExecutionID', 'HookID', 'TaskID'
+}
+
+
+class TypeConverter:
+    """Converts TypeScript types to Python types."""
+    
+    def __init__(self):
+        self.imports: Set[Tuple[str, str]] = set()
+        self.type_cache: Dict[str, str] = {}
+        
+    def convert(self, ts_type: str, field_name: str = '', is_optional: bool = False) -> str:
+        """Convert a TypeScript type to Python type."""
+        if not ts_type:
+            return 'Any'
+            
+        # Check cache
+        cache_key = f"{ts_type}:{field_name}:{is_optional}"
+        if cache_key in self.type_cache:
+            return self.type_cache[cache_key]
+            
+        # Remove whitespace
+        ts_type = ts_type.strip()
+        
+        # Handle optional
+        if ts_type.endswith(' | undefined') or ts_type.endswith(' | null'):
+            base_type = ts_type.replace(' | undefined', '').replace(' | null', '').strip()
+            result = self.convert(base_type, field_name, True)
+            self.type_cache[cache_key] = result
+            return result
+            
+        # Handle arrays
+        array_match = re.match(r'^(.+)\[\]$', ts_type)
+        if array_match:
+            inner_type = self.convert(array_match.group(1), field_name)
+            self.imports.add(('typing', 'List'))
+            result = f'List[{inner_type}]'
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+            
+        # Handle Array<T>
+        generic_array_match = re.match(r'^Array<(.+)>$', ts_type)
+        if generic_array_match:
+            inner_type = self.convert(generic_array_match.group(1), field_name)
+            self.imports.add(('typing', 'List'))
+            result = f'List[{inner_type}]'
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+            
+        # Handle Map/Record types
+        map_match = re.match(r'^(Map|Record)<([^,]+),\s*(.+)>$', ts_type)
+        if map_match:
+            key_type = 'str' if map_match.group(2) in BRANDED_IDS or map_match.group(2) == 'string' else self.convert(map_match.group(2))
+            value_type = self.convert(map_match.group(3))
+            self.imports.add(('typing', 'Dict'))
+            result = f'Dict[{key_type}, {value_type}]'
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+            
+        # Handle literal types
+        if re.match(r'^["\'].*["\']$', ts_type):
+            self.imports.add(('typing', 'Literal'))
+            result = f'Literal[{ts_type}]'
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+            
+        # Handle union types (excluding optional unions handled above)
+        if '|' in ts_type and not ts_type.startswith('('):
+            parts = [p.strip() for p in ts_type.split('|')]
+            # Filter out undefined/null
+            parts = [p for p in parts if p not in ['undefined', 'null']]
+            if not parts:
+                return 'None'
+            if len(parts) == 1:
+                return self.convert(parts[0], field_name, is_optional)
+            
+            # Convert each part
+            converted_parts = []
+            for part in parts:
+                converted = self.convert(part, field_name)
+                if converted not in converted_parts:
+                    converted_parts.append(converted)
+                    
+            self.imports.add(('typing', 'Union'))
+            result = f'Union[{", ".join(converted_parts)}]'
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+            
+        # Handle branded types
+        if ts_type in BRANDED_IDS:
+            result = ts_type
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+            
+        # Handle basic types
+        if ts_type in TYPE_MAP:
+            # Special handling for number fields that should be int
+            if ts_type == 'number' and field_name in INTEGER_FIELDS:
+                result = 'int'
+            else:
+                result = TYPE_MAP[ts_type]
+                
+            if result == 'Any':
+                self.imports.add(('typing', 'Any'))
+            elif result == 'Dict[str, Any]':
+                self.imports.add(('typing', 'Dict'))
+                self.imports.add(('typing', 'Any'))
+                
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+            
+        # Default to the type name (likely a custom type)
+        result = ts_type
+        self.type_cache[cache_key] = result
+        return self._wrap_optional(result, is_optional)
+        
+    def _wrap_optional(self, type_str: str, is_optional: bool) -> str:
+        """Wrap a type in Optional if needed."""
+        if is_optional and not type_str.startswith('Optional['):
+            self.imports.add(('typing', 'Optional'))
+            return f'Optional[{type_str}]'
+        return type_str
+
+
+def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Process TypeScript AST data into structured format for template."""
+    converter = TypeConverter()
+    
+    # Process interfaces into models
+    models = []
+    for interface in ast_data.get('interfaces', []):
+        fields = []
+        for prop in interface.get('properties', []):
+            field_type = converter.convert(
+                prop['type'], 
+                prop['name'], 
+                prop.get('optional', False)
+            )
+            fields.append({
+                'name': prop['name'],
+                'type': field_type,
+                'optional': prop.get('optional', False),
+                'description': prop.get('description', '')
+            })
+            
+        models.append({
+            'name': interface['name'],
+            'extends': interface.get('extends', [None])[0],
+            'description': interface.get('description', ''),
+            'fields': fields
+        })
+    
+    # Process enums
+    enums = []
+    for enum in ast_data.get('enums', []):
+        members = []
+        for member in enum.get('members', []):
+            members.append({
+                'name': member['name'].replace('-', '_'),
+                'value': member['value']
+            })
+        enums.append({
+            'name': enum['name'],
+            'description': enum.get('description', ''),
+            'members': members
+        })
+    
+    # Process type aliases
+    type_aliases = []
+    for type_alias in ast_data.get('types', []):
+        # Skip branded types as they're handled separately
+        if 'Brand' not in type_alias.get('type', ''):
+            py_type = converter.convert(type_alias['type'])
+            type_aliases.append({
+                'name': type_alias['name'],
+                'type': py_type
+            })
+    
+    # Get unique imports
+    imports = sorted(list(converter.imports))
+    
+    return {
+        'models': models,
+        'enums': enums,
+        'type_aliases': type_aliases,
+        'branded_ids': sorted(list(BRANDED_IDS)),
+        'imports': imports,
+        'allow_extra': False  # Can be made configurable
+    }
+
+
+def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Main entry point for code generation."""
+    ast_data = inputs.get('ast_data', {})
+    template_content = inputs.get('template_content', '')
+    
+    if not ast_data:
+        raise ValueError("No AST data provided")
+    
+    if not template_content:
+        raise ValueError("No template content provided")
+    
+    # Process AST data
+    template_data = process_ast_data(ast_data)
+    
+    # Set up Jinja2 environment
+    env = Environment(loader=DictLoader({'template': template_content}))
+    
+    # Add custom filters
+    env.filters['quote'] = lambda s: f'"{s}"'
+    
+    # Render template
+    template = env.get_template('template')
+    generated_code = template.render(**template_data)
+    
+    return {
+        'generated_code': generated_code,
+        'status': 'success',
+        'models_count': len(template_data['models']),
+        'enums_count': len(template_data['enums']),
+        'type_aliases_count': len(template_data['type_aliases'])
+    }

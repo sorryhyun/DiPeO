@@ -1,0 +1,257 @@
+# Generate Python Domain Models from TypeScript
+# Replaces dipeo/models/scripts/generate-python.ts
+# Generates core domain models (Diagram, Node, Execution, etc.) from TypeScript sources
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting Python domain model generation from TypeScript sources
+
+  # Load all TypeScript model files in parallel
+  - label: Load Diagram Models
+    type: db
+    position: {x: 200, y: 100}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/diagram.ts
+
+  - label: Load Execution Models
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/execution.ts
+
+  - label: Load Conversation Models
+    type: db
+    position: {x: 200, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/conversation.ts
+
+  - label: Load Node Specifications
+    type: db
+    position: {x: 200, y: 400}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/node-specifications.ts
+
+  - label: Load Util Types
+    type: db
+    position: {x: 200, y: 500}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/utils.ts
+
+  # Parse TypeScript files to extract AST
+  - label: Parse Diagram AST
+    type: typescript_ast
+    position: {x: 400, y: 100}
+    props:
+      extractPatterns: ["interface", "type", "enum", "const"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: Parse Execution AST
+    type: typescript_ast
+    position: {x: 400, y: 200}
+    props:
+      extractPatterns: ["interface", "type", "enum", "const"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: Parse Conversation AST
+    type: typescript_ast
+    position: {x: 400, y: 300}
+    props:
+      extractPatterns: ["interface", "type", "enum", "const"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: Parse Node Specs AST
+    type: typescript_ast
+    position: {x: 400, y: 400}
+    props:
+      extractPatterns: ["interface", "type", "enum", "const"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: Parse Utils AST
+    type: typescript_ast
+    position: {x: 400, y: 500}
+    props:
+      extractPatterns: ["interface", "type", "enum", "const"]
+      includeJSDoc: true
+      parseMode: module
+
+  # Combine all AST data
+  - label: Combine AST Data
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      code: |
+        # Combine AST data from all TypeScript files
+        diagram_ast = inputs.get('diagram_ast', {})
+        execution_ast = inputs.get('execution_ast', {})
+        conversation_ast = inputs.get('conversation_ast', {})
+        node_specs_ast = inputs.get('node_specs_ast', {})
+        utils_ast = inputs.get('utils_ast', {})
+        
+        # Merge all definitions
+        all_interfaces = []
+        all_types = []
+        all_enums = []
+        all_consts = []
+        
+        for ast in [diagram_ast, execution_ast, conversation_ast, node_specs_ast, utils_ast]:
+            all_interfaces.extend(ast.get('interfaces', []))
+            all_types.extend(ast.get('types', []))
+            all_enums.extend(ast.get('enums', []))
+            all_consts.extend(ast.get('consts', []))
+        
+        result = {
+            'interfaces': all_interfaces,
+            'types': all_types,
+            'enums': all_enums,
+            'consts': all_consts,
+            'total_definitions': len(all_interfaces) + len(all_types) + len(all_enums)
+        }
+        
+        print(f"Combined AST data:")
+        print(f"  - {len(all_interfaces)} interfaces")
+        print(f"  - {len(all_types)} type aliases")
+        print(f"  - {len(all_enums)} enums")
+        print(f"  - {len(all_consts)} constants")
+
+  # Load Python model template
+  - label: Load Python Template
+    type: db
+    position: {x: 600, y: 450}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/models/python_models.j2
+
+  # Generate Python models using the generator module
+  - label: Generate Python Models
+    type: code_job
+    position: {x: 800, y: 350}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generators/python_models.py
+      functionName: main
+
+  # Write generated Python models
+  - label: Write Python Models
+    type: db
+    position: {x: 1000, y: 350}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/models/models.py
+
+  # Generate success summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1200, y: 350}
+    props:
+      language: python
+      code: |
+        generation_result = inputs.get('generation_result', {})
+        
+        print(f"\n=== Python Domain Models Generation Complete ===")
+        print(f"Generated {generation_result.get('models_count', 0)} models")
+        print(f"Generated {generation_result.get('enums_count', 0)} enums")
+        print(f"Generated {generation_result.get('type_aliases_count', 0)} type aliases")
+        print(f"\nOutput written to: dipeo/models/models.py")
+        
+        result = {
+            'status': 'success',
+            'message': 'Python domain models generated successfully',
+            'details': generation_result
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 1400, y: 350}
+    props:
+      save_to_file: false
+
+connections:
+  # Load all TypeScript files in parallel
+  - from: Start
+    to: Load Diagram Models
+  - from: Start
+    to: Load Execution Models
+  - from: Start
+    to: Load Conversation Models
+  - from: Start
+    to: Load Node Specifications
+  - from: Start
+    to: Load Util Types
+  
+  # Parse TypeScript files
+  - from: Load Diagram Models
+    to: Parse Diagram AST
+    label: source
+  - from: Load Execution Models
+    to: Parse Execution AST
+    label: source
+  - from: Load Conversation Models
+    to: Parse Conversation AST
+    label: source
+  - from: Load Node Specifications
+    to: Parse Node Specs AST
+    label: source
+  - from: Load Util Types
+    to: Parse Utils AST
+    label: source
+  
+  # Combine AST data
+  - from: Parse Diagram AST
+    to: Combine AST Data
+    label: diagram_ast
+  - from: Parse Execution AST
+    to: Combine AST Data
+    label: execution_ast
+  - from: Parse Conversation AST
+    to: Combine AST Data
+    label: conversation_ast
+  - from: Parse Node Specs AST
+    to: Combine AST Data
+    label: node_specs_ast
+  - from: Parse Utils AST
+    to: Combine AST Data
+    label: utils_ast
+  
+  # Generate Python models
+  - from: Combine AST Data
+    to: Generate Python Models
+    label: ast_data
+  - from: Load Python Template
+    to: Generate Python Models
+    label: template_content
+  
+  # Write output and generate summary
+  - from: Generate Python Models
+    to: Write Python Models
+    label: generated_code
+  - from: Generate Python Models
+    to: Generate Summary
+    label: generation_result
+  
+  - from: Write Python Models
+    to: End
+  - from: Generate Summary
+    to: End

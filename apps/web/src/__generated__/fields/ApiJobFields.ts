@@ -20,8 +20,6 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
       
       
       
-    language: 'json',
-      
       
       
     
@@ -40,28 +38,35 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
     description: 'Auth Type configuration',
     
     
+    
+      
+      
+      
+      
+      
+      
+      
     options: [
-      
+        
       { value: 'none', label: 'None' },
-      
-      { value: 'bearer', label: 'Bearer' },
-      
-      { value: 'basic', label: 'Basic' },
-      
-      { value: 'api_key', label: 'Api Key' },
-      
+        
+      { value: 'bearer', label: 'Bearer Token' },
+        
+      { value: 'basic', label: 'Basic Auth' },
+        
+      { value: 'api_key', label: 'API Key' },
+        
     ],
-    
-    
-      
-      
-      
-      
-      
-      
       
     
     
+    
+    validate: (value: unknown) => {
+      
+      
+      
+      return { isValid: true };
+    },
     
   },
 
@@ -81,8 +86,6 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
       
       
       
-      
-    language: 'json',
       
       
       
@@ -108,8 +111,6 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
       
       
       
-    language: 'json',
-      
       
       
     
@@ -128,30 +129,37 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
     description: 'Method configuration',
     
     
+    
+      
+      
+      
+      
+      
+      
+      
     options: [
-      
-      { value: 'GET', label: 'Get' },
-      
-      { value: 'POST', label: 'Post' },
-      
-      { value: 'PUT', label: 'Put' },
-      
-      { value: 'DELETE', label: 'Delete' },
-      
-      { value: 'PATCH', label: 'Patch' },
-      
+        
+      { value: 'GET', label: 'GET' },
+        
+      { value: 'POST', label: 'POST' },
+        
+      { value: 'PUT', label: 'PUT' },
+        
+      { value: 'DELETE', label: 'DELETE' },
+        
+      { value: 'PATCH', label: 'PATCH' },
+        
     ],
-    
-    
-      
-      
-      
-      
-      
-      
       
     
     
+    
+    validate: (value: unknown) => {
+      
+      
+      
+      return { isValid: true };
+    },
     
   },
 
@@ -171,8 +179,6 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
       
       
       
-      
-    language: 'json',
       
       
       
@@ -211,7 +217,7 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
 
   {
     name: 'url',
-    type: 'url',
+    type: 'text',
     label: 'Url',
     required: true,
     

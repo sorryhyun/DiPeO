@@ -117,12 +117,9 @@ class TypeScriptParser(ASTParserPort):
                     ast_data['classes'] = parsed_result.get('classes', [])
                 elif pattern == 'function':
                     ast_data['functions'] = parsed_result.get('functions', [])
-            
-            # Debug: print what we found
-            print(f"[TypeScript Parser] Found {len(ast_data.get('interfaces', []))} interfaces")
-            print(f"[TypeScript Parser] Found {len(ast_data.get('types', []))} types")
-            print(f"[TypeScript Parser] Found {len(ast_data.get('enums', []))} enums")
-            
+                elif pattern == 'const' or pattern == 'constants':
+                    ast_data['constants'] = parsed_result.get('constants', [])
+
             return {
                 'ast': ast_data,
                 'metadata': {

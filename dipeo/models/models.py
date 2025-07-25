@@ -585,6 +585,93 @@ class LLMRequestOptions(BaseModel):
     tools: Optional[List[ToolConfig]] = Field(default=None)
     response_format: Optional[Any] = Field(default=None)
 
+class ValidationRules(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    min: Optional[float] = Field(default=None)
+    max: Optional[float] = Field(default=None)
+    minLength: Optional[float] = Field(default=None)
+    maxLength: Optional[float] = Field(default=None)
+    pattern: Optional[str] = Field(default=None)
+    message: Optional[str] = Field(default=None)
+    itemType: Optional[FieldType] = Field(default=None)
+    allowedValues: Optional[List[str]] = Field(default=None)
+
+class UIConfiguration(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    inputType: UIInputType
+    placeholder: Optional[str] = Field(default=None)
+    column: Optional[Union[1, 2]] = Field(default=None)
+    rows: Optional[float] = Field(default=None)
+    language: Optional[SupportedLanguage] = Field(default=None)
+    collapsible: Optional[bool] = Field(default=None)
+    readOnly: Optional[bool] = Field(default=None)
+    options: Optional[List[Dict[str, Any]]] = Field(default=None)
+    min: Optional[float] = Field(default=None)
+    max: Optional[float] = Field(default=None)
+    showPromptFileButton: Optional[bool] = Field(default=None)
+
+class FieldSpecification(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    name: str
+    type: FieldType
+    required: bool
+    description: str
+    defaultValue: Optional[Any] = Field(default=None)
+    validation: Optional[ValidationRules] = Field(default=None)
+    uiConfig: UIConfiguration
+    nestedFields: Optional[List[FieldSpecification]] = Field(default=None)
+    affects: Optional[List[str]] = Field(default=None)
+
+class HandleConfiguration(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    inputs: List[str]
+    outputs: List[str]
+
+class OutputSpecification(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    type: Union[DataType, Literal["any"]]
+    description: str
+
+class ExecutionConfiguration(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    timeout: Optional[float] = Field(default=None)
+    retryable: Optional[bool] = Field(default=None)
+    maxRetries: Optional[float] = Field(default=None)
+    requires: Optional[List[str]] = Field(default=None)
+
+class ExampleConfiguration(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    name: str
+    description: str
+    configuration: Dict[str, Any]
+
+class NodeSpecification(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    nodeType: NodeType
+    displayName: str
+    category: NodeCategory
+    icon: str
+    color: str
+    description: str
+    fields: List[FieldSpecification]
+    handles: HandleConfiguration
+    outputs: Optional[Dict[str, Any]] = Field(default=None)
+    execution: Optional[ExecutionConfiguration] = Field(default=None)
+    examples: Optional[List[ExampleConfiguration]] = Field(default=None)
+
+class NodeSpecificationRegistry(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    pass
+
 PersonBatchJobNodeData = PersonJobNodeData
 
 PersonMemoryMessage = Message

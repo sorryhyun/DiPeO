@@ -44,8 +44,6 @@ export const dbFields: UnifiedFieldDefinition[] = [
       
       
       
-    language: 'json',
-      
       
       
     
@@ -64,6 +62,14 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: 'File configuration',
     
     
+    
+      
+      
+      
+      
+      
+      
+      
     
     
     
@@ -105,6 +111,14 @@ export const dbFields: UnifiedFieldDefinition[] = [
     
     
     
+      
+      
+      
+      
+      
+      
+      
+    
     
     
   },
@@ -120,28 +134,35 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: 'Sub Type configuration',
     
     
+    
+      
+      
+      
+      
+      
+      
+      
     options: [
-      
+        
       { value: 'fixed_prompt', label: 'Fixed Prompt' },
-      
+        
       { value: 'file', label: 'File' },
-      
+        
       { value: 'code', label: 'Code' },
-      
-      { value: 'api_tool', label: 'Api Tool' },
-      
+        
+      { value: 'api_tool', label: 'API Tool' },
+        
     ],
-    
-    
-      
-      
-      
-      
-      
-      
       
     
     
+    
+    validate: (value: unknown) => {
+      
+      
+      
+      return { isValid: true };
+    },
     
   },
 

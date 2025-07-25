@@ -25,7 +25,7 @@ import {
 
 // Re-export enum schemas for validation
 export const HandleDirectionSchema = z.enum(['input', 'output']);
-export const HandleLabelSchema = z.enum(['default', 'first', 'condtrue', 'condfalse', 'success', 'error']);
+export const HandleLabelSchema = z.enum(['default', 'first', 'condtrue', 'condfalse', 'success', 'error', 'results']);
 export const DataTypeSchema = z.enum(['any', 'string', 'number', 'boolean', 'object', 'array']);
 export const MemoryViewSchema = z.enum(['all_involved', 'sent_by_me', 'sent_to_me', 'system_and_me', 'conversation_pairs', 'all_messages']);
 export const DiagramFormatSchema = z.enum(['native', 'light', 'readable']);

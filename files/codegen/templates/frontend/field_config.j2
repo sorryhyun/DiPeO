@@ -19,9 +19,9 @@ export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
     {% if field.description %}
     description: '{{ field.description | escape_js }}',
     {% endif %}
-    {% if field.type == 'enum' and field['values'] %}
+    {% if field.type == 'enum' and field.get('values') %}
     options: [
-      {% for value in field['values'] %}
+      {% for value in field.values %}
       { value: '{{ value | escape_js }}', label: '{{ value | humanize | escape_js }}' },
       {% endfor %}
     ],
@@ -64,20 +64,31 @@ export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
         {% if nestedField.description %}
         description: '{{ nestedField.description | escape_js }}',
         {% endif %}
+        {% if nestedField.defaultValue is defined %}
+        defaultValue: {{ nestedField.defaultValue | tojson }},
+        {% endif %}
         {% if nestedField.uiConfig %}
+        uiConfig: {
           {% if nestedField.uiConfig.inputType %}
-        inputType: '{{ nestedField.uiConfig.inputType }}',
+          inputType: '{{ nestedField.uiConfig.inputType }}',
           {% endif %}
           {% if nestedField.uiConfig.options %}
-        options: [
-          {% for option in nestedField.uiConfig.options %}
-          { value: '{{ option.value | escape_js }}', label: '{{ option.label | escape_js }}' },
-          {% endfor %}
-        ],
+          options: [
+            {% for option in nestedField.uiConfig.options %}
+            { value: '{{ option.value | escape_js }}', label: '{{ option.label | escape_js }}' },
+            {% endfor %}
+          ],
           {% endif %}
           {% if nestedField.uiConfig.min is defined %}
-        min: {{ nestedField.uiConfig.min }},
+          min: {{ nestedField.uiConfig.min }},
           {% endif %}
+          {% if nestedField.uiConfig.max is defined %}
+          max: {{ nestedField.uiConfig.max }},
+          {% endif %}
+          {% if nestedField.uiConfig.placeholder %}
+          placeholder: '{{ nestedField.uiConfig.placeholder | escape_js }}',
+          {% endif %}
+        },
         {% endif %}
       },
       {% endfor %}
