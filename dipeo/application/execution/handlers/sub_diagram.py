@@ -68,14 +68,13 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         """Execute the sub-diagram node."""
         node = request.node
         
+        # Check if batch mode is enabled
+        if getattr(node, 'batch', False):
+            return await self._execute_batch(request)
+        
         # Log execution start
         log.info(f"[SUB_DIAGRAM START] Executing sub_diagram: {node.label} (node_id: {node.id})")
         log.debug(f"[SUB_DIAGRAM] Diagram name: {node.diagram_name}")
-        log.debug(f"[SUB_DIAGRAM] Has diagram data: {node.diagram_data is not None}")
-        log.debug(f"[SUB_DIAGRAM] Request inputs: {request.inputs}")
-        log.debug(f"[SUB_DIAGRAM] Request inputs type: {type(request.inputs)}")
-        log.debug(f"[SUB_DIAGRAM] Request inputs keys: {list(request.inputs.keys()) if isinstance(request.inputs, dict) else 'Not a dict'}")
-        
         try:
             # Get required services
             state_store = request.services.get("state_store")
@@ -86,18 +85,15 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 raise ValueError("Required services not available")
             
             # Load the diagram to execute
-            log.debug(f"[SUB_DIAGRAM] Loading diagram for node {node.id}")
             diagram_data = await self._load_diagram(node, diagram_loader)
-            log.debug(f"[SUB_DIAGRAM] Diagram loaded successfully. Keys: {list(diagram_data.keys()) if isinstance(diagram_data, dict) else 'Not a dict'}")
-            
+
             # Prepare execution options - simple like CLI does it
             options = {
                 "variables": request.inputs or {},  # Pass inputs directly as variables
                 "parent_execution_id": request.execution_id,
                 "is_sub_diagram": True
             }
-            log.debug(f"[SUB_DIAGRAM] Execution options prepared: {options}")
-            
+
             # Create a unique execution ID for the sub-diagram
             sub_execution_id = self._create_sub_execution_id(request.execution_id)
             
@@ -133,12 +129,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             parent_observers = options.get("observers", [])
             
             # Log sub-diagram execution start
-            log.info(f"[SUB_DIAGRAM] Starting sub-diagram execution: {sub_execution_id}")
-            log.debug(f"[SUB_DIAGRAM] Parent execution ID: {request.execution_id}")
             request.add_metadata("sub_execution_id", sub_execution_id)
             
             # Execute the sub-diagram and collect results
-            log.debug(f"[SUB_DIAGRAM] Calling _execute_sub_diagram with diagram_data keys: {list(diagram_data.keys())}")
             execution_results, execution_error = await self._execute_sub_diagram(
                 execute_use_case=execute_use_case,
                 diagram_data=diagram_data,
@@ -146,8 +139,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 sub_execution_id=sub_execution_id,
                 parent_observers=parent_observers
             )
-            log.debug(f"[SUB_DIAGRAM] Execution completed. Results: {len(execution_results)} nodes, Error: {execution_error}")
-            
+
             # Handle execution error
             if execution_error:
                 return DataOutput(
@@ -162,8 +154,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # Process output mapping
             output_value = self._process_output_mapping(node, execution_results)
-            log.debug(f"Processed output value: {output_value}")
-            
+
             # Return success output
             return DataOutput(
                 value=output_value,
@@ -188,11 +179,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     
     async def _load_diagram(self, node: SubDiagramNode, diagram_loader: Optional["DiagramLoaderAdapter"]) -> dict[str, Any]:
         """Load the diagram to execute."""
-        log.info(f"[SUB_DIAGRAM] _load_diagram called for node {node.id}, diagram_name: {node.diagram_name}")
-        
         # If diagram_data is provided directly, use it
         if node.diagram_data:
-            log.debug("[SUB_DIAGRAM] Using provided diagram_data")
             return node.diagram_data
         
         # Otherwise, load by name from storage
@@ -235,7 +223,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # If content is already a dict (parsed YAML/JSON), return it
             if isinstance(content, dict):
-                log.info(f"Successfully loaded sub-diagram from: {file_path}")
                 return content
             
             # Otherwise parse based on format
@@ -248,7 +235,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             else:
                 raise ValueError(f"Unknown file format: {file_path}")
             
-            log.info(f"Successfully loaded sub-diagram from: {file_path}")
             return diagram_dict
         except Exception as e:
             log.error(f"Error loading diagram from '{file_path}': {str(e)}")
@@ -293,7 +279,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         execution_results = {}
         execution_error = None
         
-        log.debug(f"[SUB_DIAGRAM] Starting execute_diagram for {sub_execution_id}")
         update_count = 0
         
         async for update in execute_use_case.execute_diagram(
@@ -304,8 +289,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             observers=parent_observers
         ):
             update_count += 1
-            log.debug(f"[SUB_DIAGRAM] Update #{update_count}: type={update.get('type')}, node_id={update.get('node_id')}")
-            
+
             # Process execution updates
             if update.get("type") == "node_complete":
                 # Collect outputs from completed nodes
@@ -315,7 +299,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                     execution_results[node_id] = node_output
             
             elif update.get("type") == "execution_complete":
-                log.info(f"Sub-diagram execution completed: {sub_execution_id}")
                 break
             
             elif update.get("type") == "execution_error":
@@ -334,6 +317,115 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Log execution details if in debug mode
         if request.metadata.get("debug"):
             sub_execution_id = request.metadata.get("sub_execution_id", "unknown")
-            print(f"[SubDiagramNode] Executed sub-diagram with ID: {sub_execution_id}")
-        
+
         return output
+    
+    async def _execute_batch(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
+        """Execute sub-diagram for each item in the batch."""
+        node = request.node
+        
+        # Get batch configuration
+        batch_input_key = getattr(node, 'batch_input_key', 'items')
+        batch_parallel = getattr(node, 'batch_parallel', True)
+        
+        # Extract array from inputs
+        inputs = request.inputs or {}
+        
+        # Check if batch_input_key is in the root level or in 'default'
+        if batch_input_key in inputs:
+            batch_items = inputs.get(batch_input_key, [])
+        elif 'default' in inputs and isinstance(inputs['default'], dict):
+            batch_items = inputs['default'].get(batch_input_key, [])
+        else:
+            batch_items = []
+        
+        if not isinstance(batch_items, list):
+            log.warning(f"Batch mode enabled but '{batch_input_key}' is not a list. Treating as single item.")
+            batch_items = [batch_items]
+
+        # Prepare results collection
+        results = []
+        errors = []
+        
+        if batch_parallel:
+            # Execute all items in parallel
+            tasks = []
+            for idx, item in enumerate(batch_items):
+                # Create modified request with single item as input
+                item_inputs = {'default': item, '_batch_index': idx}
+                task = self._execute_batch_item(request, item_inputs, idx, len(batch_items))
+                tasks.append(task)
+            
+            # Wait for all tasks to complete
+            task_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results
+            for idx, result in enumerate(task_results):
+                if isinstance(result, Exception):
+                    errors.append({
+                        'index': idx,
+                        'error': str(result),
+                        'item': batch_items[idx] if idx < len(batch_items) else None
+                    })
+                else:
+                    results.append(result)
+        else:
+            # Execute items sequentially
+            for idx, item in enumerate(batch_items):
+                try:
+                    # Create modified request with single item as input
+                    item_inputs = {'default': item, '_batch_index': idx}
+                    result = await self._execute_batch_item(request, item_inputs, idx, len(batch_items))
+                    results.append(result)
+                except Exception as e:
+                    log.error(f"Error processing batch item {idx}: {e}")
+                    errors.append({
+                        'index': idx,
+                        'error': str(e),
+                        'item': item
+                    })
+        
+        # Compile batch results
+        batch_output = {
+            'total_items': len(batch_items),
+            'successful': len(results),
+            'failed': len(errors),
+            'results': [r.value if hasattr(r, 'value') else r for r in results],
+            'errors': errors if errors else None
+        }
+        
+        # Return batch output
+        return DataOutput(
+            value=batch_output,
+            node_id=node.id,
+            metadata={
+                'batch_mode': True,
+                'batch_parallel': batch_parallel,
+                'status': 'completed' if not errors else 'partial_failure'
+            }
+        )
+    
+    async def _execute_batch_item(self, original_request: ExecutionRequest[SubDiagramNode], 
+                                  item_inputs: dict[str, Any], index: int, total: int) -> Any:
+        """Execute a single item in the batch."""
+        log.info(f"[BATCH SUB_DIAGRAM] Processing item {index + 1}/{total}")
+        
+        # Create a new node instance without batch enabled to avoid recursion
+        from dataclasses import replace
+        node_without_batch = replace(original_request.node, batch=False)
+        
+        # Create new request with modified inputs and node
+        request = ExecutionRequest(
+            node=node_without_batch,
+            context=original_request.context,
+            inputs=item_inputs,
+            services=original_request.services,
+            metadata=original_request.metadata,
+            execution_id=original_request.execution_id,
+            iteration=original_request.iteration,
+            runtime=original_request.runtime,
+            parent_container=original_request.parent_container,
+            parent_registry=original_request.parent_registry
+        )
+        
+        return await self.execute_request(request)

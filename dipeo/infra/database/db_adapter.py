@@ -68,7 +68,6 @@ class DBOperationsAdapter:
                 if len(path_parts) == 2 and path_parts[0] == "dbs":
                     db_path = await self.file_service.get_safe_path("dbs", path_parts[1])
 
-        log.debug(f"Constructed db_path: '{db_path}'")
         return db_path
 
     async def _read_db(self, file_path: str) -> dict[str, Any]:
@@ -158,7 +157,7 @@ class DBOperationsAdapter:
                 sig = inspect.signature(self.file_service.write)
                 if "content" in sig.parameters:
                     write_result = await self.file_service.write(
-                        file_path, content=content
+                        file_path, content=content, create_backup=False
                     )
                     if isinstance(write_result, dict) and not write_result.get(
                         "success", True

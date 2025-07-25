@@ -129,3 +129,63 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
             'filename': 'error.py',
             'metadata': {'error': str(e)}
         }
+
+
+def generate_batch(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generate multiple Pydantic models in batch.
+    
+    Args:
+        inputs: List of generation tasks, each containing:
+            - node_type: The node type
+            - output_path: Where to write the file
+            - spec_data: Node specification
+            - template_path: Path to template file
+            
+    Returns:
+        List of results with generated files and metadata
+    """
+    import os
+    
+    tasks = inputs if isinstance(inputs, list) else []
+    results = []
+    base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+    
+    for task in tasks:
+        try:
+            # Read template
+            template_path = os.path.join(base_dir, task['template_path'])
+            with open(template_path, 'r') as f:
+                template_content = f.read()
+            
+            # Generate code
+            spec_data = task['spec_data']
+            generated_code = generate_pydantic_model(spec_data, template_content)
+            
+            # Write output file
+            output_path = os.path.join(base_dir, task['output_path'])
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                f.write(generated_code)
+            
+            # Add to results
+            results.append({
+                'node_type': task['node_type'],
+                'output_path': task['output_path'],
+                'status': 'generated',
+                'metadata': {
+                    'class_name': f"{task['node_type'].title().replace('_', '')}Node",
+                    'fields': [field['name'] for field in spec_data.get('fields', [])]
+                }
+            })
+            
+        except Exception as e:
+            results.append({
+                'node_type': task.get('node_type', 'unknown'),
+                'output_path': task.get('output_path', ''),
+                'status': 'error',
+                'error': str(e)
+            })
+    
+    return results

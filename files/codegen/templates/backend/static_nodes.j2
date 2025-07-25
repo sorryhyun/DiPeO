@@ -27,7 +27,7 @@ class {{ nodeType | pascal_case }}Node(BaseExecutableNode):
         data = super().to_dict()
 {%- for field in fields %}
 {%- if field.name == 'person' %}
-        data["person"] = self.person_id
+        data["person"] = self.person
 {%- else %}
         data["{{ field.name }}"] = self.{{ field.name }}
 {%- endif %}

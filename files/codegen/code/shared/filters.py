@@ -80,7 +80,8 @@ def type_to_python(type_str: str) -> str:
         'object': 'Dict[str, Any]',
         'array': 'List[Any]',
         'null': 'None',
-        'any': 'Any'
+        'any': 'Any',
+        'enum': 'str'  # Fallback for enum without values context
     }
     
     # Handle array types
@@ -149,267 +150,6 @@ def escape_js(value: str) -> str:
     if not isinstance(value, str):
         value = str(value)
     return value.replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
-
-
-def emoji_to_icon(emoji: str) -> str:
-    """Convert emoji to icon name (for lucide-react)."""
-    emoji_icon_map = {
-        '🤖': 'Bot',
-        '📝': 'FileText',
-        '💾': 'Database',
-        '🔧': 'Wrench',
-        '⚡': 'Zap',
-        '🔄': 'RefreshCw',
-        '🌐': 'Globe',
-        '📊': 'BarChart',
-        '📈': 'TrendingUp',
-        '🔍': 'Search',
-        '⚙️': 'Settings',
-        '📁': 'Folder',
-        '📂': 'FolderOpen',
-        '🚀': 'Rocket',
-        '🎯': 'Target',
-        '✅': 'Check',
-        '❌': 'X',
-        '⏱️': 'Timer',
-        '📅': 'Calendar',
-        '💡': 'Lightbulb',
-        '🔐': 'Lock',
-        '🔓': 'Unlock',
-        '📧': 'Mail',
-        '💬': 'MessageSquare',
-        '👤': 'User',
-        '👥': 'Users',
-        '🏷️': 'Tag',
-        '📎': 'Paperclip',
-        '🔗': 'Link',
-        '⚠️': 'AlertTriangle',
-        'ℹ️': 'Info',
-        '❓': 'HelpCircle',
-        '🎨': 'Palette',
-        '📸': 'Camera',
-        '🎵': 'Music',
-        '🎬': 'Film',
-        '📺': 'Tv',
-        '📻': 'Radio',
-        '🔊': 'Volume2',
-        '🔇': 'VolumeX',
-        '🔔': 'Bell',
-        '🔕': 'BellOff',
-        '📍': 'MapPin',
-        '🗺️': 'Map',
-        '🧭': 'Compass',
-        '🏠': 'Home',
-        '🏢': 'Building',
-        '🏭': 'Factory',
-        '🏥': 'Building2',
-        '🏦': 'Landmark',
-        '✈️': 'Plane',
-        '🚗': 'Car',
-        '🚌': 'Bus',
-        '🚆': 'Train',
-        '🚢': 'Ship',
-        '🚁': 'Plane',
-        '⏰': 'Clock',
-        '⌚': 'Watch',
-        '📱': 'Smartphone',
-        '💻': 'Laptop',
-        '🖥️': 'Monitor',
-        '🖨️': 'Printer',
-        '⌨️': 'Keyboard',
-        '🖱️': 'Mouse',
-        '💿': 'Disc',
-        '💵': 'DollarSign',
-        '💳': 'CreditCard',
-        '📉': 'TrendingDown',
-        '📊': 'BarChart2',
-        '📋': 'Clipboard',
-        '📌': 'Pin',
-        '📏': 'Ruler',
-        '✂️': 'Scissors',
-        '🖊️': 'Pen',
-        '✏️': 'Pencil',
-        '📚': 'BookOpen',
-        '📖': 'Book',
-        '🔖': 'Bookmark',
-        '🏷️': 'Tags',
-        '🎁': 'Gift',
-        '🎉': 'PartyPopper',
-        '🎈': 'Sparkles',
-        '🎯': 'Target',
-        '🏆': 'Trophy',
-        '🥇': 'Medal',
-        '⚽': 'Circle',
-        '🏀': 'Circle',
-        '🎾': 'Circle',
-        '🎮': 'Gamepad2',
-        '🎲': 'Dices',
-        '🧩': 'Puzzle',
-        '🔥': 'Flame',
-        '💧': 'Droplet',
-        '🌟': 'Star',
-        '⭐': 'Star',
-        '🌙': 'Moon',
-        '☀️': 'Sun',
-        '⛅': 'CloudSun',
-        '☁️': 'Cloud',
-        '🌧️': 'CloudRain',
-        '⛈️': 'CloudLightning',
-        '❄️': 'Snowflake',
-        '🌈': 'Rainbow',
-        '🌊': 'Waves',
-        '🍃': 'Leaf',
-        '🌺': 'Flower',
-        '🌻': 'Flower2',
-        '🌲': 'Trees',
-        '🌳': 'TreePine',
-        '🌴': 'Palmtree',
-        '🌵': 'Cactus',
-        '🍀': 'Clover',
-        '🍄': 'Mushroom',
-        '🌰': 'Nut',
-        '🦋': 'Bug',
-        '🐛': 'Bug',
-        '🐝': 'Bug',
-        '🐞': 'Bug',
-        '🦗': 'Bug',
-        '🕷️': 'Bug',
-        '🦂': 'Bug',
-        '🐢': 'Turtle',
-        '🐍': 'Worm',
-        '🦎': 'Fish',
-        '🦖': 'Fish',
-        '🦕': 'Fish',
-        '🐙': 'Fish',
-        '🦑': 'Fish',
-        '🦐': 'Fish',
-        '🦞': 'Fish',
-        '🦀': 'Fish',
-        '🐡': 'Fish',
-        '🐠': 'Fish',
-        '🐟': 'Fish',
-        '🐬': 'Fish',
-        '🐳': 'Fish',
-        '🐋': 'Fish',
-        '🦈': 'Fish',
-        '🐊': 'Fish',
-        '🐅': 'Cat',
-        '🐆': 'Cat',
-        '🦓': 'GitBranch',
-        '🦍': 'User',
-        '🦧': 'User',
-        '🦣': 'Database',
-        '🐘': 'Database',
-        '🦛': 'Database',
-        '🦏': 'Shield',
-        '🐪': 'Mountain',
-        '🐫': 'Mountain',
-        '🦒': 'GitCommit',
-        '🦘': 'Activity',
-        '🦬': 'HardDrive',
-        '🐃': 'HardDrive',
-        '🐂': 'HardDrive',
-        '🐄': 'HardDrive',
-        '🐎': 'Zap',
-        '🐖': 'Package',
-        '🐏': 'Cloud',
-        '🐑': 'Cloud',
-        '🦙': 'Layers',
-        '🐐': 'Triangle',
-        '🦌': 'GitBranch',
-        '🐕': 'Heart',
-        '🐩': 'Heart',
-        '🦮': 'Eye',
-        '🐕‍🦺': 'Shield',
-        '🐈': 'Cat',
-        '🐈‍⬛': 'Moon',
-        '🐓': 'Sun',
-        '🦃': 'Package',
-        '🦆': 'Droplet',
-        '🦢': 'Feather',
-        '🦅': 'Send',
-        '🦉': 'Moon',
-        '🦇': 'Moon',
-        '🐺': 'AlertTriangle',
-        '🦊': 'Cpu',
-        '🦝': 'Eye',
-        '🐗': 'Package',
-        '🐴': 'Zap',
-        '🦄': 'Sparkles',
-        '🐝': 'Hexagon',
-        '🐛': 'Bug',
-        '🦋': 'Wind',
-        '🐌': 'Loader',
-        '🐞': 'Bug',
-        '🐜': 'Activity',
-        '🦟': 'Radio',
-        '🦗': 'Radio',
-        '🕷️': 'Globe',
-        '🦂': 'AlertTriangle',
-        '🐢': 'Shield',
-        '🐍': 'GitCommit',
-        '🦎': 'Activity',
-        '🦖': 'AlertTriangle',
-        '🦕': 'BarChart',
-        '🐙': 'GitBranch',
-        '🦑': 'GitMerge',
-        '🦐': 'MoreHorizontal',
-        '🦞': 'Scissors',
-        '🦀': 'Move',
-        '🐡': 'Circle',
-        '🐠': 'Fish',
-        '🐟': 'Fish',
-        '🐬': 'Activity',
-        '🐳': 'Database',
-        '🐋': 'Database',
-        '🦈': 'AlertTriangle',
-        '🐊': 'AlertTriangle',
-        '🐅': 'Zap',
-        '🐆': 'Zap',
-        '🦓': 'BarChart',
-        '🦍': 'Shield',
-        '🦧': 'User',
-        '🦣': 'Database',
-        '🐘': 'Database',
-        '🦛': 'Package',
-        '🦏': 'Shield',
-        '🐪': 'BarChart',
-        '🐫': 'BarChart',
-        '🦒': 'GitCommit',
-        '🦘': 'Activity',
-        '🦬': 'HardDrive',
-        '🐃': 'HardDrive',
-        '🐂': 'HardDrive',
-        '🐄': 'Package',
-        '🐎': 'Zap',
-        '🐖': 'Package',
-        '🐏': 'Cloud',
-        '🐑': 'Cloud',
-        '🦙': 'Layers',
-        '🐐': 'Triangle',
-        '🦌': 'GitBranch',
-        '🐕': 'Heart',
-        '🐩': 'Scissors',
-        '🦮': 'Eye',
-        '🐕‍🦺': 'Shield',
-        '🐈': 'Hash',
-        '🐈‍⬛': 'Moon',
-        '🪶': 'Feather',
-        '🐓': 'Sun',
-        '🦃': 'Package',
-        '🦆': 'Droplet',
-        '🦢': 'Feather',
-        '🦅': 'Send',
-        '🦉': 'Moon',
-        '🦇': 'Moon',
-        '🐺': 'AlertTriangle',
-        '🦊': 'Cpu',
-        '🦝': 'Eye',
-        '🐗': 'Package',
-        '🐴': 'Zap',
-        '🦄': 'Sparkles',
-    }
-    return emoji_icon_map.get(emoji, 'Circle')
 
 
 def ui_field_type(field: Dict[str, Any]) -> str:
@@ -531,7 +271,8 @@ def graphql_type(field: Dict[str, Any]) -> str:
         'object': 'JSON',
         'dict': 'JSON',
         'list': '[JSON]',
-        'array': '[JSON]'
+        'array': '[JSON]',
+        'enum': 'String'  # Map enum to String for now
     }
     
     # Handle array types
@@ -558,6 +299,15 @@ def python_type(field: Dict[str, Any]) -> str:
         return 'Dict[str, Any]'
     elif field_type == 'array' or field_type == 'list':
         return 'List[Any]'
+    elif field_type == 'enum':
+        # For enum fields, use Literal type with the allowed values
+        values = field.get('values', [])
+        if values:
+            # Format values as quoted strings for Literal
+            quoted_values = ', '.join(f'"{v}"' for v in values)
+            return f'Literal[{quoted_values}]'
+        else:
+            return 'str'  # Fallback to str if no values specified
     
     return type_to_python(field_type)
 
@@ -586,12 +336,41 @@ def python_default(field: Dict[str, Any]) -> str:
     
     return default_val
 
+def is_enum(type_str: str) -> bool:
+    """Check if a type string represents an enum."""
+    # Simple check - could be expanded based on actual enum tracking
+    return type_str.lower() == 'enum' or type_str.endswith('Enum')
 
+
+def ends_with(value: str, suffix: str) -> bool:
+    """Check if string ends with suffix."""
+    return value.endswith(suffix)
+
+
+def to_node_type(value: str) -> str:
+    """Convert class name to node type."""
+    # Remove 'NodeData' or 'Node' suffix and convert to snake_case
+    if value.endswith('NodeData'):
+        base = value[:-8]
+    elif value.endswith('Node'):
+        base = value[:-4]
+    else:
+        base = value
+    
+    # Convert to snake_case
+    import re
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', base)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+from files.codegen.code.shared.emoji_filters import emoji_to_icon
 def register_custom_filters(env: Environment) -> None:
     """Register all custom filters with the Jinja2 environment."""
     env.filters['camel_case'] = camel_case
+    env.filters['camelCase'] = camel_case  # Alias
     env.filters['pascal_case'] = pascal_case
     env.filters['snake_case'] = snake_case
+    env.filters['snakeCase'] = snake_case  # Alias for template compatibility
     env.filters['title_case'] = title_case
     env.filters['pluralize'] = pluralize
     env.filters['type_to_typescript'] = type_to_typescript
@@ -607,3 +386,6 @@ def register_custom_filters(env: Environment) -> None:
     env.filters['graphql_type'] = graphql_type
     env.filters['python_type'] = python_type
     env.filters['python_default'] = python_default
+    env.filters['isEnum'] = is_enum
+    env.filters['endsWith'] = ends_with
+    env.filters['toNodeType'] = to_node_type

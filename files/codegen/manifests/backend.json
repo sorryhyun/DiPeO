@@ -8,12 +8,12 @@
     },
     "graphql_schema": {
       "template": "backend/graphql_schema.j2",
-      "output_pattern": "apps/server/src/graphql/schemas/{node_type}.graphql",
+      "output_pattern": "apps/server/src/__generated__/{node_type}.graphql",
       "enabled": true
     },
     "static_node": {
       "template": "backend/static_nodes.j2",
-      "output_pattern": "dipeo/core/static/generated/{node_type}_node.py",
+      "output_pattern": "dipeo/diagram_generated/{node_type}_node.py",
       "enabled": true
     }
   }

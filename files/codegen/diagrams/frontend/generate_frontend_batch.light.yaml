@@ -1,0 +1,115 @@
+# Frontend Batch Generation with Batch Property
+# Uses the new batch property to generate frontend files for multiple node types
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      custom_data:
+        message: Starting batch generation using batch property
+
+  - label: Load Manifest
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      file: files/codegen/manifests/all.json
+      operation: read
+
+  - label: Prepare Node List
+    type: code_job
+    position: {x: 350, y: 200}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Parse the manifest data from DB node
+        manifest_data = inputs.get('default', {})
+        if isinstance(manifest_data, str):
+            manifest_data = json.loads(manifest_data)
+        
+        # Get node types from manifest
+        node_types = manifest_data.get('nodes', [])
+        
+        if not node_types:
+            raise ValueError("No node types found in manifest")
+        
+        # Create array of inputs for batch processing
+        result = {
+            'items': [{'node_spec_path': node_type} for node_type in node_types]
+        }
+        
+        print(f"Generating frontend files for {len(node_types)} nodes from manifest:")
+        for nt in node_types:
+            print(f"  - {nt}")
+
+  - label: Batch Generate Frontend
+    type: sub_diagram
+    position: {x: 550, y: 200}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_frontend_single
+      diagram_format: light
+      batch: true  # Enable batch mode
+      batch_input_key: items  # Use 'items' key from input
+      batch_parallel: true  # Process in parallel
+
+  - label: Process Results
+    type: code_job
+    position: {x: 750, y: 200}
+    props:
+      language: python
+      code: |
+        # Process batch results
+        batch_results = inputs.get('default', {})
+        
+        total = batch_results.get('total_items', 0)
+        successful = batch_results.get('successful', 0)
+        failed = batch_results.get('failed', 0)
+        
+        print(f"\n=== Batch Generation Summary ===")
+        print(f"Total items: {total}")
+        print(f"Successful: {successful}")
+        print(f"Failed: {failed}")
+        
+        if batch_results.get('errors'):
+            print("\nErrors:")
+            for error in batch_results['errors']:
+                print(f"  - Item {error['index']}: {error['error']}")
+        
+        # Extract generated file counts
+        results = batch_results.get('results', [])
+        total_files = 0
+        for r in results:
+            if isinstance(r, dict) and 'files_generated' in r:
+                total_files += r['files_generated']
+        
+        result = {
+            'message': f'Batch generation completed: {successful}/{total} successful',
+            'total_files_generated': total_files,
+            'status': 'success' if failed == 0 else 'partial_failure'
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 950, y: 200}
+    props:
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Load Manifest
+  
+  - from: Load Manifest
+    to: Prepare Node List
+  
+  - from: Prepare Node List
+    to: Batch Generate Frontend
+  
+  - from: Batch Generate Frontend
+    to: Process Results
+  
+  - from: Process Results
+    to: End

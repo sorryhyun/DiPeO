@@ -1,6 +1,6 @@
 # Auto-generated Pydantic model for {{ nodeType }} node
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List{% if fields | selectattr('type', 'equalto', 'enum') | list %}, Literal{% endif %}
 from pydantic import BaseModel, Field
 
 {% if nodeType == 'person_job' %}

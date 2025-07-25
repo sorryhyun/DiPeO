@@ -55,60 +55,10 @@ def generate_graphql_schema(spec_data: Dict[str, Any], template_content: str) ->
     """
     env = create_template_env()
     
-    # Transform spec for GraphQL
-    gql_spec = {
-        **spec_data,
-        'type_name': f"{spec_data['nodeType'].title().replace('_', '')}Node",
-        'input_type_name': f"{spec_data['nodeType'].title().replace('_', '')}NodeInput",
-        'fields': [],
-        'enums': [],
-        'interfaces': spec_data.get('interfaces', ['Node']),
-    }
-    
-    # Process fields
-    for field in spec_data.get('fields', []):
-        gql_field = {
-            'name': field['name'],
-            'type': map_to_graphql_type(
-                field.get('type', 'string'),
-                field.get('required', False)
-            ),
-            'description': field.get('description', ''),
-            'deprecated': field.get('deprecated', False),
-            'deprecation_reason': field.get('deprecation_reason', ''),
-        }
-        
-        # Handle enum fields
-        if field.get('enum'):
-            enum_name = f"{field['name'].title().replace('_', '')}Enum"
-            gql_field['type'] = f"{enum_name}{'!' if field.get('required') else ''}"
-            
-            gql_spec['enums'].append({
-                'name': enum_name,
-                'values': [
-                    {'name': str(val).upper().replace(' ', '_'), 'value': val}
-                    for val in field['enum']
-                ],
-                'description': f"Enum for {field['name']} field"
-            })
-        
-        gql_spec['fields'].append(gql_field)
-    
-    # Add standard Node interface fields
-    gql_spec['node_fields'] = [
-        {'name': 'id', 'type': 'ID!', 'description': 'Unique identifier'},
-        {'name': 'type', 'type': 'String!', 'description': 'Node type'},
-        {'name': 'label', 'type': 'String', 'description': 'Node label'},
-        {'name': 'position', 'type': 'Position!', 'description': 'Node position'},
-    ]
-    
-    # Generate queries and mutations
-    gql_spec['queries'] = _generate_queries(gql_spec)
-    gql_spec['mutations'] = _generate_mutations(gql_spec)
-    gql_spec['subscriptions'] = _generate_subscriptions(gql_spec)
-    
+    # Pass the raw spec data to the template
+    # The template and its filters will handle all type conversions
     template = env.from_string(template_content)
-    return template.render(gql_spec)
+    return template.render(spec_data)
 
 
 def _generate_queries(spec: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -232,3 +182,55 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'filename': filename,
         'node_type': node_type
     }
+
+
+def generate_batch(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generate multiple GraphQL schemas in batch.
+    
+    Args:
+        inputs: List of generation tasks
+            
+    Returns:
+        List of results with generated files and metadata
+    """
+    import os
+    
+    tasks = inputs if isinstance(inputs, list) else []
+    results = []
+    base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+    
+    for task in tasks:
+        try:
+            # Read template
+            template_path = os.path.join(base_dir, task['template_path'])
+            with open(template_path, 'r') as f:
+                template_content = f.read()
+            
+            # Generate code
+            spec_data = task['spec_data']
+            generated_code = generate_graphql_schema(spec_data, template_content)
+            
+            # Write output file
+            output_path = os.path.join(base_dir, task['output_path'])
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                f.write(generated_code)
+            
+            # Add to results
+            results.append({
+                'node_type': task['node_type'],
+                'output_path': task['output_path'],
+                'status': 'generated'
+            })
+            
+        except Exception as e:
+            results.append({
+                'node_type': task.get('node_type', 'unknown'),
+                'output_path': task.get('output_path', ''),
+                'status': 'error',
+                'error': str(e)
+            })
+    
+    return results

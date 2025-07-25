@@ -18,7 +18,7 @@ from dipeo.core.static.generated_nodes import BaseExecutableNode
 class CodeJobNode(BaseExecutableNode):
     """Execute custom code functions"""
     type: NodeType = field(default=NodeType.code_job, init=False)
-    language: enum
+    language: Literal["python", "typescript", "bash", "shell"]
     filePath: str
     functionName: str = ""
     timeout: float = 0.0

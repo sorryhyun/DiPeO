@@ -432,6 +432,9 @@ class SubDiagramNodeData(BaseNodeData):
     diagram_name: Optional[str] = Field(default=None)
     diagram_format: Optional[DiagramFormat] = Field(default=None)
     diagram_data: Optional[Dict[str, Any]] = Field(default=None)
+    batch: Optional[bool] = Field(default=None)
+    batch_input_key: Optional[str] = Field(default=None)
+    batch_parallel: Optional[bool] = Field(default=None)
 
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)

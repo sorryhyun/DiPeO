@@ -73,15 +73,17 @@ class ModularFileService(FileServicePort):
         person_id: str | None = None,
         directory: str | None = None,
         content: str | None = None,
+        create_backup: bool = True,
     ) -> dict[str, Any]:
         """Write content to a file asynchronously."""
-        return await self.base.write(file_id, person_id, directory, content)
+        return await self.base.write(file_id, person_id, directory, content, create_backup)
     
     async def save_file(
-        self, content: bytes, filename: str, target_path: str | None = None
+        self, content: bytes, filename: str, target_path: str | None = None,
+        create_backup: bool = True
     ) -> dict[str, Any]:
         """Save binary content to a file."""
-        return await self.base.save_file(content, filename, target_path)
+        return await self.base.save_file(content, filename, target_path, create_backup)
     
     async def file_exists(self, path: str) -> bool:
         """Check if file exists."""

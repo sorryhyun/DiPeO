@@ -29,7 +29,7 @@ class PersonJobNode(BaseExecutableNode):
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         data = super().to_dict()
-        data["person"] = self.person_id
+        data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt
         data["default_prompt"] = self.default_prompt
         data["max_iteration"] = self.max_iteration

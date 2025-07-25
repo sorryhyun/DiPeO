@@ -102,6 +102,7 @@ class BaseFileService(BaseService, FileServicePort):
         person_id: str | None = None,
         directory: str | None = None,
         content: str | None = None,
+        create_backup: bool = True,
     ) -> dict[str, Any]:
         """Write content to a file asynchronously.
         
@@ -110,14 +111,17 @@ class BaseFileService(BaseService, FileServicePort):
             person_id: Optional person context for file resolution
             directory: Optional directory override
             content: Content to write to the file
+            create_backup: Whether to create backup if file exists
             
         Returns:
             Dictionary with write operation result
         """
         file_path = self._resolve_path(file_id, person_id, directory)
         
-        # Create backup if file exists
-        backup_path = await self._create_backup_if_exists(file_path)
+        # Create backup if file exists and backup is requested
+        backup_path = None
+        if create_backup:
+            backup_path = await self._create_backup_if_exists(file_path)
         
         # Write using format registry
         if content is None:
@@ -135,7 +139,8 @@ class BaseFileService(BaseService, FileServicePort):
         }
     
     async def save_file(
-        self, content: bytes, filename: str, target_path: str | None = None
+        self, content: bytes, filename: str, target_path: str | None = None,
+        create_backup: bool = True
     ) -> dict[str, Any]:
         """Save binary content to a file.
         
@@ -143,6 +148,7 @@ class BaseFileService(BaseService, FileServicePort):
             content: Binary content to save
             filename: Name of the file
             target_path: Optional target directory path
+            create_backup: Whether to create backup if file exists
             
         Returns:
             Dictionary with saved file information
@@ -160,8 +166,10 @@ class BaseFileService(BaseService, FileServicePort):
             target_dir.mkdir(parents=True, exist_ok=True)
             file_path = target_dir / filename
             
-            # Create backup if exists
-            backup_path = await self._create_backup_if_exists(file_path)
+            # Create backup if exists and backup is requested
+            backup_path = None
+            if create_backup:
+                backup_path = await self._create_backup_if_exists(file_path)
             
             # Write binary content
             await self.async_adapter.write_bytes_async(file_path, content)

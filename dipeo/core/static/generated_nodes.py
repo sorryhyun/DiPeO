@@ -281,6 +281,9 @@ class SubDiagramNode(BaseExecutableNode):
     diagram_name: Optional[str] = None
     diagram_format: Optional[DiagramFormat] = None
     diagram_data: Optional[Dict[str, Any]] = None
+    batch: Optional[bool] = False
+    batch_input_key: Optional[str] = "items"
+    batch_parallel: Optional[bool] = True
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -288,6 +291,9 @@ class SubDiagramNode(BaseExecutableNode):
         data["diagram_name"] = self.diagram_name
         data["diagram_format"] = self.diagram_format
         data["diagram_data"] = self.diagram_data
+        data["batch"] = self.batch
+        data["batch_input_key"] = self.batch_input_key
+        data["batch_parallel"] = self.batch_parallel
         return data
 
 @dataclass(frozen=True)
@@ -510,6 +516,9 @@ def create_executable_node(
             diagram_name=data.get("diagram_name"),
             diagram_format=data.get("diagram_format"),
             diagram_data=data.get("diagram_data"),
+            batch=data.get("batch", False),
+            batch_input_key=data.get("batch_input_key", "items"),
+            batch_parallel=data.get("batch_parallel", True),
         )
     
     if node_type == NodeType.person_batch_job:

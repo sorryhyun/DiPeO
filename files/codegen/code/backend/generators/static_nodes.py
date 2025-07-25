@@ -291,3 +291,60 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
             'filename': 'error.py',
             'metadata': {'error': str(e)}
         }
+
+
+def generate_batch(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generate multiple static nodes in batch.
+    
+    Args:
+        inputs: List of generation tasks
+            
+    Returns:
+        List of results with generated files and metadata
+    """
+    import os
+    
+    tasks = inputs if isinstance(inputs, list) else []
+    results = []
+    base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+    
+    for task in tasks:
+        try:
+            # Read template
+            template_path = os.path.join(base_dir, task['template_path'])
+            with open(template_path, 'r') as f:
+                template_content = f.read()
+            
+            # Generate code
+            spec_data = task['spec_data']
+            generated_code = generate_static_node(spec_data, template_content)
+            
+            # Write output file
+            output_path = os.path.join(base_dir, task['output_path'])
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                f.write(generated_code)
+            
+            # Add to results
+            results.append({
+                'node_type': task['node_type'],
+                'output_path': task['output_path'],
+                'status': 'generated',
+                'metadata': {
+                    'handler': f"{task['node_type']}_handler",
+                    'validator': f"validate_{task['node_type']}",
+                    'executor': f"execute_{task['node_type']}"
+                }
+            })
+            
+        except Exception as e:
+            results.append({
+                'node_type': task.get('node_type', 'unknown'),
+                'output_path': task.get('output_path', ''),
+                'status': 'error',
+                'error': str(e)
+            })
+    
+    return results

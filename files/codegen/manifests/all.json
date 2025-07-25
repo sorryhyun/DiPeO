@@ -1,5 +1,20 @@
 {
-  "nodes": ["person_job", "condition", "api_job", "code_job", "db", "endpoint", "user_response", "sub_diagram"],
+  "nodes": [
+    "api_job",
+    "code_job",
+    "condition",
+    "db",
+    "endpoint",
+    "example_hook",
+    "json_schema_validator",
+    "person_job",
+    "shell_job",
+    "start",
+    "sub_diagram",
+    "template_job",
+    "typescript_ast_parser",
+    "user_response"
+  ],
   "generators": {
     "frontend": {
       "enabled": true,
