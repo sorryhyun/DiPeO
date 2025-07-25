@@ -55,6 +55,14 @@ class TypeConverter:
         # Remove whitespace
         ts_type = ts_type.strip()
         
+        # Handle complex object types with properties
+        if ts_type.startswith('{') and ts_type.endswith('}'):
+            self.imports.add(('typing', 'Dict'))
+            self.imports.add(('typing', 'Any'))
+            result = 'Dict[str, Any]'
+            self.type_cache[cache_key] = result
+            return self._wrap_optional(result, is_optional)
+        
         # Handle optional
         if ts_type.endswith(' | undefined') or ts_type.endswith(' | null'):
             base_type = ts_type.replace(' | undefined', '').replace(' | null', '').strip()
@@ -93,7 +101,9 @@ class TypeConverter:
         # Handle literal types
         if re.match(r'^["\'].*["\']$', ts_type):
             self.imports.add(('typing', 'Literal'))
-            result = f'Literal[{ts_type}]'
+            # Convert single/double quotes to double quotes for Python
+            literal_value = ts_type.strip("'\"")
+            result = f'Literal["{literal_value}"]'
             self.type_cache[cache_key] = result
             return self._wrap_optional(result, is_optional)
             
@@ -107,15 +117,27 @@ class TypeConverter:
             if len(parts) == 1:
                 return self.convert(parts[0], field_name, is_optional)
             
-            # Convert each part
-            converted_parts = []
-            for part in parts:
-                converted = self.convert(part, field_name)
-                if converted not in converted_parts:
-                    converted_parts.append(converted)
-                    
-            self.imports.add(('typing', 'Union'))
-            result = f'Union[{", ".join(converted_parts)}]'
+            # Check if all parts are string literals
+            all_literals = all(re.match(r'^["\'].*["\']$', p.strip()) for p in parts)
+            
+            if all_literals:
+                # Convert to Literal with multiple values
+                self.imports.add(('typing', 'Literal'))
+                literal_values = [p.strip().strip("'\"") for p in parts]
+                # Format as Literal["value1", "value2", ...]
+                quoted_values = ', '.join(f'"{v}"' for v in literal_values)
+                result = f'Literal[{quoted_values}]'
+            else:
+                # Convert each part
+                converted_parts = []
+                for part in parts:
+                    converted = self.convert(part, field_name)
+                    if converted not in converted_parts:
+                        converted_parts.append(converted)
+                        
+                self.imports.add(('typing', 'Union'))
+                result = f'Union[{", ".join(converted_parts)}]'
+            
             self.type_cache[cache_key] = result
             return self._wrap_optional(result, is_optional)
             
@@ -164,11 +186,36 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
     for interface in ast_data.get('interfaces', []):
         fields = []
         for prop in interface.get('properties', []):
+            # Special handling for empty object types
+            prop_type = prop.get('type', 'Any')
+            if prop_type == '{}':
+                prop_type = 'object'
+            
             field_type = converter.convert(
-                prop['type'], 
+                prop_type, 
                 prop['name'], 
                 prop.get('optional', False)
             )
+            
+            # Replace empty {} with proper type annotations
+            if field_type == '{}':
+                # Determine proper type based on field name
+                if 'node' in prop['name'].lower() and 'indices' in prop['name'].lower():
+                    field_type = 'List[int]'
+                    converter.imports.add(('typing', 'List'))
+                elif any(x in prop['name'].lower() for x in ['tools', 'tags', 'args', 'env', 'params', 'headers']):
+                    field_type = 'List[str]'
+                    converter.imports.add(('typing', 'List'))
+                elif prop['name'].lower() in ['messages', 'nodes', 'handles', 'arrows', 'persons', 'fields', 'inputs', 'outputs', 'examples']:
+                    # These are typically lists
+                    field_type = 'List[Any]'
+                    converter.imports.add(('typing', 'List'))
+                    converter.imports.add(('typing', 'Any'))
+                else:
+                    field_type = 'Dict[str, Any]'
+                    converter.imports.add(('typing', 'Dict'))
+                    converter.imports.add(('typing', 'Any'))
+            
             fields.append({
                 'name': prop['name'],
                 'type': field_type,
@@ -203,14 +250,28 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Process type aliases
     type_aliases = []
+    branded_types = []
+    
     for type_alias in ast_data.get('types', []):
-        # Skip branded types as they're handled separately
-        if 'Brand' not in type_alias.get('type', ''):
-            py_type = converter.convert(type_alias['type'])
-            type_aliases.append({
-                'name': type_alias['name'],
-                'type': py_type
-            })
+        alias_name = type_alias.get('name', '')
+        alias_type = type_alias.get('type', '')
+        
+        # Check if it's a branded type
+        if '& {' in alias_type and '__brand' in alias_type:
+            branded_types.append(alias_name)
+        else:
+            # Convert the type alias
+            py_type = converter.convert(alias_type)
+            
+            # Skip if it's the same as the name (to avoid NodeID = NodeID)
+            if py_type != alias_name:
+                type_aliases.append({
+                    'name': alias_name,
+                    'type': py_type
+                })
+    
+    # Merge branded types with predefined list
+    all_branded = sorted(list(set(branded_types) | BRANDED_IDS))
     
     # Get unique imports
     imports = sorted(list(converter.imports))
@@ -219,7 +280,7 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
         'models': models,
         'enums': enums,
         'type_aliases': type_aliases,
-        'branded_ids': sorted(list(BRANDED_IDS)),
+        'branded_ids': all_branded,
         'imports': imports,
         'allow_extra': False  # Can be made configurable
     }

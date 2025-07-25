@@ -16,21 +16,14 @@ def extract_spec_from_ast(ast_data: Dict[str, Any], spec_name: str) -> Optional[
     We need to find the specific spec constant and transform it.
     """
     # Check what data we actually got
-    print(f"[TypeScript Spec Parser] AST data keys: {list(ast_data.keys())}")
-    print(f"[TypeScript Spec Parser] Looking for spec: {spec_name}")
-    
     # Get constants from AST data
     constants = ast_data.get('constants', [])
-    print(f"[TypeScript Spec Parser] Found {len(constants)} constants")
-    
     # Find the spec constant by name
     for const in constants:
-        print(f"[TypeScript Spec Parser] Checking constant: {const.get('name')}")
         if const.get('name') == spec_name:
             # The value should contain the parsed object
             value = const.get('value')
-            print(f"[TypeScript Spec Parser] Found spec constant with value type: {type(value)}")
-            
+
             if isinstance(value, dict):
                 # Transform the spec to ensure proper format
                 return transform_ast_to_spec(value)
@@ -39,8 +32,7 @@ def extract_spec_from_ast(ast_data: Dict[str, Any], spec_name: str) -> Optional[
     
     # If not found, list available constants
     available_constants = [const.get('name', '') for const in constants]
-    print(f"[TypeScript Spec Parser] Available constants: {available_constants}")
-    
+
     return None
 
 
@@ -54,10 +46,7 @@ def transform_ast_to_spec(ast_obj: Dict[str, Any]) -> Dict[str, Any]:
     # The object should already be in the right format if the parser worked correctly
     # Just do some basic transformations if needed
     spec = dict(ast_obj)  # Create a copy
-    
-    # Debug: print what we got
-    print(f"[TypeScript Spec Parser] Transforming spec with keys: {list(spec.keys())}")
-    
+
     # Handle nodeType if it's still an enum reference string
     if 'nodeType' in spec:
         node_type = spec['nodeType']

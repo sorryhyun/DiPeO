@@ -6,7 +6,8 @@
 help:
 	@echo "DiPeO Commands:"
 	@echo "  make install      - Install all dependencies"
-	@echo "  make codegen      - Generate code from domain models (Python, GraphQL)"
+	@echo "  make codegen      - Generate all code using diagram-based approach"
+	@echo "  make codegen-legacy - Generate code using legacy script-based approach"
 	@echo "  make codegen-node NODE_SPEC=path/to/spec.json - Generate code for a specific node"
 	@echo "  make codegen-watch - Watch node specifications for changes"
 	@echo "  make dev-all      - Run both backend and frontend servers"
@@ -26,13 +27,19 @@ install:
 	pnpm install
 	@echo "✅ All dependencies installed!"
 
-# Code generation
+# Diagram-based code generation (NEW DEFAULT)
 codegen:
-	@echo "🔄 Generating code from domain models..."
+	@echo "🚀 Running unified diagram-based code generation..."
+	dipeo run codegen/diagrams/generate_all --light --debug --no-browser --timeout=120
+	@echo "✅ All code generation completed using DiPeO diagrams!"
+
+# Legacy script-based code generation
+codegen-legacy:
+	@echo "🔄 Generating code from domain models (legacy approach)..."
 	cd dipeo/models && pnpm generate:all
 	@echo "🔄 Generating TypeScript types for frontend..."
 	pnpm --filter web codegen
-	@echo "✅ All code generation completed!"
+	@echo "✅ Legacy code generation completed!"
 
 # Diagram-based code generation for node UI
 codegen-diagram:

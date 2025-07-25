@@ -324,15 +324,6 @@ export interface TemplateJobNodeData extends BaseNodeData {
   engine?: 'internal' | 'jinja2' | 'handlebars';  // Template engine (default: internal)
 }
 
-export interface ShellJobNodeData extends BaseNodeData {
-  command: string;  // Shell command to execute
-  args?: string[];  // Command arguments
-  cwd?: string;  // Working directory
-  env?: Record<string, string>;  // Environment variables
-  timeout?: number;  // Execution timeout in seconds
-  capture_output?: boolean;  // Whether to capture stdout/stderr
-  shell?: boolean;  // Whether to run through shell
-}
 
 export interface JsonSchemaValidatorNodeData extends BaseNodeData {
   schema_path?: string;  // Path to JSON schema file

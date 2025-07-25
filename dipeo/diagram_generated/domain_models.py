@@ -12,21 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # ============ Type Aliases ============
 
-NodeID = string & { readonly __brand: 'NodeID'; }
-
-ArrowID = string & { readonly __brand: 'ArrowID'; }
-
-HandleID = string & { readonly __brand: 'HandleID'; }
-
-PersonID = string & { readonly __brand: 'PersonID'; }
-
-ApiKeyID = string & { readonly __brand: 'ApiKeyID'; }
-
-DiagramID = string & { readonly __brand: 'DiagramID'; }
-
 PersonBatchJobNodeData = PersonJobNodeData
-
-ExecutionID = string & { readonly __brand: 'ExecutionID'; }
 
 PersonMemoryMessage = Message
 
@@ -492,7 +478,7 @@ class DiagramMetadata(BaseModel):
     
     author: Optional[str] = Field(default=None)
     
-    tags: Optional[{}] = Field(default=None)
+    tags: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -503,13 +489,13 @@ class DomainDiagram(BaseModel):
     
     
     
-    nodes: {}
+    nodes: Dict[str, Any]
     
-    handles: {}
+    handles: Dict[str, Any]
     
-    arrows: {}
+    arrows: Dict[str, Any]
     
-    persons: {}
+    persons: Dict[str, Any]
     
     metadata: Optional[DiagramMetadata] = Field(default=None)
     
@@ -558,7 +544,7 @@ class ConditionNodeData(BaseNodeData):
     
     expression: Optional[str] = Field(default=None)
     
-    node_indices: Optional[{}] = Field(default=None)
+    node_indices: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -581,7 +567,7 @@ class PersonJobNodeData(BaseNodeData):
     
     memory_settings: Optional[MemorySettings] = Field(default=None)
     
-    tools: Optional[{}] = Field(default=None)
+    tools: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -700,7 +686,7 @@ class HookNodeData(BaseNodeData):
     
     hook_type: HookType
     
-    config: Union[{ command?: string, undefined; args?: {}, undefined; env?: any; cwd?: string, undefined; url?: string, undefined; method?: HttpMethod, undefined; headers?: any; script?: string, undefined; function_name?: string, undefined; file_path?: string, undefined; format?: "json", Literal["yaml"], Literal["text"], undefined; }]
+    config: Dict[str, Any]
     
     timeout: Optional[int] = Field(default=None)
     
@@ -726,29 +712,6 @@ class TemplateJobNodeData(BaseNodeData):
     variables: Optional[Any] = Field(default=None)
     
     engine: Optional[Literal["internal" | "jinja2" | "handlebars"]] = Field(default=None)
-    
-    
-
-
-class ShellJobNodeData(BaseNodeData):
-    """ShellJobNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    command: str
-    
-    args: Optional[{}] = Field(default=None)
-    
-    cwd: Optional[str] = Field(default=None)
-    
-    env: Optional[Any] = Field(default=None)
-    
-    timeout: Optional[int] = Field(default=None)
-    
-    capture_output: Optional[bool] = Field(default=None)
-    
-    shell: Optional[bool] = Field(default=None)
     
     
 
@@ -780,7 +743,7 @@ class TypescriptAstNodeData(BaseNodeData):
     
     source: Optional[str] = Field(default=None)
     
-    extractPatterns: Optional[{}] = Field(default=None)
+    extractPatterns: Optional[Dict[str, Any]] = Field(default=None)
     
     includeJSDoc: Optional[bool] = Field(default=None)
     
@@ -880,7 +843,7 @@ class ExecutionState(BaseModel):
     
     exec_counts: Dict[str, float]
     
-    executed_nodes: {}
+    executed_nodes: Dict[str, Any]
     
     
 
@@ -977,7 +940,7 @@ class NodeDefinition(BaseModel):
     
     handler: Any
     
-    requires_services: Optional[{}] = Field(default=None)
+    requires_services: Optional[Dict[str, Any]] = Field(default=None)
     
     description: str = Field(default=None)
     
@@ -1034,7 +997,7 @@ class Conversation(BaseModel):
     
     
     
-    messages: {}
+    messages: Dict[str, Any]
     
     metadata: Optional[ConversationMetadata] = Field(default=None)
     
@@ -1076,7 +1039,7 @@ class ValidationRules(BaseModel):
     
     itemType: Optional[FieldType] = Field(default=None)
     
-    allowedValues: Optional[{}] = Field(default=None)
+    allowedValues: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -1132,9 +1095,9 @@ class FieldSpecification(BaseModel):
     
     uiConfig: UIConfiguration
     
-    nestedFields: Optional[{}] = Field(default=None)
+    nestedFields: Optional[Dict[str, Any]] = Field(default=None)
     
-    affects: Optional[{}] = Field(default=None)
+    affects: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -1145,9 +1108,9 @@ class HandleConfiguration(BaseModel):
     
     
     
-    inputs: {}
+    inputs: Dict[str, Any]
     
-    outputs: {}
+    outputs: Dict[str, Any]
     
     
 
@@ -1177,7 +1140,7 @@ class ExecutionConfiguration(BaseModel):
     
     maxRetries: Optional[int] = Field(default=None)
     
-    requires: Optional[{}] = Field(default=None)
+    requires: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -1215,7 +1178,7 @@ class NodeSpecification(BaseModel):
     
     description: str
     
-    fields: {}
+    fields: Dict[str, Any]
     
     handles: HandleConfiguration
     
@@ -1223,7 +1186,7 @@ class NodeSpecification(BaseModel):
     
     execution: Optional[ExecutionConfiguration] = Field(default=None)
     
-    examples: Optional[{}] = Field(default=None)
+    examples: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -1265,8 +1228,6 @@ def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:
 def is_domainnode(node: Any) -> bool:
     """Check if a node is a DomainNode."""
     return hasattr(node, 'type') and node.type == NodeType.domain
-
-
 
 
 

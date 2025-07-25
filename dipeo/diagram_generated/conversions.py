@@ -1,5 +1,5 @@
 """
-Auto-generated 2025-07-25T21:49:42.238095. Do NOT edit by hand.
+Auto-generated 2025-07-25T22:50:50.225989. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 

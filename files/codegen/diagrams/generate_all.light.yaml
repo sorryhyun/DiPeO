@@ -34,18 +34,11 @@ nodes:
       diagram_name: codegen/diagrams/frontend/generate_frontend_batch_ts
       diagram_format: light
 
-  # Phase 3: Generate Registries
-  - label: Generate Node Registry
-    type: sub_diagram
-    position: {x: 850, y: 350}
-    props:
-      diagram_name: codegen/diagrams/frontend/generate_frontend_registry
-      diagram_format: light
 
   # Summary
   - label: Summarize Results
     type: code_job
-    position: {x: 1050, y: 350}
+    position: {x: 850, y: 350}
     props:
       language: python
       code: |
@@ -56,9 +49,7 @@ nodes:
         print("\nPhase 2 - Node UI:")
         print("✓ Backend node files generated from TypeScript specs")
         print("✓ Frontend node files generated from TypeScript specs")
-        
-        print("\nPhase 3 - Registries:")
-        print("✓ Node registry updated")
+        print("✓ Node registry generated (included in frontend batch)")
         
         result = {
             'status': 'success',
@@ -67,7 +58,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1250, y: 350}
+    position: {x: 1050, y: 350}
     props:
       save_to_file: false
 
@@ -84,20 +75,12 @@ connections:
   - from: Generate All Domain Models
     to: Generate Frontend Node Files
   
-  # Registries need all node files
-  - from: Generate Backend Node Files
-    to: Generate Node Registry
-  - from: Generate Frontend Node Files
-    to: Generate Node Registry
-  
   # Summary waits for everything
   - from: Generate All Domain Models
     to: Summarize Results
   - from: Generate Backend Node Files
     to: Summarize Results
   - from: Generate Frontend Node Files
-    to: Summarize Results
-  - from: Generate Node Registry
     to: Summarize Results
   
   - from: Summarize Results
