@@ -101,10 +101,18 @@ nodes:
             'status': 'success' if failed == 0 else 'partial_failure'
         }
 
-  # Generate conversions after backend files
+  # Generate enums first
+  - label: Generate Enums
+    type: sub_diagram
+    position: {x: 950, y: 100}
+    props:
+      diagram_name: codegen/diagrams/backend/generate_enums
+      diagram_format: light
+
+  # Generate conversions after enums
   - label: Generate Conversions
     type: sub_diagram
-    position: {x: 950, y: 200}
+    position: {x: 950, y: 300}
     props:
       diagram_name: codegen/diagrams/backend/generate_conversions
       diagram_format: light
@@ -115,14 +123,23 @@ nodes:
     props:
       language: python
       code: |
-        # Combine results from backend generation and conversions
+        # Combine results from backend generation, enums, and conversions
         backend_results = inputs.get('backend_results', {})
+        enum_results = inputs.get('enum_results', {})
         conversion_results = inputs.get('conversion_results', {})
         
         print(f"\n=== Complete Backend Generation Summary ===")
         print(backend_results.get('backend_summary', ''))
         
-        # Check if conversions were generated (sub_diagram returns different structure)
+        # Check if enums were generated
+        if enum_results:
+            print("\n✓ Enums generated successfully")
+        else:
+            print("\n✗ Enums generation failed")
+            if enum_results and enum_results.get('error'):
+                print(f"  Error: {enum_results['error']}")
+        
+        # Check if conversions were generated
         if conversion_results:
             print("\n✓ Conversions generated successfully")
         else:
@@ -132,6 +149,8 @@ nodes:
         
         # Update artifact count
         artifacts = backend_results.get('artifacts_generated', {})
+        if enum_results:
+            artifacts['enums'] = 1
         if conversion_results:
             artifacts['conversions'] = 1
         
@@ -139,6 +158,7 @@ nodes:
             'message': 'Complete backend generation finished',
             'artifacts_generated': artifacts,
             'backend_status': backend_results.get('status', 'unknown'),
+            'enum_status': enum_results.get('status', 'unknown'),
             'conversion_status': conversion_results.get('status', 'unknown')
         }
 
@@ -162,12 +182,20 @@ connections:
     to: Process Backend Results
   
   - from: Process Backend Results
-    to: Generate Conversions
+    to: Generate Enums
     label: backend_results
+  
+  - from: Generate Enums
+    to: Generate Conversions
+    label: enum_results
   
   - from: Generate Conversions
     to: Process Final Results
     label: conversion_results
+  
+  - from: Generate Enums
+    to: Process Final Results
+    label: enum_results
   
   - from: Process Backend Results
     to: Process Final Results

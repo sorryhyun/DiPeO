@@ -8,12 +8,8 @@ from enum import Enum
 import json
 from pydantic import BaseModel
 
-# Import enums from core models
-from dipeo.models.models import (
-    NodeType, DiagramFormat, HookType, HookTriggerMode,
-    HttpMethod, DBBlockSubType, SupportedLanguage,
-    NotionOperation, ExecutionStatus, LLMService, APIServiceType
-)
+# Import enums from generated definitions
+from dipeo.diagram_generated.enums import *
 
 # Import generated models
 from dipeo.diagram_generated.models import *
