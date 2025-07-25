@@ -5,7 +5,6 @@ import {
   PersonJobNodeData,
   EndpointNodeData,
   DBNodeData,
-  JobNodeData,
   CodeJobNodeData,
   ApiJobNodeData,
   UserResponseNodeData,
@@ -28,7 +27,6 @@ export interface NodeTypeRegistry {
   person_job: PersonJobNodeData;
   endpoint: EndpointNodeData;
   db: DBNodeData;
-  job: JobNodeData;
   code_job: CodeJobNodeData;
   api_job: ApiJobNodeData;
   user_response: UserResponseNodeData;
@@ -84,7 +82,7 @@ export type NodeFormData<K extends NodeTypeKey> = NodeFormDataTypes[K];
  */
 export function isNodeTypeKey(key: string): key is NodeTypeKey {
   const validKeys: NodeTypeKey[] = [
-    'start', 'condition', 'person_job', 'endpoint', 'db', 'job',
+    'start', 'condition', 'person_job', 'endpoint', 'db',
     'code_job', 'api_job', 'user_response', 'notion', 'person_batch_job', 'hook',
     'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram'
   ];
@@ -94,7 +92,7 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
 // Re-export UI-augmented node data types for backward compatibility
 // These now include UI properties like 'flipped'
 export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeData,
-  DBNodeData, JobNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
+  DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
   NotionNodeData, PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
   JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData } from './domain';
 
@@ -106,7 +104,6 @@ export type ConditionFormData = NodeFormData<'condition'>;
 export type PersonJobFormData = NodeFormData<'person_job'>;
 export type EndpointFormData = NodeFormData<'endpoint'>;
 export type DBFormData = NodeFormData<'db'>;
-export type JobFormData = NodeFormData<'job'>;
 export type CodeJobFormData = NodeFormData<'code_job'>;
 export type ApiJobFormData = NodeFormData<'api_job'>;
 export type UserResponseFormData = NodeFormData<'user_response'>;

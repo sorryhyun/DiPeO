@@ -5,7 +5,6 @@ export { StartNodeConfig } from './start';
 export { PersonJobNodeConfig } from './person-job';
 export { ConditionNodeConfig } from './condition';
 export { EndpointNodeConfig } from './endpoint';
-export { JobNodeConfig } from './job';
 export { CodeJobNodeConfig } from './code-job';
 export { ApiJobNodeConfig } from './api-job';
 export { DbNodeConfig } from './db';
@@ -26,7 +25,6 @@ import { EndpointNodeConfig } from './endpoint';
 import { CodeJobNodeConfig } from './code-job';
 import { ApiJobNodeConfig } from './api-job';
 import { DbNodeConfig } from './db';
-import { JobNodeConfig } from './job';
 import { PersonBatchJobNodeConfig } from './person-batch-job';
 import { UserResponseNodeConfig } from './user-response';
 import { NotionNodeConfig } from './notion';
@@ -51,7 +49,6 @@ export const NODE_CONFIGS_MAP: Record<NodeType, UnifiedNodeConfig<any>> = {
   [NodeType.CODE_JOB]: CodeJobNodeConfig,
   [NodeType.API_JOB]: ApiJobNodeConfig,
   [NodeType.DB]: DbNodeConfig,
-  [NodeType.JOB]: JobNodeConfig,
   [NodeType.PERSON_BATCH_JOB]: PersonBatchJobNodeConfig,
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig,
   [NodeType.NOTION]: NotionNodeConfig,
@@ -63,12 +60,22 @@ export const NODE_CONFIGS_MAP: Record<NodeType, UnifiedNodeConfig<any>> = {
 };
 
 /**
- * Helper function to get node configuration by type
+ * Helper function to get node configuration by type from static map only
+ * @deprecated Use getNodeConfig instead which checks both static and dynamic configs
  */
-export function getNodeConfig(nodeType: NodeType): UnifiedNodeConfig<any> | undefined {
+export function getStaticNodeConfig(nodeType: NodeType): UnifiedNodeConfig<any> | undefined {
   return NODE_CONFIGS_MAP[nodeType];
 }
 
 // Export helper utilities
 export * from './helpers';
 export * from './nodeMeta';
+
+// Export registry functions
+export { 
+  registerNodeConfig,
+  getAllNodeConfigs,
+  getNodeConfig,
+  getDynamicNodeConfig,
+  clearDynamicNodeConfigs
+} from '../nodeRegistry';

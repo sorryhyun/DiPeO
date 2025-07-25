@@ -4,7 +4,7 @@ import { generateArrowId } from '@/core/types/utilities';
 import { ConversionService } from '@/core/services/ConversionService';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
-import { NODE_CONFIGS_MAP } from '../config/nodes';
+import { getNodeConfig } from '../config/nodes';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat } from '@dipeo/domain-models';
 import { ContentType } from '@/__generated__/graphql';
@@ -79,7 +79,7 @@ export const createDiagramSlice: StateCreator<
 
   // Node operations
   addNode: (type, position, initialData) => {
-    const nodeConfig = NODE_CONFIGS_MAP[type];
+    const nodeConfig = getNodeConfig(type);
     const nodeDefaults = nodeConfig ? { ...nodeConfig.defaults } : {};
     const mergedData = { ...nodeDefaults, ...initialData };
     const node = createNode(type, position, mergedData);

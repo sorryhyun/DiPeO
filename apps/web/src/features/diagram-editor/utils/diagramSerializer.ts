@@ -5,7 +5,7 @@
 
 import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
-import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
+import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { storeMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { ConversionService } from '@/core/services/ConversionService';
@@ -96,10 +96,6 @@ function cleanNodeData(node: DomainNode): DomainNode {
       nodeData.sub_type = nodeData.sub_type || 'fixed_prompt';
       nodeData.operation = nodeData.operation || 'read';
       break;
-    case 'job':
-      nodeData.code_type = nodeData.code_type || 'python';
-      nodeData.code = nodeData.code || '';
-      break;
     case 'user_response':
       nodeData.prompt = nodeData.prompt || '';
       nodeData.timeout = nodeData.timeout || 60;
@@ -121,7 +117,7 @@ function cleanNodeData(node: DomainNode): DomainNode {
 function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   const handles: DomainHandle[] = [];
   const nodeType = node.type as string;
-  const config = NODE_CONFIGS_MAP[nodeType as keyof typeof NODE_CONFIGS_MAP];
+  const config = getNodeConfig(nodeType);
   
   if (!config?.handles) {
     return handles;

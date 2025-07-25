@@ -41,7 +41,8 @@ export enum HandleLabel {
   CONDITION_TRUE = 'condtrue',
   CONDITION_FALSE = 'condfalse',
   SUCCESS = 'success',
-  ERROR = 'error'
+  ERROR = 'error',
+  RESULTS = 'results'
 }
 
 export enum DataType {

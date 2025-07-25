@@ -54,7 +54,8 @@ def type_to_typescript(type_str: str) -> str:
         'any': 'any',
         'null': 'null',
         'undefined': 'undefined',
-        'void': 'void'
+        'void': 'void',
+        'enum': 'string'  # Default fallback for enum without context
     }
     
     # Handle generic types like list[str] or dict[str, int]
@@ -191,7 +192,18 @@ def ui_field_type(field: Dict[str, Any]) -> str:
 
 def typescript_type(field: Dict[str, Any]) -> str:
     """Get TypeScript type from field definition."""
-    return map_to_typescript_type(field.get('type', 'string'))
+    field_type = field.get('type', 'string')
+    
+    # Special handling for enum fields with values
+    if field_type == 'enum' and 'values' in field:
+        values = field.get('values', [])
+        if values:
+            # Generate union type from enum values
+            return ' | '.join(f"'{v}'" for v in values)
+        else:
+            return 'string'  # Fallback if no values specified
+    
+    return map_to_typescript_type(field_type)
 
 
 def zod_schema(field: Dict[str, Any]) -> str:
@@ -199,27 +211,37 @@ def zod_schema(field: Dict[str, Any]) -> str:
     field_type = field.get('type', 'string')
     required = field.get('required', False)
     
-    # Base schemas
-    schema_map = {
-        'string': 'z.string()',
-        'str': 'z.string()',
-        'text': 'z.string()',
-        'number': 'z.number()',
-        'int': 'z.number()',
-        'integer': 'z.number()',
-        'float': 'z.number()',
-        'bool': 'z.boolean()',
-        'boolean': 'z.boolean()',
-        'array': 'z.array(z.any())',
-        'list': 'z.array(z.any())',
-        'object': 'z.record(z.any())',
-        'dict': 'z.record(z.any())',
-        'any': 'z.any()',
-        'null': 'z.null()',
-        'undefined': 'z.undefined()'
-    }
-    
-    base_schema = schema_map.get(field_type, 'z.any()')
+    # Special handling for enum fields
+    if field_type == 'enum' and 'values' in field:
+        values = field.get('values', [])
+        if values:
+            # Generate z.enum() for enum fields
+            enum_values = ', '.join(f'"{v}"' for v in values)
+            base_schema = f'z.enum([{enum_values}])'
+        else:
+            base_schema = 'z.string()'
+    else:
+        # Base schemas for other types
+        schema_map = {
+            'string': 'z.string()',
+            'str': 'z.string()',
+            'text': 'z.string()',
+            'number': 'z.number()',
+            'int': 'z.number()',
+            'integer': 'z.number()',
+            'float': 'z.number()',
+            'bool': 'z.boolean()',
+            'boolean': 'z.boolean()',
+            'array': 'z.array(z.any())',
+            'list': 'z.array(z.any())',
+            'object': 'z.record(z.any())',
+            'dict': 'z.record(z.any())',
+            'any': 'z.any()',
+            'null': 'z.null()',
+            'undefined': 'z.undefined()'
+        }
+        
+        base_schema = schema_map.get(field_type, 'z.any()')
     
     # Add validation
     validations = []
@@ -230,7 +252,9 @@ def zod_schema(field: Dict[str, Any]) -> str:
         if 'max' in val:
             validations.append(f'.max({val["max"]})')
         if 'pattern' in val:
-            validations.append(f'.regex(/{val["pattern"]}/)')
+            # Escape forward slashes in the pattern for JavaScript regex literal
+            escaped_pattern = val["pattern"].replace('/', '\\/')
+            validations.append(f'.regex(/{escaped_pattern}/)')
     
     schema = base_schema + ''.join(validations)
     

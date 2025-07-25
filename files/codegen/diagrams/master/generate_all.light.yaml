@@ -56,7 +56,7 @@ nodes:
     type: sub_diagram
     position: {x: 550, y: 200}
     props:
-      diagram_path: codegen/frontend/generate_frontend_all
+      diagram_path: codegen/frontend/generate_frontend_batch
 
   - label: Generate All Backend
     type: sub_diagram

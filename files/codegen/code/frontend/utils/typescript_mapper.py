@@ -120,20 +120,31 @@ def get_zod_schema(field: Dict[str, Any]) -> str:
     else:
         schema += '.optional()'
     
-    if 'min' in field:
-        if ts_type == 'string':
-            schema += f'.min({field["min"]})'
-        elif ts_type == 'number':
-            schema += f'.min({field["min"]})'
+    # Check for validation constraints - can be direct on field or in validation object
+    validation = field.get('validation', {})
     
-    if 'max' in field:
+    # Min constraint
+    min_val = field.get('min') or validation.get('min')
+    if min_val is not None:
         if ts_type == 'string':
-            schema += f'.max({field["max"]})'
+            schema += f'.min({min_val})'
         elif ts_type == 'number':
-            schema += f'.max({field["max"]})'
+            schema += f'.min({min_val})'
     
-    if 'pattern' in field:
-        schema += f'.regex(/{field["pattern"]}/)'
+    # Max constraint
+    max_val = field.get('max') or validation.get('max')
+    if max_val is not None:
+        if ts_type == 'string':
+            schema += f'.max({max_val})'
+        elif ts_type == 'number':
+            schema += f'.max({max_val})'
+    
+    # Pattern constraint
+    pattern = field.get('pattern') or validation.get('pattern')
+    if pattern:
+        # Escape forward slashes in the pattern for JavaScript regex literal
+        escaped_pattern = pattern.replace('/', '\\/')
+        schema += f'.regex(/{escaped_pattern}/)'
     
     if 'default' in field:
         default_value = get_typescript_default(field)

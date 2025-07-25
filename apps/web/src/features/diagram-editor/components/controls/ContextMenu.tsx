@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { DomainNode } from '@/core/types';
 import {ArrowID, NodeID} from '@dipeo/domain-models';
-import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
+import { getAllNodeConfigs } from '@/features/diagram-editor/config/nodes';
 import { useCanvasOperations, useCanvasState } from '@/shared/contexts/CanvasContext';
 
 export interface ContextMenuProps {
@@ -16,7 +16,7 @@ export interface ContextMenuProps {
 }
 
 // Pre-compute default node types and labels at module level
-const DEFAULT_NODE_TYPES = Object.keys(NODE_CONFIGS_MAP);
+const DEFAULT_NODE_TYPES = Array.from(getAllNodeConfigs().keys());
 const DEFAULT_NODE_LABELS = Object.fromEntries(
   DEFAULT_NODE_TYPES.map(key => [
     key, 

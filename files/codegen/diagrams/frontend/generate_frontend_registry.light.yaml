@@ -1,0 +1,81 @@
+# Generate Frontend Node Registry
+# Creates the nodeRegistry.ts file that imports and registers all node configs
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+
+  - label: Load Manifest
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      file: files/codegen/manifests/all.json
+      operation: read
+
+  - label: Extract Node List
+    type: code_job
+    position: {x: 350, y: 200}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Parse manifest
+        manifest_data = default
+        if isinstance(manifest_data, str):
+            manifest_data = json.loads(manifest_data)
+        
+        # Get node types
+        node_types = manifest_data.get('nodes', [])
+        
+        print(f"Found {len(node_types)} node types: {node_types}")
+        
+        # Use node types as-is from manifest
+        filtered_nodes = node_types
+        
+        print(f"Nodes to register: {filtered_nodes}")
+        
+        result = {
+            'node_list': filtered_nodes
+        }
+
+  - label: Generate Registry
+    type: code_job
+    position: {x: 500, y: 200}
+    props:
+      language: python
+      filePath: files/codegen/code/frontend/generators/simple_registry.py
+      functionName: main
+
+  - label: Write Registry
+    type: db
+    position: {x: 650, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/web/src/features/diagram-editor/config/nodeRegistryGenerated.ts
+
+  - label: End
+    type: endpoint
+    position: {x: 800, y: 200}
+
+connections:
+  - from: Start
+    to: Load Manifest
+  
+  - from: Load Manifest
+    to: Extract Node List
+  
+  - from: Extract Node List
+    to: Generate Registry
+    label: node_list
+  
+  - from: Generate Registry
+    to: Write Registry
+    label: generated_code
+  
+  - from: Write Registry
+    to: End

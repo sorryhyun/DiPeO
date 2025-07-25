@@ -76,20 +76,12 @@
   ],
   "handles": {
     "inputs": ["default"],
-    "outputs": ["default", "results", "error"]
+    "outputs": ["default"]
   },
   "outputs": {
     "default": {
       "type": "any",
-      "description": "Default output from sub-diagram execution"
-    },
-    "results": {
-      "type": "object",
-      "description": "All outputs from sub-diagram nodes"
-    },
-    "error": {
-      "type": "string",
-      "description": "Error message if execution fails"
+      "description": "Output from sub-diagram execution (includes results and error if any)"
     }
   },
   "execution": {

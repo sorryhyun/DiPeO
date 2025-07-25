@@ -113,7 +113,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/web/src/__generated__/{node_naming.node_name}Node.ts
+      source_details: apps/web/src/__generated__/models/{node_naming.node_name}Node.ts
   
   - label: Write Node Config
     type: db
@@ -129,7 +129,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/web/src/__generated__/{node_naming.node_name}Fields.ts
+      source_details: apps/web/src/__generated__/fields/{node_naming.node_name}Fields.ts
 
 connections:
   # Parse input first to handle nested structures

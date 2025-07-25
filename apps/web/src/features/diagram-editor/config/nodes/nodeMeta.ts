@@ -8,7 +8,6 @@ import { EndpointNodeConfig } from './endpoint';
 import { CodeJobNodeConfig } from './code-job';
 import { ApiJobNodeConfig } from './api-job';
 import { DbNodeConfig } from './db';
-import { JobNodeConfig } from './job';
 import { PersonBatchJobNodeConfig } from './person-batch-job';
 import { UserResponseNodeConfig } from './user-response';
 import { NotionNodeConfig } from './notion';
@@ -29,7 +28,6 @@ export const NODE_ICONS: Record<NodeType, string> = {
   [NodeType.CODE_JOB]: CodeJobNodeConfig.icon,
   [NodeType.API_JOB]: ApiJobNodeConfig.icon,
   [NodeType.DB]: DbNodeConfig.icon,
-  [NodeType.JOB]: JobNodeConfig.icon,
   [NodeType.PERSON_BATCH_JOB]: PersonBatchJobNodeConfig.icon,
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig.icon,
   [NodeType.NOTION]: NotionNodeConfig.icon,
@@ -48,7 +46,6 @@ export const NODE_COLORS: Record<NodeType, string> = {
   [NodeType.CODE_JOB]: CodeJobNodeConfig.color,
   [NodeType.API_JOB]: ApiJobNodeConfig.color,
   [NodeType.DB]: DbNodeConfig.color,
-  [NodeType.JOB]: JobNodeConfig.color,
   [NodeType.PERSON_BATCH_JOB]: PersonBatchJobNodeConfig.color,
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig.color,
   [NodeType.NOTION]: NotionNodeConfig.color,
@@ -67,7 +64,6 @@ export const NODE_LABELS: Record<NodeType, string> = {
   [NodeType.CODE_JOB]: CodeJobNodeConfig.label,
   [NodeType.API_JOB]: ApiJobNodeConfig.label,
   [NodeType.DB]: DbNodeConfig.label,
-  [NodeType.JOB]: JobNodeConfig.label,
   [NodeType.PERSON_BATCH_JOB]: PersonBatchJobNodeConfig.label,
   [NodeType.USER_RESPONSE]: UserResponseNodeConfig.label,
   [NodeType.NOTION]: NotionNodeConfig.label,

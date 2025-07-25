@@ -20,7 +20,7 @@ class DiagramFileRepository:
         # Initialize the repository
         self.domain_service = domain_service
         self.base_dir = Path(base_dir) if base_dir else Path(BASE_DIR)
-        self.diagrams_dir = self.base_dir / "files" / "diagrams"
+        self.diagrams_dir = self.base_dir / "files"
 
     async def initialize(self) -> None:
         # Initialize the repository by ensuring directories exist

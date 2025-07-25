@@ -88,7 +88,6 @@ export const apolloClient = new ApolloClient({
         'StartNodeData',
         'PersonJobNodeData',
         'ConditionNodeData',
-        'JobNodeData',
         'EndpointNodeData',
         'DBNodeData',
         'UserResponseNodeData',

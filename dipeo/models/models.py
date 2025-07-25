@@ -36,6 +36,7 @@ class HandleLabel(str, Enum):
     condfalse = "condfalse"
     success = "success"
     error = "error"
+    results = "results"
 
 class DataType(str, Enum):
     any = "any"
