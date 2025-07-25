@@ -31,7 +31,7 @@ nodes:
     type: sub_diagram
     position: {x: 250, y: 200}
     props:
-      diagram_name: codegen/diagrams/parse_typescript_specs
+      diagram_name: codegen/diagrams/shared/parse_typescript_specs
       diagram_format: light
       
   # Convert JSON string back to dict for generators

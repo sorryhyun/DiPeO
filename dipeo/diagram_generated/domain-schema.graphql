@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-25T21:16:04.764966
+# Generated at: 2025-07-25T21:49:47.019394
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -168,14 +168,6 @@ enum EventType {
   EXECUTION_UPDATE
 }
 
-enum NotionOperation {
-  CREATE_PAGE
-  UPDATE_PAGE
-  GET_PAGE
-  DELETE_PAGE
-  QUERY_DATABASE
-}
-
 enum LLMService {
   OPENAI
   ANTHROPIC
@@ -189,6 +181,14 @@ enum APIServiceType {
   GOOGLE
   AZURE
   CUSTOM
+}
+
+enum NotionOperation {
+  CREATE_PAGE
+  UPDATE_PAGE
+  GET_PAGE
+  DELETE_PAGE
+  QUERY_DATABASE
 }
 
 # ============================================================================

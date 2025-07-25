@@ -71,7 +71,7 @@ const categorizeNodes = () => {
   const categorizedNodes = new Map<string, Array<{ type: string; label: string }>>();
   
   // Category display names and order
-  const categoryMeta = {
+  const categoryMeta: Record<string, { name: string; icon: string; order: number }> = {
     control: { name: 'Control Flow', icon: '🎯', order: 1 },
     ai: { name: 'AI & Language Models', icon: '🤖', order: 2 },
     compute: { name: 'Compute & Processing', icon: '⚡', order: 3 },

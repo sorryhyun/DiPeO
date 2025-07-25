@@ -2,27 +2,14 @@
 
 import re
 from typing import Dict, List, Any
+import sys
+import os
 
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-# Node type to interface mapping
-NODE_INTERFACE_MAP = {
-    'start': 'StartNodeData',
-    'person_job': 'PersonJobNodeData',
-    'person_batch_job': 'PersonBatchJobNodeData',
-    'condition': 'ConditionNodeData',
-    'endpoint': 'EndpointNodeData',
-    'db': 'DBNodeData',
-    'job': 'JobNodeData',
-    'code_job': 'CodeJobNodeData',
-    'api_job': 'ApiJobNodeData',
-    'user_response': 'UserResponseNodeData',
-    'notion': 'NotionNodeData',
-    'hook': 'HookNodeData',
-    'template_job': 'TemplateJobNodeData',
-    'json_schema_validator': 'JsonSchemaValidatorNodeData',
-    'typescript_ast': 'TypescriptAstNodeData',
-    'sub_diagram': 'SubDiagramNodeData'
-}
+from shared.node_mappings import get_loader
+
 
 # Type to Zod mapping
 TYPE_TO_ZOD = {
@@ -30,29 +17,24 @@ TYPE_TO_ZOD = {
     'number': 'z.number()',
     'boolean': 'z.boolean()',
     'any': 'z.any()',
-    'PersonID': 'PersonID',
-    'NodeID': 'NodeID',
-    'HandleID': 'HandleID',
-    'ArrowID': 'ArrowID',
-    'SupportedLanguage': 'SupportedLanguage',
-    'HttpMethod': 'HttpMethod',
-    'DBBlockSubType': 'DBBlockSubType',
-    'HookType': 'HookType',
-    'ForgettingMode': 'ForgettingMode',
-    'NotionOperation': 'NotionOperation',
-    'HookTriggerMode': 'HookTriggerMode',
-    'ContentType': 'ContentType',
-    'NodeType': 'NodeType'
+    # Branded types should be treated as strings in Zod
+    'PersonID': 'z.string()',
+    'NodeID': 'z.string()',
+    'HandleID': 'z.string()',
+    'ArrowID': 'z.string()',
+    # Enums need to be referenced with Schema suffix
+    'SupportedLanguage': 'z.nativeEnum(SupportedLanguage)',
+    'HttpMethod': 'z.nativeEnum(HttpMethod)',
+    'DBBlockSubType': 'z.nativeEnum(DBBlockSubType)',
+    'HookType': 'z.nativeEnum(HookType)',
+    'ForgettingMode': 'z.nativeEnum(ForgettingMode)',
+    'NotionOperation': 'z.nativeEnum(NotionOperation)',
+    'HookTriggerMode': 'z.nativeEnum(HookTriggerMode)',
+    'ContentType': 'z.nativeEnum(ContentType)',
+    'NodeType': 'z.nativeEnum(NodeType)',
+    'MemoryView': 'z.nativeEnum(MemoryView)',
+    'DiagramFormat': 'z.nativeEnum(DiagramFormat)'
 }
-
-# Branded types that shouldn't be generated as schemas
-BRANDED_TYPES = ['PersonID', 'NodeID', 'HandleID', 'ArrowID', 'NodeType',
-                 'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 
-                 'HookType', 'ForgettingMode', 'NotionOperation',
-                 'HookTriggerMode', 'ContentType']
-
-# Base fields to skip
-BASE_FIELDS = ['label', 'flipped']
 
 
 def build_enum_schemas(enums: List[Dict[str, Any]]) -> Dict[str, str]:
@@ -125,13 +107,16 @@ def generate_property_schema(prop: Dict[str, Any], enum_schemas: Dict[str, str])
 
 def generate_interface_schema(interface_data: Dict[str, Any], enum_schemas: Dict[str, str]) -> str:
     """Generate Zod schema for an interface"""
+    loader = get_loader()
+    base_fields = loader.get_base_fields()
+    
     properties = []
     
     for prop in interface_data.get('properties', []):
         name = prop.get('name', '')
         
         # Skip base fields
-        if name in BASE_FIELDS:
+        if name in base_fields:
             continue
         
         prop_schema = generate_property_schema(prop, enum_schemas)
@@ -145,13 +130,17 @@ def extract_zod_schemas(ast_data: dict) -> dict:
     interfaces = ast_data.get('interfaces', [])
     enums = ast_data.get('enums', [])
     
+    loader = get_loader()
+    node_interface_map = loader.get_node_interface_map()
+    branded_types = loader.get_branded_types()
+    
     # Build enum schemas
     enum_schemas = build_enum_schemas(enums)
     
     # Generate schemas for each node type
     schemas = []
     
-    for node_type, interface_name in NODE_INTERFACE_MAP.items():
+    for node_type, interface_name in node_interface_map.items():
         # Find the interface
         interface_data = None
         for iface in interfaces:
@@ -176,7 +165,7 @@ def extract_zod_schemas(ast_data: dict) -> dict:
     return {
         'schemas': schemas,
         'enum_schemas': enum_schemas,
-        'branded_types': BRANDED_TYPES
+        'branded_types': branded_types
     }
 
 

@@ -102,11 +102,26 @@ nodes:
       language: python
       code: |
         # Combine AST data from all TypeScript files
-        diagram_ast = inputs.get('diagram_ast', {})
-        execution_ast = inputs.get('execution_ast', {})
-        conversation_ast = inputs.get('conversation_ast', {})
-        node_specs_ast = inputs.get('node_specs_ast', {})
-        utils_ast = inputs.get('utils_ast', {})
+        import json
+        
+        # Helper function to parse AST data
+        def parse_ast_data(data):
+            if isinstance(data, str):
+                try:
+                    return json.loads(data)
+                except:
+                    return {}
+            elif isinstance(data, dict):
+                return data
+            else:
+                return {}
+        
+        # Parse all AST inputs
+        diagram_ast = parse_ast_data(inputs.get('diagram_ast', {}))
+        execution_ast = parse_ast_data(inputs.get('execution_ast', {}))
+        conversation_ast = parse_ast_data(inputs.get('conversation_ast', {}))
+        node_specs_ast = parse_ast_data(inputs.get('node_specs_ast', {}))
+        utils_ast = parse_ast_data(inputs.get('utils_ast', {}))
         
         # Merge all definitions
         all_interfaces = []
@@ -115,10 +130,11 @@ nodes:
         all_consts = []
         
         for ast in [diagram_ast, execution_ast, conversation_ast, node_specs_ast, utils_ast]:
-            all_interfaces.extend(ast.get('interfaces', []))
-            all_types.extend(ast.get('types', []))
-            all_enums.extend(ast.get('enums', []))
-            all_consts.extend(ast.get('consts', []))
+            if isinstance(ast, dict):
+                all_interfaces.extend(ast.get('interfaces', []))
+                all_types.extend(ast.get('types', []))
+                all_enums.extend(ast.get('enums', []))
+                all_consts.extend(ast.get('consts', []))
         
         result = {
             'interfaces': all_interfaces,
@@ -159,7 +175,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/models/models.py
+      source_details: dipeo/diagram_generated/domain_models.py
 
   # Generate success summary
   - label: Generate Summary
@@ -174,7 +190,7 @@ nodes:
         print(f"Generated {generation_result.get('models_count', 0)} models")
         print(f"Generated {generation_result.get('enums_count', 0)} enums")
         print(f"Generated {generation_result.get('type_aliases_count', 0)} type aliases")
-        print(f"\nOutput written to: dipeo/models/models.py")
+        print(f"\nOutput written to: dipeo/diagram_generated/domain_models.py")
         
         result = {
             'status': 'success',

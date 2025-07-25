@@ -1,5 +1,5 @@
-# Complete Code Generation
-# Runs both frontend and backend generation in sequence
+# Unified Code Generation Pipeline
+# Generates all code from TypeScript sources - both domain models and node UI
 
 version: light
 
@@ -7,33 +7,98 @@ nodes:
   - label: Start
     type: start
     position: {x: 50, y: 300}
-
-  - label: Generate Backend
-    type: sub_diagram
-    position: {x: 300, y: 300}
     props:
-      diagram_name: codegen/diagrams/backend/generate_backend_all
+      custom_data:
+        message: Starting unified code generation from TypeScript sources
+
+  # Phase 1: Domain Model Generation (replacement for legacy make codegen)
+  - label: Generate All Domain Models
+    type: sub_diagram
+    position: {x: 250, y: 350}
+    props:
+      diagram_name: codegen/diagrams/models/generate_all_models
       diagram_format: light
 
-  - label: Generate Frontend
+  # Phase 2: Node UI Generation from TypeScript specifications
+  - label: Generate Backend Node Files
     type: sub_diagram
-    position: {x: 550, y: 300}
+    position: {x: 550, y: 250}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_frontend_batch
+      diagram_name: codegen/diagrams/backend/generate_backend_batch_ts
       diagram_format: light
+
+  - label: Generate Frontend Node Files
+    type: sub_diagram
+    position: {x: 550, y: 450}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_frontend_batch_ts
+      diagram_format: light
+
+  # Phase 3: Generate Registries
+  - label: Generate Node Registry
+    type: sub_diagram
+    position: {x: 850, y: 350}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_frontend_registry
+      diagram_format: light
+
+  # Summary
+  - label: Summarize Results
+    type: code_job
+    position: {x: 1050, y: 350}
+    props:
+      language: python
+      code: |
+        print("\n=== Unified Code Generation Complete ===")
+        print("\nPhase 1 - Domain Models:")
+        print("✓ All domain models generated from TypeScript sources")
+        
+        print("\nPhase 2 - Node UI:")
+        print("✓ Backend node files generated from TypeScript specs")
+        print("✓ Frontend node files generated from TypeScript specs")
+        
+        print("\nPhase 3 - Registries:")
+        print("✓ Node registry updated")
+        
+        result = {
+            'status': 'success',
+            'message': 'All code generation completed successfully'
+        }
 
   - label: End
     type: endpoint
-    position: {x: 800, y: 300}
+    position: {x: 1250, y: 350}
     props:
       save_to_file: false
 
 connections:
+  # Phase 1 - Domain model generation
   - from: Start
-    to: Generate Backend
+    to: Generate All Domain Models
   
-  - from: Generate Backend
-    to: Generate Frontend
+  # Wait for domain models before generating node UI
+  - from: Generate All Domain Models
+    to: Generate Backend Node Files
   
-  - from: Generate Frontend
+  # Frontend can start after domain models are ready
+  - from: Generate All Domain Models
+    to: Generate Frontend Node Files
+  
+  # Registries need all node files
+  - from: Generate Backend Node Files
+    to: Generate Node Registry
+  - from: Generate Frontend Node Files
+    to: Generate Node Registry
+  
+  # Summary waits for everything
+  - from: Generate All Domain Models
+    to: Summarize Results
+  - from: Generate Backend Node Files
+    to: Summarize Results
+  - from: Generate Frontend Node Files
+    to: Summarize Results
+  - from: Generate Node Registry
+    to: Summarize Results
+  
+  - from: Summarize Results
     to: End

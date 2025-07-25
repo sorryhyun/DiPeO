@@ -38,12 +38,12 @@ Generates from `dipeo/models/src/*.ts`:
 #### Node Specification Generation
 - TypeScript specification types defined (`dipeo/models/src/node-specifications.ts`)
 - All 15 node types migrated to TypeScript specifications
-- TypeScript parsing diagram created (`parse_typescript_specs.light.yaml`)
+- TypeScript parsing diagram created (`shared/parse_typescript_specs.light.yaml`)
 - Frontend generation updated to use TypeScript (`generate_frontend_single_ts.light.yaml`)
 - Frontend batch generation created for TypeScript (`generate_frontend_batch_ts.light.yaml`)
 - Backend generation updated to use TypeScript (`generate_backend_single_ts.light.yaml`)
 - Backend batch generation created for TypeScript (`generate_backend_batch_ts.light.yaml`)
-- Unified generation pipeline created (`generate_all_unified.light.yaml`)
+- Unified generation pipeline created and replaced legacy `generate_all.light.yaml`
 - Fixed TypeScript parser to handle enum references and complex object literals
 - Fixed field config template to properly generate nested fields with uiConfig
 - Added support for 'group' field type in TypeScript definitions
@@ -75,7 +75,7 @@ Generates from `dipeo/models/src/*.ts`:
 #### Integration
 - Update Makefile to use diagram-based generation instead of legacy scripts
 - Create master diagram for domain model generation (`models/generate_all_models.light.yaml`)
-- Update `generate_all_unified.light.yaml` to reference real domain model diagrams
+- ✅ Updated `generate_all.light.yaml` to use existing `generate_all_models` sub-diagram
 - Deprecate and remove legacy TypeScript scripts
 - Update documentation
 - Remove old JSON specification files from `files/codegen/specifications/nodes/`
@@ -113,8 +113,8 @@ TypeScript Sources → DiPeO Diagrams → Generated Code
 - `frontend/generate_frontend_single.light.yaml` - Single frontend component
 - `frontend/generate_frontend_batch.light.yaml` - Batch frontend generation
 - `backend/generate_backend_single.light.yaml` - Single backend model
-- `backend/generate_backend_all.light.yaml` - Batch backend generation
-- `master/generate_all.light.yaml` - Complete node generation pipeline
+- `backend/generate_backend_batch_ts.light.yaml` - Batch backend generation from TypeScript
+- `generate_all.light.yaml` - Complete unified generation pipeline (both domain models and node specs)
 
 #### Domain Model Generation (Being Created)
 - `models/generate_python_models.light.yaml` - Python domain models
@@ -124,7 +124,7 @@ TypeScript Sources → DiPeO Diagrams → Generated Code
 - `models/generate_graphql_schema.light.yaml` - GraphQL schema (TODO)
 
 #### Master Orchestrator
-- `generate_all_unified.light.yaml` - Runs both node spec and domain model generation
+- `generate_all.light.yaml` - Runs both node spec and domain model generation (unified pipeline)
 
 ## Usage
 
@@ -141,8 +141,8 @@ make codegen-models
 
 #### Node Specification Generation
 ```bash
-# Generate all nodes (frontend + backend)
-dipeo run codegen/diagrams/master/generate_all --light --debug --no-browser --timeout=30
+# Generate all code (domain models + node specs)
+dipeo run codegen/diagrams/generate_all --light --debug --no-browser --timeout=30
 
 # Generate single node frontend from TypeScript
 dipeo run codegen/diagrams/frontend/generate_frontend_single_ts --light --debug --no-browser \
@@ -151,8 +151,8 @@ dipeo run codegen/diagrams/frontend/generate_frontend_single_ts --light --debug 
 # Generate all frontend nodes from TypeScript
 dipeo run codegen/diagrams/frontend/generate_frontend_batch_ts --light --debug --no-browser --timeout=60
 
-# Generate all backend nodes
-dipeo run codegen/diagrams/backend/generate_backend_all --light --debug --no-browser
+# Generate all backend nodes from TypeScript
+dipeo run codegen/diagrams/backend/generate_backend_batch_ts --light --debug --no-browser --timeout=60
 ```
 
 #### Domain Model Generation (In Development)

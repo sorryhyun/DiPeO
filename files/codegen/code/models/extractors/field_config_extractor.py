@@ -1,48 +1,6 @@
 """Extract field configurations from TypeScript AST data."""
 
 
-# Node type to interface mapping
-NODE_INTERFACE_MAP = {
-    'start': 'StartNodeData',
-    'person_job': 'PersonJobNodeData',
-    'person_batch_job': 'PersonBatchJobNodeData',
-    'condition': 'ConditionNodeData',
-    'endpoint': 'EndpointNodeData',
-    'db': 'DBNodeData',
-    'job': 'JobNodeData',
-    'code_job': 'CodeJobNodeData',
-    'api_job': 'ApiJobNodeData',
-    'user_response': 'UserResponseNodeData',
-    'notion': 'NotionNodeData',
-    'hook': 'HookNodeData',
-    'template_job': 'TemplateJobNodeData',
-    'json_schema_validator': 'JsonSchemaValidatorNodeData',
-    'typescript_ast': 'TypescriptAstNodeData',
-    'sub_diagram': 'SubDiagramNodeData'
-}
-
-# Type to field type mapping - matches FIELD_TYPES from panel.ts
-TYPE_TO_FIELD = {
-    'string': 'text',
-    'number': 'number',
-    'boolean': 'checkbox',
-    'PersonID': 'personSelect',
-    'SupportedLanguage': 'select',
-    'HttpMethod': 'select',
-    'DBBlockSubType': 'select',
-    'HookType': 'select',
-    'ForgettingMode': 'select',
-    'NotionOperation': 'select',
-    'HookTriggerMode': 'select',
-    'ContentType': 'select',
-    'MemoryView': 'select',
-    'DiagramFormat': 'select'
-}
-
-# Base fields to skip
-BASE_FIELDS = ['label', 'flipped']
-
-
 def generate_label(name: str) -> str:
     """Convert snake_case to Title Case"""
     return ' '.join(word.capitalize() for word in name.split('_'))
@@ -76,9 +34,13 @@ def get_field_type(name: str, type_text: str) -> str:
     if 'PersonID' in clean_type:
         return 'personSelect'
     
+    # Get type to field mapping from loader
+    loader = get_loader()
+    type_to_field = loader.get_type_to_field_mapping()
+    
     # Check mapping
-    if clean_type in TYPE_TO_FIELD:
-        return TYPE_TO_FIELD[clean_type]
+    if clean_type in type_to_field:
+        return type_to_field[clean_type]
     
     # Handle Record types - use code editor for better editing
     if 'Record<' in type_text:
@@ -152,13 +114,17 @@ def extract_field_configs(ast_data: dict) -> dict:
     interfaces = ast_data.get('interfaces', [])
     enums = ast_data.get('enums', [])
     
+    loader = get_loader()
+    node_interface_map = loader.get_node_interface_map()
+    base_fields = loader.get_base_fields()
+    
     # Build enum value map
     enum_values = extract_enum_values(enums)
     
     # Generate field configs for each node type
     node_configs = []
     
-    for node_type, interface_name in NODE_INTERFACE_MAP.items():
+    for node_type, interface_name in node_interface_map.items():
         # Find the interface
         interface_data = None
         for iface in interfaces:
@@ -176,7 +142,7 @@ def extract_field_configs(ast_data: dict) -> dict:
             name = prop.get('name', '')
             
             # Skip base fields
-            if name in BASE_FIELDS:
+            if name in base_fields:
                 continue
             
             type_text = prop.get('type', 'string')

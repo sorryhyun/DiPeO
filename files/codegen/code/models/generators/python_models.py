@@ -176,9 +176,12 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
                 'description': prop.get('description', '')
             })
             
+        extends_list = interface.get('extends', [])
+        extends_value = extends_list[0] if extends_list else None
+        
         models.append({
             'name': interface['name'],
-            'extends': interface.get('extends', [None])[0],
+            'extends': extends_value,
             'description': interface.get('description', ''),
             'fields': fields
         })
@@ -224,32 +227,51 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
 
 def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Main entry point for code generation."""
-    ast_data = inputs.get('ast_data', {})
-    template_content = inputs.get('template_content', '')
-    
-    if not ast_data:
-        raise ValueError("No AST data provided")
-    
-    if not template_content:
-        raise ValueError("No template content provided")
-    
-    # Process AST data
-    template_data = process_ast_data(ast_data)
-    
-    # Set up Jinja2 environment
-    env = Environment(loader=DictLoader({'template': template_content}))
-    
-    # Add custom filters
-    env.filters['quote'] = lambda s: f'"{s}"'
-    
-    # Render template
-    template = env.get_template('template')
-    generated_code = template.render(**template_data)
-    
-    return {
-        'generated_code': generated_code,
-        'status': 'success',
-        'models_count': len(template_data['models']),
-        'enums_count': len(template_data['enums']),
-        'type_aliases_count': len(template_data['type_aliases'])
-    }
+    try:
+        # Debug: Print input structure
+        print(f"[Python Models Generator] Input keys: {list(inputs.keys())}")
+        print(f"[Python Models Generator] Input types: {[(k, type(v).__name__) for k, v in inputs.items()]}")
+        
+        ast_data = inputs.get('ast_data', {})
+        template_content = inputs.get('template_content', '')
+        
+        # Debug: Print what we got
+        print(f"[Python Models Generator] ast_data type: {type(ast_data).__name__}")
+        if isinstance(ast_data, dict):
+            print(f"[Python Models Generator] ast_data keys: {list(ast_data.keys())}")
+        
+        if not ast_data:
+            raise ValueError("No AST data provided")
+        
+        if not template_content:
+            raise ValueError("No template content provided")
+        
+        # Process AST data
+        template_data = process_ast_data(ast_data)
+        
+        # Set up Jinja2 environment
+        env = Environment(loader=DictLoader({'template': template_content}))
+        
+        # Add custom filters
+        env.filters['quote'] = lambda s: f'"{s}"'
+        
+        # Render template
+        template = env.get_template('template')
+        generated_code = template.render(**template_data)
+        
+        return {
+            'generated_code': generated_code,
+            'status': 'success',
+            'models_count': len(template_data['models']),
+            'enums_count': len(template_data['enums']),
+            'type_aliases_count': len(template_data['type_aliases'])
+        }
+    except Exception as e:
+        import traceback
+        error_msg = f"Error in python_models generator: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        return {
+            'generated_code': error_msg,
+            'status': 'error',
+            'error': str(e)
+        }

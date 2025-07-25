@@ -12,6 +12,33 @@ nodes:
       custom_data:
         message: Starting field configurations generation
 
+  # Load codegen mappings TypeScript file
+  - label: Load Codegen Mappings
+    type: db
+    position: {x: 200, y: 150}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/codegen-mappings.ts
+
+  # Parse codegen mappings
+  - label: Parse Mappings AST
+    type: typescript_ast
+    position: {x: 350, y: 150}
+    props:
+      extractPatterns: ["const", "export"]
+      includeJSDoc: false
+      parseMode: module
+
+  # Extract mappings
+  - label: Extract Mappings
+    type: code_job
+    position: {x: 500, y: 150}
+    props:
+      language: python
+      filePath: files/codegen/code/shared/extract_mappings.py
+      functionName: main
+
   # Load diagram.ts file
   - label: Load Diagram TS
     type: db
@@ -144,6 +171,16 @@ nodes:
       save_to_file: false
 
 connections:
+  # Load and parse mappings
+  - from: Start
+    to: Load Codegen Mappings
+  - from: Load Codegen Mappings
+    to: Parse Mappings AST
+    label: source
+  - from: Parse Mappings AST
+    to: Extract Mappings
+    label: default
+  
   # Load and parse TypeScript
   - from: Start
     to: Load Diagram TS
@@ -151,10 +188,13 @@ connections:
     to: Parse Diagram AST
     label: source
   
-  # Extract field configs
+  # Extract field configs with mappings
   - from: Parse Diagram AST
     to: Extract Field Configs
     label: default
+  - from: Extract Mappings
+    to: Extract Field Configs
+    label: mappings
   
   # Prepare template data
   - from: Extract Field Configs

@@ -36,58 +36,8 @@ nodes:
     position: {x: 600, y: 200}
     props:
       language: python
-      code: |
-        import re
-        import json
-        
-        ast_data = inputs.get('default', {})
-        constants = ast_data.get('constants', [])
-        
-        # Debug print to see structure
-        print(f"Found {len(constants)} constants in AST")
-        for const in constants[:3]:  # Show first 3 for debugging
-            print(f"Constant: {const.get('name')} - Keys: {list(const.keys())}")
-        
-        # Find NODE_TYPE_MAP constant
-        node_type_map = {}
-        for const in constants:
-            if const.get('name') == 'NODE_TYPE_MAP':
-                print(f"Found NODE_TYPE_MAP constant")
-                # The initializer should contain the object literal
-                initializer = const.get('value', const.get('initializer', ''))
-                print(f"Initializer type: {type(initializer)}")
-                print(f"Initializer preview: {str(initializer)[:200]}...")
-                
-                # Extract key-value pairs using regex
-                pattern = r"'([^']+)':\s*NodeType\.([A-Z_]+)"
-                matches = re.findall(pattern, str(initializer))
-                for key, value in matches:
-                    node_type_map[key] = value
-                break
-        
-        # If regex didn't work, try parsing the raw TypeScript
-        if not node_type_map:
-            print("Trying to parse from raw TypeScript...")
-            # Get the raw TypeScript content
-            ts_content = inputs.get('source', '')
-            if ts_content:
-                # Find NODE_TYPE_MAP definition
-                map_match = re.search(r'export\s+const\s+NODE_TYPE_MAP[^{]*\{([^}]+)\}', ts_content, re.DOTALL)
-                if map_match:
-                    map_content = map_match.group(1)
-                    pattern = r"'([^']+)':\s*NodeType\.([A-Z_]+)"
-                    matches = re.findall(pattern, map_content)
-                    for key, value in matches:
-                        node_type_map[key] = value
-        
-        print(f"\nExtracted {len(node_type_map)} node type mappings:")
-        for k, v in sorted(node_type_map.items()):
-            print(f"  {k} -> {v}")
-        
-        result = {
-            'node_type_map': node_type_map,
-            'entries_count': len(node_type_map)
-        }
+      filePath: files/codegen/code/models/extractors/node_type_map_extractor.py
+      functionName: main
 
   # Load conversions template
   - label: Load Conversions Template
@@ -104,28 +54,8 @@ nodes:
     position: {x: 800, y: 275}
     props:
       language: python
-      code: |
-        from datetime import datetime
-        from jinja2 import Template, StrictUndefined
-        
-        # Get template content
-        template_content = inputs.get('template_content', '')
-        
-        # Get node type map from extractor
-        data = inputs.get('data', {})
-        node_type_map = data.get('node_type_map', {})
-        
-        # Prepare template variables
-        template_vars = {
-            'node_type_map': node_type_map,
-            'now': datetime.now().isoformat()
-        }
-        
-        # Render template
-        jinja_template = Template(template_content, undefined=StrictUndefined)
-        rendered = jinja_template.render(**template_vars)
-        
-        result = {'generated_code': rendered}
+      filePath: files/codegen/code/models/generators/conversions_generator.py
+      functionName: main
 
   # Write conversions.py
   - label: Write Conversions File
@@ -142,21 +72,8 @@ nodes:
     position: {x: 1400, y: 275}
     props:
       language: python
-      code: |
-        from datetime import datetime
-        
-        node_type_map = inputs.get('node_type_map', {})
-        
-        print(f"\n=== Domain Model Conversions Generation Complete ===")
-        print(f"Generated mappings for {len(node_type_map)} node types")
-        print(f"Output written to: dipeo/diagram_generated/conversions.py")
-        print(f"Timestamp: {datetime.now().isoformat()}")
-        
-        result = {
-            'status': 'success',
-            'message': 'Domain model conversions generated successfully',
-            'node_types_count': len(node_type_map)
-        }
+      filePath: files/codegen/code/models/generators/summary_generator.py
+      functionName: main
 
   - label: End
     type: endpoint
