@@ -42,10 +42,14 @@ Generates from `dipeo/models/src/*.ts`:
 - Frontend generation updated to use TypeScript (`generate_frontend_single_ts.light.yaml`)
 - Frontend batch generation created for TypeScript (`generate_frontend_batch_ts.light.yaml`)
 - Backend generation updated to use TypeScript (`generate_backend_single_ts.light.yaml`)
+- Backend batch generation created for TypeScript (`generate_backend_batch_ts.light.yaml`)
 - Unified generation pipeline created (`generate_all_unified.light.yaml`)
 - Fixed TypeScript parser to handle enum references and complex object literals
 - Fixed field config template to properly generate nested fields with uiConfig
 - Added support for 'group' field type in TypeScript definitions
+- Fixed manifest node naming issues (`example_hook` → `hook`, `typescript_ast_parser` → `typescript_ast`)
+- Removed old JSON specification files from `files/codegen/specifications/nodes/`
+- Resolved string vs dict error in field_config.py (was caused by incorrect node names in manifest)
 
 #### Domain Model Generation
 - Python domain model generation diagram (`generate_python_models.light.yaml`)
@@ -54,14 +58,11 @@ Generates from `dipeo/models/src/*.ts`:
 
 ### 🚧 In Progress
 - Testing and debugging the complete generation pipeline
-- Fixing remaining edge cases in code generation
+- Updating master generation diagram to use TypeScript batch generation
 
 ### 📋 TODO
 
 #### Immediate Fixes
-- Fix string vs dict error in field_config.py when spec_data is passed incorrectly
-- Investigate why some nodes are getting empty or corrupted output
-- Create backend batch generation with TypeScript specs (`generate_backend_batch_ts.light.yaml`)
 - Update master generation diagram to use TypeScript batch generation
 
 #### Domain Model Generation Diagrams
@@ -78,6 +79,20 @@ Generates from `dipeo/models/src/*.ts`:
 - Deprecate and remove legacy TypeScript scripts
 - Update documentation
 - Remove old JSON specification files from `files/codegen/specifications/nodes/`
+
+## Issue Resolution Summary
+
+### String vs Dict Error in field_config.py
+**Root Cause**: The manifest file (`all.json`) contained incorrect node names that didn't match the TypeScript specification filenames:
+- `example_hook` should have been `hook` (matching `hook.spec.ts`)
+- `typescript_ast_parser` should have been `typescript_ast` (matching `typescript-ast.spec.ts`)
+
+**Solution**: Updated the manifest to use correct node names, ensuring the file loader can find the corresponding TypeScript specification files.
+
+### Empty/Corrupted Node Generation Output
+**Root Cause**: When the TypeScript specification file couldn't be found (due to naming mismatch), the generation would fail but still create output files with error messages or template placeholders like `{node_naming.node_name}Fields.ts`.
+
+**Solution**: Fixed node names in manifest and cleaned up corrupted files. All nodes now generate correctly.
 
 ## New Architecture
 

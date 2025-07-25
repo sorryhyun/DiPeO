@@ -9,23 +9,14 @@ export const userResponseConfig: UnifiedNodeConfig = {
   nodeType: 'user_response',
   category: 'interaction',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: userResponseFields,
 };

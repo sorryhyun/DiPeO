@@ -5,7 +5,7 @@
     "condition",
     "db",
     "endpoint",
-    "example_hook",
+    "hook",
     "json_schema_validator",
     "notion",
     "person_batch_job",
@@ -13,7 +13,7 @@
     "start",
     "sub_diagram",
     "template_job",
-    "typescript_ast_parser",
+    "typescript_ast",
     "user_response"
   ],
   "generators": {

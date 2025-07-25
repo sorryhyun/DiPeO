@@ -1,18 +1,18 @@
 // Auto-generated TypeScript model for {{ nodeType }} node
 import { z } from 'zod';
-{% if fields | selectattr("type", "equalto", "select") | list %}
+{%- if fields | selectattr("type", "equalto", "select") | list %}
 import { createOptionsSchema } from '@/core/utils/schema';
-{% endif %}
+{%- endif %}
 
 export interface {{ nodeType | pascal_case }}NodeData {
-{% for field in fields %}
+{%- for field in fields %}
   {{ field.name }}{% if not field.required %}?{% endif %}: {{ field | typescript_type }};
-{% endfor %}
+{%- endfor %}
 }
 
 // Zod schema for validation
 export const {{ nodeType | pascal_case }}NodeDataSchema = z.object({
-{% for field in fields %}
+{%- for field in fields %}
   {{ field.name }}: {{ field | zod_schema }},
-{% endfor %}
+{%- endfor %}
 });

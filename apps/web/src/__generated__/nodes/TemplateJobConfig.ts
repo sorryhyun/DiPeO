@@ -9,23 +9,14 @@ export const templateJobConfig: UnifiedNodeConfig = {
   nodeType: 'template_job',
   category: 'compute',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: templateJobFields,
 };

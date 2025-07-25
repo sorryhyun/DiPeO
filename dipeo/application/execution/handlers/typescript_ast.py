@@ -80,8 +80,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         try:
             # Get source code from node config or inputs
             # Also check in 'default' key as DiPeO may pass data there
-            print(f"[TypeScript AST] Received inputs keys: {list(inputs.keys())}")
-            
+
             source = node.source
             if not source:
                 source = inputs.get('source', '')
@@ -89,8 +88,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 source = inputs['default'].get('source', '')
             
             # Debug: print what we found
-            print(f"[TypeScript AST] Source length: {len(source) if source else 0}")
-            
             if not source:
                 return ErrorOutput(
                     value="No TypeScript source code provided",
@@ -107,7 +104,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 )
             
             # Parse the TypeScript code using the injected parser
-            print(f"[TypeScript AST] About to call parser with source length: {len(source)}")
             try:
                 result = await self._parser.parse(
                     source=source,
@@ -121,15 +117,11 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 print(f"[TypeScript AST] Parser error: {str(parser_error)}")
                 raise
             
-            print(f"[TypeScript AST] Parser returned successfully")
-            
+
             # Extract AST data from the result
             ast_data = result.get('ast', {})
             metadata = result.get('metadata', {})
-            
-            # Debug logging
-            print(f"[TypeScript AST] Parsed result keys: {list(result.keys())}")
-            print(f"[TypeScript AST] AST data keys: {list(ast_data.keys())}")
+
 
             output_data = {
                 'ast': metadata.get('astSummary', {}),
@@ -140,9 +132,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 'functions': ast_data.get('functions', []),
                 'constants': ast_data.get('constants', [])
             }
-            
-            print(f"[TypeScript AST] Returning output with keys: {list(output_data.keys())}")
-            
+
             # Return successful result with all extracted data
             return DataOutput(
                 value=output_data,

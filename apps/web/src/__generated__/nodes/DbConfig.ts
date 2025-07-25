@@ -9,23 +9,14 @@ export const dbConfig: UnifiedNodeConfig = {
   nodeType: 'db',
   category: 'data',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: dbFields,
 };

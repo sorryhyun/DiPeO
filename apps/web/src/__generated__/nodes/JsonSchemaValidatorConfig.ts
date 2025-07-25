@@ -9,23 +9,14 @@ export const jsonSchemaValidatorConfig: UnifiedNodeConfig = {
   nodeType: 'json_schema_validator',
   category: 'validation',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: jsonSchemaValidatorFields,
 };

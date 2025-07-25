@@ -2,100 +2,46 @@
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const typescriptAstFields: UnifiedFieldDefinition[] = [
-
   {
     name: 'extractPatterns',
     type: 'code',
     label: 'Extract Patterns',
     required: false,
-    
     defaultValue: ["interface", "type", "enum"],
-    
-    
-    
     description: 'Patterns to extract from the AST',
-    
-    
-    
-    
-    
     validate: (value: unknown) => {
-      
-      
-      
       return { isValid: true };
     },
-    
   },
-
   {
     name: 'includeJSDoc',
     type: 'checkbox',
     label: 'Include Js Doc',
     required: false,
-    
     defaultValue: false,
-    
-    
-    
     description: 'Include JSDoc comments in the extracted data',
-    
-    
-    
-    
-    
   },
-
   {
     name: 'parseMode',
     type: 'select',
     label: 'Parse Mode',
     required: false,
-    
     defaultValue: "module",
-    
-    
-    
     description: 'TypeScript parsing mode',
-    
-    
     options: [
-      
       { value: 'module', label: 'Module' },
-      
       { value: 'script', label: 'Script' },
-      
     ],
-    
-    
-    
-    
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
   },
-
   {
     name: 'source',
     type: 'code',
     label: 'Source',
     required: true,
-    
-    
-    
     description: 'TypeScript source code to parse',
-    
-    
-    
-      
-      
-      
-      
-      
-    language: 'typescript',
-      
-      
-      
-    
-    
-    
+    language: 'SupportedLanguage.TYPESCRIPT',
   },
-
 ];
