@@ -9,22 +9,58 @@ from typing import Dict, Any, Optional, List, Union, Literal
 from dipeo.models.models import (
     NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
-    NotionOperation, HookType, PersonLLMConfig, LLMService, ExtractPattern
+    NotionOperation, HookType, PersonLLMConfig, LLMService
 )
-from dipeo.core.static.generated_nodes import BaseExecutableNode
 
 
 @dataclass(frozen=True)
-class {{ nodeType | pascal_case }}Node(BaseExecutableNode):
+class {{ nodeType | pascal_case }}Node:
     """{{ description }}"""
-    type: NodeType = field(default=NodeType.{{ nodeType | replace('-', '_') }}, init=False)
+    # Required base fields first
+    id: NodeID
+    position: Vec2
+    
+    # Required node-specific fields
 {%- for field in fields %}
-    {{ field.name }}: {{ field | python_type }}{% if field.required == false %} = {{ field | python_default }}{% endif %}
+{%- if field.required %}
+    {{ field.name }}: {{ field | python_type_with_context(nodeType) }}
+{%- endif %}
+{%- endfor %}
+    
+    # Optional base fields
+    label: str = ""
+    flipped: bool = False
+    metadata: Optional[Dict[str, Any]] = None
+    
+    # Node type (fixed for this node class)
+    type: NodeType = field(default=NodeType.{{ nodeType | replace('-', '_') }}, init=False)
+    
+    # Optional node-specific fields
+{%- for field in fields %}
+{%- if not field.required %}
+{%- if field.type in ['object', 'dict', 'json'] %}
+    {{ field.name }}: {{ field | python_type_with_context(nodeType) }} = field(default_factory=dict)
+{%- elif field.type in ['array', 'list'] %}
+    {{ field.name }}: {{ field | python_type_with_context(nodeType) }} = field(default_factory=list)
+{%- else %}
+    {{ field.name }}: {{ field | python_type_with_context(nodeType) }} = {{ field | python_default }}
+{%- endif %}
+{%- endif %}
 {%- endfor %}
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
-        data = super().to_dict()
+        data = {
+            "id": self.id,
+            "type": self.type.value,
+            "position": {"x": self.position.x, "y": self.position.y},
+            "label": self.label,
+            "flipped": self.flipped
+        }
+        if self.metadata:
+            data["metadata"] = self.metadata
+            
+        # Add node-specific fields
 {%- for field in fields %}
 {%- if field.name == 'person' %}
         data["person"] = self.person

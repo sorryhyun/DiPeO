@@ -1,0 +1,48 @@
+# Load Single Node Specification
+# Helper diagram to load a single node spec for batch processing
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+
+  - label: Parse Input
+    type: code_job
+    position: {x: 200, y: 100}
+    props:
+      language: python
+      code: |
+        # Handle input from batch processing
+        # Input comes from batch as 'default' dict containing the item
+        if isinstance(default, dict) and 'node_type' in default:
+            node_type = default['node_type']
+        else:
+            raise ValueError(f"node_type is required, got: {default}")
+        
+        result = {'node_type': node_type}
+
+  - label: Load Spec
+    type: db
+    position: {x: 400, y: 100}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/specifications/nodes/{default.node_type}.json
+
+  - label: End
+    type: endpoint
+    position: {x: 600, y: 100}
+    props:
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Parse Input
+
+  - from: Parse Input
+    to: Load Spec
+
+  - from: Load Spec
+    to: End

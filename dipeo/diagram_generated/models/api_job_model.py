@@ -4,12 +4,13 @@ from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
 
 
+from dipeo.models.models import HttpMethod
 
 
 class ApiJobNodeData(BaseModel):
     """Data model for API Job node."""
     url: str = Field(description="Url configuration")
-    method: Literal["GET", "POST", "PUT", "DELETE", "PATCH"] = Field(description="Method configuration")
+    method: HttpMethod = Field(description="Method configuration")
     headers: Optional[Dict[str, Any]] = Field(description="Headers configuration")
     params: Optional[Dict[str, Any]] = Field(description="Params configuration")
     body: Optional[Dict[str, Any]] = Field(description="Body configuration")

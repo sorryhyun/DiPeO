@@ -1,0 +1,54 @@
+# Generate Backend Enums
+# Generates enum definitions for DiPeO
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+
+  - label: Load Enums Template
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/backend/enums.j2
+
+  - label: Generate Enums
+    type: code_job
+    position: {x: 400, y: 200}
+    props:
+      language: python
+      filePath: files/codegen/code/backend/generators/enums.py
+      functionName: main
+
+  - label: Write Enums
+    type: db
+    position: {x: 600, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/diagram_generated/enums.py
+
+  - label: End
+    type: endpoint
+    position: {x: 800, y: 200}
+    props:
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Load Enums Template
+
+  - from: Load Enums Template
+    to: Generate Enums
+    label: template_content
+
+  - from: Generate Enums
+    to: Write Enums
+    label: generated_code
+
+  - from: Write Enums
+    to: End

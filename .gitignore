@@ -48,7 +48,6 @@ dipeo/models/__generated__
 packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
 # Generated conversions now in dipeo/domain/conversions.py (tracked)
 apps/cli/src/dipeo_cli/__generated__
-apps/web/src/__generated__
 
 # Node.js
 node_modules/

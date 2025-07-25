@@ -1,213 +1,177 @@
-# Backend Batch Generation Diagram
-# Generates all backend artifacts for multiple node types using sub_diagram approach
+# Backend Batch Generation with Batch Property
+# Uses the batch property to generate backend files for multiple node types
+# Also generates conversion functions for TypeScript <-> Python transformations
 
 version: light
 
 nodes:
   - label: Start
     type: start
-    position: {x: 50, y: 50}
+    position: {x: 50, y: 200}
     props:
       custom_data:
-        message: Starting batch generation for backend files
+        message: Starting batch generation using batch property for backend files
 
-  # Code nodes to provide inputs for each sub_diagram
-  - label: PersonJob Input
+  - label: Load Manifest
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      file: files/codegen/manifests/all.json
+      operation: read
+
+  - label: Prepare Node List
     type: code_job
-    position: {x: 150, y: 100}
+    position: {x: 350, y: 200}
     props:
       language: python
       code: |
-        result = {"node_spec_path": "person_job"}
-
-  - label: Generate PersonJob
-    type: sub_diagram
-    position: {x: 300, y: 100}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: Condition Input
-    type: code_job
-    position: {x: 150, y: 200}
-    props:
-      language: python
-      code: |
-        result = {"node_spec_path": "condition"}
-
-  - label: Generate Condition
-    type: sub_diagram
-    position: {x: 300, y: 200}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: APIJob Input
-    type: code_job
-    position: {x: 150, y: 300}
-    props:
-      language: python
-      code: |
-        result = {"node_spec_path": "api_job"}
-
-  - label: Generate APIJob
-    type: sub_diagram
-    position: {x: 300, y: 300}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: CodeJob Input
-    type: code_job
-    position: {x: 150, y: 400}
-    props:
-      language: python
-      code: |
-        result = {"node_spec_path": "code_job"}
-
-  - label: Generate CodeJob
-    type: sub_diagram
-    position: {x: 300, y: 400}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: DB Input
-    type: code_job
-    position: {x: 450, y: 100}
-    props:
-      language: python
-      code: |
-        result = {"node_spec_path": "db"}
-
-  - label: Generate DB
-    type: sub_diagram
-    position: {x: 600, y: 100}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: Endpoint Input
-    type: code_job
-    position: {x: 450, y: 200}
-    props:
-      language: python
-      code: |
-        result = {"node_spec_path": "endpoint"}
-
-  - label: Generate Endpoint
-    type: sub_diagram
-    position: {x: 600, y: 200}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: UserResponse Input
-    type: code_job
-    position: {x: 450, y: 300}
-    props:
-      language: python
-      code: |
-        result = {"node_spec_path": "user_response"}
-
-  - label: Generate UserResponse
-    type: sub_diagram
-    position: {x: 600, y: 300}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: SubDiagram Input
-    type: code_job
-    position: {x: 450, y: 400}
-    props:
-      language: python
-      code: |
-        result = {"node_spec_path": "sub_diagram"}
-
-  - label: Generate SubDiagram
-    type: sub_diagram
-    position: {x: 600, y: 400}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
-      diagram_format: light
-
-  - label: Summary
-    type: code_job
-    position: {x: 750, y: 250}
-    props:
-      language: python
-      code: |
+        import json
+        
+        # Parse the manifest data from DB node
+        manifest_data = inputs.get('default', {})
+        if isinstance(manifest_data, str):
+            manifest_data = json.loads(manifest_data)
+        
+        # Get node types from manifest
+        node_types = manifest_data.get('nodes', [])
+        
+        if not node_types:
+            raise ValueError("No node types found in manifest")
+        
+        # Create array of inputs for batch processing
         result = {
-          'message': 'Successfully generated backend files',
-          'nodes_processed': [
-            'person_job', 'condition', 'api_job', 'code_job',
-            'db', 'endpoint', 'user_response', 'sub_diagram'
-          ],
-          'artifacts_generated': [
-            'pydantic_models',
-            'graphql_schemas', 
-            'static_nodes'
-          ]
+            'items': [{'node_spec_path': node_type} for node_type in node_types]
+        }
+        
+        print(f"Generating backend files for {len(node_types)} nodes from manifest:")
+        for nt in node_types:
+            print(f"  - {nt}")
+
+  - label: Batch Generate Backend
+    type: sub_diagram
+    position: {x: 550, y: 200}
+    props:
+      diagram_name: codegen/diagrams/backend/generate_backend_single
+      diagram_format: light
+      batch: true  # Enable batch mode
+      batch_input_key: items  # Use 'items' key from input
+      batch_parallel: true  # Process in parallel
+
+  - label: Process Backend Results
+    type: code_job
+    position: {x: 750, y: 200}
+    props:
+      language: python
+      code: |
+        # Process batch results
+        batch_results = inputs.get('default', {})
+        
+        total = batch_results.get('total_items', 0)
+        successful = batch_results.get('successful', 0)
+        failed = batch_results.get('failed', 0)
+        
+        print(f"\n=== Backend Files Generation Summary ===")
+        print(f"Total items: {total}")
+        print(f"Successful: {successful}")
+        print(f"Failed: {failed}")
+        
+        if batch_results.get('errors'):
+            print("\nErrors:")
+            for error in batch_results['errors']:
+                print(f"  - Item {error['index']}: {error['error']}")
+        
+        # Count generated artifacts
+        results = batch_results.get('results', [])
+        artifacts_count = {
+            'pydantic_models': 0,
+            'graphql_schemas': 0,
+            'static_nodes': 0
+        }
+        
+        for r in results:
+            if isinstance(r, dict) and r.get('status') == 'success':
+                # Each successful backend generation produces these artifacts
+                artifacts_count['pydantic_models'] += 1
+                artifacts_count['graphql_schemas'] += 1
+                artifacts_count['static_nodes'] += 1
+        
+        result = {
+            'backend_summary': f'Backend files generation completed: {successful}/{total} successful',
+            'artifacts_generated': artifacts_count,
+            'status': 'success' if failed == 0 else 'partial_failure'
+        }
+
+  # Generate conversions after backend files
+  - label: Generate Conversions
+    type: sub_diagram
+    position: {x: 950, y: 200}
+    props:
+      diagram_name: codegen/diagrams/backend/generate_conversions
+      diagram_format: light
+
+  - label: Process Final Results
+    type: code_job
+    position: {x: 1150, y: 200}
+    props:
+      language: python
+      code: |
+        # Combine results from backend generation and conversions
+        backend_results = inputs.get('backend_results', {})
+        conversion_results = inputs.get('conversion_results', {})
+        
+        print(f"\n=== Complete Backend Generation Summary ===")
+        print(backend_results.get('backend_summary', ''))
+        
+        # Check if conversions were generated (sub_diagram returns different structure)
+        if conversion_results:
+            print("\n✓ Conversions generated successfully")
+        else:
+            print("\n✗ Conversions generation failed")
+            if conversion_results and conversion_results.get('error'):
+                print(f"  Error: {conversion_results['error']}")
+        
+        # Update artifact count
+        artifacts = backend_results.get('artifacts_generated', {})
+        if conversion_results:
+            artifacts['conversions'] = 1
+        
+        result = {
+            'message': 'Complete backend generation finished',
+            'artifacts_generated': artifacts,
+            'backend_status': backend_results.get('status', 'unknown'),
+            'conversion_status': conversion_results.get('status', 'unknown')
         }
 
   - label: End
     type: endpoint
-    position: {x: 900, y: 250}
+    position: {x: 1350, y: 200}
     props:
       save_to_file: false
 
 connections:
   - from: Start
-    to: PersonJob Input
+    to: Load Manifest
   
-  - from: PersonJob Input
-    to: Generate PersonJob
+  - from: Load Manifest
+    to: Prepare Node List
   
-  - from: Generate PersonJob
-    to: Condition Input
+  - from: Prepare Node List
+    to: Batch Generate Backend
   
-  - from: Condition Input
-    to: Generate Condition
+  - from: Batch Generate Backend
+    to: Process Backend Results
   
-  - from: Generate Condition
-    to: APIJob Input
+  - from: Process Backend Results
+    to: Generate Conversions
+    label: backend_results
   
-  - from: APIJob Input
-    to: Generate APIJob
+  - from: Generate Conversions
+    to: Process Final Results
+    label: conversion_results
   
-  - from: Generate APIJob
-    to: CodeJob Input
+  - from: Process Backend Results
+    to: Process Final Results
+    label: backend_results
   
-  - from: CodeJob Input
-    to: Generate CodeJob
-  
-  - from: Generate CodeJob
-    to: DB Input
-  
-  - from: DB Input
-    to: Generate DB
-  
-  - from: Generate DB
-    to: Endpoint Input
-  
-  - from: Endpoint Input
-    to: Generate Endpoint
-  
-  - from: Generate Endpoint
-    to: UserResponse Input
-  
-  - from: UserResponse Input
-    to: Generate UserResponse
-  
-  - from: Generate UserResponse
-    to: SubDiagram Input
-  
-  - from: SubDiagram Input
-    to: Generate SubDiagram
-  
-  - from: Generate SubDiagram
-    to: Summary
-  
-  - from: Summary
+  - from: Process Final Results
     to: End

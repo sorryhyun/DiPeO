@@ -53,6 +53,7 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   color: string;
   handles: NodeConfigItem['handles'];
   nodeType: NodeTypeKey;
+  category?: string;  // Node category for grouping in UI
   defaults: Record<string, unknown>;
   
   // Panel configuration properties (optional overrides)

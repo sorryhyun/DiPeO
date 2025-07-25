@@ -1,9 +1,31 @@
 """ExecutableDiagram static object representing a resolved diagram ready for execution."""
 
-from dataclasses import dataclass, field
-from typing import Any, Protocol
-
 from dipeo.models import NodeID, NodeType, Vec2
+from dataclasses import dataclass, field
+from typing import Dict, Any, Optional, Protocol
+
+@dataclass(frozen=True)
+class BaseExecutableNode:
+    """Base class for all executable node types."""
+    id: NodeID
+    type: NodeType
+    position: Vec2
+    label: str = ""
+    flipped: bool = False
+    metadata: Optional[Dict[str, Any]] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        result = {
+            "id": self.id,
+            "type": self.type.value,
+            "position": {"x": self.position.x, "y": self.position.y},
+            "label": self.label,
+            "flipped": self.flipped
+        }
+        if self.metadata:
+            result["metadata"] = self.metadata
+        return result
 
 
 class ExecutableNode(Protocol):

@@ -4,11 +4,12 @@ from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
 
 
+from dipeo.models.models import SupportedLanguage
 
 
 class CodeJobNodeData(BaseModel):
     """Data model for Code Job node."""
-    language: Literal["python", "typescript", "bash", "shell"] = Field(description="Language configuration")
+    language: SupportedLanguage = Field(description="Language configuration")
     filePath: str = Field(description="Filepath configuration")
     functionName: Optional[str] = Field(description="Functionname configuration")
     timeout: Optional[float] = Field(description="Timeout configuration")

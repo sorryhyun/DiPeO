@@ -317,6 +317,36 @@ def graphql_type(field: Dict[str, Any]) -> str:
 def python_type(field: Dict[str, Any]) -> str:
     """Get Python type annotation from field definition."""
     field_type = field.get('type', 'string')
+    field_name = field.get('name', '')
+    
+    # Map specific field names to their enum types
+    enum_mappings = {
+        'operation': {
+            'notion': 'NotionOperation',
+            'default': 'str'
+        },
+        'sub_type': 'DBBlockSubType',
+        'method': 'HttpMethod',
+        'language': 'SupportedLanguage',
+        'code_type': 'SupportedLanguage',
+        'hook_type': 'HookType',
+        'trigger_mode': 'HookTriggerMode',
+        'service': 'LLMService',
+        'api_service_type': 'APIServiceType',
+        'condition_type': 'str',  # Keep as string for now
+        'format': 'DiagramFormat',
+        'diagram_format': 'DiagramFormat'
+    }
+    
+    # Check if this field has a specific enum mapping
+    if field_name in enum_mappings:
+        mapping = enum_mappings[field_name]
+        if isinstance(mapping, dict):
+            # Context-specific mapping (e.g., operation depends on node type)
+            # We'd need to pass context, for now use default
+            return mapping.get('default', 'str')
+        else:
+            return mapping
     
     # Handle special cases
     if field_type == 'json' or field_type == 'object':
@@ -339,8 +369,10 @@ def python_type(field: Dict[str, Any]) -> str:
 def python_default(field: Dict[str, Any]) -> str:
     """Get Python default value from field definition."""
     if field.get('required', False):
-        # Required fields don't have defaults in Pydantic
+        # Required fields don't have defaults in dataclass
         return ''
+    
+    field_type = field.get('type', 'string')
     
     if 'default' in field:
         default = field['default']
@@ -351,11 +383,25 @@ def python_default(field: Dict[str, Any]) -> str:
         else:
             return str(default)
     
+    # For mutable types (dict, list), use field(default_factory=...)
+    if field_type in ['object', 'dict', 'json']:
+        return 'field(default_factory=dict)'
+    elif field_type in ['array', 'list']:
+        return 'field(default_factory=list)'
+    
+    # For enum fields with Literal type, we need special handling
+    if field_type == 'enum' and 'values' in field and field.get('values'):
+        # For optional enum fields, use the first value as default
+        first_value = field['values'][0]
+        return f'"{first_value}"'
+    
     # Get type-based default
     default_val = get_default_value(field, 'python')
     
-    # For optional fields without explicit default, use None
-    if default_val is None:
+    # For optional fields without explicit default, use empty string for strings
+    if default_val == '""':
+        return '""'
+    elif default_val is None:
         return 'None'
     
     return default_val
@@ -387,6 +433,45 @@ def to_node_type(value: str) -> str:
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
+def python_type_with_context(field: Dict[str, Any], node_type: str = '') -> str:
+    """Get Python type annotation with node type context."""
+    field_type = field.get('type', 'string')
+    field_name = field.get('name', '')
+    
+    # Map specific field names to their enum types with node context
+    enum_mappings = {
+        'operation': {
+            'notion': 'NotionOperation',
+            'api_job': 'str',  # API operations are flexible
+            'db': 'str',  # DB operations are flexible
+            'default': 'str'
+        },
+        'sub_type': 'DBBlockSubType',
+        'method': 'HttpMethod',
+        'language': 'SupportedLanguage',
+        'code_type': 'SupportedLanguage',
+        'hook_type': 'HookType',
+        'trigger_mode': 'HookTriggerMode',
+        'service': 'LLMService',
+        'api_service_type': 'APIServiceType',
+        'condition_type': 'str',  # Keep as string for now
+        'format': 'DiagramFormat',
+        'diagram_format': 'DiagramFormat'
+    }
+    
+    # Check if this field has a specific enum mapping
+    if field_name in enum_mappings:
+        mapping = enum_mappings[field_name]
+        if isinstance(mapping, dict):
+            # Context-specific mapping (e.g., operation depends on node type)
+            return mapping.get(node_type, mapping.get('default', 'str'))
+        else:
+            return mapping
+    
+    # Delegate to the original python_type function for other cases
+    return python_type(field)
+
+
 from files.codegen.code.shared.emoji_filters import emoji_to_icon
 def register_custom_filters(env: Environment) -> None:
     """Register all custom filters with the Jinja2 environment."""
@@ -410,6 +495,7 @@ def register_custom_filters(env: Environment) -> None:
     env.filters['graphql_type'] = graphql_type
     env.filters['python_type'] = python_type
     env.filters['python_default'] = python_default
+    env.filters['python_type_with_context'] = python_type_with_context
     env.filters['isEnum'] = is_enum
     env.filters['endsWith'] = ends_with
     env.filters['toNodeType'] = to_node_type

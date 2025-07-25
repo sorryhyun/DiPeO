@@ -1,13 +1,13 @@
 // Auto-generated node configuration for {{ nodeType }}
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeTypePascal }}Fields';
-import { {{ icon | emoji_to_icon }} } from 'lucide-react';
 
 export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
   label: '{{ displayName }}',
-  icon: '{{ icon | emoji_to_icon }}',
+  icon: '{{ icon }}',
   color: '{{ color | default('#6366f1') }}',
   nodeType: '{{ nodeType }}',
+  category: '{{ category | default('utility') }}',
   handles: {
 {% if handles.inputs %}
     input: [

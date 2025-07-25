@@ -11,6 +11,7 @@ import { PersonID, DomainPerson, personId } from '@/core/types';
 import { SidebarLayout } from '@/shared/components/layout/SidebarLayout';
 import { Tabs, TabList, TabTrigger, TabContent } from '@/shared/components/ui/tabs';
 import { DiagramFileBrowser } from '@/features/diagram-editor/components/file-browser';
+import { getAllNodeConfigs } from '@/features/diagram-editor/config/nodeRegistry';
 
 // Memoized draggable block component
 export const DraggableBlock = React.memo<{ type: string; label: string }>(({ type, label }) => {
@@ -64,6 +65,53 @@ const PersonItem = React.memo<{
 
 PersonItem.displayName = 'PersonItem';
 
+// Helper to categorize nodes dynamically based on their category field
+const categorizeNodes = () => {
+  const allConfigs = getAllNodeConfigs();
+  const categorizedNodes = new Map<string, Array<{ type: string; label: string }>>();
+  
+  // Category display names and order
+  const categoryMeta = {
+    control: { name: 'Control Flow', icon: '🎯', order: 1 },
+    ai: { name: 'AI & Language Models', icon: '🤖', order: 2 },
+    compute: { name: 'Compute & Processing', icon: '⚡', order: 3 },
+    data: { name: 'Data Sources', icon: '📊', order: 4 },
+    integration: { name: 'Integrations', icon: '🔌', order: 5 },
+    interaction: { name: 'User Interaction', icon: '💬', order: 6 },
+    validation: { name: 'Validation', icon: '✅', order: 7 },
+    utility: { name: 'Utilities', icon: '🛠️', order: 8 },
+  };
+  
+  // Group nodes by category
+  allConfigs.forEach((config, nodeType) => {
+    const category = config.category || 'utility'; // Default to utility if no category
+    
+    if (!categorizedNodes.has(category)) {
+      categorizedNodes.set(category, []);
+    }
+    
+    categorizedNodes.get(category)!.push({
+      type: nodeType,
+      label: `${config.icon || '📦'} ${config.label || nodeType}`
+    });
+  });
+  
+  // Sort categories by order and convert to array
+  const sortedCategories = Array.from(categorizedNodes.entries())
+    .sort(([a], [b]) => {
+      const orderA = categoryMeta[a]?.order || 999;
+      const orderB = categoryMeta[b]?.order || 999;
+      return orderA - orderB;
+    })
+    .map(([category, nodes]) => ({
+      category,
+      meta: categoryMeta[category] || { name: category, icon: '📦', order: 999 },
+      nodes: nodes.sort((a, b) => a.label.localeCompare(b.label)) // Sort nodes alphabetically
+    }));
+  
+  return sortedCategories;
+};
+
 export const DiagramSidebar = React.memo(() => {
   const { personsArray } = useCanvas();
   const { selectedId, selectedType, highlightedPersonId } = useSelectionData();
@@ -95,6 +143,9 @@ export const DiagramSidebar = React.memo(() => {
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId as PersonID);
   };
+  
+  // Get categorized nodes
+  const categorizedNodes = React.useMemo(() => categorizeNodes(), []);
 
   return (
     <SidebarLayout position="left">
@@ -121,22 +172,21 @@ export const DiagramSidebar = React.memo(() => {
               </h3>
               {blocksExpanded && (
                 <div className="mt-3">
-                  <h4 className="font-semibold mb-2 text-sm text-gray-600 px-2">Job Blocks</h4>
-                  <div className="grid grid-cols-2 gap-2 px-2">
-                    <DraggableBlock type="start" label={`${getNodeConfig(NodeType.START)?.icon || '🚀'} ${getNodeConfig(NodeType.START)?.label || 'Start'}`} />
-                    <DraggableBlock type="person_job" label={`${getNodeConfig(NodeType.PERSON_JOB)?.icon || '🤖'} ${getNodeConfig(NodeType.PERSON_JOB)?.label || 'Person Job'}`} />
-                    <DraggableBlock type="person_batch_job" label={`${getNodeConfig(NodeType.PERSON_BATCH_JOB)?.icon || '🤖📦'} ${getNodeConfig(NodeType.PERSON_BATCH_JOB)?.label || 'Person Batch Job'}`} />
-                    <DraggableBlock type="condition" label={`${getNodeConfig(NodeType.CONDITION)?.icon || '🔀'} ${getNodeConfig(NodeType.CONDITION)?.label || 'Condition'}`} />
-                    <DraggableBlock type="code_job" label={`${getNodeConfig(NodeType.CODE_JOB)?.icon || '📝'} ${getNodeConfig(NodeType.CODE_JOB)?.label || 'Code Job'}`} />
-                    <DraggableBlock type="api_job" label={`${getNodeConfig(NodeType.API_JOB)?.icon || '🌐'} ${getNodeConfig(NodeType.API_JOB)?.label || 'API Job'}`} />
-                    <DraggableBlock type="user_response" label={`${getNodeConfig(NodeType.USER_RESPONSE)?.icon || '💬'} ${getNodeConfig(NodeType.USER_RESPONSE)?.label || 'User Response'}`} />
-                    <DraggableBlock type="endpoint" label={`${getNodeConfig(NodeType.ENDPOINT)?.icon || '🎯'} ${getNodeConfig(NodeType.ENDPOINT)?.label || 'Endpoint'}`} />
-                  </div>
-                  <h4 className="font-semibold mb-2 mt-4 text-sm text-gray-600 px-2">Data Blocks</h4>
-                  <div className="grid grid-cols-2 gap-2 px-2">
-                    <DraggableBlock type="db" label={`${getNodeConfig(NodeType.DB)?.icon || '📊'} ${getNodeConfig(NodeType.DB)?.label || 'DB Source'} Block`} />
-                    <DraggableBlock type="hook" label={`${getNodeConfig(NodeType.HOOK)?.icon || '🪝'} ${getNodeConfig(NodeType.HOOK)?.label || 'Hook'}`} />
-                  </div>
+                  {categorizedNodes.map(({ category, meta, nodes }, index) => (
+                    nodes.length > 0 && (
+                      <div key={category}>
+                        <h4 className={`font-semibold mb-2 ${index > 0 ? 'mt-4' : ''} text-sm text-gray-600 px-2 flex items-center gap-1`}>
+                          <span>{meta.icon}</span>
+                          <span>{meta.name}</span>
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2 px-2">
+                          {nodes.map((block) => (
+                            <DraggableBlock key={block.type} type={block.type} label={block.label} />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  ))}
                 </div>
               )}
             </div>

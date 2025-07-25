@@ -4,13 +4,14 @@ from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
 
 
+from dipeo.models.models import HookTriggerMode
 
 
 class StartNodeData(BaseModel):
     """Data model for Start Node node."""
     custom_data: str = Field(description="Custom Data configuration")
     output_data_structure: Dict[str, Any] = Field(description="Output Data Structure configuration")
-    trigger_mode: Optional[Literal["manual", "hook"]] = Field(description="Trigger Mode configuration")
+    trigger_mode: Optional[HookTriggerMode] = Field(description="Trigger Mode configuration")
     hook_event: Optional[str] = Field(description="Hook Event configuration")
     hook_filters: Optional[Dict[str, Any]] = Field(description="Hook Filters configuration")
 

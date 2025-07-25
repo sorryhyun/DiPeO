@@ -128,7 +128,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/{node_naming.node_type}_node.py
+      source_details: dipeo/diagram_generated/nodes/{node_naming.node_type}_node.py
 
 connections:
   # Parse input first to handle nested structures
