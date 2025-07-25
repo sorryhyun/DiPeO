@@ -18,7 +18,22 @@ from dipeo.core.static.generated_nodes import BaseExecutableNode
 class PersonJobNode(BaseExecutableNode):
     """Execute tasks using AI language models"""
     type: NodeType = field(default=NodeType.person_job, init=False)
-    person: str = ""    first_only_prompt: str    default_prompt: str = ""    max_iteration: float    memory_config: Dict[str, Any] = {}    memory_settings: Dict[str, Any] = {}    tools: List[Any] = []
+    person: str = ""
+    first_only_prompt: str
+    default_prompt: str = ""
+    max_iteration: float
+    memory_config: Dict[str, Any] = {}
+    memory_settings: Dict[str, Any] = {}
+    tools: List[Any] = []
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
-        data = super().to_dict()        data["person"] = self.person_id        data["first_only_prompt"] = self.first_only_prompt        data["default_prompt"] = self.default_prompt        data["max_iteration"] = self.max_iteration        data["memory_config"] = self.memory_config        data["memory_settings"] = self.memory_settings        data["tools"] = self.tools        return data
+        data = super().to_dict()
+        data["person"] = self.person_id
+        data["first_only_prompt"] = self.first_only_prompt
+        data["default_prompt"] = self.default_prompt
+        data["max_iteration"] = self.max_iteration
+        data["memory_config"] = self.memory_config
+        data["memory_settings"] = self.memory_settings
+        data["tools"] = self.tools
+        return data

@@ -1,5 +1,5 @@
-# Frontend Batch Generation Diagram
-# Generates all frontend artifacts for multiple node types using sub_diagram
+# Frontend All Generation Diagram - With Iteration
+# Generates all frontend artifacts dynamically from manifest
 
 version: light
 
@@ -8,138 +8,105 @@ nodes:
     type: start
     position: {x: 50, y: 200}
 
-  - label: Load Frontend Manifest
-    type: db
+  - label: Initialize
+    type: code_job
     position: {x: 200, y: 200}
     props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/manifests/frontend.json
+      code: |
+        # Load manifest
+        import json
+        with open('files/codegen/manifests/frontend.json', 'r') as f:
+            manifest = json.load(f)
+        
+        # Set up iteration variables
+        nodes_list = manifest.get('nodes', [])
+        idx = 0
+        total = len(nodes_list)
+        processed = []
+        
+        print(f"Will process {total} nodes: {nodes_list}")
+        result = "initialized"
+      code_type: python
 
-  - label: Initialize Iterator
-    type: code_job
+  - label: Check Condition
+    type: condition
     position: {x: 400, y: 200}
     props:
-      language: python
+      condition_type: custom
+      expression: idx < total
+
+  - label: Process Node
+    type: code_job
+    position: {x: 600, y: 150}
+    props:
       code: |
-        # Initialize iteration state
-        manifest = manifest_data
-        nodes = manifest.get('nodes', [])
+        # Get current node
+        current_node = nodes_list[idx]
+        print(f"\n=== Processing {idx+1}/{total}: {current_node} ===")
+        
+        # Run the single generator
+        import subprocess
+        import sys
+        import json
+        
+        cmd = [
+            sys.executable, "-m", "dipeo", "run",
+            "codegen/diagrams/frontend/generate_frontend_single",
+            "--light", "--no-browser", "--timeout=15",
+            "--input-data", json.dumps({"node_spec_path": current_node})
+        ]
+        
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(f"✓ Generated files for {current_node}")
+            processed.append(current_node)
+        except subprocess.CalledProcessError as e:
+            print(f"✗ Failed for {current_node}: {e}")
+        
+        # Increment counter
+        idx += 1
+        
+        result = f"Processed {current_node}"
+      code_type: python
+
+  - label: Finalize
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      code: |
+        print(f"\n=== Generation Complete ===")
+        print(f"Processed {len(processed)}/{total} nodes successfully")
+        print(f"Nodes: {processed}")
         
         result = {
-            'nodes': nodes,
-            'current_index': 0,
-            'total_nodes': len(nodes),
-            'generated_nodes': []
+            "total": total,
+            "processed": processed,
+            "success": len(processed) == total
         }
-
-  - label: Check More Nodes
-    type: condition
-    position: {x: 600, y: 200}
-    props:
-      condition: current_index < total_nodes
-
-  - label: Get Current Node
-    type: code_job
-    position: {x: 800, y: 150}
-    props:
-      language: python
-      code: |
-        # Extract current node for processing
-        current_node = nodes[current_index]
-        result = {
-            'node_spec_path': current_node
-        }
-
-  - label: Generate Frontend Files
-    type: sub_diagram
-    position: {x: 1000, y: 150}
-    props:
-      diagram_name: codegen/diagrams/frontend/generate_frontend_single
-
-  - label: Update Iterator
-    type: code_job
-    position: {x: 1200, y: 150}
-    props:
-      language: python
-      code: |
-        # Update iteration state
-        current_index += 1
-        generated_nodes.append(node_spec_path)
-        
-        result = {
-            'nodes': nodes,
-            'current_index': current_index,
-            'total_nodes': total_nodes,
-            'generated_nodes': generated_nodes
-        }
-
-  - label: Prepare Summary
-    type: code_job
-    position: {x: 800, y: 300}
-    props:
-      language: python
-      code: |
-        # Prepare final summary
-        result = {
-            'summary': {
-                'total_nodes': total_nodes,
-                'generated_nodes': generated_nodes,
-                'success': True,
-                'message': f"Successfully generated frontend files for {total_nodes} node types"
-            }
-        }
+      code_type: python
 
   - label: End
     type: endpoint
-    position: {x: 1000, y: 300}
+    position: {x: 800, y: 300}
     props:
       file_format: json
       save_to_file: false
 
 connections:
   - from: Start
-    to: Load Frontend Manifest
+    to: Initialize
   
-  - from: Load Frontend Manifest
-    to: Initialize Iterator
-    label: manifest_data
-
-  - from: Initialize Iterator
-    to: Check More Nodes
+  - from: Initialize
+    to: Check Condition
   
-  # If more nodes to process
-  - from: Check More Nodes
-    to: Get Current Node
-    label: condtrue
+  - from: Check Condition_condtrue
+    to: Process Node
   
-  - from: Check More Nodes
-    to: Get Current Node
-
-  - from: Get Current Node
-    to: Generate Frontend Files
-    label: node_spec_path
+  - from: Process Node
+    to: Check Condition
   
-  - from: Generate Frontend Files
-    to: Update Iterator
+  - from: Check Condition_condfalse
+    to: Finalize
   
-  - from: Get Current Node
-    to: Update Iterator
-    label: node_spec_path
-  
-  - from: Check More Nodes
-    to: Update Iterator
-  
-  - from: Update Iterator
-    to: Check More Nodes
-  
-  # If no more nodes
-  - from: Check More Nodes
-    to: Prepare Summary
-    label: condfalse
-  
-  - from: Check More Nodes
-    to: Prepare Summary
-
-  - from: Prepare Summary
+  - from: Finalize
     to: End

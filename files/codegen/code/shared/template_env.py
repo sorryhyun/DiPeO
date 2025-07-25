@@ -16,8 +16,8 @@ def create_template_env() -> Environment:
     """Create a Jinja2 environment with custom filters for code generation."""
     env = Environment(
         loader=StringLoader(),
-        trim_blocks=True,
-        lstrip_blocks=True,
+        trim_blocks=False,
+        lstrip_blocks=False,
         keep_trailing_newline=True
     )
     

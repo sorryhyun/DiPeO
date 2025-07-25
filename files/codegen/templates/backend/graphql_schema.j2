@@ -10,12 +10,12 @@ type {{ nodeType | pascal_case }}Node implements Node {
 }
 
 type {{ nodeType | pascal_case }}NodeData {
-{% for field in fields %}
-{% if field.description %}
+{%- for field in fields %}
+{%- if field.description %}
   "{{ field.description }}"
-{% endif %}
+{%- endif %}
   {{ field.name }}: {{ field | graphql_type }}{% if field.required %}!{% endif %}
-{% endfor %}
+{%- endfor %}
 {% if not fields %}
   _empty: String
 {% endif %}
@@ -29,9 +29,9 @@ input {{ nodeType | pascal_case }}NodeInput {
 }
 
 input {{ nodeType | pascal_case }}NodeDataInput {
-{% for field in fields %}
+{%- for field in fields %}
   {{ field.name }}: {{ field | graphql_type }}{% if field.required %}!{% endif %}
-{% endfor %}
+{%- endfor %}
 {% if not fields %}
   _empty: String
 {% endif %}

@@ -1,0 +1,75 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 50, y: 200}
+
+- label: Initialize
+  type: code_job
+  position: {x: 200, y: 200}
+  props:
+    code: |
+      # Initialize counter
+      counter = 0
+      max_count = 3
+      print(f"Starting iteration with max_count={max_count}")
+      result = "initialized"
+    code_type: python
+
+- label: Check Counter
+  type: condition
+  position: {x: 400, y: 200}
+  props:
+    condition_type: custom
+    expression: counter < max_count
+
+- label: Process Item
+  type: code_job
+  position: {x: 600, y: 150}
+  props:
+    code: |
+      print(f"Processing item {counter}")
+      counter += 1
+      result = f"Processed item {counter-1}"
+    code_type: python
+
+- label: Done
+  type: code_job
+  position: {x: 600, y: 300}
+  props:
+    code: |
+      print(f"Iteration complete. Processed {counter} items")
+      result = f"Done: processed {counter} items"
+    code_type: python
+
+- label: End
+  type: endpoint
+  position: {x: 800, y: 300}
+  props:
+    file_format: txt
+    save_to_file: false
+
+connections:
+- from: Start
+  to: Initialize
+  content_type: raw_text
+
+- from: Initialize
+  to: Check Counter
+  content_type: raw_text
+
+- from: Check Counter_condtrue
+  to: Process Item
+  content_type: raw_text
+
+- from: Process Item
+  to: Check Counter
+  content_type: raw_text
+
+- from: Check Counter_condfalse
+  to: Done
+  content_type: raw_text
+
+- from: Done
+  to: End
+  content_type: raw_text
