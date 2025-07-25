@@ -5,10 +5,10 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.static.generated_nodes import TypescriptAstNode
+from dipeo.diagram_generated.nodes.typescript_ast_node import TypescriptAstNode
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.core.ports.ast_parser_port import ASTParserPort
-from dipeo.models import TypescriptAstNodeData, NodeType
+from dipeo.diagram_generated import TypescriptAstNodeData, NodeType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime

@@ -14,9 +14,9 @@ from dipeo.application.unified_service_registry import (
     PROMPT_BUILDER
 )
 from dipeo.core.dynamic import Person
-from dipeo.core.static.generated_nodes import PersonJobNode
+from dipeo.diagram_generated.nodes.person_job_node import PersonJobNode
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
-from dipeo.models import (
+from dipeo.diagram_generated import (
     MemorySettings,
     Message,
     NodeType,
@@ -218,7 +218,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         
         if not person_config:
             # Fallback: create minimal config with default LLM
-            from dipeo.models import ApiKeyID, LLMService, PersonLLMConfig
+            from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig
             person_config = PersonLLMConfig(
                 service=LLMService.openai,
                 model="gpt-4.1-nano",

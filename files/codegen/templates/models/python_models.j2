@@ -73,6 +73,13 @@ def is_{{ model.name|lower }}(node: Any) -> bool:
 {% endif %}
 {% endfor %}
 
+# ============ Deferred Type Aliases (Forward References) ============
+{% if deferred_aliases %}
+{% for alias in deferred_aliases %}
+{{ alias.name }} = {{ alias.type }}
+{% endfor %}
+{% endif %}
+
 # ============ Constants ============
 VALID_NODE_TYPES = [{{ enums|selectattr('name', 'equalto', 'NodeType')|map(attribute='members')|first|map(attribute='value')|map('quote')|join(', ') if enums|selectattr('name', 'equalto', 'NodeType')|list else '' }}]
 VALID_HANDLE_DIRECTIONS = ['input', 'output']

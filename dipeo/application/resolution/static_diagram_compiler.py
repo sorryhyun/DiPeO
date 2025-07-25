@@ -8,9 +8,10 @@ from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalc
 from dipeo.application.resolution.handle_resolver import HandleResolver
 from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
-from dipeo.core.static.generated_nodes import ExecutableNode, PersonJobNode
+from dipeo.diagram_generated.nodes.person_job_node import PersonJobNode
+from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
-from dipeo.models import DomainDiagram, NodeID, NodeType
+from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 
 
 class ExecutableNodeImpl:

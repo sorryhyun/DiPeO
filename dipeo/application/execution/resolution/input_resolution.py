@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
-from dipeo.models import NodeType
+from dipeo.diagram_generated import NodeType
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 
 if TYPE_CHECKING:

@@ -1,6 +1,6 @@
 """ExecutableDiagram static object representing a resolved diagram ready for execution."""
 
-from dipeo.models import NodeID, NodeType, Vec2
+from dipeo.diagram_generated import NodeID, NodeType, Vec2
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Protocol
 

@@ -10,7 +10,6 @@ export {
   HandleDirection,
   HandleLabel,
   DataType,
-  ForgettingMode,
   DiagramFormat,
   DBBlockSubType,
   ContentType,
@@ -49,7 +48,6 @@ export type {
   DomainApiKey,
   DiagramMetadata,
   DomainDiagram,
-  StoreDiagram,
   // Memory and config types
   MemoryConfig,
   PersonLLMConfig,
@@ -101,8 +99,6 @@ export {
   // Handle utilities
   createHandleId,
   parseHandleId,
-  getNodeHandles,
-  getHandleById,
   areHandlesCompatible,
   // Diagram utilities
   createEmptyDiagram,
@@ -115,7 +111,6 @@ export {
   domainTypeToNodeKind,
   // Type guards
   isDomainNode,
-  isDomainDiagram
 } from '@dipeo/domain-models';
 
 // UI-Specific Type Augmentation

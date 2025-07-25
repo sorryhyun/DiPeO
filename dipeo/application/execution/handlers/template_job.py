@@ -8,9 +8,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.static.generated_nodes import TemplateJobNode
+from dipeo.diagram_generated.nodes.template_job_node import TemplateJobNode
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.models import TemplateJobNodeData, NodeType
+from dipeo.diagram_generated import TemplateJobNodeData, NodeType
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:

@@ -5,8 +5,8 @@ from typing import Any
 
 import yaml
 
-from dipeo.models import DomainDiagram
-from dipeo.models.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
+from dipeo.diagram_generated import DomainDiagram
+from dipeo.diagram_generated.conversions import diagram_arrays_to_maps, diagram_maps_to_arrays
 
 DomainDiagram.model_rebuild()
 
@@ -24,8 +24,7 @@ def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> DomainDiagram:
         nodes=diagram_dict.get("nodes", {}),
         arrows=diagram_dict.get("arrows", {}),
         handles=diagram_dict.get("handles", {}),
-        persons=diagram_dict.get("persons", {}),
-        api_keys=None
+        persons=diagram_dict.get("persons", {})
     )
 
     handles_list = []
@@ -60,8 +59,7 @@ def domain_diagram_to_dict(domain_diagram: DomainDiagram) -> dict[str, Any]:
         nodes=domain_diagram.nodes or [],
         arrows=domain_diagram.arrows or [],
         handles=domain_diagram.handles or [],
-        persons=domain_diagram.persons or [],
-        api_keys=None
+        persons=domain_diagram.persons or []
     )
 
     result = {

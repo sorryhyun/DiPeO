@@ -53,6 +53,14 @@ nodes:
       sub_type: file
       source_details: dipeo/models/src/utils.ts
 
+  - label: Load Integration Types
+    type: db
+    position: {x: 200, y: 600}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/integration.ts
+
   # Parse TypeScript files to extract AST
   - label: Parse Diagram AST
     type: typescript_ast
@@ -94,6 +102,14 @@ nodes:
       includeJSDoc: true
       parseMode: module
 
+  - label: Parse Integration AST
+    type: typescript_ast
+    position: {x: 400, y: 600}
+    props:
+      extractPatterns: ["interface", "type", "enum", "const"]
+      includeJSDoc: true
+      parseMode: module
+
   # Combine all AST data
   - label: Combine AST Data
     type: code_job
@@ -122,6 +138,7 @@ nodes:
         conversation_ast = parse_ast_data(inputs.get('conversation_ast', {}))
         node_specs_ast = parse_ast_data(inputs.get('node_specs_ast', {}))
         utils_ast = parse_ast_data(inputs.get('utils_ast', {}))
+        integration_ast = parse_ast_data(inputs.get('integration_ast', {}))
         
         # Merge all definitions
         all_interfaces = []
@@ -129,7 +146,7 @@ nodes:
         all_enums = []
         all_consts = []
         
-        for ast in [diagram_ast, execution_ast, conversation_ast, node_specs_ast, utils_ast]:
+        for ast in [diagram_ast, execution_ast, conversation_ast, node_specs_ast, utils_ast, integration_ast]:
             if isinstance(ast, dict):
                 all_interfaces.extend(ast.get('interfaces', []))
                 all_types.extend(ast.get('types', []))
@@ -216,6 +233,8 @@ connections:
     to: Load Node Specifications
   - from: Start
     to: Load Util Types
+  - from: Start
+    to: Load Integration Types
   
   # Parse TypeScript files
   - from: Load Diagram Models
@@ -232,6 +251,9 @@ connections:
     label: source
   - from: Load Util Types
     to: Parse Utils AST
+    label: source
+  - from: Load Integration Types
+    to: Parse Integration AST
     label: source
   
   # Combine AST data
@@ -250,6 +272,9 @@ connections:
   - from: Parse Utils AST
     to: Combine AST Data
     label: utils_ast
+  - from: Parse Integration AST
+    to: Combine AST Data
+    label: integration_ast
   
   # Generate Python models
   - from: Combine AST Data

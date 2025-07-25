@@ -3,7 +3,7 @@ Simplified execution order calculation that handles cycles gracefully.
 """
 
 from dipeo.core.static import ExecutableEdge
-from dipeo.models import DomainNode, NodeID, NodeType
+from dipeo.diagram_generated import DomainNode, NodeID, NodeType
 
 
 class SimpleOrderCalculator:

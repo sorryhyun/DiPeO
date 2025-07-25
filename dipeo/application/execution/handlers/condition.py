@@ -13,9 +13,9 @@ from dipeo.application.unified_service_registry import (
     NODE_EXEC_COUNTS,
 )
 from dipeo.core.static.executable_diagram import ExecutableDiagram
-from dipeo.core.static.generated_nodes import ConditionNode
+from dipeo.diagram_generated.nodes.condition_node import ConditionNode
 from dipeo.core.execution.node_output import ConditionOutput, NodeOutputProtocol
-from dipeo.models import ConditionNodeData, NodeExecutionStatus, NodeType
+from dipeo.diagram_generated import ConditionNodeData, NodeExecutionStatus, NodeType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime

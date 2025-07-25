@@ -22,9 +22,9 @@ def ts_to_graphql_type(ts_type: str, enums: list, scalars: list, missing_enums: 
        (clean_type.startswith('"') and clean_type.endswith('"')):
         return 'String'
     
-    # Handle empty object notation {} as array
+    # Handle empty object notation {} as JSONScalar
     if clean_type == '{}':
-        return '[String!]'  # Default to string array
+        return 'JSONScalar'
     
     # Handle complex object types (inline object definitions)
     if clean_type.startswith('{') and clean_type.endswith('}'):
@@ -136,10 +136,9 @@ def extract_types_from_interfaces(all_interfaces: list, enums: list, scalars: li
             graphql_type = ts_to_graphql_type(field_type, enums, scalars, missing_enums)
             
             # Special handling for specific problematic fields
-            if field_type == '{}' or field_type == 'string[]' and graphql_type == '{}':
-                # Handle empty object notation as array
-                graphql_type = '[String!]'
-            elif field_type.startswith('Record<string,'):
+            if field_type.startswith('Record<string,'):
+                graphql_type = 'JSONScalar'
+            elif field_type == '{}':
                 graphql_type = 'JSONScalar'
             
             fields.append({

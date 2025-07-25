@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core.execution.execution_tracker import CompletionStatus
 from dipeo.core.execution.node_output import BaseNodeOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.models import NodeExecutionStatus, NodeID, NodeState
+from dipeo.diagram_generated import NodeExecutionStatus, NodeID, NodeState
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_tracker import ExecutionTracker

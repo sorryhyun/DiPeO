@@ -10,10 +10,9 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.core.static.generated_nodes import SubDiagramNode
+from dipeo.diagram_generated.nodes.sub_diagram_node import SubDiagramNode
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
-from dipeo.models import NodeType
-from dipeo.models.models import SubDiagramNodeData
+from dipeo.diagram_generated import NodeType, SubDiagramNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry

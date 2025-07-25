@@ -98,8 +98,8 @@ class TypeConverter:
             self.type_cache[cache_key] = result
             return self._wrap_optional(result, is_optional)
             
-        # Handle literal types
-        if re.match(r'^["\'].*["\']$', ts_type):
+        # Handle literal types (single quoted string)
+        if re.match(r'^["\'].*["\']$', ts_type) and '|' not in ts_type:
             self.imports.add(('typing', 'Literal'))
             # Convert single/double quotes to double quotes for Python
             literal_value = ts_type.strip("'\"")
@@ -120,6 +120,9 @@ class TypeConverter:
             # Check if all parts are string literals
             all_literals = all(re.match(r'^["\'].*["\']$', p.strip()) for p in parts)
             
+            # Check if all parts are numeric literals
+            all_numeric = all(p.strip().isdigit() for p in parts)
+            
             if all_literals:
                 # Convert to Literal with multiple values
                 self.imports.add(('typing', 'Literal'))
@@ -127,6 +130,11 @@ class TypeConverter:
                 # Format as Literal["value1", "value2", ...]
                 quoted_values = ', '.join(f'"{v}"' for v in literal_values)
                 result = f'Literal[{quoted_values}]'
+            elif all_numeric:
+                # Convert numeric literals to Literal
+                self.imports.add(('typing', 'Literal'))
+                numeric_values = ', '.join(p.strip() for p in parts)
+                result = f'Literal[{numeric_values}]'
             else:
                 # Convert each part
                 converted_parts = []
@@ -250,11 +258,16 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Process type aliases
     type_aliases = []
+    deferred_aliases = []  # Aliases that need forward references
     branded_types = []
+    
+    # Get all model names for forward reference checking
+    model_names = {interface['name'] for interface in ast_data.get('interfaces', [])}
     
     for type_alias in ast_data.get('types', []):
         alias_name = type_alias.get('name', '')
         alias_type = type_alias.get('type', '')
+        
         
         # Check if it's a branded type
         if '& {' in alias_type and '__brand' in alias_type:
@@ -265,10 +278,16 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
             
             # Skip if it's the same as the name (to avoid NodeID = NodeID)
             if py_type != alias_name:
-                type_aliases.append({
+                alias_dict = {
                     'name': alias_name,
                     'type': py_type
-                })
+                }
+                
+                # Check if this alias references a model that will be defined later
+                if py_type in model_names:
+                    deferred_aliases.append(alias_dict)
+                else:
+                    type_aliases.append(alias_dict)
     
     # Merge branded types with predefined list
     all_branded = sorted(list(set(branded_types) | BRANDED_IDS))
@@ -280,6 +299,7 @@ def process_ast_data(ast_data: Dict[str, Any]) -> Dict[str, Any]:
         'models': models,
         'enums': enums,
         'type_aliases': type_aliases,
+        'deferred_aliases': deferred_aliases,  # Aliases that reference models
         'branded_ids': all_branded,
         'imports': imports,
         'allow_extra': False  # Can be made configurable

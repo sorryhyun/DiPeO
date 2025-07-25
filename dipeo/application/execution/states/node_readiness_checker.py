@@ -3,12 +3,10 @@
 from typing import TYPE_CHECKING
 
 from dipeo.core.execution.node_output import ConditionOutput
-from dipeo.core.static.generated_nodes import (
-    ConditionNode,
-    PersonJobNode,
-    StartNode,
-)
-from dipeo.models import NodeExecutionStatus, NodeID
+from dipeo.diagram_generated.nodes.condition_node import ConditionNode
+from dipeo.diagram_generated.nodes.person_job_node import PersonJobNode
+from dipeo.diagram_generated.nodes.start_node import StartNode
+from dipeo.diagram_generated import NodeExecutionStatus, NodeID
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_tracker import ExecutionTracker

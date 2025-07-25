@@ -77,8 +77,7 @@ def diagram_arrays_to_maps(diagram: dict[str, Any]) -> dict[str, Any]:
         "nodes": {n["id"]: n for n in diagram.get("nodes", [])},
         "arrows": {a["id"]: a for a in diagram.get("arrows", [])},
         "handles": {h["id"]: h for h in diagram.get("handles", [])},
-        "persons": {p["id"]: p for p in diagram.get("persons", [])},
-        "apiKeys": {k["id"]: k for k in diagram.get("apiKeys", [])}
+        "persons": {p["id"]: p for p in diagram.get("persons", [])}
     }
 
 
@@ -88,8 +87,7 @@ def diagram_maps_to_arrays(diagram: dict[str, Any]) -> dict[str, Any]:
         "nodes": list(diagram.get("nodes", {}).values()),
         "arrows": list(diagram.get("arrows", {}).values()),
         "handles": list(diagram.get("handles", {}).values()),
-        "persons": list(diagram.get("persons", {}).values()),
-        "apiKeys": list(diagram.get("apiKeys", {}).values())
+        "persons": list(diagram.get("persons", {}).values())
     }
 
 

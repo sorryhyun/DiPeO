@@ -12,7 +12,7 @@ import threading
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from dipeo.core.execution.execution_tracker import ExecutionTracker
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ExecutionState,
     NodeExecutionStatus,
     NodeID,
@@ -158,7 +158,7 @@ class ExecutionRuntime(StateTransitionMixin):
         from dipeo.application.execution.resolution import (
             TypedInputResolutionService,
         )
-        from dipeo.core.static.generated_nodes import PersonJobNode
+        from dipeo.diagram_generated.nodes.person_job_node import PersonJobNode
         
         # Create typed input resolution service
         typed_input_service = TypedInputResolutionService()

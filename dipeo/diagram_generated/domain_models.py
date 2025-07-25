@@ -12,19 +12,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # ============ Type Aliases ============
 
-PersonBatchJobNodeData = PersonJobNodeData
+NodeCategory = Literal["control", "ai", "compute", "data", "integration", "interaction", "validation", "utility"]
 
-PersonMemoryMessage = Message
+FieldType = Literal["string", "number", "boolean", "object", "array", "enum", "any"]
 
-PersonMemoryState = MemoryState
-
-PersonMemoryConfig = MemoryConfig
-
-NodeCategory = Literal["control" | "ai" | "compute" | "data" | "integration" | "interaction" | "validation" | "utility"]
-
-FieldType = Literal["string" | "number" | "boolean" | "object" | "array" | "enum" | "any"]
-
-UIInputType = Literal["number" | "text" | "textarea" | "checkbox" | "select" | "code" | "group" | "json" | "personSelect" | "nodeSelect"]
+UIInputType = Literal["number", "text", "textarea", "checkbox", "select", "code", "group", "json", "personSelect", "nodeSelect"]
 
 
 # ============ Branded IDs ============
@@ -127,17 +119,6 @@ class DataType(str, Enum):
     object = "object"
     
     array = "array"
-    
-
-
-class ForgettingMode(str, Enum):
-    """ForgettingMode enumeration"""
-    
-    no_forget = "no_forget"
-    
-    on_every_turn = "on_every_turn"
-    
-    upon_request = "upon_request"
     
 
 
@@ -302,6 +283,82 @@ class EventType(str, Enum):
     
 
 
+class LLMService(str, Enum):
+    """LLMService enumeration"""
+    
+    openai = "openai"
+    
+    anthropic = "anthropic"
+    
+    google = "google"
+    
+    bedrock = "bedrock"
+    
+    vertex = "vertex"
+    
+    deepseek = "deepseek"
+    
+
+
+class APIServiceType(str, Enum):
+    """APIServiceType enumeration"""
+    
+    openai = "openai"
+    
+    anthropic = "anthropic"
+    
+    google = "google"
+    
+    gemini = "gemini"
+    
+    bedrock = "bedrock"
+    
+    vertex = "vertex"
+    
+    deepseek = "deepseek"
+    
+    notion = "notion"
+    
+    google_search = "google_search"
+    
+    slack = "slack"
+    
+    github = "github"
+    
+    jira = "jira"
+    
+
+
+class NotionOperation(str, Enum):
+    """NotionOperation enumeration"""
+    
+    create_page = "create_page"
+    
+    update_page = "update_page"
+    
+    read_page = "read_page"
+    
+    delete_page = "delete_page"
+    
+    create_database = "create_database"
+    
+    query_database = "query_database"
+    
+    update_database = "update_database"
+    
+
+
+class ToolType(str, Enum):
+    """ToolType enumeration"""
+    
+    web_search = "web_search"
+    
+    web_search_preview = "web_search_preview"
+    
+    image_generation = "image_generation"
+    
+
+
 
 # ============ Models ============
 
@@ -377,21 +434,6 @@ class DomainArrow(BaseModel):
     
 
 
-class MemoryConfig(BaseModel):
-    """MemoryConfig model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    forget_mode: Optional[ForgettingMode] = Field(default=None)
-    
-    max_messages: Optional[float] = Field(default=None)
-    
-    temperature: Optional[float] = Field(default=None)
-    
-    
-
-
 class MemorySettings(BaseModel):
     """MemorySettings model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -400,7 +442,7 @@ class MemorySettings(BaseModel):
     
     view: MemoryView
     
-    max_messages: float = Field(default=None)
+    max_messages: Optional[float] = Field(default=None)
     
     preserve_system: Optional[bool] = Field(default=None)
     
@@ -563,8 +605,6 @@ class PersonJobNodeData(BaseNodeData):
     
     max_iteration: float
     
-    memory_config: Optional[MemoryConfig] = Field(default=None)
-    
     memory_settings: Optional[MemorySettings] = Field(default=None)
     
     tools: Optional[Dict[str, Any]] = Field(default=None)
@@ -643,7 +683,7 @@ class ApiJobNodeData(BaseNodeData):
     
     timeout: Optional[int] = Field(default=None)
     
-    auth_type: Optional[Literal["none" | "bearer" | "basic" | "api_key"]] = Field(default=None)
+    auth_type: Optional[Literal["none", "bearer", "basic", "api_key"]] = Field(default=None)
     
     auth_config: Optional[Any] = Field(default=None)
     
@@ -711,7 +751,7 @@ class TemplateJobNodeData(BaseNodeData):
     
     variables: Optional[Any] = Field(default=None)
     
-    engine: Optional[Literal["internal" | "jinja2" | "handlebars"]] = Field(default=None)
+    engine: Optional[Literal["internal", "jinja2", "handlebars"]] = Field(default=None)
     
     
 
@@ -747,7 +787,7 @@ class TypescriptAstNodeData(BaseNodeData):
     
     includeJSDoc: Optional[bool] = Field(default=None)
     
-    parseMode: Optional[Literal["module" | "script"]] = Field(default=None)
+    parseMode: Optional[Literal["module", "script"]] = Field(default=None)
     
     
 
@@ -854,7 +894,7 @@ class ExecutionOptions(BaseModel):
     
     
     
-    mode: Optional[Literal["normal" | "debug" | "monitor"]] = Field(default=None)
+    mode: Optional[Literal["normal", "debug", "monitor"]] = Field(default=None)
     
     timeout: Optional[int] = Field(default=None)
     
@@ -965,7 +1005,7 @@ class Message(BaseModel):
     
     token_count: Optional[float] = Field(default=None)
     
-    message_type: Literal["person_to_person" | "system_to_person" | "person_to_system"]
+    message_type: Literal["person_to_person", "system_to_person", "person_to_system"]
     
     metadata: Optional[Any] = Field(default=None)
     
@@ -1000,21 +1040,6 @@ class Conversation(BaseModel):
     messages: Dict[str, Any]
     
     metadata: Optional[ConversationMetadata] = Field(default=None)
-    
-    
-
-
-class MemoryState(Conversation):
-    """MemoryState model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    visible_messages: float
-    
-    has_more: Optional[bool] = Field(default=None)
-    
-    config: Optional[Any] = Field(default=None)
     
     
 
@@ -1054,7 +1079,7 @@ class UIConfiguration(BaseModel):
     
     placeholder: Optional[str] = Field(default=None)
     
-    column: Optional[Union[1, 2]] = Field(default=None)
+    column: Optional[Literal[1, 2]] = Field(default=None)
     
     rows: Optional[float] = Field(default=None)
     
@@ -1200,6 +1225,108 @@ class NodeSpecificationRegistry(BaseModel):
     
 
 
+class ToolConfig(BaseModel):
+    """ToolConfig model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    
+    
+    type: ToolType
+    
+    enabled: Optional[bool] = Field(default=None)
+    
+    config: Optional[Any] = Field(default=None)
+    
+    
+
+
+class WebSearchResult(BaseModel):
+    """WebSearchResult model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    
+    
+    url: str
+    
+    title: str
+    
+    snippet: str
+    
+    score: Optional[float] = Field(default=None)
+    
+    
+
+
+class ImageGenerationResult(BaseModel):
+    """ImageGenerationResult model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    
+    
+    image_data: str
+    
+    format: str
+    
+    width: Optional[float] = Field(default=None)
+    
+    height: Optional[float] = Field(default=None)
+    
+    
+
+
+class ToolOutput(BaseModel):
+    """ToolOutput model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    
+    
+    type: ToolType
+    
+    result: Any
+    
+    raw_response: Optional[Any] = Field(default=None)
+    
+    
+
+
+class ChatResult(BaseModel):
+    """ChatResult model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    
+    
+    text: str
+    
+    token_usage: Optional[Any] = Field(default=None)
+    
+    raw_response: Any = Field(default=None)
+    
+    tool_outputs: Optional[Dict[str, Any]] = Field(default=None)
+    
+    
+
+
+class LLMRequestOptions(BaseModel):
+    """LLMRequestOptions model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    
+    
+    temperature: Optional[float] = Field(default=None)
+    
+    max_tokens: Optional[float] = Field(default=None)
+    
+    top_p: Optional[float] = Field(default=None)
+    
+    n: Optional[float] = Field(default=None)
+    
+    tools: Dict[str, Any] = Field(default=None)
+    
+    response_format: Optional[Any] = Field(default=None)
+    
+    
+
+
 
 # ============ Helper Functions ============
 def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
@@ -1317,6 +1444,23 @@ def is_domainnode(node: Any) -> bool:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+# ============ Deferred Type Aliases (Forward References) ============
+
+
+PersonBatchJobNodeData = PersonJobNodeData
+
+PersonMemoryMessage = Message
 
 
 

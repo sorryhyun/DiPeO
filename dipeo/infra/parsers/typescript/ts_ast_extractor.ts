@@ -108,9 +108,13 @@ function parseInterfaces(sourceFile: SourceFile, includeJSDoc: boolean): Interfa
     const properties: PropertyInfo[] = []
     
     interfaceDecl.getProperties().forEach(prop => {
+      // Get the type node to preserve original syntax (e.g., DomainNode[] instead of resolved type)
+      const typeNode = prop.getTypeNode()
+      const typeText = typeNode ? typeNode.getText() : prop.getType().getText(prop)
+      
       properties.push({
         name: prop.getName(),
-        type: prop.getType().getText(prop),
+        type: typeText,
         optional: prop.hasQuestionToken(),
         readonly: prop.isReadonly(),
         jsDoc: includeJSDoc ? getJSDoc(prop) : undefined
@@ -133,9 +137,13 @@ function parseTypeAliases(sourceFile: SourceFile, includeJSDoc: boolean): TypeAl
   const types: TypeAliasInfo[] = []
   
   sourceFile.getTypeAliases().forEach(typeAlias => {
+    // Get the type node to preserve original syntax
+    const typeNode = typeAlias.getTypeNode()
+    const typeText = typeNode ? typeNode.getText() : typeAlias.getType().getText(typeAlias)
+    
     types.push({
       name: typeAlias.getName(),
-      type: typeAlias.getType().getText(typeAlias),
+      type: typeText,
       isExported: typeAlias.isExported(),
       jsDoc: includeJSDoc ? getJSDoc(typeAlias) : undefined
     })
@@ -172,9 +180,13 @@ function parseClasses(sourceFile: SourceFile, includeJSDoc: boolean): ClassInfo[
     const methods: MethodInfo[] = []
     
     classDecl.getProperties().forEach(prop => {
+      // Get the type node to preserve original syntax
+      const typeNode = prop.getTypeNode()
+      const typeText = typeNode ? typeNode.getText() : prop.getType().getText(prop)
+      
       properties.push({
         name: prop.getName(),
-        type: prop.getType().getText(prop),
+        type: typeText,
         optional: prop.hasQuestionToken(),
         readonly: prop.isReadonly(),
         jsDoc: includeJSDoc ? getJSDoc(prop) : undefined

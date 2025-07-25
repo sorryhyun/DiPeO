@@ -5,7 +5,7 @@ from typing import Any
 
 from dipeo.application.resolution.handle_resolver import ResolvedConnection
 from dipeo.core.static import ExecutableEdge
-from dipeo.models import ContentType, DomainArrow, DomainNode, NodeID, NodeType
+from dipeo.diagram_generated import ContentType, DomainArrow, DomainNode, NodeID, NodeType
 
 
 @dataclass

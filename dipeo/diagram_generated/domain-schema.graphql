@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-25T22:50:56.788324
+# Generated at: 2025-07-25T23:36:29.954251
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -74,12 +74,6 @@ enum DataType {
   BOOLEAN
   OBJECT
   ARRAY
-}
-
-enum ForgettingMode {
-  NO_FORGET
-  ON_EVERY_TURN
-  UPON_REQUEST
 }
 
 enum MemoryView {
@@ -168,14 +162,6 @@ enum EventType {
   EXECUTION_UPDATE
 }
 
-enum NotionOperation {
-  CREATE_PAGE
-  UPDATE_PAGE
-  GET_PAGE
-  DELETE_PAGE
-  QUERY_DATABASE
-}
-
 enum LLMService {
   OPENAI
   ANTHROPIC
@@ -189,6 +175,14 @@ enum APIServiceType {
   GOOGLE
   AZURE
   CUSTOM
+}
+
+enum NotionOperation {
+  CREATE_PAGE
+  UPDATE_PAGE
+  GET_PAGE
+  DELETE_PAGE
+  QUERY_DATABASE
 }
 
 # ============================================================================
@@ -219,11 +213,6 @@ type DomainArrow {
   content_type: ContentType
   label: String
   data: JSONScalar
-}
-type MemoryConfig {
-  forget_mode: ForgettingMode
-  max_messages: Float
-  temperature: Float
 }
 type MemorySettings {
   view: MemoryView!
@@ -256,13 +245,13 @@ type DiagramMetadata {
   created: String!
   modified: String!
   author: String
-  tags: [String!]
+  tags: [String]
 }
 type DomainDiagram {
-  nodes: [String!]!
-  handles: [String!]!
-  arrows: [String!]!
-  persons: [String!]!
+  nodes: [DomainNode]!
+  handles: [DomainHandle]!
+  arrows: [DomainArrow]!
+  persons: [DomainPerson]!
   metadata: DiagramMetadata
 }
 type BaseNodeData {
@@ -279,16 +268,15 @@ type StartNodeData {
 type ConditionNodeData {
   condition_type: String!
   expression: String
-  node_indices: [String!]
+  node_indices: [String]
 }
 type PersonJobNodeData {
   person: PersonID
   first_only_prompt: String!
   default_prompt: String
   max_iteration: Float!
-  memory_config: MemoryConfig
   memory_settings: MemorySettings
-  tools: [String!]
+  tools: [ToolConfig]
 }
 type EndpointNodeData {
   save_to_file: Boolean!
@@ -351,7 +339,7 @@ type JsonSchemaValidatorNodeData {
 }
 type TypescriptAstNodeData {
   source: String
-  extractPatterns: [String!]
+  extractPatterns: [String]
   includeJSDoc: Boolean
   parseMode: String
 }
@@ -380,7 +368,7 @@ type NodeState {
 type ExecutionState {
   id: ExecutionID!
   status: ExecutionStatus!
-  diagram_id: JSONScalar
+  diagram_id: DiagramID
   started_at: String!
   ended_at: String
   node_states: JSONScalar!
@@ -391,7 +379,7 @@ type ExecutionState {
   duration_seconds: Float
   is_active: Boolean
   exec_counts: JSONScalar!
-  executed_nodes: [String!]!
+  executed_nodes: [String]!
 }
 type ExecutionOptions {
   mode: String
@@ -414,7 +402,7 @@ type NodeDefinition {
   type: String!
   node_schema: JSONScalar!
   handler: JSONScalar!
-  requires_services: [String!]
+  requires_services: [String]
   description: String
 }
 
@@ -422,7 +410,7 @@ type NodeDefinition {
 Used by both execution (PersonMemory) and person domains"""
 type Message {
   id: String
-  from_person_id: JSONScalar!
+  from_person_id: String!
   to_person_id: PersonID!
   content: String!
   timestamp: String
@@ -438,13 +426,8 @@ type ConversationMetadata {
   context_resets: Float!
 }
 type Conversation {
-  messages: [String!]!
+  messages: [Message]!
   metadata: ConversationMetadata
-}
-type MemoryState {
-  visible_messages: Float!
-  has_more: Boolean
-  config: JSONScalar
 }
 
 # ============================================================================
@@ -453,7 +436,7 @@ type MemoryState {
 input ExecutionUpdate {
   type: EventType!
   execution_id: ExecutionID!
-  node_id: JSONScalar = null
+  node_id: NodeID = null
   status: NodeExecutionStatus = null
   result: JSONScalar = null
   error: String = null

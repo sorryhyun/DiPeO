@@ -1,5 +1,5 @@
 """
-Auto-generated 2025-07-25T20:25:07.555522. Do NOT edit by hand.
+Auto-generated 2025-07-25T23:10:17.306230. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 
@@ -93,8 +93,7 @@ def diagram_arrays_to_maps(diagram: Dict[str, Any]) -> Dict[str, Any]:
         "nodes": {n["id"]: n for n in diagram.get("nodes", [])},
         "arrows": {a["id"]: a for a in diagram.get("arrows", [])},
         "handles": {h["id"]: h for h in diagram.get("handles", [])},
-        "persons": {p["id"]: p for p in diagram.get("persons", [])},
-        "apiKeys": {k["id"]: k for k in diagram.get("apiKeys", [])}
+        "persons": {p["id"]: p for p in diagram.get("persons", [])}
     }
 
 
@@ -103,11 +102,10 @@ def diagram_maps_to_arrays(
     arrows: Dict[str, Any] = None,
     handles: Dict[str, Any] = None,
     persons: Dict[str, Any] = None,
-    api_keys: Dict[str, Any] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """Convert map-based diagram to array-based structure."""
-    # Handle both calling styles
+    # Handle both calling styles for backward compatibility
     if nodes is None and len(kwargs) == 1 and 'diagram' in kwargs:
         # Called with single diagram dict
         diagram = kwargs['diagram']
@@ -115,17 +113,15 @@ def diagram_maps_to_arrays(
             "nodes": list(diagram.get("nodes", {}).values()),
             "arrows": list(diagram.get("arrows", {}).values()),
             "handles": list(diagram.get("handles", {}).values()),
-            "persons": list(diagram.get("persons", {}).values()),
-            "apiKeys": list(diagram.get("apiKeys", {}).values())
+            "persons": list(diagram.get("persons", {}).values())
         }
     else:
-        # Called with individual components
+        # Called with individual components (current usage)
         return {
             "nodes": list((nodes or {}).values()),
             "arrows": list((arrows or {}).values()),
             "handles": list((handles or {}).values()),
-            "persons": list((persons or {}).values()),
-            "api_keys": list((api_keys or {}).values())
+            "persons": list((persons or {}).values())
         }
 
 

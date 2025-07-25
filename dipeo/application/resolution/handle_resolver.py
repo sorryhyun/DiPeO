@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from dipeo.models import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
-from dipeo.models.handle_utils import parse_handle_id_safe
+from dipeo.diagram_generated import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
+from dipeo.diagram_generated.handle_utils import parse_handle_id_safe
 
 
 @dataclass

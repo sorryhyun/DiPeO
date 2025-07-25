@@ -13,10 +13,10 @@ from dipeo.application.unified_service_registry import (
     CURRENT_NODE_INFO,
     PROMPT_BUILDER,
 )
-from dipeo.core.static.generated_nodes import PersonBatchJobNode
+from dipeo.diagram_generated.nodes.person_batch_job_node import PersonBatchJobNode
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.core.utils import is_conversation
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ChatResult,
     ContentType,
     DomainDiagram,

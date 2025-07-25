@@ -1,30 +1,30 @@
 """
-Auto-generated 2025-07-25T22:50:50.225989. Do NOT edit by hand.
+Auto-generated 2025-07-25T23:10:17.306230. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 
 from typing import Dict, Any, TypedDict
 from .enums import NodeType, HandleDirection
-from .models import NodeID, HandleID
+from .domain_models import NodeID, HandleID
 
 # ---------------------------------------------------------------------------
 
 NODE_TYPE_MAP: Dict[str, NodeType] = {
-    "code_job": NodeType.CODE_JOB,
-    "api_job": NodeType.API_JOB,
-    "person_job": NodeType.PERSON_JOB,
-    "person_batch_job": NodeType.PERSON_BATCH_JOB,
-    "condition": NodeType.CONDITION,
-    "user_response": NodeType.USER_RESPONSE,
-    "start": NodeType.START,
-    "endpoint": NodeType.ENDPOINT,
-    "db": NodeType.DB,
-    "notion": NodeType.NOTION,
-    "hook": NodeType.HOOK,
-    "template_job": NodeType.TEMPLATE_JOB,
-    "json_schema_validator": NodeType.JSON_SCHEMA_VALIDATOR,
-    "typescript_ast": NodeType.TYPESCRIPT_AST,
-    "sub_diagram": NodeType.SUB_DIAGRAM,
+    "code_job": NodeType.code_job,
+    "api_job": NodeType.api_job,
+    "person_job": NodeType.person_job,
+    "person_batch_job": NodeType.person_batch_job,
+    "condition": NodeType.condition,
+    "user_response": NodeType.user_response,
+    "start": NodeType.start,
+    "endpoint": NodeType.endpoint,
+    "db": NodeType.db,
+    "notion": NodeType.notion,
+    "hook": NodeType.hook,
+    "template_job": NodeType.template_job,
+    "json_schema_validator": NodeType.json_schema_validator,
+    "typescript_ast": NodeType.typescript_ast,
+    "sub_diagram": NodeType.sub_diagram,
 }
 
 NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.items()}
@@ -89,8 +89,7 @@ def diagram_arrays_to_maps(diagram: dict[str, Any]) -> dict[str, Any]:
         "nodes": {n["id"]: n for n in diagram.get("nodes", [])},
         "arrows": {a["id"]: a for a in diagram.get("arrows", [])},
         "handles": {h["id"]: h for h in diagram.get("handles", [])},
-        "persons": {p["id"]: p for p in diagram.get("persons", [])},
-        "apiKeys": {k["id"]: k for k in diagram.get("apiKeys", [])}
+        "persons": {p["id"]: p for p in diagram.get("persons", [])}
     }
 
 
@@ -100,8 +99,7 @@ def diagram_maps_to_arrays(diagram: dict[str, Any]) -> dict[str, Any]:
         "nodes": list(diagram.get("nodes", {}).values()),
         "arrows": list(diagram.get("arrows", {}).values()),
         "handles": list(diagram.get("handles", {}).values()),
-        "persons": list(diagram.get("persons", {}).values()),
-        "apiKeys": list(diagram.get("apiKeys", {}).values())
+        "persons": list(diagram.get("persons", {}).values())
     }
 
 

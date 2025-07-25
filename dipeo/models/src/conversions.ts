@@ -11,12 +11,10 @@ import {
   ArrowID,
   HandleID,
   PersonID,
-  ApiKeyID,
   DomainNode,
   DomainArrow,
   DomainHandle,
   DomainPerson,
-  DomainApiKey,
   DomainDiagram,
   PersonLLMConfig,
 } from './diagram';
@@ -168,20 +166,17 @@ export function diagramArraysToMaps(diagram: {
   arrows: DomainArrow[];
   handles: DomainHandle[];
   persons: DomainPerson[];
-  apiKeys?: DomainApiKey[];
 }): {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
   handles: Map<HandleID, DomainHandle>;
   persons: Map<PersonID, DomainPerson>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
 } {
   return {
     nodes: new Map(diagram.nodes.map(n => [n.id, n])),
     arrows: new Map(diagram.arrows.map(a => [a.id, a])),
     handles: new Map(diagram.handles.map(h => [h.id, h])),
     persons: new Map(diagram.persons.map(p => [p.id, p])),
-    apiKeys: new Map((diagram.apiKeys || []).map(k => [k.id, k])),
   };
 }
 
@@ -193,20 +188,17 @@ export function diagramMapsToArrays(diagram: {
   arrows: Map<ArrowID, DomainArrow>;
   handles: Map<HandleID, DomainHandle>;
   persons: Map<PersonID, DomainPerson>;
-  apiKeys?: Map<ApiKeyID, DomainApiKey>;
 }): {
   nodes: DomainNode[];
   arrows: DomainArrow[];
   handles: DomainHandle[];
   persons: DomainPerson[];
-  apiKeys: DomainApiKey[];
 } {
   return {
     nodes: Array.from(diagram.nodes.values()),
     arrows: Array.from(diagram.arrows.values()),
     handles: Array.from(diagram.handles.values()),
     persons: Array.from(diagram.persons.values()),
-    apiKeys: diagram.apiKeys ? Array.from(diagram.apiKeys.values()) : [],
   };
 }
 

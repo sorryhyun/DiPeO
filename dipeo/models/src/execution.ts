@@ -4,8 +4,8 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import type { NodeID, DiagramID, MemoryConfig } from './diagram.js';
-import type { Message, MemoryState } from './conversation.js';
+import type { NodeID, DiagramID } from './diagram.js';
+import type { Message } from './conversation.js';
 
 // Type aliases
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
@@ -112,8 +112,6 @@ export interface InteractiveResponse {
 
 // Use shared conversation types from person domain
 export type PersonMemoryMessage = Message;
-export type PersonMemoryState = MemoryState;
-export type PersonMemoryConfig = MemoryConfig;
 
 // Update events for real-time communication
 export interface ExecutionUpdate {

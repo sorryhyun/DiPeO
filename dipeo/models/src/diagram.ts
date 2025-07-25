@@ -54,12 +54,6 @@ export enum DataType {
   ARRAY = 'array'
 }
 
-export enum ForgettingMode {
-  NO_FORGET = 'no_forget',
-  ON_EVERY_TURN = 'on_every_turn',
-  UPON_REQUEST = 'upon_request'
-}
-
 export enum MemoryView {
   ALL_INVOLVED = 'all_involved',  // Messages where person is sender or recipient
   SENT_BY_ME = 'sent_by_me',      // Messages I sent
@@ -156,12 +150,6 @@ export interface DomainArrow {
   data?: Record<string, any> | null;
 }
 
-export interface MemoryConfig {
-  forget_mode?: ForgettingMode;
-  max_messages?: number;
-  temperature?: number;
-}
-
 export interface MemorySettings {
   view: MemoryView;
   max_messages?: number | null;
@@ -236,7 +224,6 @@ export interface PersonJobNodeData extends BaseNodeData {
   first_only_prompt: string;
   default_prompt?: string;
   max_iteration: number;
-  memory_config?: MemoryConfig | null;  // Deprecated - use memory_settings
   memory_settings?: MemorySettings | null;  // New unified memory configuration
   tools?: ToolConfig[] | null;
 }
