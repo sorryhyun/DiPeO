@@ -41,75 +41,115 @@ def _create_execute_diagram_use_case(
     )
 
 
-def _create_unified_service_registry(
-    # Integration services
-    llm_service,
-    notion_service,
-    api_service,
-    integrated_diagram_service,
-    typescript_parser,
-    # Persistence services
-    file_service,
-    diagram_loader,
-    api_key_service,
-    diagram_storage_service,
-    db_operations_service,
-    state_store,
-    message_router,
-    # Business logic services
-    validation_service,
-    condition_evaluator,
-    api_business_logic,
-    file_business_logic,
-    prompt_builder,
-    # Static services
-    template_processor,
-    # Dynamic services
-    conversation_manager,
-):
-    """Factory for UnifiedServiceRegistry.
-    
-    Creates a registry containing all services required by node handlers
-    during diagram execution. This provides a unified interface for
-    dependency injection in the execution context.
-    """
+def _create_unified_service_registry_from_dependencies(static, business, dynamic, persistence, integration):
+    """Factory for UnifiedServiceRegistry using automatic service discovery."""
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    import logging
     
+    logger = logging.getLogger(__name__)
     registry = UnifiedServiceRegistry()
     
-    # Integration services
-    registry.register("llm_service", llm_service)
-    registry.register("notion_service", notion_service)
-    registry.register("api_service", api_service)
-    registry.register("integrated_diagram_service", integrated_diagram_service)
-    registry.register("typescript_parser", typescript_parser)
+    # Define container mappings with their service configurations
+    container_configs = {
+        "persistence": {
+            "container": persistence,
+            "services": [
+                "state_store",
+                "message_router",
+                "file_service",
+                "api_key_service",
+                "diagram_storage_service",
+                "diagram_storage_adapter",
+                "diagram_loader",
+                "db_operations_service",
+            ],
+            "aliases": {
+                "file": "file_service",  # Legacy alias
+            }
+        },
+        "integration": {
+            "container": integration,
+            "services": [
+                "llm_service",
+                "api_service",
+                "notion_service",
+                "integrated_diagram_service",
+                "typescript_parser",
+            ],
+            "optional_services": [
+                "api_integration_service",
+                "code_execution_service",
+            ]
+        },
+        "business": {
+            "container": business,
+            "services": [
+                "condition_evaluator",
+                "api_business_logic",
+                "file_business_logic",
+                "diagram_business_logic",
+                "db_validator",
+                "validation_service",
+                "prompt_builder",
+            ],
+            "aliases": {
+                "condition_evaluation_service": "condition_evaluator",
+                "file_domain_service": "file_business_logic",
+            }
+        },
+        "static": {
+            "container": static,
+            "services": [
+                "diagram_validator",
+                "diagram_compiler",
+                "template_processor",
+            ],
+            "aliases": {
+                "template_service": "template_processor",
+                "template": "template_processor",  # Legacy alias
+            }
+        },
+        "dynamic": {
+            "container": dynamic,
+            "services": [
+                "conversation_manager",
+            ],
+            "optional_services": [
+                "execution_flow_service",
+            ],
+            "aliases": {
+                "conversation_service": "conversation_manager",
+            }
+        }
+    }
     
-    # Persistence services
-    registry.register("file_service", file_service)
-    registry.register("diagram_loader", diagram_loader)
-    registry.register("api_key_service", api_key_service)
-    registry.register("diagram_storage_service", diagram_storage_service)
-    registry.register("db_operations_service", db_operations_service)
-    registry.register("state_store", state_store)
-    registry.register("message_router", message_router)
-    
-    # Business logic services
-    registry.register("validation_service", validation_service)
-    registry.register("condition_evaluation_service", condition_evaluator)
-    registry.register("api_business_logic", api_business_logic)
-    registry.register("file_domain_service", file_business_logic)
-    registry.register("prompt_builder", prompt_builder)
+    # Register services from each container
+    for container_name, config in container_configs.items():
+        container = config["container"]
+        if not container:
+            continue
+            
+        try:
+            # Register required services
+            for service_name in config.get("services", []):
+                if hasattr(container, service_name):
+                    service = getattr(container, service_name)()
+                    registry.register(service_name, service)
+            
+            # Register optional services
+            for service_name in config.get("optional_services", []):
+                if hasattr(container, service_name):
+                    service = getattr(container, service_name)()
+                    registry.register(service_name, service)
+            
+            # Register aliases
+            for alias, target in config.get("aliases", {}).items():
+                if hasattr(container, target):
+                    service = getattr(container, target)()
+                    registry.register(alias, service)
 
-    # Static services
-    registry.register("template_service", template_processor)
-    
-    # Dynamic services
-    registry.register("conversation_service", conversation_manager)
-    registry.register("conversation_manager", conversation_manager)
-    
-    # Legacy aliases for backward compatibility
-    registry.register("file", file_service)  # Used by endpoint.py
-    registry.register("template", template_processor)  # Used by code_job.py
+        except Exception as e:
+            logger.error(f"Failed to register {container_name} services: {e}")
     
     return registry
 
@@ -131,33 +171,14 @@ class ApplicationContainer(ImmutableBaseContainer):
     persistence = providers.DependenciesContainer()
     integration = providers.DependenciesContainer()
     
-    # Service registry for node handlers
+    # Service registry for node handlers - manually registering from dependencies
     service_registry = providers.Singleton(
-        _create_unified_service_registry,
-        # Integration services
-        llm_service=integration.llm_service,
-        notion_service=integration.notion_service,
-        api_service=integration.api_service,
-        integrated_diagram_service=integration.integrated_diagram_service,
-        typescript_parser=integration.typescript_parser,
-        # Persistence services
-        file_service=persistence.file_service,
-        diagram_loader=persistence.diagram_loader,
-        api_key_service=persistence.api_key_service,
-        diagram_storage_service=persistence.diagram_storage_service,
-        db_operations_service=persistence.db_operations_service,
-        state_store=persistence.state_store,
-        message_router=persistence.message_router,
-        # Business logic services
-        validation_service=business.validation_service,
-        condition_evaluator=business.condition_evaluator,
-        api_business_logic=business.api_business_logic,
-        file_business_logic=business.file_business_logic,
-        prompt_builder=business.prompt_builder,
-        # Static services
-        template_processor=static.template_processor,
-        # Dynamic services
-        conversation_manager=dynamic.conversation_manager,
+        _create_unified_service_registry_from_dependencies,
+        static=static,
+        business=business,
+        dynamic=dynamic,
+        persistence=persistence,
+        integration=integration,
     )
     
     # Use case: Prepare diagram for execution

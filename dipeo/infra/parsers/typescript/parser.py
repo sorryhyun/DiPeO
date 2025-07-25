@@ -3,6 +3,7 @@
 import subprocess
 import json
 import os
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dipeo.core.ports.ast_parser_port import ASTParserPort
@@ -56,7 +57,7 @@ class TypeScriptParser(ASTParserPort):
             raise ServiceError(f'TypeScript parser script not found at {self.parser_script}')
         
         # Build command arguments
-        cmd = ['pnpm', 'tsx', str(self.parser_script), source]
+        cmd = ['pnpm', 'tsx', str(self.parser_script)]
         
         if extract_patterns:
             cmd.append(f'--patterns={",".join(extract_patterns)}')
@@ -67,6 +68,14 @@ class TypeScriptParser(ASTParserPort):
         cmd.append(f'--mode={parse_mode}')
         
         try:
+            # Create a temporary file with the TypeScript source code
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.ts', delete=False) as tmp_file:
+                tmp_file.write(source)
+                tmp_file_path = tmp_file.name
+            
+            # Add the file path to the command
+            cmd.append(tmp_file_path)
+            
             # Run the TypeScript parser
             result = subprocess.run(
                 cmd,
@@ -76,11 +85,20 @@ class TypeScriptParser(ASTParserPort):
                 timeout=30
             )
             
+            # Clean up the temporary file
+            os.unlink(tmp_file_path)
+            
             if result.returncode != 0:
+                print(f"[TypeScript Parser] Parser failed with return code {result.returncode}")
+                print(f"[TypeScript Parser] stderr: {result.stderr}")
+                print(f"[TypeScript Parser] stdout: {result.stdout[:200]}...")
                 raise ServiceError(f'Parser failed: {result.stderr}')
             
             # Parse the JSON output
             parsed_result = json.loads(result.stdout)
+            
+            # Debug: print what we received
+            print(f"[TypeScript Parser] Parsed result has keys: {list(parsed_result.keys())}")
             
             # Check for parser errors
             if parsed_result.get('error'):
@@ -100,6 +118,11 @@ class TypeScriptParser(ASTParserPort):
                 elif pattern == 'function':
                     ast_data['functions'] = parsed_result.get('functions', [])
             
+            # Debug: print what we found
+            print(f"[TypeScript Parser] Found {len(ast_data.get('interfaces', []))} interfaces")
+            print(f"[TypeScript Parser] Found {len(ast_data.get('types', []))} types")
+            print(f"[TypeScript Parser] Found {len(ast_data.get('enums', []))} enums")
+            
             return {
                 'ast': ast_data,
                 'metadata': {
@@ -110,10 +133,28 @@ class TypeScriptParser(ASTParserPort):
             }
             
         except subprocess.TimeoutExpired:
+            # Clean up temp file if it exists
+            if 'tmp_file_path' in locals():
+                try:
+                    os.unlink(tmp_file_path)
+                except:
+                    pass
             raise ServiceError('TypeScript parsing timed out after 30 seconds')
         except json.JSONDecodeError as e:
+            # Clean up temp file if it exists
+            if 'tmp_file_path' in locals():
+                try:
+                    os.unlink(tmp_file_path)
+                except:
+                    pass
             raise ServiceError(f'Failed to parse JSON output: {str(e)}')
         except Exception as e:
+            # Clean up temp file if it exists
+            if 'tmp_file_path' in locals():
+                try:
+                    os.unlink(tmp_file_path)
+                except:
+                    pass
             raise ServiceError(f'Unexpected error during TypeScript parsing: {str(e)}')
     
     async def parse_file(self, file_path: str, extract_patterns: List[str], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

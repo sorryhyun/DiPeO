@@ -43,6 +43,9 @@ class ExecutionMutations:
                 return ExecutionResult(
                     success=False, error="Execution service not initialized"
                 )
+            
+            # Set the container on the execution service
+            execution_service.container = context.container
 
             if data.diagram_data:
                 # The execution service will validate as DomainDiagram which expects lists

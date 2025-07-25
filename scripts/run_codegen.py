@@ -14,7 +14,7 @@ from pathlib import Path
 def create_temp_diagram(spec_path):
     """Create a temporary diagram with the spec path filled in."""
     # Read the template diagram
-    diagram_path = Path('files/diagrams/codegen/main.light.yaml')
+    diagram_path = Path('files/diagrams/codegen/node_ui_codegen.light.yaml')
     with open(diagram_path, 'r') as f:
         diagram = yaml.safe_load(f)
     

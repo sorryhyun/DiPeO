@@ -1,0 +1,41 @@
+// Auto-generated node configuration for {{ nodeType }}
+import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeTypePascal }}Fields';
+
+export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
+  label: '{{ displayName }}',
+  icon: '{{ icon }}',
+  color: '{{ color | default('#6366f1') }}',
+  nodeType: '{{ nodeType }}',
+  category: '{{ category | default('utility') }}',
+  handles: {
+{% if handles.inputs %}
+    input: [
+{% for input in handles.inputs %}
+      { id: '{{ input.id | default('input') }}', label: '{{ input.label | default('') }}', position: '{{ input.position | default('left') }}' },
+{% endfor %}
+    ],
+{% endif %}
+{% if handles.outputs %}
+    output: [
+{% for output in handles.outputs %}
+      { id: '{{ output.id | default('output') }}', label: '{{ output.label | default('') }}', position: '{{ output.position | default('right') }}' },
+{% endfor %}
+    ],
+{% endif %}
+  },
+  defaults: {
+{% for field in fields if field.default is defined %}
+{% if field.default is string %}
+    {{ field.name }}: '{{ field.default }}',
+{% elif field.default is boolean %}
+    {{ field.name }}: {{ field.default | lower }},
+{% else %}
+    {{ field.name }}: {{ field.default | tojson }},
+{% endif %}
+{% endfor %}
+  },
+  customFields: {{ nodeTypeCamel }}Fields,
+};
+
+export default {{ nodeTypeCamel }}Config;

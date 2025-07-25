@@ -74,11 +74,11 @@ class ServerManager:
             self.process.wait()
             self.process = None
 
-    def execute_diagram(self, diagram_data: dict[str, Any]) -> dict[str, Any]:
+    def execute_diagram(self, diagram_data: dict[str, Any], input_variables: dict[str, Any] | None = None) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
-        mutation ExecuteDiagram($diagramData: JSONScalar) {
-            execute_diagram(data: { diagram_data: $diagramData }) {
+        mutation ExecuteDiagram($diagramData: JSONScalar, $variables: JSONScalar) {
+            execute_diagram(data: { diagram_data: $diagramData, variables: $variables }) {
                 success
                 execution_id
                 error
@@ -88,7 +88,13 @@ class ServerManager:
 
         response = requests.post(
             f"{self.base_url}/graphql",
-            json={"query": query, "variables": {"diagramData": diagram_data}},
+            json={
+                "query": query, 
+                "variables": {
+                    "diagramData": diagram_data,
+                    "variables": input_variables
+                }
+            },
         )
 
         if response.status_code != 200:

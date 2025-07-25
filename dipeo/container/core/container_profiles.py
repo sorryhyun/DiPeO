@@ -94,6 +94,33 @@ PROFILES = {
         lazy_load_llm=True,
         lazy_load_integrations=True,
     ),
+    
+    'sub_diagram': ContainerProfile(
+        name='sub_diagram',
+        description='Sub-diagram container with isolated execution state',
+        include_execution_service=True,
+        include_state_management=True,  # Isolated state management
+        include_llm_services=True,
+        include_conversation_manager=True,  # Can be isolated optionally
+        include_notion_service=True,
+        include_flow_control=True,
+        # Sub-diagrams inherit infrastructure from parent
+        # Only isolate dynamic (execution) state
+        config_overrides={
+            'isolation': {
+                'isolate_conversation': True,  # Default to isolating conversation
+                'isolate_execution': True,     # Always isolate execution state
+            },
+            'resources': {
+                'timeout': 300,  # 5 minute default timeout
+                'max_depth': 3,  # Maximum nesting depth
+            },
+            'observers': {
+                'propagate_streaming': True,
+                'state_scope': 'isolated',
+            }
+        }
+    ),
 }
 
 

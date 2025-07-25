@@ -51,7 +51,8 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
     nodeType: 'code_job',
     fields: [
       { tsName: 'language', pyName: 'language', defaultValue: 'SupportedLanguage.python' },
-      { tsName: 'filePath', pyName: 'filePath', defaultValue: '""' },
+      { tsName: 'filePath', pyName: 'filePath' },
+      { tsName: 'code', pyName: 'code' },
       { tsName: 'functionName', pyName: 'functionName' },
       { tsName: 'timeout', pyName: 'timeout' }
     ]
@@ -138,11 +139,11 @@ const NODE_DATA_TO_STATIC_MAP: Record<string, { nodeType: string; fields: Array<
     nodeType: 'sub_diagram',
     fields: [
       { tsName: 'diagram_name', pyName: 'diagram_name' },
+      { tsName: 'diagram_format', pyName: 'diagram_format' },
       { tsName: 'diagram_data', pyName: 'diagram_data' },
-      { tsName: 'input_mapping', pyName: 'input_mapping' },
-      { tsName: 'output_mapping', pyName: 'output_mapping' },
-      { tsName: 'timeout', pyName: 'timeout' },
-      { tsName: 'wait_for_completion', pyName: 'wait_for_completion', defaultValue: 'True' }
+      { tsName: 'batch', pyName: 'batch', defaultValue: 'False' },
+      { tsName: 'batch_input_key', pyName: 'batch_input_key', defaultValue: '"items"' },
+      { tsName: 'batch_parallel', pyName: 'batch_parallel', defaultValue: 'True' }
     ]
   }
 };
@@ -398,7 +399,7 @@ class StaticNodeGenerator {
     lines.push('from dipeo.models.models import (');
     lines.push('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,');
     lines.push('    HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,');
-    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService');
+    lines.push('    NotionOperation, HookType, PersonLLMConfig, LLMService, DiagramFormat');
     lines.push(')');
     lines.push('');
     lines.push('');

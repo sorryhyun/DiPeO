@@ -28,7 +28,6 @@ import {
  * Maps node type strings to GraphQL/domain node types
  */
 export const NODE_TYPE_MAP: Record<string, NodeType> = {
-  'job': NodeType.JOB,
   'code_job': NodeType.CODE_JOB,
   'api_job': NodeType.API_JOB,
   'person_job': NodeType.PERSON_JOB,

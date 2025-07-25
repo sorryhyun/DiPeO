@@ -1,0 +1,191 @@
+# Code Generation Templates Manifest
+# This file defines all templates and their configurations for the diagram-based codegen system
+
+version: "1.0"
+metadata:
+  description: "Template definitions for DiPeO code generation"
+  created: "2025-07-21"
+  
+templates:
+  # TypeScript Models
+  - id: ts_model
+    name: "TypeScript Node Model"
+    template: files/codegen/templates/frontend/typescript_model.j2
+    output: dipeo/models/src/nodes/{{spec_data.nodeType}}Node.ts
+    engine: jinja2
+    formatter: prettier
+    category: models
+    
+  # Python Models  
+  - id: py_models
+    name: "Python Pydantic Models"
+    runner: python_function
+    function: generate_python_model
+    module: files/codegen/code/codegen_functions.py
+    output: apps/server/src/dipeo_server/models/nodes/{{spec_data.nodeType}}.py
+    formatter: black
+    category: models
+    
+  # GraphQL Schema
+  - id: gql_schema
+    name: "GraphQL Schema Definition"
+    template: files/codegen/templates/backend/graphql_from_python.j2
+    output: apps/server/src/dipeo_server/api/graphql/schema/nodes/{{spec_data.nodeType}}.graphql
+    engine: jinja2
+    post_processor: sort_graphql_defs
+    category: graphql
+    
+  # React Components
+  - id: react_component
+    name: "React Node Component"
+    template: files/codegen/templates/frontend/react_component.j2
+    output: apps/web/src/features/diagram-editor/components/nodes/generated/{{spec_data.nodeType}}Node.tsx
+    engine: jinja2
+    formatter: prettier
+    category: frontend
+    
+  - id: node_config
+    name: "Node Configuration"
+    template: files/codegen/templates/frontend/node_config.j2
+    output: apps/web/src/features/diagram-editor/config/nodes/generated/{{spec_data.camelCase}}Config.ts
+    engine: jinja2
+    formatter: prettier
+    category: frontend
+    
+  - id: field_config
+    name: "Field Configuration"
+    template: files/codegen/templates/frontend/field_config.j2
+    output: apps/web/src/features/diagram-editor/config/nodes/generated/{{spec_data.camelCase}}Fields.ts
+    engine: jinja2
+    formatter: prettier
+    category: frontend
+    
+  # Handler Implementation
+  - id: handler_stub
+    name: "Python Handler Stub"
+    template: files/codegen/templates/backend/handler_stub.j2
+    output: dipeo/application/execution/handlers/generated/{{spec_data.nodeType}}_stub.py
+    engine: jinja2
+    formatter: black
+    category: backend
+    optional: true
+    
+  # Registration Files
+  - id: node_registration
+    name: "Node Type Registration"
+    runner: python_function
+    function: update_node_registration
+    module: files/codegen/code/registry_functions.py
+    output: dipeo/application/container/node_registry.py
+    category: registry
+    
+  - id: graphql_registration
+    name: "GraphQL Schema Registration"
+    runner: python_function
+    function: update_graphql_registry
+    module: files/codegen/code/registry_functions.py
+    output: apps/server/src/dipeo_server/api/graphql/registry.py
+    category: registry
+    
+  - id: frontend_exports
+    name: "Frontend Export Index"
+    runner: python_function
+    function: update_frontend_exports
+    module: files/codegen/code/registry_functions.py
+    output: apps/web/src/features/diagram-editor/config/nodes/index.ts
+    formatter: prettier
+    category: registry
+
+# Template engine configurations
+engines:
+  handlebars:
+    helpers:
+      - camelCase
+      - pascalCase
+      - snakeCase
+      - upperCase
+      - lowerCase
+      - pluralize
+      - singularize
+      - jsonStringify
+      - typeMap
+      - defaultValue
+      
+  jinja2:
+    extensions:
+      - jinja2.ext.do
+      - jinja2.ext.loopcontrols
+      
+# Formatter configurations
+formatters:
+  prettier:
+    command: pnpm prettier --write
+    file_types: [ts, tsx, js, jsx, json]
+    
+  black:
+    command: black
+    file_types: [py]
+    config_file: pyproject.toml
+    
+  ruff:
+    command: ruff format
+    file_types: [py]
+    
+  eslint:
+    command: pnpm eslint --fix
+    file_types: [ts, tsx, js, jsx]
+    
+# Post-processor configurations
+post_processors:
+  sort_graphql_defs:
+    function: sort_graphql_definitions
+    module: files/codegen/code/post_processors.py
+    
+  add_header_comment:
+    function: add_generated_header
+    module: files/codegen/code/post_processors.py
+    
+  validate_imports:
+    function: validate_and_fix_imports
+    module: files/codegen/code/post_processors.py
+
+# Generation modes
+modes:
+  full:
+    description: "Generate all artifacts for all specifications"
+    templates: all
+    
+  models:
+    description: "Generate only model files (TypeScript & Python)"
+    templates: [ts_model, py_models]
+    
+  nodes:
+    description: "Generate node UI components and configurations"
+    templates: [react_component, node_config, field_config, gql_schema]
+    
+  minimal:
+    description: "Generate only essential files"
+    templates: [ts_model, py_models, gql_schema]
+
+# Validation rules
+validation:
+  required_fields:
+    - nodeType
+    - displayName
+    - category
+    - fields
+    - handles
+    
+  naming_conventions:
+    nodeType: snake_case
+    displayName: title_case
+    fieldNames: camelCase
+    
+  reserved_names:
+    - id
+    - type
+    - data
+    - position
+    - __proto__
+    - constructor
+    - prototype

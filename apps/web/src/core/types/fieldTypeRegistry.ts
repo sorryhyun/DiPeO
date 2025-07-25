@@ -16,7 +16,10 @@ export type ExtendedFieldType =
   | 'array' 
   | 'object' 
   | 'email' 
-  | 'url';
+  | 'url'
+  | 'code'
+  | 'filepath'
+  | 'password';
 
 // Legacy field type names that need to be maintained for backward compatibility
 export type LegacyFieldType = 
@@ -48,7 +51,10 @@ export const FIELD_TYPE_REGISTRY = {
     'array': FIELD_TYPES.CUSTOM,
     'object': FIELD_TYPES.CUSTOM,
     'email': FIELD_TYPES.TEXT,
-    'url': FIELD_TYPES.TEXT,
+    'url': FIELD_TYPES.URL,
+    'code': FIELD_TYPES.CODE,
+    'filepath': FIELD_TYPES.FILEPATH,
+    'password': FIELD_TYPES.PASSWORD,
   } as const satisfies Record<string, FieldType>,
 
   // Legacy field type mappings

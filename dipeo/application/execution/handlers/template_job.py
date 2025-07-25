@@ -68,20 +68,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             request.add_metadata("output_path", node.output_path)
         
         try:
-            # Get template content
-            if node.template_content:
-                template_content = node.template_content
-            else:
-                # Load from file
-                template_path = Path(node.template_path)
-                if not template_path.is_absolute():
-                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    template_path = Path(base_dir) / node.template_path
-                
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    template_content = f.read()
-            
-            # Prepare template variables
+            # Prepare template variables first
             template_vars = {}
             
             # Add node-defined variables
@@ -92,30 +79,54 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             if inputs:
                 template_vars.update(inputs)
             
+            # Get template content
+            if node.template_content:
+                template_content = node.template_content
+            else:
+                # Process template_path through template processor to handle variables
+                processed_template_path = self._processor.process_simple(node.template_path, template_vars)
+                
+                # Load from file
+                template_path = Path(processed_template_path)
+                if not template_path.is_absolute():
+                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+                    template_path = Path(base_dir) / processed_template_path
+                
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    template_content = f.read()
+            
             # Choose template engine
             engine = node.engine or "internal"
             
-            if engine == "internal":
-                # Use built-in TemplateProcessor
-                rendered = self._processor.process_simple(template_content, template_vars)
-            elif engine == "jinja2":
-                # Use Jinja2
-                rendered = await self._render_jinja2(template_content, template_vars)
-            elif engine == "handlebars":
-                # Use Python handlebars implementation
-                rendered = await self._render_handlebars(template_content, template_vars)
-            else:
+            try:
+                if engine == "internal":
+                    # Use built-in TemplateProcessor
+                    rendered = self._processor.process_simple(template_content, template_vars)
+                elif engine == "jinja2":
+                    # Use Jinja2
+                    rendered = await self._render_jinja2(template_content, template_vars)
+                elif engine == "handlebars":
+                    # Use Python handlebars implementation
+                    rendered = await self._render_handlebars(template_content, template_vars)
+                else:
+                    return ErrorOutput(
+                        value=f"Unsupported template engine: {engine}",
+                        node_id=node.id,
+                        error_type="UnsupportedEngineError"
+                    )
+            except Exception as render_error:
                 return ErrorOutput(
-                    value=f"Unsupported template engine: {engine}",
+                    value=f"Template rendering failed: {str(render_error)}",
                     node_id=node.id,
-                    error_type="UnsupportedEngineError"
+                    error_type="RenderError",
+                    metadata={"engine": engine}
                 )
             
             # Write to file if output_path is specified
             if node.output_path:
-                
                 # Process output_path through template processor to handle variables
                 processed_output_path = self._processor.process_simple(node.output_path, template_vars)
+                
                 output_path = Path(processed_output_path)
                 if not output_path.is_absolute():
                     base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
@@ -211,19 +222,26 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             helpers = {
                 'json': lambda this, value: json.dumps(value),
                 'safeJson': safe_json,
-                'pascalCase': lambda this, value: ''.join(word.capitalize() for word in value.split('_')),
-                'camelCase': lambda this, value: value[0].lower() + ''.join(word.capitalize() for word in value.split('_'))[1:] if value else '',
-                'upperCase': lambda this, value: value.upper(),
-                'lowerCase': lambda this, value: value.lower(),
+                'pascalCase': lambda this, value: ''.join(word.capitalize() for word in str(value).split('_')) if value is not None else '',
+                'camelCase': lambda this, value: str(value)[0].lower() + ''.join(word.capitalize() for word in str(value).split('_'))[1:] if value else '',
+                'upperCase': lambda this, value: str(value).upper() if value is not None else '',
+                'lowerCase': lambda this, value: str(value).lower() if value is not None else '',
                 'eq': lambda this, a, b: a == b,
                 'ne': lambda this, a, b: a != b,
-                'gt': lambda this, a, b: a > b,
-                'lt': lambda this, a, b: a < b,
-                'gte': lambda this, a, b: a >= b,
-                'lte': lambda this, a, b: a <= b,
+                'gt': lambda this, a, b: a > b if a is not None and b is not None else False,
+                'lt': lambda this, a, b: a < b if a is not None and b is not None else False,
+                'gte': lambda this, a, b: a >= b if a is not None and b is not None else False,
+                'lte': lambda this, a, b: a <= b if a is not None and b is not None else False,
                 'tsType': ts_type,
                 'humanize': humanize,
             }
+            
+            # Ensure spec_data fields are available at top level for templates
+            if 'spec_data' in variables and isinstance(variables['spec_data'], dict):
+                # Make spec_data fields available at top level for easier access
+                for key, value in variables['spec_data'].items():
+                    if key not in variables:  # Don't override existing top-level keys
+                        variables[key] = value
             
             try:
                 result = compiled(variables, helpers=helpers)

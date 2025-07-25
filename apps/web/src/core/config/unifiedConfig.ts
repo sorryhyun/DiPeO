@@ -40,6 +40,8 @@ export interface UnifiedFieldDefinition<T = any> {
   personPlaceholder?: string; // for labelPersonRow
   multiline?: boolean; // for textarea
   showPromptFileButton?: boolean; // for variableTextArea
+  language?: string; // for code field (e.g., 'json', 'javascript', 'python')
+  readOnly?: boolean; // for read-only fields
   
   // Nested fields for composite types
   fields?: UnifiedFieldDefinition<T>[];
@@ -51,6 +53,7 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   color: string;
   handles: NodeConfigItem['handles'];
   nodeType: NodeTypeKey;
+  category?: string;  // Node category for grouping in UI
   defaults: Record<string, unknown>;
   
   // Panel configuration properties (optional overrides)

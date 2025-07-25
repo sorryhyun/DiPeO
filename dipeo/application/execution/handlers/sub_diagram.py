@@ -9,14 +9,13 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.core.static.generated_nodes import SubDiagramNode
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
-from dipeo.models import NodeType, ExecutionStatus
+from dipeo.models import NodeType
 from dipeo.models.models import SubDiagramNodeData
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
     from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
 
@@ -68,8 +67,14 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def execute_request(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute the sub-diagram node."""
         node = request.node
-        context = request.context
         
+        # Check if batch mode is enabled
+        if getattr(node, 'batch', False):
+            return await self._execute_batch(request)
+        
+        # Log execution start
+        log.info(f"[SUB_DIAGRAM START] Executing sub_diagram: {node.label} (node_id: {node.id})")
+        log.debug(f"[SUB_DIAGRAM] Diagram name: {node.diagram_name}")
         try:
             # Get required services
             state_store = request.services.get("state_store")
@@ -81,93 +86,60 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # Load the diagram to execute
             diagram_data = await self._load_diagram(node, diagram_loader)
-            
-            # Prepare execution options
+
+            # Prepare execution options - simple like CLI does it
             options = {
-                "variables": {},  # Initialize with empty variables
+                "variables": request.inputs or {},  # Pass inputs directly as variables
                 "parent_execution_id": request.execution_id,
                 "is_sub_diagram": True
             }
-            
-            # Pass inputs as variables to the sub-diagram
-            if request.inputs:
-                # Flatten inputs into variables
-                for key, value in request.inputs.items():
-                    if isinstance(value, dict) and "value" in value:
-                        # Extract value from wrapped inputs
-                        options["variables"][key] = value["value"]
-                    else:
-                        options["variables"][key] = value
-            
-            # Add any additional variables from the node configuration
-            if node.input_mapping:
-                for target_key, source_key in node.input_mapping.items():
-                    if source_key in request.inputs:
-                        value = request.inputs[source_key]
-                        if isinstance(value, dict) and "value" in value:
-                            options["variables"][target_key] = value["value"]
-                        else:
-                            options["variables"][target_key] = value
-            
+
             # Create a unique execution ID for the sub-diagram
-            import uuid
-            sub_execution_id = f"{request.execution_id}_sub_{uuid.uuid4().hex[:8]}"
+            sub_execution_id = self._create_sub_execution_id(request.execution_id)
             
             # Execute the sub-diagram using the execute_diagram use case
-            from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
             from dipeo.application.unified_service_registry import UnifiedServiceRegistry
             
-            # Create a service registry for the sub-diagram execution
-            # We need to get the registry from the execution context
-            service_registry = context.get_service_registry() if hasattr(context, 'get_service_registry') else None
+            # Get service registry from request or runtime
+            service_registry = request.parent_registry
+            if not service_registry and request.runtime:
+                service_registry = request.runtime._service_registry
             
+            # For tests, create minimal registry if needed
             if not service_registry:
-                # Fallback: create minimal registry with available services
                 service_registry = UnifiedServiceRegistry()
-                service_registry.register("state_store", state_store)
-                service_registry.register("message_router", message_router)
-                if diagram_loader:
-                    service_registry.register("diagram_loader", diagram_loader)
-                    # Also register as diagram_storage_service for backward compatibility
-                    service_registry.register("diagram_storage_service", diagram_loader)
+                for service_name, service in request.services.items():
+                    service_registry.register(service_name, service)
             
+            # Get container from request or runtime
+            container = request.parent_container
+            if not container and request.runtime:
+                container = request.runtime._container
+            
+            # Create the execution use case with the inherited services
             execute_use_case = ExecuteDiagramUseCase(
                 service_registry=service_registry,
                 state_store=state_store,
-                message_router=message_router
+                message_router=message_router,
+                diagram_storage_service=diagram_loader,
+                container=container
             )
             
+            # Get parent observers if available
+            parent_observers = options.get("observers", [])
+            
             # Log sub-diagram execution start
-            log.info(f"Starting sub-diagram execution: {sub_execution_id}")
             request.add_metadata("sub_execution_id", sub_execution_id)
             
-            # Collect results from the sub-diagram execution
-            execution_results = {}
-            execution_error = None
-            
-            async for update in execute_use_case.execute_diagram(
-                diagram=diagram_data,
+            # Execute the sub-diagram and collect results
+            execution_results, execution_error = await self._execute_sub_diagram(
+                execute_use_case=execute_use_case,
+                diagram_data=diagram_data,
                 options=options,
-                execution_id=sub_execution_id,
-                interactive_handler=None
-            ):
-                # Process execution updates
-                if update.get("type") == "node_complete":
-                    # Collect outputs from completed nodes
-                    node_id = update.get("node_id")
-                    node_output = update.get("output")
-                    if node_id and node_output:
-                        execution_results[node_id] = node_output
-                
-                elif update.get("type") == "execution_complete":
-                    log.info(f"Sub-diagram execution completed: {sub_execution_id}")
-                    break
-                
-                elif update.get("type") == "execution_error":
-                    execution_error = update.get("error", "Unknown error")
-                    log.error(f"Sub-diagram execution failed: {execution_error}")
-                    break
-            
+                sub_execution_id=sub_execution_id,
+                parent_observers=parent_observers
+            )
+
             # Handle execution error
             if execution_error:
                 return DataOutput(
@@ -182,7 +154,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # Process output mapping
             output_value = self._process_output_mapping(node, execution_results)
-            
+
             # Return success output
             return DataOutput(
                 value=output_value,
@@ -215,93 +187,126 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         if not node.diagram_name:
             raise ValueError("No diagram specified for execution")
         
-        # Check if diagram loader is available
         if not diagram_loader:
             raise ValueError("Diagram loader not available")
         
-        # Load the diagram
-        # The diagram name might include format suffix like .light.yaml
+        # Construct file path based on diagram name and format
         diagram_name = node.diagram_name
+        format_suffix = ".light.yaml"  # Default format
         
-        # Try to load from different formats
-        formats = [".native.json", ".light.yaml", ".readable.yaml"]
-        domain_diagram = None
+        if node.diagram_format:
+            format_map = {
+                'light': '.light.yaml',
+                'native': '.native.json',
+                'readable': '.readable.yaml'
+            }
+            format_suffix = format_map.get(node.diagram_format, '.light.yaml')
         
-        for fmt in formats:
-            try:
-                file_path = f"files/diagrams/{diagram_name}"
-                if not diagram_name.endswith(fmt):
-                    file_path = f"files/diagrams/{diagram_name}{fmt}"
-                
-                # Use the diagram loader to load from file
-                domain_diagram = await diagram_loader.load_from_file(file_path)
-                break
-            except Exception:
-                continue
+        # Construct full file path
+        if diagram_name.startswith('codegen/'):
+            file_path = f"files/{diagram_name}{format_suffix}"
+        else:
+            file_path = f"files/diagrams/{diagram_name}{format_suffix}"
         
-        if not domain_diagram:
-            raise ValueError(f"Diagram '{diagram_name}' not found in any format")
-        
-        # Convert domain diagram to dict for execution
-        # The diagram loader returns a DomainDiagram, we need a dict
-        from dipeo.domain.diagram.utils import domain_diagram_to_dict
-        return domain_diagram_to_dict(domain_diagram)
+        try:
+            # Get the file service from diagram loader to read the file
+            file_service = getattr(diagram_loader, 'file_service', None)
+            if not file_service:
+                raise ValueError("File service not available in diagram loader")
+            
+            # Read the diagram file
+            result = file_service.read(file_path)
+            if not result.get("success") or not result.get("content"):
+                raise ValueError(f"Failed to read diagram file: {file_path}")
+            
+            content = result["content"]
+            
+            # If content is already a dict (parsed YAML/JSON), return it
+            if isinstance(content, dict):
+                return content
+            
+            # Otherwise parse based on format
+            if file_path.endswith('.yaml'):
+                import yaml
+                diagram_dict = yaml.safe_load(content)
+            elif file_path.endswith('.json'):
+                import json
+                diagram_dict = json.loads(content)
+            else:
+                raise ValueError(f"Unknown file format: {file_path}")
+            
+            return diagram_dict
+        except Exception as e:
+            log.error(f"Error loading diagram from '{file_path}': {str(e)}")
+            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {str(e)}")
     
     def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> dict[str, Any]:
         """Process output mapping from sub-diagram results."""
-        output = {}
+        # Simple output - just return all results
+        if not execution_results:
+            return {}
         
-        # If no output mapping specified, return all results
-        if not node.output_mapping:
-            return {"results": execution_results}
+        # Find endpoint outputs
+        endpoint_outputs = {
+            k: v for k, v in execution_results.items() 
+            if k.startswith("endpoint") or k.startswith("end")
+        }
         
-        # Apply output mapping
-        for output_key, source_path in node.output_mapping.items():
-            # source_path might be like "node_id.output_field"
-            parts = source_path.split(".", 1)
+        if endpoint_outputs:
+            # If there's one endpoint, return its value directly
+            if len(endpoint_outputs) == 1:
+                return list(endpoint_outputs.values())[0]
+            # Multiple endpoints, return all
+            return endpoint_outputs
+        
+        # No endpoints, return the last output
+        return list(execution_results.values())[-1] if execution_results else {}
+    
+    def _create_sub_execution_id(self, parent_execution_id: str) -> str:
+        """Create a unique execution ID for sub-diagram."""
+        import uuid
+        return f"{parent_execution_id}_sub_{uuid.uuid4().hex[:8]}"
+    
+    async def _execute_sub_diagram(
+        self,
+        execute_use_case: "ExecuteDiagramUseCase",
+        diagram_data: dict[str, Any],
+        options: dict[str, Any],
+        sub_execution_id: str,
+        parent_observers: list[Any]
+    ) -> tuple[dict[str, Any], Optional[str]]:
+        """Execute the sub-diagram and return results and any error."""
+        execution_results = {}
+        execution_error = None
+        
+        update_count = 0
+        
+        async for update in execute_use_case.execute_diagram(
+            diagram=diagram_data,
+            options=options,
+            execution_id=sub_execution_id,
+            interactive_handler=None,
+            observers=parent_observers
+        ):
+            update_count += 1
+
+            # Process execution updates
+            if update.get("type") == "node_complete":
+                # Collect outputs from completed nodes
+                node_id = update.get("node_id")
+                node_output = update.get("output")
+                if node_id and node_output:
+                    execution_results[node_id] = node_output
             
-            if len(parts) == 1:
-                # Direct node output
-                node_id = parts[0]
-                if node_id in execution_results:
-                    output[output_key] = execution_results[node_id]
-            else:
-                # Nested field access
-                node_id, field_path = parts
-                if node_id in execution_results:
-                    result = execution_results[node_id]
-                    
-                    # Navigate to the field
-                    try:
-                        value = result
-                        for field in field_path.split("."):
-                            if isinstance(value, dict):
-                                value = value.get(field)
-                            else:
-                                value = None
-                                break
-                        
-                        if value is not None:
-                            output[output_key] = value
-                    except Exception as e:
-                        log.warning(f"Failed to extract field {field_path} from node {node_id}: {e}")
-        
-        # Include default output if specified
-        if "default" not in output and execution_results:
-            # Try to find endpoint nodes or the last executed node
-            endpoint_outputs = {
-                k: v for k, v in execution_results.items() 
-                if k.startswith("endpoint") or k.startswith("end")
-            }
+            elif update.get("type") == "execution_complete":
+                break
             
-            if endpoint_outputs:
-                # Use the first endpoint output as default
-                output["default"] = list(endpoint_outputs.values())[0]
-            else:
-                # Use the last output as default
-                output["default"] = list(execution_results.values())[-1]
+            elif update.get("type") == "execution_error":
+                execution_error = update.get("error", "Unknown error")
+                log.error(f"Sub-diagram execution failed: {execution_error}")
+                break
         
-        return output
+        return execution_results, execution_error
     
     def post_execute(
         self,
@@ -312,6 +317,115 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Log execution details if in debug mode
         if request.metadata.get("debug"):
             sub_execution_id = request.metadata.get("sub_execution_id", "unknown")
-            print(f"[SubDiagramNode] Executed sub-diagram with ID: {sub_execution_id}")
-        
+
         return output
+    
+    async def _execute_batch(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
+        """Execute sub-diagram for each item in the batch."""
+        node = request.node
+        
+        # Get batch configuration
+        batch_input_key = getattr(node, 'batch_input_key', 'items')
+        batch_parallel = getattr(node, 'batch_parallel', True)
+        
+        # Extract array from inputs
+        inputs = request.inputs or {}
+        
+        # Check if batch_input_key is in the root level or in 'default'
+        if batch_input_key in inputs:
+            batch_items = inputs.get(batch_input_key, [])
+        elif 'default' in inputs and isinstance(inputs['default'], dict):
+            batch_items = inputs['default'].get(batch_input_key, [])
+        else:
+            batch_items = []
+        
+        if not isinstance(batch_items, list):
+            log.warning(f"Batch mode enabled but '{batch_input_key}' is not a list. Treating as single item.")
+            batch_items = [batch_items]
+
+        # Prepare results collection
+        results = []
+        errors = []
+        
+        if batch_parallel:
+            # Execute all items in parallel
+            tasks = []
+            for idx, item in enumerate(batch_items):
+                # Create modified request with single item as input
+                item_inputs = {'default': item, '_batch_index': idx}
+                task = self._execute_batch_item(request, item_inputs, idx, len(batch_items))
+                tasks.append(task)
+            
+            # Wait for all tasks to complete
+            task_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results
+            for idx, result in enumerate(task_results):
+                if isinstance(result, Exception):
+                    errors.append({
+                        'index': idx,
+                        'error': str(result),
+                        'item': batch_items[idx] if idx < len(batch_items) else None
+                    })
+                else:
+                    results.append(result)
+        else:
+            # Execute items sequentially
+            for idx, item in enumerate(batch_items):
+                try:
+                    # Create modified request with single item as input
+                    item_inputs = {'default': item, '_batch_index': idx}
+                    result = await self._execute_batch_item(request, item_inputs, idx, len(batch_items))
+                    results.append(result)
+                except Exception as e:
+                    log.error(f"Error processing batch item {idx}: {e}")
+                    errors.append({
+                        'index': idx,
+                        'error': str(e),
+                        'item': item
+                    })
+        
+        # Compile batch results
+        batch_output = {
+            'total_items': len(batch_items),
+            'successful': len(results),
+            'failed': len(errors),
+            'results': [r.value if hasattr(r, 'value') else r for r in results],
+            'errors': errors if errors else None
+        }
+        
+        # Return batch output
+        return DataOutput(
+            value=batch_output,
+            node_id=node.id,
+            metadata={
+                'batch_mode': True,
+                'batch_parallel': batch_parallel,
+                'status': 'completed' if not errors else 'partial_failure'
+            }
+        )
+    
+    async def _execute_batch_item(self, original_request: ExecutionRequest[SubDiagramNode], 
+                                  item_inputs: dict[str, Any], index: int, total: int) -> Any:
+        """Execute a single item in the batch."""
+        log.info(f"[BATCH SUB_DIAGRAM] Processing item {index + 1}/{total}")
+        
+        # Create a new node instance without batch enabled to avoid recursion
+        from dataclasses import replace
+        node_without_batch = replace(original_request.node, batch=False)
+        
+        # Create new request with modified inputs and node
+        request = ExecutionRequest(
+            node=node_without_batch,
+            context=original_request.context,
+            inputs=item_inputs,
+            services=original_request.services,
+            metadata=original_request.metadata,
+            execution_id=original_request.execution_id,
+            iteration=original_request.iteration,
+            runtime=original_request.runtime,
+            parent_container=original_request.parent_container,
+            parent_registry=original_request.parent_registry
+        )
+        
+        return await self.execute_request(request)

@@ -12,7 +12,6 @@ class NodeType(str, Enum):
     start = "start"
     person_job = "person_job"
     condition = "condition"
-    job = "job"
     code_job = "code_job"
     api_job = "api_job"
     endpoint = "endpoint"
@@ -37,6 +36,7 @@ class HandleLabel(str, Enum):
     condfalse = "condfalse"
     success = "success"
     error = "error"
+    results = "results"
 
 class DataType(str, Enum):
     any = "any"
@@ -347,17 +347,12 @@ class DBNodeData(BaseNodeData):
     query: Optional[str] = Field(default=None)
     data: Optional[Dict[str, Any]] = Field(default=None)
 
-class JobNodeData(BaseNodeData):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    code_type: SupportedLanguage
-    code: str
-
 class CodeJobNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     language: SupportedLanguage
-    filePath: str
+    filePath: Optional[str] = Field(default=None)
+    code: Optional[str] = Field(default=None)
     functionName: Optional[str] = Field(default=None)
     timeout: Optional[float] = Field(default=None)
 
@@ -428,7 +423,7 @@ class TypescriptAstNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     source: Optional[str] = Field(default=None)
-    extractPatterns: Optional[List[ExtractPattern]] = Field(default=None)
+    extractPatterns: Optional[List[str]] = Field(default=None)
     includeJSDoc: Optional[bool] = Field(default=None)
     parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
 
@@ -436,11 +431,11 @@ class SubDiagramNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
     diagram_name: Optional[str] = Field(default=None)
+    diagram_format: Optional[DiagramFormat] = Field(default=None)
     diagram_data: Optional[Dict[str, Any]] = Field(default=None)
-    input_mapping: Optional[Dict[str, Any]] = Field(default=None)
-    output_mapping: Optional[Dict[str, Any]] = Field(default=None)
-    timeout: Optional[float] = Field(default=None)
-    wait_for_completion: Optional[bool] = Field(default=None)
+    batch: Optional[bool] = Field(default=None)
+    batch_input_key: Optional[str] = Field(default=None)
+    batch_parallel: Optional[bool] = Field(default=None)
 
 class TokenUsage(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -472,7 +467,7 @@ class ExecutionState(BaseModel):
     node_outputs: Dict[str, Dict[str, Any]]
     token_usage: TokenUsage
     error: Optional[str] = Field(default=None)
-    variables: Dict[str, Any]
+    variables: Optional[Dict[str, Any]] = Field(default=None)
     duration_seconds: Optional[float] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
     exec_counts: Dict[str, float]
@@ -590,21 +585,7 @@ class LLMRequestOptions(BaseModel):
     tools: Optional[List[ToolConfig]] = Field(default=None)
     response_format: Optional[Any] = Field(default=None)
 
-NodeID = NodeID
-
-ArrowID = ArrowID
-
-HandleID = HandleID
-
-PersonID = PersonID
-
-ApiKeyID = ApiKeyID
-
-DiagramID = DiagramID
-
 PersonBatchJobNodeData = PersonJobNodeData
-
-ExecutionID = ExecutionID
 
 PersonMemoryMessage = Message
 

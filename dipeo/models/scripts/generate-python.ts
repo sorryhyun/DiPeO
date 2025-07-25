@@ -77,9 +77,22 @@ class PythonGenerator {
     // ─── arrays (T[]  /  Array<T>) ─────────────────────────────────
     const arr = ts.match(RE.ARRAY) || ts.match(RE.GENERIC);
     if (arr) {
-      const inner = this.py(arr[1]);
+      let inner = arr[1];
+      // Handle parenthesized union types like ("a" | "b")
+      if (inner.startsWith('(') && inner.endsWith(')')) {
+        inner = inner.slice(1, -1);
+      }
+      // Special case for string literal unions - they should be converted to literals
+      if (inner.includes('|') && inner.includes('"')) {
+        // This is a union of string literals like "a" | "b" | "c"
+        const unionType = this.py(inner);  // Let the union handler process it first
+        this.add('typing', 'List');
+        const T = `List[${unionType}]`;
+        return save(opt ? this.optional(T) : T);
+      }
+      const innerType = this.py(inner);
       this.add('typing', 'List');
-      const T = `List[${inner}]`;
+      const T = `List[${innerType}]`;
       return save(opt ? this.optional(T) : T);
     }
 
@@ -101,6 +114,7 @@ class PythonGenerator {
       const allLit = parts.every(p => /^['"][^'"]+['"]$/.test(p));
       if (allLit) {
         this.add('typing', 'Literal');
+        // All parts are string literals, create a single Literal type
         const T = `Literal[${parts.join(', ')}]`;
         return save(opt ? this.optional(T) : T);
       }
@@ -223,8 +237,25 @@ class PythonGenerator {
     this.all.filter(s => s.type === 'interface').forEach(i => lines.push(...this.classLines(i), ''));
 
     this.all.filter(s => s.type === 'type-alias').forEach(a => {
-      const m = a.aliasType?.match(/\.([A-Za-z]+)/);
-      if (m && [...this.all].some(s => s.name === m[1])) lines.push(`${a.name} = ${m[1]}`, '');
+      // Extract the actual type name from import(...).TypeName pattern
+      const importMatch = a.aliasType?.match(/import\([^)]+\)\.(\w+)/);
+      const aliasTargetName = importMatch ? importMatch[1] : a.aliasType;
+      
+      // Skip circular assignments (where alias name equals target name)
+      if (a.name === aliasTargetName) {
+        // This would create a circular assignment like ExtractPattern = ExtractPattern
+        return;
+      }
+      
+      // Skip branded types that are already defined with NewType
+      if (BRANDED_IDS.includes(a.name as any)) {
+        return;
+      }
+      
+      // For valid aliases, check if the target type exists in our schemas
+      if (aliasTargetName && [...this.all].some(s => s.name === aliasTargetName)) {
+        lines.push(`${a.name} = ${aliasTargetName}`, '');
+      }
     });
 
     await fs.mkdir(path.dirname(dest), { recursive: true });

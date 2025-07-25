@@ -15,7 +15,7 @@ class TemplateProcessor:
     VARIABLE_PATTERN = re.compile(r'\{\{(\s*[\w\.]+\s*)\}\}')
     CONDITIONAL_PATTERN = re.compile(r'\{\{#(if|unless)\s+([\w\.]+)\}\}(.*?)\{\{/\1\}\}', re.DOTALL)
     LOOP_PATTERN = re.compile(r'\{\{#each\s+([\w\.]+)\}\}(.*?)\{\{/each\}\}', re.DOTALL)
-    SINGLE_BRACE_PATTERN = re.compile(r'\{(\w+)\}')  # For arrow transformations
+    SINGLE_BRACE_PATTERN = re.compile(r'\{([\w\.]+)\}')  # For arrow transformations, supports dot notation
     
     def process(self, template: str, context: dict[str, Any]) -> TemplateResult:
         # Process template and return detailed result
@@ -73,8 +73,9 @@ class TemplateProcessor:
     def process_single_brace(self, template: str, context: dict[str, Any]) -> str:
         # Process single brace variables (for arrow transformations)
         def replace_var(match):
-            var_name = match.group(1)
-            value = context.get(var_name)
+            var_path = match.group(1)
+            # Support nested values with dot notation
+            value = self._get_nested_value(context, var_path)
             return self._format_value(value) if value is not None else match.group(0)
         
         return self.SINGLE_BRACE_PATTERN.sub(replace_var, template)

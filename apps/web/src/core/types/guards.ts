@@ -10,7 +10,6 @@ import {
   type PersonJobNodeData,
   type EndpointNodeData,
   type DBNodeData,
-  type JobNodeData,
   type CodeJobNodeData,
   type ApiJobNodeData,
   type UserResponseNodeData,
@@ -43,10 +42,6 @@ export function isEndpointNode(node: DomainNode): node is DomainNode & { data: E
 
 export function isDBNode(node: DomainNode): node is DomainNode & { data: DBNodeData } {
   return node.type === NodeType.DB;
-}
-
-export function isJobNode(node: DomainNode): node is DomainNode & { data: JobNodeData } {
-  return node.type === NodeType.JOB;
 }
 
 export function isCodeJobNode(node: DomainNode): node is DomainNode & { data: CodeJobNodeData } {
@@ -92,9 +87,9 @@ export function hasPersonConfig(node: DomainNode): node is DomainNode & {
 
 // Type guard for nodes that execute code
 export function isExecutableNode(node: DomainNode): node is DomainNode & {
-  data: JobNodeData | CodeJobNodeData | ApiJobNodeData
+  data: CodeJobNodeData | ApiJobNodeData
 } {
-  return isJobNode(node) || isCodeJobNode(node) || isApiJobNode(node);
+  return isCodeJobNode(node) || isApiJobNode(node);
 }
 
 // Type guard for nodes with conditions

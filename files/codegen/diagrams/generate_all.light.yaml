@@ -1,0 +1,39 @@
+# Complete Code Generation
+# Runs both frontend and backend generation in sequence
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+
+  - label: Generate Backend
+    type: sub_diagram
+    position: {x: 300, y: 300}
+    props:
+      diagram_name: codegen/diagrams/backend/generate_backend_all
+      diagram_format: light
+
+  - label: Generate Frontend
+    type: sub_diagram
+    position: {x: 550, y: 300}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_frontend_batch
+      diagram_format: light
+
+  - label: End
+    type: endpoint
+    position: {x: 800, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Generate Backend
+  
+  - from: Generate Backend
+    to: Generate Frontend
+  
+  - from: Generate Frontend
+    to: End

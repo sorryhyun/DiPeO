@@ -5,13 +5,16 @@ import {
   PersonJobNodeData,
   EndpointNodeData,
   DBNodeData,
-  JobNodeData,
   CodeJobNodeData,
   ApiJobNodeData,
   UserResponseNodeData,
   NotionNodeData,
   PersonBatchJobNodeData,
   HookNodeData,
+  TemplateJobNodeData,
+  JsonSchemaValidatorNodeData,
+  TypescriptAstNodeData,
+  SubDiagramNodeData,
   WithUI
 } from './domain';
 
@@ -24,13 +27,16 @@ export interface NodeTypeRegistry {
   person_job: PersonJobNodeData;
   endpoint: EndpointNodeData;
   db: DBNodeData;
-  job: JobNodeData;
   code_job: CodeJobNodeData;
   api_job: ApiJobNodeData;
   user_response: UserResponseNodeData;
   notion: NotionNodeData;
   person_batch_job: PersonBatchJobNodeData;
   hook: HookNodeData;
+  template_job: TemplateJobNodeData;
+  json_schema_validator: JsonSchemaValidatorNodeData;
+  typescript_ast: TypescriptAstNodeData;
+  sub_diagram: SubDiagramNodeData;
 }
 
 /**
@@ -76,8 +82,9 @@ export type NodeFormData<K extends NodeTypeKey> = NodeFormDataTypes[K];
  */
 export function isNodeTypeKey(key: string): key is NodeTypeKey {
   const validKeys: NodeTypeKey[] = [
-    'start', 'condition', 'person_job', 'endpoint', 'db', 'job',
-    'code_job', 'api_job', 'user_response', 'notion', 'person_batch_job', 'hook'
+    'start', 'condition', 'person_job', 'endpoint', 'db',
+    'code_job', 'api_job', 'user_response', 'notion', 'person_batch_job', 'hook',
+    'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram'
   ];
   return validKeys.includes(key as NodeTypeKey);
 }
@@ -85,8 +92,9 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
 // Re-export UI-augmented node data types for backward compatibility
 // These now include UI properties like 'flipped'
 export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeData,
-  DBNodeData, JobNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
-  NotionNodeData, PersonBatchJobNodeData, HookNodeData } from './domain';
+  DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
+  NotionNodeData, PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
+  JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData } from './domain';
 
 /**
  * Form data type aliases for backward compatibility
@@ -96,10 +104,13 @@ export type ConditionFormData = NodeFormData<'condition'>;
 export type PersonJobFormData = NodeFormData<'person_job'>;
 export type EndpointFormData = NodeFormData<'endpoint'>;
 export type DBFormData = NodeFormData<'db'>;
-export type JobFormData = NodeFormData<'job'>;
 export type CodeJobFormData = NodeFormData<'code_job'>;
 export type ApiJobFormData = NodeFormData<'api_job'>;
 export type UserResponseFormData = NodeFormData<'user_response'>;
 export type NotionFormData = NodeFormData<'notion'>;
 export type PersonBatchJobFormData = NodeFormData<'person_batch_job'>;
 export type HookFormData = NodeFormData<'hook'>;
+export type TemplateJobFormData = NodeFormData<'template_job'>;
+export type JsonSchemaValidatorFormData = NodeFormData<'json_schema_validator'>;
+export type TypescriptAstFormData = NodeFormData<'typescript_ast'>;
+export type SubDiagramFormData = NodeFormData<'sub_diagram'>;

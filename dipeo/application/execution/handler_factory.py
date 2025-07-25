@@ -33,7 +33,6 @@ class HandlerRegistry:
         temp_instance = handler_class()
         node_type = temp_instance.node_type
         self._handler_classes[node_type] = handler_class
-        log.info(f"Registered handler {handler_class.__name__} for node type: {node_type}")
 
     def create_handler(self, node_type: str) -> TypedNodeHandler:
         handler_class = self._handler_classes.get(node_type)
@@ -42,18 +41,14 @@ class HandlerRegistry:
             log.error(f"No handler class registered for node type: {node_type}. Available types: {available_types}")
             raise ValueError(f"No handler class registered for node type: {node_type}")
 
-        log.debug(f"Creating handler {handler_class.__name__} for node type: {node_type}")
-        
         sig = inspect.signature(handler_class.__init__)
         params = list(sig.parameters.keys())
 
         if len(params) == 1 and params[0] == 'self':
             handler = handler_class()
-            log.debug(f"Created handler {handler_class.__name__} without services")
             return handler
         else:
             handler = self._create_handler_with_services(handler_class)
-            log.debug(f"Created handler {handler_class.__name__} with services")
             return handler
 
     def _create_handler_with_services(self, handler_class: type[TypedNodeHandler]) -> TypedNodeHandler:
@@ -78,20 +73,23 @@ class HandlerRegistry:
             elif service_name == 'conversation_service':
                 service_name = 'conversation_service'
 
-            try:
-                service = self._service_registry.get_service(service_name)
+            # Try to get the service
+            service = self._service_registry.get(service_name)
+            
+            if service is not None:
                 kwargs[param_name] = service
-            except Exception:
+            else:
+                # If service not found, try alternative name
+                if service_name.endswith('_service'):
+                    alt_name = service_name[:-8]
+                    service = self._service_registry.get(alt_name)
+                    if service is not None:
+                        kwargs[param_name] = service
+                        continue
+                
+                # If parameter has no default, it's required
                 if param.default is inspect.Parameter.empty:
-                    if service_name.endswith('_service'):
-                        alt_name = service_name[:-8]
-                        try:
-                            service = self._service_registry.get_service(alt_name)
-                            kwargs[param_name] = service
-                            continue
-                        except Exception:
-                            pass
-                    raise ValueError(f"Required service '{service_name}' not found for handler {handler_class.__name__}") from None
+                    raise ValueError(f"Required service '{service_name}' not found for handler {handler_class.__name__}")
 
         return handler_class(**kwargs)
 

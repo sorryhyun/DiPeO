@@ -11,9 +11,7 @@ import logging
 import threading
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from dipeo.core.dynamic.execution_context import ExecutionContext
 from dipeo.core.execution.execution_tracker import ExecutionTracker
-from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.models import (
     ExecutionState,
     NodeExecutionStatus,
@@ -22,35 +20,41 @@ from dipeo.models import (
 )
 
 from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker
-from dipeo.application.execution.states.state_transition_manager import StateTransitionManager
+from dipeo.application.execution.states.state_transition_mixin import StateTransitionMixin
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
     from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
+    from dipeo.container.container import Container
 
 logger = logging.getLogger(__name__)
 
 
-class ExecutionRuntime(ExecutionContext):
-    """Simplified execution runtime using extracted components."""
+class ExecutionRuntime(StateTransitionMixin):
+    """Simplified execution runtime using extracted components and mixin.
+    
+    Implements the ExecutionContext protocol.
+    """
     
     def __init__(
         self,
         diagram: "ExecutableDiagram",
         execution_state: ExecutionState,
         service_registry: "UnifiedServiceRegistry",
+        container: Optional["Container"] = None,
     ):
         self.diagram = diagram
         self._execution_id = execution_state.id
         self._diagram_id = execution_state.diagram_id
         self._service_registry = service_registry
+        self._container = container
         
         # Core state
         self._node_states: dict[NodeID, NodeState] = {}
-        self._variables: dict[str, Any] = {}
         self._current_node_id: list[Optional[NodeID]] = [None]  # Mutable reference
         self.metadata: dict[str, Any] = {}  # Metadata for execution context
+        self._variables: dict[str, Any] = execution_state.variables or {}  # Store execution variables
         
         # Components
         self._tracker = ExecutionTracker()
@@ -58,16 +62,12 @@ class ExecutionRuntime(ExecutionContext):
         
         # Initialize extracted components
         self._readiness_checker = NodeReadinessChecker(diagram, self._tracker)
-        self._transition_manager = StateTransitionManager(
-            diagram, self._tracker, self._state_lock
-        )
         
         # Load state
         ExecutionStatePersistence.load_from_state(
             execution_state, 
             self._node_states, 
-            self._tracker, 
-            self._variables
+            self._tracker
         )
         
         # Initialize missing node states
@@ -100,39 +100,10 @@ class ExecutionRuntime(ExecutionContext):
         # Any nodes ready to run?
         return len(self.get_ready_nodes()) == 0
     
-    # ========== Simplified State Transitions (No Wrappers!) ==========
+    def get_variables(self) -> dict[str, Any]:
+        """Get execution variables."""
+        return self._variables.copy()
     
-    def transition_node_to_running(self, node_id: NodeID) -> int:
-        """Transition a node to running state."""
-        return self._transition_manager.transition_to_running(
-            node_id, self._node_states, self._current_node_id
-        )
-    
-    def transition_node_to_completed(
-        self, 
-        node_id: NodeID, 
-        output: Any = None,
-        token_usage: dict[str, int] = None
-    ) -> None:
-        """Transition a node to completed state."""
-        self._transition_manager.transition_to_completed(
-            node_id, self._node_states, self._current_node_id, output, token_usage
-        )
-    
-    def transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
-        """Transition a node to failed state."""
-        self._transition_manager.transition_to_failed(
-            node_id, self._node_states, self._current_node_id, error
-        )
-    
-    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
-        self._transition_manager.transition_to_maxiter(node_id, self._node_states, output)
-    
-    def transition_node_to_skipped(self, node_id: NodeID) -> None:
-        self._transition_manager.transition_to_skipped(node_id, self._node_states)
-    
-    def reset_node(self, node_id: NodeID) -> None:
-        self._transition_manager.reset_node(node_id, self._node_states)
     
     # ========== ExecutionContext Protocol Implementation ==========
     
@@ -160,14 +131,6 @@ class ExecutionRuntime(ExecutionContext):
             node_id for node_id, state in self._node_states.items()
             if state.status == NodeExecutionStatus.COMPLETED
         ]
-    
-    def get_variable(self, key: str) -> Any:
-        return self._variables.get(key)
-    
-    def set_variable(self, key: str, value: Any) -> None:
-        """Set a variable in the execution context."""
-        with self._state_lock:
-            self._variables[key] = value
     
     def get_node_execution_count(self, node_id: NodeID) -> int:
         """Get the execution count for a node."""
@@ -234,8 +197,7 @@ class ExecutionRuntime(ExecutionContext):
             self._diagram_id,
             self.diagram,
             self._node_states,
-            self._tracker,
-            self._variables
+            self._tracker
         )
     
     # ========== Convenience Methods ==========
@@ -266,28 +228,6 @@ class ExecutionRuntime(ExecutionContext):
             if state.status in status_enums
         )
     
-    def update_node_state_without_tracker(self, node_id: NodeID, output: Any) -> None:
-        """Update node state and store output without calling tracker.
-        
-        This is used when the tracker has already been updated elsewhere 
-        (e.g., by ModernNodeExecutor).
-        """
-        state = self._node_states.get(node_id)
-        if state and output:
-            # Convert output to dict format if needed
-            if hasattr(output, 'to_dict'):
-                output_dict = output.to_dict()
-            elif hasattr(output, 'value'):
-                output_dict = {"value": output.value}
-                if hasattr(output, 'metadata'):
-                    output_dict["metadata"] = output.metadata
-            else:
-                output_dict = {"value": output}
-            
-            # Store the output in the node state if it has a place for it
-            if hasattr(state, 'output'):
-                state.output = output_dict
-    
     @property
     def current_node_id(self) -> Optional[NodeID]:
         return self._current_node_id[0]
@@ -299,3 +239,28 @@ class ExecutionRuntime(ExecutionContext):
     @property
     def execution_id(self) -> str:
         return str(self._execution_id)
+    
+    @property
+    def container(self) -> Optional["Container"]:
+        """Get the container reference if available."""
+        return self._container
+    
+    def create_sub_container(self, sub_execution_id: str, config_overrides: Optional[dict] = None) -> Optional["Container"]:
+        """Create a sub-container for sub-diagram execution.
+        
+        Args:
+            sub_execution_id: ID for the sub-execution
+            config_overrides: Optional configuration overrides
+            
+        Returns:
+            Sub-container if parent container exists, None otherwise
+        """
+        if self._container is None:
+            return None
+            
+        # Delegate to container's create_sub_container method
+        return self._container.create_sub_container(
+            parent_execution_id=self.execution_id,
+            sub_execution_id=sub_execution_id,
+            config_overrides=config_overrides or {}
+        )

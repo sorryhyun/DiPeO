@@ -10,11 +10,8 @@ from typing import Dict, Any, Optional, List, Union, Literal
 from dipeo.models.models import (
     NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
-    NotionOperation, HookType, PersonLLMConfig, LLMService
+    NotionOperation, HookType, PersonLLMConfig, LLMService, DiagramFormat
 )
-
-# Type aliases
-ExtractPattern = Literal['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
 
 
 @dataclass(frozen=True)
@@ -115,7 +112,8 @@ class ConditionNode(BaseExecutableNode):
 class CodeJobNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.code_job, init=False)
     language: SupportedLanguage = SupportedLanguage.python
-    filePath: str = ""
+    filePath: Optional[str] = None
+    code: Optional[str] = None
     functionName: Optional[str] = None
     timeout: Optional[int] = None
 
@@ -124,6 +122,7 @@ class CodeJobNode(BaseExecutableNode):
         data = super().to_dict()
         data["language"] = self.language
         data["filePath"] = self.filePath
+        data["code"] = self.code
         data["functionName"] = self.functionName
         data["timeout"] = self.timeout
         return data
@@ -263,7 +262,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 class TypescriptAstNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.typescript_ast, init=False)
     source: Optional[str] = None
-    extractPatterns: Optional[List[ExtractPattern]] = field(default_factory=lambda: ["interface", "type", "enum"])
+    extractPatterns: Optional[List[str]] = field(default_factory=lambda: ["interface", "type", "enum"])
     includeJSDoc: Optional[bool] = False
     parseMode: Optional[Literal["module", "script"]] = "module"
 
@@ -280,21 +279,21 @@ class TypescriptAstNode(BaseExecutableNode):
 class SubDiagramNode(BaseExecutableNode):
     type: NodeType = field(default=NodeType.sub_diagram, init=False)
     diagram_name: Optional[str] = None
+    diagram_format: Optional[DiagramFormat] = None
     diagram_data: Optional[Dict[str, Any]] = None
-    input_mapping: Optional[Dict[str, str]] = None
-    output_mapping: Optional[Dict[str, str]] = None
-    timeout: Optional[int] = None
-    wait_for_completion: Optional[bool] = True
+    batch: Optional[bool] = False
+    batch_input_key: Optional[str] = "items"
+    batch_parallel: Optional[bool] = True
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         data = super().to_dict()
         data["diagram_name"] = self.diagram_name
+        data["diagram_format"] = self.diagram_format
         data["diagram_data"] = self.diagram_data
-        data["input_mapping"] = self.input_mapping
-        data["output_mapping"] = self.output_mapping
-        data["timeout"] = self.timeout
-        data["wait_for_completion"] = self.wait_for_completion
+        data["batch"] = self.batch
+        data["batch_input_key"] = self.batch_input_key
+        data["batch_parallel"] = self.batch_parallel
         return data
 
 @dataclass(frozen=True)
@@ -391,7 +390,8 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             language=data.get("language", SupportedLanguage.python),
-            filePath=data.get("filePath", ""),
+            filePath=data.get("filePath"),
+            code=data.get("code"),
             functionName=data.get("functionName"),
             timeout=data.get("timeout"),
         )
@@ -514,11 +514,11 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             diagram_name=data.get("diagram_name"),
+            diagram_format=data.get("diagram_format"),
             diagram_data=data.get("diagram_data"),
-            input_mapping=data.get("input_mapping"),
-            output_mapping=data.get("output_mapping"),
-            timeout=data.get("timeout"),
-            wait_for_completion=data.get("wait_for_completion", True),
+            batch=data.get("batch", False),
+            batch_input_key=data.get("batch_input_key", "items"),
+            batch_parallel=data.get("batch_parallel", True),
         )
     
     if node_type == NodeType.person_batch_job:

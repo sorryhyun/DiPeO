@@ -5,6 +5,7 @@
  */
 
 import { Project, SourceFile, Node } from 'ts-morph'
+import * as fs from 'fs'
 
 interface ParseResult {
   ast: any
@@ -299,17 +300,13 @@ function parseTypeScript(
 // Command line interface
 const args = process.argv.slice(2)
 
-if (args.length === 0) {
-  console.error('Usage: parse-typescript.ts <source-code> [options]')
-  console.error('Options:')
-  console.error('  --patterns=interface,type,enum,class,function')
-  console.error('  --include-jsdoc')
-  console.error('  --mode=module|script')
-  process.exit(1)
-}
-
-const source = args[0]
-const options = args.slice(1).reduce((acc, arg) => {
+// Extract file path and options
+let filePath: string | undefined
+const options = args.reduce((acc, arg) => {
+  if (!arg.startsWith('--')) {
+    filePath = arg
+    return acc
+  }
   if (arg.startsWith('--patterns=')) {
     acc.patterns = arg.substring(11).split(',')
   } else if (arg === '--include-jsdoc') {
@@ -324,7 +321,24 @@ const options = args.slice(1).reduce((acc, arg) => {
   mode: 'module' as 'module' | 'script'
 })
 
-const result = parseTypeScript(source, options.patterns, options.includeJSDoc, options.mode)
-console.log(JSON.stringify(result, null, 2))
+// Validate arguments
+if (!filePath) {
+  console.error('Usage: parse-typescript.ts [options] <file.ts>')
+  console.error('Options:')
+  console.error('  --patterns=interface,type,enum,class,function')
+  console.error('  --include-jsdoc')
+  console.error('  --mode=module|script')
+  process.exit(1)
+}
+
+// Read source code from file
+try {
+  const source = fs.readFileSync(filePath, 'utf8')
+  const result = parseTypeScript(source, options.patterns, options.includeJSDoc, options.mode)
+  console.log(JSON.stringify(result, null, 2))
+} catch (error) {
+  console.error(`Error reading file: ${error}`)
+  process.exit(1)
+}
 
 export { parseTypeScript, ParseResult }

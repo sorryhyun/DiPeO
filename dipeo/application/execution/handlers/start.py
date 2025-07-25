@@ -36,6 +36,11 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     def description(self) -> str:
         return "Kick-off node: can start manually or via hook trigger"
 
+    @property
+    def requires_services(self) -> list[str]:
+        """Services required for execution."""
+        return ["state_store"]
+
     def validate(self, request: ExecutionRequest[StartNode]) -> Optional[str]:
         """Validate the start node configuration."""
         node = request.node
@@ -56,11 +61,31 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         request.add_metadata("hook_event", node.hook_event)
         request.add_metadata("hook_filters", node.hook_filters)
         
+        # Get input variables from execution state
+        input_variables = {}
+        
+        # Try to get execution ID
+        execution_id = None
+        if request.execution_id:
+            execution_id = request.execution_id
+        elif request.runtime and hasattr(request.runtime, 'execution_id'):
+            execution_id = request.runtime.execution_id
+        
+        if execution_id:
+            # Try to get state store service
+            state_store = request.services.get("state_store")
+            if state_store:
+                execution_state = await state_store.get_state(execution_id)
+                if execution_state and execution_state.variables:
+                    input_variables = execution_state.variables
+        
         # Direct typed access to node properties
         trigger_mode = node.trigger_mode or HookTriggerMode.manual
         
         if trigger_mode == HookTriggerMode.manual:
-            output_data = node.custom_data or {}
+            # Merge input variables with custom_data (custom_data takes precedence)
+            output_data = {**input_variables, **(node.custom_data or {})}
+            
             return DataOutput(
                 value={"default": output_data},
                 node_id=node.id,
@@ -71,14 +96,16 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
             hook_data = await self._get_hook_event_data(node, context, request.services)
             
             if hook_data:
-                output_data = {**node.custom_data, **hook_data}
+                # Merge all three: input variables, custom_data, and hook_data (in that order of precedence)
+                output_data = {**input_variables, **(node.custom_data or {}), **hook_data}
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
                     metadata={"message": f"Triggered by hook event: {node.hook_event}"}
                 )
             else:
-                output_data = node.custom_data or {}
+                # Merge input variables with custom_data
+                output_data = {**input_variables, **(node.custom_data or {})}
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
@@ -91,19 +118,10 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         context: "ExecutionContext",
         services: dict[str, Any]
     ) -> dict[str, Any] | None:
-        # Check if hook event data was provided in the execution state
-        event_data = context.get_variable('hook_event_data')
-        if event_data:
-            
-            # Validate event matches filters if specified
-            if node.hook_filters:
-                for key, expected_value in node.hook_filters.items():
-                    if key not in event_data or event_data[key] != expected_value:
-                        return None
-            
-            return event_data
+        # TODO: In a real implementation, hook event data should be provided
+        # through infrastructure services (e.g., message queue, webhook receiver)
+        # rather than execution variables
         
-        # In a real implementation, we would wait for events here
         # For now, return None to indicate no event data
         return None
     

@@ -1,13 +1,13 @@
 import { NodeType } from '@dipeo/domain-models';
 import { derivePanelConfig } from '@/core/config/unifiedConfig';
 import { ENTITY_PANEL_CONFIGS } from '@/features/properties-editor/config';
-import { NODE_CONFIGS_MAP } from './index';
+import { getNodeConfig } from '../nodeRegistry';
 
 /**
  * Get node defaults for a given node type
  */
 export function getNodeDefaults(type: NodeType) {
-  const config = NODE_CONFIGS_MAP[type];
+  const config = getNodeConfig(type);
   return config ? { ...config.defaults } : {};
 }
 
@@ -17,7 +17,7 @@ export function getNodeDefaults(type: NodeType) {
 export function getPanelConfig(type: NodeType | 'arrow' | 'person') {
   // Check if unified config exists for node types
   if (type !== 'arrow' && type !== 'person') {
-    const unifiedConfig = NODE_CONFIGS_MAP[type as NodeType];
+    const unifiedConfig = getNodeConfig(type as NodeType);
     if (unifiedConfig) {
       return derivePanelConfig(unifiedConfig);
     }

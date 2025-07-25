@@ -16,7 +16,6 @@ export enum NodeType {
   START = 'start',
   PERSON_JOB = 'person_job',
   CONDITION = 'condition',
-  JOB = 'job',  // Deprecated: use CODE_JOB or API_JOB instead
   CODE_JOB = 'code_job',
   API_JOB = 'api_job',
   ENDPOINT = 'endpoint',
@@ -42,7 +41,8 @@ export enum HandleLabel {
   CONDITION_TRUE = 'condtrue',
   CONDITION_FALSE = 'condfalse',
   SUCCESS = 'success',
-  ERROR = 'error'
+  ERROR = 'error',
+  RESULTS = 'results'
 }
 
 export enum DataType {
@@ -255,14 +255,11 @@ export interface DBNodeData extends BaseNodeData {
   data?: Record<string, any>;
 }
 
-export interface JobNodeData extends BaseNodeData {
-  code_type: SupportedLanguage;
-  code: string;
-}
 
 export interface CodeJobNodeData extends BaseNodeData {
   language: SupportedLanguage;
-  filePath: string;
+  filePath?: string;  // Path to code file (required if code is not provided)
+  code?: string;      // Inline code (required if filePath is not provided)
   functionName?: string;  // Function to call (default: 'main' for Python)
   timeout?: number;  // in seconds
 }
@@ -345,21 +342,19 @@ export interface JsonSchemaValidatorNodeData extends BaseNodeData {
   error_on_extra?: boolean;  // Error on extra properties
 }
 
-export type ExtractPattern = 'interface' | 'type' | 'enum' | 'class' | 'function' | 'const' | 'export';
-
 export interface TypescriptAstNodeData extends BaseNodeData {
   source?: string;  // TypeScript source code to parse
-  extractPatterns?: ExtractPattern[];  // Patterns to extract
+  extractPatterns?: string[];  // Patterns to extract (e.g., 'interface', 'type', 'enum', 'class', 'function', 'const', 'export')
   includeJSDoc?: boolean;  // Include JSDoc comments in the extracted data
   parseMode?: 'module' | 'script';  // TypeScript parsing mode
 }
 
 export interface SubDiagramNodeData extends BaseNodeData {
   diagram_name?: string;  // Name of the diagram to execute (e.g., "workflow/process")
+  diagram_format?: DiagramFormat;  // Format of the diagram file (native, light, readable)
   diagram_data?: Record<string, any>;  // Inline diagram data (alternative to diagram_name)
-  input_mapping?: Record<string, string>;  // Map node inputs to sub-diagram variables
-  output_mapping?: Record<string, string>;  // Map sub-diagram outputs to node outputs
-  timeout?: number;  // Execution timeout in seconds
-  wait_for_completion?: boolean;  // Whether to wait for sub-diagram completion (default: true)
+  batch?: boolean;  // Execute sub-diagram for each item in the input array
+  batch_input_key?: string;  // Key in inputs containing the array to iterate over (default: "items")
+  batch_parallel?: boolean;  // Execute batch items in parallel (default: true)
 }
 

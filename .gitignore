@@ -33,7 +33,6 @@ plan.md
 apps/server/.import_linter_cache
 part1.md
 part2.md
-part3.md
 part4.md
 TODO.md
 files/uploads
@@ -43,13 +42,12 @@ files/conversation_logs
 files/hooks
 files/prompts
 files/apikeys.json
-
+*.bak
 dipeo/models/__generated__
 # Generated models now in dipeo/domain/models.py (tracked)
 packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
 # Generated conversions now in dipeo/domain/conversions.py (tracked)
 apps/cli/src/dipeo_cli/__generated__
-apps/web/src/__generated__
 
 # Node.js
 node_modules/
@@ -154,3 +152,6 @@ yarn.lock
 /build-with-rust.bat
 /files/test/
 /files/debug/
+/dipeo/models/schemas/
+
+/apps/server/src/__generated__/

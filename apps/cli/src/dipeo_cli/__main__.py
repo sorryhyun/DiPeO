@@ -33,6 +33,19 @@ def main():
         default=300,
         help="Execution timeout in seconds (default: 300)",
     )
+    
+    # Input data options (mutually exclusive)
+    input_group = run_parser.add_mutually_exclusive_group()
+    input_group.add_argument(
+        "--inputs",
+        type=str,
+        help="Path to JSON file containing input variables for the diagram",
+    )
+    input_group.add_argument(
+        "--input-data",
+        type=str,
+        help="Inline JSON string with input variables (e.g., '{\"node_spec_path\": \"sub_diagram\"}')",
+    )
 
     # Format options (mutually exclusive)
     format_group = run_parser.add_mutually_exclusive_group()
@@ -87,9 +100,34 @@ def main():
                 format_type = "native"
             elif args.readable:
                 format_type = "readable"
+            
+            # Parse input data
+            input_variables = None
+            if args.inputs:
+                # Load from file
+                import json
+                from pathlib import Path
+                input_path = Path(args.inputs)
+                if not input_path.exists():
+                    print(f"Error: Input file not found: {args.inputs}")
+                    sys.exit(1)
+                try:
+                    with input_path.open() as f:
+                        input_variables = json.load(f)
+                except json.JSONDecodeError as e:
+                    print(f"Error: Invalid JSON in input file: {e}")
+                    sys.exit(1)
+            elif args.input_data:
+                # Parse inline JSON
+                import json
+                try:
+                    input_variables = json.loads(args.input_data)
+                except json.JSONDecodeError as e:
+                    print(f"Error: Invalid JSON in input data: {e}")
+                    sys.exit(1)
 
             success = cli.run(
-                args.diagram, args.debug, args.no_browser, args.timeout, format_type
+                args.diagram, args.debug, args.no_browser, args.timeout, format_type, input_variables
             )
             sys.exit(0 if success else 1)
         elif args.command == "convert":

@@ -55,9 +55,9 @@ class NodeFactory:
     
     def _validate_person_node(self, node: PersonJobNode) -> None:
         """Validate PersonJobNode specific constraints."""
-        if not node.person_id and not node.llm_config:
+        if not node.person_id:
             self.validation_errors.append(
-                f"Person node {node.id} must have either person_id or llm_config"
+                f"Person node {node.id} must have person_id"
             )
         if node.max_iteration < 1:
             self.validation_errors.append(

@@ -7,8 +7,7 @@ import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/core/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/core/store/hooks';
-import { NodeType, NodeExecutionStatus } from '@/core/types';
-import { nodeId, personId } from '@/core/types';
+import { NodeType, NodeExecutionStatus, nodeId, personId } from '@/core/types';
 import './BaseNode.css';
 
 // Unified props for the single node renderer

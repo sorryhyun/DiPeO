@@ -161,20 +161,16 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                         print(f"[JsonSchemaValidatorNode]   - Schema file: {node.schema_path}")
                 
                 return DataOutput(
-                    value={
-                        "default": {
-                            "valid": True,
-                            "data": data_to_validate,
-                            "message": "Validation successful",
-                            "schema_path": node.schema_path,
-                            "data_path": node.data_path
-                        }
-                    },
+                    value={"default": data_to_validate},
                     node_id=node.id,
                     metadata={
                         "success": True,
                         "strict_mode": node.strict_mode or False,
-                        "validation_passed": True
+                        "validation_passed": True,
+                        "valid": True,
+                        "message": "Validation successful",
+                        "schema_path": node.schema_path,
+                        "data_path": node.data_path
                     }
                 )
             else:

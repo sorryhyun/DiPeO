@@ -8,6 +8,9 @@ import './index.css';
 import { queryClient } from '@/lib/utils/trpc';
 import { apolloClient } from './lib/graphql/client';
 
+// Import generated node registry to register all node types
+import '@/features/diagram-editor/config/nodeRegistryGenerated';
+
 // Enable Immer's MapSet plugin before any store initialization
 enableMapSet();
 

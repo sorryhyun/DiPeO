@@ -1,0 +1,38 @@
+{
+  "nodes": [
+    "api_job",
+    "code_job",
+    "condition",
+    "db",
+    "endpoint",
+    "example_hook",
+    "json_schema_validator",
+    "notion",
+    "person_batch_job",
+    "person_job",
+    "start",
+    "sub_diagram",
+    "template_job",
+    "typescript_ast_parser",
+    "user_response"
+  ],
+  "generators": {
+    "frontend": {
+      "enabled": true,
+      "manifest": "frontend.json"
+    },
+    "backend": {
+      "enabled": true,
+      "manifest": "backend.json"
+    }
+  },
+  "registry": {
+    "output": "apps/web/src/features/diagram-editor/config/nodeRegistry.ts",
+    "template": "frontend/node_registry.j2"
+  },
+  "options": {
+    "parallel": true,
+    "validate_specs": true,
+    "generate_tests": false
+  }
+}

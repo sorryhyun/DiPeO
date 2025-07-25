@@ -1,0 +1,82 @@
+{
+  "nodeType": "start",
+  "displayName": "Start Node",
+  "category": "control",
+  "icon": "\ud83d\ude80",
+  "color": "#4CAF50",
+  "description": "Entry point for diagram execution",
+  "fields": [
+    {
+      "name": "custom_data",
+      "type": "string",
+      "required": true,
+      "description": "Custom Data configuration",
+      "uiConfig": {
+        "inputType": "text"
+      }
+    },
+    {
+      "name": "output_data_structure",
+      "type": "object",
+      "required": true,
+      "description": "Output Data Structure configuration",
+      "uiConfig": {
+        "inputType": "code",
+        "language": "json",
+        "collapsible": true
+      }
+    },
+    {
+      "name": "trigger_mode",
+      "type": "enum",
+      "required": false,
+      "description": "Trigger Mode configuration",
+      "values": [
+        "manual",
+        "hook"
+      ],
+      "uiConfig": {
+        "inputType": "select"
+      }
+    },
+    {
+      "name": "hook_event",
+      "type": "string",
+      "required": false,
+      "description": "Hook Event configuration",
+      "uiConfig": {
+        "inputType": "text"
+      }
+    },
+    {
+      "name": "hook_filters",
+      "type": "object",
+      "required": false,
+      "description": "Hook Filters configuration",
+      "uiConfig": {
+        "inputType": "code",
+        "language": "json",
+        "collapsible": true
+      }
+    }
+  ],
+  "handles": {
+    "inputs": [
+      "in"
+    ],
+    "outputs": [
+      "out"
+    ]
+  },
+  "outputs": {
+    "result": {
+      "type": "any",
+      "description": "Node execution result"
+    }
+  },
+  "execution": {
+    "timeout": 300,
+    "retryable": true,
+    "maxRetries": 3
+  }
+}

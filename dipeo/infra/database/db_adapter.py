@@ -68,7 +68,6 @@ class DBOperationsAdapter:
                 if len(path_parts) == 2 and path_parts[0] == "dbs":
                     db_path = await self.file_service.get_safe_path("dbs", path_parts[1])
 
-        log.debug(f"Constructed db_path: '{db_path}'")
         return db_path
 
     async def _read_db(self, file_path: str) -> dict[str, Any]:
@@ -140,9 +139,17 @@ class DBOperationsAdapter:
     async def _write_db(self, file_path: str, value: Any) -> dict[str, Any]:
         """Write data to database file."""
         try:
-            # Use domain service to prepare data
-            json_data = self.domain_service.ensure_json_serializable(value)
-            content = json.dumps(json_data, indent=2)
+            # Check if this is a code file (non-JSON) and value is already a string
+            is_code_file = any(file_path.endswith(ext) for ext in ['.ts', '.tsx', '.js', '.jsx', '.py', '.graphql', '.md', '.txt'])
+            
+            if is_code_file and isinstance(value, str):
+                # For code files, write the string content directly
+                content = value
+                json_data = value  # Keep for response
+            else:
+                # Use domain service to prepare data for JSON files
+                json_data = self.domain_service.ensure_json_serializable(value)
+                content = json.dumps(json_data, indent=2)
 
             # Handle file service write operation
             import inspect
@@ -150,7 +157,7 @@ class DBOperationsAdapter:
                 sig = inspect.signature(self.file_service.write)
                 if "content" in sig.parameters:
                     write_result = await self.file_service.write(
-                        file_path, content=content
+                        file_path, content=content, create_backup=False
                     )
                     if isinstance(write_result, dict) and not write_result.get(
                         "success", True

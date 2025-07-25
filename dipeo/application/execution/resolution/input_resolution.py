@@ -82,22 +82,29 @@ class TypedInputResolutionService:
                 output_value = {"default": output_value}
             
             output_key = edge.source_output or "default"
-
+            
+            # Debug logging
             # Check if the output has the requested key
             if output_key not in output_value:
-                # Try default if specific key not found
-                if "default" in output_value:
+                # For edges with default output key and no "default" in the output,
+                # use the entire output value as the context
+                if output_key == "default" and (not edge.source_output or edge.source_output == "default"):
+                    # Use the entire output value as is
+                    value = output_value
+                elif "default" in output_value:
                     output_key = "default"
+                    value = output_value[output_key]
                 else:
                     # Skip if no matching output
-                    log.debug(f"    Skipping - output key '{output_key}' not found in output")
                     continue
+            else:
+                value = output_value[output_key]
             
             # Get the input key where this should be placed
             input_key = edge.metadata.get("label") or edge.target_input or "default"
 
             # Apply transformations or pass value directly
-            value = output_value[output_key]
+            # Note: value might already be set above for the entire output case
             
             if edge.data_transform:
                 content_type = edge.data_transform.get('content_type')

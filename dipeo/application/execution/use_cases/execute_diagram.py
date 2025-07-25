@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from ...unified_service_registry import UnifiedServiceRegistry
     from ..execution_runtime import ExecutionRuntime
+    from dipeo.container.container import Container
 
 class ExecuteDiagramUseCase(BaseService):
 
@@ -27,9 +28,11 @@ class ExecuteDiagramUseCase(BaseService):
         state_store: Optional["StateStorePort"] = None,
         message_router: Optional["MessageRouterPort"] = None,
         diagram_storage_service: Optional["DiagramStorageAdapter"] = None,
+        container: Optional["Container"] = None,
     ):
         super().__init__()
         self.service_registry = service_registry
+        self.container = container
         
         # Get services from registry if not provided directly (for backward compatibility)
         self.state_store = state_store or service_registry.get("state_store")
@@ -54,6 +57,7 @@ class ExecuteDiagramUseCase(BaseService):
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable | None = None,
+        observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
@@ -66,26 +70,42 @@ class ExecuteDiagramUseCase(BaseService):
         # Step 3: Create typed execution
         typed_execution = await self._create_typed_execution(typed_diagram, options, execution_id)
 
-        # Create streaming observer for this execution
-        streaming_observer = StreamingObserver(self.message_router)
-
-        # Create engine with observers
-        from dipeo.application.execution.engine import TypedExecutionEngine
-        from dipeo.application.execution.observers import StateStoreObserver
-        
-        observers = []
-        
-        # Add state store observer
-        if self.state_store:
-            observers.append(StateStoreObserver(self.state_store))
+        # Handle observers - use provided ones or create new ones
+        if observers is not None:
+            # Sub-diagram execution: use parent's observers
+            engine_observers = observers
+            # Find the streaming observer from the provided observers
+            streaming_observer = None
+            for obs in observers:
+                if isinstance(obs, StreamingObserver):
+                    streaming_observer = obs
+                    break
             
-        # Add streaming observer (already created above)
-        observers.append(streaming_observer)
+            if not streaming_observer:
+                # If no streaming observer found, create one
+                streaming_observer = StreamingObserver(self.message_router)
+                engine_observers = list(observers) + [streaming_observer]
+        else:
+            # Parent execution: create new observers
+            streaming_observer = StreamingObserver(self.message_router)
+            
+            # Create engine with observers
+            from dipeo.application.execution.observers import StateStoreObserver
+            
+            engine_observers = []
+            
+            # Add state store observer
+            if self.state_store:
+                engine_observers.append(StateStoreObserver(self.state_store))
+                
+            # Add streaming observer
+            engine_observers.append(streaming_observer)
         
-        # Create the TypedExecutionEngine
+        # Create the TypedExecutionEngine with the appropriate observers
+        from dipeo.application.execution.engine import TypedExecutionEngine
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
-            observers=observers,
+            observers=engine_observers,
         )
 
         # Subscribe to streaming updates
@@ -231,7 +251,8 @@ class ExecuteDiagramUseCase(BaseService):
         typed_execution = ExecutionRuntime(
             diagram=typed_diagram,
             execution_state=execution_state,
-            service_registry=self.service_registry
+            service_registry=self.service_registry,
+            container=self.container
         )
         
         # Store stateful_execution reference in execution_state for later access

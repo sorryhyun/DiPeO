@@ -26,8 +26,7 @@ class ExecutionStatePersistence:
     def load_from_state(
         state: ExecutionState,
         node_states: dict[NodeID, NodeState],
-        tracker: "ExecutionTracker",
-        variables: dict[str, Any]
+        tracker: "ExecutionTracker"
     ) -> None:
         """Load runtime state from persisted ExecutionState."""
         # Load node states
@@ -53,11 +52,6 @@ class ExecutionStatePersistence:
                         NodeID(node_id_str),
                         CompletionStatus.SUCCESS
                     )
-        
-        # Load variables
-        if state.variables:
-            variables.clear()
-            variables.update(state.variables)
     
     @staticmethod
     def save_to_state(
@@ -65,8 +59,7 @@ class ExecutionStatePersistence:
         diagram_id: str,
         diagram: "ExecutableDiagram",
         node_states: dict[NodeID, NodeState],
-        tracker: "ExecutionTracker",
-        variables: dict[str, Any]
+        tracker: "ExecutionTracker"
     ) -> ExecutionState:
         """Convert runtime state to ExecutionState for persistence."""
         # Calculate aggregate token usage
@@ -106,7 +99,6 @@ class ExecutionStatePersistence:
             node_states={str(k): v for k, v in node_states.items()},
             node_outputs=serialized_outputs,
             token_usage=TokenUsage(input=total_input, output=total_output),
-            variables=variables.copy(),
             is_active=has_running,
             exec_counts={
                 str(node_id): tracker.get_execution_count(node_id) 

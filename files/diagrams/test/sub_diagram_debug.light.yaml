@@ -1,0 +1,64 @@
+# Debug diagram to check variable passing in sub-diagrams
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      custom_data:
+        # These should be resolved from parent's variables
+        node_spec_path: "{node_spec_path}"
+        test_message: "{test_message}"
+    
+  - label: Debug Variables
+    type: code_job
+    position: {x: 250, y: 200}
+    props:
+      code_type: python
+      code: |
+        import json
+        
+        # Print all globals to see what's available
+        print("=== Available Variables ===")
+        for key, value in globals().items():
+            if not key.startswith('__') and key not in ['json']:
+                print(f"{key}: {value}")
+        
+        # Check what we received from Start node
+        print("\n=== Input Data ===")
+        print(f"input_data type: {type(input_data)}")
+        print(f"input_data content: {json.dumps(input_data, indent=2)}")
+        
+        # Pass variables for next node
+        result = {
+            'node_spec_path': input_data.get('node_spec_path', 'MISSING'),
+            'test_message': input_data.get('test_message', 'MISSING')
+        }
+        
+  - label: Test DB Placeholder
+    type: db
+    position: {x: 450, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      # This should resolve using node_spec_path variable
+      source_details: files/codegen/specifications/nodes/{node_spec_path}.json
+      
+  - label: End
+    type: endpoint
+    position: {x: 650, y: 200}
+
+connections:
+  - from: Start
+    to: Debug Variables
+    label: input_data
+    
+  - from: Debug Variables
+    to: Test DB Placeholder
+    label: result
+    
+  - from: Test DB Placeholder
+    to: End
+    label: file_data

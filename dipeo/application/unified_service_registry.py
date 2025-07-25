@@ -1,15 +1,12 @@
 # Unified service registry that works for both server and local execution.
 
 from dataclasses import dataclass
-from typing import Any, Generic, Optional, TypeVar, cast, TYPE_CHECKING
+from typing import Any, Generic, Optional, TypeVar, cast
 
 from dipeo.core.utils.dynamic_registry import DynamicRegistry
 
 # Type variable for service types
 T = TypeVar('T')
-
-if TYPE_CHECKING:
-    pass
 
 
 @dataclass(frozen=True)
@@ -66,70 +63,28 @@ class UnifiedServiceRegistry(DynamicRegistry):
     # Unified service registry that supports both static and dynamic service registration.
     # Can be used in server, local/CLI, and test modes.
     
-    def __init__(self, **services):
+    def __init__(self, parent: Optional["UnifiedServiceRegistry"] = None, **services):
         # Initialize with optional services.
         super().__init__()
+        self._parent = parent
+        self._overrides = {}  # Track services that override parent
+        self._isolated = set()  # Track services that are isolated from parent
         
         # Register any provided services
         for name, service in services.items():
             self.register(name, service)
     
-    @classmethod
-    def from_context(cls, context: Any) -> "UnifiedServiceRegistry":
-        # Create registry from an ApplicationContext.
-        registry = cls()
-        
-        # Map of service names to context attributes
-        # Primary mappings use _service suffix consistently
-        service_mapping = {
-            # Core services
-            "llm_service": "llm_service",
-            "api_key_service": "api_key_service",
-            "file_service": "file_service",
-            "conversation_service": "conversation_service",
-            "conversation_manager": "conversation_manager",
-            "notion_service": "notion_service",
-            
-            # Infrastructure services
-            "diagram_loader": "diagram_loader",
-            "state_store": "state_store",
-            "message_router": "message_router",
-            
-            # Domain services
-            "diagram_storage_service": "diagram_storage_service",
-            "integrated_diagram_service": "integrated_diagram_service",
-            "api_integration_service": "api_integration_service",
-            "db_operations_service": "db_operations_service",
-            "code_execution_service": "code_execution_service",
-            
-            # Execution domain services
-            "execution_flow_service": "execution_flow_service",
-            # "input_resolution_service" removed - using typed version directly
-        }
-        
-        # Register services from context
-        for service_name, context_attr in service_mapping.items():
-            if hasattr(context, context_attr):
-                service = getattr(context, context_attr)
-                if service is not None:
-                    registry.register(service_name, service)
-                    # Debug logging
-                    import logging
-                    logging.debug(f"Registered service: {service_name} -> {type(service).__name__}")
-            else:
-                # Debug logging for missing attributes
-                import logging
-                logging.debug(f"Context missing attribute: {context_attr}")
-        
-        
-        # Add context itself for handlers that need it
-        registry.register("context", context)
-        registry.register("app_context", context)
-        
-        return registry
+    
+    @property
+    def parent(self) -> Optional["UnifiedServiceRegistry"]:
+        """Get parent registry."""
+        return self._parent
     
     def get(self, key: ServiceKey[T] | str, default: Optional[T] = None) -> Optional[T]:
         """Get a service by typed key or string.
+        
+        First checks overrides, then local registry, then parent chain
+        (unless isolated).
         
         Args:
             key: Either a ServiceKey[T] or string name
@@ -139,7 +94,22 @@ class UnifiedServiceRegistry(DynamicRegistry):
             The service instance or default
         """
         name = key.name if isinstance(key, ServiceKey) else key
-        result = super().get(name)
+        
+        # Check if service is isolated (blocked from parent)
+        if name in self._isolated:
+            # Only check local registry, not parent
+            result = self._items.get(name)
+        # Check overrides first (explicit overrides of parent services)
+        elif name in self._overrides:
+            result = self._overrides[name]
+        # Check local registry
+        elif name in self._items:
+            result = self._items[name]
+        # Check parent if available and not isolated
+        elif self._parent is not None:
+            return self._parent.get(key, default)
+        else:
+            result = None
         
         if isinstance(key, ServiceKey):
             return cast(Optional[T], result if result is not None else default)
@@ -210,6 +180,111 @@ class UnifiedServiceRegistry(DynamicRegistry):
             service = self.get(service_name)
             validation_results[service_name] = service is not None
         return validation_results
+    
+    def has_local(self, key: ServiceKey[T] | str) -> bool:
+        """Check if service exists in local registry only.
+        
+        Does not check parent registries.
+        
+        Args:
+            key: Service key or name
+            
+        Returns:
+            True if exists locally
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        return name in self._items
+        
+    def override(self, key: ServiceKey[T] | str, service: T) -> None:
+        """Override a service in the local registry.
+        
+        This allows child registries to override parent services
+        without modifying the parent.
+        
+        Args:
+            key: Service key or name
+            service: Service instance
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        self._overrides[name] = service
+        # Also register in local items for backward compatibility
+        self.register(name, service)
+        
+    def isolate(self, key: ServiceKey[T] | str) -> None:
+        """Isolate a service, preventing access to parent's version.
+        
+        This is useful when you want to ensure a service is not
+        inherited from the parent registry, effectively blocking it.
+        
+        Args:
+            key: Service key or name to isolate
+        """
+        name = key.name if isinstance(key, ServiceKey) else key
+        self._isolated.add(name)
+        # Optionally set to None to explicitly block
+        self._overrides[name] = None
+        
+    def get_ancestry_chain(self) -> list["UnifiedServiceRegistry"]:
+        """Get full ancestry chain from this registry to root.
+        
+        Returns:
+            List of registries from self to root
+        """
+        chain = [self]
+        current = self._parent
+        
+        while current is not None:
+            chain.append(current)
+            current = current._parent
+            
+        return chain
+        
+    def get_all_services(self) -> dict[str, Any]:
+        """Get all services including inherited ones.
+        
+        Services from child registries override parent services.
+        Isolated services are excluded from parent inheritance.
+        
+        Returns:
+            Combined service dictionary
+        """
+        # Start with parent services if not isolated
+        all_services = {}
+        if self._parent:
+            parent_services = self._parent.get_all_services()
+            # Only include parent services that are not isolated
+            for name, service in parent_services.items():
+                if name not in self._isolated:
+                    all_services[name] = service
+            
+        # Override with local services
+        all_services.update(self._items)
+        
+        # Apply explicit overrides (including None values for blocked services)
+        for name, service in self._overrides.items():
+            if service is None and name in all_services:
+                # Remove blocked services
+                del all_services[name]
+            else:
+                all_services[name] = service
+        
+        return all_services
+        
+    def create_child(self, **services) -> "UnifiedServiceRegistry":
+        """Create a child registry inheriting from this one.
+        
+        The child registry will:
+        - Inherit all non-isolated services from parent
+        - Start with empty overrides and isolation sets
+        - Can selectively override or isolate parent services
+        
+        Args:
+            **services: Initial services for child
+            
+        Returns:
+            New child registry with parent inheritance
+        """
+        return UnifiedServiceRegistry(parent=self, **services)
     
     def __repr__(self) -> str:
         # String representation of the registry.

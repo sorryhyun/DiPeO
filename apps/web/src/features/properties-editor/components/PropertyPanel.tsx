@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Dict, DomainPerson, nodeId, arrowId, personId } from '@/core/types';
 import type { ArrowData } from '@/lib/graphql/types';
 import { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
-import { NODE_CONFIGS_MAP } from '@/features/diagram-editor/config/nodes';
+import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { derivePanelConfig } from '@/core/config/unifiedConfig';
 import { ENTITY_PANEL_CONFIGS } from '../config';
 import { FIELD_TYPES } from '@/core/types/panel';
@@ -95,7 +95,7 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
 
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
-  const nodeConfig = nodeType in NODE_CONFIGS_MAP ? NODE_CONFIGS_MAP[nodeType as keyof typeof NODE_CONFIGS_MAP] : undefined;
+  const nodeConfig = getNodeConfig(nodeType);
   const queryClient = useQueryClient();
   
   // Use context instead of individual hooks

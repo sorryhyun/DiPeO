@@ -65,7 +65,6 @@ export type {
   PersonJobNodeData,
   EndpointNodeData,
   DBNodeData,
-  JobNodeData,
   CodeJobNodeData,
   ApiJobNodeData,
   UserResponseNodeData,
@@ -73,7 +72,9 @@ export type {
   PersonBatchJobNodeData,
   HookNodeData,
   TemplateJobNodeData,
-  JsonSchemaValidatorNodeData
+  JsonSchemaValidatorNodeData,
+  TypescriptAstNodeData,
+  SubDiagramNodeData
 } from '@dipeo/domain-models';
 
 // Execution Types

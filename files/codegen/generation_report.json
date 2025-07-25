@@ -1,0 +1,1 @@
+{'status': 'failure', 'backend': {}, 'frontend': {}, 'summary': {'backend_status': 'unknown', 'frontend_status': 'unknown', 'total_artifacts': 0, 'message': 'Generated 0 artifacts total'}}

@@ -1,0 +1,15 @@
+# Handler stub for {{ spec_data.nodeType }} node
+# This is a placeholder template - implementation needed
+
+from dipeo.core.models import NodeExecutionResult
+from dipeo.application.execution.handlers.base import BaseNodeHandler
+
+class {{ spec_data.pascalCase }}Handler(BaseNodeHandler):
+    """Handler for {{ spec_data.displayName }} node"""
+    
+    async def execute(self, node, context):
+        # TODO: Implement handler logic
+        return NodeExecutionResult(
+            output={},
+            status="completed"
+        )
