@@ -1,0 +1,104 @@
+# Generate Static Node Classes from Domain Models
+# Replaces dipeo/models/scripts/generate-static-nodes.ts
+# Generates Python static node classes from TypeScript domain model interfaces
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting static nodes generation from domain models
+
+  # Load diagram.ts to get node data interfaces
+  - label: Load Diagram TS
+    type: db
+    position: {x: 200, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/diagram.ts
+
+  # Parse TypeScript to extract interfaces
+  - label: Parse Diagram AST
+    type: typescript_ast
+    position: {x: 400, y: 300}
+    props:
+      extractPatterns: ["interface", "enum"]
+      includeJSDoc: true
+      parseMode: module
+
+  # Generate static nodes
+  - label: Generate Static Nodes
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/extractors/static_nodes_extractor.py
+      functionName: main
+
+  # Generate Python code
+  - label: Generate Python Code
+    type: code_job
+    position: {x: 800, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generators/static_nodes_generator.py
+      functionName: main
+
+  # Write Python file
+  - label: Write Static Nodes File
+    type: db
+    position: {x: 1000, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/diagram_generated/generated_nodes.py
+
+  # Generate success summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1200, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generators/summary_generator.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 1400, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  # Load and parse
+  - from: Start
+    to: Load Diagram TS
+  - from: Load Diagram TS
+    to: Parse Diagram AST
+    label: source
+  
+  # Generate static nodes data
+  - from: Parse Diagram AST
+    to: Generate Static Nodes
+  
+  # Generate Python code
+  - from: Generate Static Nodes
+    to: Generate Python Code
+    label: static_nodes_data
+  
+  # Write file
+  - from: Generate Python Code
+    to: Write Static Nodes File
+    label: generated_code
+  
+  # Summary
+  - from: Generate Static Nodes
+    to: Generate Summary
+    label: static_nodes_data
+  - from: Write Static Nodes File
+    to: End
+  - from: Generate Summary
+    to: End

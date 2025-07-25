@@ -47,17 +47,24 @@ nodes:
       diagram_name: codegen/diagrams/models/generate_zod_schemas
       diagram_format: light
 
+  - label: Generate Static Nodes
+    type: sub_diagram
+    position: {x: 250, y: 600}
+    props:
+      diagram_name: codegen/diagrams/models/generate_static_nodes
+      diagram_format: light
+
   # Phase 2: Node UI Generation from TypeScript specifications
   - label: Generate Backend Node Files
     type: sub_diagram
-    position: {x: 550, y: 200}
+    position: {x: 550, y: 250}
     props:
       diagram_name: codegen/diagrams/backend/generate_backend_all_ts
       diagram_format: light
 
   - label: Generate Frontend Node Files
     type: sub_diagram
-    position: {x: 550, y: 400}
+    position: {x: 550, y: 450}
     props:
       diagram_name: codegen/diagrams/frontend/generate_frontend_batch_ts
       diagram_format: light
@@ -65,7 +72,7 @@ nodes:
   # Phase 3: Generate Registries
   - label: Generate Node Registry
     type: sub_diagram
-    position: {x: 850, y: 300}
+    position: {x: 850, y: 350}
     props:
       diagram_name: codegen/diagrams/frontend/generate_frontend_registry
       diagram_format: light
@@ -73,7 +80,7 @@ nodes:
   # Summary
   - label: Summarize Results
     type: code_job
-    position: {x: 1050, y: 300}
+    position: {x: 1050, y: 350}
     props:
       language: python
       code: |
@@ -84,6 +91,7 @@ nodes:
         print("✓ GraphQL schema generated")
         print("✓ Field configurations generated")
         print("✓ Zod schemas generated")
+        print("✓ Static node classes generated")
         
         print("\nPhase 2 - Node UI:")
         print("✓ Backend node files generated from TypeScript specs")
@@ -99,7 +107,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1250, y: 300}
+    position: {x: 1250, y: 350}
     props:
       save_to_file: false
 
@@ -115,6 +123,8 @@ connections:
     to: Generate Field Configs
   - from: Start
     to: Generate Zod Schemas
+  - from: Start
+    to: Generate Static Nodes
   
   # Wait for domain models before generating node UI
   - from: Generate Python Models
@@ -142,6 +152,8 @@ connections:
   - from: Generate Field Configs
     to: Summarize Results
   - from: Generate Zod Schemas
+    to: Summarize Results
+  - from: Generate Static Nodes
     to: Summarize Results
   - from: Generate Backend Node Files
     to: Summarize Results

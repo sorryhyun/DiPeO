@@ -1,7 +1,8 @@
-import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import type { UnifiedNodeConfig, UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 import type { NodeTypeKey } from '@/core/types/type-factories';
 import type { NodeConfigItem } from '@/features/diagram-editor/types/config';
 import { mergeFieldConfigs } from './fieldOverrides';
+import { getBestFieldConfig, hasSpecFields } from './field-utils';
 
 export interface NodeConfigOptions<T extends Record<string, unknown>> {
   nodeType: NodeTypeKey;
@@ -12,6 +13,7 @@ export interface NodeConfigOptions<T extends Record<string, unknown>> {
   defaults: Record<string, unknown>;
   panelLayout?: 'single' | 'twoColumn';
   panelFieldOrder?: Array<keyof T | string>;
+  category?: string;
 }
 
 /**
@@ -23,8 +25,28 @@ export function createNodeConfig<T extends Record<string, unknown>>(
 ): UnifiedNodeConfig<T> {
   const { nodeType, ...rest } = options;
   
-  // Get merged field configs (generated + overrides)
+  // For now, use domain model fields synchronously
+  // TODO: Update to use async getBestFieldConfig when the app supports it
   const customFields = mergeFieldConfigs(nodeType);
+  
+  return {
+    nodeType,
+    customFields,
+    ...rest
+  };
+}
+
+/**
+ * Create a node configuration with async field loading
+ * Use this when you can handle async configuration
+ */
+export async function createNodeConfigAsync<T extends Record<string, unknown>>(
+  options: NodeConfigOptions<T>
+): Promise<UnifiedNodeConfig<T>> {
+  const { nodeType, ...rest } = options;
+  
+  // Get best available fields (spec-based or domain model)
+  const customFields = await getBestFieldConfig(nodeType) as UnifiedFieldDefinition<T>[];
   
   return {
     nodeType,

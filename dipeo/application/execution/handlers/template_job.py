@@ -47,7 +47,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def validate(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[str]:
         """Validate the template job configuration."""
         node = request.node
-        
+
         # Must have either template_path or template_content
         if not node.template_path and not node.template_content:
             return "Either template_path or template_content must be provided"
@@ -58,8 +58,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Execute the template rendering."""
         node = request.node
         inputs = request.inputs
-        
-        
+
         # Store execution metadata
         request.add_metadata("engine", node.engine or "internal")
         if node.template_path:

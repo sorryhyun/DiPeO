@@ -1,0 +1,688 @@
+{
+  "node_configs": [
+    {
+      "nodeType": "start",
+      "fields": [
+        {
+          "name": "custom_data",
+          "type": "code",
+          "label": "Custom Data",
+          "required": true
+        },
+        {
+          "name": "output_data_structure",
+          "type": "code",
+          "label": "Output Data Structure",
+          "required": true
+        },
+        {
+          "name": "trigger_mode",
+          "type": "select",
+          "label": "Trigger Mode",
+          "required": false,
+          "options": [
+            {
+              "value": "manual",
+              "label": "Manual"
+            },
+            {
+              "value": "hook",
+              "label": "Hook"
+            }
+          ]
+        },
+        {
+          "name": "hook_event",
+          "type": "text",
+          "label": "Hook Event",
+          "required": false
+        },
+        {
+          "name": "hook_filters",
+          "type": "text",
+          "label": "Hook Filters",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "person_job",
+      "fields": [
+        {
+          "name": "person",
+          "type": "personSelect",
+          "label": "Person",
+          "required": false
+        },
+        {
+          "name": "first_only_prompt",
+          "type": "variableTextArea",
+          "label": "First Only Prompt",
+          "required": true,
+          "placeholder": "Enter prompt. Use {{variable_name}} for variables.",
+          "rows": 6
+        },
+        {
+          "name": "default_prompt",
+          "type": "variableTextArea",
+          "label": "Default Prompt",
+          "required": false,
+          "placeholder": "Enter prompt. Use {{variable_name}} for variables.",
+          "rows": 6
+        },
+        {
+          "name": "max_iteration",
+          "type": "maxIteration",
+          "label": "Max Iteration",
+          "required": true,
+          "defaultValue": 1,
+          "min": 1,
+          "max": 100
+        },
+        {
+          "name": "memory_config",
+          "type": "text",
+          "label": "Memory Config",
+          "required": false
+        },
+        {
+          "name": "memory_settings",
+          "type": "text",
+          "label": "Memory Settings",
+          "required": false
+        },
+        {
+          "name": "tools",
+          "type": "code",
+          "label": "Tools",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "condition",
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "text",
+          "label": "Condition Type",
+          "required": true
+        },
+        {
+          "name": "expression",
+          "type": "variableTextArea",
+          "label": "Expression",
+          "required": false
+        },
+        {
+          "name": "node_indices",
+          "type": "code",
+          "label": "Node Indices",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "endpoint",
+      "fields": [
+        {
+          "name": "save_to_file",
+          "type": "checkbox",
+          "label": "Save To File",
+          "required": true,
+          "defaultValue": false
+        },
+        {
+          "name": "file_name",
+          "type": "text",
+          "label": "File Name",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "db",
+      "fields": [
+        {
+          "name": "file",
+          "type": "text",
+          "label": "File",
+          "required": false
+        },
+        {
+          "name": "collection",
+          "type": "text",
+          "label": "Collection",
+          "required": false
+        },
+        {
+          "name": "sub_type",
+          "type": "select",
+          "label": "Sub Type",
+          "required": true,
+          "options": [
+            {
+              "value": "fixed_prompt",
+              "label": "Fixed Prompt"
+            },
+            {
+              "value": "file",
+              "label": "File"
+            },
+            {
+              "value": "code",
+              "label": "Code"
+            },
+            {
+              "value": "api_tool",
+              "label": "Api Tool"
+            }
+          ]
+        },
+        {
+          "name": "operation",
+          "type": "text",
+          "label": "Operation",
+          "required": true
+        },
+        {
+          "name": "query",
+          "type": "variableTextArea",
+          "label": "Query",
+          "required": false
+        },
+        {
+          "name": "data",
+          "type": "text",
+          "label": "Data",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "code_job",
+      "fields": [
+        {
+          "name": "language",
+          "type": "select",
+          "label": "Language",
+          "required": true,
+          "options": [
+            {
+              "value": "python",
+              "label": "Python"
+            },
+            {
+              "value": "typescript",
+              "label": "Typescript"
+            },
+            {
+              "value": "bash",
+              "label": "Bash"
+            },
+            {
+              "value": "shell",
+              "label": "Shell"
+            }
+          ]
+        },
+        {
+          "name": "filePath",
+          "type": "filepath",
+          "label": "Filepath",
+          "required": false
+        },
+        {
+          "name": "code",
+          "type": "code",
+          "label": "Code",
+          "required": false,
+          "placeholder": "Enter code here",
+          "rows": 10
+        },
+        {
+          "name": "functionName",
+          "type": "text",
+          "label": "Functionname",
+          "required": false
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "Timeout",
+          "required": false,
+          "placeholder": "Timeout in seconds",
+          "min": 0,
+          "max": 600
+        }
+      ]
+    },
+    {
+      "nodeType": "api_job",
+      "fields": [
+        {
+          "name": "url",
+          "type": "url",
+          "label": "Url",
+          "required": true,
+          "placeholder": "https://api.example.com/endpoint"
+        },
+        {
+          "name": "method",
+          "type": "select",
+          "label": "Method",
+          "required": true,
+          "options": [
+            {
+              "value": "GET",
+              "label": "Get"
+            },
+            {
+              "value": "POST",
+              "label": "Post"
+            },
+            {
+              "value": "PUT",
+              "label": "Put"
+            },
+            {
+              "value": "DELETE",
+              "label": "Delete"
+            },
+            {
+              "value": "PATCH",
+              "label": "Patch"
+            }
+          ]
+        },
+        {
+          "name": "headers",
+          "type": "text",
+          "label": "Headers",
+          "required": false
+        },
+        {
+          "name": "params",
+          "type": "text",
+          "label": "Params",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "label": "Body",
+          "required": false
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "Timeout",
+          "required": false,
+          "placeholder": "Timeout in seconds",
+          "min": 0,
+          "max": 600
+        },
+        {
+          "name": "auth_type",
+          "type": "text",
+          "label": "Auth Type",
+          "required": false
+        },
+        {
+          "name": "auth_config",
+          "type": "text",
+          "label": "Auth Config",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "user_response",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "variableTextArea",
+          "label": "Prompt",
+          "required": true,
+          "placeholder": "Enter prompt. Use {{variable_name}} for variables.",
+          "rows": 6
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "Timeout",
+          "required": true,
+          "placeholder": "Timeout in seconds",
+          "min": 0,
+          "max": 600,
+          "defaultValue": 30
+        }
+      ]
+    },
+    {
+      "nodeType": "notion",
+      "fields": [
+        {
+          "name": "operation",
+          "type": "select",
+          "label": "Operation",
+          "required": true
+        },
+        {
+          "name": "page_id",
+          "type": "text",
+          "label": "Page Id",
+          "required": false
+        },
+        {
+          "name": "database_id",
+          "type": "text",
+          "label": "Database Id",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "hook",
+      "fields": [
+        {
+          "name": "hook_type",
+          "type": "select",
+          "label": "Hook Type",
+          "required": true,
+          "options": [
+            {
+              "value": "shell",
+              "label": "Shell"
+            },
+            {
+              "value": "webhook",
+              "label": "Webhook"
+            },
+            {
+              "value": "python",
+              "label": "Python"
+            },
+            {
+              "value": "file",
+              "label": "File"
+            }
+          ]
+        },
+        {
+          "name": "config",
+          "type": "code",
+          "label": "Config",
+          "required": true
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "Timeout",
+          "required": false,
+          "placeholder": "Timeout in seconds",
+          "min": 0,
+          "max": 600
+        },
+        {
+          "name": "retry_count",
+          "type": "number",
+          "label": "Retry Count",
+          "required": false
+        },
+        {
+          "name": "retry_delay",
+          "type": "number",
+          "label": "Retry Delay",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "template_job",
+      "fields": [
+        {
+          "name": "template_path",
+          "type": "text",
+          "label": "Template Path",
+          "required": false
+        },
+        {
+          "name": "template_content",
+          "type": "text",
+          "label": "Template Content",
+          "required": false
+        },
+        {
+          "name": "output_path",
+          "type": "text",
+          "label": "Output Path",
+          "required": false
+        },
+        {
+          "name": "variables",
+          "type": "text",
+          "label": "Variables",
+          "required": false
+        },
+        {
+          "name": "engine",
+          "type": "text",
+          "label": "Engine",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "json_schema_validator",
+      "fields": [
+        {
+          "name": "schema_path",
+          "type": "text",
+          "label": "Schema Path",
+          "required": false
+        },
+        {
+          "name": "schema",
+          "type": "text",
+          "label": "Schema",
+          "required": false
+        },
+        {
+          "name": "data_path",
+          "type": "text",
+          "label": "Data Path",
+          "required": false
+        },
+        {
+          "name": "strict_mode",
+          "type": "checkbox",
+          "label": "Strict Mode",
+          "required": false
+        },
+        {
+          "name": "error_on_extra",
+          "type": "checkbox",
+          "label": "Error On Extra",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "typescript_ast",
+      "fields": [
+        {
+          "name": "source",
+          "type": "text",
+          "label": "Source",
+          "required": false
+        },
+        {
+          "name": "extractPatterns",
+          "type": "code",
+          "label": "Extractpatterns",
+          "required": false
+        },
+        {
+          "name": "includeJSDoc",
+          "type": "checkbox",
+          "label": "Includejsdoc",
+          "required": false
+        },
+        {
+          "name": "parseMode",
+          "type": "text",
+          "label": "Parsemode",
+          "required": false
+        }
+      ]
+    },
+    {
+      "nodeType": "sub_diagram",
+      "fields": [
+        {
+          "name": "diagram_name",
+          "type": "text",
+          "label": "Diagram Name",
+          "required": false
+        },
+        {
+          "name": "diagram_format",
+          "type": "select",
+          "label": "Diagram Format",
+          "required": false,
+          "options": [
+            {
+              "value": "native",
+              "label": "Native"
+            },
+            {
+              "value": "light",
+              "label": "Light"
+            },
+            {
+              "value": "readable",
+              "label": "Readable"
+            }
+          ]
+        },
+        {
+          "name": "diagram_data",
+          "type": "text",
+          "label": "Diagram Data",
+          "required": false
+        },
+        {
+          "name": "batch",
+          "type": "checkbox",
+          "label": "Batch",
+          "required": false
+        },
+        {
+          "name": "batch_input_key",
+          "type": "text",
+          "label": "Batch Input Key",
+          "required": false
+        },
+        {
+          "name": "batch_parallel",
+          "type": "checkbox",
+          "label": "Batch Parallel",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enum_values": {
+    "NodeType": [
+      "start",
+      "person_job",
+      "condition",
+      "code_job",
+      "api_job",
+      "endpoint",
+      "db",
+      "user_response",
+      "notion",
+      "person_batch_job",
+      "hook",
+      "template_job",
+      "json_schema_validator",
+      "typescript_ast",
+      "sub_diagram"
+    ],
+    "HandleDirection": [
+      "input",
+      "output"
+    ],
+    "HandleLabel": [
+      "default",
+      "first",
+      "condtrue",
+      "condfalse",
+      "success",
+      "error",
+      "results"
+    ],
+    "DataType": [
+      "any",
+      "string",
+      "number",
+      "boolean",
+      "object",
+      "array"
+    ],
+    "ForgettingMode": [
+      "no_forget",
+      "on_every_turn",
+      "upon_request"
+    ],
+    "MemoryView": [
+      "all_involved",
+      "sent_by_me",
+      "sent_to_me",
+      "system_and_me",
+      "conversation_pairs",
+      "all_messages"
+    ],
+    "DiagramFormat": [
+      "native",
+      "light",
+      "readable"
+    ],
+    "DBBlockSubType": [
+      "fixed_prompt",
+      "file",
+      "code",
+      "api_tool"
+    ],
+    "ContentType": [
+      "raw_text",
+      "conversation_state",
+      "object"
+    ],
+    "SupportedLanguage": [
+      "python",
+      "typescript",
+      "bash",
+      "shell"
+    ],
+    "HttpMethod": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "PATCH"
+    ],
+    "HookType": [
+      "shell",
+      "webhook",
+      "python",
+      "file"
+    ],
+    "HookTriggerMode": [
+      "manual",
+      "hook"
+    ]
+  }
+}

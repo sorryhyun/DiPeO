@@ -1,0 +1,145 @@
+# Generate Zod Validation Schemas from Domain Models
+# Replaces dipeo/models/scripts/generate-zod-schemas.ts
+# Generates Zod validation schemas from TypeScript interfaces
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting Zod schemas generation
+
+  # Load diagram.ts file
+  - label: Load Diagram TS
+    type: db
+    position: {x: 200, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/diagram.ts
+
+  # Parse TypeScript to extract interfaces and enums
+  - label: Parse Diagram AST
+    type: typescript_ast
+    position: {x: 400, y: 300}
+    props:
+      extractPatterns: ["interface", "enum"]
+      includeJSDoc: false
+      parseMode: module
+
+  # Generate Zod schemas
+  - label: Generate Zod Schemas
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/extractors/zod_schemas_extractor.py
+      functionName: main
+
+
+  # Load template
+  - label: Load Zod Template
+    type: db
+    position: {x: 600, y: 450}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/models/zod_schemas.j2
+
+  # Generate TypeScript Zod schemas
+  - label: Generate Zod Code
+    type: code_job
+    position: {x: 800, y: 400}
+    props:
+      language: python
+      code: |
+        from datetime import datetime
+        from jinja2 import Template, StrictUndefined
+        
+        # Get template content
+        template_content = inputs.get('template_content', '')
+        
+        # Get data from extractor
+        data = inputs.get('data', {})
+        schemas = data.get('schemas', [])
+        enum_schemas = data.get('enum_schemas', {})
+        branded_types = data.get('branded_types', [])
+        
+        # Prepare template variables
+        template_vars = {
+            'schemas': schemas,
+            'enum_schemas': enum_schemas,
+            'branded_types': branded_types,
+            'now': datetime.now().isoformat()
+        }
+        
+        # Render template
+        jinja_template = Template(template_content, undefined=StrictUndefined)
+        rendered = jinja_template.render(**template_vars)
+        
+        result = {'generated_code': rendered}
+
+  # Write TypeScript file
+  - label: Write Zod Schemas TS
+    type: db
+    position: {x: 1200, y: 400}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/web/src/__generated__/schemas.ts
+
+  # Generate success summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1400, y: 400}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generators/summary_generator.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 1600, y: 400}
+    props:
+      save_to_file: false
+
+connections:
+  # Load and parse TypeScript
+  - from: Start
+    to: Load Diagram TS
+  - from: Start
+    to: Load Zod Template
+  - from: Load Diagram TS
+    to: Parse Diagram AST
+    label: source
+  
+  # Generate schemas
+  - from: Parse Diagram AST
+    to: Generate Zod Schemas
+  
+  # Send data to code generator
+  - from: Generate Zod Schemas
+    to: Generate Zod Code
+    label: data
+  
+  # Send template to code generator
+  - from: Load Zod Template
+    to: Generate Zod Code
+    label: template_content
+  
+  # Write output
+  - from: Generate Zod Code
+    to: Write Zod Schemas TS
+    label: generated_code
+  
+  # Generate summary
+  - from: Generate Zod Schemas
+    to: Generate Summary
+    label: default
+  - from: Write Zod Schemas TS
+    to: End
+  - from: Generate Summary
+    to: End

@@ -1,0 +1,224 @@
+# Generate GraphQL Schema from Domain Models
+# Generates GraphQL type definitions from TypeScript domain models
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting GraphQL schema generation from domain models
+
+  # Load all domain model TypeScript files
+  - label: Load Diagram TS
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/diagram.ts
+
+  - label: Load Execution TS
+    type: db
+    position: {x: 200, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/execution.ts
+
+  - label: Load Conversation TS
+    type: db
+    position: {x: 200, y: 400}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/conversation.ts
+
+  # Parse TypeScript files
+  - label: Parse Diagram AST
+    type: typescript_ast
+    position: {x: 400, y: 200}
+    props:
+      extractPatterns: ["interface", "enum", "type"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: Parse Execution AST
+    type: typescript_ast
+    position: {x: 400, y: 300}
+    props:
+      extractPatterns: ["interface", "enum", "type"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: Parse Conversation AST
+    type: typescript_ast
+    position: {x: 400, y: 400}
+    props:
+      extractPatterns: ["interface", "enum", "type"]
+      includeJSDoc: true
+      parseMode: module
+
+  # Extract GraphQL types
+  - label: Extract GraphQL Types
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/extractors/graphql_types_extractor.py
+      functionName: main
+
+  # Load GraphQL template
+  - label: Load GraphQL Template
+    type: db
+    position: {x: 600, y: 450}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/models/graphql_schema.j2
+
+  # Prepare template data
+  - label: Prepare Template Data
+    type: code_job
+    position: {x: 800, y: 350}
+    props:
+      language: python
+      code: |
+        from datetime import datetime
+        
+        graphql_types = inputs.get('graphql_types', {})
+        
+        # Prepare the template data
+        template_data = {
+            'scalars': graphql_types.get('scalars', []),
+            'enums': graphql_types.get('enums', []),
+            'types': graphql_types.get('types', []),
+            'input_types': graphql_types.get('input_types', []),
+            'node_types': graphql_types.get('node_types', []),
+            'now': datetime.now().isoformat()
+        }
+        
+        result = template_data
+
+  # Generate GraphQL schema
+  - label: Generate GraphQL Schema
+    type: code_job
+    position: {x: 1000, y: 400}
+    props:
+      language: python
+      code: |
+        from datetime import datetime
+        from jinja2 import Template, StrictUndefined
+        
+        # Get template content - it comes as a direct string input
+        template_content = inputs.get('template_content', '')
+        
+        # Get prepared data - it comes from the 'default' connection
+        template_data = inputs.get('default', {})
+        
+        # Ensure all expected keys exist with proper defaults
+        template_context = {
+            'scalars': template_data.get('scalars', []),
+            'enums': template_data.get('enums', []),
+            'types': template_data.get('types', []),
+            'input_types': template_data.get('input_types', []),
+            'node_types': template_data.get('node_types', []),
+            'now': template_data.get('now', datetime.now().isoformat())
+        }
+        
+        # Render template with error handling
+        try:
+            jinja_template = Template(template_content, undefined=StrictUndefined)
+            rendered = jinja_template.render(**template_context)
+            # Return the rendered content as 'generated_code' for DB node
+            result = {'generated_code': rendered}
+        except Exception as e:
+            import traceback
+            error_msg = f"Template rendering error: {str(e)}\n{traceback.format_exc()}"
+            print(error_msg)
+            # Return the error as the generated content so we can see it
+            result = {'generated_code': error_msg}
+
+  # Write GraphQL schema file
+  - label: Write GraphQL Schema
+    type: db
+    position: {x: 1200, y: 400}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/diagram_generated/domain-schema.graphql
+
+  # Generate success summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1400, y: 400}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generators/summary_generator.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 1600, y: 400}
+    props:
+      save_to_file: false
+
+connections:
+  # Load TypeScript files
+  - from: Start
+    to: Load Diagram TS
+  - from: Start
+    to: Load Execution TS
+  - from: Start
+    to: Load Conversation TS
+  
+  # Parse TypeScript
+  - from: Load Diagram TS
+    to: Parse Diagram AST
+    label: source
+  - from: Load Execution TS
+    to: Parse Execution AST
+    label: source
+  - from: Load Conversation TS
+    to: Parse Conversation AST
+    label: source
+  
+  # Extract GraphQL types
+  - from: Parse Diagram AST
+    to: Extract GraphQL Types
+    label: diagram_ast
+  - from: Parse Execution AST
+    to: Extract GraphQL Types
+    label: execution_ast
+  - from: Parse Conversation AST
+    to: Extract GraphQL Types
+    label: conversation_ast
+  
+  # Prepare template data
+  - from: Extract GraphQL Types
+    to: Prepare Template Data
+    label: graphql_types
+  
+  # Generate GraphQL
+  - from: Prepare Template Data
+    to: Generate GraphQL Schema
+    label: default
+  - from: Load GraphQL Template
+    to: Generate GraphQL Schema
+    label: template_content
+  
+  # Write output
+  - from: Generate GraphQL Schema
+    to: Write GraphQL Schema
+    label: generated_code
+  
+  # Generate summary
+  - from: Extract GraphQL Types
+    to: Generate Summary
+    label: graphql_types
+  - from: Write GraphQL Schema
+    to: End
+  - from: Generate Summary
+    to: End

@@ -473,7 +473,7 @@ class StaticNodeGenerator {
 if (import.meta.url === `file://${process.argv[1]}`) {
   (async () => {
     const schemas = await loadSchemas(path.resolve(__dirname, '../__generated__'));
-    const out = path.resolve(__dirname, '../../core/static/generated_nodes.py');
+    const out = path.resolve(__dirname, '../../diagram_generated/generated_nodes.py');
     await new StaticNodeGenerator(schemas).generate(out);
     console.log(`Generated static nodes → ${out}`);
   })();
