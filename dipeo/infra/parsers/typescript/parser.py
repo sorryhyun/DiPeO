@@ -96,10 +96,7 @@ class TypeScriptParser(ASTParserPort):
             
             # Parse the JSON output
             parsed_result = json.loads(result.stdout)
-            
-            # Debug: print what we received
-            print(f"[TypeScript Parser] Parsed result has keys: {list(parsed_result.keys())}")
-            
+
             # Check for parser errors
             if parsed_result.get('error'):
                 raise ServiceError(f'Parser error: {parsed_result["error"]}')

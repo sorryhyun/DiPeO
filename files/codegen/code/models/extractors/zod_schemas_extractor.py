@@ -2,39 +2,6 @@
 
 import re
 from typing import Dict, List, Any
-import sys
-import os
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from shared.node_mappings import get_loader
-
-
-# Type to Zod mapping
-TYPE_TO_ZOD = {
-    'string': 'z.string()',
-    'number': 'z.number()',
-    'boolean': 'z.boolean()',
-    'any': 'z.any()',
-    # Branded types should be treated as strings in Zod
-    'PersonID': 'z.string()',
-    'NodeID': 'z.string()',
-    'HandleID': 'z.string()',
-    'ArrowID': 'z.string()',
-    # Enums need to be referenced with Schema suffix
-    'SupportedLanguage': 'z.nativeEnum(SupportedLanguage)',
-    'HttpMethod': 'z.nativeEnum(HttpMethod)',
-    'DBBlockSubType': 'z.nativeEnum(DBBlockSubType)',
-    'HookType': 'z.nativeEnum(HookType)',
-    'ForgettingMode': 'z.nativeEnum(ForgettingMode)',
-    'NotionOperation': 'z.nativeEnum(NotionOperation)',
-    'HookTriggerMode': 'z.nativeEnum(HookTriggerMode)',
-    'ContentType': 'z.nativeEnum(ContentType)',
-    'NodeType': 'z.nativeEnum(NodeType)',
-    'MemoryView': 'z.nativeEnum(MemoryView)',
-    'DiagramFormat': 'z.nativeEnum(DiagramFormat)'
-}
 
 
 def build_enum_schemas(enums: List[Dict[str, Any]]) -> Dict[str, str]:
@@ -51,7 +18,7 @@ def build_enum_schemas(enums: List[Dict[str, Any]]) -> Dict[str, str]:
     return enum_schemas
 
 
-def get_zod_type(type_text: str, enum_schemas: Dict[str, str]) -> str:
+def get_zod_type(type_text: str, enum_schemas: Dict[str, str], type_to_zod: Dict[str, str]) -> str:
     """Convert TypeScript type to Zod schema"""
     # Handle union types with null/undefined
     clean_type = type_text.replace(' | null', '').replace(' | undefined', '').strip()
@@ -61,8 +28,8 @@ def get_zod_type(type_text: str, enum_schemas: Dict[str, str]) -> str:
         return enum_schemas[clean_type]
     
     # Check for type mapping
-    if clean_type in TYPE_TO_ZOD:
-        zod_type = TYPE_TO_ZOD[clean_type]
+    if clean_type in type_to_zod:
+        zod_type = type_to_zod[clean_type]
         # For branded types and enums, reference them directly
         if zod_type == clean_type:
             return zod_type
@@ -71,7 +38,7 @@ def get_zod_type(type_text: str, enum_schemas: Dict[str, str]) -> str:
     # Handle arrays
     if clean_type.endswith('[]'):
         element_type = clean_type[:-2]
-        element_zod = get_zod_type(element_type, enum_schemas)
+        element_zod = get_zod_type(element_type, enum_schemas, type_to_zod)
         return f"z.array({element_zod})"
     
     # Handle Record types
@@ -79,20 +46,20 @@ def get_zod_type(type_text: str, enum_schemas: Dict[str, str]) -> str:
         match = re.match(r'Record<(.+),\s*(.+)>', clean_type)
         if match:
             value_type = match.group(2).strip()
-            value_zod = get_zod_type(value_type, enum_schemas)
+            value_zod = get_zod_type(value_type, enum_schemas, type_to_zod)
             return f"z.record(z.string(), {value_zod})"
     
     # Default to z.any()
     return 'z.any()'
 
 
-def generate_property_schema(prop: Dict[str, Any], enum_schemas: Dict[str, str]) -> str:
+def generate_property_schema(prop: Dict[str, Any], enum_schemas: Dict[str, str], type_to_zod: Dict[str, str]) -> str:
     """Generate Zod schema for a property"""
     name = prop.get('name', '')
     type_text = prop.get('type', 'any')
     is_optional = prop.get('optional', False)
     
-    zod_schema = get_zod_type(type_text, enum_schemas)
+    zod_schema = get_zod_type(type_text, enum_schemas, type_to_zod)
     
     # Handle optional
     if is_optional:
@@ -105,11 +72,8 @@ def generate_property_schema(prop: Dict[str, Any], enum_schemas: Dict[str, str])
     return f"  {name}: {zod_schema}"
 
 
-def generate_interface_schema(interface_data: Dict[str, Any], enum_schemas: Dict[str, str]) -> str:
+def generate_interface_schema(interface_data: Dict[str, Any], enum_schemas: Dict[str, str], type_to_zod: Dict[str, str], base_fields: List[str]) -> str:
     """Generate Zod schema for an interface"""
-    loader = get_loader()
-    base_fields = loader.get_base_fields()
-    
     properties = []
     
     for prop in interface_data.get('properties', []):
@@ -119,20 +83,22 @@ def generate_interface_schema(interface_data: Dict[str, Any], enum_schemas: Dict
         if name in base_fields:
             continue
         
-        prop_schema = generate_property_schema(prop, enum_schemas)
+        prop_schema = generate_property_schema(prop, enum_schemas, type_to_zod)
         properties.append(prop_schema)
     
     return f"z.object({{\n{',\n'.join(properties)}\n}})"
 
 
-def extract_zod_schemas(ast_data: dict) -> dict:
+def extract_zod_schemas(ast_data: dict, mappings: dict) -> dict:
     """Extract Zod schemas from TypeScript AST data"""
     interfaces = ast_data.get('interfaces', [])
     enums = ast_data.get('enums', [])
     
-    loader = get_loader()
-    node_interface_map = loader.get_node_interface_map()
-    branded_types = loader.get_branded_types()
+    # Get mappings
+    node_interface_map = mappings.get('node_interface_map', {})
+    branded_types = mappings.get('branded_types', [])
+    type_to_zod = mappings.get('type_to_zod', {})
+    base_fields = mappings.get('base_fields', ['label', 'flipped'])
     
     # Build enum schemas
     enum_schemas = build_enum_schemas(enums)
@@ -152,7 +118,7 @@ def extract_zod_schemas(ast_data: dict) -> dict:
             print(f"Warning: Interface {interface_name} not found")
             continue
         
-        schema_code = generate_interface_schema(interface_data, enum_schemas)
+        schema_code = generate_interface_schema(interface_data, enum_schemas, type_to_zod, base_fields)
         
         schemas.append({
             'nodeType': node_type,
@@ -172,4 +138,5 @@ def extract_zod_schemas(ast_data: dict) -> dict:
 def main(inputs: dict) -> dict:
     """Main entry point for Zod schemas extraction"""
     ast_data = inputs.get('default', {})
-    return extract_zod_schemas(ast_data)
+    mappings = inputs.get('mappings', {})
+    return extract_zod_schemas(ast_data, mappings)

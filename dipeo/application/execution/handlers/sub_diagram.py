@@ -71,10 +71,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Check if batch mode is enabled
         if getattr(node, 'batch', False):
             return await self._execute_batch(request)
-        
-        # Log execution start
-        log.info(f"[SUB_DIAGRAM START] Executing sub_diagram: {node.label} (node_id: {node.id})")
-        log.debug(f"[SUB_DIAGRAM] Diagram name: {node.diagram_name}")
+
         try:
             # Get required services
             state_store = request.services.get("state_store")

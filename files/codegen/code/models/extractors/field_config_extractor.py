@@ -6,7 +6,7 @@ def generate_label(name: str) -> str:
     return ' '.join(word.capitalize() for word in name.split('_'))
 
 
-def get_field_type(name: str, type_text: str) -> str:
+def get_field_type(name: str, type_text: str, type_to_field: dict) -> str:
     """Determine the appropriate field type - must match FIELD_TYPES from panel.ts"""
     # Special handling for specific field names
     if any(keyword in name for keyword in ['prompt', 'expression', 'query']):
@@ -33,10 +33,6 @@ def get_field_type(name: str, type_text: str) -> str:
     # Check for branded types
     if 'PersonID' in clean_type:
         return 'personSelect'
-    
-    # Get type to field mapping from loader
-    loader = get_loader()
-    type_to_field = loader.get_type_to_field_mapping()
     
     # Check mapping
     if clean_type in type_to_field:
@@ -109,14 +105,15 @@ def extract_enum_values(enums: list) -> dict:
     return enum_values
 
 
-def extract_field_configs(ast_data: dict) -> dict:
+def extract_field_configs(ast_data: dict, mappings: dict) -> dict:
     """Extract field configurations from TypeScript AST data"""
     interfaces = ast_data.get('interfaces', [])
     enums = ast_data.get('enums', [])
     
-    loader = get_loader()
-    node_interface_map = loader.get_node_interface_map()
-    base_fields = loader.get_base_fields()
+    # Get mappings
+    node_interface_map = mappings.get('node_interface_map', {})
+    base_fields = mappings.get('base_fields', ['label', 'flipped'])
+    type_to_field = mappings.get('type_to_field', {})
     
     # Build enum value map
     enum_values = extract_enum_values(enums)
@@ -150,7 +147,7 @@ def extract_field_configs(ast_data: dict) -> dict:
             
             field_config = {
                 'name': name,
-                'type': get_field_type(name, type_text),
+                'type': get_field_type(name, type_text, type_to_field),
                 'label': generate_label(name),
                 'required': not is_optional
             }
@@ -176,4 +173,5 @@ def extract_field_configs(ast_data: dict) -> dict:
 def main(inputs: dict) -> dict:
     """Main entry point for the field config extractor"""
     ast_data = inputs.get('default', {})
-    return extract_field_configs(ast_data)
+    mappings = inputs.get('mappings', {})
+    return extract_field_configs(ast_data, mappings)

@@ -109,24 +109,15 @@ nodes:
       diagram_name: codegen/diagrams/backend/generate_enums
       diagram_format: light
 
-  # Generate conversions after enums
-  - label: Generate Conversions
-    type: sub_diagram
-    position: {x: 950, y: 300}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_conversions
-      diagram_format: light
-
   - label: Process Final Results
     type: code_job
     position: {x: 1150, y: 200}
     props:
       language: python
       code: |
-        # Combine results from backend generation, enums, and conversions
+        # Combine results from backend generation and enums
         backend_results = inputs.get('backend_results', {})
         enum_results = inputs.get('enum_results', {})
-        conversion_results = inputs.get('conversion_results', {})
         
         print(f"\n=== Complete Backend Generation Summary ===")
         print(backend_results.get('backend_summary', ''))
@@ -139,27 +130,15 @@ nodes:
             if enum_results and enum_results.get('error'):
                 print(f"  Error: {enum_results['error']}")
         
-        # Check if conversions were generated
-        if conversion_results:
-            print("\n✓ Conversions generated successfully")
-        else:
-            print("\n✗ Conversions generation failed")
-            if conversion_results and conversion_results.get('error'):
-                print(f"  Error: {conversion_results['error']}")
-        
         # Update artifact count
         artifacts = backend_results.get('artifacts_generated', {})
         if enum_results:
             artifacts['enums'] = 1
-        if conversion_results:
-            artifacts['conversions'] = 1
-        
         result = {
             'message': 'Complete backend generation finished with TypeScript specifications',
             'artifacts_generated': artifacts,
             'backend_status': backend_results.get('status', 'unknown'),
-            'enum_status': enum_results.get('status', 'unknown'),
-            'conversion_status': conversion_results.get('status', 'unknown')
+            'enum_status': enum_results.get('status', 'unknown')
         }
 
   - label: End
@@ -186,12 +165,8 @@ connections:
     label: backend_results
   
   - from: Generate Enums
-    to: Generate Conversions
-    label: enum_results
-  
-  - from: Generate Conversions
     to: Process Final Results
-    label: conversion_results
+    label: enum_results
   
   - from: Generate Enums
     to: Process Final Results

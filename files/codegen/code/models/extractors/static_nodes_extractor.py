@@ -2,85 +2,54 @@
 
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-import sys
-import os
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from shared.node_mappings import get_loader, get_python_type
 
 
-# Special field configurations that can't be derived from specs
-FIELD_SPECIAL_HANDLING = {
-    'person_job': {
-        'person': {'py_name': 'person_id'},
-        'first_only_prompt': {'default': '""'},
-        'max_iteration': {'default': '1'},
-        'memory_config': {'special': 'MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None'},
-        'memory_settings': {'special': 'MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None'},
-        'tools': {'special': '[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None'}
-    },
-    'start': {
-        'custom_data': {'default': 'field(default_factory=dict)'},
-        'output_data_structure': {'default': 'field(default_factory=dict)'}
-    },
-    'endpoint': {
-        'save_to_file': {'default': 'False'}
-    },
-    'condition': {
-        'condition_type': {'default': '""'}
-    },
-    'code_job': {
-        'language': {'default': 'SupportedLanguage.python'}
-    },
-    'api_job': {
-        'url': {'default': '""'},
-        'method': {'default': 'HttpMethod.GET'}
-    },
-    'db': {
-        'sub_type': {'default': 'DBBlockSubType.fixed_prompt'},
-        'operation': {'default': '""'}
-    },
-    'user_response': {
-        'prompt': {'default': '""'},
-        'timeout': {'default': '60'}
-    },
-    'notion': {
-        'operation': {'default': 'NotionOperation.read_page'}
-    },
-    'hook': {
-        'hook_type': {'default': 'HookType.shell'},
-        'config': {'default': 'field(default_factory=dict)'}
-    },
-    'template_job': {
-        'template_type': {'default': '"jinja2"'},
-        'merge_source': {'default': '"default"'}
-    },
-    'json_schema_validator': {
-        'strict_mode': {'default': 'False'},
-        'error_on_extra': {'default': 'False'}
-    },
-    'typescript_ast': {
-        'extractPatterns': {'default': 'field(default_factory=lambda: ["interface", "type", "enum"])'},
-        'includeJSDoc': {'default': 'False'},
-        'parseMode': {'default': '"module"'}
-    },
-    'sub_diagram': {
-        'batch': {'default': 'False'},
-        'batch_input_key': {'default': '"items"'},
-        'batch_parallel': {'default': 'True'}
-    }
-}
+def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str:
+    """Convert TypeScript type to Python type"""
+    # Clean type
+    clean_type = ts_type.replace(' | null', '').replace(' | undefined', '').strip()
+    
+    # Handle string literal unions
+    if ("'" in clean_type or '"' in clean_type) and '|' in clean_type:
+        literals = []
+        for lit in clean_type.split('|'):
+            cleaned = lit.strip().replace("'", '').replace('"', '')
+            literals.append(f'"{cleaned}"')
+        literal_type = f"Literal[{', '.join(literals)}]"
+        return f"Optional[{literal_type}]" if is_optional else literal_type
+    
+    # Check mapping
+    if clean_type in ts_to_py_type:
+        return ts_to_py_type[clean_type]
+    
+    # Handle arrays
+    if clean_type.endswith('[]'):
+        inner_type = clean_type[:-2]
+        inner_py = get_python_type(inner_type, False, ts_to_py_type)
+        list_type = f"List[{inner_py}]"
+        return f"Optional[{list_type}]" if is_optional else list_type
+    
+    # Handle Record types
+    if clean_type.startswith('Record<'):
+        return 'Dict[str, Any]'
+    
+    # Handle optional
+    if is_optional and not clean_type.startswith('Optional['):
+        return f"Optional[{clean_type}]"
+    
+    return clean_type
 
 
-def extract_static_nodes_data(ast_data: dict) -> dict:
+def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
     """Extract static node data from TypeScript AST"""
     interfaces = ast_data.get('interfaces', [])
     enums = ast_data.get('enums', [])
     
-    loader = get_loader()
-    node_interface_map = loader.get_node_interface_map()
+    # Get mappings
+    node_interface_map = mappings.get('node_interface_map', {})
+    base_fields = mappings.get('base_fields', ['label', 'flipped'])
+    ts_to_py_type = mappings.get('ts_to_py_type', {})
+    field_special_handling = mappings.get('field_special_handling', {})
     
     # Generate node classes data
     node_classes = []
@@ -100,7 +69,7 @@ def extract_static_nodes_data(ast_data: dict) -> dict:
         class_name = interface_name.replace('NodeData', 'Node')
         
         # Get special handling for this node type
-        node_special = FIELD_SPECIAL_HANDLING.get(node_type, {})
+        node_special = field_special_handling.get(node_type, {})
         
         # Process fields
         fields = []
@@ -108,7 +77,7 @@ def extract_static_nodes_data(ast_data: dict) -> dict:
             ts_name = prop.get('name')
             
             # Skip base fields
-            if ts_name in loader.get_base_fields():
+            if ts_name in base_fields:
                 continue
             
             # Get special handling for this field
@@ -119,7 +88,7 @@ def extract_static_nodes_data(ast_data: dict) -> dict:
             
             ts_type = prop.get('type', 'Any')
             is_optional = prop.get('optional', False)
-            py_type = get_python_type(ts_type, is_optional)
+            py_type = get_python_type(ts_type, is_optional, ts_to_py_type)
             
             field_data = {
                 'ts_name': ts_name,
@@ -167,4 +136,5 @@ def extract_static_nodes_data(ast_data: dict) -> dict:
 def main(inputs: dict) -> dict:
     """Main entry point for static nodes extraction"""
     ast_data = inputs.get('default', {})
-    return extract_static_nodes_data(ast_data)
+    mappings = inputs.get('mappings', {})
+    return extract_static_nodes_data(ast_data, mappings)

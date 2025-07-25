@@ -12,6 +12,33 @@ nodes:
       custom_data:
         message: Starting static nodes generation from domain models
 
+  # Load codegen mappings
+  - label: Load Codegen Mappings
+    type: db
+    position: {x: 200, y: 150}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/codegen-mappings.ts
+
+  # Parse codegen mappings
+  - label: Parse Mappings AST
+    type: typescript_ast
+    position: {x: 350, y: 150}
+    props:
+      extractPatterns: ["const", "export"]
+      includeJSDoc: false
+      parseMode: module
+
+  # Extract mappings
+  - label: Extract Mappings
+    type: code_job
+    position: {x: 500, y: 150}
+    props:
+      language: python
+      filePath: files/codegen/code/shared/extract_mappings.py
+      functionName: main
+
   # Load diagram.ts to get node data interfaces
   - label: Load Diagram TS
     type: db
@@ -73,16 +100,29 @@ nodes:
       save_to_file: false
 
 connections:
-  # Load and parse
+  # Load and parse mappings
+  - from: Start
+    to: Load Codegen Mappings
+  - from: Load Codegen Mappings
+    to: Parse Mappings AST
+    label: source
+  - from: Parse Mappings AST
+    to: Extract Mappings
+    label: default
+  
+  # Load and parse diagram
   - from: Start
     to: Load Diagram TS
   - from: Load Diagram TS
     to: Parse Diagram AST
     label: source
   
-  # Generate static nodes data
+  # Generate static nodes data with mappings
   - from: Parse Diagram AST
     to: Generate Static Nodes
+  - from: Extract Mappings
+    to: Generate Static Nodes
+    label: mappings
   
   # Generate Python code
   - from: Generate Static Nodes
