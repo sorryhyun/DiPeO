@@ -246,7 +246,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Find all person_job nodes
         person_job_nodes = [
             node for node in diagram.nodes 
-            if node.type == NodeType.person_job.value
+            if node.type == NodeType.PERSON_JOB.value
         ]
         
         if not person_job_nodes:

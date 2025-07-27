@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
 
 
-from dipeo.models.models import HookTriggerMode
+from dipeo.diagram_generated.enums import HookTriggerMode
 
 
 class StartNodeData(BaseModel):

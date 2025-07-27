@@ -10,30 +10,40 @@ nodes:
     position: {x: 50, y: 200}
     props:
       custom_data:
-        message: Starting domain model conversions generation
+        message: Starting domain model conversions generation from cached AST data
 
-  # Load conversions.ts file
+  # Run batch parser if cache doesn't exist
+  - label: Parse TypeScript Batch
+    type: sub_diagram
+    position: {x: 200, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # Load cached conversions AST
+  - label: Load Conversions AST
+    type: db
+    position: {x: 400, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/conversions_ast.json
+
+  # Load the original conversions.ts file (still needed for raw source)
   - label: Load Conversions TS
     type: db
-    position: {x: 200, y: 200}
+    position: {x: 400, y: 300}
     props:
       operation: read
       sub_type: file
       source_details: dipeo/models/src/conversions.ts
 
-  # Parse TypeScript to extract NODE_TYPE_MAP
-  - label: Parse Conversions AST
-    type: typescript_ast
-    position: {x: 400, y: 200}
-    props:
-      extractPatterns: ["const"]
-      includeJSDoc: false
-      parseMode: module
-
   # Extract NODE_TYPE_MAP entries
   - label: Extract NODE_TYPE_MAP
     type: code_job
-    position: {x: 600, y: 200}
+    position: {x: 600, y: 250}
     props:
       language: python
       filePath: files/codegen/code/models/extractors/node_type_map_extractor.py
@@ -42,7 +52,7 @@ nodes:
   # Load conversions template
   - label: Load Conversions Template
     type: db
-    position: {x: 600, y: 350}
+    position: {x: 600, y: 400}
     props:
       operation: read
       sub_type: file
@@ -51,7 +61,7 @@ nodes:
   # Generate conversions code
   - label: Generate Conversions Code
     type: code_job
-    position: {x: 800, y: 275}
+    position: {x: 800, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generators/conversions_generator.py
@@ -60,7 +70,7 @@ nodes:
   # Write conversions.py
   - label: Write Conversions File
     type: db
-    position: {x: 1200, y: 275}
+    position: {x: 1000, y: 300}
     props:
       operation: write
       sub_type: file
@@ -69,7 +79,7 @@ nodes:
   # Generate success summary
   - label: Generate Summary
     type: code_job
-    position: {x: 1400, y: 275}
+    position: {x: 1200, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generators/summary_generator.py
@@ -77,23 +87,27 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1600, y: 275}
+    position: {x: 1400, y: 300}
     props:
       save_to_file: false
 
 connections:
-  # Load and parse TypeScript
+  # Run batch parser first
   - from: Start
-    to: Load Conversions TS
-  - from: Start
-    to: Load Conversions Template
-  - from: Load Conversions TS
-    to: Parse Conversions AST
-    label: source
+    to: Parse TypeScript Batch
   
-  # Extract mappings
-  - from: Parse Conversions AST
+  # Load data after parsing
+  - from: Parse TypeScript Batch
+    to: Load Conversions AST
+  - from: Parse TypeScript Batch
+    to: Load Conversions TS
+  - from: Parse TypeScript Batch
+    to: Load Conversions Template
+  
+  # Extract mappings using cached AST
+  - from: Load Conversions AST
     to: Extract NODE_TYPE_MAP
+    label: ast_data
   - from: Load Conversions TS
     to: Extract NODE_TYPE_MAP
     label: source

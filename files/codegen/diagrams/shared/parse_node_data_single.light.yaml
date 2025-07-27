@@ -1,5 +1,5 @@
 # Parse Single Node Data File
-# Loads and parses a single node data TypeScript file to extract interface
+# Loads cached AST data for a single node data TypeScript file to extract interface
 
 version: light
 
@@ -41,37 +41,34 @@ nodes:
         if not node_type:
             raise ValueError(f"node_type not provided in input")
         
-        # Convert underscore to hyphen for filename
-        node_type_filename = node_type.replace('_', '-')
+        # Convert underscore to hyphen for cache filename
+        cache_filename = node_type.replace('_', '-') + '_data'
         
-        result = {"node_type": node_type, "node_type_filename": node_type_filename}
+        result = {"node_type": node_type, "cache_filename": cache_filename}
   
-  # Load the node data TypeScript file
-  - label: Load Node Data File
+  # Load cached AST data for this node type
+  - label: Load Cached AST
     type: db
-    position: {x: 300, y: 200}
+    position: {x: 350, y: 200}
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/node-data/{data.node_type_filename}.data.ts
+      source_details: apps/server/.temp/ast_cache/{data.cache_filename}_ast.json
       
-  # Parse TypeScript to extract interfaces and types
-  - label: Parse TypeScript AST
-    type: typescript_ast
-    position: {x: 500, y: 200}
-    props:
-      extractPatterns: ["interface", "type", "export"]
-      includeJSDoc: false
-      parseMode: module
-      
-  # Extract interface data
+  # Extract interface data from cached AST
   - label: Extract Interface
     type: code_job
-    position: {x: 700, y: 200}
+    position: {x: 550, y: 200}
     props:
       language: python
       code: |
+        import json
+        
+        # Parse cached AST data
         ast_data = inputs.get('ast_data', {})
+        if isinstance(ast_data, str):
+            ast_data = json.loads(ast_data)
+        
         node_info = inputs.get('node_info', {})
         node_type = node_info.get('node_type', 'unknown')
         
@@ -101,18 +98,25 @@ nodes:
                     break
         
         if not interface_data:
-            raise ValueError(f"No interface or type found for node type: {node_type}")
-        
-        result = {
-            'node_type': node_type,
-            'interface_name': interface_name,
-            'interface': interface_data
-        }
+            # If still not found, try to handle cases where data might be missing
+            # Return a placeholder that won't break the parent process
+            result = {
+                'node_type': node_type,
+                'interface_name': None,
+                'interface': None,
+                'error': f"No interface or type found for node type: {node_type}"
+            }
+        else:
+            result = {
+                'node_type': node_type,
+                'interface_name': interface_name,
+                'interface': interface_data
+            }
         
   # Save result to temp file
   - label: Save to Temp
     type: code_job
-    position: {x: 900, y: 200}
+    position: {x: 750, y: 200}
     props:
       language: python
       code: |
@@ -140,15 +144,11 @@ connections:
     to: Parse Input
     
   - from: Parse Input
-    to: Load Node Data File
+    to: Load Cached AST
     label: data
     content_type: object
     
-  - from: Load Node Data File
-    to: Parse TypeScript AST
-    label: source
-    
-  - from: Parse TypeScript AST
+  - from: Load Cached AST
     to: Extract Interface
     label: ast_data
     

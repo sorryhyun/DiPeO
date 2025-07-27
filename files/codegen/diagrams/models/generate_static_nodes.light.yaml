@@ -10,30 +10,31 @@ nodes:
     position: {x: 50, y: 300}
     props:
       custom_data:
-        message: Starting static nodes generation from domain models
+        message: Starting static nodes generation from cached AST data
 
-  # Load codegen mappings
-  - label: Load Codegen Mappings
+  # Run batch parser if cache doesn't exist
+  - label: Parse TypeScript Batch
+    type: sub_diagram
+    position: {x: 200, y: 300}
+    props:
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # Load cached codegen mappings AST
+  - label: Load Mappings AST
     type: db
-    position: {x: 200, y: 150}
+    position: {x: 400, y: 150}
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/codegen-mappings.ts
-
-  # Parse codegen mappings
-  - label: Parse Mappings AST
-    type: typescript_ast
-    position: {x: 350, y: 150}
-    props:
-      extractPatterns: ["const", "export"]
-      includeJSDoc: false
-      parseMode: module
+      source_details: apps/server/.temp/ast_cache/codegen_mappings_ast.json
 
   # Extract mappings
   - label: Extract Mappings
     type: code_job
-    position: {x: 500, y: 150}
+    position: {x: 600, y: 150}
     props:
       language: python
       filePath: files/codegen/code/shared/extract_mappings.py
@@ -42,7 +43,7 @@ nodes:
   # Load manifest to get node types
   - label: Load Manifest
     type: db
-    position: {x: 200, y: 300}
+    position: {x: 400, y: 300}
     props:
       operation: read
       sub_type: file
@@ -51,7 +52,7 @@ nodes:
   # Prepare temp directory and node list
   - label: Prepare Batch Processing
     type: code_job
-    position: {x: 350, y: 300}
+    position: {x: 600, y: 300}
     props:
       language: python
       code: |
@@ -87,7 +88,7 @@ nodes:
   # Batch parse node data files
   - label: Batch Parse Node Data
     type: sub_diagram
-    position: {x: 550, y: 300}
+    position: {x: 800, y: 300}
     props:
       diagram_name: codegen/diagrams/shared/parse_node_data_single
       diagram_format: light
@@ -95,28 +96,45 @@ nodes:
       batch_input_key: items
       batch_parallel: true
 
-  # Load BaseNodeData from diagram.ts
-  - label: Load Base Interface
+  # Load cached diagram AST for BaseNodeData
+  - label: Load Diagram AST
     type: db
-    position: {x: 200, y: 450}
+    position: {x: 400, y: 450}
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/diagram.ts
+      source_details: apps/server/.temp/ast_cache/diagram_ast.json
 
-  # Parse diagram.ts for BaseNodeData
-  - label: Parse Base Interface
-    type: typescript_ast
-    position: {x: 350, y: 450}
+  # Extract BaseNodeData interface
+  - label: Extract Base Interface
+    type: code_job
+    position: {x: 600, y: 450}
     props:
-      extractPatterns: ["interface"]
-      includeJSDoc: false
-      parseMode: module
+      language: python
+      code: |
+        import json
+        
+        # Parse AST data
+        ast_data = inputs.get('diagram_ast', {})
+        if isinstance(ast_data, str):
+            ast_data = json.loads(ast_data)
+        
+        # Find BaseNodeData interface
+        base_interface = None
+        for iface in ast_data.get('interfaces', []):
+            if iface.get('name') == 'BaseNodeData':
+                base_interface = iface
+                break
+        
+        result = {
+            'base_interface': base_interface,
+            'found': base_interface is not None
+        }
 
   # Read all temp files
   - label: Read Temp Results
     type: code_job
-    position: {x: 750, y: 400}
+    position: {x: 1000, y: 400}
     props:
       language: python
       code: |
@@ -154,7 +172,7 @@ nodes:
   # Generate static nodes from all parsed data
   - label: Generate Static Nodes
     type: code_job
-    position: {x: 750, y: 300}
+    position: {x: 1000, y: 300}
     props:
       language: python
       code: |
@@ -164,14 +182,10 @@ nodes:
         # Get inputs
         mappings = inputs.get('mappings', {})
         temp_results = inputs.get('temp_results', {})
-        base_ast = inputs.get('base_ast', {})
+        base_data = inputs.get('base_data', {})
         
-        # Extract BaseNodeData interface
-        base_interface = None
-        for iface in base_ast.get('interfaces', []):
-            if iface.get('name') == 'BaseNodeData':
-                base_interface = iface
-                break
+        # Extract base interface
+        base_interface = base_data.get('base_interface')
         
         # Get parsed nodes from temp results
         parsed_nodes = temp_results.get('parsed_nodes', [])
@@ -210,7 +224,7 @@ nodes:
   # Generate Python code
   - label: Generate Python Code
     type: code_job
-    position: {x: 950, y: 300}
+    position: {x: 1200, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generators/static_nodes_generator.py
@@ -219,7 +233,7 @@ nodes:
   # Write Python file
   - label: Write Static Nodes File
     type: db
-    position: {x: 1150, y: 300}
+    position: {x: 1400, y: 300}
     props:
       operation: write
       sub_type: file
@@ -228,7 +242,7 @@ nodes:
   # Generate success summary
   - label: Generate Summary
     type: code_job
-    position: {x: 1350, y: 300}
+    position: {x: 1600, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generators/summary_generator.py
@@ -236,24 +250,29 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1550, y: 300}
+    position: {x: 1800, y: 300}
     props:
       save_to_file: false
 
 connections:
-  # Load and parse mappings
+  # Run batch parser first
   - from: Start
-    to: Load Codegen Mappings
-  - from: Load Codegen Mappings
-    to: Parse Mappings AST
-    label: source
-  - from: Parse Mappings AST
+    to: Parse TypeScript Batch
+  
+  # Load cached data after parsing
+  - from: Parse TypeScript Batch
+    to: Load Mappings AST
+  - from: Parse TypeScript Batch
+    to: Load Manifest
+  - from: Parse TypeScript Batch
+    to: Load Diagram AST
+  
+  # Extract mappings
+  - from: Load Mappings AST
     to: Extract Mappings
     label: default
   
-  # Load manifest and prepare batch
-  - from: Start
-    to: Load Manifest
+  # Prepare batch processing
   - from: Load Manifest
     to: Prepare Batch Processing
     label: manifest
@@ -262,12 +281,10 @@ connections:
   - from: Prepare Batch Processing
     to: Batch Parse Node Data
   
-  # Load base interface
-  - from: Start
-    to: Load Base Interface
-  - from: Load Base Interface
-    to: Parse Base Interface
-    label: source
+  # Extract base interface
+  - from: Load Diagram AST
+    to: Extract Base Interface
+    label: diagram_ast
   
   # Read temp results after batch processing
   - from: Batch Parse Node Data
@@ -283,9 +300,9 @@ connections:
   - from: Extract Mappings
     to: Generate Static Nodes
     label: mappings
-  - from: Parse Base Interface
+  - from: Extract Base Interface
     to: Generate Static Nodes
-    label: base_ast
+    label: base_data
   
   # Generate Python code
   - from: Generate Static Nodes

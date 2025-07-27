@@ -19,6 +19,7 @@ nodes:
       diagram_name: codegen/diagrams/models/parse_all_typescript_batch
       diagram_format: light
       passInputData: false
+      ignoreIfSub: true
 
   # Load cached AST data
   - label: Load Diagram AST
@@ -53,10 +54,18 @@ nodes:
       sub_type: file
       source_details: apps/server/.temp/ast_cache/enums_ast.json
 
+  - label: Load Integration AST
+    type: db
+    position: {x: 400, y: 600}
+    props:
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/integration_ast.json
+
   # Combine all node data AST files
   - label: Combine Node Data AST
     type: code_job
-    position: {x: 400, y: 600}
+    position: {x: 400, y: 700}
     props:
       language: python
       code: |
@@ -228,6 +237,8 @@ connections:
     to: Load Conversation AST
   - from: Parse TypeScript Batch
     to: Load Enums AST
+  - from: Parse TypeScript Batch
+    to: Load Integration AST
   - from: Parse TypeScript Batch
     to: Combine Node Data AST
   

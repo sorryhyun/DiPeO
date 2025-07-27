@@ -10,75 +10,58 @@ nodes:
     position: {x: 50, y: 300}
     props:
       custom_data:
-        message: Starting field configurations generation
+        message: Starting field configurations generation from cached AST data
 
-  # Load codegen mappings TypeScript file
-  - label: Load Codegen Mappings
+  # Run batch parser if cache doesn't exist
+  - label: Parse TypeScript Batch
+    type: sub_diagram
+    position: {x: 200, y: 300}
+    props:
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # Load cached codegen mappings AST
+  - label: Load Mappings AST
     type: db
-    position: {x: 200, y: 150}
+    position: {x: 400, y: 150}
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/codegen-mappings.ts
-
-  # Parse codegen mappings
-  - label: Parse Mappings AST
-    type: typescript_ast
-    position: {x: 350, y: 150}
-    props:
-      extractPatterns: ["const", "export"]
-      includeJSDoc: false
-      parseMode: module
+      source_details: apps/server/.temp/ast_cache/codegen_mappings_ast.json
 
   # Extract mappings
   - label: Extract Mappings
     type: code_job
-    position: {x: 500, y: 150}
+    position: {x: 600, y: 150}
     props:
       language: python
       filePath: files/codegen/code/shared/extract_mappings.py
       functionName: main
 
-  # Load diagram.ts file
-  - label: Load Diagram TS
+  # Load cached diagram AST
+  - label: Load Diagram AST
     type: db
-    position: {x: 200, y: 300}
-    props:
-      operation: read
-      sub_type: file
-      source_details: dipeo/models/src/diagram.ts
-
-  # Load node-data index file
-  - label: Load Node Data TS
-    type: db
-    position: {x: 200, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      source_details: dipeo/models/src/node-data/index.ts
-
-  # Parse TypeScript to extract interfaces and enums
-  - label: Parse Diagram AST
-    type: typescript_ast
     position: {x: 400, y: 300}
     props:
-      extractPatterns: ["interface", "enum"]
-      includeJSDoc: false
-      parseMode: module
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/diagram_ast.json
 
-  # Parse node data TypeScript
-  - label: Parse Node Data AST
-    type: typescript_ast
+  # Load cached node data AST
+  - label: Load Node Data AST
+    type: db
     position: {x: 400, y: 400}
     props:
-      extractPatterns: ["interface", "enum", "type"]
-      includeJSDoc: false
-      parseMode: module
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/node_data_ast.json
 
   # Extract field configurations
   - label: Extract Field Configs
     type: code_job
-    position: {x: 600, y: 300}
+    position: {x: 700, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/extractors/field_config_extractor.py
@@ -87,7 +70,7 @@ nodes:
   # Load field configs template
   - label: Load Field Configs Template
     type: db
-    position: {x: 600, y: 450}
+    position: {x: 700, y: 450}
     props:
       operation: read
       sub_type: file
@@ -96,7 +79,7 @@ nodes:
   # Prepare template data
   - label: Prepare Template Data
     type: code_job
-    position: {x: 800, y: 350}
+    position: {x: 900, y: 350}
     props:
       language: python
       code: |
@@ -123,7 +106,7 @@ nodes:
   # Generate TypeScript field configs
   - label: Generate Field Configs Code
     type: code_job
-    position: {x: 1000, y: 400}
+    position: {x: 1100, y: 400}
     props:
       language: python
       code: |
@@ -158,7 +141,7 @@ nodes:
   # Write TypeScript file
   - label: Write Field Configs TS
     type: db
-    position: {x: 1200, y: 400}
+    position: {x: 1300, y: 400}
     props:
       operation: write
       sub_type: file
@@ -167,7 +150,7 @@ nodes:
   # Also write JSON output
   - label: Write Field Configs JSON
     type: code_job
-    position: {x: 1200, y: 500}
+    position: {x: 1300, y: 500}
     props:
       language: python
       filePath: files/codegen/code/models/writers/json_writer.py
@@ -176,7 +159,7 @@ nodes:
   # Generate success summary
   - label: Generate Summary
     type: code_job
-    position: {x: 1400, y: 450}
+    position: {x: 1500, y: 450}
     props:
       language: python
       filePath: files/codegen/code/models/generators/summary_generator.py
@@ -184,38 +167,35 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1600, y: 450}
+    position: {x: 1700, y: 450}
     props:
       save_to_file: false
 
 connections:
-  # Load and parse mappings
+  # Run batch parser first
   - from: Start
-    to: Load Codegen Mappings
-  - from: Load Codegen Mappings
-    to: Parse Mappings AST
-    label: source
-  - from: Parse Mappings AST
+    to: Parse TypeScript Batch
+  
+  # Load cached data after parsing
+  - from: Parse TypeScript Batch
+    to: Load Mappings AST
+  - from: Parse TypeScript Batch
+    to: Load Diagram AST
+  - from: Parse TypeScript Batch
+    to: Load Node Data AST
+  - from: Parse TypeScript Batch
+    to: Load Field Configs Template
+  
+  # Extract mappings
+  - from: Load Mappings AST
     to: Extract Mappings
     label: default
   
-  # Load and parse TypeScript
-  - from: Start
-    to: Load Diagram TS
-  - from: Start
-    to: Load Node Data TS
-  - from: Load Diagram TS
-    to: Parse Diagram AST
-    label: source
-  - from: Load Node Data TS
-    to: Parse Node Data AST
-    label: source
-  
-  # Extract field configs with mappings
-  - from: Parse Diagram AST
+  # Extract field configs with cached data
+  - from: Load Diagram AST
     to: Extract Field Configs
     label: default
-  - from: Parse Node Data AST
+  - from: Load Node Data AST
     to: Extract Field Configs
     label: node_data
   - from: Extract Mappings

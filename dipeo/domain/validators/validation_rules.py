@@ -37,33 +37,33 @@ class ValidationRules:
     
     # Node type constraints
     NODE_CONNECTION_RULES = {
-        NodeType.start: {
+        NodeType.START: {
             "max_inputs": 0,
             "max_outputs": None,
-            "required_handles": [HandleLabel.default],
-            "allowed_targets": [NodeType.person_job, NodeType.condition, NodeType.db, NodeType.code_job]
+            "required_handles": [HandleLabel.DEFAULT],
+            "allowed_targets": [NodeType.PERSON_JOB, NodeType.CONDITION, NodeType.DB, NodeType.CODE_JOB]
         },
-        NodeType.endpoint: {
+        NodeType.ENDPOINT: {
             "max_inputs": None,
             "max_outputs": 0,
-            "required_handles": [HandleLabel.default],
+            "required_handles": [HandleLabel.DEFAULT],
             "allowed_sources": None  # Any node can connect to endpoint
         },
-        NodeType.person_job: {
+        NodeType.PERSON_JOB: {
             "max_inputs": None,
             "max_outputs": None,
-            "required_handles": [HandleLabel.default],
+            "required_handles": [HandleLabel.DEFAULT],
             "allowed_targets": None,  # Can connect to any node
             "allowed_sources": None   # Any node can connect
         },
-        NodeType.condition: {
+        NodeType.CONDITION: {
             "max_inputs": 1,  # Conditions typically have single input
             "max_outputs": None,  # Multiple branches allowed
-            "required_handles": [HandleLabel.default, HandleLabel.condtrue, HandleLabel.condfalse],
+            "required_handles": [HandleLabel.DEFAULT, HandleLabel.CONDITION_TRUE, HandleLabel.CONDITION_FALSE],
             "allowed_targets": None,
-            "allowed_sources": [NodeType.person_job, NodeType.code_job, NodeType.db]
+            "allowed_sources": [NodeType.PERSON_JOB, NodeType.CODE_JOB, NodeType.DB]
         },
-        NodeType.db: {
+        NodeType.DB: {
             "max_inputs": None,
             "max_outputs": None,
             "required_handles": [],  # DB nodes have dynamic handles
@@ -107,14 +107,14 @@ class ValidationRules:
             ))
         
         # Special rules
-        if node_type == NodeType.start and incoming_count > 0:
+        if node_type == NodeType.START and incoming_count > 0:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.ERROR,
                 category="connection",
                 message="Start nodes cannot have incoming connections"
             ))
         
-        if node_type == NodeType.endpoint and outgoing_count > 0:
+        if node_type == NodeType.ENDPOINT and outgoing_count > 0:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.ERROR,
                 category="connection",

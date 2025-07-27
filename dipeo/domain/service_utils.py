@@ -8,13 +8,13 @@ from dipeo.models import APIServiceType, LLMService
 
 # Set of APIServiceType values that are LLM services
 LLM_SERVICE_TYPES: set[APIServiceType] = {
-    APIServiceType.openai,
-    APIServiceType.anthropic,
-    APIServiceType.google,
-    APIServiceType.gemini,
-    APIServiceType.bedrock,
-    APIServiceType.vertex,
-    APIServiceType.deepseek,
+    APIServiceType.OPENAI,
+    APIServiceType.ANTHROPIC,
+    APIServiceType.GOOGLE,
+    APIServiceType.GEMINI,
+    APIServiceType.BEDROCK,
+    APIServiceType.VERTEX,
+    APIServiceType.DEEPSEEK,
 }
 
 
@@ -34,8 +34,8 @@ def api_service_type_to_llm_service(service: APIServiceType) -> LLMService:
         raise ValueError(f'APIServiceType "{service.value}" is not an LLM service')
     
     # Handle special cases
-    if service == APIServiceType.gemini:
-        return LLMService.google
+    if service == APIServiceType.GEMINI:
+        return LLMService.GOOGLE
     
     # Direct mapping for others
     return LLMService(service.value)

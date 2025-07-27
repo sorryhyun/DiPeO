@@ -88,6 +88,16 @@ export const subDiagramSpec: NodeSpecification = {
       uiConfig: {
         inputType: "checkbox"
       }
+    },
+    {
+      name: "ignoreIfSub",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "Skip execution if this diagram is being run as a sub-diagram",
+      uiConfig: {
+        inputType: "checkbox"
+      }
     }
   ],
   

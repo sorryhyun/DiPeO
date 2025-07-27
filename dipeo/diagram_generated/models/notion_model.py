@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
 
-from dipeo.models.models import NotionOperation
+from dipeo.diagram_generated.enums import NotionOperation
 
 
 class NotionNodeData(BaseModel):

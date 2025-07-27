@@ -7,29 +7,33 @@ nodes:
   - label: Start
     type: start
     position: {x: 50, y: 200}
+    props:
+      custom_data:
+        message: Starting enum generation from cached AST data
 
-  # Load TypeScript enums file
-  - label: Load Enums TS
+  # Run batch parser if cache doesn't exist
+  - label: Parse TypeScript Batch
+    type: sub_diagram
+    position: {x: 200, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # Load cached enums AST
+  - label: Load Enums AST
     type: db
-    position: {x: 200, y: 100}
+    position: {x: 400, y: 200}
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/enums.ts
-
-  # Parse TypeScript AST
-  - label: Parse Enums AST
-    type: typescript_ast
-    position: {x: 350, y: 100}
-    props:
-      extractPatterns: ["enum", "export"]
-      includeJSDoc: true
-      parseMode: module
+      source_details: apps/server/.temp/ast_cache/enums_ast.json
 
   # Extract enum definitions
   - label: Extract Enums
     type: code_job
-    position: {x: 500, y: 100}
+    position: {x: 600, y: 200}
     props:
       language: python
       filePath: files/codegen/code/shared/extract_enums.py
@@ -38,7 +42,7 @@ nodes:
   # Load template
   - label: Load Enums Template
     type: db
-    position: {x: 200, y: 300}
+    position: {x: 400, y: 350}
     props:
       operation: read
       sub_type: file
@@ -47,7 +51,7 @@ nodes:
   # Generate Python enums
   - label: Generate Enums
     type: code_job
-    position: {x: 650, y: 200}
+    position: {x: 800, y: 250}
     props:
       language: python
       filePath: files/codegen/code/models/generators/enums.py
@@ -56,7 +60,7 @@ nodes:
   # Write generated file
   - label: Write Enums
     type: db
-    position: {x: 850, y: 200}
+    position: {x: 1000, y: 250}
     props:
       operation: write
       sub_type: file
@@ -64,24 +68,26 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1050, y: 200}
+    position: {x: 1200, y: 250}
     props:
       save_to_file: false
 
 connections:
+  # Run batch parser first
   - from: Start
-    to: Load Enums TS
+    to: Parse TypeScript Batch
 
-  - from: Load Enums TS
-    to: Parse Enums AST
-    label: source
-
-  - from: Parse Enums AST
-    to: Extract Enums
-
-  - from: Start
+  # Load cached data and template after parsing
+  - from: Parse TypeScript Batch
+    to: Load Enums AST
+  - from: Parse TypeScript Batch
     to: Load Enums Template
 
+  # Extract enums from cached AST
+  - from: Load Enums AST
+    to: Extract Enums
+
+  # Generate enums
   - from: Load Enums Template
     to: Generate Enums
     label: template_content

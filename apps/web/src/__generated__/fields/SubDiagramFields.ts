@@ -18,6 +18,14 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     description: 'Name of the diagram to execute (e.g., \'workflow/process\')',
   },
   {
+    name: 'ignoreIfSub',
+    type: 'checkbox',
+    label: 'Ignore If Sub',
+    required: false,
+    defaultValue: false,
+    description: 'Skip execution if this diagram is being run as a sub-diagram',
+  },
+  {
     name: 'input_mapping',
     type: 'code',
     label: 'Input Mapping',

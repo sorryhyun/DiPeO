@@ -12,4 +12,5 @@ export interface SubDiagramNodeData extends BaseNodeData {
   batch?: boolean;  // Execute sub-diagram for each item in the input array
   batch_input_key?: string;  // Key in inputs containing the array to iterate over (default: "items")
   batch_parallel?: boolean;  // Execute batch items in parallel (default: true)
+  ignoreIfSub?: boolean;  // Skip execution if this diagram is being run as a sub-diagram
 }

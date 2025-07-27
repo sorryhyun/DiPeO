@@ -67,6 +67,18 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         """Execute the sub-diagram node."""
         node = request.node
         
+        # Check if we should skip execution when running as a sub-diagram
+        if getattr(node, 'ignoreIfSub', False):
+            # Check if this execution is a sub-diagram by looking at execution variables
+            if request.runtime:
+                variables = request.runtime.get_variables()
+                if variables.get('is_sub_diagram', False):
+                    log.info(f"Skipping sub-diagram node {node.id} - ignoreIfSub is true and running as sub-diagram")
+                    return DataOutput(
+                        value={"status": "skipped", "reason": "ignoreIfSub is true and running as sub-diagram"},
+                        node_id=node.id
+                    )
+        
         # Check if batch mode is enabled
         if getattr(node, 'batch', False):
             return await self._execute_batch(request)

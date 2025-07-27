@@ -27,7 +27,7 @@ def generate_graphql_schema_summary(graphql_types: dict) -> dict:
     print(f"  - {len(graphql_types.get('enums', []))} enums")
     print(f"  - {len(graphql_types.get('types', []))} types")
     print(f"  - {len(graphql_types.get('input_types', []))} input types")
-    print(f"Output written to: dipeo/diagram_generated/domain-schema.graphql")
+    print(f"Output written to: dipeo/diagram_generated_staged/domain-schema.graphql")
     print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {
@@ -73,7 +73,7 @@ def generate_static_nodes_summary(static_nodes_data: dict) -> dict:
     print(f"Generated {len(node_classes)} node classes:")
     for nc in node_classes:
         print(f"  - {nc['class_name']}")
-    print(f"\nOutput written to: dipeo/diagram_generated/generated_nodes.py")
+    print(f"\nOutput written to: dipeo/diagram_generated_staged/generated_nodes.py")
     print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {

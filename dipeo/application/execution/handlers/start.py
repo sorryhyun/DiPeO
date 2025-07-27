@@ -46,7 +46,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         node = request.node
         
         # Validate hook configuration
-        if node.trigger_mode == HookTriggerMode.hook:
+        if node.trigger_mode == HookTriggerMode.HOOK:
             if not node.hook_event:
                 return "Hook event must be specified when using hook trigger mode"
         
@@ -80,9 +80,9 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                     input_variables = execution_state.variables
         
         # Direct typed access to node properties
-        trigger_mode = node.trigger_mode or HookTriggerMode.manual
+        trigger_mode = node.trigger_mode or HookTriggerMode.MANUAL
         
-        if trigger_mode == HookTriggerMode.manual:
+        if trigger_mode == HookTriggerMode.MANUAL:
             # Merge input variables with custom_data (custom_data takes precedence)
             output_data = {**input_variables, **(node.custom_data or {})}
             

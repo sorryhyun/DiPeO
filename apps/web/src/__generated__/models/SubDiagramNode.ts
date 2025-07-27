@@ -9,6 +9,7 @@ export interface SubDiagramNodeData {
   timeout?: number;
   wait_for_completion?: boolean;
   isolate_conversation?: boolean;
+  ignoreIfSub?: boolean;
 }
 
 // Zod schema for validation
@@ -20,4 +21,5 @@ export const SubDiagramNodeDataSchema = z.object({
   timeout: z.number().min(1).max(3600).optional(),
   wait_for_completion: z.boolean().optional(),
   isolate_conversation: z.boolean().optional(),
+  ignoreIfSub: z.boolean().optional(),
 });
