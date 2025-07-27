@@ -29,7 +29,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.json_schema_validator.value
+        return NodeType.JSON_SCHEMA_VALIDATOR.value
     
     @property
     def schema(self) -> type[BaseModel]:

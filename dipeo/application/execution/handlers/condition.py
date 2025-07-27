@@ -39,7 +39,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.condition.value
+        return NodeType.CONDITION.value
 
     @property
     def schema(self) -> type[BaseModel]:

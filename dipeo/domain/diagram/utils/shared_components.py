@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType, create_handle_id
+from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType
+from dipeo.diagram_generated.handle_utils import create_handle_id
+
+log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass
@@ -23,8 +27,10 @@ __all__ = (
 # Internal helpers
 
 
-def _create_handle_id(node_id: str, label: str, direction: str) -> str:
-    return str(create_handle_id(NodeID(node_id), HandleLabel(label), HandleDirection(direction)))
+def _create_handle_id_from_enums(node_id: str, label: HandleLabel, direction: HandleDirection) -> str:
+    # Use the handle_utils version which properly handles enums
+    result = create_handle_id(NodeID(node_id), label, direction)
+    return str(result)
 
 
 def _push_handle(
@@ -46,17 +52,17 @@ def _push_handle(
 
 def _make_handle(
     node_id: str,
-    label: str,
-    direction: str,
-    dtype: str = DataType.ANY,
+    label: HandleLabel,
+    direction: HandleDirection,
+    dtype: DataType = DataType.ANY,
 ) -> dict[str, Any]:
-    hid = _create_handle_id(node_id, label, direction)
+    hid = _create_handle_id_from_enums(node_id, label, direction)
     return {
         'id': hid,
         'node_id': node_id,
-        'label': label,
-        'direction': direction,
-        'data_type': dtype,
+        'label': label.value,
+        'direction': direction.value,
+        'data_type': dtype.value,
         'position': "left" if direction == HandleDirection.INPUT else "right",
     }
 

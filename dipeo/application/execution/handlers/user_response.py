@@ -28,7 +28,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.user_response.value
+        return NodeType.USER_RESPONSE.value
 
     @property
     def schema(self) -> type[BaseModel]:

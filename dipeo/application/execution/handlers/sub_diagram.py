@@ -39,7 +39,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.sub_diagram.value
+        return NodeType.SUB_DIAGRAM.value
     
     @property
     def schema(self) -> type[BaseModel]:

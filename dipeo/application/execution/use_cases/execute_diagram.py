@@ -282,9 +282,9 @@ class ExecuteDiagramUseCase(BaseService):
             # Extract person configs from typed nodes
             person_configs = {}
             for node in typed_diagram.nodes:
-                if isinstance(node, PersonJobNode) and node.person_id:
+                if isinstance(node, PersonJobNode) and node.person:
                     # Use the actual person_id from the node, not the node ID
-                    person_id = str(node.person_id)
+                    person_id = str(node.person)
                     # For PersonJobNode, we need to get person config from metadata or defaults
                     # The node itself only has person_id reference
                     config = {

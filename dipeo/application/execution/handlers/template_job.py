@@ -30,7 +30,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.template_job.value
+        return NodeType.TEMPLATE_JOB.value
     
     @property
     def schema(self) -> type[BaseModel]:

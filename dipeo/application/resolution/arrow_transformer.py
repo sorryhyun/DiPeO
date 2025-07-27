@@ -136,16 +136,16 @@ class ArrowTransformer:
                 )
         
         # Default based on node type
-        if source_node.type == NodeType.person_job:
-            return ContentType.conversation_state
-        elif source_node.type == NodeType.db:
+        if source_node.type == NodeType.PERSON_JOB:
+            return ContentType.CONVERSATION_STATE
+        elif source_node.type == NodeType.DB:
             # Use object type by default for DB nodes to preserve structure
-            return ContentType.object
-        elif source_node.type in [NodeType.code_job, NodeType.api_job]:
+            return ContentType.OBJECT
+        elif source_node.type in [NodeType.CODE_JOB, NodeType.API_JOB]:
             # Code and API jobs typically return structured data
-            return ContentType.object
+            return ContentType.OBJECT
         else:
-            return ContentType.raw_text
+            return ContentType.RAW_TEXT
     
     def _extract_transformation_rules(
         self,
@@ -170,7 +170,7 @@ class ArrowTransformer:
                 rules["custom_transform"] = arrow.data["transform"]
         
         # Add node-type specific rules
-        if source_node.type == NodeType.db and target_node.type == NodeType.person_job:
+        if source_node.type == NodeType.DB and target_node.type == NodeType.PERSON_JOB:
             # Database to person needs formatting
             rules["format_for_conversation"] = True
         

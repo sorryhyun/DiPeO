@@ -11,8 +11,8 @@ from dipeo.diagram_generated import (
     NodeID,
     DataType,
     ContentType,
-    create_handle_id,
 )
+from dipeo.diagram_generated.handle_utils import create_handle_id
 from dipeo.models import MemoryView
 
 log = logging.getLogger(__name__)
@@ -252,14 +252,21 @@ class HandleParser:
             node_id
         )
         
-        expected_handle_id = create_handle_id(actual_node_id, handle_label, direction)
+        # Ensure handle_label is a HandleLabel enum
+        if not isinstance(handle_label, HandleLabel):
+            try:
+                handle_label = HandleLabel(str(handle_label))
+            except ValueError:
+                handle_label = HandleLabel.DEFAULT
+        expected_handle_id = create_handle_id(NodeID(actual_node_id), handle_label, direction)
         
         if expected_handle_id not in handles_dict:
             # Create the handle
+            log.debug(f"Creating handle: handle_ref={handle_ref}, handle_name={handle_name}, handle_label={handle_label}, type={type(handle_label)}")
             handles_dict[expected_handle_id] = {
                 "id": expected_handle_id,
                 "node_id": actual_node_id,
-                "label": str(handle_label),
+                "label": handle_label.value,
                 "direction": direction.value,
                 "data_type": DataType.ANY.value,
                 "position": "right" if direction == HandleDirection.OUTPUT else "left",

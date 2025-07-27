@@ -26,7 +26,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.start.value
+        return NodeType.START.value
 
     @property
     def schema(self) -> type[BaseModel]:

@@ -53,8 +53,8 @@ class SimpleOrderCalculator:
             
             # Sort by priority
             remaining_sorted = sorted(remaining, key=lambda nid: (
-                0 if node_map[nid].type == NodeType.start else
-                1 if node_map[nid].type == NodeType.person_job else
+                0 if node_map[nid].type == NodeType.START else
+                1 if node_map[nid].type == NodeType.PERSON_JOB else
                 2
             ))
             

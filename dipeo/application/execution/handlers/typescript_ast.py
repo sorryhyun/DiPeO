@@ -33,7 +33,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.typescript_ast.value
+        return NodeType.TYPESCRIPT_AST.value
     
     @property
     def schema(self) -> type[BaseModel]:

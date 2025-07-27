@@ -41,7 +41,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
     @property
     def node_type(self) -> str:
-        return NodeType.db.value
+        return NodeType.DB.value
 
     @property
     def schema(self) -> type[BaseModel]:

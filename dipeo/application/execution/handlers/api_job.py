@@ -29,7 +29,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.api_job.value
+        return NodeType.API_JOB.value
 
     @property
     def schema(self) -> type[BaseModel]:

@@ -33,7 +33,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.hook.value
+        return NodeType.HOOK.value
     
     @property
     def schema(self) -> type[BaseModel]:

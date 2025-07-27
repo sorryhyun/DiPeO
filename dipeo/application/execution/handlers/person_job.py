@@ -40,7 +40,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.person_job.value
+        return NodeType.PERSON_JOB.value
 
     @property
     def schema(self) -> type[BaseModel]:

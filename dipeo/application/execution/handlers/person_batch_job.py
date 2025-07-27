@@ -55,7 +55,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.person_batch_job.value
+        return NodeType.PERSON_BATCH_JOB.value
 
     @property
     def schema(self) -> type[BaseModel]:

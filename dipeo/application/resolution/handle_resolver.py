@@ -74,13 +74,13 @@ class HandleResolver:
             return None
         
         # Validate handle directions
-        if source_parsed.direction != HandleDirection.output:
+        if source_parsed.direction != HandleDirection.OUTPUT:
             self._errors.append(
                 f"Arrow {arrow.id}: Source must be an output handle, got {source_parsed.direction}"
             )
             return None
         
-        if target_parsed.direction != HandleDirection.input:
+        if target_parsed.direction != HandleDirection.INPUT:
             self._errors.append(
                 f"Arrow {arrow.id}: Target must be an input handle, got {target_parsed.direction}"
             )

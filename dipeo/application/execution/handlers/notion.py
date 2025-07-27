@@ -31,7 +31,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.notion.value
+        return NodeType.NOTION.value
 
     @property
     def schema(self) -> type[BaseModel]:

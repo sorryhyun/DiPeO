@@ -203,10 +203,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 try:
                     node_type = node_kind_to_domain_type(node_type_str)
                 except ValueError:
-                    node_type = NodeType.code_job
+                    node_type = NodeType.CODE_JOB
                 
                 handle_generator.generate_for_node(
-                    diagram_dict, node_id, node_type
+                    diagram_dict, node_id, node_type.value
                 )
     
     def _create_arrow_handles(self, diagram_dict: dict[str, Any]):

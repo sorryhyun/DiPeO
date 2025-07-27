@@ -22,7 +22,7 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append('from dataclasses import dataclass, field')
     lines.append('from typing import Dict, Any, Optional, List, Union, Literal')
     lines.append('')
-    lines.append('from dipeo.models.models import (')
+    lines.append('from dipeo.diagram_generated.domain_models import (')
     lines.append('    NodeType, Vec2, NodeID, PersonID, MemorySettings, ToolConfig,')
     lines.append('    HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,')
     lines.append('    NotionOperation, HookType, DiagramFormat')

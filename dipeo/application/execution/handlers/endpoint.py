@@ -28,7 +28,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.endpoint.value
+        return NodeType.ENDPOINT.value
 
     @property
     def schema(self) -> type[BaseModel]:
