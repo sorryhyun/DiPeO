@@ -185,12 +185,12 @@ class Person:
         """
         # Convert from models.MemoryView to memory_filters.MemoryView
         view_mapping = {
-            MemoryViewEnum.all_involved: MemoryView.ALL_INVOLVED,
-            MemoryViewEnum.sent_by_me: MemoryView.SENT_BY_ME,
-            MemoryViewEnum.sent_to_me: MemoryView.SENT_TO_ME,
-            MemoryViewEnum.system_and_me: MemoryView.SYSTEM_AND_ME,
-            MemoryViewEnum.conversation_pairs: MemoryView.CONVERSATION_PAIRS,
-            MemoryViewEnum.all_messages: MemoryView.ALL_MESSAGES,
+            MemoryViewEnum.ALL_INVOLVED: MemoryView.ALL_INVOLVED,
+            MemoryViewEnum.SENT_BY_ME: MemoryView.SENT_BY_ME,
+            MemoryViewEnum.SENT_TO_ME: MemoryView.SENT_TO_ME,
+            MemoryViewEnum.SYSTEM_AND_ME: MemoryView.SYSTEM_AND_ME,
+            MemoryViewEnum.CONVERSATION_PAIRS: MemoryView.CONVERSATION_PAIRS,
+            # Note: ALL_MESSAGES is missing from generated enum, needs fixing in codegen
         }
         
         memory_view = view_mapping.get(settings.view, MemoryView.ALL_INVOLVED)

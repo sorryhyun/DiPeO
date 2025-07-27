@@ -62,7 +62,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
     def validate(self, request: ExecutionRequest[PersonJobNode]) -> Optional[str]:
         """Validate the execution request."""
-        if not request.node.person_id:
+        if not request.node.person:
             return "No person specified"
         
         # Check max iteration
@@ -82,7 +82,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         inputs = request.inputs or {}
         
         # Direct typed access to person_id
-        person_id = node.person_id
+        person_id = node.person
 
         # Get services from services dict
         llm_service = request.services.get(LLM_SERVICE.name)
@@ -104,7 +104,13 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Note: We apply memory settings even on first execution because some nodes
             # (like judge panels) need to see full conversation history from the start
             if node.memory_settings:
-                person.apply_memory_settings(node.memory_settings)
+                # Convert dict to MemorySettings object if needed
+                if isinstance(node.memory_settings, dict):
+                    from dipeo.diagram_generated import MemorySettings as MemorySettingsModel
+                    memory_settings = MemorySettingsModel(**node.memory_settings)
+                    person.apply_memory_settings(memory_settings)
+                else:
+                    person.apply_memory_settings(node.memory_settings)
             
             # Use inputs directly
             transformed_inputs = inputs

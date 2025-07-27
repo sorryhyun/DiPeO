@@ -104,9 +104,6 @@ def parse_field_args(args: list) -> str:
 
 def extract_mappings(ast_data: dict) -> dict:
     """Extract codegen mappings from TypeScript AST data."""
-    # Get the parsed AST
-    ast = ast_data.get('ast', {})
-    
     # Initialize result structure
     mappings = {
         "node_interface_map": {},
@@ -118,41 +115,76 @@ def extract_mappings(ast_data: dict) -> dict:
         "field_special_handling": {}
     }
     
-    # Look for exported constants in the AST
-    body = ast.get('body', [])
-    
-    for statement in body:
-        if statement.get('type') == 'ExportNamedDeclaration':
-            declaration = statement.get('declaration', {})
+    # Check if we have the new AST format with constants directly
+    if 'constants' in ast_data:
+        # New format: constants are already extracted
+        for constant in ast_data.get('constants', []):
+            var_name = constant.get('name', '')
+            value = constant.get('value', {})
             
-            if declaration.get('type') == 'VariableDeclaration':
-                for declarator in declaration.get('declarations', []):
-                    if declarator.get('type') == 'VariableDeclarator':
-                        id_node = declarator.get('id', {})
-                        init_node = declarator.get('init', {})
-                        
-                        if id_node.get('type') == 'Identifier':
-                            var_name = id_node.get('name', '')
+            # Map TypeScript constant names to our mapping keys
+            mapping_name_map = {
+                'NODE_INTERFACE_MAP': 'node_interface_map',
+                'TS_TO_PY_TYPE': 'ts_to_py_type',
+                'TYPE_TO_FIELD': 'type_to_field',
+                'TYPE_TO_ZOD': 'type_to_zod',
+                'BRANDED_TYPES': 'branded_types',
+                'BASE_FIELDS': 'base_fields',
+                'FIELD_SPECIAL_HANDLING': 'field_special_handling'
+            }
+            
+            if var_name in mapping_name_map:
+                mapping_key = mapping_name_map[var_name]
+                
+                # Clean up the values - remove extra quotes from keys
+                if isinstance(value, dict):
+                    cleaned_value = {}
+                    for k, v in value.items():
+                        # Remove surrounding quotes if present
+                        clean_key = k.strip("'\"")
+                        cleaned_value[clean_key] = v
+                    mappings[mapping_key] = cleaned_value
+                elif isinstance(value, list):
+                    mappings[mapping_key] = value
+                else:
+                    mappings[mapping_key] = value
+    else:
+        # Old format: need to traverse AST
+        ast = ast_data.get('ast', {})
+        body = ast.get('body', [])
+        
+        for statement in body:
+            if statement.get('type') == 'ExportNamedDeclaration':
+                declaration = statement.get('declaration', {})
+                
+                if declaration.get('type') == 'VariableDeclaration':
+                    for declarator in declaration.get('declarations', []):
+                        if declarator.get('type') == 'VariableDeclarator':
+                            id_node = declarator.get('id', {})
+                            init_node = declarator.get('init', {})
                             
-                            # Map TypeScript constant names to our mapping keys
-                            mapping_name_map = {
-                                'NODE_INTERFACE_MAP': 'node_interface_map',
-                                'TS_TO_PY_TYPE': 'ts_to_py_type',
-                                'TYPE_TO_FIELD': 'type_to_field',
-                                'TYPE_TO_ZOD': 'type_to_zod',
-                                'BRANDED_TYPES': 'branded_types',
-                                'BASE_FIELDS': 'base_fields',
-                                'FIELD_SPECIAL_HANDLING': 'field_special_handling'
-                            }
-                            
-                            if var_name in mapping_name_map:
-                                mapping_key = mapping_name_map[var_name]
+                            if id_node.get('type') == 'Identifier':
+                                var_name = id_node.get('name', '')
                                 
-                                # Parse the value based on type
-                                if init_node.get('type') == 'ObjectExpression':
-                                    mappings[mapping_key] = parse_object_expression(init_node)
-                                elif init_node.get('type') == 'ArrayExpression':
-                                    mappings[mapping_key] = parse_array_expression(init_node)
+                                # Map TypeScript constant names to our mapping keys
+                                mapping_name_map = {
+                                    'NODE_INTERFACE_MAP': 'node_interface_map',
+                                    'TS_TO_PY_TYPE': 'ts_to_py_type',
+                                    'TYPE_TO_FIELD': 'type_to_field',
+                                    'TYPE_TO_ZOD': 'type_to_zod',
+                                    'BRANDED_TYPES': 'branded_types',
+                                    'BASE_FIELDS': 'base_fields',
+                                    'FIELD_SPECIAL_HANDLING': 'field_special_handling'
+                                }
+                                
+                                if var_name in mapping_name_map:
+                                    mapping_key = mapping_name_map[var_name]
+                                    
+                                    # Parse the value based on type
+                                    if init_node.get('type') == 'ObjectExpression':
+                                        mappings[mapping_key] = parse_object_expression(init_node)
+                                    elif init_node.get('type') == 'ArrayExpression':
+                                        mappings[mapping_key] = parse_array_expression(init_node)
     
     # Fix special handling for fields that need proper Python syntax
     if 'field_special_handling' in mappings:

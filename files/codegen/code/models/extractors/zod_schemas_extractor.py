@@ -137,6 +137,40 @@ def extract_zod_schemas(ast_data: dict, mappings: dict) -> dict:
 
 def main(inputs: dict) -> dict:
     """Main entry point for Zod schemas extraction"""
-    ast_data = inputs.get('default', {})
+    # Get the node data AST input which should contain all interfaces
+    node_data_ast = inputs.get('node_data', {})
+    
+    # If node_data is just the index file, we need to aggregate from individual files
+    if not node_data_ast.get('interfaces'):
+        # Load individual node data files
+        import os
+        import json
+        from pathlib import Path
+        
+        cache_dir = Path('.temp/ast_cache')
+        all_interfaces = []
+        
+        # Pattern to match individual node data files
+        for ast_file in cache_dir.glob('*_data_ast.json'):
+            # Skip the index file
+            if ast_file.name == 'node_data_ast.json':
+                continue
+            
+            try:
+                with open(ast_file, 'r') as f:
+                    data = json.load(f)
+                    interfaces = data.get('interfaces', [])
+                    all_interfaces.extend(interfaces)
+            except Exception as e:
+                print(f"Error loading {ast_file}: {e}")
+        
+        # Create aggregated AST data
+        node_data_ast = {
+            'interfaces': all_interfaces,
+            'types': [],
+            'enums': [],
+            'constants': []
+        }
+    
     mappings = inputs.get('mappings', {})
-    return extract_zod_schemas(ast_data, mappings)
+    return extract_zod_schemas(node_data_ast, mappings)

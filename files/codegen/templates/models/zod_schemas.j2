@@ -20,7 +20,8 @@ import {
   HookType,
   NotionOperation,
   HookTriggerMode,
-  ContentType
+  ContentType,
+  DiagramFormat
 } from '@dipeo/domain-models';
 
 // Re-export enum schemas for validation
@@ -39,7 +40,7 @@ export const NODE_DATA_SCHEMAS = {
 
 // Type exports
 {%- for schema in schemas %}
-export type {{ schema.interfaceName }}Schema = z.infer<typeof NODE_DATA_SCHEMAS['{{ schema.nodeType }}']>;
+export type {{ schema.interfaceName }}Schema = z.infer{% raw %}<{% endraw %}typeof NODE_DATA_SCHEMAS['{{ schema.nodeType }}']{% raw %}>{% endraw %};
 {%- endfor %}
 
 // Helper function to get schema for a node type
@@ -67,7 +68,7 @@ export function createZodFieldValidator(nodeType: string, fieldName: string) {
     }
     
     // Type cast to access shape property
-    const schemaShape = (schema as z.ZodObject<any>).shape;
+    const schemaShape = (schema as z.ZodObject{% raw %}<any>{% endraw %}).shape;
     const fieldSchema = schemaShape?.[fieldName];
     
     if (!fieldSchema) {

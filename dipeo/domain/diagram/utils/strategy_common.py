@@ -52,22 +52,22 @@ class NodeFieldMapper:
                 profile_str = props.get("memory_profile")
                 profile_to_settings = {
                     "FULL": {
-                        "view": MemoryView.all_messages,
+                        "view": MemoryView.ALL_INVOLVED,
                         "max_messages": None,
                         "preserve_system": True
                     },
                     "FOCUSED": {
-                        "view": MemoryView.conversation_pairs,
+                        "view": MemoryView.CONVERSATION_PAIRS,
                         "max_messages": 20,
                         "preserve_system": True
                     },
                     "MINIMAL": {
-                        "view": MemoryView.system_and_me,
+                        "view": MemoryView.SYSTEM_AND_ME,
                         "max_messages": 5,
                         "preserve_system": True
                     },
                     "GOLDFISH": {
-                        "view": MemoryView.conversation_pairs,
+                        "view": MemoryView.CONVERSATION_PAIRS,
                         "max_messages": 2,
                         "preserve_system": False
                     }

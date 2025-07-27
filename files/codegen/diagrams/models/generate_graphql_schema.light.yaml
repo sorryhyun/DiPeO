@@ -258,6 +258,9 @@ connections:
   - from: Load Enums AST
     to: Extract GraphQL Types
     label: enums_ast
+  - from: Load Integration AST
+    to: Extract GraphQL Types
+    label: integration_ast
   
   # Prepare template data
   - from: Extract GraphQL Types

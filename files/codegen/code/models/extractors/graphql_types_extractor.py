@@ -166,14 +166,14 @@ def extract_types_from_interfaces(all_interfaces: list, enums: list, scalars: li
     }
 
 
-def extract_graphql_types(diagram_ast: dict, execution_ast: dict, conversation_ast: dict, node_data_ast: dict = None, enums_ast: dict = None) -> dict:
+def extract_graphql_types(diagram_ast: dict, execution_ast: dict, conversation_ast: dict, node_data_ast: dict = None, enums_ast: dict = None, integration_ast: dict = None) -> dict:
     """Extract all GraphQL types from combined AST data"""
     # Combine all AST data
     all_interfaces = []
     all_enums = []
     all_types = []
     
-    # Include all AST sources, including node_data_ast and enums_ast if provided
+    # Include all AST sources, including node_data_ast, enums_ast, and integration_ast if provided
     ast_sources = [diagram_ast, execution_ast, conversation_ast]
     if node_data_ast:
         ast_sources.append(node_data_ast)
@@ -182,6 +182,11 @@ def extract_graphql_types(diagram_ast: dict, execution_ast: dict, conversation_a
         print(f"Node data interfaces found: {[i.get('name') for i in node_interfaces]}")
     if enums_ast:
         ast_sources.append(enums_ast)
+    if integration_ast:
+        ast_sources.append(integration_ast)
+        # Debug: print interfaces from integration_ast
+        integration_interfaces = integration_ast.get('interfaces', [])
+        print(f"Integration interfaces found: {[i.get('name') for i in integration_interfaces]}")
     
     for ast in ast_sources:
         all_interfaces.extend(ast.get('interfaces', []))
@@ -225,5 +230,6 @@ def main(inputs: dict) -> dict:
     conversation_ast = inputs.get('conversation_ast', {})
     node_data_ast = inputs.get('node_data_ast', {})
     enums_ast = inputs.get('enums_ast', {})
+    integration_ast = inputs.get('integration_ast', {})
     
-    return extract_graphql_types(diagram_ast, execution_ast, conversation_ast, node_data_ast, enums_ast)
+    return extract_graphql_types(diagram_ast, execution_ast, conversation_ast, node_data_ast, enums_ast, integration_ast)

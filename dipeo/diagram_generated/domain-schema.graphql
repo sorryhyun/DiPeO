@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-27T21:15:52.571012
+# Generated at: 2025-07-27T21:57:58.805816
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -456,6 +456,42 @@ type SubDiagramNodeData {
   batch_input_key: String
   batch_parallel: Boolean
   ignoreIfSub: Boolean
+}
+type ToolConfig {
+  type: ToolType!
+  enabled: Boolean
+  config: JSONScalar
+}
+type WebSearchResult {
+  url: String!
+  title: String!
+  snippet: String!
+  score: Float
+}
+type ImageGenerationResult {
+  image_data: String!
+  format: String!
+  width: Float
+  height: Float
+}
+type ToolOutput {
+  type: ToolType!
+  result: String!
+  raw_response: JSONScalar
+}
+type ChatResult {
+  text: String!
+  token_usage: TokenUsage
+  raw_response: JSONScalar
+  tool_outputs: [ToolOutput]
+}
+type LLMRequestOptions {
+  temperature: Float
+  max_tokens: Float
+  top_p: Float
+  n: Float
+  tools: [ToolConfig]
+  response_format: JSONScalar
 }
 
 # ============================================================================
