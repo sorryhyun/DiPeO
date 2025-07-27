@@ -38,9 +38,9 @@ Generates from `dipeo/models/src/*.ts`:
 #### Node Specification Generation
 - TypeScript specification types defined (`dipeo/models/src/node-specifications.ts`)
 - All 15 node types migrated to TypeScript specifications
-- TypeScript parsing diagram created (`shared/parse_typescript_specs.light.yaml`)
 - Frontend generation updated to use TypeScript (`generate_frontend_single_ts.light.yaml`)
 - Frontend batch generation created for TypeScript (`generate_frontend_batch_ts.light.yaml`)
+- Backend generation simplified to parse TypeScript directly (removed temp file pattern)
 - Backend generation updated to use TypeScript (`generate_backend_single_ts.light.yaml`)
 - Backend batch generation created for TypeScript (`generate_backend_batch_ts.light.yaml`)
 - Unified generation pipeline created and replaced legacy `generate_all.light.yaml`

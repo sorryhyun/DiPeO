@@ -12,10 +12,18 @@ nodes:
       custom_data:
         message: Starting complete domain model generation pipeline
 
+  # Parse all TypeScript files once
+  - label: Parse All TypeScript
+    type: sub_diagram
+    position: {x: 200, y: 300}
+    props:
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+
   # Generate Python models
   - label: Generate Python Models
     type: sub_diagram
-    position: {x: 300, y: 100}
+    position: {x: 400, y: 100}
     props:
       diagram_name: codegen/diagrams/models/generate_python_models
       diagram_format: light
@@ -23,7 +31,7 @@ nodes:
   # Generate enums
   - label: Generate Enums
     type: sub_diagram
-    position: {x: 300, y: 150}
+    position: {x: 400, y: 150}
     props:
       diagram_name: codegen/diagrams/models/generate_enums
       diagram_format: light
@@ -31,7 +39,7 @@ nodes:
   # Generate conversions
   - label: Generate Conversions
     type: sub_diagram
-    position: {x: 300, y: 250}
+    position: {x: 400, y: 250}
     props:
       diagram_name: codegen/diagrams/models/generate_conversions
       diagram_format: light
@@ -39,7 +47,7 @@ nodes:
   # Generate field configs
   - label: Generate Field Configs
     type: sub_diagram
-    position: {x: 300, y: 350}
+    position: {x: 400, y: 350}
     props:
       diagram_name: codegen/diagrams/models/generate_field_configs
       diagram_format: light
@@ -47,7 +55,7 @@ nodes:
   # Generate Zod schemas
   - label: Generate Zod Schemas
     type: sub_diagram
-    position: {x: 300, y: 450}
+    position: {x: 400, y: 450}
     props:
       diagram_name: codegen/diagrams/models/generate_zod_schemas
       diagram_format: light
@@ -55,7 +63,7 @@ nodes:
   # Generate GraphQL schema
   - label: Generate GraphQL Schema
     type: sub_diagram
-    position: {x: 300, y: 550}
+    position: {x: 400, y: 550}
     props:
       diagram_name: codegen/diagrams/models/generate_graphql_schema
       diagram_format: light
@@ -63,7 +71,7 @@ nodes:
   # Generate static nodes
   - label: Generate Static Nodes
     type: sub_diagram
-    position: {x: 300, y: 650}
+    position: {x: 400, y: 650}
     props:
       diagram_name: codegen/diagrams/models/generate_static_nodes
       diagram_format: light
@@ -135,43 +143,49 @@ nodes:
       save_to_file: false
 
 connections:
-  # Start all generation tasks in parallel
+  # First parse all TypeScript files to create cache
   - from: Start
+    to: Parse All TypeScript
+  
+  # After cache is created, start all generation tasks in parallel
+  - from: Parse All TypeScript
     to: Generate Python Models
-  - from: Start
+  - from: Parse All TypeScript
     to: Generate Enums
-  - from: Start
+  - from: Parse All TypeScript
     to: Generate Conversions
-  - from: Start
+  - from: Parse All TypeScript
     to: Generate Field Configs
-  - from: Start
+  - from: Parse All TypeScript
     to: Generate Zod Schemas
-  - from: Start
+  - from: Parse All TypeScript
     to: Generate GraphQL Schema
-  - from: Start
+  - from: Parse All TypeScript
     to: Generate Static Nodes
   
-  # All generation tasks must complete before building TypeScript
-  - from: Generate Python Models
-    to: Build TypeScript Models
-    label: python_models
-  - from: Generate Enums
-    to: Build TypeScript Models
-    label: enums
-  - from: Generate Conversions
-    to: Build TypeScript Models
-    label: conversions
+  # Only TypeScript-generating tasks need to complete before building TypeScript
   - from: Generate Field Configs
     to: Build TypeScript Models
     label: field_configs
   - from: Generate Zod Schemas
     to: Build TypeScript Models
     label: zod_schemas
+  
+  # Python generation tasks connect directly to Generate Summary
+  - from: Generate Python Models
+    to: Generate Summary
+    label: python_models
+  - from: Generate Enums
+    to: Generate Summary
+    label: enums
+  - from: Generate Conversions
+    to: Generate Summary
+    label: conversions
   - from: Generate GraphQL Schema
-    to: Build TypeScript Models
+    to: Generate Summary
     label: graphql_schema
   - from: Generate Static Nodes
-    to: Build TypeScript Models
+    to: Generate Summary
     label: static_nodes
   
   # Generate final summary

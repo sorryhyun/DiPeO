@@ -1,0 +1,273 @@
+# Generate Python Domain Models from TypeScript (with AST cache support)
+# Replaces dipeo/models/scripts/generate-python.ts
+# Generates core domain models (Diagram, Node, Execution, etc.) from TypeScript sources
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting Python domain model generation (with cache support)
+
+  # Check for AST cache first
+  - label: Load AST from Cache
+    type: code_job
+    position: {x: 200, y: 300}
+    props:
+      language: python
+      code: |
+        import sys
+        sys.path.append('files/codegen/code/models/utils')
+        from ast_cache import load_combined_ast_from_cache
+        
+        # List of files needed for Python model generation
+        required_files = [
+            'diagram', 'execution', 'conversation', 
+            'node_specifications', 'utils', 'integration', 'node_data'
+        ]
+        
+        # Try to load from cache
+        cached_ast = load_combined_ast_from_cache(required_files, max_age_minutes=10)
+        
+        if cached_ast:
+            print("[Cache Hit] Using cached AST data")
+            result = {
+                'ast_data': cached_ast,
+                'cache_hit': True
+            }
+        else:
+            print("[Cache Miss] Need to parse TypeScript files")
+            result = {
+                'ast_data': None,
+                'cache_hit': False
+            }
+
+  # Check if we got cache hit
+  - label: Check Cache Hit
+    type: condition
+    position: {x: 400, y: 300}
+    props:
+      expression: inputs.get('cache_result', {}).get('cache_hit', False)
+
+  # If cache miss, load and parse TypeScript files
+  - label: Load All TypeScript Files
+    type: code_job
+    position: {x: 600, y: 500}
+    props:
+      language: python
+      code: |
+        print("Loading TypeScript files for parsing...")
+        import os
+        from pathlib import Path
+        
+        base_dir = Path('dipeo/models/src')
+        files_to_load = {
+            'diagram': base_dir / 'diagram.ts',
+            'execution': base_dir / 'execution.ts',
+            'conversation': base_dir / 'conversation.ts',
+            'node_specifications': base_dir / 'node-specifications.ts',
+            'utils': base_dir / 'utils.ts',
+            'integration': base_dir / 'integration.ts',
+            'node_data': base_dir / 'node-data/index.ts'
+        }
+        
+        sources = {}
+        for name, path in files_to_load.items():
+            with open(path, 'r') as f:
+                sources[name] = f.read()
+        
+        result = sources
+
+  # Parse TypeScript files using typescript_ast node
+  - label: Parse All TypeScript
+    type: code_job
+    position: {x: 800, y: 500}
+    props:
+      language: python
+      code: |
+        import subprocess
+        import json
+        import tempfile
+        import os
+        from pathlib import Path
+        
+        sources = inputs.get('sources', {})
+        project_root = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
+        parser_script = project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
+        
+        all_interfaces = []
+        all_types = []
+        all_enums = []
+        all_constants = []
+        
+        for name, source in sources.items():
+            print(f"Parsing {name}.ts...")
+            
+            # Create temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.ts', delete=False) as tmp_file:
+                tmp_file.write(source)
+                tmp_file_path = tmp_file.name
+            
+            try:
+                # Run parser
+                cmd = ['pnpm', 'tsx', str(parser_script), '--patterns=interface,type,enum,const', '--include-jsdoc', '--mode=module', tmp_file_path]
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_root), timeout=30)
+                
+                if result.returncode == 0:
+                    parsed = json.loads(result.stdout)
+                    all_interfaces.extend(parsed.get('interfaces', []))
+                    all_types.extend(parsed.get('types', []))
+                    all_enums.extend(parsed.get('enums', []))
+                    all_constants.extend(parsed.get('constants', []))
+                else:
+                    print(f"Error parsing {name}: {result.stderr}")
+            finally:
+                os.unlink(tmp_file_path)
+        
+        result = {
+            'interfaces': all_interfaces,
+            'types': all_types,
+            'enums': all_enums,
+            'constants': all_constants
+        }
+
+  # Merge AST data (from cache or fresh parse)
+  - label: Merge AST Data
+    type: code_job
+    position: {x: 1000, y: 300}
+    props:
+      language: python
+      code: |
+        # Get AST data from either cache or fresh parse
+        cache_result = inputs.get('cache_result', {})
+        
+        if cache_result.get('cache_hit'):
+            ast_data = cache_result['ast_data']
+        else:
+            ast_data = inputs.get('parsed_ast', {})
+        
+        print(f"\nAST data ready:")
+        print(f"  - {len(ast_data.get('interfaces', []))} interfaces")
+        print(f"  - {len(ast_data.get('types', []))} type aliases")
+        print(f"  - {len(ast_data.get('enums', []))} enums")
+        print(f"  - {len(ast_data.get('constants', []))} constants")
+        
+        result = ast_data
+
+  # Load Python model template
+  - label: Load Python Template
+    type: db
+    position: {x: 1000, y: 450}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/models/python_models.j2
+
+  # Generate Python models using the generator module
+  - label: Generate Python Models
+    type: code_job
+    position: {x: 1200, y: 350}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generators/python_models.py
+      functionName: main
+
+  # Write generated Python models
+  - label: Write Python Models
+    type: db
+    position: {x: 1400, y: 350}
+    props:
+      operation: write
+      sub_type: file
+      source_details: dipeo/diagram_generated_staged/domain_models.py
+
+  # Generate success summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1600, y: 350}
+    props:
+      language: python
+      code: |
+        generation_result = inputs.get('generation_result', {})
+        cache_hit = inputs.get('cache_result', {}).get('cache_hit', False)
+        
+        print(f"\n=== Python Domain Models Generation Complete ===")
+        print(f"Cache: {'HIT' if cache_hit else 'MISS'}")
+        print(f"Generated {generation_result.get('models_count', 0)} models")
+        print(f"Generated {generation_result.get('enums_count', 0)} enums")
+        print(f"Generated {generation_result.get('type_aliases_count', 0)} type aliases")
+        print(f"\nOutput written to: dipeo/diagram_generated_staged/domain_models.py")
+        
+        result = {
+            'status': 'success',
+            'message': 'Python domain models generated successfully',
+            'cache_used': cache_hit,
+            'details': generation_result
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 1800, y: 350}
+    props:
+      save_to_file: false
+
+connections:
+  # Start flow
+  - from: Start
+    to: Load AST from Cache
+  
+  # Cache check
+  - from: Load AST from Cache
+    to: Check Cache Hit
+    label: cache_result
+  
+  # Cache hit path (true)
+  - from: Check Cache Hit
+    to: Merge AST Data
+    label: "true"
+  
+  # Cache miss path (false)
+  - from: Check Cache Hit
+    to: Load All TypeScript Files
+    label: "false"
+  
+  - from: Load All TypeScript Files
+    to: Parse All TypeScript
+    label: sources
+  
+  - from: Parse All TypeScript
+    to: Merge AST Data
+    label: parsed_ast
+  
+  # Continue with generation
+  - from: Start
+    to: Load Python Template
+  
+  - from: Merge AST Data
+    to: Generate Python Models
+    label: ast_data
+  
+  - from: Load Python Template
+    to: Generate Python Models
+    label: template_content
+  
+  # Write output and generate summary
+  - from: Generate Python Models
+    to: Write Python Models
+    label: generated_code
+  
+  - from: Generate Python Models
+    to: Generate Summary
+    label: generation_result
+  
+  - from: Load AST from Cache
+    to: Generate Summary
+    label: cache_result
+  
+  - from: Write Python Models
+    to: End
+  - from: Generate Summary
+    to: End

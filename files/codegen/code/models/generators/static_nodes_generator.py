@@ -66,7 +66,7 @@ def generate_python_code(static_nodes_data: dict) -> str:
             lines.append(field_def)
         
         # Then add the type field with its default
-        lines.append(f'    type: NodeType = field(default=NodeType.{node_class["node_type"]}, init=False)')
+        lines.append(f'    type: NodeType = field(default=NodeType.{node_class["node_type"].upper()}, init=False)')
         
         # Add base optional fields
         lines.append('    label: str = ""')
@@ -125,7 +125,7 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append('@dataclass(frozen=True)')
     lines.append('class PersonBatchJobNode(PersonJobNode):')
     lines.append('    """Person batch job node - same as PersonJobNode but with different type."""')
-    lines.append('    type: NodeType = field(default=NodeType.person_batch_job, init=False)')
+    lines.append('    type: NodeType = field(default=NodeType.PERSON_BATCH_JOB, init=False)')
     lines.append('')
     lines.append('')
     
@@ -154,7 +154,7 @@ def generate_python_code(static_nodes_data: dict) -> str:
     
     # Generate factory cases
     for node_class in node_classes:
-        lines.append(f'    if node_type == NodeType.{node_class["node_type"]}:')
+        lines.append(f'    if node_type == NodeType.{node_class["node_type"].upper()}:')
         lines.append(f'        return {node_class["class_name"]}(')
         lines.append('            id=node_id,')
         lines.append('            position=position,')
@@ -174,7 +174,7 @@ def generate_python_code(static_nodes_data: dict) -> str:
         lines.append('    ')
     
     # Special case for PersonBatchJobNode - it's an alias that inherits from PersonJobNode
-    lines.append('    if node_type == NodeType.person_batch_job:')
+    lines.append('    if node_type == NodeType.PERSON_BATCH_JOB:')
     lines.append('        return PersonBatchJobNode(')
     lines.append('            id=node_id,')
     lines.append('            position=position,')

@@ -18,14 +18,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "generate:schema": "tsx scripts/generate-schema.ts",
-    "generate:python": "tsx scripts/generate-python.ts",
-    "generate:conversions": "tsx scripts/generate-conversions.ts",
-    "generate:field-configs": "tsx scripts/generate-field-configs.ts",
-    "generate:zod-schemas": "tsx scripts/generate-zod-schemas.ts",
-    "generate:static-nodes": "tsx scripts/generate-static-nodes.ts",
-    "generate:all": "pnpm generate:schema && pnpm generate:python && pnpm generate:conversions && pnpm generate:field-configs && pnpm generate:zod-schemas && pnpm generate:static-nodes && pnpm build"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "zod": "^3.25.42"
@@ -34,8 +27,6 @@
     "@types/node": "^22.15.32",
     "typescript": "^5.8.3",
     "tsx": "^4.0.0",
-    "ts-morph": "^21.0.0",
-    "zod-to-json-schema": "^3.21.0",
     "prettier": "^3.5.3"
   },
   "peerDependencies": {

@@ -450,14 +450,33 @@ function parseTypeScript(
   }
 }
 
+// Batch parsing interfaces
+interface BatchInput {
+  sources: {
+    [key: string]: string
+  }
+}
+
+interface BatchResult {
+  results: {
+    [key: string]: ParseResult
+  }
+  metadata?: {
+    totalFiles: number
+    successCount: number
+    failureCount: number
+    processingTimeMs: number
+  }
+}
+
 // Command line interface
 const args = process.argv.slice(2)
 
-// Extract file path and options
-let filePath: string | undefined
+// Extract file paths and options
+const filePaths: string[] = []
 const options = args.reduce((acc, arg) => {
   if (!arg.startsWith('--')) {
-    filePath = arg
+    filePaths.push(arg)
     return acc
   }
   if (arg.startsWith('--patterns=')) {
@@ -466,32 +485,159 @@ const options = args.reduce((acc, arg) => {
     acc.includeJSDoc = true
   } else if (arg.startsWith('--mode=')) {
     acc.mode = arg.substring(7) as 'module' | 'script'
+  } else if (arg === '--batch' || arg === '--batch-mode') {
+    acc.batchMode = true
+  } else if (arg.startsWith('--batch-input=')) {
+    acc.batchInputFile = arg.substring(14)
   }
   return acc
 }, {
   patterns: ['interface', 'type', 'enum'],
   includeJSDoc: false,
-  mode: 'module' as 'module' | 'script'
+  mode: 'module' as 'module' | 'script',
+  batchMode: false,
+  batchInputFile: undefined as string | undefined
 })
 
-// Validate arguments
-if (!filePath) {
-  console.error('Usage: parse-typescript.ts [options] <file.ts>')
-  console.error('Options:')
-  console.error('  --patterns=interface,type,enum,class,function')
-  console.error('  --include-jsdoc')
-  console.error('  --mode=module|script')
-  process.exit(1)
+// Process batch input if provided
+if (options.batchMode || options.batchInputFile) {
+  const startTime = Date.now()
+  
+  try {
+    let batchInput: BatchInput
+    
+    if (options.batchInputFile) {
+      // Read batch input from JSON file
+      const inputData = fs.readFileSync(options.batchInputFile, 'utf8')
+      batchInput = JSON.parse(inputData)
+    } else if (process.stdin.isTTY === false) {
+      // Read from stdin if not a TTY
+      const chunks: Buffer[] = []
+      process.stdin.on('data', (chunk) => chunks.push(chunk))
+      process.stdin.on('end', () => {
+        try {
+          const inputData = Buffer.concat(chunks).toString()
+          batchInput = JSON.parse(inputData)
+          processBatchInput(batchInput)
+        } catch (error) {
+          console.error(`Error parsing batch input: ${error}`)
+          process.exit(1)
+        }
+      })
+      // Exit here to wait for stdin
+      process.stdin.resume()
+    } else {
+      console.error('Batch mode requires either --batch-input=<file> or input via stdin')
+      process.exit(1)
+    }
+    
+    if (options.batchInputFile) {
+      processBatchInput(batchInput!)
+    }
+    
+    function processBatchInput(input: BatchInput) {
+      const results: BatchResult = {
+        results: {},
+        metadata: {
+          totalFiles: 0,
+          successCount: 0,
+          failureCount: 0,
+          processingTimeMs: 0
+        }
+      }
+      
+      // Process each source
+      for (const [key, source] of Object.entries(input.sources)) {
+        results.metadata!.totalFiles++
+        
+        try {
+          const parseResult = parseTypeScript(
+            source, 
+            options.patterns, 
+            options.includeJSDoc, 
+            options.mode
+          )
+          results.results[key] = parseResult
+          results.metadata!.successCount++
+        } catch (error) {
+          results.results[key] = {
+            ast: {},
+            interfaces: [],
+            types: [],
+            enums: [],
+            error: error instanceof Error ? error.message : String(error)
+          }
+          results.metadata!.failureCount++
+        }
+      }
+      
+      results.metadata!.processingTimeMs = Date.now() - startTime
+      console.log(JSON.stringify(results, null, 2))
+    }
+    
+  } catch (error) {
+    console.error(`Error in batch processing: ${error}`)
+    process.exit(1)
+  }
+} else {
+  // Single file mode (backward compatible)
+  if (filePaths.length === 0) {
+    console.error('Usage: parse-typescript.ts [options] <file.ts> [file2.ts ...]')
+    console.error('Options:')
+    console.error('  --patterns=interface,type,enum,class,function')
+    console.error('  --include-jsdoc')
+    console.error('  --mode=module|script')
+    console.error('  --batch                      Enable batch mode (read JSON from stdin)')
+    console.error('  --batch-input=<file>         Read batch input from JSON file')
+    console.error('')
+    console.error('Batch input format: {"sources": {"key1": "source1", "key2": "source2"}}')
+    process.exit(1)
+  }
+
+  // Process multiple files
+  if (filePaths.length > 1) {
+    const startTime = Date.now()
+    const results: BatchResult = {
+      results: {},
+      metadata: {
+        totalFiles: filePaths.length,
+        successCount: 0,
+        failureCount: 0,
+        processingTimeMs: 0
+      }
+    }
+    
+    for (const filePath of filePaths) {
+      try {
+        const source = fs.readFileSync(filePath, 'utf8')
+        const result = parseTypeScript(source, options.patterns, options.includeJSDoc, options.mode)
+        results.results[filePath] = result
+        results.metadata!.successCount++
+      } catch (error) {
+        results.results[filePath] = {
+          ast: {},
+          interfaces: [],
+          types: [],
+          enums: [],
+          error: error instanceof Error ? error.message : String(error)
+        }
+        results.metadata!.failureCount++
+      }
+    }
+    
+    results.metadata!.processingTimeMs = Date.now() - startTime
+    console.log(JSON.stringify(results, null, 2))
+  } else {
+    // Single file processing (original behavior)
+    try {
+      const source = fs.readFileSync(filePaths[0], 'utf8')
+      const result = parseTypeScript(source, options.patterns, options.includeJSDoc, options.mode)
+      console.log(JSON.stringify(result, null, 2))
+    } catch (error) {
+      console.error(`Error reading file: ${error}`)
+      process.exit(1)
+    }
+  }
 }
 
-// Read source code from file
-try {
-  const source = fs.readFileSync(filePath, 'utf8')
-  const result = parseTypeScript(source, options.patterns, options.includeJSDoc, options.mode)
-  console.log(JSON.stringify(result, null, 2))
-} catch (error) {
-  console.error(`Error reading file: ${error}`)
-  process.exit(1)
-}
-
-export { parseTypeScript, ParseResult }
+export { parseTypeScript, ParseResult, BatchInput, BatchResult }

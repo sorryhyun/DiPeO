@@ -1,0 +1,124 @@
+"""Batch parse TypeScript files using the AST extractor."""
+import json
+import subprocess
+import tempfile
+import os
+from pathlib import Path
+from typing import Dict, Any
+
+
+def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Main entry point for batch TypeScript parsing.
+    
+    Args:
+        inputs: Dictionary containing 'sources' labeled input
+        
+    Returns:
+        Dictionary containing:
+        - parsed_results: Mapped parse results  
+        - metadata: Batch processing metadata
+    """
+    # When receiving from labeled connections, inputs['label'] contains the entire result from the sending node
+    sources_data = inputs.get('sources', {})
+    # Extract the actual sources from the input
+    if isinstance(sources_data, dict) and 'sources' in sources_data:
+        sources = sources_data['sources']
+        file_mapping = sources_data.get('file_mapping', {})
+    else:
+        sources = sources_data
+        file_mapping = {}
+    
+    if not sources:
+        raise ValueError("No sources provided for batch parsing")
+    
+    # Prepare batch input and save to temp file
+    batch_input = {'sources': sources}
+    
+    # Create temporary file for batch input
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
+        json.dump(batch_input, tmp_file)
+        tmp_file_path = tmp_file.name
+    
+    # Run the TypeScript parser in batch mode
+    project_root = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
+    parser_script = project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
+    
+    cmd = [
+        'pnpm', 'tsx', str(parser_script),
+        f'--batch-input={tmp_file_path}',
+        '--patterns=interface,type,enum,const',
+        '--include-jsdoc',
+        '--mode=module'
+    ]
+    
+    print(f"Executing batch TypeScript parsing for {len(sources)} files...")
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            timeout=60
+        )
+        
+        # Clean up temp file
+        os.unlink(tmp_file_path)
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"Parser failed: {result.stderr}")
+        
+        # Parse the batch result
+        batch_result = json.loads(result.stdout)
+        
+        # Map results to simplified keys
+        mapped_results = {}
+        for file_path, parse_result in batch_result.get('results', {}).items():
+            key = file_mapping.get(file_path, file_path)
+            mapped_results[key] = parse_result
+        
+        # Log performance metrics
+        if 'metadata' in batch_result:
+            meta = batch_result['metadata']
+            print(f"\n=== Batch Parsing Complete ===")
+            print(f"Total files: {meta['totalFiles']}")
+            print(f"Successful: {meta['successCount']}")
+            print(f"Failed: {meta['failureCount']}")
+            print(f"Processing time: {meta['processingTimeMs']}ms")
+        
+        return {
+            'parsed_results': mapped_results,
+            'metadata': batch_result.get('metadata', {})
+        }
+        
+    except subprocess.TimeoutExpired:
+        # Clean up temp file if it exists
+        if 'tmp_file_path' in locals():
+            try:
+                os.unlink(tmp_file_path)
+            except:
+                pass
+        raise RuntimeError("Batch TypeScript parsing timed out after 60 seconds")
+    except json.JSONDecodeError as e:
+        # Clean up temp file if it exists
+        if 'tmp_file_path' in locals():
+            try:
+                os.unlink(tmp_file_path)
+            except:
+                pass
+        raise RuntimeError(f"Failed to parse batch output: {str(e)}")
+    except Exception as e:
+        # Clean up temp file if it exists
+        if 'tmp_file_path' in locals():
+            try:
+                os.unlink(tmp_file_path)
+            except:
+                pass
+        raise
+
+
+# Keep backward compatibility
+def batch_parse_typescript(sources_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Legacy function for backward compatibility."""
+    return main({'sources': sources_data})

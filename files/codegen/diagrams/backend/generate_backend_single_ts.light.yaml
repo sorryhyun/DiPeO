@@ -26,25 +26,77 @@ nodes:
         else:
             raise ValueError(f"node_spec_path not found in input: {default}")
       
-  # Parse TypeScript specification instead of loading JSON
-  - label: Parse TypeScript Spec
-    type: sub_diagram
-    position: {x: 250, y: 200}
-    props:
-      diagram_name: codegen/diagrams/shared/parse_typescript_specs
-      diagram_format: light
-      
-  # Convert JSON string back to dict for generators
-  - label: Parse Spec Data
+  # Convert node_spec_path to filename
+  - label: Prepare Filename
     type: code_job
-    position: {x: 400, y: 200}
+    position: {x: 200, y: 200}
     props:
       language: python
       code: |
-        import json
-        # The parse_typescript_specs diagram returns JSON string
-        json_string = inputs.get('default', '{}')
-        spec_data = json.loads(json_string)
+        # Convert underscore to hyphen for filename
+        # node_spec_path comes as a dict from Parse Input
+        if isinstance(node_spec_path, dict):
+            node_type = node_spec_path.get('node_spec_path', 'unknown')
+        else:
+            node_type = node_spec_path
+            
+        node_type_filename = node_type.replace('_', '-')
+        result = {
+            'node_type': node_type,
+            'node_type_filename': node_type_filename
+        }
+  
+  # Load TypeScript specification file
+  - label: Load TypeScript Spec
+    type: db
+    position: {x: 350, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/node-specs/{data.node_type_filename}.spec.ts
+      
+  # Parse TypeScript to extract the specification
+  - label: Parse TypeScript AST
+    type: typescript_ast
+    position: {x: 500, y: 200}
+    props:
+      extractPatterns: ["const", "export"]
+      includeJSDoc: true
+      parseMode: module
+      
+  # Extract specification from AST
+  - label: Extract Specification
+    type: code_job
+    position: {x: 700, y: 200}
+    props:
+      language: python
+      code: |
+        # Import the parser helper
+        from files.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast, transform_ast_to_spec
+        
+        # The ast_data comes from typescript_ast node
+        
+        # Extract the actual node type string if it comes as a dict
+        if isinstance(node_type, dict):
+            actual_node_type = node_type.get('node_type', 'unknown')
+        else:
+            actual_node_type = node_type
+        
+        # Convert node type to spec name (e.g., "person_job" -> "personJobSpec")
+        node_type_clean = actual_node_type.replace('-', '_')  # Normalize to underscores
+        spec_name = f"{node_type_clean.replace('_', ' ').title().replace(' ', '')}Spec"
+        spec_name = spec_name[0].lower() + spec_name[1:]  # camelCase
+        
+        # Extract the specification from AST
+        spec_data = extract_spec_from_ast(ast_data, spec_name)
+        
+        if not spec_data:
+            available_constants = [const.get('name', '') for const in ast_data.get('constants', [])]
+            raise ValueError(
+                f"Could not find specification '{spec_name}' for node type '{actual_node_type}'. "
+                f"Available constants: {available_constants}"
+            )
+        
         result = spec_data
   
   # Load backend templates
@@ -106,6 +158,14 @@ nodes:
       code: |
         # Extract node type from spec for use in file paths
         spec = spec_data
+        
+        # Ensure spec is a dict
+        if isinstance(spec, str):
+            import json
+            spec = json.loads(spec)
+        elif not isinstance(spec, dict):
+            raise ValueError(f"Expected dict or string, got {type(spec)}")
+            
         node_type = spec.get('nodeType', 'unknown')
         node_name = node_type.title().replace('_', '')
         result = {
@@ -143,16 +203,33 @@ connections:
   - from: Start
     to: Parse Input
     
-  # Pass to TypeScript parser
+  # Prepare filename for TypeScript spec
   - from: Parse Input
-    to: Parse TypeScript Spec
+    to: Prepare Filename
+    label: node_spec_path
     
-  # Parse the JSON string from TypeScript parser
-  - from: Parse TypeScript Spec
-    to: Parse Spec Data
+  # Load the TypeScript spec file
+  - from: Prepare Filename
+    to: Load TypeScript Spec
+    label: data
+    
+  # Parse TypeScript AST
+  - from: Load TypeScript Spec
+    to: Parse TypeScript AST
+    label: source
+    
+  # Extract specification from AST
+  - from: Parse TypeScript AST
+    to: Extract Specification
+    label: ast_data
+    
+  # Pass node_type to Extract Specification
+  - from: Prepare Filename
+    to: Extract Specification
+    label: node_type
     
   # Pass spec to extract node type
-  - from: Parse Spec Data
+  - from: Extract Specification
     to: Extract Node Type
     label: spec_data
     
@@ -168,7 +245,7 @@ connections:
     label: node_naming
 
   # Connect spec and templates to Pydantic generator
-  - from: Parse Spec Data
+  - from: Extract Specification
     to: Generate Pydantic Model
     label: spec_data
   - from: Load Pydantic Template
@@ -176,7 +253,7 @@ connections:
     label: template_content
   
   # Connect spec and templates to GraphQL generator
-  - from: Parse Spec Data
+  - from: Extract Specification
     to: Generate GraphQL Schema
     label: spec_data
   - from: Load GraphQL Template
@@ -184,7 +261,7 @@ connections:
     label: template_content
 
   # Connect spec and templates to Static Node generator
-  - from: Parse Spec Data
+  - from: Extract Specification
     to: Generate Static Node
     label: spec_data
   - from: Load Static Node Template

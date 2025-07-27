@@ -4,6 +4,7 @@ import subprocess
 import json
 import os
 import tempfile
+import hashlib
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dipeo.core.ports.ast_parser_port import ASTParserPort
@@ -21,6 +22,7 @@ class TypeScriptParser(ASTParserPort):
         """
         self.project_root = project_root or Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
         self.parser_script = self.project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
+        self._cache: Dict[str, Dict[str, Any]] = {}  # In-memory cache for parsed AST data
     
     async def parse(
         self,
@@ -51,6 +53,16 @@ class TypeScriptParser(ASTParserPort):
         
         if not source:
             raise ServiceError('No TypeScript source code provided')
+        
+        # Create cache key based on source content and options
+        cache_key = hashlib.md5(
+            f"{source}:{','.join(sorted(extract_patterns))}:{include_jsdoc}:{parse_mode}".encode()
+        ).hexdigest()
+        
+        # Check cache
+        if cache_key in self._cache:
+            print(f"[TypeScript Parser] Cache hit for content hash {cache_key[:8]}")
+            return self._cache[cache_key]
         
         # Ensure parser script exists
         if not self.parser_script.exists():
@@ -117,7 +129,7 @@ class TypeScriptParser(ASTParserPort):
                 elif pattern == 'const' or pattern == 'constants':
                     ast_data['constants'] = parsed_result.get('constants', [])
 
-            return {
+            result = {
                 'ast': ast_data,
                 'metadata': {
                     'success': True,
@@ -125,6 +137,12 @@ class TypeScriptParser(ASTParserPort):
                     'astSummary': parsed_result.get('ast', {})
                 }
             }
+            
+            # Cache the result
+            self._cache[cache_key] = result
+            print(f"[TypeScript Parser] Cached result for content hash {cache_key[:8]}")
+            
+            return result
             
         except subprocess.TimeoutExpired:
             # Clean up temp file if it exists
@@ -150,6 +168,11 @@ class TypeScriptParser(ASTParserPort):
                 except:
                     pass
             raise ServiceError(f'Unexpected error during TypeScript parsing: {str(e)}')
+    
+    def clear_cache(self):
+        """Clear the in-memory AST cache."""
+        self._cache.clear()
+        print("[TypeScript Parser] Cache cleared")
     
     async def parse_file(self, file_path: str, extract_patterns: List[str], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Parse a TypeScript file.
@@ -178,6 +201,193 @@ class TypeScriptParser(ASTParserPort):
         
         except Exception as e:
             raise ServiceError(f'Failed to read file: {str(e)}')
+    
+    async def parse_batch(
+        self,
+        sources: Dict[str, str],
+        extract_patterns: List[str],
+        options: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """Parse multiple TypeScript sources in a single operation.
+        
+        This method significantly reduces subprocess overhead by processing
+        all sources in a single Node.js execution.
+        
+        Args:
+            sources: Dictionary mapping keys to TypeScript source code
+            extract_patterns: List of patterns to extract (e.g., ["interface", "type", "enum"])
+            options: Optional parser-specific options
+                
+        Returns:
+            Dictionary mapping each key to its parse result
+                
+        Raises:
+            ServiceError: If batch parsing fails
+        """
+        options = options or {}
+        include_jsdoc = options.get('includeJSDoc', False)
+        parse_mode = options.get('parseMode', 'module')
+        
+        if not sources:
+            return {}
+        
+        # Check cache for all sources
+        cached_results = {}
+        uncached_sources = {}
+        
+        for key, source in sources.items():
+            cache_key = hashlib.md5(
+                f"{source}:{','.join(sorted(extract_patterns))}:{include_jsdoc}:{parse_mode}".encode()
+            ).hexdigest()
+            
+            if cache_key in self._cache:
+                print(f"[TypeScript Parser] Batch: Cache hit for {key} (hash {cache_key[:8]})")
+                cached_results[key] = self._cache[cache_key]
+            else:
+                uncached_sources[key] = source
+        
+        # If all results are cached, return immediately
+        if not uncached_sources:
+            return cached_results
+        
+        print(f"[TypeScript Parser] Batch processing {len(uncached_sources)} uncached sources")
+        
+        # Ensure parser script exists
+        if not self.parser_script.exists():
+            raise ServiceError(f'TypeScript parser script not found at {self.parser_script}')
+        
+        # Build command arguments
+        cmd = ['pnpm', 'tsx', str(self.parser_script), '--batch']
+        
+        if extract_patterns:
+            cmd.append(f'--patterns={",".join(extract_patterns)}')
+        
+        if include_jsdoc:
+            cmd.append('--include-jsdoc')
+        
+        cmd.append(f'--mode={parse_mode}')
+        
+        try:
+            # Prepare batch input
+            batch_input = json.dumps({
+                'sources': uncached_sources
+            })
+            
+            # Run the TypeScript parser with batch input
+            result = subprocess.run(
+                cmd,
+                input=batch_input,
+                capture_output=True,
+                text=True,
+                cwd=str(self.project_root),
+                timeout=60  # Increased timeout for batch processing
+            )
+            
+            if result.returncode != 0:
+                print(f"[TypeScript Parser] Batch parser failed with return code {result.returncode}")
+                print(f"[TypeScript Parser] stderr: {result.stderr}")
+                raise ServiceError(f'Batch parser failed: {result.stderr}')
+            
+            # Parse the JSON output
+            batch_result = json.loads(result.stdout)
+            
+            # Process and cache results
+            results = {}
+            for key, parse_result in batch_result.get('results', {}).items():
+                if parse_result.get('error'):
+                    print(f"[TypeScript Parser] Error parsing {key}: {parse_result['error']}")
+                    continue
+                
+                # Extract AST data
+                ast_data = {}
+                for pattern in extract_patterns:
+                    if pattern == 'interface':
+                        ast_data['interfaces'] = parse_result.get('interfaces', [])
+                    elif pattern == 'type':
+                        ast_data['types'] = parse_result.get('types', [])
+                    elif pattern == 'enum':
+                        ast_data['enums'] = parse_result.get('enums', [])
+                    elif pattern == 'class':
+                        ast_data['classes'] = parse_result.get('classes', [])
+                    elif pattern == 'function':
+                        ast_data['functions'] = parse_result.get('functions', [])
+                    elif pattern == 'const' or pattern == 'constants':
+                        ast_data['constants'] = parse_result.get('constants', [])
+                
+                formatted_result = {
+                    'ast': ast_data,
+                    'metadata': {
+                        'success': True,
+                        'extractedPatterns': extract_patterns,
+                        'astSummary': parse_result.get('ast', {})
+                    }
+                }
+                
+                # Cache the result
+                source = uncached_sources[key]
+                cache_key = hashlib.md5(
+                    f"{source}:{','.join(sorted(extract_patterns))}:{include_jsdoc}:{parse_mode}".encode()
+                ).hexdigest()
+                self._cache[cache_key] = formatted_result
+                
+                results[key] = formatted_result
+            
+            # Combine with cached results
+            results.update(cached_results)
+            
+            # Log batch processing statistics
+            if 'metadata' in batch_result:
+                meta = batch_result['metadata']
+                print(f"[TypeScript Parser] Batch completed: {meta['successCount']}/{meta['totalFiles']} successful in {meta['processingTimeMs']}ms")
+            
+            return results
+            
+        except subprocess.TimeoutExpired:
+            raise ServiceError('Batch TypeScript parsing timed out after 60 seconds')
+        except json.JSONDecodeError as e:
+            raise ServiceError(f'Failed to parse batch JSON output: {str(e)}')
+        except Exception as e:
+            raise ServiceError(f'Unexpected error during batch TypeScript parsing: {str(e)}')
+    
+    async def parse_files_batch(
+        self,
+        file_paths: List[str],
+        extract_patterns: List[str],
+        options: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """Parse multiple TypeScript files in a single operation.
+        
+        Args:
+            file_paths: List of file paths relative to project root
+            extract_patterns: List of patterns to extract
+            options: Optional parser-specific options
+            
+        Returns:
+            Dictionary mapping file paths to parse results
+            
+        Raises:
+            ServiceError: If file reading or parsing fails
+        """
+        sources = {}
+        
+        for file_path in file_paths:
+            full_path = self.project_root / file_path
+            
+            if not full_path.exists():
+                print(f"[TypeScript Parser] Warning: File not found: {full_path}")
+                continue
+            
+            try:
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    sources[file_path] = f.read()
+            except Exception as e:
+                print(f"[TypeScript Parser] Warning: Failed to read file {file_path}: {str(e)}")
+                continue
+        
+        if not sources:
+            return {}
+        
+        return await self.parse_batch(sources, extract_patterns, options)
 
 
 def transform_ts_to_python(ast_data: Dict[str, Any]) -> Dict[str, Any]:
