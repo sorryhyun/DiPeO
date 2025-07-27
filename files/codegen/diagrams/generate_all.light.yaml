@@ -24,7 +24,7 @@ nodes:
     type: sub_diagram
     position: {x: 550, y: 250}
     props:
-      diagram_name: codegen/diagrams/backend/generate_backend_batch_ts
+      diagram_name: codegen/diagrams/backend/generate_backend
       diagram_format: light
 
   - label: Generate Frontend Node Files
