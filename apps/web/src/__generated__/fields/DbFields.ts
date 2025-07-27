@@ -38,6 +38,14 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: 'Query configuration',
   },
   {
+    name: 'serialize_json',
+    type: 'checkbox',
+    label: 'Serialize Json',
+    required: false,
+    defaultValue: false,
+    description: 'Serialize structured data to JSON string (for backward compatibility)',
+  },
+  {
     name: 'sub_type',
     type: 'select',
     label: 'Sub Type',

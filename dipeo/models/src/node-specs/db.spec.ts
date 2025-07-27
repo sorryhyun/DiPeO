@@ -77,6 +77,16 @@ export const dbSpec: NodeSpecification = {
         inputType: "code",
         collapsible: true
       }
+    },
+    {
+      name: "serialize_json",
+      type: "boolean",
+      required: false,
+      description: "Serialize structured data to JSON string (for backward compatibility)",
+      defaultValue: false,
+      uiConfig: {
+        inputType: "checkbox"
+      }
     }
   ],
   

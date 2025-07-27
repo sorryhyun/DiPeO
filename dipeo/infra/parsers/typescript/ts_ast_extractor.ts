@@ -551,8 +551,21 @@ if (options.batchMode || options.batchInputFile) {
         results.metadata!.totalFiles++
         
         try {
+          // Check if source is a file path or TypeScript content
+          let sourceContent: string
+          if (source.includes('\n') || source.includes('import') || source.includes('export')) {
+            // Looks like TypeScript content
+            sourceContent = source
+          } else if (fs.existsSync(source)) {
+            // It's a file path - read the content
+            sourceContent = fs.readFileSync(source, 'utf8')
+          } else {
+            // Assume it's TypeScript content
+            sourceContent = source
+          }
+          
           const parseResult = parseTypeScript(
-            source, 
+            sourceContent, 
             options.patterns, 
             options.includeJSDoc, 
             options.mode

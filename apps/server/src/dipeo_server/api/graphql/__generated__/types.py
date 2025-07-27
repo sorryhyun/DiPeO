@@ -385,13 +385,6 @@ class DBNodeDataType:
     pass
 
 @strawberry.experimental.pydantic.type(
-    UserResponseNodeData,
-    all_fields=True
-)
-class UserResponseNodeDataType:
-    pass
-
-@strawberry.experimental.pydantic.type(
     NotionNodeData,
     all_fields=True
 )
@@ -495,4 +488,4 @@ class ExecutionUpdate:
 
 # ============ Unions ============
 
-NodeData = strawberry.union("NodeData", types=[BaseNodeData, StartNodeDataType, ConditionNodeDataType, PersonJobNodeDataType, CodeJobNodeDataType, ApiJobNodeDataType, EndpointNodeDataType, DBNodeDataType, UserResponseNodeDataType, NotionNodeDataType, HookNodeDataType, TemplateJobNodeDataType, JsonSchemaValidatorNodeDataType, TypescriptAstNodeData, SubDiagramNodeDataType])
+NodeData = strawberry.union("NodeData", types=[BaseNodeData, StartNodeDataType, ConditionNodeDataType, PersonJobNodeDataType, CodeJobNodeDataType, ApiJobNodeDataType, EndpointNodeDataType, DBNodeDataType, NotionNodeDataType, HookNodeDataType, TemplateJobNodeDataType, JsonSchemaValidatorNodeDataType, TypescriptAstNodeData, SubDiagramNodeDataType])

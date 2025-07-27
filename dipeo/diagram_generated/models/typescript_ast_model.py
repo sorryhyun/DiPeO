@@ -12,6 +12,9 @@ class TypescriptAstNodeData(BaseModel):
     extractPatterns: Optional[List[Any]] = Field(description="Patterns to extract from the AST")
     includeJSDoc: Optional[bool] = Field(description="Include JSDoc comments in the extracted data")
     parseMode: Optional[str] = Field(description="TypeScript parsing mode")
+    transformEnums: Optional[bool] = Field(description="Transform enum definitions to a simpler format")
+    flattenOutput: Optional[bool] = Field(description="Flatten the output structure for easier consumption")
+    outputFormat: Optional[str] = Field(description="Output format for the parsed data")
 
     class Config:
         extra = "forbid"

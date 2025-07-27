@@ -37,6 +37,9 @@ class TypescriptAstNode:
     extractPatterns: List[Any] = field(default_factory=list)
     includeJSDoc: bool = False
     parseMode: str = None
+    transformEnums: bool = False
+    flattenOutput: bool = False
+    outputFormat: str = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -55,4 +58,7 @@ class TypescriptAstNode:
         data["extractPatterns"] = self.extractPatterns
         data["includeJSDoc"] = self.includeJSDoc
         data["parseMode"] = self.parseMode
+        data["transformEnums"] = self.transformEnums
+        data["flattenOutput"] = self.flattenOutput
+        data["outputFormat"] = self.outputFormat
         return data

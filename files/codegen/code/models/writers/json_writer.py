@@ -10,7 +10,7 @@ def write_field_configs_json(node_configs: list, base_dir: str = None) -> dict:
         base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
     
     # Create output directory
-    output_dir = os.path.join(base_dir, 'dipeo/diagram_generated')
+    output_dir = os.path.join(base_dir, 'dipeo/diagram_generated_staged')
     os.makedirs(output_dir, exist_ok=True)
     
     # Write JSON file

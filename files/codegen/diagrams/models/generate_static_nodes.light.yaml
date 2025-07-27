@@ -55,35 +55,8 @@ nodes:
     position: {x: 600, y: 300}
     props:
       language: python
-      code: |
-        import json
-        import os
-        import shutil
-        
-        # Parse the manifest data
-        manifest_data = inputs.get('manifest', {})
-        if isinstance(manifest_data, str):
-            manifest_data = json.loads(manifest_data)
-        
-        # Get node types from manifest
-        node_types = manifest_data.get('nodes', [])
-        
-        if not node_types:
-            raise ValueError("No node types found in manifest")
-        
-        # Create temp directory for storing results
-        temp_dir = '.temp/codegen/node_data'
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        # Create array of inputs for batch processing
-        # Each item needs to have default key for sub_diagram batch processing
-        result = {
-            'items': [{'default': {'node_type': node_type}} for node_type in node_types],
-            'node_types': node_types,
-            'temp_dir': temp_dir
-        }
+      filePath: files/codegen/code/generators/setup_node_batch.py
+      functionName: setup_node_batch
 
   # Batch parse node data files
   - label: Batch Parse Node Data
@@ -111,25 +84,8 @@ nodes:
     position: {x: 600, y: 450}
     props:
       language: python
-      code: |
-        import json
-        
-        # Parse AST data
-        ast_data = inputs.get('diagram_ast', {})
-        if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
-        
-        # Find BaseNodeData interface
-        base_interface = None
-        for iface in ast_data.get('interfaces', []):
-            if iface.get('name') == 'BaseNodeData':
-                base_interface = iface
-                break
-        
-        result = {
-            'base_interface': base_interface,
-            'found': base_interface is not None
-        }
+      filePath: files/codegen/code/generators/extract_base_interface.py
+      functionName: extract_base_interface
 
   # Read all temp files
   - label: Read Temp Results
@@ -137,37 +93,8 @@ nodes:
     position: {x: 1000, y: 400}
     props:
       language: python
-      code: |
-        import json
-        import os
-        
-        # Get batch info
-        batch_info = inputs.get('batch_info', {})
-        temp_dir = batch_info.get('temp_dir', '.temp/codegen/node_data')
-        node_types = batch_info.get('node_types', [])
-        
-        # Read all temp files
-        parsed_nodes = []
-        
-        for node_type in node_types:
-            temp_file = os.path.join(temp_dir, f"{node_type}.json")
-            if os.path.exists(temp_file):
-                try:
-                    with open(temp_file, 'r') as f:
-                        data = json.load(f)
-                    parsed_nodes.append(data)
-                except Exception as e:
-                    pass  # Skip failed files silently
-        
-        # Clean up temp directory
-        import shutil
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-        
-        result = {
-            'parsed_nodes': parsed_nodes,
-            'count': len(parsed_nodes)
-        }
+      filePath: files/codegen/code/generators/read_batch_results.py
+      functionName: read_batch_results
 
   # Generate static nodes from all parsed data
   - label: Generate Static Nodes
@@ -175,51 +102,8 @@ nodes:
     position: {x: 1000, y: 300}
     props:
       language: python
-      code: |
-        from datetime import datetime
-        import json
-        
-        # Get inputs
-        mappings = inputs.get('mappings', {})
-        temp_results = inputs.get('temp_results', {})
-        base_data = inputs.get('base_data', {})
-        
-        # Extract base interface
-        base_interface = base_data.get('base_interface')
-        
-        # Get parsed nodes from temp results
-        parsed_nodes = temp_results.get('parsed_nodes', [])
-        
-        # Combine all interfaces
-        all_interfaces = []
-        node_interface_map = mappings.get('node_interface_map', {})
-        
-        for parsed in parsed_nodes:
-            node_type = parsed.get('node_type')
-            interface_name = parsed.get('interface_name')
-            interface_data = parsed.get('interface')
-            
-            if interface_data:
-                # Update the node_interface_map with actual names
-                node_interface_map[node_type] = interface_name
-                all_interfaces.append(interface_data)
-        
-        if not all_interfaces:
-            raise ValueError("No interfaces were successfully parsed from node data files")
-        
-        # Update mappings with the collected interface names
-        mappings['node_interface_map'] = node_interface_map
-        
-        # Create combined AST data
-        combined_ast = {
-            'interfaces': all_interfaces,
-            'base_interface': base_interface
-        }
-        
-        # Import and run the static nodes extractor
-        from files.codegen.code.models.extractors.static_nodes_extractor import extract_static_nodes_data
-        
-        result = extract_static_nodes_data(combined_ast, mappings)
+      filePath: files/codegen/code/generators/generate_static_nodes.py
+      functionName: generate_static_nodes
 
   # Generate Python code
   - label: Generate Python Code

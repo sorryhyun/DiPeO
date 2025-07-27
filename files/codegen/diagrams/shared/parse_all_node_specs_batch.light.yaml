@@ -1,0 +1,83 @@
+# Parse All TypeScript Node Spec Files (Batch Mode)
+# Parses all TypeScript node specification files in a single batch operation
+# This avoids subprocess overhead by using batch parsing functionality
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting batch TypeScript AST parsing for all node spec files
+
+  # Load manifest to get node types
+  - label: Load Manifest
+    type: db
+    position: {x: 200, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/manifests/all.json
+
+  # Gather all node spec file paths
+  - label: Gather Node Spec Files
+    type: code_job
+    position: {x: 400, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/shared/gather_node_spec_files.py
+      functionName: main
+
+  # Parse all TypeScript files in a single batch operation
+  - label: Batch Parse Node Specs
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/shared/batch_parse_node_specs.py
+      functionName: main
+
+  # Save all AST data to .temp directory for sub-diagrams to read
+  - label: Save Node Spec AST Cache
+    type: code_job
+    position: {x: 800, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/shared/save_node_spec_ast_cache.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 1000, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  # Linear flow for batch processing
+  - from: Start
+    to: Load Manifest
+  
+  - from: Load Manifest
+    to: Gather Node Spec Files
+    label: manifest
+  
+  - from: Gather Node Spec Files
+    to: Batch Parse Node Specs
+    label: sources
+  
+  - from: Gather Node Spec Files
+    to: Save Node Spec AST Cache
+    label: file_mapping
+  
+  - from: Batch Parse Node Specs
+    to: Save Node Spec AST Cache
+    label: parsed_results
+  
+  - from: Batch Parse Node Specs
+    to: Save Node Spec AST Cache
+    label: metadata
+  
+  - from: Save Node Spec AST Cache
+    to: End
