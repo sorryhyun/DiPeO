@@ -101,44 +101,25 @@ nodes:
             'status': 'success' if failed == 0 else 'partial_failure'
         }
 
-  # Generate enums first
-  - label: Generate Enums
-    type: sub_diagram
-    position: {x: 950, y: 100}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_enums
-      diagram_format: light
-
   - label: Process Final Results
     type: code_job
-    position: {x: 1150, y: 200}
+    position: {x: 950, y: 200}
     props:
       language: python
       code: |
-        # Combine results from backend generation and enums
+        # Process results from backend generation
         backend_results = inputs.get('backend_results', {})
-        enum_results = inputs.get('enum_results', {})
         
         print(f"\n=== Complete Backend Generation Summary ===")
         print(backend_results.get('backend_summary', ''))
         
-        # Check if enums were generated
-        if enum_results:
-            print("\n✓ Enums generated successfully")
-        else:
-            print("\n✗ Enums generation failed")
-            if enum_results and enum_results.get('error'):
-                print(f"  Error: {enum_results['error']}")
+        # Note: Enums are now generated as part of domain models via generate_all_models
         
-        # Update artifact count
         artifacts = backend_results.get('artifacts_generated', {})
-        if enum_results:
-            artifacts['enums'] = 1
         result = {
-            'message': 'Complete backend generation finished with TypeScript specifications',
+            'message': 'Backend generation finished with TypeScript specifications',
             'artifacts_generated': artifacts,
-            'backend_status': backend_results.get('status', 'unknown'),
-            'enum_status': enum_results.get('status', 'unknown')
+            'backend_status': backend_results.get('status', 'unknown')
         }
 
   - label: End
@@ -160,17 +141,6 @@ connections:
   - from: Batch Generate Backend
     to: Process Backend Results
   
-  - from: Process Backend Results
-    to: Generate Enums
-    label: backend_results
-  
-  - from: Generate Enums
-    to: Process Final Results
-    label: enum_results
-  
-  - from: Generate Enums
-    to: Process Final Results
-    label: enum_results
   
   - from: Process Backend Results
     to: Process Final Results

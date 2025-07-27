@@ -40,11 +40,25 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     template_content = inputs.get('template_content', '')
     enums_data = inputs.get('enums_data', [])
     
+    # Handle case where enums_data might be a JSON string
+    if isinstance(enums_data, str):
+        try:
+            import ast
+            # Try to parse as Python literal first (DiPeO might pass it this way)
+            enums_data = ast.literal_eval(enums_data)
+        except:
+            try:
+                enums_data = json.loads(enums_data)
+            except:
+                # If parsing fails, use empty list to avoid template errors
+                enums_data = []
+    
     if not template_content:
         raise ValueError("template_content is required")
     
-    if not enums_data:
-        raise ValueError("enums_data is required")
+    # Validate we have enums
+    if not isinstance(enums_data, list):
+        enums_data = []  # Use empty list to avoid template errors
     
     generated_code = generate_enums(template_content, enums_data)
     

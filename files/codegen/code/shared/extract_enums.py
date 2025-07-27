@@ -47,39 +47,38 @@ def extract_jsdoc_description(node: dict) -> str:
 
 def extract_enums(ast_data: dict) -> List[dict]:
     """Extract enum definitions from TypeScript AST data."""
-    # Get the parsed AST
-    ast = ast_data.get('ast', {})
+    # The typescript_ast node returns enums directly
+    enums_from_ast = ast_data.get('enums', [])
     
     # Initialize result
     enums = []
     
-    # Look for exported enums in the AST
-    body = ast.get('body', [])
-    
-    for statement in body:
-        if statement.get('type') == 'ExportNamedDeclaration':
-            declaration = statement.get('declaration', {})
+    # Process each enum
+    for enum in enums_from_ast:
+        enum_name = enum.get('name', '')
+        description = enum.get('jsDoc', '') or f'{enum_name} enum values'
+        members = enum.get('members', [])
+        
+        # Extract values
+        values = []
+        for member in members:
+            member_name = member.get('name', '')
+            member_value = member.get('value', member_name)
             
-            if declaration.get('type') == 'TSEnumDeclaration':
-                id_node = declaration.get('id', {})
-                
-                if id_node.get('type') == 'Identifier':
-                    enum_name = id_node.get('name', '')
-                    
-                    # Extract description from JSDoc
-                    description = extract_jsdoc_description(declaration)
-                    
-                    # Extract enum members
-                    members = declaration.get('members', [])
-                    values = extract_enum_values(members)
-                    
-                    # Add to results
-                    if enum_name and values:
-                        enums.append({
-                            'name': enum_name,
-                            'description': description or f'{enum_name} enum values',
-                            'values': values
-                        })
+            if member_name:
+                values.append({
+                    'name': member_name,
+                    'value': member_value,
+                    'python_name': member_name  # Keep original case for Python
+                })
+        
+        # Add to results
+        if enum_name and values:
+            enums.append({
+                'name': enum_name,
+                'description': description,
+                'values': values
+            })
     
     return enums
 
@@ -87,6 +86,8 @@ def extract_enums(ast_data: dict) -> List[dict]:
 def main(inputs: dict) -> dict:
     """Main entry point for enum extraction."""
     ast_data = inputs.get('default', {})
+    
     enums = extract_enums(ast_data)
     
-    return {'enums': enums}
+    # Return the list directly - the engine will handle the connection
+    return enums

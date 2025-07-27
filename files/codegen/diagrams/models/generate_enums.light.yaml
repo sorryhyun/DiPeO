@@ -1,5 +1,5 @@
-# Generate Backend Enums
-# Generates enum definitions for DiPeO from TypeScript source
+# Generate Domain Model Enums
+# Generates Python enum definitions for DiPeO from TypeScript source
 
 version: light
 
@@ -42,7 +42,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: files/codegen/templates/backend/enums.j2
+      source_details: files/codegen/templates/models/enums.j2
 
   # Generate Python enums
   - label: Generate Enums
@@ -50,7 +50,7 @@ nodes:
     position: {x: 650, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/backend/generators/enums.py
+      filePath: files/codegen/code/models/generators/enums.py
       functionName: main
 
   # Write generated file
@@ -74,6 +74,7 @@ connections:
 
   - from: Load Enums TS
     to: Parse Enums AST
+    label: source
 
   - from: Parse Enums AST
     to: Extract Enums
@@ -88,7 +89,6 @@ connections:
   - from: Extract Enums
     to: Generate Enums
     label: enums_data
-    content_type: object
 
   - from: Generate Enums
     to: Write Enums

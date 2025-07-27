@@ -89,7 +89,7 @@ nodes:
     type: sub_diagram
     position: {x: 550, y: 300}
     props:
-      diagram_name: codegen/diagrams/models/parse_node_data_single
+      diagram_name: codegen/diagrams/shared/parse_node_data_single
       diagram_format: light
       batch: true
       batch_input_key: items
