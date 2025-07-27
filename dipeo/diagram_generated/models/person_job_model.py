@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
 
-from dipeo.models import PersonID, MemoryConfig, MemorySettings, ToolConfig
+from ..domain_models import PersonID, MemorySettings, ToolConfig
 
 
 

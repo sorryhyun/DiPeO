@@ -8,7 +8,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.unified_service_registry import API_SERVICE
-from dipeo.diagram_generated.nodes.api_job_node import ApiJobNode
+from dipeo.diagram_generated import ApiJobNode
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated import ApiJobNodeData, HttpMethod, NodeType
 

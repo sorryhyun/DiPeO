@@ -28,6 +28,10 @@ docs/deprecated
 plan.md
 *.tsbuildinfo
 .ruff_cache/
+
+# Staging directories
+dipeo/diagram_generated_staged/
+.backups/
 **/.ruff_cache/
 .logs
 apps/server/.import_linter_cache

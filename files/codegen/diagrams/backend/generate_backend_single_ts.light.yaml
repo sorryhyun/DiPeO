@@ -120,7 +120,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/models/{node_naming.node_type}_model.py
+      source_details: dipeo/diagram_generated_staged/models/{node_naming.node_type}_model.py
 
   - label: Write GraphQL Schema
     type: db
@@ -136,7 +136,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/nodes/{node_naming.node_type}_node.py
+      source_details: dipeo/diagram_generated_staged/nodes/{node_naming.node_type}_node.py
 
 connections:
   # Parse input first

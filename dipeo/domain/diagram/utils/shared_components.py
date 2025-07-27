@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from dipeo.models import DataType, HandleDirection, HandleLabel, NodeID, NodeType, create_handle_id
+from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType, create_handle_id
 
 if TYPE_CHECKING:
     pass

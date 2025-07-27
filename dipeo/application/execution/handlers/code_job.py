@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.nodes.code_job_node import CodeJobNode
+from dipeo.diagram_generated import CodeJobNode
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, DataOutput
 from dipeo.diagram_generated import CodeJobNodeData, NodeType
 from dipeo.application.utils.template import TemplateProcessor

@@ -44,7 +44,6 @@ export const NODE_DATA_SCHEMAS = {
     first_only_prompt: z.string(),
     default_prompt: z.string().optional(),
     max_iteration: z.number(),
-    memory_config: z.any().optional().nullable(),
     memory_settings: z.any().optional().nullable(),
     tools: z.array(z.any()).optional().nullable()
   }),

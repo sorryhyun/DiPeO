@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.nodes.start_node import StartNode
+from dipeo.diagram_generated import StartNode
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated import HookTriggerMode, NodeType, StartNodeData
 

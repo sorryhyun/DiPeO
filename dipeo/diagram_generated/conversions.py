@@ -1,11 +1,16 @@
 """
-Auto-generated 2025-07-25T23:10:17.306230. Do NOT edit by hand.
+Auto-generated 2025-07-27T14:52:48.882874. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 
-from typing import Dict, Any, TypedDict
+from typing import Dict, Any, TypedDict, NewType
 from .enums import NodeType, HandleDirection
-from .domain_models import NodeID, HandleID
+
+# ---------------------------------------------------------------------------
+
+NodeID = NewType('NodeID', str)
+ArrowID = NewType('ArrowID', str)
+HandleID = NewType('HandleID', str)
 
 # ---------------------------------------------------------------------------
 
@@ -73,7 +78,7 @@ def parse_handle_id(handle_id: HandleID) -> ParsedHandle:
         raise ValueError(f"Invalid handle ID: {handle_id}")
     node_id, label, dir_str = parts
     try:
-        direction = HandleDirection[dir_str.upper()]
+        direction = HandleDirection[dir_str.lower()]
     except KeyError as exc:
         raise ValueError(f"Unknown handle direction: {dir_str}") from exc
     return {"node_id": node_id, "handle_label": label, "direction": direction}  # type: ignore[return-value]

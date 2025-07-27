@@ -14,7 +14,7 @@ from dipeo.application.unified_service_registry import (
     PROMPT_BUILDER
 )
 from dipeo.core.dynamic import Person
-from dipeo.diagram_generated.nodes.person_job_node import PersonJobNode
+from dipeo.diagram_generated import PersonJobNode
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
 from dipeo.diagram_generated import (
     MemorySettings,

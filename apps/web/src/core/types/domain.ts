@@ -102,8 +102,8 @@ export {
   areHandlesCompatible,
   // Diagram utilities
   createEmptyDiagram,
-  diagramToStoreMaps,
-  storeMapsToArrays,
+  diagramArraysToMaps,
+  diagramMapsToArrays,
   // Type conversions
   convertGraphQLDiagramToDomain,
   convertGraphQLPersonToDomain,

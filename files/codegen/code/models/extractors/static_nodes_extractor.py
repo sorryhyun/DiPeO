@@ -18,9 +18,30 @@ def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str
         literal_type = f"Literal[{', '.join(literals)}]"
         return f"Optional[{literal_type}]" if is_optional else literal_type
     
-    # Check mapping
+    # Check mapping first
     if clean_type in ts_to_py_type:
-        return ts_to_py_type[clean_type]
+        mapped_type = ts_to_py_type[clean_type]
+        # Handle optional wrapping for mapped types
+        if is_optional and not mapped_type.startswith('Optional['):
+            return f"Optional[{mapped_type}]"
+        return mapped_type
+    
+    # Basic TypeScript to Python type mappings
+    basic_type_map = {
+        'string': 'str',
+        'number': 'int',  # Default to int, not float
+        'boolean': 'bool',
+        'any': 'Any',
+        'object': 'Dict[str, Any]',
+        'null': 'None',
+        'undefined': 'None',
+        'void': 'None'
+    }
+    
+    # Check basic type mappings
+    if clean_type in basic_type_map:
+        py_type = basic_type_map[clean_type]
+        return f"Optional[{py_type}]" if is_optional and py_type != 'None' else py_type
     
     # Handle arrays
     if clean_type.endswith('[]'):
@@ -33,7 +54,18 @@ def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str
     if clean_type.startswith('Record<'):
         return 'Dict[str, Any]'
     
-    # Handle optional
+    # Handle object literal types (e.g., { field: type; ... })
+    # Enhanced detection to handle multi-line object types with comments
+    if clean_type.startswith('{'):
+        # Check if it looks like an object type by looking for common patterns
+        # This handles both single-line and multi-line object definitions
+        if (':' in clean_type or '?' in clean_type or ';' in clean_type or 
+            '//' in clean_type or '/*' in clean_type):
+            dict_type = 'Dict[str, Any]'
+            return f"Optional[{dict_type}]" if is_optional else dict_type
+    
+    # If nothing matched, return the original type (might be a custom type)
+    # Handle optional wrapping
     if is_optional and not clean_type.startswith('Optional['):
         return f"Optional[{clean_type}]"
     
@@ -55,6 +87,10 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
     node_classes = []
     
     for node_type, interface_name in node_interface_map.items():
+        # Skip PersonBatchJobNode as it's just an alias for PersonJobNode
+        if node_type == 'person_batch_job':
+            continue
+            
         # Find interface
         interface_data = None
         for iface in interfaces:
@@ -63,7 +99,6 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
                 break
         
         if not interface_data:
-            print(f"Warning: Interface {interface_name} not found")
             continue
         
         class_name = interface_name.replace('NodeData', 'Node')
@@ -124,8 +159,6 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
             'node_type': node_type,
             'fields': fields
         })
-    
-    print(f"Generated {len(node_classes)} node classes")
     
     return {
         'node_classes': node_classes,

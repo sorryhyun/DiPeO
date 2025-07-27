@@ -13,6 +13,8 @@ load_dotenv()
 # Suppress non-critical warnings
 warnings.filterwarnings("ignore", message="_type_definition is deprecated", category=UserWarning)
 warnings.filterwarnings("ignore", message="The config `workers` has no affect when using serve", category=Warning)
+warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
+warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
 # Set up logging
 logging.basicConfig(

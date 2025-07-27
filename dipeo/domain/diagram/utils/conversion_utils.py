@@ -18,26 +18,64 @@ def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> DomainDiagram:
         diagram_dict: Dict with keys as IDs (e.g. {"nodes": {"node_0": {...}}})
         
     Returns:
-        DomainDiagram with array-based structure
+        DomainDiagram with map-based structure
     """
-    arrays_dict = diagram_maps_to_arrays(
-        nodes=diagram_dict.get("nodes", {}),
-        arrows=diagram_dict.get("arrows", {}),
-        handles=diagram_dict.get("handles", {}),
-        persons=diagram_dict.get("persons", {})
-    )
+    # Check if the input is already in map format (keys are IDs)
+    nodes = diagram_dict.get("nodes", {})
+    if isinstance(nodes, list):
+        # Convert from array to map format
+        maps_dict = diagram_arrays_to_maps(diagram_dict)
+        nodes = maps_dict.get("nodes", {})
+        arrows = maps_dict.get("arrows", {})
+        handles = maps_dict.get("handles", {})
+        persons = maps_dict.get("persons", {})
+    else:
+        # Already in map format
+        arrows = diagram_dict.get("arrows", {})
+        handles = diagram_dict.get("handles", {})
+        persons = diagram_dict.get("persons", {})
 
-    handles_list = []
-    for handle in arrays_dict.get("handles", []):
-        if isinstance(handle, dict) and "id" not in handle:
-            continue
-        handles_list.append(handle)
+    # Convert node dicts to DomainNode objects if needed
+    from dipeo.diagram_generated import DomainNode, DomainArrow, DomainHandle, DomainPerson
+    
+    nodes_map = {}
+    for node_id, node in nodes.items():
+        if isinstance(node, dict) and not hasattr(node, 'type'):
+            # Convert dict to DomainNode
+            nodes_map[node_id] = DomainNode(**node)
+        else:
+            nodes_map[node_id] = node
+    
+    # Convert arrow dicts to DomainArrow objects if needed
+    arrows_map = {}
+    for arrow_id, arrow in arrows.items():
+        if isinstance(arrow, dict) and not hasattr(arrow, 'source'):
+            arrows_map[arrow_id] = DomainArrow(**arrow)
+        else:
+            arrows_map[arrow_id] = arrow
+    
+    # Convert handle dicts to DomainHandle objects if needed
+    handles_map = {}
+    for handle_id, handle in handles.items():
+        if isinstance(handle, dict) and handle:  # Ensure non-empty
+            if not hasattr(handle, 'node_id'):
+                handles_map[handle_id] = DomainHandle(**handle)
+            else:
+                handles_map[handle_id] = handle
+    
+    # Convert person dicts to DomainPerson objects if needed
+    persons_map = {}
+    for person_id, person in persons.items():
+        if isinstance(person, dict) and not hasattr(person, 'name'):
+            persons_map[person_id] = DomainPerson(**person)
+        else:
+            persons_map[person_id] = person
 
     result_dict = {
-        "nodes": arrays_dict["nodes"],
-        "arrows": arrays_dict["arrows"],
-        "handles": handles_list,
-        "persons": arrays_dict["persons"],
+        "nodes": list(nodes_map.values()),
+        "arrows": list(arrows_map.values()),
+        "handles": list(handles_map.values()),
+        "persons": list(persons_map.values()),
         "metadata": diagram_dict.get("metadata"),
     }
 

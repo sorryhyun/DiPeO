@@ -48,12 +48,30 @@ nodes:
       sub_type: file
       source_details: dipeo/models/src/diagram.ts
 
+  # Load node-data index file
+  - label: Load Node Data TS
+    type: db
+    position: {x: 200, y: 400}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/node-data/index.ts
+
   # Parse TypeScript to extract interfaces and enums
   - label: Parse Diagram AST
     type: typescript_ast
     position: {x: 400, y: 300}
     props:
       extractPatterns: ["interface", "enum"]
+      includeJSDoc: false
+      parseMode: module
+
+  # Parse node data TypeScript
+  - label: Parse Node Data AST
+    type: typescript_ast
+    position: {x: 400, y: 400}
+    props:
+      extractPatterns: ["interface", "enum", "type"]
       includeJSDoc: false
       parseMode: module
 
@@ -184,14 +202,22 @@ connections:
   # Load and parse TypeScript
   - from: Start
     to: Load Diagram TS
+  - from: Start
+    to: Load Node Data TS
   - from: Load Diagram TS
     to: Parse Diagram AST
+    label: source
+  - from: Load Node Data TS
+    to: Parse Node Data AST
     label: source
   
   # Extract field configs with mappings
   - from: Parse Diagram AST
     to: Extract Field Configs
     label: default
+  - from: Parse Node Data AST
+    to: Extract Field Configs
+    label: node_data
   - from: Extract Mappings
     to: Extract Field Configs
     label: mappings

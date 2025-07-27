@@ -10,13 +10,21 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, NewType, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
+# Import all enums from the separate enums module
+from .enums import (
+    NodeType, HandleDirection, HandleLabel, DataType, ForgettingMode,
+    MemoryView, DiagramFormat, DBBlockSubType, ContentType, SupportedLanguage,
+    HttpMethod, HookType, HookTriggerMode, ExecutionStatus, NodeExecutionStatus,
+    EventType, LLMService, APIServiceType, NotionOperation, ToolType
+)
+
 # ============ Type Aliases ============
 
 NodeCategory = Literal["control", "ai", "compute", "data", "integration", "interaction", "validation", "utility"]
 
-FieldType = Literal["string", "number", "boolean", "object", "array", "enum", "any"]
+FieldType = Literal["string", "number", "boolean", "array", "object", "enum", "any"]
 
-UIInputType = Literal["number", "text", "textarea", "checkbox", "select", "code", "group", "json", "personSelect", "nodeSelect"]
+UIInputType = Union[Any, Literal["text"], Literal["textarea"], Literal["number"], Literal["checkbox"], Literal["select"], Literal["code"], Literal["group"], Literal["json"], Literal["personSelect"]]
 
 
 # ============ Branded IDs ============
@@ -38,325 +46,6 @@ NodeID = NewType('NodeID', str)
 PersonID = NewType('PersonID', str)
 
 TaskID = NewType('TaskID', str)
-
-
-# ============ Enums ============
-
-class NodeType(str, Enum):
-    """NodeType enumeration"""
-    
-    start = "start"
-    
-    person_job = "person_job"
-    
-    condition = "condition"
-    
-    code_job = "code_job"
-    
-    api_job = "api_job"
-    
-    endpoint = "endpoint"
-    
-    db = "db"
-    
-    user_response = "user_response"
-    
-    notion = "notion"
-    
-    person_batch_job = "person_batch_job"
-    
-    hook = "hook"
-    
-    template_job = "template_job"
-    
-    json_schema_validator = "json_schema_validator"
-    
-    typescript_ast = "typescript_ast"
-    
-    sub_diagram = "sub_diagram"
-    
-
-
-class HandleDirection(str, Enum):
-    """HandleDirection enumeration"""
-    
-    input = "input"
-    
-    output = "output"
-    
-
-
-class HandleLabel(str, Enum):
-    """HandleLabel enumeration"""
-    
-    default = "default"
-    
-    first = "first"
-    
-    condition_true = "condtrue"
-    
-    condition_false = "condfalse"
-    
-    success = "success"
-    
-    error = "error"
-    
-    results = "results"
-    
-
-
-class DataType(str, Enum):
-    """DataType enumeration"""
-    
-    any = "any"
-    
-    string = "string"
-    
-    number = "number"
-    
-    boolean = "boolean"
-    
-    object = "object"
-    
-    array = "array"
-    
-
-
-class MemoryView(str, Enum):
-    """MemoryView enumeration"""
-    
-    all_involved = "all_involved"
-    
-    sent_by_me = "sent_by_me"
-    
-    sent_to_me = "sent_to_me"
-    
-    system_and_me = "system_and_me"
-    
-    conversation_pairs = "conversation_pairs"
-    
-    all_messages = "all_messages"
-    
-
-
-class DiagramFormat(str, Enum):
-    """DiagramFormat enumeration"""
-    
-    native = "native"
-    
-    light = "light"
-    
-    readable = "readable"
-    
-
-
-class DBBlockSubType(str, Enum):
-    """DBBlockSubType enumeration"""
-    
-    fixed_prompt = "fixed_prompt"
-    
-    file = "file"
-    
-    code = "code"
-    
-    api_tool = "api_tool"
-    
-
-
-class ContentType(str, Enum):
-    """ContentType enumeration"""
-    
-    raw_text = "raw_text"
-    
-    conversation_state = "conversation_state"
-    
-    object = "object"
-    
-
-
-class SupportedLanguage(str, Enum):
-    """SupportedLanguage enumeration"""
-    
-    python = "python"
-    
-    typescript = "typescript"
-    
-    bash = "bash"
-    
-    shell = "shell"
-    
-
-
-class HttpMethod(str, Enum):
-    """HttpMethod enumeration"""
-    
-    get = "GET"
-    
-    post = "POST"
-    
-    put = "PUT"
-    
-    delete = "DELETE"
-    
-    patch = "PATCH"
-    
-
-
-class HookType(str, Enum):
-    """HookType enumeration"""
-    
-    shell = "shell"
-    
-    webhook = "webhook"
-    
-    python = "python"
-    
-    file = "file"
-    
-
-
-class HookTriggerMode(str, Enum):
-    """HookTriggerMode enumeration"""
-    
-    manual = "manual"
-    
-    hook = "hook"
-    
-
-
-class ExecutionStatus(str, Enum):
-    """ExecutionStatus enumeration"""
-    
-    pending = "PENDING"
-    
-    running = "RUNNING"
-    
-    paused = "PAUSED"
-    
-    completed = "COMPLETED"
-    
-    failed = "FAILED"
-    
-    aborted = "ABORTED"
-    
-    skipped = "SKIPPED"
-    
-
-
-class NodeExecutionStatus(str, Enum):
-    """NodeExecutionStatus enumeration"""
-    
-    pending = "PENDING"
-    
-    running = "RUNNING"
-    
-    paused = "PAUSED"
-    
-    completed = "COMPLETED"
-    
-    failed = "FAILED"
-    
-    aborted = "ABORTED"
-    
-    skipped = "SKIPPED"
-    
-    maxiter_reached = "MAXITER_REACHED"
-    
-
-
-class EventType(str, Enum):
-    """EventType enumeration"""
-    
-    execution_status_changed = "EXECUTION_STATUS_CHANGED"
-    
-    node_status_changed = "NODE_STATUS_CHANGED"
-    
-    node_progress = "NODE_PROGRESS"
-    
-    interactive_prompt = "INTERACTIVE_PROMPT"
-    
-    interactive_response = "INTERACTIVE_RESPONSE"
-    
-    execution_error = "EXECUTION_ERROR"
-    
-    execution_update = "EXECUTION_UPDATE"
-    
-
-
-class LLMService(str, Enum):
-    """LLMService enumeration"""
-    
-    openai = "openai"
-    
-    anthropic = "anthropic"
-    
-    google = "google"
-    
-    bedrock = "bedrock"
-    
-    vertex = "vertex"
-    
-    deepseek = "deepseek"
-    
-
-
-class APIServiceType(str, Enum):
-    """APIServiceType enumeration"""
-    
-    openai = "openai"
-    
-    anthropic = "anthropic"
-    
-    google = "google"
-    
-    gemini = "gemini"
-    
-    bedrock = "bedrock"
-    
-    vertex = "vertex"
-    
-    deepseek = "deepseek"
-    
-    notion = "notion"
-    
-    google_search = "google_search"
-    
-    slack = "slack"
-    
-    github = "github"
-    
-    jira = "jira"
-    
-
-
-class NotionOperation(str, Enum):
-    """NotionOperation enumeration"""
-    
-    create_page = "create_page"
-    
-    update_page = "update_page"
-    
-    read_page = "read_page"
-    
-    delete_page = "delete_page"
-    
-    create_database = "create_database"
-    
-    query_database = "query_database"
-    
-    update_database = "update_database"
-    
-
-
-class ToolType(str, Enum):
-    """ToolType enumeration"""
-    
-    web_search = "web_search"
-    
-    web_search_preview = "web_search_preview"
-    
-    image_generation = "image_generation"
-    
 
 
 
@@ -429,7 +118,7 @@ class DomainArrow(BaseModel):
     
     label: Optional[str] = Field(default=None)
     
-    data: Optional[Any] = Field(default=None)
+    data: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -520,7 +209,7 @@ class DiagramMetadata(BaseModel):
     
     author: Optional[str] = Field(default=None)
     
-    tags: Optional[Dict[str, Any]] = Field(default=None)
+    tags: Optional[List[str]] = Field(default=None)
     
     
 
@@ -531,13 +220,13 @@ class DomainDiagram(BaseModel):
     
     
     
-    nodes: Dict[str, Any]
+    nodes: List[DomainNode]
     
-    handles: Dict[str, Any]
+    handles: List[DomainHandle]
     
-    arrows: Dict[str, Any]
+    arrows: List[DomainArrow]
     
-    persons: Dict[str, Any]
+    persons: List[DomainPerson]
     
     metadata: Optional[DiagramMetadata] = Field(default=None)
     
@@ -553,262 +242,6 @@ class BaseNodeData(BaseModel):
     label: str
     
     flipped: Optional[bool] = Field(default=None)
-    
-    
-
-
-class StartNodeData(BaseNodeData):
-    """StartNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    custom_data: Dict[str, Union[str, float, bool]]
-    
-    output_data_structure: Dict[str, str]
-    
-    trigger_mode: Optional[HookTriggerMode] = Field(default=None)
-    
-    hook_event: Optional[str] = Field(default=None)
-    
-    hook_filters: Optional[Any] = Field(default=None)
-    
-    
-
-
-class ConditionNodeData(BaseNodeData):
-    """ConditionNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    condition_type: str
-    
-    expression: Optional[str] = Field(default=None)
-    
-    node_indices: Optional[Dict[str, Any]] = Field(default=None)
-    
-    
-
-
-class PersonJobNodeData(BaseNodeData):
-    """PersonJobNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    person: Optional[PersonID] = Field(default=None)
-    
-    first_only_prompt: str
-    
-    default_prompt: Optional[str] = Field(default=None)
-    
-    max_iteration: float
-    
-    memory_settings: Optional[MemorySettings] = Field(default=None)
-    
-    tools: Optional[Dict[str, Any]] = Field(default=None)
-    
-    
-
-
-class EndpointNodeData(BaseNodeData):
-    """EndpointNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    save_to_file: bool
-    
-    file_name: Optional[str] = Field(default=None)
-    
-    
-
-
-class DBNodeData(BaseNodeData):
-    """DBNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    file: Optional[str] = Field(default=None)
-    
-    collection: Optional[str] = Field(default=None)
-    
-    sub_type: DBBlockSubType
-    
-    operation: str
-    
-    query: Optional[str] = Field(default=None)
-    
-    data: Any = Field(default=None)
-    
-    
-
-
-class CodeJobNodeData(BaseNodeData):
-    """CodeJobNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    language: SupportedLanguage
-    
-    filePath: Optional[str] = Field(default=None)
-    
-    code: Optional[str] = Field(default=None)
-    
-    functionName: Optional[str] = Field(default=None)
-    
-    timeout: Optional[int] = Field(default=None)
-    
-    
-
-
-class ApiJobNodeData(BaseNodeData):
-    """ApiJobNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    url: str
-    
-    method: HttpMethod
-    
-    headers: Optional[Any] = Field(default=None)
-    
-    params: Optional[Any] = Field(default=None)
-    
-    body: Optional[Any] = Field(default=None)
-    
-    timeout: Optional[int] = Field(default=None)
-    
-    auth_type: Optional[Literal["none", "bearer", "basic", "api_key"]] = Field(default=None)
-    
-    auth_config: Optional[Any] = Field(default=None)
-    
-    
-
-
-class UserResponseNodeData(BaseNodeData):
-    """UserResponseNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    prompt: str
-    
-    timeout: int
-    
-    
-
-
-class NotionNodeData(BaseNodeData):
-    """NotionNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    operation: NotionOperation
-    
-    page_id: Optional[str] = Field(default=None)
-    
-    database_id: Optional[str] = Field(default=None)
-    
-    
-
-
-class HookNodeData(BaseNodeData):
-    """HookNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    hook_type: HookType
-    
-    config: Dict[str, Any]
-    
-    timeout: Optional[int] = Field(default=None)
-    
-    retry_count: Optional[float] = Field(default=None)
-    
-    retry_delay: Optional[float] = Field(default=None)
-    
-    
-
-
-class TemplateJobNodeData(BaseNodeData):
-    """TemplateJobNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    template_path: Optional[str] = Field(default=None)
-    
-    template_content: Optional[str] = Field(default=None)
-    
-    output_path: Optional[str] = Field(default=None)
-    
-    variables: Optional[Any] = Field(default=None)
-    
-    engine: Optional[Literal["internal", "jinja2", "handlebars"]] = Field(default=None)
-    
-    
-
-
-class JsonSchemaValidatorNodeData(BaseNodeData):
-    """JsonSchemaValidatorNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    schema_path: Optional[str] = Field(default=None)
-    
-    schema: Optional[Any] = Field(default=None)
-    
-    data_path: Optional[str] = Field(default=None)
-    
-    strict_mode: Optional[bool] = Field(default=None)
-    
-    error_on_extra: Optional[bool] = Field(default=None)
-    
-    
-
-
-class TypescriptAstNodeData(BaseNodeData):
-    """TypescriptAstNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    source: Optional[str] = Field(default=None)
-    
-    extractPatterns: Optional[Dict[str, Any]] = Field(default=None)
-    
-    includeJSDoc: Optional[bool] = Field(default=None)
-    
-    parseMode: Optional[Literal["module", "script"]] = Field(default=None)
-    
-    
-
-
-class SubDiagramNodeData(BaseNodeData):
-    """SubDiagramNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    
-    
-    diagram_name: Optional[str] = Field(default=None)
-    
-    diagram_format: Optional[DiagramFormat] = Field(default=None)
-    
-    diagram_data: Optional[Any] = Field(default=None)
-    
-    batch: Optional[bool] = Field(default=None)
-    
-    batch_input_key: Optional[str] = Field(default=None)
-    
-    batch_parallel: Optional[bool] = Field(default=None)
     
     
 
@@ -846,7 +279,7 @@ class NodeState(BaseModel):
     
     token_usage: Optional[TokenUsage] = Field(default=None)
     
-    output: Optional[Any] = Field(default=None)
+    output: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -861,7 +294,7 @@ class ExecutionState(BaseModel):
     
     status: ExecutionStatus
     
-    diagram_id: Optional[Any] = Field(default=None)
+    diagram_id: Optional[DiagramID] = Field(default=None)
     
     started_at: str
     
@@ -875,7 +308,7 @@ class ExecutionState(BaseModel):
     
     error: Optional[str] = Field(default=None)
     
-    variables: Any = Field(default=None)
+    variables: Optional[Dict[str, Any]] = Field(default=None)
     
     duration_seconds: Optional[float] = Field(default=None)
     
@@ -883,7 +316,7 @@ class ExecutionState(BaseModel):
     
     exec_counts: Dict[str, float]
     
-    executed_nodes: Dict[str, Any]
+    executed_nodes: List[str]
     
     
 
@@ -898,7 +331,7 @@ class ExecutionOptions(BaseModel):
     
     timeout: Optional[int] = Field(default=None)
     
-    variables: Any = Field(default=None)
+    variables: Dict[str, Any] = Field(default=None)
     
     debug: Optional[bool] = Field(default=None)
     
@@ -915,7 +348,7 @@ class InteractivePromptData(BaseModel):
     
     prompt: str
     
-    timeout: Optional[int] = Field(default=None)
+    timeout: int = Field(default=None)
     
     default_value: Optional[str] = Field(default=None)
     
@@ -947,7 +380,7 @@ class ExecutionUpdate(BaseModel):
     
     execution_id: ExecutionID
     
-    node_id: Optional[Any] = Field(default=None)
+    node_id: Optional[NodeID] = Field(default=None)
     
     status: Optional[NodeExecutionStatus] = Field(default=None)
     
@@ -963,7 +396,7 @@ class ExecutionUpdate(BaseModel):
     
     tokens: Optional[float] = Field(default=None)
     
-    data: Any = Field(default=None)
+    data: Dict[str, Any] = Field(default=None)
     
     
 
@@ -980,7 +413,7 @@ class NodeDefinition(BaseModel):
     
     handler: Any
     
-    requires_services: Optional[Dict[str, Any]] = Field(default=None)
+    requires_services: Optional[List[str]] = Field(default=None)
     
     description: str = Field(default=None)
     
@@ -995,19 +428,19 @@ class Message(BaseModel):
     
     id: Optional[str] = Field(default=None)
     
-    from_person_id: Any
+    from_person_id: Union[PersonID, Literal["system"]]
     
     to_person_id: PersonID
     
     content: str
     
-    timestamp: Optional[str] = Field(default=None)
+    timestamp: str = Field(default=None)
     
     token_count: Optional[float] = Field(default=None)
     
     message_type: Literal["person_to_person", "system_to_person", "person_to_system"]
     
-    metadata: Optional[Any] = Field(default=None)
+    metadata: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -1037,7 +470,7 @@ class Conversation(BaseModel):
     
     
     
-    messages: Dict[str, Any]
+    messages: List[Message]
     
     metadata: Optional[ConversationMetadata] = Field(default=None)
     
@@ -1064,7 +497,7 @@ class ValidationRules(BaseModel):
     
     itemType: Optional[FieldType] = Field(default=None)
     
-    allowedValues: Optional[Dict[str, Any]] = Field(default=None)
+    allowedValues: Optional[List[str]] = Field(default=None)
     
     
 
@@ -1083,17 +516,17 @@ class UIConfiguration(BaseModel):
     
     rows: Optional[float] = Field(default=None)
     
-    language: Optional[Any] = Field(default=None)
+    language: Optional[SupportedLanguage] = Field(default=None)
     
     collapsible: Optional[bool] = Field(default=None)
     
     readOnly: Optional[bool] = Field(default=None)
     
-    options: Optional[Any] = Field(default=None)
+    options: Optional[List[Dict[str, Any]]] = Field(default=None)
     
-    min: Optional[float] = Field(default=None)
+    min: float = Field(default=None)
     
-    max: Optional[float] = Field(default=None)
+    max: float = Field(default=None)
     
     showPromptFileButton: Optional[bool] = Field(default=None)
     
@@ -1120,9 +553,9 @@ class FieldSpecification(BaseModel):
     
     uiConfig: UIConfiguration
     
-    nestedFields: Optional[Dict[str, Any]] = Field(default=None)
+    nestedFields: Optional[List[FieldSpecification]] = Field(default=None)
     
-    affects: Optional[Dict[str, Any]] = Field(default=None)
+    affects: Optional[List[str]] = Field(default=None)
     
     
 
@@ -1133,9 +566,9 @@ class HandleConfiguration(BaseModel):
     
     
     
-    inputs: Dict[str, Any]
+    inputs: List[str]
     
-    outputs: Dict[str, Any]
+    outputs: List[str]
     
     
 
@@ -1146,7 +579,7 @@ class OutputSpecification(BaseModel):
     
     
     
-    type: Any
+    type: Union[DataType, Literal["any"]]
     
     description: str
     
@@ -1159,13 +592,13 @@ class ExecutionConfiguration(BaseModel):
     
     
     
-    timeout: Optional[int] = Field(default=None)
+    timeout: int = Field(default=None)
     
     retryable: Optional[bool] = Field(default=None)
     
     maxRetries: Optional[int] = Field(default=None)
     
-    requires: Optional[Dict[str, Any]] = Field(default=None)
+    requires: Optional[List[str]] = Field(default=None)
     
     
 
@@ -1203,15 +636,15 @@ class NodeSpecification(BaseModel):
     
     description: str
     
-    fields: Dict[str, Any]
+    fields: List[FieldSpecification]
     
     handles: HandleConfiguration
     
-    outputs: Optional[Any] = Field(default=None)
+    outputs: Optional[Dict[str, OutputSpecification]] = Field(default=None)
     
     execution: Optional[ExecutionConfiguration] = Field(default=None)
     
-    examples: Optional[Dict[str, Any]] = Field(default=None)
+    examples: Optional[List[ExampleConfiguration]] = Field(default=None)
     
     
 
@@ -1235,7 +668,7 @@ class ToolConfig(BaseModel):
     
     enabled: Optional[bool] = Field(default=None)
     
-    config: Optional[Any] = Field(default=None)
+    config: Optional[Dict[str, Any]] = Field(default=None)
     
     
 
@@ -1282,7 +715,7 @@ class ToolOutput(BaseModel):
     
     type: ToolType
     
-    result: Any
+    result: Union[List[WebSearchResult], ImageGenerationResult, Any]
     
     raw_response: Optional[Any] = Field(default=None)
     
@@ -1297,11 +730,11 @@ class ChatResult(BaseModel):
     
     text: str
     
-    token_usage: Optional[Any] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
     
     raw_response: Any = Field(default=None)
     
-    tool_outputs: Optional[Dict[str, Any]] = Field(default=None)
+    tool_outputs: Optional[List[ToolOutput]] = Field(default=None)
     
     
 
@@ -1320,7 +753,7 @@ class LLMRequestOptions(BaseModel):
     
     n: Optional[float] = Field(default=None)
     
-    tools: Dict[str, Any] = Field(default=None)
+    tools: Optional[List[ToolConfig]] = Field(default=None)
     
     response_format: Optional[Any] = Field(default=None)
     
@@ -1427,43 +860,13 @@ def is_domainnode(node: Any) -> bool:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ============ Deferred Type Aliases (Forward References) ============
 
-
-PersonBatchJobNodeData = PersonJobNodeData
 
 PersonMemoryMessage = Message
 
 
 
 # ============ Constants ============
-VALID_NODE_TYPES = ["start", "person_job", "condition", "code_job", "api_job", "endpoint", "db", "user_response", "notion", "person_batch_job", "hook", "template_job", "json_schema_validator", "typescript_ast", "sub_diagram"]
+VALID_NODE_TYPES = []
 VALID_HANDLE_DIRECTIONS = ['input', 'output']

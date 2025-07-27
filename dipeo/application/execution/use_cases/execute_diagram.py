@@ -210,7 +210,9 @@ class ExecuteDiagramUseCase(BaseService):
         # Copy persons data from domain diagram to executable diagram metadata
         if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
             persons_dict = {}
-            for person in domain_diagram.persons:
+            # Handle both dict and list formats
+            persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
+            for person in persons_list:
                 person_id = str(person.id)
                 persons_dict[person_id] = {
                     'name': person.label,

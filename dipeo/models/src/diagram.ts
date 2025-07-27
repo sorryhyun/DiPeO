@@ -5,109 +5,20 @@
  */
 
 import { LLMService, APIServiceType, NotionOperation, ToolConfig } from './integration.js';
+import { 
+  NodeType, HandleDirection, HandleLabel, DataType, MemoryView, 
+  ContentType
+} from './enums.js';
 
 // Re-export integration types for backward compatibility
 export { LLMService, APIServiceType, NotionOperation };
 export type { ToolConfig };
 
+// Re-export node data interfaces
+export * from './node-data';
 
-// Enums
-export enum NodeType {
-  START = 'start',
-  PERSON_JOB = 'person_job',
-  CONDITION = 'condition',
-  CODE_JOB = 'code_job',
-  API_JOB = 'api_job',
-  ENDPOINT = 'endpoint',
-  DB = 'db',
-  USER_RESPONSE = 'user_response',
-  NOTION = 'notion',
-  PERSON_BATCH_JOB = 'person_batch_job',
-  HOOK = 'hook',
-  TEMPLATE_JOB = 'template_job',
-  JSON_SCHEMA_VALIDATOR = 'json_schema_validator',
-  TYPESCRIPT_AST = 'typescript_ast',
-  SUB_DIAGRAM = 'sub_diagram'
-}
-
-export enum HandleDirection {
-  INPUT = 'input',
-  OUTPUT = 'output'
-}
-
-export enum HandleLabel {
-  DEFAULT = 'default',
-  FIRST = 'first',
-  CONDITION_TRUE = 'condtrue',
-  CONDITION_FALSE = 'condfalse',
-  SUCCESS = 'success',
-  ERROR = 'error',
-  RESULTS = 'results'
-}
-
-export enum DataType {
-  ANY = 'any',
-  STRING = 'string',
-  NUMBER = 'number',
-  BOOLEAN = 'boolean',
-  OBJECT = 'object',
-  ARRAY = 'array'
-}
-
-export enum MemoryView {
-  ALL_INVOLVED = 'all_involved',  // Messages where person is sender or recipient
-  SENT_BY_ME = 'sent_by_me',      // Messages I sent
-  SENT_TO_ME = 'sent_to_me',      // Messages sent to me
-  SYSTEM_AND_ME = 'system_and_me', // System messages and my interactions
-  CONVERSATION_PAIRS = 'conversation_pairs', // Request/response pairs
-  ALL_MESSAGES = 'all_messages',  // All messages in conversation (for judges/observers)
-}
-
-export enum DiagramFormat {
-  NATIVE = 'native',
-  LIGHT = 'light',
-  READABLE = 'readable'
-}
-
-export enum DBBlockSubType {
-  FIXED_PROMPT = 'fixed_prompt',
-  FILE = 'file',
-  CODE = 'code',
-  API_TOOL = 'api_tool'
-}
-
-export enum ContentType {
-  RAW_TEXT = 'raw_text',
-  CONVERSATION_STATE = 'conversation_state',
-  OBJECT = 'object'
-}
-
-export enum SupportedLanguage {
-  PYTHON = 'python',
-  TYPESCRIPT = 'typescript',
-  BASH = 'bash',
-  SHELL = 'shell'
-}
-
-export enum HttpMethod {
-  GET = 'GET',
-  POST = 'POST',
-  PUT = 'PUT',
-  DELETE = 'DELETE',
-  PATCH = 'PATCH'
-}
-
-export enum HookType {
-  SHELL = 'shell',
-  WEBHOOK = 'webhook',
-  PYTHON = 'python',
-  FILE = 'file'
-}
-
-export enum HookTriggerMode {
-  MANUAL = 'manual',
-  HOOK = 'hook'
-}
+// Re-export all enums
+export * from './enums.js';
 
 // Basic types
 export interface Vec2 {
@@ -205,134 +116,4 @@ export interface BaseNodeData {
   [key: string]: unknown;
 }
 
-export interface StartNodeData extends BaseNodeData {
-  custom_data: Record<string, string | number | boolean>;
-  output_data_structure: Record<string, string>;
-  trigger_mode?: HookTriggerMode;
-  hook_event?: string;  // Event name to listen for when trigger_mode is 'hook'
-  hook_filters?: Record<string, any>;  // Filters to match specific events
-}
-
-export interface ConditionNodeData extends BaseNodeData {
-  condition_type: string;
-  expression?: string;
-  node_indices?: string[];
-}
-
-export interface PersonJobNodeData extends BaseNodeData {
-  person?: PersonID;
-  first_only_prompt: string;
-  default_prompt?: string;
-  max_iteration: number;
-  memory_settings?: MemorySettings | null;  // New unified memory configuration
-  tools?: ToolConfig[] | null;
-}
-
-export interface EndpointNodeData extends BaseNodeData {
-  save_to_file: boolean;
-  file_name?: string;
-}
-
-export interface DBNodeData extends BaseNodeData {
-  file?: string;
-  collection?: string;
-  sub_type: DBBlockSubType;
-  operation: string;
-  query?: string;
-  data?: Record<string, any>;
-}
-
-
-export interface CodeJobNodeData extends BaseNodeData {
-  language: SupportedLanguage;
-  filePath?: string;  // Path to code file (required if code is not provided)
-  code?: string;      // Inline code (required if filePath is not provided)
-  functionName?: string;  // Function to call (default: 'main' for Python)
-  timeout?: number;  // in seconds
-}
-
-export interface ApiJobNodeData extends BaseNodeData {
-  url: string;
-  method: HttpMethod;
-  headers?: Record<string, string>;
-  params?: Record<string, any>;
-  body?: any;
-  timeout?: number;  // in seconds
-  auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
-  auth_config?: Record<string, string>;
-}
-
-export interface UserResponseNodeData extends BaseNodeData {
-  prompt: string;
-  timeout: number;
-}
-
-export interface NotionNodeData extends BaseNodeData {
-  operation: NotionOperation;
-  page_id?: string;
-  database_id?: string;
-}
-
-export type PersonBatchJobNodeData = PersonJobNodeData;
-
-export interface HookNodeData extends BaseNodeData {
-  hook_type: HookType;
-  config: {
-    // For shell hooks
-    command?: string;
-    args?: string[];
-    env?: Record<string, string>;
-    cwd?: string;
-    
-    // For webhook hooks
-    url?: string;
-    method?: HttpMethod;
-    headers?: Record<string, string>;
-    
-    // For Python hooks
-    script?: string;
-    function_name?: string;
-    
-    // For file hooks  
-    file_path?: string;
-    format?: 'json' | 'yaml' | 'text';
-  };
-  timeout?: number;  // in seconds
-  retry_count?: number;
-  retry_delay?: number;  // in seconds
-}
-
-
-export interface TemplateJobNodeData extends BaseNodeData {
-  template_path?: string;  // Path to template file
-  template_content?: string;  // Inline template content
-  output_path?: string;  // Where to write the rendered output
-  variables?: Record<string, any>;  // Variables to pass to the template
-  engine?: 'internal' | 'jinja2' | 'handlebars';  // Template engine (default: internal)
-}
-
-
-export interface JsonSchemaValidatorNodeData extends BaseNodeData {
-  schema_path?: string;  // Path to JSON schema file
-  schema?: Record<string, any>;  // Inline schema definition
-  data_path?: string;  // Path to data file to validate
-  strict_mode?: boolean;  // Whether to use strict validation
-  error_on_extra?: boolean;  // Error on extra properties
-}
-
-export interface TypescriptAstNodeData extends BaseNodeData {
-  source?: string;  // TypeScript source code to parse
-  extractPatterns?: string[];  // Patterns to extract (e.g., 'interface', 'type', 'enum', 'class', 'function', 'const', 'export')
-  includeJSDoc?: boolean;  // Include JSDoc comments in the extracted data
-  parseMode?: 'module' | 'script';  // TypeScript parsing mode
-}
-
-export interface SubDiagramNodeData extends BaseNodeData {
-  diagram_name?: string;  // Name of the diagram to execute (e.g., "workflow/process")
-  diagram_format?: DiagramFormat;  // Format of the diagram file (native, light, readable)
-  diagram_data?: Record<string, any>;  // Inline diagram data (alternative to diagram_name)
-  batch?: boolean;  // Execute sub-diagram for each item in the input array
-  batch_input_key?: string;  // Key in inputs containing the array to iterate over (default: "items")
-  batch_parallel?: boolean;  // Execute batch items in parallel (default: true)
-}
 

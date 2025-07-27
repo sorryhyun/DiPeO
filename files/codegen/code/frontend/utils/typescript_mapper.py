@@ -2,8 +2,20 @@
 from typing import Dict, Any, List, Optional
 
 
-def map_to_typescript_type(field_type: str) -> str:
-    """Map generic field types to TypeScript types."""
+def map_to_typescript_type(field_type: str, type_to_field: Optional[Dict[str, str]] = None) -> str:
+    """Map generic field types to TypeScript types.
+    
+    Args:
+        field_type: The field type to map
+        type_to_field: Optional mapping from extracted codegen-mappings.ts
+    """
+    # First check if we have a UI field type mapping (for form fields)
+    if type_to_field and field_type in type_to_field:
+        # This is for UI field types, not TypeScript types
+        # So we still need to map to actual TypeScript types
+        pass
+    
+    # Basic type mappings for TypeScript
     type_map = {
         'string': 'string',
         'str': 'string',
@@ -31,7 +43,7 @@ def map_to_typescript_type(field_type: str) -> str:
     # Handle array types like string[], number[]
     if field_type.endswith('[]'):
         base_type = field_type[:-2]
-        mapped_base = map_to_typescript_type(base_type)
+        mapped_base = map_to_typescript_type(base_type, type_to_field)
         return f"{mapped_base}[]"
     
     # Handle generic types like Array<string>, List<number>
@@ -40,13 +52,13 @@ def map_to_typescript_type(field_type: str) -> str:
         inner_type = field_type.split('<')[1].rstrip('>')
         
         if base_type in ['array', 'list']:
-            return f"{map_to_typescript_type(inner_type)}[]"
+            return f"{map_to_typescript_type(inner_type, type_to_field)}[]"
         elif base_type in ['dict', 'map', 'record']:
             if ',' in inner_type:
                 key_type, value_type = inner_type.split(',', 1)
-                return f"Record<{map_to_typescript_type(key_type.strip())}, {map_to_typescript_type(value_type.strip())}>"
+                return f"Record<{map_to_typescript_type(key_type.strip(), type_to_field)}, {map_to_typescript_type(value_type.strip(), type_to_field)}>"
             else:
-                return f"Map<string, {map_to_typescript_type(inner_type)}>"
+                return f"Map<string, {map_to_typescript_type(inner_type, type_to_field)}>"
     
     return type_map.get(field_type.lower(), field_type)
 
@@ -89,30 +101,41 @@ def get_typescript_default(field: Dict[str, Any]) -> str:
         return 'undefined'
 
 
-def get_zod_schema(field: Dict[str, Any]) -> str:
-    """Generate Zod schema for a field."""
-    field_type = field.get('type', 'string')
-    ts_type = map_to_typescript_type(field_type)
+def get_zod_schema(field: Dict[str, Any], type_to_zod: Optional[Dict[str, str]] = None) -> str:
+    """Generate Zod schema for a field.
     
-    # Base schema
-    if ts_type == 'string':
-        schema = 'z.string()'
-    elif ts_type == 'number':
-        schema = 'z.number()'
-    elif ts_type == 'boolean':
-        schema = 'z.boolean()'
-    elif ts_type.endswith('[]'):
-        inner_type = ts_type[:-2]
-        if inner_type == 'string':
-            schema = 'z.array(z.string())'
-        elif inner_type == 'number':
-            schema = 'z.array(z.number())'
-        else:
-            schema = 'z.array(z.any())'
-    elif ts_type.startswith('Record<'):
-        schema = 'z.record(z.any())'
+    Args:
+        field: Field definition
+        type_to_zod: Optional mapping from extracted codegen-mappings.ts
+    """
+    field_type = field.get('type', 'string')
+    
+    # Check centralized mappings first
+    if type_to_zod and field_type in type_to_zod:
+        schema = type_to_zod[field_type]
     else:
-        schema = 'z.any()'
+        # Fall back to generating schema based on TypeScript type
+        ts_type = map_to_typescript_type(field_type)
+        
+        # Base schema
+        if ts_type == 'string':
+            schema = 'z.string()'
+        elif ts_type == 'number':
+            schema = 'z.number()'
+        elif ts_type == 'boolean':
+            schema = 'z.boolean()'
+        elif ts_type.endswith('[]'):
+            inner_type = ts_type[:-2]
+            if inner_type == 'string':
+                schema = 'z.array(z.string())'
+            elif inner_type == 'number':
+                schema = 'z.array(z.number())'
+            else:
+                schema = 'z.array(z.any())'
+        elif ts_type.startswith('Record<'):
+            schema = 'z.record(z.any())'
+        else:
+            schema = 'z.any()'
     
     # Add validations
     if field.get('required', False):
@@ -126,17 +149,19 @@ def get_zod_schema(field: Dict[str, Any]) -> str:
     # Min constraint
     min_val = field.get('min') or validation.get('min')
     if min_val is not None:
-        if ts_type == 'string':
+        field_ts_type = map_to_typescript_type(field_type)
+        if field_ts_type == 'string':
             schema += f'.min({min_val})'
-        elif ts_type == 'number':
+        elif field_ts_type == 'number':
             schema += f'.min({min_val})'
     
     # Max constraint
     max_val = field.get('max') or validation.get('max')
     if max_val is not None:
-        if ts_type == 'string':
+        field_ts_type = map_to_typescript_type(field_type)
+        if field_ts_type == 'string':
             schema += f'.max({max_val})'
-        elif ts_type == 'number':
+        elif field_ts_type == 'number':
             schema += f'.max({max_val})'
     
     # Pattern constraint

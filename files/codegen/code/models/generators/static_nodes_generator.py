@@ -23,9 +23,9 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append('from typing import Dict, Any, Optional, List, Union, Literal')
     lines.append('')
     lines.append('from dipeo.models.models import (')
-    lines.append('    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,')
+    lines.append('    NodeType, Vec2, NodeID, PersonID, MemorySettings, ToolConfig,')
     lines.append('    HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,')
-    lines.append('    NotionOperation, HookType, PersonLLMConfig, LLMService, DiagramFormat')
+    lines.append('    NotionOperation, HookType, DiagramFormat')
     lines.append(')')
     lines.append('')
     lines.append('')
@@ -62,11 +62,30 @@ def generate_python_code(static_nodes_data: dict) -> str:
         lines.append(f'class {node_class["class_name"]}(BaseExecutableNode):')
         lines.append(f'    type: NodeType = field(default=NodeType.{node_class["node_type"]}, init=False)')
         
+        # When inheriting from a dataclass with default values,
+        # all fields must have defaults in Python dataclasses.
+        # So we need to give all required fields a special marker default
+        
         # Add fields
         for field in node_class['fields']:
-            field_def = f'    {field["py_name"]}: {field["py_type"]}'
+            py_type = field["py_type"]
+            
+            # Check if field has None as default and needs Optional wrapping
+            if field.get('has_default') and field["default_value"] == "None":
+                # Check if the type already has Optional
+                if not py_type.startswith('Optional['):
+                    py_type = f'Optional[{py_type}]'
+            
+            field_def = f'    {field["py_name"]}: {py_type}'
+            
+            # All fields need defaults because base class has defaults
             if field.get('has_default'):
                 field_def += f' = {field["default_value"]}'
+            else:
+                # For required fields, use field() with no default
+                # This preserves the required nature while satisfying dataclass rules
+                field_def += ' = field()'
+                
             lines.append(field_def)
         
         lines.append('')
@@ -74,8 +93,25 @@ def generate_python_code(static_nodes_data: dict) -> str:
         lines.append('        """Convert node to dictionary representation."""')
         lines.append('        data = super().to_dict()')
         
+        # Enum fields that need .value
+        enum_fields = {
+            'method': 'HttpMethod',
+            'language': 'SupportedLanguage', 
+            'sub_type': 'DBBlockSubType',
+            'hook_type': 'HookType',
+            'operation': 'NotionOperation',
+            'trigger_mode': 'HookTriggerMode',
+            'diagram_format': 'DiagramFormat'
+        }
+        
         for field in node_class['fields']:
-            lines.append(f'        data["{field["ts_name"]}"] = self.{field["py_name"]}')
+            field_name = field["py_name"]
+            ts_name = field["ts_name"]
+            
+            if ts_name in enum_fields:
+                lines.append(f'        data["{ts_name}"] = self.{field_name}.value if self.{field_name} else None')
+            else:
+                lines.append(f'        data["{ts_name}"] = self.{field_name}')
         
         lines.append('        return data')
         lines.append('')
@@ -89,11 +125,11 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append('')
     lines.append('')
     
-    # Union type
+    # Union type - include PersonBatchJobNode
     lines.append('ExecutableNode = Union[')
     for i, node_class in enumerate(node_classes):
-        comma = ',' if i < len(node_classes) - 1 else ''
-        lines.append(f'    {node_class["class_name"]}{comma}')
+        lines.append(f'    {node_class["class_name"]},')
+    lines.append('    PersonBatchJobNode')  # Add PersonBatchJobNode to the union
     lines.append(']')
     lines.append('')
     lines.append('')
@@ -133,7 +169,7 @@ def generate_python_code(static_nodes_data: dict) -> str:
         lines.append('        )')
         lines.append('    ')
     
-    # Special case for PersonBatchJobNode
+    # Special case for PersonBatchJobNode - it's an alias that inherits from PersonJobNode
     lines.append('    if node_type == NodeType.person_batch_job:')
     lines.append('        return PersonBatchJobNode(')
     lines.append('            id=node_id,')
@@ -141,13 +177,16 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append('            label=label,')
     lines.append('            flipped=flipped,')
     lines.append('            metadata=metadata,')
-    lines.append('            person_id=data.get("person"),')
-    lines.append('            first_only_prompt=data.get("first_only_prompt", ""),')
-    lines.append('            default_prompt=data.get("default_prompt"),')
-    lines.append('            max_iteration=data.get("max_iteration", 1),')
-    lines.append('            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,')
-    lines.append('            memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,')
-    lines.append('            tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None')
+    # Use the same fields as PersonJobNode
+    person_job_fields = next((nc['fields'] for nc in node_classes if nc['node_type'] == 'person_job'), [])
+    
+    for field in person_job_fields:
+        if field.get('special_handling'):
+            lines.append(f'            {field["py_name"]}={field["special_handling"]},')
+        elif field.get('has_default') and not field.get('is_field_default'):
+            lines.append(f'            {field["py_name"]}=data.get("{field["ts_name"]}", {field["default_value"]}),')
+        else:
+            lines.append(f'            {field["py_name"]}=data.get("{field["ts_name"]}"),')
     lines.append('        )')
     lines.append('    ')
     

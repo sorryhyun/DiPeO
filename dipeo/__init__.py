@@ -42,7 +42,7 @@ except ImportError as e:
 
 # For convenience, re-export commonly used models from domain
 try:
-    from .domain import (
+    from .diagram_generated import (
         HandleReference,
         create_handle_id,
         parse_handle_id,

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.nodes.json_schema_validator_node import JsonSchemaValidatorNode
+from dipeo.diagram_generated import JsonSchemaValidatorNode
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated import JsonSchemaValidatorNodeData, NodeType
 

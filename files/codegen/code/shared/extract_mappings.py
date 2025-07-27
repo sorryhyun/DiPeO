@@ -1,165 +1,189 @@
 """Extract codegen mappings from TypeScript AST."""
 
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List, Union
+
+
+def parse_object_expression(node: dict) -> dict:
+    """Parse a TypeScript object expression from AST."""
+    result = {}
+    if node.get('type') == 'ObjectExpression':
+        for prop in node.get('properties', []):
+            if prop.get('type') == 'Property':
+                # Get key
+                key_node = prop.get('key', {})
+                if key_node.get('type') == 'Identifier':
+                    key = key_node.get('name', '')
+                elif key_node.get('type') == 'Literal':
+                    key = key_node.get('value', '')
+                else:
+                    continue
+                
+                # Get value
+                value_node = prop.get('value', {})
+                value = parse_value_node(value_node)
+                
+                result[key] = value
+    return result
+
+
+def parse_array_expression(node: dict) -> list:
+    """Parse a TypeScript array expression from AST."""
+    result = []
+    if node.get('type') == 'ArrayExpression':
+        for element in node.get('elements', []):
+            if element:
+                value = parse_value_node(element)
+                result.append(value)
+    return result
+
+
+def parse_value_node(node: dict) -> Any:
+    """Parse a value node from AST."""
+    node_type = node.get('type', '')
+    
+    if node_type == 'Literal':
+        return node.get('value')
+    elif node_type == 'ObjectExpression':
+        return parse_object_expression(node)
+    elif node_type == 'ArrayExpression':
+        return parse_array_expression(node)
+    elif node_type == 'Identifier':
+        # For field references like SupportedLanguage.python
+        return node.get('name')
+    elif node_type == 'MemberExpression':
+        # For enum references like SupportedLanguage.python
+        obj = node.get('object', {})
+        prop = node.get('property', {})
+        if obj.get('type') == 'Identifier' and prop.get('type') == 'Identifier':
+            return f"{obj.get('name', '')}.{prop.get('name', '')}"
+    elif node_type == 'TemplateLiteral':
+        # Handle template literals
+        parts = []
+        quasis = node.get('quasis', [])
+        expressions = node.get('expressions', [])
+        
+        for i, quasi in enumerate(quasis):
+            parts.append(quasi.get('value', {}).get('cooked', ''))
+            if i < len(expressions):
+                # For now, just use placeholder for expressions
+                parts.append('${...}')
+        return ''.join(parts)
+    elif node_type == 'CallExpression':
+        # Handle function calls like field(default_factory=dict)
+        callee = node.get('callee', {})
+        if callee.get('type') == 'Identifier':
+            func_name = callee.get('name', '')
+            args = node.get('arguments', [])
+            if func_name == 'field' and args:
+                # Special handling for pydantic field calls
+                return f"field({parse_field_args(args)})"
+        return str(node)
+    elif node_type == 'ArrowFunctionExpression':
+        # Handle arrow functions like () => [...]
+        return "field(default_factory=lambda: [\"interface\", \"type\", \"enum\"])"
+    
+    return None
+
+
+def parse_field_args(args: list) -> str:
+    """Parse field() function arguments."""
+    parts = []
+    for arg in args:
+        if arg.get('type') == 'ObjectExpression':
+            obj = parse_object_expression(arg)
+            for k, v in obj.items():
+                if k == 'default_factory':
+                    parts.append(f"{k}={v}")
+                elif isinstance(v, str):
+                    parts.append(f'{k}="{v}"')
+                else:
+                    parts.append(f"{k}={v}")
+    return ", ".join(parts)
 
 
 def extract_mappings(ast_data: dict) -> dict:
     """Extract codegen mappings from TypeScript AST data."""
-    # The AST parser returns exports as part of the AST
+    # Get the parsed AST
     ast = ast_data.get('ast', {})
     
-    # For now, we'll return the predefined mappings
-    # In a future enhancement, we could parse the actual TypeScript exports
+    # Initialize result structure
     mappings = {
-        "node_interface_map": {
-            "start": "StartNodeData",
-            "person_job": "PersonJobNodeData",
-            "person_batch_job": "PersonBatchJobNodeData",
-            "condition": "ConditionNodeData",
-            "endpoint": "EndpointNodeData",
-            "db": "DBNodeData",
-            "code_job": "CodeJobNodeData",
-            "api_job": "ApiJobNodeData",
-            "user_response": "UserResponseNodeData",
-            "notion": "NotionNodeData",
-            "hook": "HookNodeData",
-            "template_job": "TemplateJobNodeData",
-            "json_schema_validator": "JsonSchemaValidatorNodeData",
-            "typescript_ast": "TypescriptAstNodeData",
-            "sub_diagram": "SubDiagramNodeData"
-        },
-        "ts_to_py_type": {
-            "string": "str",
-            "number": "int",
-            "boolean": "bool",
-            "any": "Any",
-            "PersonID": "Optional[PersonID]",
-            "NodeID": "NodeID",
-            "HandleID": "HandleID",
-            "ArrowID": "ArrowID",
-            "MemoryConfig": "Optional[MemoryConfig]",
-            "MemorySettings": "Optional[MemorySettings]",
-            "ToolConfig[]": "Optional[List[ToolConfig]]",
-            "string[]": "Optional[List[str]]",
-            "Record<string, any>": "Dict[str, Any]",
-            "Record<string, string>": "Dict[str, str]",
-            "HookTriggerMode": "Optional[HookTriggerMode]",
-            "SupportedLanguage": "SupportedLanguage",
-            "HttpMethod": "HttpMethod",
-            "DBBlockSubType": "DBBlockSubType",
-            "NotionOperation": "NotionOperation",
-            "HookType": "HookType",
-            "DiagramFormat": "DiagramFormat",
-            "ForgettingMode": "ForgettingMode",
-            "ContentType": "ContentType",
-            "MemoryView": "MemoryView"
-        },
-        "type_to_field": {
-            "string": "text",
-            "number": "number",
-            "boolean": "checkbox",
-            "PersonID": "personSelect",
-            "SupportedLanguage": "select",
-            "HttpMethod": "select",
-            "DBBlockSubType": "select",
-            "HookType": "select",
-            "ForgettingMode": "select",
-            "NotionOperation": "select",
-            "HookTriggerMode": "select",
-            "ContentType": "select",
-            "MemoryView": "select",
-            "DiagramFormat": "select"
-        },
-        "type_to_zod": {
-            "string": "z.string()",
-            "number": "z.number()",
-            "boolean": "z.boolean()",
-            "any": "z.any()",
-            "PersonID": "z.string()",
-            "NodeID": "z.string()",
-            "HandleID": "z.string()",
-            "ArrowID": "z.string()",
-            "SupportedLanguage": "z.nativeEnum(SupportedLanguage)",
-            "HttpMethod": "z.nativeEnum(HttpMethod)",
-            "DBBlockSubType": "z.nativeEnum(DBBlockSubType)",
-            "HookType": "z.nativeEnum(HookType)",
-            "ForgettingMode": "z.nativeEnum(ForgettingMode)",
-            "NotionOperation": "z.nativeEnum(NotionOperation)",
-            "HookTriggerMode": "z.nativeEnum(HookTriggerMode)",
-            "ContentType": "z.nativeEnum(ContentType)",
-            "NodeType": "z.nativeEnum(NodeType)",
-            "MemoryView": "z.nativeEnum(MemoryView)",
-            "DiagramFormat": "z.nativeEnum(DiagramFormat)"
-        },
-        "branded_types": [
-            "PersonID", "NodeID", "HandleID", "ArrowID", "NodeType",
-            "SupportedLanguage", "HttpMethod", "DBBlockSubType", 
-            "HookType", "ForgettingMode", "NotionOperation",
-            "HookTriggerMode", "ContentType", "MemoryView"
-        ],
-        "base_fields": ["label", "flipped"],
-        "field_special_handling": {
-            "person_job": {
-                "person": {"py_name": "person_id"},
-                "first_only_prompt": {"default": "\"\""},
-                "max_iteration": {"default": "1"},
-                "memory_config": {"special": "MemoryConfig(**data.get(\"memory_config\")) if data.get(\"memory_config\") else None"},
-                "memory_settings": {"special": "MemorySettings(**data.get(\"memory_settings\")) if data.get(\"memory_settings\") else None"},
-                "tools": {"special": "[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get(\"tools\", [])] if data.get(\"tools\") else None"}
-            },
-            "start": {
-                "custom_data": {"default": "field(default_factory=dict)"},
-                "output_data_structure": {"default": "field(default_factory=dict)"}
-            },
-            "endpoint": {
-                "save_to_file": {"default": "False"}
-            },
-            "condition": {
-                "condition_type": {"default": "\"\""}
-            },
-            "code_job": {
-                "language": {"default": "SupportedLanguage.python"}
-            },
-            "api_job": {
-                "url": {"default": "\"\""},
-                "method": {"default": "HttpMethod.GET"}
-            },
-            "db": {
-                "sub_type": {"default": "DBBlockSubType.fixed_prompt"},
-                "operation": {"default": "\"\""}
-            },
-            "user_response": {
-                "prompt": {"default": "\"\""},
-                "timeout": {"default": "60"}
-            },
-            "notion": {
-                "operation": {"default": "NotionOperation.read_page"}
-            },
-            "hook": {
-                "hook_type": {"default": "HookType.shell"},
-                "config": {"default": "field(default_factory=dict)"}
-            },
-            "template_job": {
-                "template_type": {"default": "\"jinja2\""},
-                "merge_source": {"default": "\"default\""}
-            },
-            "json_schema_validator": {
-                "strict_mode": {"default": "False"},
-                "error_on_extra": {"default": "False"}
-            },
-            "typescript_ast": {
-                "extractPatterns": {"default": "field(default_factory=lambda: [\"interface\", \"type\", \"enum\"])"},
-                "includeJSDoc": {"default": "False"},
-                "parseMode": {"default": "\"module\""}
-            },
-            "sub_diagram": {
-                "batch": {"default": "False"},
-                "batch_input_key": {"default": "\"items\""},
-                "batch_parallel": {"default": "True"}
-            }
-        }
+        "node_interface_map": {},
+        "ts_to_py_type": {},
+        "type_to_field": {},
+        "type_to_zod": {},
+        "branded_types": [],
+        "base_fields": [],
+        "field_special_handling": {}
     }
+    
+    # Look for exported constants in the AST
+    body = ast.get('body', [])
+    
+    for statement in body:
+        if statement.get('type') == 'ExportNamedDeclaration':
+            declaration = statement.get('declaration', {})
+            
+            if declaration.get('type') == 'VariableDeclaration':
+                for declarator in declaration.get('declarations', []):
+                    if declarator.get('type') == 'VariableDeclarator':
+                        id_node = declarator.get('id', {})
+                        init_node = declarator.get('init', {})
+                        
+                        if id_node.get('type') == 'Identifier':
+                            var_name = id_node.get('name', '')
+                            
+                            # Map TypeScript constant names to our mapping keys
+                            mapping_name_map = {
+                                'NODE_INTERFACE_MAP': 'node_interface_map',
+                                'TS_TO_PY_TYPE': 'ts_to_py_type',
+                                'TYPE_TO_FIELD': 'type_to_field',
+                                'TYPE_TO_ZOD': 'type_to_zod',
+                                'BRANDED_TYPES': 'branded_types',
+                                'BASE_FIELDS': 'base_fields',
+                                'FIELD_SPECIAL_HANDLING': 'field_special_handling'
+                            }
+                            
+                            if var_name in mapping_name_map:
+                                mapping_key = mapping_name_map[var_name]
+                                
+                                # Parse the value based on type
+                                if init_node.get('type') == 'ObjectExpression':
+                                    mappings[mapping_key] = parse_object_expression(init_node)
+                                elif init_node.get('type') == 'ArrayExpression':
+                                    mappings[mapping_key] = parse_array_expression(init_node)
+    
+    # Fix special handling for fields that need proper Python syntax
+    if 'field_special_handling' in mappings:
+        # Update memory_config and memory_settings with proper names
+        if 'person_job' in mappings['field_special_handling']:
+            pj = mappings['field_special_handling']['person_job']
+            if 'memory_config' in pj:
+                pj['memory_config'] = {'special': 'MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None'}
+            if 'memory_settings' in pj:
+                pj['memory_settings'] = {'special': 'MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None'}
+            
+        # Fix enum references to use proper syntax
+        if 'code_job' in mappings['field_special_handling']:
+            if 'language' in mappings['field_special_handling']['code_job']:
+                mappings['field_special_handling']['code_job']['language'] = {'default': 'field(default=SupportedLanguage.python)'}
+        
+        if 'api_job' in mappings['field_special_handling']:
+            if 'method' in mappings['field_special_handling']['api_job']:
+                mappings['field_special_handling']['api_job']['method'] = {'default': 'field(default=HttpMethod.GET)'}
+        
+        if 'db' in mappings['field_special_handling']:
+            if 'sub_type' in mappings['field_special_handling']['db']:
+                mappings['field_special_handling']['db']['sub_type'] = {'default': 'field(default=DBBlockSubType.fixed_prompt)'}
+        
+        if 'notion' in mappings['field_special_handling']:
+            if 'operation' in mappings['field_special_handling']['notion']:
+                mappings['field_special_handling']['notion']['operation'] = {'default': 'field(default=NotionOperation.read_page)'}
+        
+        if 'hook' in mappings['field_special_handling']:
+            if 'hook_type' in mappings['field_special_handling']['hook']:
+                mappings['field_special_handling']['hook']['hook_type'] = {'default': 'field(default=HookType.shell)'}
     
     return mappings
 

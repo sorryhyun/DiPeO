@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List, Union, Literal
 
 from dipeo.models.models import (
-    NodeType, Vec2, NodeID, PersonID, MemoryConfig, MemorySettings, ToolConfig,
+    NodeType, Vec2, NodeID, PersonID, MemorySettings, ToolConfig,
     HookTriggerMode, SupportedLanguage, HttpMethod, DBBlockSubType,
     NotionOperation, HookType, PersonLLMConfig, LLMService, DiagramFormat
 )
@@ -77,7 +77,7 @@ class PersonJobNode(BaseExecutableNode):
     first_only_prompt: str = ""
     default_prompt: Optional[str] = None
     max_iteration: int = 1
-    memory_config: Optional[MemoryConfig] = None
+    memory_config: Optional[MemorySettings] = None
     memory_settings: Optional[MemorySettings] = None
     tools: Optional[List[ToolConfig]] = None
 
@@ -365,7 +365,7 @@ def create_executable_node(
             first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
-            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
+            memory_config=MemorySettings(**data.get("memory_config")) if data.get("memory_config") else None,
             memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
             tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None,
         )
@@ -532,7 +532,7 @@ def create_executable_node(
             first_only_prompt=data.get("first_only_prompt", ""),
             default_prompt=data.get("default_prompt"),
             max_iteration=data.get("max_iteration", 1),
-            memory_config=MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None,
+            memory_config=MemorySettings(**data.get("memory_config")) if data.get("memory_config") else None,
             memory_settings=MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None,
             tools=[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None
         )

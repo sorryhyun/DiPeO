@@ -36,6 +36,14 @@ nodes:
       sub_type: file
       source_details: dipeo/models/src/conversation.ts
 
+  - label: Load Node Data TS
+    type: db
+    position: {x: 200, y: 500}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/node-data/index.ts
+
   # Parse TypeScript files
   - label: Parse Diagram AST
     type: typescript_ast
@@ -56,6 +64,14 @@ nodes:
   - label: Parse Conversation AST
     type: typescript_ast
     position: {x: 400, y: 400}
+    props:
+      extractPatterns: ["interface", "enum", "type"]
+      includeJSDoc: true
+      parseMode: module
+
+  - label: Parse Node Data AST
+    type: typescript_ast
+    position: {x: 400, y: 500}
     props:
       extractPatterns: ["interface", "enum", "type"]
       includeJSDoc: true
@@ -148,7 +164,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/domain-schema.graphql
+      source_details: dipeo/diagram_generated_staged/domain-schema.graphql
 
   # Generate success summary
   - label: Generate Summary
@@ -173,6 +189,8 @@ connections:
     to: Load Execution TS
   - from: Start
     to: Load Conversation TS
+  - from: Start
+    to: Load Node Data TS
   
   # Parse TypeScript
   - from: Load Diagram TS
@@ -183,6 +201,9 @@ connections:
     label: source
   - from: Load Conversation TS
     to: Parse Conversation AST
+    label: source
+  - from: Load Node Data TS
+    to: Parse Node Data AST
     label: source
   
   # Extract GraphQL types
@@ -195,6 +216,9 @@ connections:
   - from: Parse Conversation AST
     to: Extract GraphQL Types
     label: conversation_ast
+  - from: Parse Node Data AST
+    to: Extract GraphQL Types
+    label: node_data_ast
   
   # Prepare template data
   - from: Extract GraphQL Types

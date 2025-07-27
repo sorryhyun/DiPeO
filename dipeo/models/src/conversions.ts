@@ -161,22 +161,22 @@ export function areHandlesCompatible(
 /**
  * Convert array-based diagram to map-based structure
  */
-export function diagramArraysToMaps(diagram: {
+export function diagramArraysToMaps(diagram: Partial<{
   nodes: DomainNode[];
   arrows: DomainArrow[];
   handles: DomainHandle[];
   persons: DomainPerson[];
-}): {
+}>): {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
   handles: Map<HandleID, DomainHandle>;
   persons: Map<PersonID, DomainPerson>;
 } {
   return {
-    nodes: new Map(diagram.nodes.map(n => [n.id, n])),
-    arrows: new Map(diagram.arrows.map(a => [a.id, a])),
-    handles: new Map(diagram.handles.map(h => [h.id, h])),
-    persons: new Map(diagram.persons.map(p => [p.id, p])),
+    nodes: new Map(diagram.nodes?.map(n => [n.id, n]) ?? []),
+    arrows: new Map(diagram.arrows?.map(a => [a.id, a]) ?? []),
+    handles: new Map(diagram.handles?.map(h => [h.id, h]) ?? []),
+    persons: new Map(diagram.persons?.map(p => [p.id, p]) ?? []),
   };
 }
 
@@ -252,59 +252,3 @@ export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagr
   return result;
 }
 
-// ============================================================================
-// Store Format Conversions
-// ============================================================================
-
-/**
- * Convert from Domain format (arrays) to Store format (Maps)
- * Used when loading diagrams into frontend state
- */
-export function diagramToStoreMaps(diagram: Partial<DomainDiagram>): {
-  nodes: Map<NodeID, DomainNode>;
-  handles: Map<HandleID, DomainHandle>;
-  arrows: Map<ArrowID, DomainArrow>;
-  persons: Map<PersonID, DomainPerson>;
-} {
-  const nodes = new Map<NodeID, DomainNode>();
-  const handles = new Map<HandleID, DomainHandle>();
-  const arrows = new Map<ArrowID, DomainArrow>();
-  const persons = new Map<PersonID, DomainPerson>();
-
-  // Convert arrays to maps with branded IDs as keys
-  diagram.nodes?.forEach((node) => {
-    nodes.set(node.id, node);
-  });
-
-  diagram.handles?.forEach((handle) => {
-    handles.set(handle.id, handle);
-  });
-
-  diagram.arrows?.forEach((arrow) => {
-    arrows.set(arrow.id, arrow);
-  });
-
-  diagram.persons?.forEach((person) => {
-    persons.set(person.id, person);
-  });
-
-  return { nodes, handles, arrows, persons };
-}
-
-/**
- * Convert from Store format (Maps) back to Domain format (arrays)
- * Used when sending diagrams to server or saving
- */
-export function storeMapsToArrays(store: {
-  nodes: Map<NodeID, DomainNode>;
-  handles: Map<HandleID, DomainHandle>;
-  arrows: Map<ArrowID, DomainArrow>;
-  persons: Map<PersonID, DomainPerson>;
-}): Partial<DomainDiagram> {
-  return {
-    nodes: Array.from(store.nodes.values()),
-    handles: Array.from(store.handles.values()),
-    arrows: Array.from(store.arrows.values()),
-    persons: Array.from(store.persons.values())
-  };
-}

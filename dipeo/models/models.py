@@ -46,11 +46,6 @@ class DataType(str, Enum):
     object = "object"
     array = "array"
 
-class ForgettingMode(str, Enum):
-    no_forget = "no_forget"
-    on_every_turn = "on_every_turn"
-    upon_request = "upon_request"
-
 class MemoryView(str, Enum):
     all_involved = "all_involved"
     sent_by_me = "sent_by_me"
@@ -198,13 +193,6 @@ class Conversation(BaseModel):
     messages: List[Message]
     metadata: Optional[ConversationMetadata] = Field(default=None)
 
-class MemoryState(Conversation):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    visible_messages: float
-    has_more: Optional[bool] = Field(default=None)
-    config: Optional[MemoryConfig] = Field(default=None)
-
 class Vec2(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
 
@@ -238,13 +226,6 @@ class DomainArrow(BaseModel):
     content_type: Optional[ContentType] = Field(default=None)
     label: Optional[str] = Field(default=None)
     data: Optional[Dict[str, Any]] = Field(default=None)
-
-class MemoryConfig(BaseModel):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    forget_mode: Optional[ForgettingMode] = Field(default=None)
-    max_messages: Optional[float] = Field(default=None)
-    temperature: Optional[float] = Field(default=None)
 
 class MemorySettings(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -327,7 +308,6 @@ class PersonJobNodeData(BaseNodeData):
     first_only_prompt: str
     default_prompt: Optional[str] = Field(default=None)
     max_iteration: float
-    memory_config: Optional[MemoryConfig] = Field(default=None)
     memory_settings: Optional[MemorySettings] = Field(default=None)
     tools: Optional[List[ToolConfig]] = Field(default=None)
 
@@ -398,17 +378,6 @@ class TemplateJobNodeData(BaseNodeData):
     output_path: Optional[str] = Field(default=None)
     variables: Optional[Dict[str, Any]] = Field(default=None)
     engine: Optional[Union[Literal["internal"], Literal["jinja2"], Literal["handlebars"]]] = Field(default=None)
-
-class ShellJobNodeData(BaseNodeData):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    command: str
-    args: Optional[List[str]] = Field(default=None)
-    cwd: Optional[str] = Field(default=None)
-    env: Optional[Dict[str, Any]] = Field(default=None)
-    timeout: Optional[float] = Field(default=None)
-    capture_output: Optional[bool] = Field(default=None)
-    shell: Optional[bool] = Field(default=None)
 
 class JsonSchemaValidatorNodeData(BaseNodeData):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -519,23 +488,6 @@ class NodeDefinition(BaseModel):
     handler: Any
     requires_services: Optional[List[str]] = Field(default=None)
     description: Optional[str] = Field(default=None)
-
-class GraphQLDomainPersonType(BaseModel):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    id: str
-    label: str
-    llm_config: PersonLLMConfig
-    type: str
-
-class StoreDiagram(BaseModel):
-    model_config = ConfigDict(extra='allow', populate_by_name=True)
-
-    nodes: Dict[NodeID, DomainNode]
-    handles: Dict[HandleID, DomainHandle]
-    arrows: Dict[ArrowID, DomainArrow]
-    persons: Dict[PersonID, DomainPerson]
-    metadata: Optional[DiagramMetadata] = Field(default=None)
 
 class ToolConfig(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -672,10 +624,129 @@ class NodeSpecificationRegistry(BaseModel):
 
     pass
 
+class ApiJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    url: str
+    method: HttpMethod
+    headers: Optional[Dict[str, Any]] = Field(default=None)
+    params: Optional[Dict[str, Any]] = Field(default=None)
+    body: Optional[Any] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+    auth_type: Optional[Union[Literal["none"], Literal["bearer"], Literal["basic"], Literal["api_key"]]] = Field(default=None)
+    auth_config: Optional[Dict[str, Any]] = Field(default=None)
+
+class CodeJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    language: SupportedLanguage
+    filePath: Optional[str] = Field(default=None)
+    code: Optional[str] = Field(default=None)
+    functionName: Optional[str] = Field(default=None)
+    timeout: Optional[float] = Field(default=None)
+
+class ConditionNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    condition_type: str
+    expression: Optional[str] = Field(default=None)
+    node_indices: Optional[List[str]] = Field(default=None)
+
+class DBNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    file: Optional[str] = Field(default=None)
+    collection: Optional[str] = Field(default=None)
+    sub_type: DBBlockSubType
+    operation: str
+    query: Optional[str] = Field(default=None)
+    data: Optional[Dict[str, Any]] = Field(default=None)
+
+class EndpointNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    save_to_file: bool
+    file_name: Optional[str] = Field(default=None)
+
+class HookNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    hook_type: HookType
+    config: Dict[str, Any]
+    timeout: Optional[float] = Field(default=None)
+    retry_count: Optional[float] = Field(default=None)
+    retry_delay: Optional[float] = Field(default=None)
+
+class JsonSchemaValidatorNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    schema_path: Optional[str] = Field(default=None)
+    schema: Optional[Dict[str, Any]] = Field(default=None)
+    data_path: Optional[str] = Field(default=None)
+    strict_mode: Optional[bool] = Field(default=None)
+    error_on_extra: Optional[bool] = Field(default=None)
+
+class NotionNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    operation: NotionOperation
+    page_id: Optional[str] = Field(default=None)
+    database_id: Optional[str] = Field(default=None)
+
+class PersonJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    person: Optional[PersonID] = Field(default=None)
+    first_only_prompt: str
+    default_prompt: Optional[str] = Field(default=None)
+    max_iteration: float
+    memory_settings: Optional[MemorySettings] = Field(default=None)
+    tools: Optional[List[ToolConfig]] = Field(default=None)
+
+class StartNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    custom_data: Dict[str, Union[str, float, bool]]
+    output_data_structure: Dict[str, str]
+    trigger_mode: Optional[HookTriggerMode] = Field(default=None)
+    hook_event: Optional[str] = Field(default=None)
+    hook_filters: Optional[Dict[str, Any]] = Field(default=None)
+
+class SubDiagramNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    diagram_name: Optional[str] = Field(default=None)
+    diagram_format: Optional[DiagramFormat] = Field(default=None)
+    diagram_data: Optional[Dict[str, Any]] = Field(default=None)
+    batch: Optional[bool] = Field(default=None)
+    batch_input_key: Optional[str] = Field(default=None)
+    batch_parallel: Optional[bool] = Field(default=None)
+
+class TemplateJobNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    template_path: Optional[str] = Field(default=None)
+    template_content: Optional[str] = Field(default=None)
+    output_path: Optional[str] = Field(default=None)
+    variables: Optional[Dict[str, Any]] = Field(default=None)
+    engine: Optional[Union[Literal["internal"], Literal["jinja2"], Literal["handlebars"]]] = Field(default=None)
+
+class TypescriptAstNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    source: Optional[str] = Field(default=None)
+    extractPatterns: Optional[List[str]] = Field(default=None)
+    includeJSDoc: Optional[bool] = Field(default=None)
+    parseMode: Optional[Union[Literal["module"], Literal["script"]]] = Field(default=None)
+
+class UserResponseNodeData(BaseNodeData):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+
+    prompt: str
+    timeout: int
+
 PersonBatchJobNodeData = PersonJobNodeData
 
 PersonMemoryMessage = Message
 
-PersonMemoryState = MemoryState
-
-PersonMemoryConfig = MemoryConfig
+PersonBatchJobNodeData = PersonJobNodeData

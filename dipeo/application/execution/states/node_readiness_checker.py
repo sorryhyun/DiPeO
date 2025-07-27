@@ -3,9 +3,9 @@
 from typing import TYPE_CHECKING
 
 from dipeo.core.execution.node_output import ConditionOutput
-from dipeo.diagram_generated.nodes.condition_node import ConditionNode
-from dipeo.diagram_generated.nodes.person_job_node import PersonJobNode
-from dipeo.diagram_generated.nodes.start_node import StartNode
+from dipeo.diagram_generated import ConditionNode
+from dipeo.diagram_generated import PersonJobNode
+from dipeo.diagram_generated import StartNode
 from dipeo.diagram_generated import NodeExecutionStatus, NodeID
 
 if TYPE_CHECKING:

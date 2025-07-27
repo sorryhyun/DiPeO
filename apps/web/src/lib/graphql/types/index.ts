@@ -13,19 +13,15 @@ export type {
 
 // Re-export utilities and conversions from mappings
 export {
-  diagramToStoreMaps,
-  storeMapsToArrays,
+  diagramArraysToMaps,
+  diagramMapsToArrays,
   convertGraphQLDiagramToDomain,
   convertGraphQLPersonToDomain,
   nodeKindToGraphQLType,
   graphQLTypeToNodeKind,
   isDomainNode,
-  isDomainDiagram,
   areHandlesCompatible,
-  getNodeHandles,
-  getHandleById,
   parseHandleId,
   createEmptyDiagram,
-  type StoreDiagram,
   type ArrowData
 } from './graphql-mappings';

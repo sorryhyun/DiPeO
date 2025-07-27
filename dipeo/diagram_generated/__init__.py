@@ -12,61 +12,61 @@ from .generated_nodes import *
 from .handle_utils import *
 
 # Re-export specific node models for backward compatibility
-from .models.api_job_model import *
-from .models.code_job_model import *
-from .models.condition_model import *
-from .models.db_model import *
-from .models.endpoint_model import *
-from .models.hook_model import *
-from .models.json_schema_validator_model import *
-from .models.notion_model import *
-from .models.person_batch_job_model import *
-from .models.person_job_model import *
-from .models.start_model import *
-from .models.sub_diagram_model import *
-from .models.template_job_model import *
-from .models.typescript_ast_model import *
-from .models.user_response_model import *
+from .models.api_job_model import ApiJobNodeData
+from .models.code_job_model import CodeJobNodeData
+from .models.condition_model import ConditionNodeData
+from .models.db_model import DbNodeData
+from .models.endpoint_model import EndpointNodeData
+from .models.hook_model import HookNodeData
+from .models.json_schema_validator_model import JsonSchemaValidatorNodeData
+from .models.notion_model import NotionNodeData
+from .models.person_batch_job_model import PersonBatchJobNodeData
+from .models.person_job_model import PersonJobNodeData
+from .models.start_model import StartNodeData
+from .models.sub_diagram_model import SubDiagramNodeData
+from .models.template_job_model import TemplateJobNodeData
+from .models.typescript_ast_model import TypescriptAstNodeData
+from .models.user_response_model import UserResponseNodeData
 
-# Import all node types
-from .nodes.api_job_node import ApiJobNode
-from .nodes.code_job_node import CodeJobNode
-from .nodes.condition_node import ConditionNode
-from .nodes.db_node import DbNode as DBNode
-from .nodes.endpoint_node import EndpointNode
-from .nodes.hook_node import HookNode
-from .nodes.json_schema_validator_node import JsonSchemaValidatorNode
-from .nodes.notion_node import NotionNode
-from .nodes.person_batch_job_node import PersonBatchJobNode
-from .nodes.person_job_node import PersonJobNode
-from .nodes.start_node import StartNode
-from .nodes.sub_diagram_node import SubDiagramNode
-from .nodes.template_job_node import TemplateJobNode
-from .nodes.typescript_ast_node import TypescriptAstNode
-from .nodes.user_response_node import UserResponseNode
+# Create aliases for backward compatibility
+DBNodeData = DbNodeData
+
+# Import all node types from generated_nodes
+from .generated_nodes import (
+    ApiJobNode, CodeJobNode, ConditionNode, DBNode, EndpointNode,
+    HookNode, JsonSchemaValidatorNode, NotionNode, PersonBatchJobNode,
+    PersonJobNode, StartNode, SubDiagramNode, TemplateJobNode,
+    TypescriptAstNode, UserResponseNode
+)
 
 # Combine all exports
 __all__ = [
     # From domain_models.py
-    "APIServiceType", "ApiJobNodeData", "ApiKeyID", "ArrowID",
-    "BaseNodeData", "ChatResult", "CodeJobNodeData", "ConditionNodeData",
-    "ConfigDict", "ContentType", "Conversation", "ConversationMetadata",
-    "DBBlockSubType", "DBNodeData", "DataType", "DiagramFormat",
+    "APIServiceType", "ApiKeyID", "ArrowID",
+    "BaseNodeData", "ChatResult", "ConfigDict", "ContentType", "Conversation", "ConversationMetadata",
+    "DBBlockSubType", "DataType", "DiagramFormat",
     "DiagramID", "DiagramMetadata", "DomainApiKey", "DomainArrow",
     "DomainDiagram", "DomainHandle", "DomainNode", "DomainPerson",
-    "EndpointNodeData", "EventType", "ExecutionID", "ExecutionOptions",
+    "EventType", "ExecutionID", "ExecutionOptions",
     "ExecutionState", "ExecutionStatus", "ExecutionUpdate", "ForgettingMode",
     "HandleDirection", "HandleID", "HandleLabel",
-    "HookNodeData", "HookTriggerMode", "HookType", "HttpMethod",
+    "HookTriggerMode", "HookType", "HttpMethod",
     "ImageGenerationResult", "InteractivePromptData", "InteractiveResponse",
-    "JsonSchemaValidatorNodeData", "LLMRequestOptions", "LLMService", "MemoryConfig", "MemorySettings",
+    "LLMRequestOptions", "LLMService", "MemorySettings",
     "Message", "NewType", "NodeDefinition", "NodeExecutionStatus",
     "NodeID", "NodeState", "NodeType",
-    "NotionNodeData", "NotionOperation", "PersonBatchJobNodeData", "PersonID",
-    "PersonJobNodeData", "PersonLLMConfig", "PersonMemoryMessage",
-    "StartNodeData", "SupportedLanguage",
-    "TemplateJobNodeData", "TokenUsage", "ToolConfig", "ToolOutput", "ToolType",
-    "TypescriptAstNodeData", "UserResponseNodeData", "Vec2", "WebSearchResult",
+    "NotionOperation", "PersonID",
+    "PersonLLMConfig", "PersonMemoryMessage",
+    "SupportedLanguage",
+    "TokenUsage", "ToolConfig", "ToolOutput", "ToolType",
+    "Vec2", "WebSearchResult",
+    # Node data models
+    "ApiJobNodeData", "CodeJobNodeData", "ConditionNodeData",
+    "DbNodeData", "DBNodeData",  # Both original and alias
+    "EndpointNodeData", "HookNodeData", "JsonSchemaValidatorNodeData",
+    "NotionNodeData", "PersonBatchJobNodeData", "PersonJobNodeData",
+    "StartNodeData", "SubDiagramNodeData", "TemplateJobNodeData",
+    "TypescriptAstNodeData", "UserResponseNodeData",
     # From conversions.py
     "NODE_TYPE_MAP", "NODE_TYPE_REVERSE_MAP", "node_kind_to_domain_type",
     "domain_type_to_node_kind", "normalize_node_id", "create_handle_id",

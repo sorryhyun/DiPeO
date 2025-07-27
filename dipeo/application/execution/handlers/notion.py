@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import NOTION_SERVICE, API_KEY_SERVICE
-from dipeo.diagram_generated.nodes.notion_node import NotionNode
+from dipeo.diagram_generated import NotionNode
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.domain.validators import NotionValidator
 from dipeo.diagram_generated import NodeType, NotionNodeData, NotionOperation

@@ -1,6 +1,6 @@
 # DiPeO Makefile
 
-.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema lint-imports
+.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema lint-imports diff-staged apply backup-generated
 
 # Default target
 help:
@@ -18,6 +18,11 @@ help:
 	@echo "  make lint-imports - Check import dependencies"
 	@echo "  make format       - Format all code"
 	@echo "  make clean        - Clean generated files"
+	@echo ""
+	@echo "Staging Commands:"
+	@echo "  make diff-staged  - Show differences between staged and active generated files"
+	@echo "  make apply        - Apply staged changes to active directory"
+	@echo "  make backup-generated - Backup current generated files before applying"
 
 # Combined install
 install:
@@ -141,6 +146,29 @@ format:
 	@for dir in $(PY_DIRS); do \
 		[ -d "$$dir/src" ] && (cd $$dir && ruff format src $$([ -d tests ] && echo tests)) || true; \
 	done
+
+# Staging Commands
+diff-staged:
+	@echo "📊 Showing differences between staged and active generated files..."
+	@diff -rq dipeo/diagram_generated dipeo/diagram_generated_staged 2>/dev/null || true
+	@echo ""
+	@echo "For detailed diffs, run: diff -r dipeo/diagram_generated dipeo/diagram_generated_staged"
+
+apply:
+	@echo "📋 Applying staged changes to active directory..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "❌ Error: No staged directory found. Run 'make codegen' first."; \
+		exit 1; \
+	fi
+	@echo "✅ Copying staged files to active directory..."
+	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+	@echo "✅ Staged changes applied successfully!"
+
+backup-generated:
+	@echo "💾 Backing up current generated files..."
+	@mkdir -p .backups
+	@tar -czf .backups/diagram_generated.backup.$$(date +%Y%m%d_%H%M%S).tar.gz dipeo/diagram_generated/
+	@echo "✅ Backup created in .backups/"
 
 # Clean
 clean:

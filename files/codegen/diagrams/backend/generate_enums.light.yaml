@@ -1,5 +1,5 @@
 # Generate Backend Enums
-# Generates enum definitions for DiPeO
+# Generates enum definitions for DiPeO from TypeScript source
 
 version: light
 
@@ -8,43 +8,87 @@ nodes:
     type: start
     position: {x: 50, y: 200}
 
+  # Load TypeScript enums file
+  - label: Load Enums TS
+    type: db
+    position: {x: 200, y: 100}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/enums.ts
+
+  # Parse TypeScript AST
+  - label: Parse Enums AST
+    type: typescript_ast
+    position: {x: 350, y: 100}
+    props:
+      extractPatterns: ["enum", "export"]
+      includeJSDoc: true
+      parseMode: module
+
+  # Extract enum definitions
+  - label: Extract Enums
+    type: code_job
+    position: {x: 500, y: 100}
+    props:
+      language: python
+      filePath: files/codegen/code/shared/extract_enums.py
+      functionName: main
+
+  # Load template
   - label: Load Enums Template
     type: db
-    position: {x: 200, y: 200}
+    position: {x: 200, y: 300}
     props:
       operation: read
       sub_type: file
       source_details: files/codegen/templates/backend/enums.j2
 
+  # Generate Python enums
   - label: Generate Enums
     type: code_job
-    position: {x: 400, y: 200}
+    position: {x: 650, y: 200}
     props:
       language: python
       filePath: files/codegen/code/backend/generators/enums.py
       functionName: main
 
+  # Write generated file
   - label: Write Enums
     type: db
-    position: {x: 600, y: 200}
+    position: {x: 850, y: 200}
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/enums.py
+      source_details: dipeo/diagram_generated_staged/enums.py
 
   - label: End
     type: endpoint
-    position: {x: 800, y: 200}
+    position: {x: 1050, y: 200}
     props:
       save_to_file: false
 
 connections:
+  - from: Start
+    to: Load Enums TS
+
+  - from: Load Enums TS
+    to: Parse Enums AST
+
+  - from: Parse Enums AST
+    to: Extract Enums
+
   - from: Start
     to: Load Enums Template
 
   - from: Load Enums Template
     to: Generate Enums
     label: template_content
+
+  - from: Extract Enums
+    to: Generate Enums
+    label: enums_data
+    content_type: object
 
   - from: Generate Enums
     to: Write Enums

@@ -1,15 +1,22 @@
-"""DiPeO models package - Single source of truth for all domain models.
+"""DiPeO models package - Compatibility layer for migration to diagram_generated.
 
-This package contains:
-- TypeScript source models (in src/)
-- Generated Python models (models.py)
-- Generated conversion utilities (conversions.py)
+This package now redirects to the new diagram-generated models.
+Legacy imports from dipeo.models will continue to work during migration.
 """
 
-# Re-export all models and conversions
-from .conversions import *
-from .handle_utils import *
-from .models import *
+# Redirect imports to new diagram_generated module
+from dipeo.diagram_generated.conversions import *
+from dipeo.diagram_generated.handle_utils import *
+from dipeo.diagram_generated.domain_models import *
+from dipeo.diagram_generated.enums import *
+
+# For backward compatibility, also import from legacy models if needed
+# This will be removed in Phase 5
+try:
+    from .models import *
+except ImportError:
+    # Legacy models may not exist, that's okay
+    pass
 
 # Combine all exports from submodules
 __all__ = [
@@ -22,15 +29,15 @@ __all__ = [
     "DomainDiagram", "DomainHandle", "DomainNode", "DomainPerson",
     "EndpointNodeData", "EventType", "ExecutionID", "ExecutionOptions",
     "ExecutionState", "ExecutionStatus", "ExecutionUpdate", "ForgettingMode",
-    "GraphQLDomainPersonType", "HandleDirection", "HandleID", "HandleLabel",
+    "HandleDirection", "HandleID", "HandleLabel",
     "HookNodeData", "HookTriggerMode", "HookType", "HttpMethod",
-    "ImageGenerationResult", "InteractivePromptData", "InteractiveResponse", "JobNodeData",
-    "LLMRequestOptions", "LLMService", "MemoryConfig", "MemoryState",
+    "ImageGenerationResult", "InteractivePromptData", "InteractiveResponse",
+    "LLMRequestOptions", "LLMService", "MemorySettings",
     "Message", "NewType", "NodeDefinition", "NodeExecutionStatus",
     "NodeID", "NodeState", "NodeType",
     "NotionNodeData", "NotionOperation", "PersonBatchJobNodeData", "PersonID",
-    "PersonJobNodeData", "PersonLLMConfig", "PersonMemoryConfig", "PersonMemoryMessage",
-    "PersonMemoryState", "StartNodeData", "StoreDiagram", "SupportedLanguage",
+    "PersonJobNodeData", "PersonLLMConfig", "PersonMemoryMessage",
+    "StartNodeData", "SupportedLanguage",
     "TokenUsage", "ToolConfig", "ToolOutput", "ToolType",
     "UserResponseNodeData", "Vec2", "WebSearchResult",
     # From conversions.py

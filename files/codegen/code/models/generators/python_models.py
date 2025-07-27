@@ -35,6 +35,18 @@ BRANDED_IDS = {
 }
 
 
+def strip_inline_comments(type_str: str) -> str:
+    """Remove inline comments from TypeScript type strings."""
+    # Remove // style comments
+    if '//' in type_str:
+        type_str = type_str.split('//')[0].strip()
+    # Remove /* */ style comments
+    if '/*' in type_str and '*/' in type_str:
+        import re
+        type_str = re.sub(r'/\*.*?\*/', '', type_str).strip()
+    return type_str
+
+
 class TypeConverter:
     """Converts TypeScript types to Python types."""
     
@@ -46,6 +58,9 @@ class TypeConverter:
         """Convert a TypeScript type to Python type."""
         if not ts_type:
             return 'Any'
+            
+        # Clean inline comments first
+        ts_type = strip_inline_comments(ts_type)
             
         # Check cache
         cache_key = f"{ts_type}:{field_name}:{is_optional}"
@@ -109,7 +124,7 @@ class TypeConverter:
             
         # Handle union types (excluding optional unions handled above)
         if '|' in ts_type and not ts_type.startswith('('):
-            parts = [p.strip() for p in ts_type.split('|')]
+            parts = [strip_inline_comments(p.strip()) for p in ts_type.split('|')]
             # Filter out undefined/null
             parts = [p for p in parts if p not in ['undefined', 'null']]
             if not parts:

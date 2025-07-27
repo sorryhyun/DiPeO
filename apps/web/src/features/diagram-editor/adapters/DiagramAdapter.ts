@@ -22,7 +22,7 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagram, arrowId, nodeId } from '@/core/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagram, arrowId, nodeId, diagramArraysToMaps } from '@/core/types';
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
@@ -440,7 +440,12 @@ export class DiagramAdapter {
    */
   static reactNodesToDomain(rfNodes: RFNode[]): Map<NodeID, DomainNode> {
     const domainNodes = rfNodes.map(rfNode => this.reactToNode(rfNode));
-    return ConversionService.arrayToMap(domainNodes, node => node.id);
+    return diagramArraysToMaps({ 
+      nodes: domainNodes, 
+      arrows: [], 
+      handles: [], 
+      persons: [] 
+    }).nodes;
   }
 
   /**
@@ -448,7 +453,12 @@ export class DiagramAdapter {
    */
   static reactEdgesToDomain(rfEdges: RFEdge[]): Map<ArrowID, DomainArrow> {
     const domainArrows = rfEdges.map(rfEdge => this.reactToArrow(rfEdge));
-    return ConversionService.arrayToMap(domainArrows, arrow => arrow.id);
+    return diagramArraysToMaps({ 
+      nodes: [], 
+      arrows: domainArrows, 
+      handles: [], 
+      persons: [] 
+    }).arrows;
   }
 }
 

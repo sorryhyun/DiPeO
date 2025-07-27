@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DomainDiagram,
     DomainNode,
     DomainArrow,
@@ -16,9 +16,9 @@ from dipeo.models import (
     DataType,
     create_handle_id,
     parse_handle_id,
-    MemoryView,
 )
-from dipeo.models.conversions import node_kind_to_domain_type
+from dipeo.models import MemoryView
+from dipeo.diagram_generated import node_kind_to_domain_type
 
 from dipeo.domain.diagram.utils import (
     _node_id_map, 

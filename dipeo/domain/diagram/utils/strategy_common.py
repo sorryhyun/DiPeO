@@ -5,15 +5,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     HandleDirection,
     HandleLabel,
     NodeID,
     DataType,
     ContentType,
     create_handle_id,
-    MemoryView,
 )
+from dipeo.models import MemoryView
 
 log = logging.getLogger(__name__)
 

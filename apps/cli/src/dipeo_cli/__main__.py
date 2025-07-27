@@ -7,8 +7,13 @@ Minimal command-line interface for DiPeO diagram operations.
 
 import argparse
 import sys
+import warnings
 
 from .cli import DiPeOCLI
+
+# Suppress non-critical warnings
+warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
+warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
 
 def main():

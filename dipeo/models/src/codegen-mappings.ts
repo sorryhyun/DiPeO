@@ -123,14 +123,14 @@ export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
     'condition_type': { default: '""' }
   },
   'code_job': {
-    'language': { default: 'SupportedLanguage.python' }
+    'language': { default: 'field(default=SupportedLanguage.python)' }
   },
   'api_job': {
     'url': { default: '""' },
-    'method': { default: 'HttpMethod.GET' }
+    'method': { default: 'field(default=HttpMethod.GET)' }
   },
   'db': {
-    'sub_type': { default: 'DBBlockSubType.fixed_prompt' },
+    'sub_type': { default: 'field(default=DBBlockSubType.fixed_prompt)' },
     'operation': { default: '""' }
   },
   'user_response': {
@@ -138,10 +138,10 @@ export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
     'timeout': { default: '60' }
   },
   'notion': {
-    'operation': { default: 'NotionOperation.read_page' }
+    'operation': { default: 'field(default=NotionOperation.read_page)' }
   },
   'hook': {
-    'hook_type': { default: 'HookType.shell' },
+    'hook_type': { default: 'field(default=HookType.shell)' },
     'config': { default: 'field(default_factory=dict)' }
   },
   'template_job': {

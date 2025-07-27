@@ -10,6 +10,14 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, NewType, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
+# Import all enums from the separate enums module
+from .enums import (
+    NodeType, HandleDirection, HandleLabel, DataType, ForgettingMode,
+    MemoryView, DiagramFormat, DBBlockSubType, ContentType, SupportedLanguage,
+    HttpMethod, HookType, HookTriggerMode, ExecutionStatus, NodeExecutionStatus,
+    EventType, LLMService, APIServiceType, NotionOperation, ToolType
+)
+
 # ============ Type Aliases ============
 {% for alias in type_aliases %}
 {{ alias.name }} = {{ alias.type }}
@@ -20,15 +28,6 @@ from pydantic import BaseModel, ConfigDict, Field
 {{ brand }} = NewType('{{ brand }}', str)
 {% endfor %}
 
-# ============ Enums ============
-{% for enum in enums %}
-class {{ enum.name }}(str, Enum):
-    """{{ enum.description or enum.name + ' enumeration' }}"""
-    {% for member in enum.members %}
-    {{ member.name|lower }} = "{{ member.value }}"
-    {% endfor %}
-
-{% endfor %}
 
 # ============ Models ============
 {% for model in models %}

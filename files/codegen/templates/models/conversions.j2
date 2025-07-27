@@ -3,15 +3,20 @@ Auto-generated {{ now }}. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 
-from typing import Dict, Any, TypedDict
+from typing import Dict, Any, TypedDict, NewType
 from .enums import NodeType, HandleDirection
-from .models import NodeID, HandleID
+
+# ---------------------------------------------------------------------------
+
+NodeID = NewType('NodeID', str)
+ArrowID = NewType('ArrowID', str)
+HandleID = NewType('HandleID', str)
 
 # ---------------------------------------------------------------------------
 
 NODE_TYPE_MAP: Dict[str, NodeType] = {
 {%- for key, value in node_type_map.items() %}
-    "{{ key }}": NodeType.{{ value }},
+    "{{ key }}": NodeType.{{ value.lower() }},
 {%- endfor %}
 }
 
@@ -61,7 +66,7 @@ def parse_handle_id(handle_id: HandleID) -> ParsedHandle:
         raise ValueError(f"Invalid handle ID: {handle_id}")
     node_id, label, dir_str = parts
     try:
-        direction = HandleDirection[dir_str.upper()]
+        direction = HandleDirection[dir_str.lower()]
     except KeyError as exc:
         raise ValueError(f"Unknown handle direction: {dir_str}") from exc
     return {"node_id": node_id, "handle_label": label, "direction": direction}  # type: ignore[return-value]

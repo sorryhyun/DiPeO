@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-25T23:36:29.954251
+# Generated at: 2025-07-27T14:52:58.257458
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -34,103 +34,6 @@ scalar JSONScalar
 # Enums
 # ============================================================================
 
-enum NodeType {
-  START
-  PERSON_JOB
-  CONDITION
-  CODE_JOB
-  API_JOB
-  ENDPOINT
-  DB
-  USER_RESPONSE
-  NOTION
-  PERSON_BATCH_JOB
-  HOOK
-  TEMPLATE_JOB
-  JSON_SCHEMA_VALIDATOR
-  TYPESCRIPT_AST
-  SUB_DIAGRAM
-}
-
-enum HandleDirection {
-  INPUT
-  OUTPUT
-}
-
-enum HandleLabel {
-  DEFAULT
-  FIRST
-  CONDITION_TRUE
-  CONDITION_FALSE
-  SUCCESS
-  ERROR
-  RESULTS
-}
-
-enum DataType {
-  ANY
-  STRING
-  NUMBER
-  BOOLEAN
-  OBJECT
-  ARRAY
-}
-
-enum MemoryView {
-  ALL_INVOLVED
-  SENT_BY_ME
-  SENT_TO_ME
-  SYSTEM_AND_ME
-  CONVERSATION_PAIRS
-  ALL_MESSAGES
-}
-
-enum DiagramFormat {
-  NATIVE
-  LIGHT
-  READABLE
-}
-
-enum DBBlockSubType {
-  FIXED_PROMPT
-  FILE
-  CODE
-  API_TOOL
-}
-
-enum ContentType {
-  RAW_TEXT
-  CONVERSATION_STATE
-  OBJECT
-}
-
-enum SupportedLanguage {
-  PYTHON
-  TYPESCRIPT
-  BASH
-  SHELL
-}
-
-enum HttpMethod {
-  GET
-  POST
-  PUT
-  DELETE
-  PATCH
-}
-
-enum HookType {
-  SHELL
-  WEBHOOK
-  PYTHON
-  FILE
-}
-
-enum HookTriggerMode {
-  MANUAL
-  HOOK
-}
-
 enum ExecutionStatus {
   PENDING
   RUNNING
@@ -162,13 +65,6 @@ enum EventType {
   EXECUTION_UPDATE
 }
 
-enum LLMService {
-  OPENAI
-  ANTHROPIC
-  GOOGLE
-  AZURE
-}
-
 enum APIServiceType {
   OPENAI
   ANTHROPIC
@@ -177,12 +73,11 @@ enum APIServiceType {
   CUSTOM
 }
 
-enum NotionOperation {
-  CREATE_PAGE
-  UPDATE_PAGE
-  GET_PAGE
-  DELETE_PAGE
-  QUERY_DATABASE
+enum LLMService {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  AZURE
 }
 
 # ============================================================================
@@ -257,99 +152,6 @@ type DomainDiagram {
 type BaseNodeData {
   label: String!
   flipped: Boolean
-}
-type StartNodeData {
-  custom_data: JSONScalar!
-  output_data_structure: JSONScalar!
-  trigger_mode: HookTriggerMode
-  hook_event: String
-  hook_filters: JSONScalar
-}
-type ConditionNodeData {
-  condition_type: String!
-  expression: String
-  node_indices: [String]
-}
-type PersonJobNodeData {
-  person: PersonID
-  first_only_prompt: String!
-  default_prompt: String
-  max_iteration: Float!
-  memory_settings: MemorySettings
-  tools: [ToolConfig]
-}
-type EndpointNodeData {
-  save_to_file: Boolean!
-  file_name: String
-}
-type DBNodeData {
-  file: String
-  collection: String
-  sub_type: DBBlockSubType!
-  operation: String!
-  query: String
-  data: JSONScalar
-}
-type CodeJobNodeData {
-  language: SupportedLanguage!
-  filePath: String
-  code: String
-  functionName: String
-  timeout: Float
-}
-type ApiJobNodeData {
-  url: String!
-  method: HttpMethod!
-  headers: JSONScalar
-  params: JSONScalar
-  body: JSONScalar
-  timeout: Float
-  auth_type: String
-  auth_config: JSONScalar
-}
-type UserResponseNodeData {
-  prompt: String!
-  timeout: Float!
-}
-type NotionNodeData {
-  operation: NotionOperation!
-  page_id: String
-  database_id: String
-}
-type HookNodeData {
-  hook_type: HookType!
-  config: JSONScalar!
-  timeout: Float
-  retry_count: Float
-  retry_delay: Float
-}
-type TemplateJobNodeData {
-  template_path: String
-  template_content: String
-  output_path: String
-  variables: JSONScalar
-  engine: String
-}
-type JsonSchemaValidatorNodeData {
-  schema_path: String
-  schema: JSONScalar
-  data_path: String
-  strict_mode: Boolean
-  error_on_extra: Boolean
-}
-type TypescriptAstNodeData {
-  source: String
-  extractPatterns: [String]
-  includeJSDoc: Boolean
-  parseMode: String
-}
-type SubDiagramNodeData {
-  diagram_name: String
-  diagram_format: DiagramFormat
-  diagram_data: JSONScalar
-  batch: Boolean
-  batch_input_key: String
-  batch_parallel: Boolean
 }
 type TokenUsage {
   input: Float!
@@ -456,4 +258,4 @@ Union type for all possible node data configurations.
 In practice, DiPeO uses JSONScalar for the data field, but this union
 documents all possible node data types.
 """
-union NodeData = BaseNodeData | StartNodeData | ConditionNodeData | PersonJobNodeData | EndpointNodeData | DBNodeData | CodeJobNodeData | ApiJobNodeData | UserResponseNodeData | NotionNodeData | HookNodeData | TemplateJobNodeData | JsonSchemaValidatorNodeData | TypescriptAstNodeData | SubDiagramNodeData
+union NodeData = BaseNodeData

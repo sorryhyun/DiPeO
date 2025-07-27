@@ -64,7 +64,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/conversions.py
+      source_details: dipeo/diagram_generated_staged/conversions.py
 
   # Generate success summary
   - label: Generate Summary

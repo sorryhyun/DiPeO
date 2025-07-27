@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 {%- endfor %}
 
 {% if nodeType == 'person_job' %}
-from dipeo.models import PersonID, MemoryConfig, MemorySettings, ToolConfig
+from dipeo.models import PersonID, MemorySettings, ToolConfig
 {% endif %}
 {%- if enum_imports %}
 from dipeo.models.models import {{ enum_imports | unique | join(', ') }}

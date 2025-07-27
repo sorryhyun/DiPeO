@@ -39,37 +39,178 @@ nodes:
       filePath: files/codegen/code/shared/extract_mappings.py
       functionName: main
 
-  # Load diagram.ts to get node data interfaces
-  - label: Load Diagram TS
+  # Load manifest to get node types
+  - label: Load Manifest
     type: db
     position: {x: 200, y: 300}
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/diagram.ts
+      source_details: files/codegen/manifests/all.json
 
-  # Parse TypeScript to extract interfaces
-  - label: Parse Diagram AST
-    type: typescript_ast
-    position: {x: 400, y: 300}
-    props:
-      extractPatterns: ["interface", "enum"]
-      includeJSDoc: true
-      parseMode: module
-
-  # Generate static nodes
-  - label: Generate Static Nodes
+  # Prepare temp directory and node list
+  - label: Prepare Batch Processing
     type: code_job
-    position: {x: 600, y: 300}
+    position: {x: 350, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/extractors/static_nodes_extractor.py
-      functionName: main
+      code: |
+        import json
+        import os
+        import shutil
+        
+        # Parse the manifest data
+        manifest_data = inputs.get('manifest', {})
+        if isinstance(manifest_data, str):
+            manifest_data = json.loads(manifest_data)
+        
+        # Get node types from manifest
+        node_types = manifest_data.get('nodes', [])
+        
+        if not node_types:
+            raise ValueError("No node types found in manifest")
+        
+        # Create temp directory for storing results
+        temp_dir = '.temp/codegen/node_data'
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Create array of inputs for batch processing
+        # Each item needs to have default key for sub_diagram batch processing
+        result = {
+            'items': [{'default': {'node_type': node_type}} for node_type in node_types],
+            'node_types': node_types,
+            'temp_dir': temp_dir
+        }
+
+  # Batch parse node data files
+  - label: Batch Parse Node Data
+    type: sub_diagram
+    position: {x: 550, y: 300}
+    props:
+      diagram_name: codegen/diagrams/models/parse_node_data_single
+      diagram_format: light
+      batch: true
+      batch_input_key: items
+      batch_parallel: true
+
+  # Load BaseNodeData from diagram.ts
+  - label: Load Base Interface
+    type: db
+    position: {x: 200, y: 450}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/diagram.ts
+
+  # Parse diagram.ts for BaseNodeData
+  - label: Parse Base Interface
+    type: typescript_ast
+    position: {x: 350, y: 450}
+    props:
+      extractPatterns: ["interface"]
+      includeJSDoc: false
+      parseMode: module
+
+  # Read all temp files
+  - label: Read Temp Results
+    type: code_job
+    position: {x: 750, y: 400}
+    props:
+      language: python
+      code: |
+        import json
+        import os
+        
+        # Get batch info
+        batch_info = inputs.get('batch_info', {})
+        temp_dir = batch_info.get('temp_dir', '.temp/codegen/node_data')
+        node_types = batch_info.get('node_types', [])
+        
+        # Read all temp files
+        parsed_nodes = []
+        
+        for node_type in node_types:
+            temp_file = os.path.join(temp_dir, f"{node_type}.json")
+            if os.path.exists(temp_file):
+                try:
+                    with open(temp_file, 'r') as f:
+                        data = json.load(f)
+                    parsed_nodes.append(data)
+                except Exception as e:
+                    pass  # Skip failed files silently
+        
+        # Clean up temp directory
+        import shutil
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        
+        result = {
+            'parsed_nodes': parsed_nodes,
+            'count': len(parsed_nodes)
+        }
+
+  # Generate static nodes from all parsed data
+  - label: Generate Static Nodes
+    type: code_job
+    position: {x: 750, y: 300}
+    props:
+      language: python
+      code: |
+        from datetime import datetime
+        import json
+        
+        # Get inputs
+        mappings = inputs.get('mappings', {})
+        temp_results = inputs.get('temp_results', {})
+        base_ast = inputs.get('base_ast', {})
+        
+        # Extract BaseNodeData interface
+        base_interface = None
+        for iface in base_ast.get('interfaces', []):
+            if iface.get('name') == 'BaseNodeData':
+                base_interface = iface
+                break
+        
+        # Get parsed nodes from temp results
+        parsed_nodes = temp_results.get('parsed_nodes', [])
+        
+        # Combine all interfaces
+        all_interfaces = []
+        node_interface_map = mappings.get('node_interface_map', {})
+        
+        for parsed in parsed_nodes:
+            node_type = parsed.get('node_type')
+            interface_name = parsed.get('interface_name')
+            interface_data = parsed.get('interface')
+            
+            if interface_data:
+                # Update the node_interface_map with actual names
+                node_interface_map[node_type] = interface_name
+                all_interfaces.append(interface_data)
+        
+        if not all_interfaces:
+            raise ValueError("No interfaces were successfully parsed from node data files")
+        
+        # Update mappings with the collected interface names
+        mappings['node_interface_map'] = node_interface_map
+        
+        # Create combined AST data
+        combined_ast = {
+            'interfaces': all_interfaces,
+            'base_interface': base_interface
+        }
+        
+        # Import and run the static nodes extractor
+        from files.codegen.code.models.extractors.static_nodes_extractor import extract_static_nodes_data
+        
+        result = extract_static_nodes_data(combined_ast, mappings)
 
   # Generate Python code
   - label: Generate Python Code
     type: code_job
-    position: {x: 800, y: 300}
+    position: {x: 950, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generators/static_nodes_generator.py
@@ -78,16 +219,16 @@ nodes:
   # Write Python file
   - label: Write Static Nodes File
     type: db
-    position: {x: 1000, y: 300}
+    position: {x: 1150, y: 300}
     props:
       operation: write
       sub_type: file
-      source_details: dipeo/diagram_generated/generated_nodes.py
+      source_details: dipeo/diagram_generated_staged/generated_nodes.py
 
   # Generate success summary
   - label: Generate Summary
     type: code_job
-    position: {x: 1200, y: 300}
+    position: {x: 1350, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generators/summary_generator.py
@@ -95,7 +236,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1400, y: 300}
+    position: {x: 1550, y: 300}
     props:
       save_to_file: false
 
@@ -110,19 +251,41 @@ connections:
     to: Extract Mappings
     label: default
   
-  # Load and parse diagram
+  # Load manifest and prepare batch
   - from: Start
-    to: Load Diagram TS
-  - from: Load Diagram TS
-    to: Parse Diagram AST
+    to: Load Manifest
+  - from: Load Manifest
+    to: Prepare Batch Processing
+    label: manifest
+  
+  # Batch parse node data
+  - from: Prepare Batch Processing
+    to: Batch Parse Node Data
+  
+  # Load base interface
+  - from: Start
+    to: Load Base Interface
+  - from: Load Base Interface
+    to: Parse Base Interface
     label: source
   
-  # Generate static nodes data with mappings
-  - from: Parse Diagram AST
+  # Read temp results after batch processing
+  - from: Batch Parse Node Data
+    to: Read Temp Results
+  - from: Prepare Batch Processing
+    to: Read Temp Results
+    label: batch_info
+  
+  # Generate static nodes with all inputs
+  - from: Read Temp Results
     to: Generate Static Nodes
+    label: temp_results
   - from: Extract Mappings
     to: Generate Static Nodes
     label: mappings
+  - from: Parse Base Interface
+    to: Generate Static Nodes
+    label: base_ast
   
   # Generate Python code
   - from: Generate Static Nodes

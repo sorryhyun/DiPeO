@@ -2,10 +2,14 @@
 
 from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
+from enum import Enum
 
 
-from dipeo.models.models import DBBlockSubType
-
+class DBBlockSubType(str, Enum):
+    fixed_prompt = "fixed_prompt"
+    file = "file"
+    code = "code"
+    api_tool = "api_tool"
 
 class DbNodeData(BaseModel):
     """Data model for Database node."""

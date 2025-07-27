@@ -78,8 +78,7 @@ class ExecutionRuntime(StateTransitionMixin):
         for node in self.diagram.nodes:
             if node.id not in self._node_states:
                 self._node_states[node.id] = NodeState(
-                    status=NodeExecutionStatus.PENDING,
-                    node_id=node.id
+                    status=NodeExecutionStatus.PENDING
                 )
     
     # ========== Simplified Node Readiness ==========
@@ -158,7 +157,7 @@ class ExecutionRuntime(StateTransitionMixin):
         from dipeo.application.execution.resolution import (
             TypedInputResolutionService,
         )
-        from dipeo.diagram_generated.nodes.person_job_node import PersonJobNode
+        from dipeo.diagram_generated import PersonJobNode
         
         # Create typed input resolution service
         typed_input_service = TypedInputResolutionService()

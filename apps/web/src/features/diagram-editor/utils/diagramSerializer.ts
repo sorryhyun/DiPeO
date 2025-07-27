@@ -6,7 +6,7 @@
 import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
-import { storeMapsToArrays } from '@/lib/graphql/types';
+import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { ConversionService } from '@/core/services/ConversionService';
 
@@ -213,7 +213,7 @@ export function serializeDiagram(): SerializedDiagram {
   
   // Get store state with properly typed Maps
   const storeMaps = getStoreStateWithMaps();
-  const diagramArrays = storeMapsToArrays(storeMaps);
+  const diagramArrays = diagramMapsToArrays(storeMaps);
 
   // Clean node data
   const cleanNodes = diagramArrays.nodes?.map(node => cleanNodeData(node)) || [];

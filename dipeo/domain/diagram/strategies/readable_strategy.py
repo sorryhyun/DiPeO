@@ -4,7 +4,7 @@ import logging
 import re
 from typing import Any
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DomainDiagram,
     HandleDirection,
     HandleLabel,
