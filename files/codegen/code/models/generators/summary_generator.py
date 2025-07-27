@@ -88,7 +88,7 @@ def generate_zod_schemas_summary(schemas: list, enum_schemas: dict) -> dict:
     print(f"\n=== Zod Schemas Generation Complete ===")
     print(f"Generated schemas for {len(schemas)} node types")
     print(f"Generated {len(enum_schemas)} enum schemas")
-    print(f"Output written to: apps/web/src/features/diagram-editor/config/nodes/generated-schemas.ts")
+    print(f"Output written to: apps/web/src/__generated__/schemas.ts")
     print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {

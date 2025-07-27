@@ -29,7 +29,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/conversions_ast.json
+      source_details: .temp/conversions_ast.json
 
   # Load the original conversions.ts file (still needed for raw source)
   - label: Load Conversions TS

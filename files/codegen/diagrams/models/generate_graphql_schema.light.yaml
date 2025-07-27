@@ -28,7 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/diagram_ast.json
+      source_details: .temp/diagram_ast.json
 
   - label: Load Execution AST
     type: db
@@ -36,7 +36,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/execution_ast.json
+      source_details: .temp/execution_ast.json
 
   - label: Load Conversation AST
     type: db
@@ -44,7 +44,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/conversation_ast.json
+      source_details: .temp/conversation_ast.json
 
   - label: Load Enums AST
     type: db
@@ -52,7 +52,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/enums_ast.json
+      source_details: .temp/enums_ast.json
 
   - label: Load Integration AST
     type: db
@@ -60,7 +60,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/integration_ast.json
+      source_details: .temp/integration_ast.json
 
   # Combine all node data AST files
   - label: Combine Node Data AST
@@ -77,7 +77,7 @@ nodes:
         base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
         
         # Read all node data AST files from cache
-        cache_dir = base_dir / 'apps/server/.temp/ast_cache'
+        cache_dir = base_dir / '.temp'
         
         # Combine all interfaces, types, and enums from node data files
         all_interfaces = []

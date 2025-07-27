@@ -89,7 +89,6 @@ export { useExecutionGraphQL } from './hooks/useExecutionGraphQL';
 export type {
   ExecutionStatus,
   NodeExecutionStatus,
-  PersonMemoryState,
   TokenUsage,
   InteractivePromptData
 } from './types/execution';

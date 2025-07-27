@@ -19,6 +19,8 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         - cache_dir: Path to cache directory
         - metadata: Cache metadata including counts and timestamp
     """
+    # Get the base directory from environment or use current directory
+    base_dir = Path(os.environ.get('DIPEO_BASE_DIR', os.getcwd()))
     # Extract parsed_results from the Batch Parse TypeScript node
     parsed_data = inputs.get('parsed_results', {})
     if isinstance(parsed_data, dict) and 'parsed_results' in parsed_data:
@@ -41,8 +43,8 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         else:
             file_mapping = file_mapping_data
     
-    # Create cache directory
-    cache_dir = Path('.temp/ast_cache')
+    # Create cache directory at project root
+    cache_dir = base_dir / '.temp'
     cache_dir.mkdir(parents=True, exist_ok=True)
     
     # Calculate totals

@@ -49,7 +49,7 @@ export type {
   DiagramMetadata,
   DomainDiagram,
   // Memory and config types
-  MemoryConfig,
+  MemorySettings,
   PersonLLMConfig,
   // Tool config
   ToolConfig
@@ -89,9 +89,7 @@ export type {
 
 // Conversation Types
 export type {
-  PersonMemoryMessage,
-  PersonMemoryState,
-  PersonMemoryConfig
+  PersonMemoryMessage
 } from '@dipeo/domain-models';
 
 // Utility Functions

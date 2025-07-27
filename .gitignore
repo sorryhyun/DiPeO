@@ -18,6 +18,9 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
+
+# Temporary files and cache
+.temp/
 apps/web/schema.graphql
 dipeo/models/schema.graphql
 dipeo/domain/models.py

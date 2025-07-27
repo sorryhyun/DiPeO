@@ -6,6 +6,9 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Tuple
 
+# Get the base directory from environment or use current directory
+_BASE_DIR = Path(os.environ.get('DIPEO_BASE_DIR', os.getcwd()))
+
 
 def load_ast_from_cache(filename: str, max_age_minutes: int = 5) -> Optional[Tuple[Dict[str, Any], str]]:
     """Load AST data and source from cache if available and fresh.
@@ -17,7 +20,7 @@ def load_ast_from_cache(filename: str, max_age_minutes: int = 5) -> Optional[Tup
     Returns:
         Tuple of (ast_data, source_code) if cache exists and is fresh, None otherwise
     """
-    cache_dir = Path('.temp/ast_cache')
+    cache_dir = _BASE_DIR / '.temp'
     ast_file = cache_dir / f'{filename}_ast.json'
     source_file = cache_dir / f'{filename}_source.ts'
     metadata_file = cache_dir / 'metadata.json'
@@ -90,7 +93,7 @@ def load_combined_ast_from_cache(filenames: list[str], max_age_minutes: int = 5)
 
 def clear_ast_cache():
     """Clear the AST cache directory."""
-    cache_dir = Path('.temp/ast_cache')
+    cache_dir = _BASE_DIR / '.temp'
     if cache_dir.exists():
         import shutil
         shutil.rmtree(cache_dir)

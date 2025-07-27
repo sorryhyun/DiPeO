@@ -29,7 +29,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/codegen_mappings_ast.json
+      source_details: .temp/codegen_mappings_ast.json
 
   # Extract mappings
   - label: Extract Mappings
@@ -47,7 +47,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/diagram_ast.json
+      source_details: .temp/diagram_ast.json
 
   # Load cached node data AST
   - label: Load Node Data AST
@@ -56,7 +56,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/node_data_ast.json
+      source_details: .temp/node_data_ast.json
 
   # Extract field configurations
   - label: Extract Field Configs

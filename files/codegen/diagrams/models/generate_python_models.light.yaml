@@ -29,7 +29,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/diagram_ast.json
+      source_details: .temp/diagram_ast.json
 
   - label: Load Execution AST
     type: db
@@ -37,7 +37,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/execution_ast.json
+      source_details: .temp/execution_ast.json
 
   - label: Load Conversation AST
     type: db
@@ -45,7 +45,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/conversation_ast.json
+      source_details: .temp/conversation_ast.json
 
   - label: Load Node Specifications AST
     type: db
@@ -53,7 +53,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/node_specifications_ast.json
+      source_details: .temp/node_specifications_ast.json
 
   - label: Load Utils AST
     type: db
@@ -61,7 +61,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/utils_ast.json
+      source_details: .temp/utils_ast.json
 
   - label: Load Integration AST
     type: db
@@ -69,7 +69,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/integration_ast.json
+      source_details: .temp/integration_ast.json
 
   - label: Load Node Data AST
     type: db
@@ -77,7 +77,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: apps/server/.temp/ast_cache/node_data_ast.json
+      source_details: .temp/node_data_ast.json
 
   # Combine all AST data
   - label: Combine AST Data
