@@ -31,7 +31,7 @@ nodes:
     type: sub_diagram
     position: {x: 550, y: 450}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_frontend_batch_ts
+      diagram_name: codegen/diagrams/frontend/generate_frontend
       diagram_format: light
 
 

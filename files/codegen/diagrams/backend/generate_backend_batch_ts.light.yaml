@@ -101,25 +101,44 @@ nodes:
             'status': 'success' if failed == 0 else 'partial_failure'
         }
 
+  # Generate Strawberry types from domain schema
+  - label: Generate Strawberry Types
+    type: sub_diagram
+    position: {x: 850, y: 300}
+    props:
+      diagram_name: codegen/diagrams/backend/generate_strawberry_types
+      diagram_format: light
+
   - label: Process Final Results
     type: code_job
-    position: {x: 950, y: 200}
+    position: {x: 1050, y: 200}
     props:
       language: python
       code: |
         # Process results from backend generation
         backend_results = inputs.get('backend_results', {})
+        strawberry_results = inputs.get('strawberry_results', {})
         
         print(f"\n=== Complete Backend Generation Summary ===")
         print(backend_results.get('backend_summary', ''))
         
+        # Include Strawberry generation status
+        if strawberry_results.get('success'):
+            print("\n✓ Strawberry GraphQL types generated from domain schema")
+            print(strawberry_results.get('summary', ''))
+        
         # Note: Enums are now generated as part of domain models via generate_all_models
         
         artifacts = backend_results.get('artifacts_generated', {})
+        # Add Strawberry types to artifacts count
+        if strawberry_results.get('success'):
+            artifacts['strawberry_types'] = 1
+        
         result = {
             'message': 'Backend generation finished with TypeScript specifications',
             'artifacts_generated': artifacts,
-            'backend_status': backend_results.get('status', 'unknown')
+            'backend_status': backend_results.get('status', 'unknown'),
+            'strawberry_status': 'success' if strawberry_results.get('success') else 'failed'
         }
 
   - label: End
@@ -141,10 +160,18 @@ connections:
   - from: Batch Generate Backend
     to: Process Backend Results
   
+  # Run Strawberry generation after backend results
+  - from: Process Backend Results
+    to: Generate Strawberry Types
   
+  # Pass both results to final processing
   - from: Process Backend Results
     to: Process Final Results
     label: backend_results
+  
+  - from: Generate Strawberry Types
+    to: Process Final Results
+    label: strawberry_results
   
   - from: Process Final Results
     to: End
