@@ -173,22 +173,22 @@ class HandleParser:
         try:
             src_handle_enum = HandleLabel(source_handle)
         except ValueError:
-            src_handle_enum = HandleLabel.default
+            src_handle_enum = HandleLabel.DEFAULT
             
         try:
             dst_handle_enum = HandleLabel(target_handle)
         except ValueError:
-            dst_handle_enum = HandleLabel.default
+            dst_handle_enum = HandleLabel.DEFAULT
             
         source_handle_id = create_handle_id(
             NodeID(source_node_id), 
             src_handle_enum, 
-            HandleDirection.output
+            HandleDirection.OUTPUT
         )
         target_handle_id = create_handle_id(
             NodeID(target_node_id), 
             dst_handle_enum, 
-            HandleDirection.input
+            HandleDirection.INPUT
         )
         
         return source_handle_id, target_handle_id
@@ -261,12 +261,12 @@ class HandleParser:
                 "node_id": actual_node_id,
                 "label": str(handle_label),
                 "direction": direction.value,
-                "data_type": DataType.any.value,
-                "position": "right" if direction == HandleDirection.output else "left",
+                "data_type": DataType.ANY.value,
+                "position": "right" if direction == HandleDirection.OUTPUT else "left",
             }
         
         # Update arrow to use the correct handle ID
-        if direction == HandleDirection.output:
+        if direction == HandleDirection.OUTPUT:
             arrow["source"] = expected_handle_id
         else:
             arrow["target"] = expected_handle_id
@@ -373,7 +373,7 @@ class ArrowDataProcessor:
         
         # Set default content type if not specified
         if "content_type" not in arrow_dict and arrow_dict.get("content_type") is None:
-            arrow_dict["content_type"] = ContentType.raw_text.value
+            arrow_dict["content_type"] = ContentType.RAW_TEXT.value
         
         return arrow_dict
     

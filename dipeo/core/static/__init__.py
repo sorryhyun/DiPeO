@@ -3,7 +3,7 @@
 from .diagram_compiler import DiagramCompiler
 from .executable_diagram import ExecutableDiagram, ExecutableEdge, ExecutableNode
 from .node_handler import TypedNodeHandler
-from .nodes import (
+from dipeo.diagram_generated.generated_nodes import (
     ApiJobNode,
     BaseExecutableNode,
     CodeJobNode,
@@ -11,10 +11,14 @@ from .nodes import (
     DBNode,
     EndpointNode,
     HookNode,
+    JsonSchemaValidatorNode,
     NotionNode,
     PersonBatchJobNode,
-    PersonNode,
+    PersonJobNode,
     StartNode,
+    SubDiagramNode,
+    TemplateJobNode,
+    TypescriptAstNode,
     UserResponseNode,
     create_executable_node,
 )
@@ -28,7 +32,8 @@ __all__ = [
     # Node types
     "BaseExecutableNode",
     "StartNode",
-    "PersonNode",
+    "PersonJobNode",
+    "PersonBatchJobNode",
     "ConditionNode",
     "CodeJobNode",
     "ApiJobNode",
@@ -36,8 +41,11 @@ __all__ = [
     "DBNode",
     "UserResponseNode",
     "NotionNode",
-    "PersonBatchJobNode",
     "HookNode",
+    "JsonSchemaValidatorNode",
+    "SubDiagramNode",
+    "TemplateJobNode",
+    "TypescriptAstNode",
     
     # Factory
     "create_executable_node",

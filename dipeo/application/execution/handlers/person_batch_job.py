@@ -13,20 +13,19 @@ from dipeo.application.unified_service_registry import (
     CURRENT_NODE_INFO,
     PROMPT_BUILDER,
 )
-from dipeo.diagram_generated import PersonBatchJobNode
+from dipeo.diagram_generated.generated_nodes import PersonBatchJobNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.core.utils import is_conversation
-from dipeo.diagram_generated import (
+from dipeo.diagram_generated.domain_models import (
     ChatResult,
     ContentType,
     DomainDiagram,
     DomainPerson,
     Message,
-    NodeType,
     PersonID,
-    PersonJobNodeData,
-    extract_node_id_from_handle,
 )
+from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
+from dipeo.diagram_generated.handle_utils import extract_node_id_from_handle
 
 if TYPE_CHECKING:
     from dipeo.core.dynamic.conversation_manager import ConversationManager

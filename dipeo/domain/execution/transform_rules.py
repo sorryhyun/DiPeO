@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from dipeo.core.static.generated_nodes import (
+from dipeo.diagram_generated.generated_nodes import (
     ConditionNode,
     ExecutableNode,
     PersonJobNode,

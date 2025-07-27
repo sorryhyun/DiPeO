@@ -157,15 +157,15 @@ class ExecutionRuntime(StateTransitionMixin):
         from dipeo.application.execution.resolution import (
             TypedInputResolutionService,
         )
-        from dipeo.diagram_generated import PersonJobNode
+        from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
         # Create typed input resolution service
         typed_input_service = TypedInputResolutionService()
         
         # Get memory config if applicable
         node_memory_config = None
-        if isinstance(node, PersonJobNode) and node.memory_config:
-            node_memory_config = node.memory_config
+        if isinstance(node, PersonJobNode) and node.memory_settings:
+            node_memory_config = node.memory_settings
         
         # Collect protocol outputs
         node_outputs_dict = {}

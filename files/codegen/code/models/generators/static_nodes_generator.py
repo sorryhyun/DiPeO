@@ -34,24 +34,17 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append('@dataclass(frozen=True)')
     lines.append('class BaseExecutableNode:')
     lines.append('    """Base class for all executable node types."""')
+    lines.append('    # Required fields only - no defaults in base class')
     lines.append('    id: NodeID')
-    lines.append('    type: NodeType')
     lines.append('    position: Vec2')
-    lines.append('    label: str = ""')
-    lines.append('    flipped: bool = False')
-    lines.append('    metadata: Optional[Dict[str, Any]] = None')
     lines.append('    ')
     lines.append('    def to_dict(self) -> Dict[str, Any]:')
     lines.append('        """Convert node to dictionary representation."""')
     lines.append('        result = {')
     lines.append('            "id": self.id,')
-    lines.append('            "type": self.type.value,')
-    lines.append('            "position": {"x": self.position.x, "y": self.position.y},')
-    lines.append('            "label": self.label,')
-    lines.append('            "flipped": self.flipped')
+    lines.append('            "position": {"x": self.position.x, "y": self.position.y}')
     lines.append('        }')
-    lines.append('        if self.metadata:')
-    lines.append('            result["metadata"] = self.metadata')
+    lines.append('        # Subclasses should extend this')
     lines.append('        return result')
     lines.append('')
     lines.append('')
@@ -60,38 +53,49 @@ def generate_python_code(static_nodes_data: dict) -> str:
     for node_class in node_classes:
         lines.append('@dataclass(frozen=True)')
         lines.append(f'class {node_class["class_name"]}(BaseExecutableNode):')
-        lines.append(f'    type: NodeType = field(default=NodeType.{node_class["node_type"]}, init=False)')
         
         # When inheriting from a dataclass with default values,
         # all fields must have defaults in Python dataclasses.
-        # So we need to give all required fields a special marker default
+        # But we can work around this by putting all fields without defaults first
         
-        # Add fields
-        for field in node_class['fields']:
+        # First, add all required fields (those without defaults)
+        required_fields = [f for f in node_class['fields'] if not f.get('has_default')]
+        for field in required_fields:
+            py_type = field["py_type"]
+            field_def = f'    {field["py_name"]}: {py_type} = field()'
+            lines.append(field_def)
+        
+        # Then add the type field with its default
+        lines.append(f'    type: NodeType = field(default=NodeType.{node_class["node_type"]}, init=False)')
+        
+        # Add base optional fields
+        lines.append('    label: str = ""')
+        lines.append('    flipped: bool = False')
+        lines.append('    metadata: Optional[Dict[str, Any]] = None')
+        
+        # Finally, add node-specific optional fields (those with defaults)
+        optional_fields = [f for f in node_class['fields'] if f.get('has_default')]
+        for field in optional_fields:
             py_type = field["py_type"]
             
             # Check if field has None as default and needs Optional wrapping
-            if field.get('has_default') and field["default_value"] == "None":
+            if field["default_value"] == "None":
                 # Check if the type already has Optional
                 if not py_type.startswith('Optional['):
                     py_type = f'Optional[{py_type}]'
             
-            field_def = f'    {field["py_name"]}: {py_type}'
-            
-            # All fields need defaults because base class has defaults
-            if field.get('has_default'):
-                field_def += f' = {field["default_value"]}'
-            else:
-                # For required fields, use field() with no default
-                # This preserves the required nature while satisfying dataclass rules
-                field_def += ' = field()'
-                
+            field_def = f'    {field["py_name"]}: {py_type} = {field["default_value"]}'
             lines.append(field_def)
         
         lines.append('')
         lines.append('    def to_dict(self) -> Dict[str, Any]:')
         lines.append('        """Convert node to dictionary representation."""')
         lines.append('        data = super().to_dict()')
+        lines.append('        data["type"] = self.type.value')
+        lines.append('        data["label"] = self.label')
+        lines.append('        data["flipped"] = self.flipped')
+        lines.append('        if self.metadata:')
+        lines.append('            data["metadata"] = self.metadata')
         
         # Enum fields that need .value
         enum_fields = {

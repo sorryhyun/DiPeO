@@ -16,7 +16,7 @@ HandleID = NewType('HandleID', str)
 
 NODE_TYPE_MAP: Dict[str, NodeType] = {
 {%- for key, value in node_type_map.items() %}
-    "{{ key }}": NodeType.{{ value.lower() }},
+    "{{ key }}": NodeType.{{ value }},
 {%- endfor %}
 }
 
@@ -66,8 +66,8 @@ def parse_handle_id(handle_id: HandleID) -> ParsedHandle:
         raise ValueError(f"Invalid handle ID: {handle_id}")
     node_id, label, dir_str = parts
     try:
-        direction = HandleDirection[dir_str.lower()]
-    except KeyError as exc:
+        direction = HandleDirection(dir_str.lower())
+    except ValueError as exc:
         raise ValueError(f"Unknown handle direction: {dir_str}") from exc
     return {"node_id": node_id, "handle_label": label, "direction": direction}  # type: ignore[return-value]
 

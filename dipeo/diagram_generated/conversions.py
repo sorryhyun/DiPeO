@@ -1,5 +1,5 @@
 """
-Auto-generated 2025-07-27T14:52:48.882874. Do NOT edit by hand.
+Auto-generated 2025-07-27T18:03:52.616581. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 
@@ -15,21 +15,21 @@ HandleID = NewType('HandleID', str)
 # ---------------------------------------------------------------------------
 
 NODE_TYPE_MAP: Dict[str, NodeType] = {
-    "code_job": NodeType.code_job,
-    "api_job": NodeType.api_job,
-    "person_job": NodeType.person_job,
-    "person_batch_job": NodeType.person_batch_job,
-    "condition": NodeType.condition,
-    "user_response": NodeType.user_response,
-    "start": NodeType.start,
-    "endpoint": NodeType.endpoint,
-    "db": NodeType.db,
-    "notion": NodeType.notion,
-    "hook": NodeType.hook,
-    "template_job": NodeType.template_job,
-    "json_schema_validator": NodeType.json_schema_validator,
-    "typescript_ast": NodeType.typescript_ast,
-    "sub_diagram": NodeType.sub_diagram,
+    "code_job": NodeType.CODE_JOB,
+    "api_job": NodeType.API_JOB,
+    "person_job": NodeType.PERSON_JOB,
+    "person_batch_job": NodeType.PERSON_BATCH_JOB,
+    "condition": NodeType.CONDITION,
+    "user_response": NodeType.USER_RESPONSE,
+    "start": NodeType.START,
+    "endpoint": NodeType.ENDPOINT,
+    "db": NodeType.DB,
+    "notion": NodeType.NOTION,
+    "hook": NodeType.HOOK,
+    "template_job": NodeType.TEMPLATE_JOB,
+    "json_schema_validator": NodeType.JSON_SCHEMA_VALIDATOR,
+    "typescript_ast": NodeType.TYPESCRIPT_AST,
+    "sub_diagram": NodeType.SUB_DIAGRAM,
 }
 
 NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.items()}
@@ -78,8 +78,8 @@ def parse_handle_id(handle_id: HandleID) -> ParsedHandle:
         raise ValueError(f"Invalid handle ID: {handle_id}")
     node_id, label, dir_str = parts
     try:
-        direction = HandleDirection[dir_str.lower()]
-    except KeyError as exc:
+        direction = HandleDirection(dir_str.lower())
+    except ValueError as exc:
         raise ValueError(f"Unknown handle direction: {dir_str}") from exc
     return {"node_id": node_id, "handle_label": label, "direction": direction}  # type: ignore[return-value]
 

@@ -158,7 +158,7 @@ class TypedExecutionEngine:
                 )
                 
                 # Handle PersonJobNode special logic BEFORE marking complete
-                from dipeo.core.static.generated_nodes import PersonJobNode, ConditionNode
+                from dipeo.diagram_generated.generated_nodes import PersonJobNode, ConditionNode
                 
                 if isinstance(node, PersonJobNode):
                     exec_count = execution_runtime.get_node_execution_count(node.id)

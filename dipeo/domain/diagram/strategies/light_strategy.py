@@ -18,7 +18,7 @@ from dipeo.diagram_generated import (
     parse_handle_id,
 )
 from dipeo.models import MemoryView
-from dipeo.diagram_generated import node_kind_to_domain_type
+from dipeo.diagram_generated.conversions import node_kind_to_domain_type
 
 from dipeo.domain.diagram.utils import (
     _node_id_map, 
@@ -218,7 +218,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if "_" in arrow.get("source", ""):
                 self._ensure_handle_exists(
                     arrow["source"], 
-                    HandleDirection.output, 
+                    HandleDirection.OUTPUT,
                     nodes_dict, 
                     diagram_dict["handles"],
                     arrow
@@ -228,7 +228,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if "_" in arrow.get("target", ""):
                 self._ensure_handle_exists(
                     arrow["target"],
-                    HandleDirection.input,
+                    HandleDirection.INPUT,
                     nodes_dict,
                     diagram_dict["handles"],
                     arrow
@@ -260,7 +260,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                     # If source is from condition node's condtrue/condfalse
                     if (source_node and 
                         source_node.get("type") == "condition" and 
-                        handle_label.value in ["condtrue", "condfalse"]):
+                        handle_label in ["condtrue", "condfalse"]):
                         # Find input content types
                         input_content_types = []
                         for other_arrow in arrows_dict.values():

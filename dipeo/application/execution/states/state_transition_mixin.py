@@ -205,7 +205,7 @@ class StateTransitionMixin:
     
     def _reset_downstream_nodes_if_needed(self, node_id: NodeID) -> None:
         """Reset downstream nodes if they're part of a loop."""
-        from dipeo.core.static.generated_nodes import (
+        from dipeo.diagram_generated.generated_nodes import (
             ConditionNode,
             EndpointNode,
             PersonJobNode,

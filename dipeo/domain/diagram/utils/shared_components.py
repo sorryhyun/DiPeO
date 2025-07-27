@@ -48,7 +48,7 @@ def _make_handle(
     node_id: str,
     label: str,
     direction: str,
-    dtype: str = DataType.any,
+    dtype: str = DataType.ANY,
 ) -> dict[str, Any]:
     hid = _create_handle_id(node_id, label, direction)
     return {
@@ -57,7 +57,7 @@ def _make_handle(
         'label': label,
         'direction': direction,
         'data_type': dtype,
-        'position': "left" if direction == HandleDirection.input else "right",
+        'position': "left" if direction == HandleDirection.INPUT else "right",
     }
 
 
@@ -72,95 +72,95 @@ class HandleGenerator:
         node_id: str,
         node_type: str,
     ) -> None:
-        if node_type == NodeType.start:
+        if node_type == NodeType.START:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
             )
             return
             
-        if node_type == NodeType.endpoint.value:
+        if node_type == NodeType.ENDPOINT.value:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
             )
             return
             
         # Condition nodes have one input and two outputs (true/false)
-        if node_type == NodeType.condition.value:
+        if node_type == NodeType.CONDITION.value:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.condtrue, HandleDirection.output, DataType.boolean),
+                _make_handle(node_id, HandleLabel.CONDITION_TRUE, HandleDirection.OUTPUT, DataType.BOOLEAN),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.condfalse, HandleDirection.output, DataType.boolean),
+                _make_handle(node_id, HandleLabel.CONDITION_FALSE, HandleDirection.OUTPUT, DataType.BOOLEAN),
             )
             return
             
         # Database nodes have input and output
-        if node_type == NodeType.db.value:
+        if node_type == NodeType.DB.value:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
             )
             return
 
         # person_job nodes have specific handles: first input, default input, default output
-        if node_type == NodeType.person_job.value:
+        if node_type == NodeType.PERSON_JOB.value:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.first, HandleDirection.input),
+                _make_handle(node_id, HandleLabel.FIRST, HandleDirection.INPUT),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
             )
             return
             
         # person_batch_job nodes have default input and output
-        if node_type == NodeType.person_batch_job.value:
+        if node_type == NodeType.PERSON_BATCH_JOB.value:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
             )
             return
             
         # user_response nodes have default input and output
-        if node_type == NodeType.user_response.value:
+        if node_type == NodeType.USER_RESPONSE.value:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.input),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.default, HandleDirection.output),
+                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
             )
             return
 
         _push_handle(
             diagram,
-            _make_handle(node_id, HandleLabel.default, HandleDirection.input),
+            _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
         )
         _push_handle(
             diagram,
-            _make_handle(node_id, HandleLabel.default, HandleDirection.output),
+            _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
         )
 
 
@@ -204,11 +204,11 @@ class ArrowBuilder:
     def create_simple_arrow(
         source_node: str,
         target_node: str,
-        source_label: HandleLabel = HandleLabel.default,
-        target_label: HandleLabel = HandleLabel.default,
+        source_label: HandleLabel = HandleLabel.DEFAULT,
+        target_label: HandleLabel = HandleLabel.DEFAULT,
     ) -> tuple[str, str, str]:
-        s = str(create_handle_id(NodeID(source_node), source_label, HandleDirection.output))
-        t = str(create_handle_id(NodeID(target_node), target_label, HandleDirection.input))
+        s = str(create_handle_id(NodeID(source_node), source_label, HandleDirection.OUTPUT))
+        t = str(create_handle_id(NodeID(target_node), target_label, HandleDirection.INPUT))
         return ArrowBuilder.create_arrow_id(s, t), s, t
 
 
@@ -248,7 +248,7 @@ def ensure_position(
     if not node_dict.get("position"):
         calc = position_calculator or PositionCalculator()
         vec = calc.calculate_grid_position(index)
-        node_dict["position"] = {"x": vec.x, "y": vec.y}
+        node_dict["position"] = {"x": vec.get('x'), "y": vec.get('y')}
 
 
 def extract_common_arrows(arrows: Any) -> list[dict[str, Any]]:

@@ -14,15 +14,10 @@ from dipeo.application.unified_service_registry import (
     PROMPT_BUILDER
 )
 from dipeo.core.dynamic import Person
-from dipeo.diagram_generated import PersonJobNode
+from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
-from dipeo.diagram_generated import (
-    MemorySettings,
-    Message,
-    NodeType,
-    PersonID,
-    PersonJobNodeData,
-)
+from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData, MemorySettings
+from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime

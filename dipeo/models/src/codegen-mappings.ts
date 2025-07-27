@@ -45,7 +45,6 @@ export const TS_TO_PY_TYPE: Record<string, string> = {
   'NotionOperation': 'NotionOperation',
   'HookType': 'HookType',
   'DiagramFormat': 'DiagramFormat',
-  'ForgettingMode': 'ForgettingMode',
   'ContentType': 'ContentType',
   'MemoryView': 'MemoryView'
 };
@@ -60,7 +59,6 @@ export const TYPE_TO_FIELD: Record<string, string> = {
   'HttpMethod': 'select',
   'DBBlockSubType': 'select',
   'HookType': 'select',
-  'ForgettingMode': 'select',
   'NotionOperation': 'select',
   'HookTriggerMode': 'select',
   'ContentType': 'select',
@@ -82,7 +80,6 @@ export const TYPE_TO_ZOD: Record<string, string> = {
   'HttpMethod': 'z.nativeEnum(HttpMethod)',
   'DBBlockSubType': 'z.nativeEnum(DBBlockSubType)',
   'HookType': 'z.nativeEnum(HookType)',
-  'ForgettingMode': 'z.nativeEnum(ForgettingMode)',
   'NotionOperation': 'z.nativeEnum(NotionOperation)',
   'HookTriggerMode': 'z.nativeEnum(HookTriggerMode)',
   'ContentType': 'z.nativeEnum(ContentType)',
@@ -95,7 +92,7 @@ export const TYPE_TO_ZOD: Record<string, string> = {
 export const BRANDED_TYPES = [
   'PersonID', 'NodeID', 'HandleID', 'ArrowID', 'NodeType',
   'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 
-  'HookType', 'ForgettingMode', 'NotionOperation',
+  'HookType', 'NotionOperation',
   'HookTriggerMode', 'ContentType', 'MemoryView'
 ];
 

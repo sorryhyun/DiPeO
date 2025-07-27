@@ -266,7 +266,7 @@ class ExecuteDiagramUseCase(BaseService):
         """Register person configurations from typed diagram."""
         import logging
 
-        from dipeo.core.static.generated_nodes import PersonJobNode
+        from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
         log = logging.getLogger(__name__)
 

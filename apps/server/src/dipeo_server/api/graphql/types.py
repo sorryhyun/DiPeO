@@ -19,7 +19,6 @@ from dipeo.models import (
     EventType,
     ExecutionState,
     ExecutionStatus,
-    ForgettingMode,
     HandleDirection,
     LLMService,
     NodeExecutionStatus,
@@ -97,7 +96,6 @@ HandleDirectionEnum = strawberry.enum(HandleDirection)
 DataTypeEnum = strawberry.enum(DataType)
 LLMServiceEnum = strawberry.enum(LLMService)
 APIServiceTypeEnum = strawberry.enum(APIServiceType)
-ForgettingModeEnum = strawberry.enum(ForgettingMode)
 DiagramFormatEnum = strawberry.enum(DiagramFormat)
 ExecutionStatusEnum = strawberry.enum(ExecutionStatus)
 NodeExecutionStatusEnum = strawberry.enum(NodeExecutionStatus)
@@ -504,7 +502,6 @@ __all__ = [
     "ExecutionStatusEnum",
     "FileUploadInput",
     "FileUploadResult",
-    "ForgettingModeEnum",
     "HandleDirectionEnum",
     "HandleID",
     "InteractiveResponseInput",

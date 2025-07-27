@@ -6,9 +6,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import EXECUTION_CONTEXT
-from dipeo.diagram_generated import UserResponseNode
+from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
-from dipeo.diagram_generated import NodeType, UserResponseNodeData
+from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime

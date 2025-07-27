@@ -99,3 +99,76 @@ export enum HookTriggerMode {
   MANUAL = 'manual',
   HOOK = 'hook'
 }
+
+// Execution-related enums (from execution.ts)
+export enum ExecutionStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  PAUSED = 'PAUSED',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  ABORTED = 'ABORTED',
+  SKIPPED = 'SKIPPED'
+}
+
+export enum NodeExecutionStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  PAUSED = 'PAUSED',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  ABORTED = 'ABORTED',
+  SKIPPED = 'SKIPPED',
+  MAXITER_REACHED = 'MAXITER_REACHED'
+}
+
+export enum EventType {
+  EXECUTION_STATUS_CHANGED = 'EXECUTION_STATUS_CHANGED',
+  NODE_STATUS_CHANGED = 'NODE_STATUS_CHANGED',
+  NODE_PROGRESS = 'NODE_PROGRESS',
+  INTERACTIVE_PROMPT = 'INTERACTIVE_PROMPT',
+  INTERACTIVE_RESPONSE = 'INTERACTIVE_RESPONSE',
+  EXECUTION_ERROR = 'EXECUTION_ERROR',
+  EXECUTION_UPDATE = 'EXECUTION_UPDATE'
+}
+
+// Integration service enums (from integration.ts)
+export enum LLMService {
+  OPENAI = 'openai',
+  ANTHROPIC = 'anthropic',
+  GOOGLE = 'google',
+  BEDROCK = 'bedrock',
+  VERTEX = 'vertex',
+  DEEPSEEK = 'deepseek'
+}
+
+export enum APIServiceType {
+  OPENAI = 'openai',
+  ANTHROPIC = 'anthropic',
+  GOOGLE = 'google',
+  GEMINI = 'gemini',
+  BEDROCK = 'bedrock',
+  VERTEX = 'vertex',
+  DEEPSEEK = 'deepseek',
+  NOTION = 'notion',
+  GOOGLE_SEARCH = 'google_search',
+  SLACK = 'slack',
+  GITHUB = 'github',
+  JIRA = 'jira'
+}
+
+export enum NotionOperation {
+  CREATE_PAGE = 'create_page',
+  UPDATE_PAGE = 'update_page',
+  READ_PAGE = 'read_page',
+  DELETE_PAGE = 'delete_page',
+  CREATE_DATABASE = 'create_database',
+  QUERY_DATABASE = 'query_database',
+  UPDATE_DATABASE = 'update_database'
+}
+
+export enum ToolType {
+  WEB_SEARCH = 'web_search',
+  WEB_SEARCH_PREVIEW = 'web_search_preview',
+  IMAGE_GENERATION = 'image_generation'
+}

@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-27T14:52:58.257458
+# Generated at: 2025-07-27T18:02:39.257460
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -34,35 +34,11 @@ scalar JSONScalar
 # Enums
 # ============================================================================
 
-enum ExecutionStatus {
-  PENDING
-  RUNNING
-  PAUSED
-  COMPLETED
-  FAILED
-  ABORTED
-  SKIPPED
-}
-
-enum NodeExecutionStatus {
-  PENDING
-  RUNNING
-  PAUSED
-  COMPLETED
-  FAILED
-  ABORTED
-  SKIPPED
-  MAXITER_REACHED
-}
-
-enum EventType {
-  EXECUTION_STATUS_CHANGED
-  NODE_STATUS_CHANGED
-  NODE_PROGRESS
-  INTERACTIVE_PROMPT
-  INTERACTIVE_RESPONSE
-  EXECUTION_ERROR
-  EXECUTION_UPDATE
+enum LLMService {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  AZURE
 }
 
 enum APIServiceType {
@@ -71,13 +47,6 @@ enum APIServiceType {
   GOOGLE
   AZURE
   CUSTOM
-}
-
-enum LLMService {
-  OPENAI
-  ANTHROPIC
-  GOOGLE
-  AZURE
 }
 
 # ============================================================================

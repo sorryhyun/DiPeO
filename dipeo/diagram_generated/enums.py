@@ -7,163 +7,153 @@ from enum import Enum
 
 
 class NodeType(str, Enum):
-    """Types of nodes available in DiPeO diagrams"""
+    """Shared enum definitions for diagram-related types
+These enums are used by both frontend and backend via code generation"""
     
-    start = "start"
+    START = "start"
     
-    person_job = "person_job"
+    PERSON_JOB = "person_job"
     
-    condition = "condition"
+    CONDITION = "condition"
     
-    code_job = "code_job"
+    CODE_JOB = "code_job"
     
-    api_job = "api_job"
+    API_JOB = "api_job"
     
-    endpoint = "endpoint"
+    ENDPOINT = "endpoint"
     
-    db = "db"
+    DB = "db"
     
-    user_response = "user_response"
+    USER_RESPONSE = "user_response"
     
-    notion = "notion"
+    NOTION = "notion"
     
-    person_batch_job = "person_batch_job"
+    PERSON_BATCH_JOB = "person_batch_job"
     
-    hook = "hook"
+    HOOK = "hook"
     
-    template_job = "template_job"
+    TEMPLATE_JOB = "template_job"
     
-    json_schema_validator = "json_schema_validator"
+    JSON_SCHEMA_VALIDATOR = "json_schema_validator"
     
-    typescript_ast = "typescript_ast"
+    TYPESCRIPT_AST = "typescript_ast"
     
-    sub_diagram = "sub_diagram"
+    SUB_DIAGRAM = "sub_diagram"
     
 
 
 class HandleDirection(str, Enum):
-    """Direction of node handles"""
+    """HandleDirection enum values"""
     
-    input = "input"
+    INPUT = "input"
     
-    output = "output"
+    OUTPUT = "output"
     
 
 
 class HandleLabel(str, Enum):
-    """Labels for node handles"""
+    """HandleLabel enum values"""
     
-    default = "default"
+    DEFAULT = "default"
     
-    first = "first"
+    FIRST = "first"
     
-    condtrue = "condtrue"
+    CONDITION_TRUE = "condtrue"
     
-    condfalse = "condfalse"
+    CONDITION_FALSE = "condfalse"
     
-    success = "success"
+    SUCCESS = "success"
     
-    error = "error"
+    ERROR = "error"
     
-    results = "results"
+    RESULTS = "results"
     
 
 
 class DataType(str, Enum):
-    """Data types for node inputs/outputs"""
+    """DataType enum values"""
     
-    any = "any"
+    ANY = "any"
     
-    string = "string"
+    STRING = "string"
     
-    number = "number"
+    NUMBER = "number"
     
-    boolean = "boolean"
+    BOOLEAN = "boolean"
     
-    object = "object"
+    OBJECT = "object"
     
-    array = "array"
-    
-
-
-class ForgettingMode(str, Enum):
-    """Memory forgetting modes"""
-    
-    no_forget = "no_forget"
-    
-    on_every_turn = "on_every_turn"
-    
-    upon_request = "upon_request"
+    ARRAY = "array"
     
 
 
 class MemoryView(str, Enum):
-    """Different views of conversation memory"""
+    """MemoryView enum values"""
     
-    all_involved = "all_involved"
+    ALL_INVOLVED = "all_involved"
     
-    sent_by_me = "sent_by_me"
+    SENT_BY_ME = "sent_by_me"
     
-    sent_to_me = "sent_to_me"
+    SENT_TO_ME = "sent_to_me"
     
-    system_and_me = "system_and_me"
+    SYSTEM_AND_ME = "system_and_me"
     
-    conversation_pairs = "conversation_pairs"
+    CONVERSATION_PAIRS = "conversation_pairs"
     
-    all_messages = "all_messages"
+    ALL_MESSAGES = "all_messages"
     
 
 
 class DiagramFormat(str, Enum):
-    """Diagram file formats"""
+    """DiagramFormat enum values"""
     
-    native = "native"
+    NATIVE = "native"
     
-    light = "light"
+    LIGHT = "light"
     
-    readable = "readable"
+    READABLE = "readable"
     
 
 
 class DBBlockSubType(str, Enum):
-    """Sub-types for DB blocks"""
+    """DBBlockSubType enum values"""
     
-    fixed_prompt = "fixed_prompt"
+    FIXED_PROMPT = "fixed_prompt"
     
-    file = "file"
+    FILE = "file"
     
-    code = "code"
+    CODE = "code"
     
-    api_tool = "api_tool"
+    API_TOOL = "api_tool"
     
 
 
 class ContentType(str, Enum):
-    """Types of content"""
+    """ContentType enum values"""
     
-    raw_text = "raw_text"
+    RAW_TEXT = "raw_text"
     
-    conversation_state = "conversation_state"
+    CONVERSATION_STATE = "conversation_state"
     
-    object = "object"
+    OBJECT = "object"
     
 
 
 class SupportedLanguage(str, Enum):
-    """Supported programming languages"""
+    """SupportedLanguage enum values"""
     
-    python = "python"
+    PYTHON = "python"
     
-    typescript = "typescript"
+    TYPESCRIPT = "typescript"
     
-    bash = "bash"
+    BASH = "bash"
     
-    shell = "shell"
+    SHELL = "shell"
     
 
 
 class HttpMethod(str, Enum):
-    """HTTP request methods"""
+    """HttpMethod enum values"""
     
     GET = "GET"
     
@@ -178,29 +168,29 @@ class HttpMethod(str, Enum):
 
 
 class HookType(str, Enum):
-    """Types of hooks"""
+    """HookType enum values"""
     
-    shell = "shell"
+    SHELL = "shell"
     
-    webhook = "webhook"
+    WEBHOOK = "webhook"
     
-    python = "python"
+    PYTHON = "python"
     
-    file = "file"
+    FILE = "file"
     
 
 
 class HookTriggerMode(str, Enum):
-    """Hook trigger modes"""
+    """HookTriggerMode enum values"""
     
-    manual = "manual"
+    MANUAL = "manual"
     
-    hook = "hook"
+    HOOK = "hook"
     
 
 
 class ExecutionStatus(str, Enum):
-    """Execution status values"""
+    """ExecutionStatus enum values"""
     
     PENDING = "PENDING"
     
@@ -219,7 +209,7 @@ class ExecutionStatus(str, Enum):
 
 
 class NodeExecutionStatus(str, Enum):
-    """Node execution status values"""
+    """NodeExecutionStatus enum values"""
     
     PENDING = "PENDING"
     
@@ -240,7 +230,7 @@ class NodeExecutionStatus(str, Enum):
 
 
 class EventType(str, Enum):
-    """Execution event types"""
+    """EventType enum values"""
     
     EXECUTION_STATUS_CHANGED = "EXECUTION_STATUS_CHANGED"
     
@@ -259,78 +249,78 @@ class EventType(str, Enum):
 
 
 class LLMService(str, Enum):
-    """LLM service providers"""
+    """LLMService enum values"""
     
-    openai = "openai"
+    OPENAI = "openai"
     
-    anthropic = "anthropic"
+    ANTHROPIC = "anthropic"
     
-    google = "google"
+    GOOGLE = "google"
     
-    bedrock = "bedrock"
+    BEDROCK = "bedrock"
     
-    vertex = "vertex"
+    VERTEX = "vertex"
     
-    deepseek = "deepseek"
+    DEEPSEEK = "deepseek"
     
 
 
 class APIServiceType(str, Enum):
-    """All API service types including LLMs"""
+    """APIServiceType enum values"""
     
-    openai = "openai"
+    OPENAI = "openai"
     
-    anthropic = "anthropic"
+    ANTHROPIC = "anthropic"
     
-    google = "google"
+    GOOGLE = "google"
     
-    gemini = "gemini"
+    GEMINI = "gemini"
     
-    bedrock = "bedrock"
+    BEDROCK = "bedrock"
     
-    vertex = "vertex"
+    VERTEX = "vertex"
     
-    deepseek = "deepseek"
+    DEEPSEEK = "deepseek"
     
-    notion = "notion"
+    NOTION = "notion"
     
-    google_search = "google_search"
+    GOOGLE_SEARCH = "google_search"
     
-    slack = "slack"
+    SLACK = "slack"
     
-    github = "github"
+    GITHUB = "github"
     
-    jira = "jira"
+    JIRA = "jira"
     
 
 
 class NotionOperation(str, Enum):
-    """Notion API operations"""
+    """NotionOperation enum values"""
     
-    create_page = "create_page"
+    CREATE_PAGE = "create_page"
     
-    update_page = "update_page"
+    UPDATE_PAGE = "update_page"
     
-    read_page = "read_page"
+    READ_PAGE = "read_page"
     
-    delete_page = "delete_page"
+    DELETE_PAGE = "delete_page"
     
-    create_database = "create_database"
+    CREATE_DATABASE = "create_database"
     
-    query_database = "query_database"
+    QUERY_DATABASE = "query_database"
     
-    update_database = "update_database"
+    UPDATE_DATABASE = "update_database"
     
 
 
 class ToolType(str, Enum):
-    """Tool types for LLM agents"""
+    """ToolType enum values"""
     
-    web_search = "web_search"
+    WEB_SEARCH = "web_search"
     
-    web_search_preview = "web_search_preview"
+    WEB_SEARCH_PREVIEW = "web_search_preview"
     
-    image_generation = "image_generation"
+    IMAGE_GENERATION = "image_generation"
     
 
 
@@ -345,8 +335,6 @@ __all__ = [
     "HandleLabel",
     
     "DataType",
-    
-    "ForgettingMode",
     
     "MemoryView",
     

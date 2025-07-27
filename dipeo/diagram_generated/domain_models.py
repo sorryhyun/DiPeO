@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Import all enums from the separate enums module
 from .enums import (
-    NodeType, HandleDirection, HandleLabel, DataType, ForgettingMode,
+    NodeType, HandleDirection, HandleLabel, DataType,
     MemoryView, DiagramFormat, DBBlockSubType, ContentType, SupportedLanguage,
     HttpMethod, HookType, HookTriggerMode, ExecutionStatus, NodeExecutionStatus,
     EventType, LLMService, APIServiceType, NotionOperation, ToolType
