@@ -210,7 +210,9 @@ class ExecuteDiagramUseCase(BaseService):
         # Copy persons data from domain diagram to executable diagram metadata
         if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
             persons_dict = {}
-            for person in domain_diagram.persons:
+            # Handle both dict and list formats
+            persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
+            for person in persons_list:
                 person_id = str(person.id)
                 persons_dict[person_id] = {
                     'name': person.label,
@@ -264,7 +266,7 @@ class ExecuteDiagramUseCase(BaseService):
         """Register person configurations from typed diagram."""
         import logging
 
-        from dipeo.core.static.generated_nodes import PersonJobNode
+        from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
         log = logging.getLogger(__name__)
 
@@ -280,9 +282,9 @@ class ExecuteDiagramUseCase(BaseService):
             # Extract person configs from typed nodes
             person_configs = {}
             for node in typed_diagram.nodes:
-                if isinstance(node, PersonJobNode) and node.person_id:
+                if isinstance(node, PersonJobNode) and node.person:
                     # Use the actual person_id from the node, not the node ID
-                    person_id = str(node.person_id)
+                    person_id = str(node.person)
                     # For PersonJobNode, we need to get person config from metadata or defaults
                     # The node itself only has person_id reference
                     config = {

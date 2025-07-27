@@ -13,9 +13,10 @@ from dipeo.application.unified_service_registry import (
     NODE_EXEC_COUNTS,
 )
 from dipeo.core.static.executable_diagram import ExecutableDiagram
-from dipeo.core.static.generated_nodes import ConditionNode
+from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.core.execution.node_output import ConditionOutput, NodeOutputProtocol
-from dipeo.models import ConditionNodeData, NodeExecutionStatus, NodeType
+from dipeo.diagram_generated.models.condition_model import ConditionNodeData
+from dipeo.diagram_generated.enums import NodeExecutionStatus
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -38,7 +39,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.condition.value
+        return NodeType.CONDITION.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -245,7 +246,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Find all person_job nodes
         person_job_nodes = [
             node for node in diagram.nodes 
-            if node.type == NodeType.person_job.value
+            if node.type == NodeType.PERSON_JOB.value
         ]
         
         if not person_job_nodes:

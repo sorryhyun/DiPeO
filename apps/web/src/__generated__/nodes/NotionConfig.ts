@@ -9,23 +9,14 @@ export const notionConfig: UnifiedNodeConfig = {
   nodeType: 'notion',
   category: 'integration',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: notionFields,
 };

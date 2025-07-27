@@ -8,9 +8,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.static.generated_nodes import TemplateJobNode
+from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.models import TemplateJobNodeData, NodeType
+from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.template_job.value
+        return NodeType.TEMPLATE_JOB.value
     
     @property
     def schema(self) -> type[BaseModel]:
@@ -47,7 +47,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def validate(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[str]:
         """Validate the template job configuration."""
         node = request.node
-        
+
         # Must have either template_path or template_content
         if not node.template_path and not node.template_content:
             return "Either template_path or template_content must be provided"
@@ -58,8 +58,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Execute the template rendering."""
         node = request.node
         inputs = request.inputs
-        
-        
+
         # Store execution metadata
         request.add_metadata("engine", node.engine or "internal")
         if node.template_path:

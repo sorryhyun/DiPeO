@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from dipeo.models import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
-from dipeo.models.handle_utils import parse_handle_id_safe
+from dipeo.diagram_generated import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
+from dipeo.diagram_generated.handle_utils import parse_handle_id_safe
 
 
 @dataclass
@@ -74,13 +74,13 @@ class HandleResolver:
             return None
         
         # Validate handle directions
-        if source_parsed.direction != HandleDirection.output:
+        if source_parsed.direction != HandleDirection.OUTPUT:
             self._errors.append(
                 f"Arrow {arrow.id}: Source must be an output handle, got {source_parsed.direction}"
             )
             return None
         
-        if target_parsed.direction != HandleDirection.input:
+        if target_parsed.direction != HandleDirection.INPUT:
             self._errors.append(
                 f"Arrow {arrow.id}: Target must be an input handle, got {target_parsed.direction}"
             )

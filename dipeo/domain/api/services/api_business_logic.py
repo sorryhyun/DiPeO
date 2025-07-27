@@ -7,7 +7,7 @@ from typing import Any
 from dipeo.application.utils.template import TemplateProcessor
 from dipeo.core import ServiceError, ValidationError
 from dipeo.domain.api.value_objects import RetryPolicy, RetryStrategy
-from dipeo.models.models import HttpMethod
+from dipeo.diagram_generated.enums import HttpMethod
 
 log = logging.getLogger(__name__)
 

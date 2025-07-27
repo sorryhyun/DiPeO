@@ -3,7 +3,7 @@ Simplified execution order calculation that handles cycles gracefully.
 """
 
 from dipeo.core.static import ExecutableEdge
-from dipeo.models import DomainNode, NodeID, NodeType
+from dipeo.diagram_generated import DomainNode, NodeID, NodeType
 
 
 class SimpleOrderCalculator:
@@ -53,8 +53,8 @@ class SimpleOrderCalculator:
             
             # Sort by priority
             remaining_sorted = sorted(remaining, key=lambda nid: (
-                0 if node_map[nid].type == NodeType.start else
-                1 if node_map[nid].type == NodeType.person_job else
+                0 if node_map[nid].type == NodeType.START else
+                1 if node_map[nid].type == NodeType.PERSON_JOB else
                 2
             ))
             

@@ -56,7 +56,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/web/src/features/diagram-editor/config/nodeRegistryGenerated.ts
+      source_details: apps/web/src/__generated__/nodeRegistry.ts
 
   - label: End
     type: endpoint

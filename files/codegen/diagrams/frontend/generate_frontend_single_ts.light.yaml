@@ -1,0 +1,277 @@
+# Frontend Single Node Generation from TypeScript
+# Generates TypeScript model, node config, and field config from TypeScript specifications
+
+version: light
+
+nodes:
+  # Start node
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+
+  # Parse input to handle both direct variables and nested inputs
+  - label: Parse Input
+    type: code_job
+    position: {x: 50, y: 150}
+    props:
+      language: python
+      code: |
+        # Handle both direct input (from CLI) and nested input (from sub_diagram)
+        if "node_spec_path" in default:
+            # Direct case - pass through
+            result = {"node_spec_path": default["node_spec_path"]}
+        elif "default" in default and isinstance(default["default"], dict) and "node_spec_path" in default["default"]:
+            # Nested case from sub_diagram
+            result = {"node_spec_path": default["default"]["node_spec_path"]}
+        else:
+            raise ValueError(f"node_spec_path not found in input: {default}")
+
+  # Convert node_spec_path to filename
+  - label: Prepare Filename
+    type: code_job
+    position: {x: 200, y: 200}
+    props:
+      language: python
+      code: |
+        # Convert underscore to hyphen for filename
+        # node_spec_path comes as a dict from Parse Input
+        if isinstance(node_spec_path, dict):
+            node_type = node_spec_path.get('node_spec_path', 'unknown')
+        else:
+            node_type = node_spec_path
+            
+        node_type_filename = node_type.replace('_', '-')
+        result = {
+            'node_type': node_type,
+            'node_type_filename': node_type_filename
+        }
+  
+  # Load TypeScript specification file
+  - label: Load TypeScript Spec
+    type: db
+    position: {x: 350, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/models/src/node-specs/{data.node_type_filename}.spec.ts
+      
+  # Parse TypeScript to extract the specification
+  - label: Parse TypeScript AST
+    type: typescript_ast
+    position: {x: 500, y: 200}
+    props:
+      extractPatterns: ["const", "export"]
+      includeJSDoc: true
+      parseMode: module
+      
+  # Extract specification from AST
+  - label: Extract Specification
+    type: code_job
+    position: {x: 700, y: 200}
+    props:
+      language: python
+      code: |
+        # Import the parser helper
+        from files.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast, transform_ast_to_spec
+        
+        # The ast_data comes from typescript_ast node
+        
+        # Extract the actual node type string if it comes as a dict
+        if isinstance(node_type, dict):
+            actual_node_type = node_type.get('node_type', 'unknown')
+        else:
+            actual_node_type = node_type
+        
+        # Convert node type to spec name (e.g., "person_job" -> "personJobSpec")
+        node_type_clean = actual_node_type.replace('-', '_')  # Normalize to underscores
+        spec_name = f"{node_type_clean.replace('_', ' ').title().replace(' ', '')}Spec"
+        spec_name = spec_name[0].lower() + spec_name[1:]  # camelCase
+        
+        
+        # Extract the specification from AST
+        spec_data = extract_spec_from_ast(ast_data, spec_name)
+        
+        if not spec_data:
+            available_constants = [const.get('name', '') for const in ast_data.get('constants', [])]
+            raise ValueError(
+                f"Could not find specification '{spec_name}' for node type '{actual_node_type}'. "
+                f"Available constants: {available_constants}"
+            )
+        
+        result = spec_data
+      
+  # Load frontend templates
+  - label: Load TypeScript Template
+    type: db
+    position: {x: 100, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/frontend/typescript_model.j2
+  
+  - label: Load Node Config Template
+    type: db
+    position: {x: 100, y: 400}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/frontend/node_config.j2
+
+  - label: Load Field Config Template
+    type: db
+    position: {x: 100, y: 500}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/codegen/templates/frontend/field_config.j2
+
+  # Generate frontend code
+  - label: Generate TypeScript Model
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/frontend/generators/typescript_model.py
+      functionName: main
+  
+  - label: Generate Node Config
+    type: code_job
+    position: {x: 600, y: 400}
+    props:
+      language: python
+      filePath: files/codegen/code/frontend/generators/node_config.py
+      functionName: main
+
+  - label: Generate Field Config
+    type: code_job
+    position: {x: 600, y: 500}
+    props:
+      language: python
+      filePath: files/codegen/code/frontend/generators/field_config.py
+      functionName: main
+
+  # Extract node type from spec for file paths
+  - label: Extract Node Type
+    type: code_job
+    position: {x: 900, y: 200}
+    props:
+      language: python
+      code: |
+        # Extract node type from spec for use in file paths
+        from files.codegen.code.shared.filters import pascal_case
+        
+        node_type = spec_data.get('nodeType', 'unknown')
+        node_name = pascal_case(node_type)
+        
+        
+        result = {
+            'node_type': node_type,
+            'node_name': node_name
+        }
+
+  # Write frontend outputs
+  - label: Write TypeScript Model
+    type: db
+    position: {x: 900, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/web/src/__generated__/models/{node_naming.node_name}Node.ts
+  
+  - label: Write Node Config
+    type: db
+    position: {x: 900, y: 400}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/web/src/__generated__/nodes/{node_naming.node_name}Config.ts
+
+  - label: Write Field Config
+    type: db
+    position: {x: 900, y: 500}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/web/src/__generated__/fields/{node_naming.node_name}Fields.ts
+
+connections:
+  # Parse input first
+  - from: Start
+    to: Parse Input
+    
+  # Prepare filename for TypeScript spec
+  - from: Parse Input
+    to: Prepare Filename
+    label: node_spec_path
+    
+  # Load the TypeScript spec file
+  - from: Prepare Filename
+    to: Load TypeScript Spec
+    label: data
+    
+  # Parse TypeScript AST
+  - from: Load TypeScript Spec
+    to: Parse TypeScript AST
+    label: source
+    
+  # Extract specification from AST
+  - from: Parse TypeScript AST
+    to: Extract Specification
+    label: ast_data
+    
+  # Pass node_type to Extract Specification
+  - from: Prepare Filename
+    to: Extract Specification
+    label: node_type
+    
+  # Pass spec to extract node type
+  - from: Extract Specification
+    to: Extract Node Type
+    label: spec_data
+    
+  # Pass node naming to all writers (for file paths)
+  # Also pass to the DB nodes themselves for interpolation
+  - from: Extract Node Type
+    to: Write TypeScript Model
+    label: node_naming
+  - from: Extract Node Type
+    to: Write Node Config
+    label: node_naming
+  - from: Extract Node Type
+    to: Write Field Config
+    label: node_naming
+
+  # Connect spec and templates to TypeScript generator
+  - from: Extract Specification
+    to: Generate TypeScript Model
+    label: spec_data
+  - from: Load TypeScript Template
+    to: Generate TypeScript Model
+    label: template_content
+  
+  # Connect spec and templates to Node Config generator  
+  - from: Extract Specification
+    to: Generate Node Config
+    label: spec_data
+  - from: Load Node Config Template
+    to: Generate Node Config
+    label: template_content
+
+  # Connect spec and templates to Field Config generator
+  - from: Extract Specification
+    to: Generate Field Config
+    label: spec_data
+  - from: Load Field Config Template
+    to: Generate Field Config
+    label: template_content
+  
+  # Connect generators to writers (passing generated code)
+  - from: Generate TypeScript Model
+    to: Write TypeScript Model
+    label: generated_code
+  - from: Generate Node Config
+    to: Write Node Config
+    label: generated_code
+  - from: Generate Field Config
+    to: Write Field Config
+    label: generated_code

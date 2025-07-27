@@ -1,23 +1,22 @@
 /**
- * Single-source conversion utilities for DiPeO domain models.
- * These utilities are code-generated to Python to ensure consistency.
+ * Conversion utilities for DiPeO domain models.
+ * Includes domain conversions and GraphQL/store format conversions.
  */
 
 import {
   NodeType,
   HandleDirection,
   HandleLabel,
-  DataType,
   NodeID,
   ArrowID,
   HandleID,
   PersonID,
-  ApiKeyID,
   DomainNode,
   DomainArrow,
   DomainHandle,
   DomainPerson,
-  DomainApiKey,
+  DomainDiagram,
+  PersonLLMConfig,
 } from './diagram';
 
 // ============================================================================
@@ -76,15 +75,6 @@ export function domainTypeToNodeKind(type: NodeType): string {
 // ============================================================================
 // Handle ID Management
 // ============================================================================
-
-/**
- * Normalize a node ID to ensure consistent casing
- */
-export function normalizeNodeId(nodeId: string): NodeID {
-  // For now, we keep the original casing for node IDs
-  // This allows both uppercase and lowercase to work
-  return nodeId as NodeID;
-}
 
 /**
  * Create a handle ID from node ID, handle label, and direction
@@ -155,38 +145,13 @@ export function areHandlesCompatible(
     return false;
   }
   
-  // Check data type compatibility
-  return isDataTypeCompatible(sourceHandle.data_type, targetHandle.data_type);
-}
-
-/**
- * Check if source data type is compatible with target data type
- */
-export function isDataTypeCompatible(
-  sourceType: DataType,
-  targetType: DataType
-): boolean {
   // Same type is always compatible
-  if (sourceType === targetType) {
+  if (sourceHandle.data_type === targetHandle.data_type) {
     return true;
   }
   
   // 'any' type is compatible with everything
-  if (sourceType === DataType.ANY || targetType === DataType.ANY) {
-    return true;
-  }
-  
-  // Type-specific compatibility rules
-  const compatibilityRules: Record<DataType, DataType[]> = {
-    [DataType.STRING]: [DataType.ANY],
-    [DataType.NUMBER]: [DataType.ANY],
-    [DataType.BOOLEAN]: [DataType.ANY],
-    [DataType.OBJECT]: [DataType.ANY],
-    [DataType.ARRAY]: [DataType.ANY],
-    [DataType.ANY]: Object.values(DataType),
-  };
-  
-  return compatibilityRules[sourceType]?.includes(targetType) ?? false;
+  return sourceHandle.data_type === 'any' || targetHandle.data_type === 'any';
 }
 
 // ============================================================================
@@ -196,25 +161,22 @@ export function isDataTypeCompatible(
 /**
  * Convert array-based diagram to map-based structure
  */
-export function diagramArraysToMaps(diagram: {
+export function diagramArraysToMaps(diagram: Partial<{
   nodes: DomainNode[];
   arrows: DomainArrow[];
   handles: DomainHandle[];
   persons: DomainPerson[];
-  apiKeys?: DomainApiKey[];
-}): {
+}>): {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
   handles: Map<HandleID, DomainHandle>;
   persons: Map<PersonID, DomainPerson>;
-  apiKeys: Map<ApiKeyID, DomainApiKey>;
 } {
   return {
-    nodes: new Map(diagram.nodes.map(n => [n.id, n])),
-    arrows: new Map(diagram.arrows.map(a => [a.id, a])),
-    handles: new Map(diagram.handles.map(h => [h.id, h])),
-    persons: new Map(diagram.persons.map(p => [p.id, p])),
-    apiKeys: new Map((diagram.apiKeys || []).map(k => [k.id, k])),
+    nodes: new Map(diagram.nodes?.map(n => [n.id, n]) ?? []),
+    arrows: new Map(diagram.arrows?.map(a => [a.id, a]) ?? []),
+    handles: new Map(diagram.handles?.map(h => [h.id, h]) ?? []),
+    persons: new Map(diagram.persons?.map(p => [p.id, p]) ?? []),
   };
 }
 
@@ -226,184 +188,67 @@ export function diagramMapsToArrays(diagram: {
   arrows: Map<ArrowID, DomainArrow>;
   handles: Map<HandleID, DomainHandle>;
   persons: Map<PersonID, DomainPerson>;
-  apiKeys?: Map<ApiKeyID, DomainApiKey>;
 }): {
   nodes: DomainNode[];
   arrows: DomainArrow[];
   handles: DomainHandle[];
   persons: DomainPerson[];
-  apiKeys: DomainApiKey[];
 } {
   return {
     nodes: Array.from(diagram.nodes.values()),
     arrows: Array.from(diagram.arrows.values()),
     handles: Array.from(diagram.handles.values()),
     persons: Array.from(diagram.persons.values()),
-    apiKeys: diagram.apiKeys ? Array.from(diagram.apiKeys.values()) : [],
   };
 }
 
 // ============================================================================
-// Position Calculations
+// GraphQL Type Conversions
 // ============================================================================
 
 /**
- * Calculate handle position offset based on direction
+ * Convert GraphQL DomainPersonType to domain DomainPerson
+ * Handles the api_key_id optional/required mismatch
  */
-export function calculateHandleOffset(
-  direction: HandleDirection,
-  index: number,
-  total: number,
-  nodeWidth: number = 200,
-  nodeHeight: number = 100
-): { x: number; y: number } {
-  const spacing = 30;
-  const startOffset = (total - 1) * spacing / 2;
-  
-  switch (direction) {
-    case HandleDirection.INPUT:
-      return {
-        x: nodeWidth / 2,
-        y: -startOffset + (index * spacing),
-      };
-    
-    case HandleDirection.OUTPUT:
-      return {
-        x: nodeWidth / 2,
-        y: nodeHeight + startOffset - (index * spacing),
-      };
-    
-    default:
-      return { x: nodeWidth / 2, y: nodeHeight / 2 };
-  }
-}
-
-/**
- * Calculate absolute handle position
- */
-export function calculateHandlePosition(
-  nodePosition: { x: number; y: number },
-  handleOffset: { x: number; y: number }
-): { x: number; y: number } {
-  return {
-    x: nodePosition.x + handleOffset.x,
-    y: nodePosition.y + handleOffset.y,
-  };
-}
-
-// ============================================================================
-// Validation Utilities
-// ============================================================================
-
-/**
- * Validate node data based on node type
- */
-export function validateNodeData(
-  type: NodeType,
-  data: Record<string, any>
-): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  
-  // Type-specific validation rules
-  switch (type) {
-    case NodeType.PERSON_JOB:
-    case NodeType.PERSON_BATCH_JOB:
-      if (!data.personId) {
-        errors.push('Person ID is required for person job nodes');
-      }
-      if (!data.userPrompt && !data.systemPrompt) {
-        errors.push('Either user prompt or system prompt is required');
-      }
-      break;
-    
-    case NodeType.CONDITION:
-      if (!data.personId) {
-        errors.push('Person ID is required for condition nodes');
-      }
-      if (!data.prompt) {
-        errors.push('Prompt is required for condition nodes');
-      }
-      break;
-    
-    case NodeType.DB:
-      if (!data.operation) {
-        errors.push('Database operation is required');
-      }
-      if (!['query', 'insert', 'update', 'delete'].includes(data.operation)) {
-        errors.push('Invalid database operation');
-      }
-      break;
-    
-    case NodeType.ENDPOINT:
-      if (!data.method) {
-        errors.push('HTTP method is required');
-      }
-      if (!data.url) {
-        errors.push('URL is required');
-      }
-      break;
-    
-    case NodeType.CODE_JOB:
-      if (!data.language) {
-        errors.push('Language is required for code job nodes');
-      }
-      if (!data.code) {
-        errors.push('Code is required for code job nodes');
-      }
-      break;
-    
-    case NodeType.API_JOB:
-      if (!data.url) {
-        errors.push('URL is required for API job nodes');
-      }
-      if (!data.method) {
-        errors.push('HTTP method is required for API job nodes');
-      }
-      break;
-  }
+export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
+  // Handle missing or null api_key_id by providing a default value
+  const apiKeyId = graphqlPerson.llm_config?.api_key_id || '';
   
   return {
-    valid: errors.length === 0,
-    errors,
+    id: graphqlPerson.id as PersonID,
+    label: graphqlPerson.label,
+    llm_config: {
+      service: graphqlPerson.llm_config.service,
+      model: graphqlPerson.llm_config.model,
+      api_key_id: apiKeyId,
+      system_prompt: graphqlPerson.llm_config.system_prompt || null,
+    } as PersonLLMConfig,
+    type: 'person' as const,
   };
 }
 
 /**
- * Validate arrow connection
+ * Convert GraphQL diagram data to domain format, handling type mismatches
  */
-export function validateArrowConnection(
-  sourceNode: DomainNode,
-  targetNode: DomainNode,
-  sourceHandle: DomainHandle,
-  targetHandle: DomainHandle
-): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
+export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagram> {
+  const result: Partial<DomainDiagram> = {};
   
-  // Check handle ownership
-  if (parseHandleId(sourceHandle.id).node_id !== sourceNode.id) {
-    errors.push('Source handle does not belong to source node');
+  if (diagram.nodes) {
+    result.nodes = diagram.nodes;
   }
   
-  if (parseHandleId(targetHandle.id).node_id !== targetNode.id) {
-    errors.push('Target handle does not belong to target node');
+  if (diagram.handles) {
+    result.handles = diagram.handles;
   }
   
-  // Check handle compatibility
-  if (!areHandlesCompatible(sourceHandle, targetHandle)) {
-    errors.push('Handles are not compatible for connection');
+  if (diagram.arrows) {
+    result.arrows = diagram.arrows;
   }
   
-  // Node-specific connection rules
-  if (sourceNode.type === NodeType.START && sourceNode.data?.connections?.length > 0) {
-    errors.push('Start node can only have one outgoing connection');
+  if (diagram.persons) {
+    result.persons = diagram.persons.map(convertGraphQLPersonToDomain);
   }
   
-  if (targetNode.type === NodeType.START) {
-    errors.push('Cannot connect to start node');
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return result;
 }
+

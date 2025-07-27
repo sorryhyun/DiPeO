@@ -9,23 +9,14 @@ export const personBatchJobConfig: UnifiedNodeConfig = {
   nodeType: 'person_batch_job',
   category: 'ai',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: personBatchJobFields,
 };

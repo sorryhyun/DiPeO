@@ -14,15 +14,10 @@ from dipeo.application.unified_service_registry import (
     PROMPT_BUILDER
 )
 from dipeo.core.dynamic import Person
-from dipeo.core.static.generated_nodes import PersonJobNode
+from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
-from dipeo.models import (
-    MemorySettings,
-    Message,
-    NodeType,
-    PersonID,
-    PersonJobNodeData,
-)
+from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData, MemorySettings
+from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -45,7 +40,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.person_job.value
+        return NodeType.PERSON_JOB.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -67,7 +62,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
     def validate(self, request: ExecutionRequest[PersonJobNode]) -> Optional[str]:
         """Validate the execution request."""
-        if not request.node.person_id:
+        if not request.node.person:
             return "No person specified"
         
         # Check max iteration
@@ -87,7 +82,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         inputs = request.inputs or {}
         
         # Direct typed access to person_id
-        person_id = node.person_id
+        person_id = node.person
 
         # Get services from services dict
         llm_service = request.services.get(LLM_SERVICE.name)
@@ -109,7 +104,13 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Note: We apply memory settings even on first execution because some nodes
             # (like judge panels) need to see full conversation history from the start
             if node.memory_settings:
-                person.apply_memory_settings(node.memory_settings)
+                # Convert dict to MemorySettings object if needed
+                if isinstance(node.memory_settings, dict):
+                    from dipeo.diagram_generated import MemorySettings as MemorySettingsModel
+                    memory_settings = MemorySettingsModel(**node.memory_settings)
+                    person.apply_memory_settings(memory_settings)
+                else:
+                    person.apply_memory_settings(node.memory_settings)
             
             # Use inputs directly
             transformed_inputs = inputs
@@ -218,7 +219,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         
         if not person_config:
             # Fallback: create minimal config with default LLM
-            from dipeo.models import ApiKeyID, LLMService, PersonLLMConfig
+            from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig
             person_config = PersonLLMConfig(
                 service=LLMService.openai,
                 model="gpt-4.1-nano",

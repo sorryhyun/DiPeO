@@ -8,9 +8,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.static.generated_nodes import JsonSchemaValidatorNode
+from dipeo.diagram_generated.generated_nodes import JsonSchemaValidatorNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.models import JsonSchemaValidatorNodeData, NodeType
+from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchemaValidatorNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -29,7 +29,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.json_schema_validator.value
+        return NodeType.JSON_SCHEMA_VALIDATOR.value
     
     @property
     def schema(self) -> type[BaseModel]:

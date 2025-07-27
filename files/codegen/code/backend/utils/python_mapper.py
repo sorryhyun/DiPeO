@@ -2,14 +2,24 @@
 from typing import Dict, Any, List, Optional
 
 
-def map_to_python_type(field_type: str) -> str:
-    """Map generic field types to Python type annotations."""
-    type_map = {
+def map_to_python_type(field_type: str, ts_to_py_type: Optional[Dict[str, str]] = None) -> str:
+    """Map generic field types to Python type annotations.
+    
+    Args:
+        field_type: TypeScript type to convert
+        ts_to_py_type: Optional mapping from extracted codegen-mappings.ts
+    """
+    # Use centralized mappings if provided
+    if ts_to_py_type and field_type in ts_to_py_type:
+        return ts_to_py_type[field_type]
+    
+    # Fallback to basic type mappings for primitive types
+    basic_type_map = {
         'string': 'str',
         'text': 'str',
         'integer': 'int',
         'int': 'int',
-        'number': 'float',
+        'number': 'int',  # Default to int, not float
         'float': 'float',
         'double': 'float',
         'boolean': 'bool',
@@ -32,7 +42,10 @@ def map_to_python_type(field_type: str) -> str:
     # Handle array types like string[], number[]
     if field_type.endswith('[]'):
         base_type = field_type[:-2]
-        mapped_base = map_to_python_type(base_type)
+        # Check centralized mappings first for array types
+        if ts_to_py_type and field_type in ts_to_py_type:
+            return ts_to_py_type[field_type]
+        mapped_base = map_to_python_type(base_type, ts_to_py_type)
         return f"List[{mapped_base}]"
     
     # Handle generic types like List[str], Dict[str, int]
@@ -46,20 +59,20 @@ def map_to_python_type(field_type: str) -> str:
         inner_type = field_type.split('<')[1].rstrip('>')
         
         if base_type in ['array', 'list']:
-            return f"List[{map_to_python_type(inner_type)}]"
+            return f"List[{map_to_python_type(inner_type, ts_to_py_type)}]"
         elif base_type in ['dict', 'map', 'record']:
             if ',' in inner_type:
                 key_type, value_type = inner_type.split(',', 1)
-                return f"Dict[{map_to_python_type(key_type.strip())}, {map_to_python_type(value_type.strip())}]"
+                return f"Dict[{map_to_python_type(key_type.strip(), ts_to_py_type)}, {map_to_python_type(value_type.strip(), ts_to_py_type)}]"
             else:
-                return f"Dict[str, {map_to_python_type(inner_type)}]"
+                return f"Dict[str, {map_to_python_type(inner_type, ts_to_py_type)}]"
         elif base_type == 'optional':
-            return f"Optional[{map_to_python_type(inner_type)}]"
+            return f"Optional[{map_to_python_type(inner_type, ts_to_py_type)}]"
     
-    return type_map.get(field_type.lower(), field_type)
+    return basic_type_map.get(field_type.lower(), field_type)
 
 
-def get_python_default(field: Dict[str, Any]) -> str:
+def get_python_default(field: Dict[str, Any], ts_to_py_type: Optional[Dict[str, str]] = None) -> str:
     """Get Python default value for a field."""
     if 'default' in field:
         default = field['default']
@@ -84,7 +97,7 @@ def get_python_default(field: Dict[str, Any]) -> str:
     
     # Return type-based defaults for required fields with no default
     field_type = field.get('type', 'string')
-    py_type = map_to_python_type(field_type)
+    py_type = map_to_python_type(field_type, ts_to_py_type)
     
     if py_type == 'str':
         return '""'
@@ -100,12 +113,12 @@ def get_python_default(field: Dict[str, Any]) -> str:
         return 'None'
 
 
-def get_pydantic_field(field: Dict[str, Any]) -> str:
+def get_pydantic_field(field: Dict[str, Any], ts_to_py_type: Optional[Dict[str, str]] = None) -> str:
     """Generate Pydantic Field definition for a field."""
     parts = []
     
     # Default value
-    default = get_python_default(field)
+    default = get_python_default(field, ts_to_py_type)
     if default != 'None' or not field.get('required', False):
         parts.append(f"default={default}")
     
@@ -150,7 +163,7 @@ def get_pydantic_field(field: Dict[str, Any]) -> str:
         return "Field()"
 
 
-def calculate_python_imports(spec_data: Dict[str, Any]) -> List[str]:
+def calculate_python_imports(spec_data: Dict[str, Any], ts_to_py_type: Optional[Dict[str, str]] = None) -> List[str]:
     """Calculate Python imports needed for the model."""
     imports = set()
     
@@ -162,7 +175,7 @@ def calculate_python_imports(spec_data: Dict[str, Any]) -> List[str]:
     field_types = set()
     for field in spec_data.get('fields', []):
         field_type = field.get('type', 'string')
-        py_type = map_to_python_type(field_type)
+        py_type = map_to_python_type(field_type, ts_to_py_type)
         field_types.add(py_type)
     
     # Add imports based on types

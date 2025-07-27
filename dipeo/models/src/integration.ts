@@ -4,54 +4,11 @@
  * Separated from core diagram models for better modularity
  */
 
-// LLM Service Providers
-export enum LLMService {
-  OPENAI = 'openai',
-  ANTHROPIC = 'anthropic',
-  GOOGLE = 'google',
-  BEDROCK = 'bedrock',
-  VERTEX = 'vertex',
-  DEEPSEEK = 'deepseek'
-}
-
-// All API Service Types (including non-LLM services)
-export enum APIServiceType {
-  // LLM Services
-  OPENAI = 'openai',
-  ANTHROPIC = 'anthropic',
-  GOOGLE = 'google',
-  GEMINI = 'gemini',  // Google Gemini specifically
-  BEDROCK = 'bedrock',
-  VERTEX = 'vertex',
-  DEEPSEEK = 'deepseek',
-  
-  // Other Services
-  NOTION = 'notion',
-  GOOGLE_SEARCH = 'google_search',
-  SLACK = 'slack',
-  GITHUB = 'github',
-  JIRA = 'jira'
-}
-
-// Notion API Operations
-export enum NotionOperation {
-  CREATE_PAGE = 'create_page',
-  UPDATE_PAGE = 'update_page',
-  READ_PAGE = 'read_page',
-  DELETE_PAGE = 'delete_page',
-  CREATE_DATABASE = 'create_database',
-  QUERY_DATABASE = 'query_database',
-  UPDATE_DATABASE = 'update_database'
-}
-
+import { LLMService, APIServiceType, NotionOperation, ToolType } from './enums.js';
 import { TokenUsage } from './execution.js';
 
-// Tool Types
-export enum ToolType {
-  WEB_SEARCH = 'web_search',
-  WEB_SEARCH_PREVIEW = 'web_search_preview',
-  IMAGE_GENERATION = 'image_generation',
-}
+// Re-export imported enums for backward compatibility
+export { LLMService, APIServiceType, NotionOperation, ToolType };
 
 export interface ToolConfig {
   type: ToolType;

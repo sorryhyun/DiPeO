@@ -9,23 +9,14 @@ export const personJobConfig: UnifiedNodeConfig = {
   nodeType: 'person_job',
   category: 'ai',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: personJobFields,
 };

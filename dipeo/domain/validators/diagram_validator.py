@@ -57,8 +57,8 @@ class DiagramValidator(BaseValidator):
         node_id_set = set(node_ids)
         
         # Validate start and endpoint nodes
-        start_nodes = [n for n in diagram.nodes if n.type == NodeType.start]
-        endpoint_nodes = [n for n in diagram.nodes if n.type == NodeType.endpoint]
+        start_nodes = [n for n in diagram.nodes if n.type == NodeType.START]
+        endpoint_nodes = [n for n in diagram.nodes if n.type == NodeType.ENDPOINT]
         
         if not start_nodes:
             result.add_error(ValidationError("Diagram must have at least one start node"))
@@ -189,13 +189,13 @@ class DiagramValidator(BaseValidator):
                 outgoing.append(arrow)
         
         # Validate based on node type
-        if node.type == NodeType.start and incoming:
+        if node.type == NodeType.START and incoming:
             result.add_error(ValidationError(f"Start node '{node.id}' should not have incoming connections"))
         
-        if node.type == NodeType.endpoint and outgoing:
+        if node.type == NodeType.ENDPOINT and outgoing:
             result.add_error(ValidationError(f"Endpoint node '{node.id}' should not have outgoing connections"))
         
-        if node.type == NodeType.condition:
+        if node.type == NodeType.CONDITION:
             # Condition nodes should have true/false branches
             handles = [parse_handle_id(arrow.source)[1] for arrow in outgoing]
             handle_values = [h.value for h in handles if h]
@@ -219,7 +219,7 @@ class DiagramValidator(BaseValidator):
                 graph[source_id].append(target_id)
         
         # Find all nodes reachable from start nodes
-        start_nodes = [n.id for n in diagram.nodes if n.type == NodeType.start]
+        start_nodes = [n.id for n in diagram.nodes if n.type == NodeType.START]
         reachable = set()
         
         def dfs(node_id: str):

@@ -12,7 +12,7 @@ class TemplateJobNodeData(BaseModel):
     template_content: Optional[str] = Field(description="Template Content configuration")
     output_path: Optional[str] = Field(description="Output Path configuration")
     variables: Optional[Dict[str, Any]] = Field(description="Variables configuration")
-    engine: Optional[Literal["internal", "jinja2", "handlebars"]] = Field(description="Engine configuration")
+    engine: Optional[str] = Field(description="Engine configuration")
 
     class Config:
         extra = "forbid"

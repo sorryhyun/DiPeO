@@ -1,6 +1,7 @@
 """ExecutableDiagram static object representing a resolved diagram ready for execution."""
 
-from dipeo.models import NodeID, NodeType, Vec2
+from dipeo.diagram_generated.domain_models import NodeID, Vec2
+from dipeo.diagram_generated.enums import NodeType
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Protocol
 
@@ -97,11 +98,11 @@ class ExecutableDiagram:
     
     def _build_execution_hints(self) -> None:
         # Find start nodes
-        self._start_nodes = [node.id for node in self.nodes if node.type == NodeType.start]
+        self._start_nodes = [node.id for node in self.nodes if node.type == NodeType.START]
         
         # Find person nodes and their person IDs
         for node in self.nodes:
-            if hasattr(node, 'type') and node.type == NodeType.person_job:
+            if hasattr(node, 'type') and node.type == NodeType.PERSON_JOB:
                 # Get person_id from node data if available
                 if hasattr(node, 'data') and isinstance(node.data, dict):
                     person_id = node.data.get('person_id') or node.data.get('personId')
@@ -140,7 +141,7 @@ class ExecutableDiagram:
         return self._incoming_edges.get(node_id, [])
     
     def get_start_nodes(self) -> list[ExecutableNode]:
-        return self.get_nodes_by_type(NodeType.start)
+        return self.get_nodes_by_type(NodeType.START)
     
     
     def get_next_nodes(self, node_id: NodeID) -> list[ExecutableNode]:

@@ -9,25 +9,15 @@ export const hookConfig: UnifiedNodeConfig = {
   nodeType: 'hook',
   category: 'control',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: hookFields,
 };

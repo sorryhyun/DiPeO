@@ -45,6 +45,19 @@ export interface UnifiedFieldDefinition<T = any> {
   
   // Nested fields for composite types
   fields?: UnifiedFieldDefinition<T>[];
+  nestedFields?: UnifiedFieldDefinition<T>[];
+  
+  // UI configuration object (for nested fields)
+  uiConfig?: {
+    inputType?: string;
+    options?: Array<{ value: string; label: string }>;
+    min?: number;
+    max?: number;
+    placeholder?: string;
+    rows?: number;
+    column?: 1 | 2;
+    collapsible?: boolean;
+  };
 }
 
 export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<string, unknown>> {

@@ -3,7 +3,7 @@ import { GetDiagramDocument } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { toast } from 'sonner';
 import { diagramId } from '@/core/types';
-import { diagramToStoreMaps, convertGraphQLDiagramToDomain } from '@/lib/graphql/types';
+import { diagramArraysToMaps, convertGraphQLDiagramToDomain } from '@/lib/graphql/types';
 import { rebuildHandleIndex } from '@/core/store/helpers/handleIndexHelper';
 import { createEntityQuery } from '@/lib/graphql/hooks';
 import { DiagramFormat } from '@dipeo/domain-models';
@@ -142,8 +142,13 @@ export function useDiagramLoader() {
           const domainDiagram = convertGraphQLDiagramToDomain(diagramWithCounts);
           
           // Convert arrays to Maps for the store
-          const { nodes, handles, persons } = diagramToStoreMaps(domainDiagram);
-          let { arrows } = diagramToStoreMaps(domainDiagram);
+          const { nodes, handles, persons, arrows: initialArrows } = diagramArraysToMaps({
+            nodes: domainDiagram.nodes || [],
+            arrows: domainDiagram.arrows || [],
+            handles: domainDiagram.handles || [],
+            persons: domainDiagram.persons || []
+          });
+          let arrows = initialArrows;
           
           // Deduplicate arrows based on source/target
           const arrowMap = new Map<string, typeof arrows extends Map<any, infer V> ? V : never>();

@@ -47,6 +47,20 @@ export function findHandleByLabel(
 }
 
 /**
+ * Groups handles by node ID for optimized lookups
+ * Alternative implementation using forEach pattern
+ */
+export function groupHandlesByNode(handles: DomainHandle[]): Map<NodeID, DomainHandle[]> {
+  const grouped: Record<string, DomainHandle[]> = {};
+  handles.forEach(handle => {
+    const nodeId = handle.node_id;
+    if (!grouped[nodeId]) grouped[nodeId] = [];
+    grouped[nodeId].push(handle);
+  });
+  return new Map(Object.entries(grouped)) as Map<NodeID, DomainHandle[]>;
+}
+
+/**
  * Performance benchmark helper
  */
 export function benchmarkHandleLookup(

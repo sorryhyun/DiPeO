@@ -12,7 +12,7 @@ import threading
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from dipeo.core.execution.execution_tracker import ExecutionTracker
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ExecutionState,
     NodeExecutionStatus,
     NodeID,
@@ -78,8 +78,7 @@ class ExecutionRuntime(StateTransitionMixin):
         for node in self.diagram.nodes:
             if node.id not in self._node_states:
                 self._node_states[node.id] = NodeState(
-                    status=NodeExecutionStatus.PENDING,
-                    node_id=node.id
+                    status=NodeExecutionStatus.PENDING
                 )
     
     # ========== Simplified Node Readiness ==========
@@ -158,15 +157,15 @@ class ExecutionRuntime(StateTransitionMixin):
         from dipeo.application.execution.resolution import (
             TypedInputResolutionService,
         )
-        from dipeo.core.static.generated_nodes import PersonJobNode
+        from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
         # Create typed input resolution service
         typed_input_service = TypedInputResolutionService()
         
         # Get memory config if applicable
         node_memory_config = None
-        if isinstance(node, PersonJobNode) and node.memory_config:
-            node_memory_config = node.memory_config
+        if isinstance(node, PersonJobNode) and node.memory_settings:
+            node_memory_config = node.memory_settings
         
         # Collect protocol outputs
         node_outputs_dict = {}

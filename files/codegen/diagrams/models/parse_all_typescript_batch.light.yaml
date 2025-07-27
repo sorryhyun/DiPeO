@@ -1,0 +1,74 @@
+# Parse All TypeScript Model Files (Batch Mode)
+# Parses all TypeScript source files in a single batch operation
+# This avoids subprocess overhead by using the new batch parsing functionality
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting batch TypeScript AST parsing for all model files
+
+  # Load all TypeScript model files in parallel
+  - label: Gather File Paths
+    type: code_job
+    position: {x: 200, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/gather_typescript_files.py
+      functionName: main
+
+  # Parse all TypeScript files in a single batch operation
+  - label: Batch Parse TypeScript
+    type: code_job
+    position: {x: 400, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/batch_parse_typescript.py
+      functionName: main
+
+  # Save all AST data to .temp directory for sub-diagrams to read
+  - label: Save AST Cache
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/save_ast_cache.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 800, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  # Linear flow for batch processing
+  - from: Start
+    to: Gather File Paths
+  
+  - from: Gather File Paths
+    to: Batch Parse TypeScript
+    label: sources
+  
+  - from: Gather File Paths
+    to: Save AST Cache
+    label: file_mapping
+  
+  - from: Gather File Paths
+    to: Save AST Cache
+    label: sources
+  
+  - from: Batch Parse TypeScript
+    to: Save AST Cache
+    label: parsed_results
+  
+  - from: Batch Parse TypeScript
+    to: Save AST Cache
+    label: metadata
+  
+  - from: Save AST Cache
+    to: End

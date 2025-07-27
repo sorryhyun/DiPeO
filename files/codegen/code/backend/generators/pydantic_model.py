@@ -1,4 +1,5 @@
 """Pure generator for Pydantic models."""
+import traceback
 from typing import Dict, Any
 from files.codegen.code.shared.template_env import create_template_env
 from files.codegen.code.backend.utils.python_mapper import (

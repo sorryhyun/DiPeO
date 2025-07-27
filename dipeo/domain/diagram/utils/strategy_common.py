@@ -5,15 +5,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     HandleDirection,
     HandleLabel,
     NodeID,
     DataType,
     ContentType,
-    create_handle_id,
-    MemoryView,
 )
+from dipeo.diagram_generated.handle_utils import create_handle_id
+from dipeo.models import MemoryView
 
 log = logging.getLogger(__name__)
 
@@ -52,22 +52,22 @@ class NodeFieldMapper:
                 profile_str = props.get("memory_profile")
                 profile_to_settings = {
                     "FULL": {
-                        "view": MemoryView.all_messages,
+                        "view": MemoryView.ALL_INVOLVED,
                         "max_messages": None,
                         "preserve_system": True
                     },
                     "FOCUSED": {
-                        "view": MemoryView.conversation_pairs,
+                        "view": MemoryView.CONVERSATION_PAIRS,
                         "max_messages": 20,
                         "preserve_system": True
                     },
                     "MINIMAL": {
-                        "view": MemoryView.system_and_me,
+                        "view": MemoryView.SYSTEM_AND_ME,
                         "max_messages": 5,
                         "preserve_system": True
                     },
                     "GOLDFISH": {
-                        "view": MemoryView.conversation_pairs,
+                        "view": MemoryView.CONVERSATION_PAIRS,
                         "max_messages": 2,
                         "preserve_system": False
                     }
@@ -173,22 +173,22 @@ class HandleParser:
         try:
             src_handle_enum = HandleLabel(source_handle)
         except ValueError:
-            src_handle_enum = HandleLabel.default
+            src_handle_enum = HandleLabel.DEFAULT
             
         try:
             dst_handle_enum = HandleLabel(target_handle)
         except ValueError:
-            dst_handle_enum = HandleLabel.default
+            dst_handle_enum = HandleLabel.DEFAULT
             
         source_handle_id = create_handle_id(
             NodeID(source_node_id), 
             src_handle_enum, 
-            HandleDirection.output
+            HandleDirection.OUTPUT
         )
         target_handle_id = create_handle_id(
             NodeID(target_node_id), 
             dst_handle_enum, 
-            HandleDirection.input
+            HandleDirection.INPUT
         )
         
         return source_handle_id, target_handle_id
@@ -252,21 +252,28 @@ class HandleParser:
             node_id
         )
         
-        expected_handle_id = create_handle_id(actual_node_id, handle_label, direction)
+        # Ensure handle_label is a HandleLabel enum
+        if not isinstance(handle_label, HandleLabel):
+            try:
+                handle_label = HandleLabel(str(handle_label))
+            except ValueError:
+                handle_label = HandleLabel.DEFAULT
+        expected_handle_id = create_handle_id(NodeID(actual_node_id), handle_label, direction)
         
         if expected_handle_id not in handles_dict:
             # Create the handle
+            log.debug(f"Creating handle: handle_ref={handle_ref}, handle_name={handle_name}, handle_label={handle_label}, type={type(handle_label)}")
             handles_dict[expected_handle_id] = {
                 "id": expected_handle_id,
                 "node_id": actual_node_id,
-                "label": str(handle_label),
+                "label": handle_label.value,
                 "direction": direction.value,
-                "data_type": DataType.any.value,
-                "position": "right" if direction == HandleDirection.output else "left",
+                "data_type": DataType.ANY.value,
+                "position": "right" if direction == HandleDirection.OUTPUT else "left",
             }
         
         # Update arrow to use the correct handle ID
-        if direction == HandleDirection.output:
+        if direction == HandleDirection.OUTPUT:
             arrow["source"] = expected_handle_id
         else:
             arrow["target"] = expected_handle_id
@@ -373,7 +380,7 @@ class ArrowDataProcessor:
         
         # Set default content type if not specified
         if "content_type" not in arrow_dict and arrow_dict.get("content_type") is None:
-            arrow_dict["content_type"] = ContentType.raw_text.value
+            arrow_dict["content_type"] = ContentType.RAW_TEXT.value
         
         return arrow_dict
     

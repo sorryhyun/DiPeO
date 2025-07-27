@@ -9,31 +9,18 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
   nodeType: 'typescript_ast',
   category: 'utility',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
       { id: 'output', label: '', position: 'right' },
-
       { id: 'output', label: '', position: 'right' },
-
       { id: 'output', label: '', position: 'right' },
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: typescriptAstFields,
 };

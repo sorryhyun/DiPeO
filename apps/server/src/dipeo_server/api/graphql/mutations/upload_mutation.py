@@ -87,7 +87,7 @@ def validate_diagram(
 
 def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
     """Converts domain diagram to backend dict format."""
-    json_str = converter_registry.serialize(diagram, DiagramFormat.native.value)
+    json_str = converter_registry.serialize(diagram, DiagramFormat.NATIVE.value)
     data = json.loads(json_str)
 
     if isinstance(data.get("nodes"), list):
@@ -105,7 +105,7 @@ def domain_to_backend_format(diagram: DomainDiagram) -> dict[str, Any]:
 def backend_to_domain_format(data: dict[str, Any]) -> DomainDiagram:
     """Converts backend dict to domain diagram."""
     json_str = json.dumps(data, indent=2)
-    return converter_registry.deserialize(json_str, DiagramFormat.native.value)
+    return converter_registry.deserialize(json_str, DiagramFormat.NATIVE.value)
 
 
 @strawberry.type
@@ -244,7 +244,7 @@ class UploadMutations:
     async def convert_diagram(
         self,
         content: JSONScalar,
-        target_format: DiagramFormat = DiagramFormat.native,
+        target_format: DiagramFormat = DiagramFormat.NATIVE,
         include_metadata: bool = True,
     ) -> DiagramConvertResult:
         try:

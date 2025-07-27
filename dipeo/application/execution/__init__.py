@@ -6,7 +6,7 @@ from .handler_factory import (
     register_handler,
 )
 from .handler_base import TypedNodeHandler
-from dipeo.models import ExecutionOptions
+from dipeo.diagram_generated import ExecutionOptions
 from dipeo.core.dynamic.execution_context import ExecutionContext
 from .execution_runtime import ExecutionRuntime
 from .engine import TypedExecutionEngine

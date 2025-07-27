@@ -18,6 +18,9 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
+
+# Temporary files and cache
+.temp/
 apps/web/schema.graphql
 dipeo/models/schema.graphql
 dipeo/domain/models.py
@@ -28,6 +31,10 @@ docs/deprecated
 plan.md
 *.tsbuildinfo
 .ruff_cache/
+
+# Staging directories
+dipeo/diagram_generated_staged/
+.backups/
 **/.ruff_cache/
 .logs
 apps/server/.import_linter_cache

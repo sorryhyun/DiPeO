@@ -10,7 +10,6 @@ export {
   HandleDirection,
   HandleLabel,
   DataType,
-  ForgettingMode,
   DiagramFormat,
   DBBlockSubType,
   ContentType,
@@ -49,9 +48,8 @@ export type {
   DomainApiKey,
   DiagramMetadata,
   DomainDiagram,
-  StoreDiagram,
   // Memory and config types
-  MemoryConfig,
+  MemorySettings,
   PersonLLMConfig,
   // Tool config
   ToolConfig
@@ -91,9 +89,7 @@ export type {
 
 // Conversation Types
 export type {
-  PersonMemoryMessage,
-  PersonMemoryState,
-  PersonMemoryConfig
+  PersonMemoryMessage
 } from '@dipeo/domain-models';
 
 // Utility Functions
@@ -101,13 +97,11 @@ export {
   // Handle utilities
   createHandleId,
   parseHandleId,
-  getNodeHandles,
-  getHandleById,
   areHandlesCompatible,
   // Diagram utilities
   createEmptyDiagram,
-  diagramToStoreMaps,
-  storeMapsToArrays,
+  diagramArraysToMaps,
+  diagramMapsToArrays,
   // Type conversions
   convertGraphQLDiagramToDomain,
   convertGraphQLPersonToDomain,
@@ -115,7 +109,6 @@ export {
   domainTypeToNodeKind,
   // Type guards
   isDomainNode,
-  isDomainDiagram
 } from '@dipeo/domain-models';
 
 // UI-Specific Type Augmentation

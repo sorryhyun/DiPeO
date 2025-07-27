@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from typing import Any, Optional, Protocol
 
-from dipeo.models import NodeID, NodeState
+from dipeo.diagram_generated import NodeID, NodeState
 from dipeo.core.execution.node_output import NodeOutputProtocol
 
 

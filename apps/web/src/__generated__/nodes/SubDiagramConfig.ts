@@ -9,23 +9,14 @@ export const subDiagramConfig: UnifiedNodeConfig = {
   nodeType: 'sub_diagram',
   category: 'control',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: subDiagramFields,
 };

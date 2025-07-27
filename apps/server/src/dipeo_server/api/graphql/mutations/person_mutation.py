@@ -180,7 +180,7 @@ class PersonMutations:
                     person_data.get("service", existing_service).lower()
                 )
             except (ValueError, AttributeError):
-                service = LLMService.openai
+                service = LLMService.OPENAI
 
             # Get the current API key ID - check all possible field names
             current_api_key_id = (

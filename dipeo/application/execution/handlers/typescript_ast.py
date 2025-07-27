@@ -5,10 +5,10 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.static.generated_nodes import TypescriptAstNode
+from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.core.ports.ast_parser_port import ASTParserPort
-from dipeo.models import TypescriptAstNodeData, NodeType
+from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -33,7 +33,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.typescript_ast.value
+        return NodeType.TYPESCRIPT_AST.value
     
     @property
     def schema(self) -> type[BaseModel]:
@@ -80,8 +80,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         try:
             # Get source code from node config or inputs
             # Also check in 'default' key as DiPeO may pass data there
-            print(f"[TypeScript AST] Received inputs keys: {list(inputs.keys())}")
-            
+
             source = node.source
             if not source:
                 source = inputs.get('source', '')
@@ -89,8 +88,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 source = inputs['default'].get('source', '')
             
             # Debug: print what we found
-            print(f"[TypeScript AST] Source length: {len(source) if source else 0}")
-            
             if not source:
                 return ErrorOutput(
                     value="No TypeScript source code provided",
@@ -107,7 +104,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 )
             
             # Parse the TypeScript code using the injected parser
-            print(f"[TypeScript AST] About to call parser with source length: {len(source)}")
             try:
                 result = await self._parser.parse(
                     source=source,
@@ -121,30 +117,22 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 print(f"[TypeScript AST] Parser error: {str(parser_error)}")
                 raise
             
-            print(f"[TypeScript AST] Parser returned successfully")
-            
+
             # Extract AST data from the result
             ast_data = result.get('ast', {})
             metadata = result.get('metadata', {})
-            
-            # Debug logging
-            print(f"[TypeScript AST] Parsed result keys: {list(result.keys())}")
-            print(f"[TypeScript AST] AST data keys: {list(ast_data.keys())}")
-            print(f"[TypeScript AST] Found {len(ast_data.get('interfaces', []))} interfaces")
-            print(f"[TypeScript AST] Found {len(ast_data.get('types', []))} types")
-            print(f"[TypeScript AST] Found {len(ast_data.get('enums', []))} enums")
-            
+
+
             output_data = {
                 'ast': metadata.get('astSummary', {}),
                 'interfaces': ast_data.get('interfaces', []),
                 'types': ast_data.get('types', []),
                 'enums': ast_data.get('enums', []),
                 'classes': ast_data.get('classes', []),
-                'functions': ast_data.get('functions', [])
+                'functions': ast_data.get('functions', []),
+                'constants': ast_data.get('constants', [])
             }
-            
-            print(f"[TypeScript AST] Returning output with keys: {list(output_data.keys())}")
-            
+
             # Return successful result with all extracted data
             return DataOutput(
                 value=output_data,
@@ -155,6 +143,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     'enums_count': len(ast_data.get('enums', [])),
                     'classes_count': len(ast_data.get('classes', [])),
                     'functions_count': len(ast_data.get('functions', [])),
+                    'constants_count': len(ast_data.get('constants', [])),
                     'success': True
                 }
             )
@@ -175,7 +164,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Log execution details if in debug mode
         if request.metadata.get("debug"):
             success = output.metadata.get("success", False)
-            print(f"[TypescriptAstNode] TypeScript parsing - Success: {success}")
             
             if success and isinstance(output, DataOutput):
                 stats = []

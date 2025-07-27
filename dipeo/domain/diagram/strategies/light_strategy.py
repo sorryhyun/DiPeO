@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DomainDiagram,
     DomainNode,
     DomainArrow,
@@ -16,9 +16,9 @@ from dipeo.models import (
     DataType,
     create_handle_id,
     parse_handle_id,
-    MemoryView,
 )
-from dipeo.models.conversions import node_kind_to_domain_type
+from dipeo.models import MemoryView
+from dipeo.diagram_generated.conversions import node_kind_to_domain_type
 
 from dipeo.domain.diagram.utils import (
     _node_id_map, 
@@ -203,10 +203,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 try:
                     node_type = node_kind_to_domain_type(node_type_str)
                 except ValueError:
-                    node_type = NodeType.code_job
+                    node_type = NodeType.CODE_JOB
                 
                 handle_generator.generate_for_node(
-                    diagram_dict, node_id, node_type
+                    diagram_dict, node_id, node_type.value
                 )
     
     def _create_arrow_handles(self, diagram_dict: dict[str, Any]):
@@ -218,7 +218,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if "_" in arrow.get("source", ""):
                 self._ensure_handle_exists(
                     arrow["source"], 
-                    HandleDirection.output, 
+                    HandleDirection.OUTPUT,
                     nodes_dict, 
                     diagram_dict["handles"],
                     arrow
@@ -228,7 +228,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             if "_" in arrow.get("target", ""):
                 self._ensure_handle_exists(
                     arrow["target"],
-                    HandleDirection.input,
+                    HandleDirection.INPUT,
                     nodes_dict,
                     diagram_dict["handles"],
                     arrow
@@ -260,7 +260,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                     # If source is from condition node's condtrue/condfalse
                     if (source_node and 
                         source_node.get("type") == "condition" and 
-                        handle_label.value in ["condtrue", "condfalse"]):
+                        handle_label in ["condtrue", "condfalse"]):
                         # Find input content types
                         input_content_types = []
                         for other_arrow in arrows_dict.values():

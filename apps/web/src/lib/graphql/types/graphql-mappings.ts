@@ -21,23 +21,19 @@ export type {
 // TODO: Update consumers to import from '@/core/types/domain' directly
 export {
   // Types
-  type StoreDiagram,
   type NodeID,
   type HandleID,
   // Conversion functions
-  diagramToStoreMaps,
-  storeMapsToArrays,
+  diagramArraysToMaps,
+  diagramMapsToArrays,
   convertGraphQLDiagramToDomain,
   convertGraphQLPersonToDomain,
   nodeKindToDomainType as nodeKindToGraphQLType,
   domainTypeToNodeKind as graphQLTypeToNodeKind,
   // Type guards
   isDomainNode,
-  isDomainDiagram,
   // Utility functions
   createEmptyDiagram,
-  getNodeHandles,
-  getHandleById,
   parseHandleId,
   areHandlesCompatible
 } from '@/core/types/domain';

@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
 
 
-from dipeo.models.models import DBBlockSubType
+from dipeo.diagram_generated.enums import DBBlockSubType
 
 
 class DbNodeData(BaseModel):

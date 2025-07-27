@@ -6,9 +6,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.static.generated_nodes import EndpointNode
+from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
-from dipeo.models import EndpointNodeData, NodeType
+from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -28,7 +28,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.endpoint.value
+        return NodeType.ENDPOINT.value
 
     @property
     def schema(self) -> type[BaseModel]:

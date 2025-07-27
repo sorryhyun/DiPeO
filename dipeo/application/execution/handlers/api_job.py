@@ -8,9 +8,9 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.unified_service_registry import API_SERVICE
-from dipeo.core.static.generated_nodes import ApiJobNode
+from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.models import ApiJobNodeData, HttpMethod, NodeType
+from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -29,7 +29,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.api_job.value
+        return NodeType.API_JOB.value
 
     @property
     def schema(self) -> type[BaseModel]:

@@ -1,0 +1,204 @@
+# Generate All Domain Models
+# Master diagram that orchestrates all domain model generation
+# Replaces: make codegen-models
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting complete domain model generation pipeline
+
+  # Parse all TypeScript files once
+  - label: Parse All TypeScript
+    type: sub_diagram
+    position: {x: 200, y: 300}
+    props:
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+      passInputData: false
+
+  # Generate Python models
+  - label: Generate Python Models
+    type: sub_diagram
+    position: {x: 400, y: 100}
+    props:
+      diagram_name: codegen/diagrams/models/generate_python_models
+      diagram_format: light
+      passInputData: false
+
+  # Generate enums
+  - label: Generate Enums
+    type: sub_diagram
+    position: {x: 400, y: 150}
+    props:
+      diagram_name: codegen/diagrams/models/generate_enums
+      diagram_format: light
+      passInputData: false
+
+  # Generate conversions
+  - label: Generate Conversions
+    type: sub_diagram
+    position: {x: 400, y: 250}
+    props:
+      diagram_name: codegen/diagrams/models/generate_conversions
+      diagram_format: light
+      passInputData: false
+
+  # Generate field configs
+  - label: Generate Field Configs
+    type: sub_diagram
+    position: {x: 400, y: 350}
+    props:
+      diagram_name: codegen/diagrams/models/generate_field_configs
+      diagram_format: light
+      passInputData: false
+
+  # Generate Zod schemas
+  - label: Generate Zod Schemas
+    type: sub_diagram
+    position: {x: 400, y: 450}
+    props:
+      diagram_name: codegen/diagrams/models/generate_zod_schemas
+      diagram_format: light
+      passInputData: false
+
+  # Generate GraphQL schema
+  - label: Generate GraphQL Schema
+    type: sub_diagram
+    position: {x: 400, y: 550}
+    props:
+      diagram_name: codegen/diagrams/models/generate_graphql_schema
+      diagram_format: light
+      passInputData: false
+
+  # Generate static nodes
+  - label: Generate Static Nodes
+    type: sub_diagram
+    position: {x: 400, y: 650}
+    props:
+      diagram_name: codegen/diagrams/models/generate_static_nodes
+      diagram_format: light
+      passInputData: false
+
+  # Build TypeScript models
+  - label: Build TypeScript Models
+    type: code_job
+    position: {x: 600, y: 350}
+    props:
+      language: bash
+      code: |
+        cd dipeo/models && pnpm build
+        echo "TypeScript models built successfully"
+
+  # Generate summary report
+  - label: Generate Summary
+    type: code_job
+    position: {x: 800, y: 350}
+    props:
+      language: python
+      code: |
+        from datetime import datetime
+        import json
+        
+        # Collect results from all sub-diagrams
+        python_models = inputs.get('python_models', {})
+        enums = inputs.get('enums', {})
+        conversions = inputs.get('conversions', {})
+        field_configs = inputs.get('field_configs', {})
+        zod_schemas = inputs.get('zod_schemas', {})
+        graphql_schema = inputs.get('graphql_schema', {})
+        static_nodes = inputs.get('static_nodes', {})
+        build_result = inputs.get('build_result', {})
+        
+        print(f"\n{'='*60}")
+        print("DOMAIN MODEL GENERATION COMPLETE")
+        print(f"{'='*60}")
+        print(f"Timestamp: {datetime.now().isoformat()}")
+        print(f"\nGenerated artifacts:")
+        print(f"  ✓ Python domain models (dipeo/diagram_generated_staged/domain_models.py)")
+        print(f"  ✓ Python enums (dipeo/diagram_generated_staged/enums.py)")
+        print(f"  ✓ Type conversions (dipeo/diagram_generated_staged/conversions.py)")
+        print(f"  ✓ Field configurations (apps/web/src/__generated__/nodes/fields.ts)")
+        print(f"  ✓ Zod validation schemas (apps/web/src/__generated__/schemas.ts)")
+        print(f"  ✓ GraphQL schema (dipeo/diagram_generated_staged/domain-schema.graphql)")
+        print(f"  ✓ Static node classes (dipeo/diagram_generated_staged/generated_nodes.py)")
+        print(f"  ✓ TypeScript build completed")
+        print(f"\nAll domain model generation tasks completed successfully!")
+        print(f"{'='*60}\n")
+        
+        result = {
+            'status': 'success',
+            'message': 'All domain models generated successfully',
+            'artifacts': {
+                'python_models': 'dipeo/diagram_generated_staged/domain_models.py',
+                'enums': 'dipeo/diagram_generated_staged/enums.py',
+                'conversions': 'dipeo/diagram_generated_staged/conversions.py',
+                'field_configs': 'apps/web/src/__generated__/nodes/fields.ts',
+                'zod_schemas': 'apps/web/src/__generated__/schemas.ts',
+                'graphql_schema': 'dipeo/diagram_generated_staged/domain-schema.graphql',
+                'static_nodes': 'dipeo/diagram_generated_staged/generated_nodes.py'
+            }
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 1000, y: 350}
+    props:
+      save_to_file: false
+
+connections:
+  # First parse all TypeScript files to create cache
+  - from: Start
+    to: Parse All TypeScript
+  
+  # After cache is created, start all generation tasks in parallel
+  - from: Parse All TypeScript
+    to: Generate Python Models
+  - from: Parse All TypeScript
+    to: Generate Enums
+  - from: Parse All TypeScript
+    to: Generate Conversions
+  - from: Parse All TypeScript
+    to: Generate Field Configs
+  - from: Parse All TypeScript
+    to: Generate Zod Schemas
+  - from: Parse All TypeScript
+    to: Generate GraphQL Schema
+  - from: Parse All TypeScript
+    to: Generate Static Nodes
+  
+  # Only TypeScript-generating tasks need to complete before building TypeScript
+  - from: Generate Field Configs
+    to: Build TypeScript Models
+    label: field_configs
+  - from: Generate Zod Schemas
+    to: Build TypeScript Models
+    label: zod_schemas
+  
+  # Python generation tasks connect directly to Generate Summary
+  - from: Generate Python Models
+    to: Generate Summary
+    label: python_models
+  - from: Generate Enums
+    to: Generate Summary
+    label: enums
+  - from: Generate Conversions
+    to: Generate Summary
+    label: conversions
+  - from: Generate GraphQL Schema
+    to: Generate Summary
+    label: graphql_schema
+  - from: Generate Static Nodes
+    to: Generate Summary
+    label: static_nodes
+  
+  # Generate final summary
+  - from: Build TypeScript Models
+    to: Generate Summary
+    label: build_result
+  - from: Generate Summary
+    to: End

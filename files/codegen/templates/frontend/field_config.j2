@@ -2,107 +2,118 @@
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
-{% for field in fields %}
+{%- for field in fields %}
   {
     name: '{{ field.name }}',
     type: '{{ field | ui_field_type }}',
     label: '{{ field.name | humanize | escape_js }}',
     required: {{ field.required | lower }},
-    {% if field.defaultValue is defined %}
+{%- if field.defaultValue is defined %}
     defaultValue: {{ field.defaultValue | tojson }},
-    {% endif %}
-    {% if field.uiConfig and field.uiConfig.placeholder %}
+{%- endif %}
+{%- if field.uiConfig and field.uiConfig.placeholder %}
     placeholder: '{{ field.uiConfig.placeholder | escape_js }}',
-    {% elif field.placeholder %}
+{%- elif field.placeholder %}
     placeholder: '{{ field.placeholder | escape_js }}',
-    {% endif %}
-    {% if field.description %}
+{%- endif %}
+{%- if field.description %}
     description: '{{ field.description | escape_js }}',
-    {% endif %}
-    {% if field.type == 'enum' and field['values'] %}
+{%- endif %}
+{%- if field.type == 'enum' and field.get('values') %}
     options: [
-      {% for value in field['values'] %}
+{%- for value in field.values %}
       { value: '{{ value | escape_js }}', label: '{{ value | humanize | escape_js }}' },
-      {% endfor %}
+{%- endfor %}
     ],
-    {% endif %}
-    {% if field.uiConfig %}
-      {% if field.uiConfig.rows %}
+{%- endif %}
+{%- if field.uiConfig %}
+{%- if field.uiConfig.rows %}
     rows: {{ field.uiConfig.rows }},
-      {% endif %}
-      {% if field.uiConfig.column %}
+{%- endif %}
+{%- if field.uiConfig.column %}
     column: {{ field.uiConfig.column }},
-      {% endif %}
-      {% if field.uiConfig.min is defined %}
+{%- endif %}
+{%- if field.uiConfig.min is defined %}
     min: {{ field.uiConfig.min }},
-      {% endif %}
-      {% if field.uiConfig.max is defined %}
+{%- endif %}
+{%- if field.uiConfig.max is defined %}
     max: {{ field.uiConfig.max }},
-      {% endif %}
-      {% if field.uiConfig.language %}
+{%- endif %}
+{%- if field.uiConfig.language %}
     language: '{{ field.uiConfig.language }}',
-      {% endif %}
-      {% if field.uiConfig.readOnly %}
+{%- endif %}
+{%- if field.uiConfig.readOnly %}
     readOnly: {{ field.uiConfig.readOnly | lower }},
-      {% endif %}
-      {% if field.uiConfig.options %}
+{%- endif %}
+{%- if field.uiConfig.options %}
     options: [
-        {% for option in field.uiConfig.options %}
+{%- for option in field.uiConfig.options %}
       { value: '{{ option.value | escape_js }}', label: '{{ option.label | escape_js }}' },
-        {% endfor %}
+{%- endfor %}
     ],
-      {% endif %}
-    {% endif %}
-    {% if field.nestedFields %}
+{%- endif %}
+{%- endif %}
+{%- if field.nestedFields %}
     nestedFields: [
-      {% for nestedField in field.nestedFields %}
+{%- for nestedField in field.nestedFields %}
       {
         name: '{{ nestedField.name }}',
         type: '{{ nestedField | ui_field_type }}',
         label: '{{ nestedField.name | humanize | escape_js }}',
         required: {{ nestedField.required | lower }},
-        {% if nestedField.description %}
+{%- if nestedField.description %}
         description: '{{ nestedField.description | escape_js }}',
-        {% endif %}
-        {% if nestedField.uiConfig %}
-          {% if nestedField.uiConfig.inputType %}
-        inputType: '{{ nestedField.uiConfig.inputType }}',
-          {% endif %}
-          {% if nestedField.uiConfig.options %}
-        options: [
-          {% for option in nestedField.uiConfig.options %}
-          { value: '{{ option.value | escape_js }}', label: '{{ option.label | escape_js }}' },
-          {% endfor %}
-        ],
-          {% endif %}
-          {% if nestedField.uiConfig.min is defined %}
-        min: {{ nestedField.uiConfig.min }},
-          {% endif %}
-        {% endif %}
+{%- endif %}
+{%- if nestedField.defaultValue is defined %}
+        defaultValue: {{ nestedField.defaultValue | tojson }},
+{%- endif %}
+{%- if nestedField.uiConfig %}
+        uiConfig: {
+{%- if nestedField.uiConfig.inputType %}
+          inputType: '{{ nestedField.uiConfig.inputType }}',
+{%- endif %}
+{%- if nestedField.uiConfig.options %}
+          options: [
+{%- for option in nestedField.uiConfig.options %}
+            { value: '{{ option.value | escape_js }}', label: '{{ option.label | escape_js }}' },
+{%- endfor %}
+          ],
+{%- endif %}
+{%- if nestedField.uiConfig.min is defined %}
+          min: {{ nestedField.uiConfig.min }},
+{%- endif %}
+{%- if nestedField.uiConfig.max is defined %}
+          max: {{ nestedField.uiConfig.max }},
+{%- endif %}
+{%- if nestedField.uiConfig.placeholder %}
+          placeholder: '{{ nestedField.uiConfig.placeholder | escape_js }}',
+{%- endif %}
+        },
+{%- endif %}
       },
-      {% endfor %}
+{%- endfor %}
     ],
-    {% endif %}
-    {% if field.validation %}
+{%- endif %}
+{%- if field.validation %}
     validate: (value: unknown) => {
-      {% if field.validation.pattern %}
+{%- if field.validation.pattern %}
       if (typeof value === 'string' && !new RegExp('{{ field.validation.pattern }}').test(value)) {
         return { isValid: false, error: 'Invalid format' };
       }
-      {% endif %}
-      {% if field.validation.min is defined %}
+{%- endif %}
+{%- if field.validation.min is defined %}
       if (typeof value === 'number' && value < {{ field.validation.min }}) {
         return { isValid: false, error: 'Value must be at least {{ field.validation.min }}' };
       }
-      {% endif %}
-      {% if field.validation.max is defined %}
+{%- endif %}
+{%- if field.validation.max is defined %}
       if (typeof value === 'number' && value > {{ field.validation.max }}) {
         return { isValid: false, error: 'Value must be at most {{ field.validation.max }}' };
       }
-      {% endif %}
+{%- endif %}
       return { isValid: true };
     },
-    {% endif %}
+{%- endif %}
   },
-{% endfor %}
+{%- endfor %}
 ];

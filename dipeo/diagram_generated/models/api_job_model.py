@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List, Literal
 from pydantic import BaseModel, Field
 
 
-from dipeo.models.models import HttpMethod
+from dipeo.diagram_generated.enums import HttpMethod
 
 
 class ApiJobNodeData(BaseModel):
@@ -15,7 +15,7 @@ class ApiJobNodeData(BaseModel):
     params: Optional[Dict[str, Any]] = Field(description="Params configuration")
     body: Optional[Dict[str, Any]] = Field(description="Body configuration")
     timeout: Optional[float] = Field(description="Timeout configuration")
-    auth_type: Optional[Literal["none", "bearer", "basic", "api_key"]] = Field(description="Auth Type configuration")
+    auth_type: Optional[str] = Field(description="Auth Type configuration")
     auth_config: Optional[Dict[str, Any]] = Field(description="Auth Config configuration")
 
     class Config:

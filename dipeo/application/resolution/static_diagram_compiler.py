@@ -8,9 +8,10 @@ from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalc
 from dipeo.application.resolution.handle_resolver import HandleResolver
 from dipeo.core.static.diagram_compiler import DiagramCompiler
 from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
-from dipeo.core.static.generated_nodes import ExecutableNode, PersonJobNode
+from dipeo.diagram_generated.generated_nodes import PersonJobNode
+from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
-from dipeo.models import DomainDiagram, NodeID, NodeType
+from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 
 
 class ExecutableNodeImpl:
@@ -61,13 +62,33 @@ class StaticDiagramCompiler(DiagramCompiler):
         self.validation_errors.clear()
         
         # 1. Create strongly-typed executable nodes
-        executable_nodes = self.node_factory.create_typed_nodes(domain_diagram.nodes)
+        # Convert nodes dict to list if it's a map-based structure
+        if isinstance(domain_diagram.nodes, dict):
+            # Check what's in the nodes dict
+            nodes_list = []
+            for node_id, node_data in domain_diagram.nodes.items():
+                # If node_data is a DomainNode object, use it directly
+                # Otherwise, it might be a dict that needs to be converted
+                if hasattr(node_data, 'type'):
+                    nodes_list.append(node_data)
+                else:
+                    # This shouldn't happen with proper DomainDiagram
+                    print(f"DEBUG: Unexpected node data type for {node_id}: {type(node_data)}")
+                    print(f"DEBUG: Node data content: {node_data}")
+            nodes_list = nodes_list
+        else:
+            nodes_list = domain_diagram.nodes
+        executable_nodes = self.node_factory.create_typed_nodes(nodes_list)
         self.validation_errors.extend(self.node_factory.get_validation_errors())
         
         # 2. Resolve handles to connections
+        # Convert arrows dict to list if it's a map-based structure
+        arrows_list = list(domain_diagram.arrows.values()) if isinstance(domain_diagram.arrows, dict) else domain_diagram.arrows
+        # Convert nodes to list if it's a map-based structure (same as we did for nodes_list above)
+        nodes_for_resolver = list(domain_diagram.nodes.values()) if isinstance(domain_diagram.nodes, dict) else domain_diagram.nodes
         resolved_connections, handle_errors = self.handle_resolver.resolve_arrows(
-            domain_diagram.arrows,
-            domain_diagram.nodes
+            arrows_list,
+            nodes_for_resolver
         )
         self.validation_errors.extend(handle_errors)
         
@@ -79,7 +100,7 @@ class StaticDiagramCompiler(DiagramCompiler):
         impl_map = {node.id: node for node in impl_nodes}
         
         edges, transform_errors = self.arrow_transformer.transform_arrows(
-            domain_diagram.arrows,
+            arrows_list,  # Use the already converted arrows list
             resolved_connections,
             impl_map
         )

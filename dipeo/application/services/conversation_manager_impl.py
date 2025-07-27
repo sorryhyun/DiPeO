@@ -86,10 +86,7 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             llm_config = PersonLLMConfig(
                 service=LLMService(config.get('service', 'openai')),
                 model=config.get('model', 'gpt-4'),
-                api_key_id=ApiKeyID(config.get('api_key_id', 'default')),
-                system_prompt=config.get('system_prompt'),
-                temperature=config.get('temperature'),
-                max_tokens=config.get('max_tokens')
+                api_key_id=ApiKeyID(config.get('api_key_id', 'default'))
             )
             # Use create_person method instead of accessing _persons directly
             person = self.person_manager.create_person(

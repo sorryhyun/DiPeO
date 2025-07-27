@@ -4,50 +4,15 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import type { NodeID, DiagramID, MemoryConfig } from './diagram.js';
-import type { Message, MemoryState } from './conversation.js';
+import type { NodeID, DiagramID } from './diagram.js';
+import type { Message } from './conversation.js';
+import { ExecutionStatus, NodeExecutionStatus, EventType } from './enums.js';
 
 // Type aliases
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
-// Enums - unified status values for consistency
-export enum ExecutionStatus {
-  PENDING = 'PENDING',      // Unified with NodeExecutionStatus
-  RUNNING = 'RUNNING',
-  PAUSED = 'PAUSED',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  ABORTED = 'ABORTED',
-  SKIPPED = 'SKIPPED'       // Added for consistency
-}
-
-export enum NodeExecutionStatus {
-  PENDING = 'PENDING',
-  RUNNING = 'RUNNING',
-  PAUSED = 'PAUSED',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  ABORTED = 'ABORTED',      // Added for consistency
-  SKIPPED = 'SKIPPED',
-  MAXITER_REACHED = 'MAXITER_REACHED'  // Node hit its max iteration limit
-}
-
-export enum EventType {
-  // Core execution lifecycle events
-  EXECUTION_STATUS_CHANGED = 'EXECUTION_STATUS_CHANGED',
-  NODE_STATUS_CHANGED = 'NODE_STATUS_CHANGED',
-  
-  // Progress and interaction events
-  NODE_PROGRESS = 'NODE_PROGRESS',
-  INTERACTIVE_PROMPT = 'INTERACTIVE_PROMPT',
-  INTERACTIVE_RESPONSE = 'INTERACTIVE_RESPONSE',
-  
-  // Error handling
-  EXECUTION_ERROR = 'EXECUTION_ERROR',
-  
-  // Generic update event
-  EXECUTION_UPDATE = 'EXECUTION_UPDATE'
-}
+// Re-export imported enums for backward compatibility
+export { ExecutionStatus, NodeExecutionStatus, EventType };
 
 // Core models
 export interface TokenUsage {
@@ -112,8 +77,6 @@ export interface InteractiveResponse {
 
 // Use shared conversation types from person domain
 export type PersonMemoryMessage = Message;
-export type PersonMemoryState = MemoryState;
-export type PersonMemoryConfig = MemoryConfig;
 
 // Update events for real-time communication
 export interface ExecutionUpdate {

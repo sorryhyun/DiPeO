@@ -6,9 +6,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import EXECUTION_CONTEXT
-from dipeo.core.static.generated_nodes import UserResponseNode
+from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
-from dipeo.models import NodeType, UserResponseNodeData
+from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -28,7 +28,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.user_response.value
+        return NodeType.USER_RESPONSE.value
 
     @property
     def schema(self) -> type[BaseModel]:

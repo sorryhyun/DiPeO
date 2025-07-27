@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
-from dipeo.models import NodeType
+from dipeo.diagram_generated import NodeType
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ class TypedInputResolutionService:
 
         # For PersonJob nodes on first execution, check if any "first" inputs exist
         has_first_inputs = False
-        if node_type == NodeType.person_job:
+        if node_type == NodeType.PERSON_JOB:
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
             if exec_count == 1:
                 has_first_inputs = any(
@@ -135,7 +135,7 @@ class TypedInputResolutionService:
         log = logging.getLogger(__name__)
         
         # PersonJob nodes have special handling for "first" inputs
-        if node_type == NodeType.person_job:
+        if node_type == NodeType.PERSON_JOB:
             node_id = str(edge.target_node_id)
             exec_count = node_exec_counts.get(node_id, 0) if node_exec_counts else 0
 

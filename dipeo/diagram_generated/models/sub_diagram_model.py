@@ -15,6 +15,7 @@ class SubDiagramNodeData(BaseModel):
     timeout: Optional[float] = Field(description="Execution timeout in seconds")
     wait_for_completion: Optional[bool] = Field(description="Whether to wait for sub-diagram completion")
     isolate_conversation: Optional[bool] = Field(description="Create isolated conversation context for sub-diagram")
+    ignoreIfSub: Optional[bool] = Field(description="Skip execution if this diagram is being run as a sub-diagram")
 
     class Config:
         extra = "forbid"

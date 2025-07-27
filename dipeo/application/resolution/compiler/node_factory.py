@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from dipeo.core.static.generated_nodes import (
+from dipeo.diagram_generated.generated_nodes import (
     ConditionNode,
     ExecutableNode,
     PersonJobNode,
@@ -55,7 +55,7 @@ class NodeFactory:
     
     def _validate_person_node(self, node: PersonJobNode) -> None:
         """Validate PersonJobNode specific constraints."""
-        if not node.person_id:
+        if not node.person:
             self.validation_errors.append(
                 f"Person node {node.id} must have person_id"
             )

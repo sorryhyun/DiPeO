@@ -9,17 +9,11 @@ export const endpointConfig: UnifiedNodeConfig = {
   nodeType: 'endpoint',
   category: 'control',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
   },
   defaults: {
-
   },
   customFields: endpointFields,
 };

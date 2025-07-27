@@ -242,7 +242,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     
     def _build_nodes_dict(self, nodes_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Build nodes dictionary from list. Override for custom node creation."""
-        from dipeo.models.conversions import node_kind_to_domain_type
+        from dipeo.diagram_generated.conversions import node_kind_to_domain_type
         from dipeo.domain.diagram.utils.shared_components import PositionCalculator
         
         position_calculator = PositionCalculator()

@@ -1,0 +1,96 @@
+# Generate Strawberry GraphQL Types from Domain Schema
+# This diagram reads the generated domain-schema.graphql and creates Strawberry type definitions
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting Strawberry type generation from domain schema
+
+  # Read the generated domain schema
+  - label: Read Domain Schema
+    type: db
+    position: {x: 250, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      source_details: dipeo/diagram_generated/domain-schema.graphql
+
+  # Generate Strawberry types
+  - label: Generate Strawberry Types
+    type: code_job
+    position: {x: 450, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/backend/generators/strawberry_types.py
+      functionName: main
+
+  # Write the generated types
+  - label: Write Strawberry Types
+    type: db
+    position: {x: 650, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/server/src/dipeo_server/api/graphql/__generated__/types.py
+
+  # Generate summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 850, y: 300}
+    props:
+      language: python
+      code: |
+        metadata = inputs.get('metadata', {})
+        
+        summary_lines = [
+            "✅ Strawberry Types Generation Complete",
+            "",
+            f"📊 Generated:",
+            f"  - {metadata.get('scalars_count', 0)} scalar types",
+            f"  - {metadata.get('enums_count', 0)} enum registrations",
+            f"  - {metadata.get('types_count', 0)} type definitions",
+            f"  - {metadata.get('input_types_count', 0)} input types",
+            f"  - {metadata.get('unions_count', 0)} union types",
+            "",
+            "📁 Output: apps/server/src/dipeo_server/api/graphql/__generated__/types.py",
+            "",
+            "This eliminates manual type definitions and ensures consistency with domain models."
+        ]
+        
+        result = {
+            'summary': '\n'.join(summary_lines),
+            'success': True
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 1050, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Read Domain Schema
+  
+  - from: Read Domain Schema
+    to: Generate Strawberry Types
+    label: schema_content
+  
+  - from: Generate Strawberry Types
+    to: Write Strawberry Types
+    label: generated_code
+  
+  - from: Generate Strawberry Types
+    to: Generate Summary
+    label: metadata
+  
+  - from: Write Strawberry Types
+    to: End
+  
+  - from: Generate Summary
+    to: End

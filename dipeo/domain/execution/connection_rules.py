@@ -20,25 +20,25 @@ class NodeConnectionRules:
         - All other connections follow specific type rules
         """
         # Start nodes cannot have any inputs
-        if target_type == NodeType.start:
+        if target_type == NodeType.START:
             return False
         
         # Endpoint nodes cannot have any outputs
-        if source_type == NodeType.endpoint:
+        if source_type == NodeType.ENDPOINT:
             return False
         
         # These node types can output to most others
         output_capable = {
-            NodeType.person_job,
-            NodeType.condition,
-            NodeType.code_job,
-            NodeType.api_job,
-            NodeType.start
+            NodeType.PERSON_JOB,
+            NodeType.CONDITION,
+            NodeType.CODE_JOB,
+            NodeType.API_JOB,
+            NodeType.START
         }
         
         if source_type in output_capable:
             # Can connect to anything except start nodes
-            return target_type != NodeType.start
+            return target_type != NodeType.START
         
         # Default: allow connection
         return True
@@ -52,20 +52,20 @@ class NodeConnectionRules:
         """
         all_types = list(NodeType)
         
-        if node_type == NodeType.start:
+        if node_type == NodeType.START:
             return {
                 'can_receive_from': [],  # No inputs allowed
-                'can_send_to': [t for t in all_types if t != NodeType.start]
+                'can_send_to': [t for t in all_types if t != NodeType.START]
             }
         
-        if node_type == NodeType.endpoint:
+        if node_type == NodeType.ENDPOINT:
             return {
-                'can_receive_from': [t for t in all_types if t != NodeType.endpoint],
+                'can_receive_from': [t for t in all_types if t != NodeType.ENDPOINT],
                 'can_send_to': []  # No outputs allowed
             }
         
         # Most nodes can connect freely (except the constraints above)
         return {
-            'can_receive_from': [t for t in all_types if t != NodeType.endpoint],
-            'can_send_to': [t for t in all_types if t != NodeType.start]
+            'can_receive_from': [t for t in all_types if t != NodeType.ENDPOINT],
+            'can_send_to': [t for t in all_types if t != NodeType.START]
         }

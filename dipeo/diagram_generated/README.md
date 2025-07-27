@@ -61,7 +61,7 @@ dipeo run codegen/diagrams/backend/generate_backend_single --light --debug --no-
 
 ### Generate everything (frontend + backend):
 ```bash
-dipeo run codegen/diagrams/master/generate_all --light --debug --no-browser --timeout=30
+dipeo run codegen/diagrams/generate_all --light --debug --no-browser --timeout=30
 ```
 
 ## Source Files

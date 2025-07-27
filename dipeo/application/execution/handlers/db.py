@@ -8,9 +8,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.unified_service_registry import DB_OPERATIONS_SERVICE
-from dipeo.core.static.generated_nodes import DBNode
+from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
-from dipeo.models import DBNodeData, NodeType
+from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
     @property
     def node_type(self) -> str:
-        return NodeType.db.value
+        return NodeType.DB.value
 
     @property
     def schema(self) -> type[BaseModel]:

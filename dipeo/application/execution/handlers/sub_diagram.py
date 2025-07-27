@@ -10,10 +10,9 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.core.static.generated_nodes import SubDiagramNode
+from dipeo.diagram_generated.generated_nodes import SubDiagramNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
-from dipeo.models import NodeType
-from dipeo.models.models import SubDiagramNodeData
+from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
@@ -40,7 +39,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.sub_diagram.value
+        return NodeType.SUB_DIAGRAM.value
     
     @property
     def schema(self) -> type[BaseModel]:
@@ -68,13 +67,22 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         """Execute the sub-diagram node."""
         node = request.node
         
+        # Check if we should skip execution when running as a sub-diagram
+        if getattr(node, 'ignoreIfSub', False):
+            # Check if this execution is a sub-diagram by looking at execution variables
+            if request.runtime:
+                variables = request.runtime.get_variables()
+                if variables.get('is_sub_diagram', False):
+                    log.info(f"Skipping sub-diagram node {node.id} - ignoreIfSub is true and running as sub-diagram")
+                    return DataOutput(
+                        value={"status": "skipped", "reason": "ignoreIfSub is true and running as sub-diagram"},
+                        node_id=node.id
+                    )
+        
         # Check if batch mode is enabled
         if getattr(node, 'batch', False):
             return await self._execute_batch(request)
-        
-        # Log execution start
-        log.info(f"[SUB_DIAGRAM START] Executing sub_diagram: {node.label} (node_id: {node.id})")
-        log.debug(f"[SUB_DIAGRAM] Diagram name: {node.diagram_name}")
+
         try:
             # Get required services
             state_store = request.services.get("state_store")

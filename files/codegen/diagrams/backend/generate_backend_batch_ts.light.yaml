@@ -1,0 +1,177 @@
+# Backend Batch Generation with TypeScript Specifications
+# Uses the TypeScript specification parser to generate backend files for multiple node types
+# Also generates conversion functions for TypeScript <-> Python transformations
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      custom_data:
+        message: Starting batch generation using TypeScript specifications for backend files
+
+  - label: Load Manifest
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      file: files/codegen/manifests/all.json
+      operation: read
+
+  - label: Prepare Node List
+    type: code_job
+    position: {x: 350, y: 200}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Parse the manifest data from DB node
+        manifest_data = inputs.get('default', {})
+        if isinstance(manifest_data, str):
+            manifest_data = json.loads(manifest_data)
+        
+        # Get node types from manifest
+        node_types = manifest_data.get('nodes', [])
+        
+        if not node_types:
+            raise ValueError("No node types found in manifest")
+        
+        # Create array of inputs for batch processing
+        result = {
+            'items': [{'node_spec_path': node_type} for node_type in node_types]
+        }
+        
+        print(f"Generating backend files for {len(node_types)} nodes from TypeScript specifications:")
+        for nt in node_types:
+            print(f"  - {nt}")
+
+  - label: Batch Generate Backend
+    type: sub_diagram
+    position: {x: 550, y: 200}
+    props:
+      diagram_name: codegen/diagrams/backend/generate_backend_single_ts
+      diagram_format: light
+      batch: true  # Enable batch mode
+      batch_input_key: items  # Use 'items' key from input
+      batch_parallel: true  # Process in parallel
+
+  - label: Process Backend Results
+    type: code_job
+    position: {x: 750, y: 200}
+    props:
+      language: python
+      code: |
+        # Process batch results
+        batch_results = inputs.get('default', {})
+        
+        total = batch_results.get('total_items', 0)
+        successful = batch_results.get('successful', 0)
+        failed = batch_results.get('failed', 0)
+        
+        print(f"\n=== Backend Files Generation Summary ===")
+        print(f"Total items: {total}")
+        print(f"Successful: {successful}")
+        print(f"Failed: {failed}")
+        
+        if batch_results.get('errors'):
+            print("\nErrors:")
+            for error in batch_results['errors']:
+                print(f"  - Item {error['index']}: {error['error']}")
+        
+        # Count generated artifacts
+        results = batch_results.get('results', [])
+        artifacts_count = {
+            'pydantic_models': 0,
+            'graphql_schemas': 0,
+            'static_nodes': 0
+        }
+        
+        for r in results:
+            if isinstance(r, dict) and r.get('status') == 'success':
+                # Each successful backend generation produces these artifacts
+                artifacts_count['pydantic_models'] += 1
+                artifacts_count['graphql_schemas'] += 1
+                artifacts_count['static_nodes'] += 1
+        
+        result = {
+            'backend_summary': f'Backend files generation completed: {successful}/{total} successful',
+            'artifacts_generated': artifacts_count,
+            'status': 'success' if failed == 0 else 'partial_failure'
+        }
+
+  # Generate Strawberry types from domain schema
+  - label: Generate Strawberry Types
+    type: sub_diagram
+    position: {x: 850, y: 300}
+    props:
+      diagram_name: codegen/diagrams/backend/generate_strawberry_types
+      diagram_format: light
+
+  - label: Process Final Results
+    type: code_job
+    position: {x: 1050, y: 200}
+    props:
+      language: python
+      code: |
+        # Process results from backend generation
+        backend_results = inputs.get('backend_results', {})
+        strawberry_results = inputs.get('strawberry_results', {})
+        
+        print(f"\n=== Complete Backend Generation Summary ===")
+        print(backend_results.get('backend_summary', ''))
+        
+        # Include Strawberry generation status
+        if strawberry_results.get('success'):
+            print("\n✓ Strawberry GraphQL types generated from domain schema")
+            print(strawberry_results.get('summary', ''))
+        
+        # Note: Enums are now generated as part of domain models via generate_all_models
+        
+        artifacts = backend_results.get('artifacts_generated', {})
+        # Add Strawberry types to artifacts count
+        if strawberry_results.get('success'):
+            artifacts['strawberry_types'] = 1
+        
+        result = {
+            'message': 'Backend generation finished with TypeScript specifications',
+            'artifacts_generated': artifacts,
+            'backend_status': backend_results.get('status', 'unknown'),
+            'strawberry_status': 'success' if strawberry_results.get('success') else 'failed'
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 1350, y: 200}
+    props:
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Load Manifest
+  
+  - from: Load Manifest
+    to: Prepare Node List
+  
+  - from: Prepare Node List
+    to: Batch Generate Backend
+  
+  - from: Batch Generate Backend
+    to: Process Backend Results
+  
+  # Run Strawberry generation after backend results
+  - from: Process Backend Results
+    to: Generate Strawberry Types
+  
+  # Pass both results to final processing
+  - from: Process Backend Results
+    to: Process Final Results
+    label: backend_results
+  
+  - from: Generate Strawberry Types
+    to: Process Final Results
+    label: strawberry_results
+  
+  - from: Process Final Results
+    to: End

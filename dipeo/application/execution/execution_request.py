@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
 
 from dipeo.core.static.executable_diagram import ExecutableNode
-from dipeo.models import NodeExecutionStatus
+from dipeo.diagram_generated import NodeExecutionStatus
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime

@@ -9,23 +9,14 @@ export const apiJobConfig: UnifiedNodeConfig = {
   nodeType: 'api_job',
   category: 'integration',
   handles: {
-
     input: [
-
       { id: 'input', label: '', position: 'left' },
-
     ],
-
-
     output: [
-
       { id: 'output', label: '', position: 'right' },
-
     ],
-
   },
   defaults: {
-
   },
   customFields: apiJobFields,
 };

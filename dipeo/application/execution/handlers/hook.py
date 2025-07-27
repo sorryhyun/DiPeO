@@ -11,9 +11,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
-from dipeo.core.static.generated_nodes import HookNode
+from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
-from dipeo.models import HookNodeData, HookType, NodeType
+from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -33,7 +33,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     
     @property
     def node_type(self) -> str:
-        return NodeType.hook.value
+        return NodeType.HOOK.value
     
     @property
     def schema(self) -> type[BaseModel]:
