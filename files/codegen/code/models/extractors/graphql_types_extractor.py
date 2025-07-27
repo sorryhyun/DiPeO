@@ -119,7 +119,7 @@ def extract_types_from_interfaces(all_interfaces: list, enums: list, scalars: li
         is_input = 'Input' in name or 'Create' in name or 'Update' in name
         
         # Track node data types
-        if name.endswith('NodeData'):
+        if 'NodeData' in name and not name.startswith('_'):
             node_types.append(name)
         
         fields = []
@@ -159,26 +159,6 @@ def extract_types_from_interfaces(all_interfaces: list, enums: list, scalars: li
         else:
             types.append(type_def)
     
-    # Add missing enums with placeholder values
-    for enum_name in missing_enums:
-        if enum_name in ['LLMService', 'APIServiceType', 'NotionOperation'] and not any(e['name'] == enum_name for e in enums):
-            # Add placeholder enums for known missing types
-            if enum_name == 'LLMService':
-                enums.append({
-                    'name': 'LLMService',
-                    'values': ['OPENAI', 'ANTHROPIC', 'GOOGLE', 'AZURE']
-                })
-            elif enum_name == 'APIServiceType':
-                enums.append({
-                    'name': 'APIServiceType',
-                    'values': ['OPENAI', 'ANTHROPIC', 'GOOGLE', 'AZURE', 'CUSTOM']
-                })
-            elif enum_name == 'NotionOperation':
-                enums.append({
-                    'name': 'NotionOperation',
-                    'values': ['CREATE_PAGE', 'UPDATE_PAGE', 'GET_PAGE', 'DELETE_PAGE', 'QUERY_DATABASE']
-                })
-    
     return {
         'types': types,
         'input_types': input_types,
@@ -186,17 +166,22 @@ def extract_types_from_interfaces(all_interfaces: list, enums: list, scalars: li
     }
 
 
-def extract_graphql_types(diagram_ast: dict, execution_ast: dict, conversation_ast: dict, node_data_ast: dict = None) -> dict:
+def extract_graphql_types(diagram_ast: dict, execution_ast: dict, conversation_ast: dict, node_data_ast: dict = None, enums_ast: dict = None) -> dict:
     """Extract all GraphQL types from combined AST data"""
     # Combine all AST data
     all_interfaces = []
     all_enums = []
     all_types = []
     
-    # Include all AST sources, including node_data_ast if provided
+    # Include all AST sources, including node_data_ast and enums_ast if provided
     ast_sources = [diagram_ast, execution_ast, conversation_ast]
     if node_data_ast:
         ast_sources.append(node_data_ast)
+        # Debug: print interfaces from node_data_ast
+        node_interfaces = node_data_ast.get('interfaces', [])
+        print(f"Node data interfaces found: {[i.get('name') for i in node_interfaces]}")
+    if enums_ast:
+        ast_sources.append(enums_ast)
     
     for ast in ast_sources:
         all_interfaces.extend(ast.get('interfaces', []))
@@ -215,7 +200,7 @@ def extract_graphql_types(diagram_ast: dict, execution_ast: dict, conversation_a
     print(f"  - {len(enums)} enums")
     print(f"  - {len(type_results['types'])} types")
     print(f"  - {len(type_results['input_types'])} input types")
-    print(f"  - {len(type_results['node_types'])} node data types")
+    print(f"  - {len(type_results['node_types'])} node data types: {type_results['node_types']}")
     
     # Add JSONScalar if not already in scalars
     if not any(s['name'] == 'JSONScalar' for s in scalars):
@@ -239,5 +224,6 @@ def main(inputs: dict) -> dict:
     execution_ast = inputs.get('execution_ast', {})
     conversation_ast = inputs.get('conversation_ast', {})
     node_data_ast = inputs.get('node_data_ast', {})
+    enums_ast = inputs.get('enums_ast', {})
     
-    return extract_graphql_types(diagram_ast, execution_ast, conversation_ast, node_data_ast)
+    return extract_graphql_types(diagram_ast, execution_ast, conversation_ast, node_data_ast, enums_ast)

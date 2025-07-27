@@ -33,6 +33,27 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'dipeo/models/src/enums.ts'
     ]
     
+    # Add all individual node data files
+    node_data_files = [
+        'dipeo/models/src/node-data/start.data.ts',
+        'dipeo/models/src/node-data/condition.data.ts',
+        'dipeo/models/src/node-data/person-job.data.ts',
+        'dipeo/models/src/node-data/code-job.data.ts',
+        'dipeo/models/src/node-data/api-job.data.ts',
+        'dipeo/models/src/node-data/endpoint.data.ts',
+        'dipeo/models/src/node-data/db.data.ts',
+        'dipeo/models/src/node-data/user-response.data.ts',
+        'dipeo/models/src/node-data/notion.data.ts',
+        'dipeo/models/src/node-data/person-batch-job.data.ts',
+        'dipeo/models/src/node-data/hook.data.ts',
+        'dipeo/models/src/node-data/template-job.data.ts',
+        'dipeo/models/src/node-data/json-schema-validator.data.ts',
+        'dipeo/models/src/node-data/typescript-ast.data.ts',
+        'dipeo/models/src/node-data/sub-diagram.data.ts'
+    ]
+    
+    file_paths.extend(node_data_files)
+    
     # Map file paths to simpler keys for the cache
     file_mapping = {
         'dipeo/models/src/diagram.ts': 'diagram',
@@ -47,6 +68,13 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'dipeo/models/src/codegen-mappings.ts': 'codegen_mappings',
         'dipeo/models/src/enums.ts': 'enums'
     }
+    
+    # Add mappings for individual node data files
+    for node_file in node_data_files:
+        # Extract the base name without extension
+        # e.g., 'dipeo/models/src/node-data/start.data.ts' -> 'start_data'
+        base_name = node_file.split('/')[-1].replace('.data.ts', '_data')
+        file_mapping[node_file] = base_name
     
     # Read all files
     sources = {}

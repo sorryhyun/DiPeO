@@ -1,5 +1,5 @@
 # Generate GraphQL Schema from Domain Models
-# Generates GraphQL type definitions from TypeScript domain models
+# Generates GraphQL type definitions from TypeScript domain models using cached AST data
 
 version: light
 
@@ -9,78 +9,111 @@ nodes:
     position: {x: 50, y: 300}
     props:
       custom_data:
-        message: Starting GraphQL schema generation from domain models
+        message: Starting GraphQL schema generation from cached AST data
 
-  # Load all domain model TypeScript files
-  - label: Load Diagram TS
-    type: db
-    position: {x: 200, y: 200}
-    props:
-      operation: read
-      sub_type: file
-      source_details: dipeo/models/src/diagram.ts
-
-  - label: Load Execution TS
-    type: db
+  # Run batch parser if cache doesn't exist
+  - label: Parse TypeScript Batch
+    type: sub_diagram
     position: {x: 200, y: 300}
     props:
-      operation: read
-      sub_type: file
-      source_details: dipeo/models/src/execution.ts
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+      passInputData: false
 
-  - label: Load Conversation TS
+  # Load cached AST data
+  - label: Load Diagram AST
     type: db
-    position: {x: 200, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      source_details: dipeo/models/src/conversation.ts
-
-  - label: Load Node Data TS
-    type: db
-    position: {x: 200, y: 500}
-    props:
-      operation: read
-      sub_type: file
-      source_details: dipeo/models/src/node-data/index.ts
-
-  # Parse TypeScript files
-  - label: Parse Diagram AST
-    type: typescript_ast
     position: {x: 400, y: 200}
     props:
-      extractPatterns: ["interface", "enum", "type"]
-      includeJSDoc: true
-      parseMode: module
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/diagram_ast.json
 
-  - label: Parse Execution AST
-    type: typescript_ast
+  - label: Load Execution AST
+    type: db
     position: {x: 400, y: 300}
     props:
-      extractPatterns: ["interface", "enum", "type"]
-      includeJSDoc: true
-      parseMode: module
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/execution_ast.json
 
-  - label: Parse Conversation AST
-    type: typescript_ast
+  - label: Load Conversation AST
+    type: db
     position: {x: 400, y: 400}
     props:
-      extractPatterns: ["interface", "enum", "type"]
-      includeJSDoc: true
-      parseMode: module
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/conversation_ast.json
 
-  - label: Parse Node Data AST
-    type: typescript_ast
+  - label: Load Enums AST
+    type: db
     position: {x: 400, y: 500}
     props:
-      extractPatterns: ["interface", "enum", "type"]
-      includeJSDoc: true
-      parseMode: module
+      operation: read
+      sub_type: file
+      source_details: apps/server/.temp/ast_cache/enums_ast.json
+
+  # Combine all node data AST files
+  - label: Combine Node Data AST
+    type: code_job
+    position: {x: 400, y: 600}
+    props:
+      language: python
+      code: |
+        import json
+        import os
+        from pathlib import Path
+        
+        # Get base directory
+        base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
+        
+        # Read all node data AST files from cache
+        cache_dir = base_dir / 'apps/server/.temp/ast_cache'
+        
+        # Combine all interfaces, types, and enums from node data files
+        all_interfaces = []
+        all_types = []
+        all_enums = []
+        
+        # List of node data cache files
+        node_data_files = [
+            'start_data_ast.json', 'condition_data_ast.json', 'person-job_data_ast.json',
+            'code-job_data_ast.json', 'api-job_data_ast.json', 'endpoint_data_ast.json',
+            'db_data_ast.json', 'user-response_data_ast.json', 'notion_data_ast.json',
+            'person-batch-job_data_ast.json', 'hook_data_ast.json', 'template-job_data_ast.json',
+            'json-schema-validator_data_ast.json', 'typescript-ast_data_ast.json', 'sub-diagram_data_ast.json'
+        ]
+        
+        print(f"Looking for cache files in: {cache_dir}")
+        
+        for filename in node_data_files:
+            file_path = cache_dir / filename
+            if file_path.exists():
+                try:
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        all_interfaces.extend(data.get('interfaces', []))
+                        all_types.extend(data.get('types', []))
+                        all_enums.extend(data.get('enums', []))
+                        print(f"  Loaded {filename}: {len(data.get('interfaces', []))} interfaces")
+                except Exception as e:
+                    print(f"  Error reading {filename}: {e}")
+            else:
+                print(f"  File not found: {filename}")
+        
+        print(f"Combined node data: {len(all_interfaces)} interfaces, {len(all_types)} types, {len(all_enums)} enums")
+        
+        result = {
+            'interfaces': all_interfaces,
+            'types': all_types,
+            'enums': all_enums
+        }
+
 
   # Extract GraphQL types
   - label: Extract GraphQL Types
     type: code_job
-    position: {x: 600, y: 300}
+    position: {x: 600, y: 400}
     props:
       language: python
       filePath: files/codegen/code/models/extractors/graphql_types_extractor.py
@@ -182,43 +215,38 @@ nodes:
       save_to_file: false
 
 connections:
-  # Load TypeScript files
+  # Run batch parser first
   - from: Start
-    to: Load Diagram TS
-  - from: Start
-    to: Load Execution TS
-  - from: Start
-    to: Load Conversation TS
-  - from: Start
-    to: Load Node Data TS
+    to: Parse TypeScript Batch
   
-  # Parse TypeScript
-  - from: Load Diagram TS
-    to: Parse Diagram AST
-    label: source
-  - from: Load Execution TS
-    to: Parse Execution AST
-    label: source
-  - from: Load Conversation TS
-    to: Parse Conversation AST
-    label: source
-  - from: Load Node Data TS
-    to: Parse Node Data AST
-    label: source
+  # Load cached AST data after parsing
+  - from: Parse TypeScript Batch
+    to: Load Diagram AST
+  - from: Parse TypeScript Batch
+    to: Load Execution AST
+  - from: Parse TypeScript Batch
+    to: Load Conversation AST
+  - from: Parse TypeScript Batch
+    to: Load Enums AST
+  - from: Parse TypeScript Batch
+    to: Combine Node Data AST
   
-  # Extract GraphQL types
-  - from: Parse Diagram AST
+  # Extract GraphQL types from cached data
+  - from: Load Diagram AST
     to: Extract GraphQL Types
     label: diagram_ast
-  - from: Parse Execution AST
+  - from: Load Execution AST
     to: Extract GraphQL Types
     label: execution_ast
-  - from: Parse Conversation AST
+  - from: Load Conversation AST
     to: Extract GraphQL Types
     label: conversation_ast
-  - from: Parse Node Data AST
+  - from: Combine Node Data AST
     to: Extract GraphQL Types
     label: node_data_ast
+  - from: Load Enums AST
+    to: Extract GraphQL Types
+    label: enums_ast
   
   # Prepare template data
   - from: Extract GraphQL Types
