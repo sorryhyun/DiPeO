@@ -90,6 +90,9 @@ TaskIDScalar = strawberry.scalar(
     parse_value=lambda v: TaskID(str(v)) if v else None,
 )
 
+# Import JSONScalar from strawberry
+from strawberry.scalars import JSON as JSONScalar
+
 # Export scalars
 __all__ = [
     'NodeIDScalar',
@@ -101,4 +104,5 @@ __all__ = [
     'ExecutionIDScalar',
     'HookIDScalar',
     'TaskIDScalar',
+    'JSONScalar',
 ]

@@ -33,7 +33,7 @@ class NotionNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.notion, init=False)
+    type: NodeType = field(default=NodeType.NOTION, init=False)
     
     # Optional node-specific fields
     page_id: str = ""

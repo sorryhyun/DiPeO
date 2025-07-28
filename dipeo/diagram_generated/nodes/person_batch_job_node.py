@@ -32,7 +32,7 @@ class PersonBatchJobNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.person_batch_job, init=False)
+    type: NodeType = field(default=NodeType.PERSON_BATCH_JOB, init=False)
     
     # Optional node-specific fields
     person: str = ""

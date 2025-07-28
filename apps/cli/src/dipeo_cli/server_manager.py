@@ -77,8 +77,8 @@ class ServerManager:
     def execute_diagram(self, diagram_data: dict[str, Any], input_variables: dict[str, Any] | None = None) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
-        mutation ExecuteDiagram($diagramData: JSONScalar, $variables: JSONScalar) {
-            execute_diagram(data: { diagram_data: $diagramData, variables: $variables }) {
+        mutation ExecuteDiagram($diagramData: JSON, $variables: JSON) {
+            execute_diagram(input: { diagram_data: $diagramData, variables: $variables }) {
                 success
                 execution_id
                 error
@@ -109,7 +109,7 @@ class ServerManager:
     def get_execution_result(self, execution_id: str) -> dict[str, Any]:
         """Get execution result by ID."""
         query = """
-        query GetExecutionResult($id: ExecutionID!) {
+        query GetExecutionResult($id: ID!) {
             execution(id: $id) {
                 status
                 node_outputs

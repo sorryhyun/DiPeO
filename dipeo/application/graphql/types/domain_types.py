@@ -162,7 +162,15 @@ class ExecutionStateType:
 
 @strawberry.experimental.pydantic.type(DomainDiagram, all_fields=True)
 class DomainDiagramType:
-    pass
+    @strawberry.field
+    def nodeCount(self) -> int:
+        """Returns the total number of nodes in the diagram"""
+        return len(self.nodes) if hasattr(self, 'nodes') else 0
+    
+    @strawberry.field
+    def arrowCount(self) -> int:
+        """Returns the total number of arrows in the diagram"""
+        return len(self.arrows) if hasattr(self, 'arrows') else 0
 
 # Export all types
 __all__ = [

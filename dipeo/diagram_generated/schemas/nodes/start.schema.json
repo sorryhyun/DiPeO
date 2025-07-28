@@ -2,6 +2,18 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/StartNodeData",
   "definitions": {
+    "Record<string,string|number|boolean>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "StartNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -36,18 +48,6 @@
         "label",
         "output_data_structure"
       ],
-      "type": "object"
-    },
-    "Record<string,string|number|boolean>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
       "type": "object"
     }
   }

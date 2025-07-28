@@ -25,7 +25,7 @@ class ExecutionResolver:
         """Get a single execution by ID."""
         try:
             state_store = self.registry.require(STATE_STORE)
-            execution = await state_store.get_execution(id)
+            execution = await state_store.get_state(str(id))
             
             if not execution:
                 return None
@@ -47,23 +47,13 @@ class ExecutionResolver:
         try:
             state_store = self.registry.require(STATE_STORE)
             
-            # Build filter criteria
-            criteria = {}
-            if filter:
-                if filter.diagram_id:
-                    criteria["diagram_id"] = filter.diagram_id
-                if filter.status:
-                    criteria["status"] = filter.status
-                if filter.started_after:
-                    criteria["started_after"] = filter.started_after
-                if filter.started_before:
-                    criteria["started_before"] = filter.started_before
-            
             # Get executions from state store
+            # Note: StateRegistry only supports diagram_id and status filters
             executions = await state_store.list_executions(
+                diagram_id=filter.diagram_id if filter else None,
+                status=filter.status if filter else None,
                 limit=limit,
-                offset=offset,
-                **criteria
+                offset=offset
             )
             
             return executions

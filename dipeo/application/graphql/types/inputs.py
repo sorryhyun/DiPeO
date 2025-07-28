@@ -29,13 +29,13 @@ class Vec2Input:
 class CreateNodeInput:
     type: NodeType
     position: Vec2Input
-    data: JSONScalar
+    data: strawberry.scalars.JSON
 
 
 @strawberry.input
 class UpdateNodeInput:
     position: Optional[Vec2Input] = None
-    data: Optional[JSONScalar] = None
+    data: Optional[strawberry.scalars.JSON] = None
 
 
 @strawberry.input
@@ -43,7 +43,7 @@ class CreateArrowInput:
     source: strawberry.ID
     target: strawberry.ID
     label: Optional[str] = None
-    data: Optional[JSONScalar] = None
+    data: Optional[strawberry.scalars.JSON] = None
 
 
 @strawberry.input
@@ -93,8 +93,8 @@ class CreateApiKeyInput:
 @strawberry.input
 class ExecuteDiagramInput:
     diagram_id: Optional[strawberry.ID] = None
-    diagram_data: Optional[JSONScalar] = None
-    variables: Optional[JSONScalar] = None
+    diagram_data: Optional[strawberry.scalars.JSON] = None
+    variables: Optional[strawberry.scalars.JSON] = None
     debug_mode: Optional[bool] = None
     max_iterations: Optional[int] = None
     timeout_seconds: Optional[int] = None
@@ -111,7 +111,7 @@ class UpdateNodeStateInput:
     execution_id: strawberry.ID
     node_id: strawberry.ID
     status: NodeExecutionStatus
-    output: Optional[JSONScalar] = None
+    output: Optional[strawberry.scalars.JSON] = None
     error: Optional[str] = None
 
 
@@ -144,4 +144,4 @@ class InteractiveResponseInput:
     execution_id: strawberry.ID
     node_id: strawberry.ID
     response: str
-    metadata: Optional[JSONScalar] = None
+    metadata: Optional[strawberry.scalars.JSON] = None

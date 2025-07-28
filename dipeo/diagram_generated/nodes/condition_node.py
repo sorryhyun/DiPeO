@@ -31,7 +31,7 @@ class ConditionNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.condition, init=False)
+    type: NodeType = field(default=NodeType.CONDITION, init=False)
     
     # Optional node-specific fields
     expression: str = ""

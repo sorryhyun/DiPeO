@@ -13,6 +13,28 @@ from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 from .schema.queries import create_query_type
 from .schema.mutation_factory import create_mutation_type
 from .schema.subscriptions import create_subscription_type
+from .types.scalars import JSONScalar
+
+# Import generated types
+# TODO: Fix import issues before enabling
+# from dipeo.diagram_generated.graphql.strawberry_nodes import (
+#     ApiJobNodeDataType,
+#     CodeJobNodeDataType,
+#     ConditionNodeDataType,
+#     DbNodeDataType,
+#     EndpointNodeDataType,
+#     HookNodeDataType,
+#     JsonSchemaValidatorNodeDataType,
+#     NotionNodeDataType,
+#     PersonBatchJobNodeDataType,
+#     PersonJobNodeDataType,
+#     StartNodeDataType,
+#     SubDiagramNodeDataType,
+#     TemplateJobNodeDataType,
+#     TypescriptAstNodeDataType,
+#     UserResponseNodeDataType,
+# )
+# from dipeo.diagram_generated.graphql.node_mutations import NodeMutations
 
 
 def create_schema(registry: UnifiedServiceRegistry) -> strawberry.Schema:
@@ -37,6 +59,29 @@ def create_schema(registry: UnifiedServiceRegistry) -> strawberry.Schema:
         extensions=[],
         # Disable auto camelCase conversion to keep snake_case field names
         config=StrawberryConfig(auto_camel_case=False),
+        scalar_overrides={
+            # Register JSON scalar type
+            dict: JSONScalar
+        },
+        # Register concrete types for interface resolution
+        # TODO: Enable when import issues are fixed
+        # types=[
+        #     ApiJobNodeDataType,
+        #     CodeJobNodeDataType,
+        #     ConditionNodeDataType,
+        #     DbNodeDataType,
+        #     EndpointNodeDataType,
+        #     HookNodeDataType,
+        #     JsonSchemaValidatorNodeDataType,
+        #     NotionNodeDataType,
+        #     PersonBatchJobNodeDataType,
+        #     PersonJobNodeDataType,
+        #     StartNodeDataType,
+        #     SubDiagramNodeDataType,
+        #     TemplateJobNodeDataType,
+        #     TypescriptAstNodeDataType,
+        #     UserResponseNodeDataType,
+        # ]
     )
     
     return schema

@@ -29,6 +29,7 @@ from dipeo.diagram_generated.models.person_batch_job_model import PersonBatchJob
 # Import GraphQL-specific types
 from .inputs import *  # noqa: F403, F401
 from .results import *  # noqa: F403, F401
+from .scalars import *  # noqa: F403, F401
 
 # Import Strawberry domain types
 from .domain_types import (

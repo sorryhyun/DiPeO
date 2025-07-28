@@ -13,23 +13,11 @@ enum APIServiceType {
   JIRA
 }
 
-"""Unique identifier for apikey"""
-scalar ApiKeyID
-
 type ApiKeyResult {
   success: Boolean!
   message: String
   error: String
   api_key: DomainApiKeyType
-}
-
-"""Unique identifier for arrow"""
-scalar ArrowID
-
-enum ContentType {
-  RAW_TEXT
-  CONVERSATION_STATE
-  OBJECT
 }
 
 input CreateApiKeyInput {
@@ -48,7 +36,7 @@ input CreateDiagramInput {
 input CreateNodeInput {
   type: NodeType!
   position: Vec2Input!
-  data: JSONScalar!
+  data: JSON!
 }
 
 input CreatePersonInput {
@@ -73,15 +61,15 @@ type DeleteResult {
   success: Boolean!
   message: String
   error: String
+  deleted_id: String
 }
 
 type DiagramConvertResult {
   success: Boolean!
-  message: String!
-  error: String
+  message: String
   content: String
-  format: String
-  filename: String
+  format: DiagramFormat
+  error: String
 }
 
 input DiagramFilterInput {
@@ -107,9 +95,6 @@ type DiagramFormatInfo {
   description: String
 }
 
-"""Unique identifier for diagram"""
-scalar DiagramID
-
 type DiagramMetadataType {
   id: String
   name: String
@@ -129,32 +114,29 @@ type DiagramResult {
 }
 
 type DiagramValidationResult {
-  is_valid: Boolean!
-  errors: [String!]!
-  node_count: Int
-  arrow_count: Int
-  person_count: Int
+  success: Boolean!
+  message: String
+  errors: [String!]
+  warnings: [String!]
 }
 
 type DomainApiKeyType {
-  id: ApiKeyID!
+  id: String!
   label: String!
   service: APIServiceType!
   key: String
 }
 
 type DomainArrowType {
-  id: ArrowID!
-  source: HandleID!
-  target: HandleID!
-  data: JSONScalar
-  content_type: ContentType
-  label: String
+  data: JSON
+  id: String!
+  source: String!
+  target: String!
 }
 
 type DomainDiagramType {
-  nodeCount: Int!
-  arrowCount: Int!
+  node_count: Int!
+  arrow_count: Int!
   nodes: [DomainNodeType!]!
   handles: [DomainHandleType!]!
   arrows: [DomainArrowType!]!
@@ -163,8 +145,8 @@ type DomainDiagramType {
 }
 
 type DomainHandleType {
-  id: HandleID!
-  node_id: NodeID!
+  id: String!
+  node_id: String!
   label: HandleLabel!
   direction: HandleDirection!
   data_type: DataType!
@@ -172,57 +154,54 @@ type DomainHandleType {
 }
 
 type DomainNodeType {
-  id: NodeID!
-  data: JSONScalar!
+  data: JSON!
+  id: String!
   type: NodeType!
   position: Vec2Type!
 }
 
 type DomainPersonType {
-  id: PersonID!
   type: String!
+  id: String!
   label: String!
   llm_config: PersonLLMConfigType!
 }
 
 input ExecuteDiagramInput {
-  diagram_id: DiagramID = null
-  diagram_data: JSONScalar = null
-  variables: JSONScalar = null
+  diagram_id: ID = null
+  diagram_data: JSON = null
+  variables: JSON = null
   debug_mode: Boolean = null
   max_iterations: Int = null
   timeout_seconds: Int = null
 }
 
 input ExecutionControlInput {
-  execution_id: ExecutionID!
+  execution_id: ID!
   action: String!
   reason: String = null
 }
 
 input ExecutionFilterInput {
-  diagram_id: DiagramID = null
+  diagram_id: ID = null
   status: ExecutionStatus = null
   started_after: DateTime = null
   started_before: DateTime = null
 }
 
-"""Unique identifier for execution"""
-scalar ExecutionID
-
 type ExecutionResult {
   success: Boolean!
-  execution_id: ExecutionID
+  execution_id: String
   execution: ExecutionStateType
   message: String
   error: String
 }
 
 type ExecutionStateType {
-  node_states: JSONScalar!
-  node_outputs: JSONScalar!
-  variables: JSONScalar!
-  exec_counts: JSONScalar!
+  node_states: JSON!
+  node_outputs: JSON!
+  variables: JSON
+  exec_counts: JSON!
   id: String!
   status: ExecutionStatus!
   diagram_id: String
@@ -245,6 +224,13 @@ enum ExecutionStatus {
   SKIPPED
 }
 
+type ExecutionUpdate {
+  execution_id: String!
+  event_type: String!
+  data: JSON!
+  timestamp: String!
+}
+
 type FileUploadResult {
   success: Boolean!
   message: String
@@ -259,9 +245,6 @@ enum HandleDirection {
   OUTPUT
 }
 
-"""Unique identifier for handle"""
-scalar HandleID
-
 enum HandleLabel {
   DEFAULT
   FIRST
@@ -272,23 +255,17 @@ enum HandleLabel {
   RESULTS
 }
 
-type InteractivePrompt {
-  execution_id: ExecutionID!
-  node_id: NodeID!
-  prompt: String!
-  timeout_seconds: Int
-  timestamp: DateTime!
-}
-
 input InteractiveResponseInput {
-  execution_id: ExecutionID!
-  node_id: NodeID!
+  execution_id: ID!
+  node_id: ID!
   response: String!
-  metadata: JSONScalar = null
+  metadata: JSON = null
 }
 
-"""Arbitrary JSON data"""
-scalar JSONScalar
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf")
 
 enum LLMService {
   OPENAI
@@ -300,47 +277,37 @@ enum LLMService {
 }
 
 type Mutation {
-  create_api_key(input: CreateApiKeyInput!): ApiKeyResult!
-  test_api_key(id: ApiKeyID!): TestApiKeyResult!
-  delete_api_key(id: ApiKeyID!): DeleteResult!
   create_diagram(input: CreateDiagramInput!): DiagramResult!
-  delete_diagram(id: DiagramID!): DeleteResult!
-  execute_diagram(data: ExecuteDiagramInput!): ExecutionResult!
-  control_execution(data: ExecutionControlInput!): ExecutionResult!
-  submit_interactive_response(data: InteractiveResponseInput!): ExecutionResult!
-  create_node(diagram_id: DiagramID!, input_data: CreateNodeInput!): NodeResult!
-  update_node(input_data: UpdateNodeInput!): NodeResult!
-  delete_node(node_id: NodeID!): DeleteResult!
-  create_person(diagram_id: DiagramID!, person_input: CreatePersonInput!): PersonResult!
-  update_person(person_input: UpdatePersonInput!): PersonResult!
-  delete_person(person_id: PersonID!): DeleteResult!
-  initialize_model(person_id: PersonID!, api_key_id: ApiKeyID!, model: String!, label: String! = ""): PersonResult!
-  clear_conversations: DeleteResult!
-
-  """Upload a file to the server"""
-  upload_file(file: Upload!, category: String! = "general"): FileUploadResult!
-
-  """Validate a diagram structure"""
-  validate_diagram(diagram_content: JSONScalar!): DiagramValidationResult!
-
-  """Convert a diagram to a different format"""
-  convert_diagram(content: JSONScalar!, target_format: DiagramFormat! = NATIVE, include_metadata: Boolean! = true): DiagramConvertResult!
+  delete_diagram(id: ID!): DeleteResult!
+  execute_diagram(input: ExecuteDiagramInput!): ExecutionResult!
+  update_node_state(input: UpdateNodeStateInput!): ExecutionResult!
+  control_execution(input: ExecutionControlInput!): ExecutionResult!
+  send_interactive_response(input: InteractiveResponseInput!): ExecutionResult!
+  create_person(input: CreatePersonInput!): PersonResult!
+  update_person(id: ID!, input: UpdatePersonInput!): PersonResult!
+  delete_person(id: ID!): DeleteResult!
+  create_api_key(input: CreateApiKeyInput!): ApiKeyResult!
+  delete_api_key(id: ID!): DeleteResult!
+  test_api_key(id: ID!): TestApiKeyResult!
+  create_node(diagram_id: ID!, input: CreateNodeInput!): NodeResult!
+  update_node(diagram_id: ID!, node_id: ID!, input: UpdateNodeInput!): NodeResult!
+  delete_node(diagram_id: ID!, node_id: ID!): DeleteResult!
+  upload_file(file: Upload!, path: String = null): FileUploadResult!
+  upload_diagram(file: Upload!, format: DiagramFormat!): DiagramResult!
+  validate_diagram(content: String!, format: DiagramFormat!): DiagramValidationResult!
+  convert_diagram_format(content: String!, from_format: DiagramFormat!, to_format: DiagramFormat!): DiagramConvertResult!
 }
 
-type NodeExecution {
-  execution_id: ExecutionID!
-  node_id: NodeID!
-  node_type: NodeType!
-  status: String!
-  progress: String
-  output: JSONScalar
-  error: String
-  tokens_used: Int
-  timestamp: DateTime!
+enum NodeExecutionStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  ABORTED
+  SKIPPED
+  MAXITER_REACHED
 }
-
-"""Unique identifier for node"""
-scalar NodeID
 
 type NodeResult {
   success: Boolean!
@@ -367,13 +334,10 @@ enum NodeType {
   SUB_DIAGRAM
 }
 
-"""Unique identifier for person"""
-scalar PersonID
-
 input PersonLLMConfigInput {
   service: LLMService!
   model: String!
-  api_key_id: ApiKeyID!
+  api_key_id: ID!
   system_prompt: String = null
 }
 
@@ -392,38 +356,36 @@ type PersonResult {
 }
 
 type Query {
-  diagram(id: DiagramID!): DomainDiagramType
+  diagram(id: ID!): DomainDiagramType
   diagrams(filter: DiagramFilterInput = null, limit: Int! = 100, offset: Int! = 0): [DomainDiagramType!]!
-  execution(id: ExecutionID!): ExecutionStateType
+  execution(id: ID!): ExecutionStateType
   executions(filter: ExecutionFilterInput = null, limit: Int! = 100, offset: Int! = 0): [ExecutionStateType!]!
-  person(id: PersonID!): DomainPersonType
+  person(id: ID!): DomainPersonType
   persons(limit: Int! = 100): [DomainPersonType!]!
-  api_key(id: ApiKeyID!): DomainApiKeyType
+  api_key(id: ID!): DomainApiKeyType
   api_keys(service: String = null): [DomainApiKeyType!]!
-  available_models(service: String!, api_key_id: ApiKeyID!): [String!]!
-  system_info: JSONScalar!
-  execution_capabilities: JSONScalar!
-  health: JSONScalar!
-  conversations(person_id: PersonID = null, execution_id: ExecutionID = null, search: String = null, show_forgotten: Boolean! = false, limit: Int! = 100, offset: Int! = 0, since: DateTime = null): JSONScalar!
+  available_models(service: String!, api_key_id: ID!): [String!]!
+  system_info: JSON!
+  execution_capabilities: JSON!
+  health: JSON!
+  conversations(person_id: ID = null, execution_id: ID = null, search: String = null, show_forgotten: Boolean! = false, limit: Int! = 100, offset: Int! = 0, since: DateTime = null): JSON!
   supported_formats: [DiagramFormatInfo!]!
-  execution_order(execution_id: ExecutionID!): JSONScalar!
-  prompt_files: [JSONScalar!]!
-  prompt_file(filename: String!): JSONScalar!
+  execution_order(execution_id: ID!): JSON!
+  prompt_files: [JSON!]!
+  prompt_file(filename: String!): JSON!
 }
 
 type Subscription {
-  execution_updates(execution_id: ExecutionID!): ExecutionStateType!
-  execution_events(execution_id: ExecutionID!): ExecutionStatus!
-  node_updates(execution_id: ExecutionID!, node_types: [NodeType!] = null): NodeExecution!
-  diagram_changes(diagram_id: DiagramID!): DomainDiagramType!
-  interactive_prompts(execution_id: ExecutionID!): InteractivePrompt
+  execution_updates(execution_id: ID!): ExecutionUpdate!
+  node_updates(execution_id: ID!, node_id: String = null): JSON!
+  interactive_prompts(execution_id: ID!): JSON!
 }
 
 type TestApiKeyResult {
   success: Boolean!
   message: String
   error: String
-  model_info: JSONScalar
+  model_info: JSON
 }
 
 type TokenUsageType {
@@ -435,7 +397,15 @@ type TokenUsageType {
 
 input UpdateNodeInput {
   position: Vec2Input = null
-  data: JSONScalar = null
+  data: JSON = null
+}
+
+input UpdateNodeStateInput {
+  execution_id: ID!
+  node_id: ID!
+  status: NodeExecutionStatus!
+  output: JSON = null
+  error: String = null
 }
 
 input UpdatePersonInput {

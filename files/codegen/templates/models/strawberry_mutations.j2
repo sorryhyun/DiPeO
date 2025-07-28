@@ -1,0 +1,93 @@
+"""
+Strawberry GraphQL mutations for DiPeO nodes.
+Generated automatically from node specifications.
+
+Generated at: {{ generated_at | default('N/A') }}
+"""
+
+import strawberry
+from typing import Optional
+from strawberry.types import Info
+
+# Import node types
+from .strawberry_nodes import (
+{% for type_info in strawberry_types %}
+    {{ type_info.class_name }},
+{% endfor %}
+    resolve_node_type,
+)
+
+# Import services
+from dipeo.application.interfaces import UnifiedServiceRegistry
+
+
+# Generate input types for each node
+{% for type_info in strawberry_types %}
+@strawberry.input
+class Create{{ type_info.class_name.replace('NodeType', 'Node') }}Input:
+    """Input for creating a {{ type_info.display_name }} node"""
+    diagram_id: str
+    position: dict
+    # Node-specific fields would be added here based on the spec
+    # For now, we accept a generic data dict
+    data: dict
+
+@strawberry.input  
+class Update{{ type_info.class_name.replace('NodeType', 'Node') }}Input:
+    """Input for updating a {{ type_info.display_name }} node"""
+    # Node-specific fields would be added here based on the spec
+    # For now, we accept a generic data dict
+    data: dict
+
+{% endfor %}
+
+
+@strawberry.type
+class NodeMutations:
+    """Type-safe mutations for node operations"""
+    
+{% for mutation in mutations %}
+    @strawberry.mutation
+    async def {{ mutation.name }}(
+        self,
+        info: Info,
+        {% if mutation.operation == 'create' %}input: {{ mutation.input_type }}{% else %}id: str, input: {{ mutation.input_type }}{% endif %}
+    ) -> {{ mutation.return_type }}:
+        """{{ mutation.operation.capitalize() }} a {{ mutation.node_type.replace('_', ' ').title() }} node"""
+        registry: UnifiedServiceRegistry = info.context["registry"]
+        
+        {% if mutation.operation == 'create' %}
+        # Prepare node data
+        node_data = {
+            "type": "{{ mutation.node_type }}",
+            "position": input.position,
+            "data": input.data
+        }
+        
+        # Create the node
+        domain_node = await registry.diagram_service.create_node(
+            diagram_id=input.diagram_id,
+            node_data=node_data
+        )
+        {% else %}
+        # Update the node
+        domain_node = await registry.node_service.update(
+            node_id=id,
+            updates={"data": input.data}
+        )
+        {% endif %}
+        
+        # Convert to GraphQL type
+        return {{ mutation.return_type }}.from_pydantic(domain_node)
+
+{% endfor %}
+
+
+# Export mutations
+__all__ = [
+    'NodeMutations',
+{% for type_info in strawberry_types %}
+    'Create{{ type_info.class_name.replace('Type', '') }}Input',
+    'Update{{ type_info.class_name.replace('Type', '') }}Input',
+{% endfor %}
+]

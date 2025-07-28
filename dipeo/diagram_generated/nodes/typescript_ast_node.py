@@ -31,7 +31,7 @@ class TypescriptAstNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.typescript_ast, init=False)
+    type: NodeType = field(default=NodeType.TYPESCRIPT_AST, init=False)
     
     # Optional node-specific fields
     extractPatterns: List[Any] = field(default_factory=list)

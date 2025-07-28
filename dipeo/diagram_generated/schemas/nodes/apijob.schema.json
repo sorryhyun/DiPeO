@@ -12,6 +12,10 @@
       ],
       "type": "string"
     },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -55,10 +59,6 @@
         "method",
         "url"
       ],
-      "type": "object"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
       "type": "object"
     },
     "Record<string,string>": {

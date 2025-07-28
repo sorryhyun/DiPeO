@@ -65,18 +65,22 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                     "timeout_seconds": input.timeout_seconds or 3600,
                 }
                 
+                # Generate execution ID
+                from dipeo.diagram_generated.domain_models import ExecutionID
+                import uuid
+                execution_id = ExecutionID(f"exec_{uuid.uuid4().hex}")
+                
                 # Execute asynchronously
                 execution_task = None
-                execution_id = None
                 
                 async def run_execution():
-                    nonlocal execution_id
                     async for update in use_case.execute_diagram(
                         diagram=diagram_data,
                         options=options,
+                        execution_id=str(execution_id),
                     ):
-                        if update["type"] == "execution_started":
-                            execution_id = update["execution_id"]
+                        # Process updates if needed
+                        pass
                 
                 # Start execution in background
                 execution_task = asyncio.create_task(run_execution())
@@ -85,10 +89,10 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 await asyncio.sleep(0.1)
                 
                 if execution_id:
-                    execution = await state_store.get_execution(execution_id)
+                    execution = await state_store.get_state(str(execution_id))
                     return ExecutionResult(
                         success=True,
-                        execution_id=execution_id,
+                        execution_id=str(execution_id),
                         execution=execution,
                         message="Execution started successfully",
                     )
@@ -112,7 +116,7 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 message_router = registry.require(MESSAGE_ROUTER)
                 
                 # Update node state
-                await state_store.update_node_state(
+                await state_store.update_node_status(
                     execution_id=input.execution_id,
                     node_id=input.node_id,
                     status=input.status,
@@ -133,7 +137,7 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 )
                 
                 # Get updated execution
-                execution = await state_store.get_execution(input.execution_id)
+                execution = await state_store.get_state(input.execution_id)
                 
                 return ExecutionResult(
                     success=True,
@@ -182,7 +186,7 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 )
                 
                 # Get updated execution
-                execution = await state_store.get_execution(input.execution_id)
+                execution = await state_store.get_state(input.execution_id)
                 
                 return ExecutionResult(
                     success=True,
@@ -218,7 +222,7 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 )
                 
                 # Get updated execution
-                execution = await state_store.get_execution(input.execution_id)
+                execution = await state_store.get_state(input.execution_id)
                 
                 return ExecutionResult(
                     success=True,

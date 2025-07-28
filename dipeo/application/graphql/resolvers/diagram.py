@@ -54,6 +54,10 @@ class DiagramResolver:
             # Get all diagram infos
             diagram_infos = await service.list_diagrams()
             
+            # Debug log to check what we're getting
+            if diagram_infos and len(diagram_infos) > 0:
+                logger.debug(f"First diagram info type: {type(diagram_infos[0])}")
+            
             # Apply filters if provided
             filtered_infos = diagram_infos
             if filter:
@@ -68,12 +72,22 @@ class DiagramResolver:
             # Load full diagrams
             diagrams = []
             for info in paginated_infos:
+                # Handle case where info might not be a dict
+                if not isinstance(info, dict):
+                    logger.warning(f"Skipping non-dict info: {type(info)}")
+                    continue
+                    
                 diagram_id = info.get("id") or info.get("path", "").split(".")[0]
                 if diagram_id:
-                    diagram_data = await service.get_diagram(diagram_id)
-                    if diagram_data:
-                        domain_diagram = dict_to_domain_diagram(diagram_data)
-                        diagrams.append(domain_diagram)
+                    try:
+                        diagram_data = await service.get_diagram(diagram_id)
+                        if diagram_data:
+                            domain_diagram = dict_to_domain_diagram(diagram_data)
+                            diagrams.append(domain_diagram)
+                    except (KeyError, ValueError) as e:
+                        # Skip diagrams that fail to load
+                        logger.warning(f"Skipping diagram {diagram_id}: {e}")
+                        continue
             
             return diagrams
             
@@ -83,6 +97,10 @@ class DiagramResolver:
     
     def _matches_filter(self, info: dict, filter: DiagramFilterInput) -> bool:
         """Check if a diagram info matches the filter criteria."""
+        # Ensure info is a dict
+        if not isinstance(info, dict):
+            return False
+            
         if filter.name and filter.name.lower() not in info.get("name", "").lower():
             return False
         

@@ -11,6 +11,10 @@
       ],
       "type": "string"
     },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "HookNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -85,10 +89,6 @@
         "hook_type",
         "label"
       ],
-      "type": "object"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
       "type": "object"
     }
   }
