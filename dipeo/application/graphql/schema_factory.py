@@ -46,6 +46,19 @@ def create_schema(registry: UnifiedServiceRegistry) -> strawberry.Schema:
     Returns:
         A Strawberry GraphQL schema ready to be served
     """
+    # Import scalar types
+    from .types.scalars import (
+        NodeIDScalar,
+        HandleIDScalar,
+        ArrowIDScalar,
+        PersonIDScalar,
+        ApiKeyIDScalar,
+        DiagramIDScalar,
+        ExecutionIDScalar,
+        HookIDScalar,
+        TaskIDScalar,
+    )
+    
     # Create schema components with injected registry
     Query = create_query_type(registry)
     Mutation = create_mutation_type(registry)
@@ -63,6 +76,18 @@ def create_schema(registry: UnifiedServiceRegistry) -> strawberry.Schema:
             # Register JSON scalar type
             dict: JSONScalar
         },
+        # Register all scalar types explicitly
+        types=[
+            NodeIDScalar,
+            HandleIDScalar,
+            ArrowIDScalar,
+            PersonIDScalar,
+            ApiKeyIDScalar,
+            DiagramIDScalar,
+            ExecutionIDScalar,
+            HookIDScalar,
+            TaskIDScalar,
+        ],
         # Register concrete types for interface resolution
         # TODO: Enable when import issues are fixed
         # types=[

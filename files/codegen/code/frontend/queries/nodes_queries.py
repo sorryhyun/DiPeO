@@ -14,8 +14,8 @@ class NodesQueryGenerator:
         queries.append("# Node Mutations")
         
         # CreateNode mutation
-        queries.append("""mutation CreateNode($diagramId: DiagramID!, $inputData: CreateNodeInput!) {
-  create_node(diagram_id: $diagramId, input_data: $inputData) {
+        queries.append("""mutation CreateNode($diagramId: ID!, $input: CreateNodeInput!) {
+  create_node(diagram_id: $diagramId, input: $input) {
     success
     node {
       id
@@ -32,8 +32,8 @@ class NodesQueryGenerator:
 }""")
         
         # UpdateNode mutation
-        queries.append("""mutation UpdateNode($inputData: UpdateNodeInput!) {
-  update_node(input_data: $inputData) {
+        queries.append("""mutation UpdateNode($diagramId: ID!, $nodeId: ID!, $input: UpdateNodeInput!) {
+  update_node(diagram_id: $diagramId, node_id: $nodeId, input: $input) {
     success
     node {
       id
@@ -50,8 +50,8 @@ class NodesQueryGenerator:
 }""")
         
         # DeleteNode mutation
-        queries.append("""mutation DeleteNode($nodeId: NodeID!) {
-  delete_node(node_id: $nodeId) {
+        queries.append("""mutation DeleteNode($diagramId: ID!, $nodeId: ID!) {
+  delete_node(diagram_id: $diagramId, node_id: $nodeId) {
     success
     message
     error

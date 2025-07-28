@@ -15,8 +15,8 @@ class FilesQueryGenerator:
         queries.append("")
         
         # UploadFile mutation
-        queries.append("""mutation UploadFile($file: Upload!, $category: String! = "general") {
-  upload_file(file: $file, category: $category) {
+        queries.append("""mutation UploadFile($file: Upload!, $path: String) {
+  upload_file(file: $file, path: $path) {
     success
     path
     size_bytes
@@ -27,25 +27,24 @@ class FilesQueryGenerator:
 }""")
         
         # ValidateDiagram mutation
-        queries.append("""mutation ValidateDiagram($diagramContent: JSONScalar!) {
-  validate_diagram(diagram_content: $diagramContent) {
-    is_valid
+        queries.append("""mutation ValidateDiagram($content: String!, $format: DiagramFormat!) {
+  validate_diagram(content: $content, format: $format) {
+    success
+    message
     errors
-    node_count
-    arrow_count
-    person_count
+    warnings
   }
 }""")
         
         # ConvertDiagram mutation
-        queries.append("""mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = NATIVE, $includeMetadata: Boolean = true) {
-  convert_diagram(content: $content, target_format: $targetFormat, include_metadata: $includeMetadata) {
+        queries.append("""mutation ConvertDiagramFormat($content: String!, $fromFormat: DiagramFormat!, $toFormat: DiagramFormat!) {
+  convert_diagram_format(content: $content, from_format: $fromFormat, to_format: $toFormat) {
     success
     message
     error
     content
     format
-    filename
+    format
   }
 }""")
         

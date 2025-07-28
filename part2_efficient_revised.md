@@ -91,16 +91,19 @@ class DomainNodeType:
 
 ### Completed ✅
 - Strawberry type generator created
-- Templates for types and mutations
+- Templates for types and mutations  
 - Integration with codegen pipeline
-- Basic type generation working
+- Data-only types generation from `*NodeData` models
+- Basic mutations with generic JSON input
+- Fixed imports and dependencies
+- Server runs successfully with generated types
 
 ### Next Steps 📝
-1. Fix templates to generate proper data types (not full node types)
-2. Generate field-specific input types from node specs
-3. Create resolver functions for typed data access
-4. Test with real queries and mutations
-5. Document usage patterns
+1. Generate field-specific input types from node specs *(partially complete)*
+2. Create resolver functions for typed data access
+3. Test with real queries and mutations
+4. Document usage patterns
+5. Remove v2 GraphQL directory after full migration
 
 ## Key Learnings
 
@@ -127,3 +130,52 @@ class DomainNodeType:
 - Frontend fully typed
 
 This revised approach respects the existing architecture while adding valuable type safety where it matters most - in the node-specific data fields.
+
+## Implementation Summary (2025-07-28)
+
+### What We Accomplished
+
+1. **Generated Strawberry Types for Node Data**
+   - Created `strawberry_types.j2` template that generates types from `*NodeData` Pydantic models
+   - Each node type now has a corresponding `*DataType` (e.g., `ApiJobDataType`)
+   - Created a `NodeDataUnion` for polymorphic data access
+
+2. **Generated Type-Safe Mutations**
+   - Created `strawberry_mutations.j2` template for node-specific mutations
+   - Each node has create/update mutations (e.g., `create_api_job_node`, `update_api_job_node`)
+   - Mutations use typed inputs with `Vec2Input` for position and JSON for data fields
+
+3. **Fixed Integration Issues**
+   - Added missing `__init__.py` for models directory
+   - Fixed import paths (Vec2Input from inputs module)
+   - Updated GraphQL __init__ to export correct types
+   - Removed invalid exports that were causing import errors
+
+4. **Code Generation Pipeline**
+   - Integrated into existing `make codegen-models` pipeline
+   - Templates are processed by DiPeO's own diagram system
+   - Generated files go to `dipeo/diagram_generated/graphql/`
+
+### Current State
+
+The server now runs successfully with:
+- Type-safe node data models
+- Generated mutations for all node types
+- Generic JSON input for flexibility
+- Foundation for future field-specific typing
+
+### Immediate Improvements Possible
+
+1. **Field-Specific Inputs**: Parse node specs to generate actual field inputs instead of generic JSON
+2. **Type-Safe Resolvers**: Add resolvers to DomainNodeType that return typed data
+3. **Validation**: Add field validation at the GraphQL layer
+4. **Documentation**: Generate GraphQL schema documentation from node descriptions
+
+### Technical Decisions Made
+
+1. **Keep Generic System**: Enhanced rather than replaced the existing flexible architecture
+2. **Data-Only Types**: Focused on node data fields, not entire node structure
+3. **Incremental Approach**: Can gradually adopt typed fields while keeping backward compatibility
+4. **Template-Based**: Leveraged existing Jinja2 template system for consistency
+
+This implementation provides a solid foundation for type-safe GraphQL operations while maintaining the flexibility that makes DiPeO powerful.

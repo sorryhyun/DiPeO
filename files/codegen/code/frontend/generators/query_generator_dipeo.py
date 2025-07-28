@@ -78,8 +78,6 @@ class DiPeOQueryGenerator:
                 {'name': 'id'},
                 {'name': 'source'},
                 {'name': 'target'},
-                {'name': 'content_type'},
-                {'name': 'label'},
                 {'name': 'data'}
             ]},
             {'name': 'persons', 'fields': [
@@ -124,7 +122,7 @@ class DiPeOQueryGenerator:
         
         # GetDiagram query
         field_selection = self.generate_field_selection(diagram_fields)
-        queries.append(f"""query GetDiagram($id: DiagramID!) {{
+        queries.append(f"""query GetDiagram($id: ID!) {{
   diagram(id: $id) {{
 {field_selection}
   }}
@@ -154,8 +152,8 @@ class DiPeOQueryGenerator:
 }}""")
         
         # ExecuteDiagram mutation
-        queries.append(f"""mutation ExecuteDiagram($data: ExecuteDiagramInput!) {{
-  execute_diagram(data: $data) {{
+        queries.append(f"""mutation ExecuteDiagram($input: ExecuteDiagramInput!) {{
+  execute_diagram(input: $input) {{
     success
     execution {{
       id
@@ -166,7 +164,7 @@ class DiPeOQueryGenerator:
 }}""")
         
         # DeleteDiagram mutation
-        queries.append(f"""mutation DeleteDiagram($id: DiagramID!) {{
+        queries.append(f"""mutation DeleteDiagram($id: ID!) {{
   delete_diagram(id: $id) {{
     success
     message
@@ -197,7 +195,7 @@ class DiPeOQueryGenerator:
         
         # GetPerson query
         field_selection = self.generate_field_selection(person_fields)
-        queries.append(f"""query GetPerson($id: PersonID!) {{
+        queries.append(f"""query GetPerson($id: ID!) {{
   person(id: $id) {{
 {field_selection}
   }}
@@ -217,8 +215,8 @@ class DiPeOQueryGenerator:
         mutation_field_selection = self.generate_field_selection(person_fields, indent=3)
         
         # CreatePerson mutation
-        queries.append(f"""mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) {{
-  create_person(diagram_id: $diagramId, person_input: $personInput) {{
+        queries.append(f"""mutation CreatePerson($input: CreatePersonInput!) {{
+  create_person(input: $input) {{
     success
     person {{
 {mutation_field_selection}
@@ -229,8 +227,8 @@ class DiPeOQueryGenerator:
 }}""")
         
         # UpdatePerson mutation
-        queries.append(f"""mutation UpdatePerson($personInput: UpdatePersonInput!) {{
-  update_person(person_input: $personInput) {{
+        queries.append(f"""mutation UpdatePerson($id: ID!, $input: UpdatePersonInput!) {{
+  update_person(id: $id, input: $input) {{
     success
     person {{
 {mutation_field_selection}
@@ -241,25 +239,14 @@ class DiPeOQueryGenerator:
 }}""")
         
         # DeletePerson mutation
-        queries.append(f"""mutation DeletePerson($personId: PersonID!) {{
-  delete_person(person_id: $personId) {{
+        queries.append(f"""mutation DeletePerson($id: ID!) {{
+  delete_person(id: $id) {{
     success
     message
     error
   }}
 }}""")
         
-        # InitializeModel mutation
-        queries.append(f"""mutation InitializeModel($personId: PersonID!, $apiKeyId: ApiKeyID!, $model: String!, $label: String!) {{
-  initialize_model(person_id: $personId, api_key_id: $apiKeyId, model: $model, label: $label) {{
-    success
-    person {{
-{mutation_field_selection}
-    }}
-    message
-    error
-  }}
-}}""")
         
         self.write_query_file('persons', queries)
     
@@ -298,23 +285,17 @@ class DiPeOQueryGenerator:
         
         # Update fields (for subscription)
         update_fields = [
-            {'name': 'id'},
-            {'name': 'status'},
-            {'name': 'node_states'},
-            {'name': 'node_outputs'},
-            {'name': 'token_usage', 'fields': [
-                {'name': 'input'},
-                {'name': 'output'},
-                {'name': 'cached'}
-            ]},
-            {'name': 'error'}
+            {'name': 'execution_id'},
+            {'name': 'event_type'},
+            {'name': 'data'},
+            {'name': 'timestamp'}
         ]
         
         queries = []
         
         # GetExecution query
         field_selection = self.generate_field_selection(full_fields)
-        queries.append(f"""query GetExecution($id: ExecutionID!) {{
+        queries.append(f"""query GetExecution($id: ID!) {{
   execution(id: $id) {{
 {field_selection}
   }}
@@ -330,41 +311,25 @@ class DiPeOQueryGenerator:
         
         # ExecutionUpdates subscription
         update_field_selection = self.generate_field_selection(update_fields)
-        queries.append(f"""subscription ExecutionUpdates($executionId: ExecutionID!) {{
+        queries.append(f"""subscription ExecutionUpdates($executionId: ID!) {{
   execution_updates(execution_id: $executionId) {{
 {update_field_selection}
   }}
 }}""")
         
         # NodeUpdates subscription
-        queries.append("""subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
-  node_updates(execution_id: $executionId, node_types: $nodeTypes) {
-    execution_id
-    node_id
-    node_type
-    status
-    progress
-    output
-    error
-    tokens_used
-    timestamp
-  }
+        queries.append("""subscription NodeUpdates($executionId: ID!, $nodeId: String) {
+  node_updates(execution_id: $executionId, node_id: $nodeId)
 }""")
         
         # InteractivePrompts subscription
-        queries.append("""subscription InteractivePrompts($executionId: ExecutionID!) {
-  interactive_prompts(execution_id: $executionId) {
-    execution_id
-    node_id
-    prompt
-    timeout_seconds
-    timestamp
-  }
+        queries.append("""subscription InteractivePrompts($executionId: ID!) {
+  interactive_prompts(execution_id: $executionId)
 }""")
         
         # ControlExecution mutation
-        queries.append("""mutation ControlExecution($data: ExecutionControlInput!) {
-  control_execution(data: $data) {
+        queries.append("""mutation ControlExecution($input: ExecutionControlInput!) {
+  control_execution(input: $input) {
     success
     execution {
       id
@@ -375,9 +340,9 @@ class DiPeOQueryGenerator:
   }
 }""")
         
-        # SubmitInteractiveResponse mutation
-        queries.append("""mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
-  submit_interactive_response(data: $data) {
+        # SendInteractiveResponse mutation
+        queries.append("""mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
+  send_interactive_response(input: $input) {
     success
     execution {
       id

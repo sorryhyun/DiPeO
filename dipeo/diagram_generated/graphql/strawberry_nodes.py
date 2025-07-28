@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-07-28T22:25:46.312651
+Generated at: 2025-07-28T23:12:46.902701
 """
 
 import strawberry
@@ -10,292 +10,208 @@ from typing import Optional, List, Dict, Any
 from strawberry.types import Info
 
 # Import Pydantic models
-from dipeo.diagram_generated.nodes import (
+from dipeo.diagram_generated.models import (
 
-    ApiJobNode,
+    ApiJobNodeData,
 
-    CodeJobNode,
+    CodeJobNodeData,
 
-    ConditionNode,
+    ConditionNodeData,
 
-    DbNode,
+    DbNodeData,
 
-    EndpointNode,
+    EndpointNodeData,
 
-    HookNode,
+    HookNodeData,
 
-    JsonSchemaValidatorNode,
+    JsonSchemaValidatorNodeData,
 
-    NotionNode,
+    NotionNodeData,
 
-    PersonBatchJobNode,
+    PersonBatchJobNodeData,
 
-    PersonJobNode,
+    PersonJobNodeData,
 
-    StartNode,
+    StartNodeData,
 
-    SubDiagramNode,
+    SubDiagramNodeData,
 
-    TemplateJobNode,
+    TemplateJobNodeData,
 
-    TypescriptAstNode,
+    TypescriptAstNodeData,
 
-    UserResponseNode,
+    UserResponseNodeData,
 
-)
-
-# Import domain types
-from .domain_types import (
-    Vec2Type,
-    DomainHandleType,
-    NodeStateType,
 )
 
 # Import scalars
-from ..scalars import NodeIDScalar
+from dipeo.application.graphql.types.scalars import JSONScalar
 
 
-# Define the Node interface
-@strawberry.interface
-class Node:
-    """Base interface for all diagram nodes"""
-    id: NodeIDScalar
-    position: Vec2Type
-    
-    @strawberry.field
-    def type(self) -> str:
-        """The node type identifier"""
-        return self.__class__.__name__.replace('NodeType', '').lower()
+# Generate Strawberry types for node data
 
-
-# Generate Strawberry types for each node
-
-@strawberry.experimental.pydantic.type(ApiJobNode)
-class ApiJobNodeType(Node):
-    """Make HTTP API requests"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(ApiJobNodeData, all_fields=True)
+class ApiJobDataType:
+    """Make HTTP API requests - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(CodeJobNode)
-class CodeJobNodeType(Node):
-    """Execute custom code functions"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(CodeJobNodeData, all_fields=True)
+class CodeJobDataType:
+    """Execute custom code functions - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(ConditionNode)
-class ConditionNodeType(Node):
-    """Conditional branching based on expressions"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(ConditionNodeData, all_fields=True)
+class ConditionDataType:
+    """Conditional branching based on expressions - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(DbNode)
-class DbNodeType(Node):
-    """Database operations"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(DbNodeData, all_fields=True)
+class DbDataType:
+    """Database operations - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(EndpointNode)
-class EndpointNodeType(Node):
-    """Exit point for diagram execution"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(EndpointNodeData, all_fields=True)
+class EndpointDataType:
+    """Exit point for diagram execution - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(HookNode)
-class HookNodeType(Node):
-    """Executes hooks at specific points in the diagram execution"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(HookNodeData, all_fields=True)
+class HookDataType:
+    """Executes hooks at specific points in the diagram execution - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(JsonSchemaValidatorNode)
-class JsonSchemaValidatorNodeType(Node):
-    """Validate data against JSON schema"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(JsonSchemaValidatorNodeData, all_fields=True)
+class JsonSchemaValidatorDataType:
+    """Validate data against JSON schema - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(NotionNode)
-class NotionNodeType(Node):
-    """Integrate with Notion API to query, create, or update database entries"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(NotionNodeData, all_fields=True)
+class NotionDataType:
+    """Integrate with Notion API to query, create, or update database entries - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(PersonBatchJobNode)
-class PersonBatchJobNodeType(Node):
-    """Execute AI tasks on batches of data using language models"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(PersonBatchJobNodeData, all_fields=True)
+class PersonBatchJobDataType:
+    """Execute AI tasks on batches of data using language models - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(PersonJobNode)
-class PersonJobNodeType(Node):
-    """Execute tasks using AI language models"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(PersonJobNodeData, all_fields=True)
+class PersonJobDataType:
+    """Execute tasks using AI language models - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(StartNode)
-class StartNodeType(Node):
-    """Entry point for diagram execution"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(StartNodeData, all_fields=True)
+class StartDataType:
+    """Entry point for diagram execution - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(SubDiagramNode)
-class SubDiagramNodeType(Node):
-    """Execute another diagram as a node within the current diagram"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(SubDiagramNodeData, all_fields=True)
+class SubDiagramDataType:
+    """Execute another diagram as a node within the current diagram - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(TemplateJobNode)
-class TemplateJobNodeType(Node):
-    """Process templates with data"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(TemplateJobNodeData, all_fields=True)
+class TemplateJobDataType:
+    """Process templates with data - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(TypescriptAstNode)
-class TypescriptAstNodeType(Node):
-    """Parses TypeScript source code and extracts AST, interfaces, types, and enums"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(TypescriptAstNodeData, all_fields=True)
+class TypescriptAstDataType:
+    """Parses TypeScript source code and extracts AST, interfaces, types, and enums - Data fields only"""
     pass
 
 
-@strawberry.experimental.pydantic.type(UserResponseNode)
-class UserResponseNodeType(Node):
-    """Collect user input"""
-    # All fields are automatically generated from Pydantic model
+@strawberry.experimental.pydantic.type(UserResponseNodeData, all_fields=True)
+class UserResponseDataType:
+    """Collect user input - Data fields only"""
     pass
 
 
 
-# Create union type for all nodes
-DiagramNode = strawberry.union(
-    "DiagramNode",
+# Create union type for all node data types
+NodeDataUnion = strawberry.union(
+    "NodeDataUnion",
     (
 
-        ApiJobNodeType,
+        ApiJobDataType,
 
-        CodeJobNodeType,
+        CodeJobDataType,
 
-        ConditionNodeType,
+        ConditionDataType,
 
-        DbNodeType,
+        DbDataType,
 
-        EndpointNodeType,
+        EndpointDataType,
 
-        HookNodeType,
+        HookDataType,
 
-        JsonSchemaValidatorNodeType,
+        JsonSchemaValidatorDataType,
 
-        NotionNodeType,
+        NotionDataType,
 
-        PersonBatchJobNodeType,
+        PersonBatchJobDataType,
 
-        PersonJobNodeType,
+        PersonJobDataType,
 
-        StartNodeType,
+        StartDataType,
 
-        SubDiagramNodeType,
+        SubDiagramDataType,
 
-        TemplateJobNodeType,
+        TemplateJobDataType,
 
-        TypescriptAstNodeType,
+        TypescriptAstDataType,
 
-        UserResponseNodeType,
+        UserResponseDataType,
 
     )
 )
 
 
-# Node type resolver
-def resolve_node_type(domain_node: Any) -> Node:
-    """Resolve a domain node to the correct GraphQL type."""
-    node_type_map = {
-
-        "api_job": ApiJobNodeType,
-
-        "code_job": CodeJobNodeType,
-
-        "condition": ConditionNodeType,
-
-        "db": DbNodeType,
-
-        "endpoint": EndpointNodeType,
-
-        "hook": HookNodeType,
-
-        "json_schema_validator": JsonSchemaValidatorNodeType,
-
-        "notion": NotionNodeType,
-
-        "person_batch_job": PersonBatchJobNodeType,
-
-        "person_job": PersonJobNodeType,
-
-        "start": StartNodeType,
-
-        "sub_diagram": SubDiagramNodeType,
-
-        "template_job": TemplateJobNodeType,
-
-        "typescript_ast": TypescriptAstNodeType,
-
-        "user_response": UserResponseNodeType,
-
-    }
-    
-    node_type = domain_node.type
-    graphql_type = node_type_map.get(node_type)
-    
-    if not graphql_type:
-        raise ValueError(f"Unknown node type: {node_type}")
-    
-    # Convert domain node to GraphQL type
-    return graphql_type.from_pydantic(domain_node)
-
-
 # Export all types
 __all__ = [
-    'Node',
-    'DiagramNode',
-    'resolve_node_type',
+    'NodeDataUnion',
 
-    'ApiJobNodeType',
+    'ApiJobDataType',
 
-    'CodeJobNodeType',
+    'CodeJobDataType',
 
-    'ConditionNodeType',
+    'ConditionDataType',
 
-    'DbNodeType',
+    'DbDataType',
 
-    'EndpointNodeType',
+    'EndpointDataType',
 
-    'HookNodeType',
+    'HookDataType',
 
-    'JsonSchemaValidatorNodeType',
+    'JsonSchemaValidatorDataType',
 
-    'NotionNodeType',
+    'NotionDataType',
 
-    'PersonBatchJobNodeType',
+    'PersonBatchJobDataType',
 
-    'PersonJobNodeType',
+    'PersonJobDataType',
 
-    'StartNodeType',
+    'StartDataType',
 
-    'SubDiagramNodeType',
+    'SubDiagramDataType',
 
-    'TemplateJobNodeType',
+    'TemplateJobDataType',
 
-    'TypescriptAstNodeType',
+    'TypescriptAstDataType',
 
-    'UserResponseNodeType',
+    'UserResponseDataType',
 
 ]

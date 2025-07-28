@@ -1,5 +1,5 @@
 # Person Queries
-query GetPerson($id: PersonID!) {
+query GetPerson($id: ID!) {
   person(id: $id) {
     id
     label
@@ -28,8 +28,8 @@ query GetPersons($limit: Int = 100) {
 }
 
 # Person Mutations
-mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) {
-  create_person(diagram_id: $diagramId, person_input: $personInput) {
+mutation CreatePerson($input: CreatePersonInput!) {
+  create_person(input: $input) {
     success
     person {
       id
@@ -47,8 +47,8 @@ mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) 
   }
 }
 
-mutation UpdatePerson($personInput: UpdatePersonInput!) {
-  update_person(person_input: $personInput) {
+mutation UpdatePerson($id: ID!, $input: UpdatePersonInput!) {
+  update_person(id: $id, input: $input) {
     success
     person {
       id
@@ -66,28 +66,9 @@ mutation UpdatePerson($personInput: UpdatePersonInput!) {
   }
 }
 
-mutation DeletePerson($personId: PersonID!) {
-  delete_person(person_id: $personId) {
+mutation DeletePerson($id: ID!) {
+  delete_person(id: $id) {
     success
-    message
-    error
-  }
-}
-
-mutation InitializeModel($personId: PersonID!, $apiKeyId: ApiKeyID!, $model: String!, $label: String!) {
-  initialize_model(person_id: $personId, api_key_id: $apiKeyId, model: $model, label: $label) {
-    success
-    person {
-      id
-      label
-      llm_config {
-        service
-        model
-        api_key_id
-        system_prompt
-      }
-      type
-    }
     message
     error
   }

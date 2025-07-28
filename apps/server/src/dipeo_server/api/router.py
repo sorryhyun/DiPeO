@@ -41,8 +41,8 @@ def setup_routes(app: FastAPI):
     graphql_router = create_graphql_router(context_getter=get_graphql_context)
     app.include_router(graphql_router, prefix="")
     
-    # V2 GraphQL router
-    v2_graphql_router = create_v2_graphql_router(context_getter=get_graphql_context)
-    app.include_router(v2_graphql_router, prefix="")
+    # V2 GraphQL router - temporarily disabled during migration
+    # v2_graphql_router = create_v2_graphql_router(context_getter=get_graphql_context)
+    # app.include_router(v2_graphql_router, prefix="")
 
     # Future REST API routes can be added here

@@ -106,12 +106,12 @@ def generate_strawberry_types(inputs: dict) -> dict:
         # Convert node type to class name (e.g., 'person_job' -> 'PersonJob')
         class_name = ''.join(word.capitalize() for word in node_type.split('_'))
         
-        # Convert to Pydantic model name
-        pydantic_model = f"{class_name}Node"
+        # Convert to Pydantic model name (template will append "NodeData")
+        pydantic_model = f"{class_name}"
         
         strawberry_types.append({
             'node_type': node_type,
-            'class_name': f"{class_name}NodeType",
+            'class_name': f"{class_name}",  # Template will append "DataType"
             'pydantic_model': pydantic_model,
             'display_name': spec.get('displayName', ''),
             'description': spec.get('description', ''),
@@ -142,8 +142,8 @@ def generate_node_mutations(inputs: dict) -> dict:
         # Generate create mutation
         mutations.append({
             'name': f"create_{node_type_info['node_type']}_node",
-            'input_type': f"Create{node_type_info['class_name'].replace('Type', '')}Input",
-            'return_type': node_type_info['class_name'],
+            'input_type': f"Create{node_type_info['class_name']}Input",
+            'return_type': f"{node_type_info['class_name']}DataType",
             'node_type': node_type_info['node_type'],
             'operation': 'create'
         })
@@ -151,8 +151,8 @@ def generate_node_mutations(inputs: dict) -> dict:
         # Generate update mutation
         mutations.append({
             'name': f"update_{node_type_info['node_type']}_node",
-            'input_type': f"Update{node_type_info['class_name'].replace('Type', '')}Input",
-            'return_type': node_type_info['class_name'],
+            'input_type': f"Update{node_type_info['class_name']}Input",
+            'return_type': f"{node_type_info['class_name']}DataType",
             'node_type': node_type_info['node_type'],
             'operation': 'update'
         })

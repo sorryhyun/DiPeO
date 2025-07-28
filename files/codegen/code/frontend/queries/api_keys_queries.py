@@ -24,7 +24,7 @@ class ApiKeysQueryGenerator:
 }""")
         
         # GetApiKey query
-        queries.append("""query GetApiKey($id: ApiKeyID!) {
+        queries.append("""query GetApiKey($id: ID!) {
   api_key(id: $id) {
     id
     label
@@ -33,7 +33,7 @@ class ApiKeysQueryGenerator:
 }""")
         
         # GetAvailableModels query
-        queries.append("""query GetAvailableModels($service: String!, $apiKeyId: ApiKeyID!) {
+        queries.append("""query GetAvailableModels($service: String!, $apiKeyId: ID!) {
   available_models(service: $service, api_key_id: $apiKeyId)
 }""")
         
@@ -55,7 +55,7 @@ class ApiKeysQueryGenerator:
 }""")
         
         # TestApiKey mutation
-        queries.append("""mutation TestApiKey($id: ApiKeyID!) {
+        queries.append("""mutation TestApiKey($id: ID!) {
   test_api_key(id: $id) {
     success
     message
@@ -64,7 +64,7 @@ class ApiKeysQueryGenerator:
 }""")
         
         # DeleteApiKey mutation
-        queries.append("""mutation DeleteApiKey($id: ApiKeyID!) {
+        queries.append("""mutation DeleteApiKey($id: ID!) {
   delete_api_key(id: $id) {
     success
     message

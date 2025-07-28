@@ -1,4 +1,4 @@
-query GetExecution($id: ExecutionID!) {
+query GetExecution($id: ID!) {
   execution(id: $id) {
     id
     status
@@ -31,47 +31,25 @@ query ListExecutions($filter: ExecutionFilterInput, $limit: Int, $offset: Int) {
   }
 }
 
-subscription ExecutionUpdates($executionId: ExecutionID!) {
+subscription ExecutionUpdates($executionId: ID!) {
   execution_updates(execution_id: $executionId) {
-    id
-    status
-    node_states
-    node_outputs
-    token_usage {
-      input
-      output
-      cached
-    }
-    error
-  }
-}
-
-subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
-  node_updates(execution_id: $executionId, node_types: $nodeTypes) {
     execution_id
-    node_id
-    node_type
-    status
-    progress
-    output
-    error
-    tokens_used
+    event_type
+    data
     timestamp
   }
 }
 
-subscription InteractivePrompts($executionId: ExecutionID!) {
-  interactive_prompts(execution_id: $executionId) {
-    execution_id
-    node_id
-    prompt
-    timeout_seconds
-    timestamp
-  }
+subscription NodeUpdates($executionId: ID!, $nodeId: String) {
+  node_updates(execution_id: $executionId, node_id: $nodeId)
 }
 
-mutation ControlExecution($data: ExecutionControlInput!) {
-  control_execution(data: $data) {
+subscription InteractivePrompts($executionId: ID!) {
+  interactive_prompts(execution_id: $executionId)
+}
+
+mutation ControlExecution($input: ExecutionControlInput!) {
+  control_execution(input: $input) {
     success
     execution {
       id
@@ -82,8 +60,8 @@ mutation ControlExecution($data: ExecutionControlInput!) {
   }
 }
 
-mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
-  submit_interactive_response(data: $data) {
+mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
+  send_interactive_response(input: $input) {
     success
     execution {
       id

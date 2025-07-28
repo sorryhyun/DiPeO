@@ -13,6 +13,14 @@
       ],
       "type": "string"
     },
+    "ToolType": {
+      "enum": [
+        "web_search",
+        "web_search_preview",
+        "image_generation"
+      ],
+      "type": "string"
+    },
     "MemorySettings": {
       "additionalProperties": false,
       "properties": {
@@ -32,36 +40,6 @@
       "required": [
         "view"
       ],
-      "type": "object"
-    },
-    "ToolConfig": {
-      "additionalProperties": false,
-      "properties": {
-        "config": {
-          "$ref": "#/definitions/Record<string,any>"
-        },
-        "enabled": {
-          "type": "boolean"
-        },
-        "type": {
-          "$ref": "#/definitions/ToolType"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "type": "object"
-    },
-    "ToolType": {
-      "enum": [
-        "web_search",
-        "web_search_preview",
-        "image_generation"
-      ],
-      "type": "string"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
       "type": "object"
     },
     "PersonBatchJobNodeData": {
@@ -114,6 +92,28 @@
         "label",
         "max_iteration"
       ],
+      "type": "object"
+    },
+    "ToolConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/Record<string,any>"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "type": {
+          "$ref": "#/definitions/ToolType"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
       "type": "object"
     },
     "PersonID": {

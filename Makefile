@@ -95,8 +95,8 @@ dev-all:
 
 # Export GraphQL schema
 graphql-schema:
-	@echo "📝 Exporting GraphQL schema..."
-	cd apps/server && PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo_server.api.graphql.schema > schema.graphql
+	@echo "📝 Exporting GraphQL schema from application layer..."
+	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
 	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
 	@echo "🔄 Generating GraphQL TypeScript types..."
 	pnpm --filter web codegen

@@ -13,12 +13,18 @@ enum APIServiceType {
   JIRA
 }
 
+"""Unique identifier for API keys"""
+scalar ApiKeyID
+
 type ApiKeyResult {
   success: Boolean!
   message: String
   error: String
   api_key: DomainApiKeyType
 }
+
+"""Unique identifier for arrows"""
+scalar ArrowID
 
 input CreateApiKeyInput {
   label: String!
@@ -95,6 +101,9 @@ type DiagramFormatInfo {
   description: String
 }
 
+"""Unique identifier for diagrams"""
+scalar DiagramID
+
 type DiagramMetadataType {
   id: String
   name: String
@@ -135,8 +144,8 @@ type DomainArrowType {
 }
 
 type DomainDiagramType {
-  node_count: Int!
-  arrow_count: Int!
+  nodeCount: Int!
+  arrowCount: Int!
   nodes: [DomainNodeType!]!
   handles: [DomainHandleType!]!
   arrows: [DomainArrowType!]!
@@ -188,6 +197,9 @@ input ExecutionFilterInput {
   started_after: DateTime = null
   started_before: DateTime = null
 }
+
+"""Unique identifier for executions"""
+scalar ExecutionID
 
 type ExecutionResult {
   success: Boolean!
@@ -245,6 +257,9 @@ enum HandleDirection {
   OUTPUT
 }
 
+"""Unique identifier for handles"""
+scalar HandleID
+
 enum HandleLabel {
   DEFAULT
   FIRST
@@ -254,6 +269,9 @@ enum HandleLabel {
   ERROR
   RESULTS
 }
+
+"""Unique identifier for hooks"""
+scalar HookID
 
 input InteractiveResponseInput {
   execution_id: ID!
@@ -309,6 +327,9 @@ enum NodeExecutionStatus {
   MAXITER_REACHED
 }
 
+"""Unique identifier for nodes"""
+scalar NodeID
+
 type NodeResult {
   success: Boolean!
   node: DomainNodeType
@@ -333,6 +354,9 @@ enum NodeType {
   TYPESCRIPT_AST
   SUB_DIAGRAM
 }
+
+"""Unique identifier for persons"""
+scalar PersonID
 
 input PersonLLMConfigInput {
   service: LLMService!
@@ -380,6 +404,9 @@ type Subscription {
   node_updates(execution_id: ID!, node_id: String = null): JSON!
   interactive_prompts(execution_id: ID!): JSON!
 }
+
+"""Unique identifier for tasks"""
+scalar TaskID
 
 type TestApiKeyResult {
   success: Boolean!

@@ -5,7 +5,7 @@ import { ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
 import { createEntityQuery } from '@/lib/graphql/hooks';
 
 const EXECUTION_ORDER_QUERY = gql`
-  query ExecutionOrder($executionId: ExecutionID!) {
+  query ExecutionOrder($executionId: ID!) {
     execution_order(execution_id: $executionId)
   }
 `;

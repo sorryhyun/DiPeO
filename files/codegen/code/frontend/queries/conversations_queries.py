@@ -15,8 +15,8 @@ class ConversationsQueryGenerator:
         
         # GetConversations query
         queries.append("""query GetConversations(
-  $person_id: PersonID
-  $execution_id: ExecutionID
+  $person_id: ID
+  $execution_id: ID
   $search: String
   $show_forgotten: Boolean = false
   $limit: Int = 100
@@ -34,15 +34,5 @@ class ConversationsQueryGenerator:
   )
 }""")
         
-        # Add comment
-        queries.append("# Conversation Mutations")
-        
-        # ClearConversations mutation
-        queries.append("""mutation ClearConversations {
-  clear_conversations {
-    success
-    message
-  }
-}""")
         
         return queries

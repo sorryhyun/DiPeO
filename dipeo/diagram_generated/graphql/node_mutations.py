@@ -2,48 +2,52 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-07-28T22:33:57.106232
+Generated at: 2025-07-28T23:12:46.893023
 """
 
 import strawberry
 from typing import Optional
 from strawberry.types import Info
 
-# Import node types
+# Import data types and unions
 from .strawberry_nodes import (
+    NodeDataUnion,
 
-    ApiJobNodeType,
+    ApiJobDataType,
 
-    CodeJobNodeType,
+    CodeJobDataType,
 
-    ConditionNodeType,
+    ConditionDataType,
 
-    DbNodeType,
+    DbDataType,
 
-    EndpointNodeType,
+    EndpointDataType,
 
-    HookNodeType,
+    HookDataType,
 
-    JsonSchemaValidatorNodeType,
+    JsonSchemaValidatorDataType,
 
-    NotionNodeType,
+    NotionDataType,
 
-    PersonBatchJobNodeType,
+    PersonBatchJobDataType,
 
-    PersonJobNodeType,
+    PersonJobDataType,
 
-    StartNodeType,
+    StartDataType,
 
-    SubDiagramNodeType,
+    SubDiagramDataType,
 
-    TemplateJobNodeType,
+    TemplateJobDataType,
 
-    TypescriptAstNodeType,
+    TypescriptAstDataType,
 
-    UserResponseNodeType,
+    UserResponseDataType,
 
-    resolve_node_type,
 )
+
+# Import base types
+from dipeo.application.graphql.types.domain_types import DomainNodeType
+from dipeo.application.graphql.types.inputs import Vec2Input
 
 # Import services
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
@@ -52,258 +56,273 @@ from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 # Generate input types for each node
 
 @strawberry.input
-class CreateApiJobNodeInput:
+class CreateApiJobInput:
     """Input for creating a API Job node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateApiJobNodeInput:
+class UpdateApiJobInput:
     """Input for updating a API Job node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateCodeJobNodeInput:
+class CreateCodeJobInput:
     """Input for creating a Code Job node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateCodeJobNodeInput:
+class UpdateCodeJobInput:
     """Input for updating a Code Job node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateConditionNodeInput:
+class CreateConditionInput:
     """Input for creating a Condition node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateConditionNodeInput:
+class UpdateConditionInput:
     """Input for updating a Condition node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateDbNodeInput:
+class CreateDbInput:
     """Input for creating a Database node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateDbNodeInput:
+class UpdateDbInput:
     """Input for updating a Database node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateEndpointNodeInput:
+class CreateEndpointInput:
     """Input for creating a End Node node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateEndpointNodeInput:
+class UpdateEndpointInput:
     """Input for updating a End Node node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateHookNodeInput:
+class CreateHookInput:
     """Input for creating a Hook node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateHookNodeInput:
+class UpdateHookInput:
     """Input for updating a Hook node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateJsonSchemaValidatorNodeInput:
+class CreateJsonSchemaValidatorInput:
     """Input for creating a JSON Schema Validator node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateJsonSchemaValidatorNodeInput:
+class UpdateJsonSchemaValidatorInput:
     """Input for updating a JSON Schema Validator node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateNotionNodeInput:
+class CreateNotionInput:
     """Input for creating a Notion node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateNotionNodeInput:
+class UpdateNotionInput:
     """Input for updating a Notion node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreatePersonBatchJobNodeInput:
+class CreatePersonBatchJobInput:
     """Input for creating a Person Batch Job node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdatePersonBatchJobNodeInput:
+class UpdatePersonBatchJobInput:
     """Input for updating a Person Batch Job node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreatePersonJobNodeInput:
+class CreatePersonJobInput:
     """Input for creating a Person Job node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdatePersonJobNodeInput:
+class UpdatePersonJobInput:
     """Input for updating a Person Job node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateStartNodeInput:
+class CreateStartInput:
     """Input for creating a Start Node node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateStartNodeInput:
+class UpdateStartInput:
     """Input for updating a Start Node node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateSubDiagramNodeInput:
+class CreateSubDiagramInput:
     """Input for creating a Sub-Diagram node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateSubDiagramNodeInput:
+class UpdateSubDiagramInput:
     """Input for updating a Sub-Diagram node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateTemplateJobNodeInput:
+class CreateTemplateJobInput:
     """Input for creating a Template Job node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateTemplateJobNodeInput:
+class UpdateTemplateJobInput:
     """Input for updating a Template Job node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreatescriptAstNodeInput:
+class CreateTypescriptAstInput:
     """Input for creating a TypeScript AST Parser node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdatescriptAstNodeInput:
+class UpdateTypescriptAstInput:
     """Input for updating a TypeScript AST Parser node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
-class CreateUserResponseNodeInput:
+class CreateUserResponseInput:
     """Input for creating a User Response node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateUserResponseNodeInput:
+class UpdateUserResponseInput:
     """Input for updating a User Response node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 
 
@@ -317,8 +336,8 @@ class NodeMutations:
     async def create_api_job_node(
         self,
         info: Info,
-        input: CreateApiJobNodeInput
-    ) -> ApiJobNodeType:
+        input: CreateApiJobInput
+    ) -> ApiJobDataType:
         """Create a Api Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -338,15 +357,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return ApiJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_api_job_node(
         self,
         info: Info,
-        id: str, input: UpdateApiJobNodeInput
-    ) -> ApiJobNodeType:
+        id: str, input: UpdateApiJobInput
+    ) -> ApiJobDataType:
         """Update a Api Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -359,15 +384,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return ApiJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_code_job_node(
         self,
         info: Info,
-        input: CreateCodeJobNodeInput
-    ) -> CodeJobNodeType:
+        input: CreateCodeJobInput
+    ) -> CodeJobDataType:
         """Create a Code Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -387,15 +418,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return CodeJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_code_job_node(
         self,
         info: Info,
-        id: str, input: UpdateCodeJobNodeInput
-    ) -> CodeJobNodeType:
+        id: str, input: UpdateCodeJobInput
+    ) -> CodeJobDataType:
         """Update a Code Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -408,15 +445,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return CodeJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_condition_node(
         self,
         info: Info,
-        input: CreateConditionNodeInput
-    ) -> ConditionNodeType:
+        input: CreateConditionInput
+    ) -> ConditionDataType:
         """Create a Condition node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -436,15 +479,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return ConditionNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_condition_node(
         self,
         info: Info,
-        id: str, input: UpdateConditionNodeInput
-    ) -> ConditionNodeType:
+        id: str, input: UpdateConditionInput
+    ) -> ConditionDataType:
         """Update a Condition node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -457,15 +506,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return ConditionNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_db_node(
         self,
         info: Info,
-        input: CreateDbNodeInput
-    ) -> DbNodeType:
+        input: CreateDbInput
+    ) -> DbDataType:
         """Create a Db node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -485,15 +540,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return DbNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_db_node(
         self,
         info: Info,
-        id: str, input: UpdateDbNodeInput
-    ) -> DbNodeType:
+        id: str, input: UpdateDbInput
+    ) -> DbDataType:
         """Update a Db node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -506,15 +567,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return DbNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_endpoint_node(
         self,
         info: Info,
-        input: CreateEndpointNodeInput
-    ) -> EndpointNodeType:
+        input: CreateEndpointInput
+    ) -> EndpointDataType:
         """Create a Endpoint node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -534,15 +601,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return EndpointNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_endpoint_node(
         self,
         info: Info,
-        id: str, input: UpdateEndpointNodeInput
-    ) -> EndpointNodeType:
+        id: str, input: UpdateEndpointInput
+    ) -> EndpointDataType:
         """Update a Endpoint node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -555,15 +628,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return EndpointNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_hook_node(
         self,
         info: Info,
-        input: CreateHookNodeInput
-    ) -> HookNodeType:
+        input: CreateHookInput
+    ) -> HookDataType:
         """Create a Hook node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -583,15 +662,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return HookNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_hook_node(
         self,
         info: Info,
-        id: str, input: UpdateHookNodeInput
-    ) -> HookNodeType:
+        id: str, input: UpdateHookInput
+    ) -> HookDataType:
         """Update a Hook node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -604,15 +689,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return HookNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_json_schema_validator_node(
         self,
         info: Info,
-        input: CreateJsonSchemaValidatorNodeInput
-    ) -> JsonSchemaValidatorNodeType:
+        input: CreateJsonSchemaValidatorInput
+    ) -> JsonSchemaValidatorDataType:
         """Create a Json Schema Validator node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -632,15 +723,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return JsonSchemaValidatorNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_json_schema_validator_node(
         self,
         info: Info,
-        id: str, input: UpdateJsonSchemaValidatorNodeInput
-    ) -> JsonSchemaValidatorNodeType:
+        id: str, input: UpdateJsonSchemaValidatorInput
+    ) -> JsonSchemaValidatorDataType:
         """Update a Json Schema Validator node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -653,15 +750,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return JsonSchemaValidatorNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_notion_node(
         self,
         info: Info,
-        input: CreateNotionNodeInput
-    ) -> NotionNodeType:
+        input: CreateNotionInput
+    ) -> NotionDataType:
         """Create a Notion node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -681,15 +784,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return NotionNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_notion_node(
         self,
         info: Info,
-        id: str, input: UpdateNotionNodeInput
-    ) -> NotionNodeType:
+        id: str, input: UpdateNotionInput
+    ) -> NotionDataType:
         """Update a Notion node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -702,15 +811,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return NotionNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_person_batch_job_node(
         self,
         info: Info,
-        input: CreatePersonBatchJobNodeInput
-    ) -> PersonBatchJobNodeType:
+        input: CreatePersonBatchJobInput
+    ) -> PersonBatchJobDataType:
         """Create a Person Batch Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -730,15 +845,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return PersonBatchJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_person_batch_job_node(
         self,
         info: Info,
-        id: str, input: UpdatePersonBatchJobNodeInput
-    ) -> PersonBatchJobNodeType:
+        id: str, input: UpdatePersonBatchJobInput
+    ) -> PersonBatchJobDataType:
         """Update a Person Batch Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -751,15 +872,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return PersonBatchJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_person_job_node(
         self,
         info: Info,
-        input: CreatePersonJobNodeInput
-    ) -> PersonJobNodeType:
+        input: CreatePersonJobInput
+    ) -> PersonJobDataType:
         """Create a Person Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -779,15 +906,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return PersonJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_person_job_node(
         self,
         info: Info,
-        id: str, input: UpdatePersonJobNodeInput
-    ) -> PersonJobNodeType:
+        id: str, input: UpdatePersonJobInput
+    ) -> PersonJobDataType:
         """Update a Person Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -800,15 +933,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return PersonJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_start_node(
         self,
         info: Info,
-        input: CreateStartNodeInput
-    ) -> StartNodeType:
+        input: CreateStartInput
+    ) -> StartDataType:
         """Create a Start node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -828,15 +967,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return StartNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_start_node(
         self,
         info: Info,
-        id: str, input: UpdateStartNodeInput
-    ) -> StartNodeType:
+        id: str, input: UpdateStartInput
+    ) -> StartDataType:
         """Update a Start node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -849,15 +994,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return StartNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_sub_diagram_node(
         self,
         info: Info,
-        input: CreateSubDiagramNodeInput
-    ) -> SubDiagramNodeType:
+        input: CreateSubDiagramInput
+    ) -> SubDiagramDataType:
         """Create a Sub Diagram node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -877,15 +1028,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return SubDiagramNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_sub_diagram_node(
         self,
         info: Info,
-        id: str, input: UpdateSubDiagramNodeInput
-    ) -> SubDiagramNodeType:
+        id: str, input: UpdateSubDiagramInput
+    ) -> SubDiagramDataType:
         """Update a Sub Diagram node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -898,15 +1055,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return SubDiagramNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_template_job_node(
         self,
         info: Info,
-        input: CreateTemplateJobNodeInput
-    ) -> TemplateJobNodeType:
+        input: CreateTemplateJobInput
+    ) -> TemplateJobDataType:
         """Create a Template Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -926,15 +1089,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return TemplateJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_template_job_node(
         self,
         info: Info,
-        id: str, input: UpdateTemplateJobNodeInput
-    ) -> TemplateJobNodeType:
+        id: str, input: UpdateTemplateJobInput
+    ) -> TemplateJobDataType:
         """Update a Template Job node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -947,15 +1116,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return TemplateJobNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_typescript_ast_node(
         self,
         info: Info,
-        input: CreatescriptAstNodeInput
-    ) -> TypescriptAstNodeType:
+        input: CreateTypescriptAstInput
+    ) -> TypescriptAstDataType:
         """Create a Typescript Ast node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -975,15 +1150,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return TypescriptAstNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_typescript_ast_node(
         self,
         info: Info,
-        id: str, input: UpdatescriptAstNodeInput
-    ) -> TypescriptAstNodeType:
+        id: str, input: UpdateTypescriptAstInput
+    ) -> TypescriptAstDataType:
         """Update a Typescript Ast node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -996,15 +1177,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return TypescriptAstNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def create_user_response_node(
         self,
         info: Info,
-        input: CreateUserResponseNodeInput
-    ) -> UserResponseNodeType:
+        input: CreateUserResponseInput
+    ) -> UserResponseDataType:
         """Create a User Response node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -1024,15 +1211,21 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return UserResponseNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
     @strawberry.mutation
     async def update_user_response_node(
         self,
         info: Info,
-        id: str, input: UpdateUserResponseNodeInput
-    ) -> UserResponseNodeType:
+        id: str, input: UpdateUserResponseInput
+    ) -> UserResponseDataType:
         """Update a User Response node"""
         registry: UnifiedServiceRegistry = info.context["registry"]
         
@@ -1045,7 +1238,13 @@ class NodeMutations:
         
         
         # Convert to GraphQL type
-        return UserResponseNodeType.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 
 
@@ -1054,49 +1253,49 @@ class NodeMutations:
 __all__ = [
     'NodeMutations',
 
-    'CreateApiJobNodeInput',
-    'UpdateApiJobNodeInput',
+    'CreateApiJobInput',
+    'UpdateApiJobInput',
 
-    'CreateCodeJobNodeInput',
-    'UpdateCodeJobNodeInput',
+    'CreateCodeJobInput',
+    'UpdateCodeJobInput',
 
-    'CreateConditionNodeInput',
-    'UpdateConditionNodeInput',
+    'CreateConditionInput',
+    'UpdateConditionInput',
 
-    'CreateDbNodeInput',
-    'UpdateDbNodeInput',
+    'CreateDbInput',
+    'UpdateDbInput',
 
-    'CreateEndpointNodeInput',
-    'UpdateEndpointNodeInput',
+    'CreateEndpointInput',
+    'UpdateEndpointInput',
 
-    'CreateHookNodeInput',
-    'UpdateHookNodeInput',
+    'CreateHookInput',
+    'UpdateHookInput',
 
-    'CreateJsonSchemaValidatorNodeInput',
-    'UpdateJsonSchemaValidatorNodeInput',
+    'CreateJsonSchemaValidatorInput',
+    'UpdateJsonSchemaValidatorInput',
 
-    'CreateNotionNodeInput',
-    'UpdateNotionNodeInput',
+    'CreateNotionInput',
+    'UpdateNotionInput',
 
-    'CreatePersonBatchJobNodeInput',
-    'UpdatePersonBatchJobNodeInput',
+    'CreatePersonBatchJobInput',
+    'UpdatePersonBatchJobInput',
 
-    'CreatePersonJobNodeInput',
-    'UpdatePersonJobNodeInput',
+    'CreatePersonJobInput',
+    'UpdatePersonJobInput',
 
-    'CreateStartNodeInput',
-    'UpdateStartNodeInput',
+    'CreateStartInput',
+    'UpdateStartInput',
 
-    'CreateSubDiagramNodeInput',
-    'UpdateSubDiagramNodeInput',
+    'CreateSubDiagramInput',
+    'UpdateSubDiagramInput',
 
-    'CreateTemplateJobNodeInput',
-    'UpdateTemplateJobNodeInput',
+    'CreateTemplateJobInput',
+    'UpdateTemplateJobInput',
 
-    'CreatescriptAstNodeInput',
-    'UpdatescriptAstNodeInput',
+    'CreateTypescriptAstInput',
+    'UpdateTypescriptAstInput',
 
-    'CreateUserResponseNodeInput',
-    'UpdateUserResponseNodeInput',
+    'CreateUserResponseInput',
+    'UpdateUserResponseInput',
 
 ]

@@ -1,4 +1,8 @@
-"""Unified GraphQL schema with direct streaming support."""
+"""GraphQL router creation for the DiPeO server.
+
+This module creates the GraphQL router for serving the schema from the application layer.
+The actual schema definition lives in dipeo.application.graphql.
+"""
 
 import strawberry
 from strawberry.fastapi import GraphQLRouter
@@ -48,25 +52,5 @@ def create_unified_graphql_router(context_getter=None, container=None):
     )
 
 
-# Export schema for code generation
-if __name__ == "__main__":
-    import sys
-    
-    # Create a mock registry for schema export
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    registry = UnifiedServiceRegistry()
-    
-    # Create schema with mock registry
-    schema = create_schema(registry)
-    schema_str = schema.as_str()
-
-    # If output path is provided as argument, write to file
-    if len(sys.argv) > 1:
-        output_path = sys.argv[1]
-        with open(output_path, "w") as f:
-            f.write(schema_str)
-        print(f"Unified GraphQL schema exported to {output_path}", file=sys.stderr)
-        print(f"Schema length: {len(schema_str)} characters", file=sys.stderr)
-    else:
-        # Otherwise, print to stdout for piping
-        print(schema_str)
+# Note: Schema export functionality has been moved to dipeo.application.graphql.export_schema
+# This keeps the server layer focused on HTTP/WebSocket concerns only

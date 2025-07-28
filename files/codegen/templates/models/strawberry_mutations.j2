@@ -9,13 +9,17 @@ import strawberry
 from typing import Optional
 from strawberry.types import Info
 
-# Import node types
+# Import data types and unions
 from .strawberry_nodes import (
+    NodeDataUnion,
 {% for type_info in strawberry_types %}
-    {{ type_info.class_name }},
+    {{ type_info.class_name }}DataType,
 {% endfor %}
-    resolve_node_type,
 )
+
+# Import base types
+from dipeo.application.graphql.types.domain_types import DomainNodeType
+from dipeo.application.graphql.types.inputs import Vec2Input
 
 # Import services
 from dipeo.application.interfaces import UnifiedServiceRegistry
@@ -24,20 +28,21 @@ from dipeo.application.interfaces import UnifiedServiceRegistry
 # Generate input types for each node
 {% for type_info in strawberry_types %}
 @strawberry.input
-class Create{{ type_info.class_name.replace('NodeType', 'Node') }}Input:
+class Create{{ type_info.class_name }}Input:
     """Input for creating a {{ type_info.display_name }} node"""
     diagram_id: str
-    position: dict
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
 
 @strawberry.input  
-class Update{{ type_info.class_name.replace('NodeType', 'Node') }}Input:
+class Update{{ type_info.class_name }}Input:
     """Input for updating a {{ type_info.display_name }} node"""
-    # Node-specific fields would be added here based on the spec
-    # For now, we accept a generic data dict
-    data: dict
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
 
 {% endfor %}
 
@@ -78,7 +83,13 @@ class NodeMutations:
         {% endif %}
         
         # Convert to GraphQL type
-        return {{ mutation.return_type }}.from_pydantic(domain_node)
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
 
 {% endfor %}
 
@@ -87,7 +98,7 @@ class NodeMutations:
 __all__ = [
     'NodeMutations',
 {% for type_info in strawberry_types %}
-    'Create{{ type_info.class_name.replace('Type', '') }}Input',
-    'Update{{ type_info.class_name.replace('Type', '') }}Input',
+    'Create{{ type_info.class_name }}Input',
+    'Update{{ type_info.class_name }}Input',
 {% endfor %}
 ]

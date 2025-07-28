@@ -13,6 +13,14 @@
       ],
       "type": "string"
     },
+    "ToolType": {
+      "enum": [
+        "web_search",
+        "web_search_preview",
+        "image_generation"
+      ],
+      "type": "string"
+    },
     "MemorySettings": {
       "additionalProperties": false,
       "properties": {
@@ -51,14 +59,6 @@
         "type"
       ],
       "type": "object"
-    },
-    "ToolType": {
-      "enum": [
-        "web_search",
-        "web_search_preview",
-        "image_generation"
-      ],
-      "type": "string"
     },
     "Record<string,any>": {
       "additionalProperties": false,

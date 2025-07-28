@@ -8,7 +8,7 @@ query GetApiKeys($service: String) {
   }
 }
 
-query GetApiKey($id: ApiKeyID!) {
+query GetApiKey($id: ID!) {
   api_key(id: $id) {
     id
     label
@@ -16,7 +16,7 @@ query GetApiKey($id: ApiKeyID!) {
   }
 }
 
-query GetAvailableModels($service: String!, $apiKeyId: ApiKeyID!) {
+query GetAvailableModels($service: String!, $apiKeyId: ID!) {
   available_models(service: $service, api_key_id: $apiKeyId)
 }
 
@@ -34,7 +34,7 @@ mutation CreateApiKey($input: CreateApiKeyInput!) {
   }
 }
 
-mutation TestApiKey($id: ApiKeyID!) {
+mutation TestApiKey($id: ID!) {
   test_api_key(id: $id) {
     success
     message
@@ -42,7 +42,7 @@ mutation TestApiKey($id: ApiKeyID!) {
   }
 }
 
-mutation DeleteApiKey($id: ApiKeyID!) {
+mutation DeleteApiKey($id: ID!) {
   delete_api_key(id: $id) {
     success
     message

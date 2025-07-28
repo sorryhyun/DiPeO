@@ -1,6 +1,6 @@
 # Node Mutations
-mutation CreateNode($diagramId: DiagramID!, $inputData: CreateNodeInput!) {
-  create_node(diagram_id: $diagramId, input_data: $inputData) {
+mutation CreateNode($diagramId: ID!, $input: CreateNodeInput!) {
+  create_node(diagram_id: $diagramId, input: $input) {
     success
     node {
       id
@@ -16,8 +16,8 @@ mutation CreateNode($diagramId: DiagramID!, $inputData: CreateNodeInput!) {
   }
 }
 
-mutation UpdateNode($inputData: UpdateNodeInput!) {
-  update_node(input_data: $inputData) {
+mutation UpdateNode($diagramId: ID!, $nodeId: ID!, $input: UpdateNodeInput!) {
+  update_node(diagram_id: $diagramId, node_id: $nodeId, input: $input) {
     success
     node {
       id
@@ -33,8 +33,8 @@ mutation UpdateNode($inputData: UpdateNodeInput!) {
   }
 }
 
-mutation DeleteNode($nodeId: NodeID!) {
-  delete_node(node_id: $nodeId) {
+mutation DeleteNode($diagramId: ID!, $nodeId: ID!) {
+  delete_node(diagram_id: $diagramId, node_id: $nodeId) {
     success
     message
     error
