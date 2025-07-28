@@ -105,9 +105,23 @@ nodes:
       diagram_name: codegen/diagrams/frontend/generate_frontend_registry
       diagram_format: light
 
+  - label: Generate GraphQL Queries
+    type: sub_diagram
+    position: {x: 1300, y: 200}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_graphql_queries
+      diagram_format: light
+
+  - label: Generate Zod Schemas
+    type: sub_diagram
+    position: {x: 1300, y: 300}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_zod_schemas
+      diagram_format: light
+
   - label: End
     type: endpoint
-    position: {x: 1300, y: 200}
+    position: {x: 1500, y: 200}
     props:
       save_to_file: false
 
@@ -131,4 +145,13 @@ connections:
     to: Generate Registry
   
   - from: Generate Registry
+    to: Generate GraphQL Queries
+  
+  - from: Generate Registry
+    to: Generate Zod Schemas
+  
+  - from: Generate GraphQL Queries
+    to: End
+  
+  - from: Generate Zod Schemas
     to: End

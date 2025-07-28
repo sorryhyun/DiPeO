@@ -3,7 +3,7 @@
  */
 
 import { NodeType, MemoryView } from '../diagram.js';
-import { NodeSpecification } from '../node-specifications.js';
+import { NodeSpecification } from './node-specifications';
 
 export const personJobSpec: NodeSpecification = {
   nodeType: NodeType.PERSON_JOB,

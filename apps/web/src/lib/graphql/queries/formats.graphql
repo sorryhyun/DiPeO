@@ -1,9 +1,0 @@
-# Format Queries
-query GetSupportedFormats {
-  supported_formats {
-    format
-    name
-    extension
-    supports_export
-  }
-}

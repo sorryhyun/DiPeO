@@ -68,8 +68,8 @@ nodes:
     position: {x: 400, y: 700}
     props:
       language: python
-      filePath: files/codegen/code/models/utils/combine_node_data_ast.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
+      functionName: combine_node_data_ast
 
 
   # Extract GraphQL types
@@ -78,8 +78,8 @@ nodes:
     position: {x: 600, y: 400}
     props:
       language: python
-      filePath: files/codegen/code/models/extractors/graphql_types_extractor.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
+      functionName: extract_graphql_types
 
   # Load GraphQL template
   - label: Load GraphQL Template
@@ -96,8 +96,8 @@ nodes:
     position: {x: 800, y: 350}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/prepare_graphql_template_data.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
+      functionName: prepare_template_data
 
   # Generate GraphQL schema
   - label: Generate GraphQL Schema
@@ -105,8 +105,8 @@ nodes:
     position: {x: 1000, y: 400}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/render_graphql_schema.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
+      functionName: render_graphql_schema
 
   # Write GraphQL schema file
   - label: Write GraphQL Schema
@@ -123,8 +123,8 @@ nodes:
     position: {x: 1400, y: 400}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/summary_generator.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
+      functionName: generate_summary
 
   - label: End
     type: endpoint

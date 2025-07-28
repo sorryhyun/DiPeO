@@ -55,7 +55,7 @@ nodes:
     position: {x: 600, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/generators/setup_node_batch.py
+      filePath: files/codegen/code/models/generate_static_nodes/setup_node_batch.py
       functionName: setup_node_batch
 
   # Batch parse node data files
@@ -84,7 +84,7 @@ nodes:
     position: {x: 600, y: 450}
     props:
       language: python
-      filePath: files/codegen/code/generators/extract_base_interface.py
+      filePath: files/codegen/code/models/generate_static_nodes/extract_base_interface.py
       functionName: extract_base_interface
 
   # Read all temp files
@@ -93,7 +93,7 @@ nodes:
     position: {x: 1000, y: 400}
     props:
       language: python
-      filePath: files/codegen/code/generators/read_batch_results.py
+      filePath: files/codegen/code/models/generate_static_nodes/read_batch_results.py
       functionName: read_batch_results
 
   # Generate static nodes from all parsed data
@@ -102,7 +102,7 @@ nodes:
     position: {x: 1000, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/generators/generate_static_nodes.py
+      filePath: files/codegen/code/models/generate_static_nodes/generate_static_nodes.py
       functionName: generate_static_nodes
 
   # Generate Python code
@@ -111,7 +111,7 @@ nodes:
     position: {x: 1200, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/static_nodes_generator.py
+      filePath: files/codegen/code/models/generate_static_nodes/static_nodes_generator.py
       functionName: main
 
   # Write Python file
@@ -129,7 +129,7 @@ nodes:
     position: {x: 1600, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/summary_generator.py
+      filePath: files/codegen/code/shared/generators/summary_generator.py
       functionName: main
 
   - label: End

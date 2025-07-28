@@ -3,7 +3,7 @@
  */
 
 import { NodeType, SupportedLanguage } from '../diagram.js';
-import { NodeSpecification } from '../node-specifications.js';
+import { NodeSpecification } from './node-specifications';
 
 export const typescriptAstSpec: NodeSpecification = {
   nodeType: NodeType.TYPESCRIPT_AST,

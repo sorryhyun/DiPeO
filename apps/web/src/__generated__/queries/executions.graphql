@@ -1,0 +1,96 @@
+query GetExecution($id: ExecutionID!) {
+  execution(id: $id) {
+    id
+    status
+    diagram_id
+    started_at
+    ended_at
+    node_states
+    node_outputs
+    variables
+    token_usage {
+      input
+      output
+      cached
+    }
+    error
+    duration_seconds
+    is_active
+  }
+}
+
+query ListExecutions($filter: ExecutionFilterInput, $limit: Int, $offset: Int) {
+  executions(filter: $filter, limit: $limit, offset: $offset) {
+    id
+    status
+    diagram_id
+    started_at
+    ended_at
+    is_active
+    duration_seconds
+  }
+}
+
+subscription ExecutionUpdates($executionId: ExecutionID!) {
+  execution_updates(execution_id: $executionId) {
+    id
+    status
+    node_states
+    node_outputs
+    token_usage {
+      input
+      output
+      cached
+    }
+    error
+  }
+}
+
+subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
+  node_updates(execution_id: $executionId, node_types: $nodeTypes) {
+    execution_id
+    node_id
+    node_type
+    status
+    progress
+    output
+    error
+    tokens_used
+    timestamp
+  }
+}
+
+subscription InteractivePrompts($executionId: ExecutionID!) {
+  interactive_prompts(execution_id: $executionId) {
+    execution_id
+    node_id
+    prompt
+    timeout_seconds
+    timestamp
+  }
+}
+
+mutation ControlExecution($data: ExecutionControlInput!) {
+  control_execution(data: $data) {
+    success
+    execution {
+      id
+      status
+    }
+    message
+    error
+  }
+}
+
+mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
+  submit_interactive_response(data: $data) {
+    success
+    execution {
+      id
+      status
+      node_states
+    }
+    message
+    error
+  }
+}

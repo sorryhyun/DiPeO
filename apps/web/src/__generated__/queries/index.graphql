@@ -1,0 +1,5 @@
+# Generated GraphQL queries index
+
+#import './diagram.graphql'
+#import './person.graphql'
+#import './execution.graphql'

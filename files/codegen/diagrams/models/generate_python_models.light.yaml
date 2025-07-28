@@ -85,8 +85,8 @@ nodes:
     position: {x: 600, y: 400}
     props:
       language: python
-      filePath: files/codegen/code/models/utils/combine_ast_data.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_python_models/python_models_generator.py
+      functionName: combine_ast_data
 
   # Load Python model template
   - label: Load Python Template
@@ -103,8 +103,8 @@ nodes:
     position: {x: 800, y: 450}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/python_models.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_python_models/python_models_generator.py
+      functionName: generate_python_models
 
   # Write generated Python models
   - label: Write Python Models
@@ -121,8 +121,8 @@ nodes:
     position: {x: 1200, y: 450}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/generate_python_models_summary.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_python_models/python_models_generator.py
+      functionName: generate_summary
 
   - label: End
     type: endpoint

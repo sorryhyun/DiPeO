@@ -1,4 +1,0 @@
-# System Queries
-query GetSystemInfo {
-  system_info
-}

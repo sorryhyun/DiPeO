@@ -25,8 +25,8 @@ class DiagramFormatService:
             try:
                 data = json.loads(content)
                 if "nodes" in data and isinstance(data["nodes"], dict):
-                    return DiagramFormat.native
-                return DiagramFormat.native
+                    return DiagramFormat.NATIVE
+                return DiagramFormat.NATIVE
             except json.JSONDecodeError:
                 pass
 
@@ -39,12 +39,12 @@ class DiagramFormatService:
                         (isinstance(data.get("nodes"), list) and
                          "connections" in data and
                          "persons" in data)):
-                    return DiagramFormat.light
+                    return DiagramFormat.LIGHT
                 # Check for readable format
                 if data.get("format") == "readable":
-                    return DiagramFormat.readable
+                    return DiagramFormat.READABLE
                 # Default YAML is light format
-                return DiagramFormat.light
+                return DiagramFormat.LIGHT
         except yaml.YAMLError:
             pass
 
@@ -73,22 +73,22 @@ class DiagramFormatService:
         """
         # Check for new extension format
         if filename.endswith(".native.json"):
-            return DiagramFormat.native
+            return DiagramFormat.NATIVE
         elif filename.endswith(".light.yaml") or filename.endswith(".light.yml"):
-            return DiagramFormat.light
+            return DiagramFormat.LIGHT
         elif filename.endswith(".readable.yaml") or filename.endswith(".readable.yml"):
-            return DiagramFormat.readable
+            return DiagramFormat.READABLE
         # Backward compatibility with old format
         elif filename.endswith(".json"):
-            return DiagramFormat.native
+            return DiagramFormat.NATIVE
         elif filename.endswith((".yaml", ".yml")):
             # Check for format hints in filename
             if "light" in filename.lower():
-                return DiagramFormat.light
+                return DiagramFormat.LIGHT
             elif "readable" in filename.lower():
-                return DiagramFormat.readable
+                return DiagramFormat.READABLE
             # Default YAML format
-            return DiagramFormat.light
+            return DiagramFormat.LIGHT
         return None
 
     def get_file_extension_for_format(self, format: DiagramFormat) -> str:
@@ -96,11 +96,11 @@ class DiagramFormatService:
         Get the preferred file extension for a given format.
         This is a business rule about file naming conventions.
         """
-        if format == DiagramFormat.native:
+        if format == DiagramFormat.NATIVE:
             return ".native.json"
-        elif format == DiagramFormat.light:
+        elif format == DiagramFormat.LIGHT:
             return ".light.yaml"
-        elif format == DiagramFormat.readable:
+        elif format == DiagramFormat.READABLE:
             return ".readable.yaml"
         else:
             return ".light.yaml"  # Default
@@ -113,7 +113,7 @@ class DiagramFormatService:
         This encodes business rules about where diagrams might be stored.
         """
         if formats is None:
-            formats = [DiagramFormat.native, DiagramFormat.light, DiagramFormat.readable]
+            formats = [DiagramFormat.NATIVE, DiagramFormat.LIGHT, DiagramFormat.READABLE]
         
         patterns = []
         
@@ -150,13 +150,13 @@ class DiagramFormatService:
         Validate that a diagram data structure matches format requirements.
         This encodes business rules about what makes a valid diagram.
         """
-        if format == DiagramFormat.native:
+        if format == DiagramFormat.NATIVE:
             # Native format must have nodes as a dict
             if not isinstance(data.get("nodes"), dict):
                 raise ValueError("Native format requires 'nodes' to be a dictionary")
             return True
         
-        elif format == DiagramFormat.light:
+        elif format == DiagramFormat.LIGHT:
             # Light format requirements
             required_fields = ["nodes", "connections", "persons"]
             for field in required_fields:
@@ -166,7 +166,7 @@ class DiagramFormatService:
                 raise ValueError("Light format requires 'nodes' to be a list")
             return True
         
-        elif format == DiagramFormat.readable:
+        elif format == DiagramFormat.READABLE:
             # Readable format is more flexible but should have format indicator
             if data.get("format") != "readable" and "readable" not in str(data):
                 raise ValueError("Readable format should indicate its format type")

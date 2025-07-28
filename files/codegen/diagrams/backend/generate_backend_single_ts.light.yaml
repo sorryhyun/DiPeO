@@ -1,5 +1,5 @@
 # Backend Single Node Generation from TypeScript
-# Generates Pydantic model, GraphQL schema, and static node from TypeScript specifications
+# Generates Pydantic model and static node from TypeScript specifications
 
 version: light
 
@@ -105,14 +105,6 @@ nodes:
       sub_type: file  
       source_details: files/codegen/templates/backend/pydantic_single_model.j2
 
-  - label: Load GraphQL Template
-    type: db
-    position: {x: 100, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/backend/graphql_schema.j2
-
   - label: Load Static Node Template
     type: db
     position: {x: 100, y: 500}
@@ -128,14 +120,6 @@ nodes:
     props:
       language: python
       filePath: files/codegen/code/backend/generators/pydantic_model.py
-      functionName: main
-
-  - label: Generate GraphQL Schema
-    type: code_job
-    position: {x: 600, y: 400}
-    props:
-      language: python
-      filePath: files/codegen/code/backend/generators/graphql_schema.py
       functionName: main
 
   - label: Generate Static Node
@@ -175,14 +159,6 @@ nodes:
       operation: write
       sub_type: file
       source_details: dipeo/diagram_generated_staged/models/{node_naming.node_type}_model.py
-
-  - label: Write GraphQL Schema
-    type: db
-    position: {x: 900, y: 400}
-    props:
-      operation: write
-      sub_type: file
-      source_details: apps/server/src/__generated__/{node_naming.node_type}.graphql
 
   - label: Write Static Node
     type: db
@@ -227,9 +203,6 @@ connections:
     to: Write Pydantic Model
     label: node_naming
   - from: Extract Node Naming
-    to: Write GraphQL Schema
-    label: node_naming
-  - from: Extract Node Naming
     to: Write Static Node
     label: node_naming
 
@@ -241,14 +214,6 @@ connections:
     to: Generate Pydantic Model
     label: template_content
   
-  # Connect spec and templates to GraphQL generator
-  - from: Extract Specification
-    to: Generate GraphQL Schema
-    label: spec_data
-  - from: Load GraphQL Template
-    to: Generate GraphQL Schema
-    label: template_content
-
   # Connect spec and templates to Static Node generator
   - from: Extract Specification
     to: Generate Static Node
@@ -260,9 +225,6 @@ connections:
   # Connect generators to writers (passing generated code)
   - from: Generate Pydantic Model
     to: Write Pydantic Model
-    label: generated_code
-  - from: Generate GraphQL Schema
-    to: Write GraphQL Schema
     label: generated_code
   - from: Generate Static Node
     to: Write Static Node

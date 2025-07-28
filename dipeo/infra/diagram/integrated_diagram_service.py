@@ -57,7 +57,7 @@ class IntegratedDiagramService(DiagramPort):
         format = self.format_service.determine_format_from_filename(path)
         
         # For YAML formats, use converter to get properly formatted string
-        if format in [DiagramFormat.light, DiagramFormat.readable]:
+        if format in [DiagramFormat.LIGHT, DiagramFormat.READABLE]:
             # Convert dict to domain model
             domain_diagram = dict_to_domain_diagram(diagram)
             
@@ -76,12 +76,12 @@ class IntegratedDiagramService(DiagramPort):
         """Create a new diagram with unique filename."""
         # Determine format from parameter
         if format == "json":
-            diagram_format = DiagramFormat.native
+            diagram_format = DiagramFormat.NATIVE
         else:
             if diagram.get("format") == "readable" or diagram.get("version") == "readable":
-                diagram_format = DiagramFormat.readable
+                diagram_format = DiagramFormat.READABLE
             else:
-                diagram_format = DiagramFormat.light
+                diagram_format = DiagramFormat.LIGHT
         
         # Get file extension for format
         extension = self.format_service.get_file_extension_for_format(diagram_format)

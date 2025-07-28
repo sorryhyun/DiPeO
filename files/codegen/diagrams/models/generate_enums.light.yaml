@@ -54,8 +54,8 @@ nodes:
     position: {x: 800, y: 250}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/enums.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_enums/enums_generator.py
+      functionName: generate_enums
 
   # Write generated file
   - label: Write Enums

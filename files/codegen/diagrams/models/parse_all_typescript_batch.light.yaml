@@ -18,7 +18,7 @@ nodes:
     position: {x: 200, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/gather_typescript_files.py
+      filePath: files/codegen/code/models/parse_all_typescript_batch/gather_typescript_files.py
       functionName: main
 
   # Parse all TypeScript files in a single batch operation
@@ -27,7 +27,7 @@ nodes:
     position: {x: 400, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/batch_parse_typescript.py
+      filePath: files/codegen/code/models/parse_all_typescript_batch/batch_parse_typescript.py
       functionName: main
 
   # Save all AST data to .temp directory for sub-diagrams to read
@@ -36,7 +36,7 @@ nodes:
     position: {x: 600, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/save_ast_cache.py
+      filePath: files/codegen/code/models/parse_all_typescript_batch/save_ast_cache.py
       functionName: main
 
   - label: End

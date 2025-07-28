@@ -76,7 +76,7 @@ class DiagramService:
                         {
                             "id": diagram.metadata.id,
                             "name": diagram.metadata.name,
-                            "format": file_info.get("format", DiagramFormat.native),
+                            "format": file_info.get("format", DiagramFormat.NATIVE),
                             "nodes": len(diagram.nodes),
                             "arrows": len(diagram.arrows),
                         }

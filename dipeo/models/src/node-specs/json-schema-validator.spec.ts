@@ -3,7 +3,7 @@
  */
 
 import { NodeType } from '../diagram.js';
-import { NodeSpecification } from '../node-specifications.js';
+import { NodeSpecification } from './node-specifications';
 
 export const jsonSchemaValidatorSpec: NodeSpecification = {
   nodeType: NodeType.JSON_SCHEMA_VALIDATOR,

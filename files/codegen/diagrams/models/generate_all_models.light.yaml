@@ -57,14 +57,6 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Generate Zod schemas
-  - label: Generate Zod Schemas
-    type: sub_diagram
-    position: {x: 400, y: 450}
-    props:
-      diagram_name: codegen/diagrams/models/generate_zod_schemas
-      diagram_format: light
-      passInputData: false
 
   # Generate GraphQL schema
   - label: Generate GraphQL Schema
@@ -118,7 +110,6 @@ nodes:
         enums = inputs.get('enums', {})
         conversions = inputs.get('conversions', {})
         field_configs = inputs.get('field_configs', {})
-        zod_schemas = inputs.get('zod_schemas', {})
         graphql_schema = inputs.get('graphql_schema', {})
         static_nodes = inputs.get('static_nodes', {})
         build_result = inputs.get('build_result', {})
@@ -132,7 +123,6 @@ nodes:
         print(f"  ✓ Python enums (dipeo/diagram_generated_staged/enums.py)")
         print(f"  ✓ Type conversions (dipeo/diagram_generated_staged/conversions.py)")
         print(f"  ✓ Field configurations (apps/web/src/__generated__/nodes/fields.ts)")
-        print(f"  ✓ Zod validation schemas (apps/web/src/__generated__/schemas.ts)")
         print(f"  ✓ GraphQL schema (dipeo/diagram_generated_staged/domain-schema.graphql)")
         print(f"  ✓ Static node classes (dipeo/diagram_generated_staged/generated_nodes.py)")
         print(f"  ✓ JSON schemas (dipeo/diagram_generated/schemas/nodes/)")

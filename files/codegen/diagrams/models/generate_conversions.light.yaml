@@ -46,8 +46,8 @@ nodes:
     position: {x: 600, y: 250}
     props:
       language: python
-      filePath: files/codegen/code/models/extractors/node_type_map_extractor.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_conversions/conversions_generator.py
+      functionName: extract_node_type_map
 
   # Load conversions template
   - label: Load Conversions Template
@@ -64,8 +64,8 @@ nodes:
     position: {x: 800, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/conversions_generator.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_conversions/conversions_generator.py
+      functionName: generate_conversions
 
   # Write conversions.py
   - label: Write Conversions File
@@ -82,7 +82,7 @@ nodes:
     position: {x: 1200, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/summary_generator.py
+      filePath: files/codegen/code/shared/generators/summary_generator.py
       functionName: main
 
   - label: End

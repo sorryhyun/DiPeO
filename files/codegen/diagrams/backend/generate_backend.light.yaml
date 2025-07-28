@@ -90,15 +90,13 @@ nodes:
         results = batch_results.get('results', [])
         artifacts_count = {
             'pydantic_models': 0,
-            'graphql_schemas': 0,
             'static_nodes': 0
         }
         
         for r in results:
             if isinstance(r, dict) and r.get('status') == 'success':
-                # Each successful backend generation produces these artifacts
+                # Each successful backend generation produces pydantic models and static nodes
                 artifacts_count['pydantic_models'] += 1
-                artifacts_count['graphql_schemas'] += 1
                 artifacts_count['static_nodes'] += 1
         
         result = {
@@ -107,13 +105,6 @@ nodes:
             'status': 'success' if failed == 0 else 'partial_failure'
         }
 
-  # Generate Strawberry types from domain schema
-  - label: Generate Strawberry Types
-    type: sub_diagram
-    position: {x: 1000, y: 300}
-    props:
-      diagram_name: codegen/diagrams/backend/generate_strawberry_types
-      diagram_format: light
 
   - label: Process Final Results
     type: code_job
@@ -122,29 +113,20 @@ nodes:
       language: python
       code: |
         # Process results from backend generation
-        backend_results = inputs.get('backend_results', {})
-        strawberry_results = inputs.get('strawberry_results', {})
+        backend_results = inputs.get('default', {})
         
         print(f"\n=== Complete Backend Generation Summary ===")
         print(backend_results.get('backend_summary', ''))
         
-        # Include Strawberry generation status
-        if strawberry_results.get('success'):
-            print("\n✓ Strawberry GraphQL types generated from domain schema")
-            print(strawberry_results.get('summary', ''))
-        
-        # Note: Enums are now generated as part of domain models via generate_all_models
+        # Note: Strawberry types are maintained manually in dipeo/application/graphql/types/strawberry_types.py
+        # Note: Enums are generated as part of domain models via generate_all_models
         
         artifacts = backend_results.get('artifacts_generated', {})
-        # Add Strawberry types to artifacts count
-        if strawberry_results.get('success'):
-            artifacts['strawberry_types'] = 1
         
         result = {
             'message': 'Backend generation finished with TypeScript specifications',
             'artifacts_generated': artifacts,
-            'backend_status': backend_results.get('status', 'unknown'),
-            'strawberry_status': 'success' if strawberry_results.get('success') else 'failed'
+            'backend_status': backend_results.get('status', 'unknown')
         }
 
   - label: End
@@ -169,18 +151,9 @@ connections:
   - from: Batch Generate Backend
     to: Process Backend Results
   
-  # Run Strawberry generation after backend results
-  - from: Process Backend Results
-    to: Generate Strawberry Types
-  
-  # Pass both results to final processing
+  # Pass backend results to final processing
   - from: Process Backend Results
     to: Process Final Results
-    label: backend_results
-  
-  - from: Generate Strawberry Types
-    to: Process Final Results
-    label: strawberry_results
   
   - from: Process Final Results
     to: End

@@ -65,6 +65,7 @@ def _create_unified_service_registry_from_dependencies(static, business, dynamic
             ],
             "aliases": {
                 "file": "file_service",  # Legacy alias
+                "apikey_service": "api_key_service",  # GraphQL expects this name
             }
         },
         "integration": {
@@ -113,6 +114,7 @@ def _create_unified_service_registry_from_dependencies(static, business, dynamic
             "container": dynamic,
             "services": [
                 "conversation_manager",
+                "person_manager",
             ],
             "optional_services": [
                 "execution_flow_service",
