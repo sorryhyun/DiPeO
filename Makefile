@@ -49,16 +49,11 @@ codegen-backend:
 	dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=30
 	@echo "✅ All nodes generated via diagram!"
 
-# New codegen approach using diagram-based generation
-codegen-new:
-	@echo "🚀 Starting new diagram-based code generation..."
-	@echo "🎨 Step 1: Generating all node UI components from JSON specifications..."
-	@python files/codegen/generate_all_nodes.py
-	@echo "📝 Step 2: Registering generated nodes..."
-	@python files/codegen/code/node_registrar.py
-	@echo "🔄 Step 3: Generating GraphQL types for frontend..."
-	pnpm --filter web codegen
-	@echo "✅ New code generation completed!"
+codegen-frontend:
+	@echo "🎨 Generating UI for all node types using diagram..."
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --no-browser --timeout=30
+	@echo "✅ All nodes generated via diagram!"
+
 
 # Register generated nodes separately
 register-nodes:

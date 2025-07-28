@@ -170,7 +170,7 @@ class DBNode(BaseExecutableNode):
             data["metadata"] = self.metadata
         data["file"] = self.file
         data["collection"] = self.collection
-        data["sub_type"] = self.sub_type.value
+        data["sub_type"] = self.sub_type
         data["operation"] = self.operation
         data["query"] = self.query
         data["data"] = self.data

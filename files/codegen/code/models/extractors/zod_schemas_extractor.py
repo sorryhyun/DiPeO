@@ -1,5 +1,6 @@
 """Extract Zod schemas from TypeScript AST data."""
 
+import os
 import re
 from typing import Dict, List, Any
 
@@ -94,11 +95,15 @@ def extract_zod_schemas(ast_data: dict, mappings: dict) -> dict:
     interfaces = ast_data.get('interfaces', [])
     enums = ast_data.get('enums', [])
     
+    print(f"Total interfaces in ast_data: {len(interfaces)}")
+    
     # Get mappings
     node_interface_map = mappings.get('node_interface_map', {})
     branded_types = mappings.get('branded_types', [])
     type_to_zod = mappings.get('type_to_zod', {})
     base_fields = mappings.get('base_fields', ['label', 'flipped'])
+    
+    print(f"Node interface mappings: {list(node_interface_map.items())[:5]}...")  # Show first 5
     
     # Build enum schemas
     enum_schemas = build_enum_schemas(enums)
@@ -143,15 +148,22 @@ def main(inputs: dict) -> dict:
     # If node_data is just the index file, we need to aggregate from individual files
     if not node_data_ast.get('interfaces'):
         # Load individual node data files
-        import os
         import json
         from pathlib import Path
         
-        cache_dir = Path('.temp/ast_cache')
+        base_dir = Path(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
+        cache_dir = base_dir / '.temp'
         all_interfaces = []
         
+        print(f"Loading individual node data files from {cache_dir}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Absolute cache dir path: {cache_dir.absolute()}")
+        
         # Pattern to match individual node data files
-        for ast_file in cache_dir.glob('*_data_ast.json'):
+        matching_files = list(cache_dir.glob('*_data_ast.json'))
+        print(f"Found {len(matching_files)} matching files")
+        
+        for ast_file in matching_files:
             # Skip the index file
             if ast_file.name == 'node_data_ast.json':
                 continue
@@ -161,6 +173,8 @@ def main(inputs: dict) -> dict:
                     data = json.load(f)
                     interfaces = data.get('interfaces', [])
                     all_interfaces.extend(interfaces)
+                    if interfaces:
+                        print(f"  Loaded {ast_file.name}: {len(interfaces)} interfaces")
             except Exception as e:
                 print(f"Error loading {ast_file}: {e}")
         
