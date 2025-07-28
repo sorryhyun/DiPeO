@@ -19,37 +19,75 @@ nodes:
       diagram_name: codegen/diagrams/models/generate_all_models
       diagram_format: light
 
-  # Phase 2: Node UI Generation from TypeScript specifications
+  # Phase 2: Backend Generation
   - label: Generate Backend Node Files
     type: sub_diagram
-    position: {x: 550, y: 250}
+    position: {x: 450, y: 350}
     props:
-      diagram_name: codegen/diagrams/backend/generate_backend_batch_ts
+      diagram_name: codegen/diagrams/backend/generate_backend
       diagram_format: light
 
+  # Phase 3: Apply Staged Changes
+  - label: Apply Staged Changes
+    type: code_job
+    position: {x: 650, y: 350}
+    props:
+      language: bash
+      code: |
+        # Apply staged domain model changes to active directory
+        if [ -d "dipeo/diagram_generated_staged" ]; then
+          echo "Applying staged changes..."
+          cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+          echo "✓ Staged changes applied successfully"
+        else
+          echo "⚠️ No staged directory found"
+        fi
+
+  # Phase 4: Frontend Generation (depends on applied changes)
   - label: Generate Frontend Node Files
     type: sub_diagram
-    position: {x: 550, y: 450}
+    position: {x: 850, y: 350}
     props:
       diagram_name: codegen/diagrams/frontend/generate_frontend
       diagram_format: light
+
+  # Phase 5: Export GraphQL Schema
+  - label: Export GraphQL Schema
+    type: code_job
+    position: {x: 1050, y: 350}
+    props:
+      language: bash
+      code: |
+        # Export the GraphQL schema for frontend consumption
+        echo "Exporting GraphQL schema..."
+        cd /home/soryhyun/DiPeO
+        make graphql-schema
+        echo "✓ GraphQL schema exported to apps/server/schema.graphql"
 
 
   # Summary
   - label: Summarize Results
     type: code_job
-    position: {x: 850, y: 350}
+    position: {x: 1250, y: 350}
     props:
       language: python
       code: |
         print("\n=== Unified Code Generation Complete ===")
         print("\nPhase 1 - Domain Models:")
-        print("✓ All domain models generated from TypeScript sources")
+        print("✓ All domain models generated to staged directory")
         
-        print("\nPhase 2 - Node UI:")
+        print("\nPhase 2 - Backend:")
         print("✓ Backend node files generated from TypeScript specs")
+        
+        print("\nPhase 3 - Apply:")
+        print("✓ Staged changes applied to active directory")
+        
+        print("\nPhase 4 - Frontend:")
         print("✓ Frontend node files generated from TypeScript specs")
         print("✓ Node registry generated (included in frontend batch)")
+        
+        print("\nPhase 5 - GraphQL Schema:")
+        print("✓ GraphQL schema exported for frontend codegen")
         
         result = {
             'status': 'success',
@@ -58,29 +96,33 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1050, y: 350}
+    position: {x: 1450, y: 350}
     props:
       save_to_file: false
 
 connections:
-  # Phase 1 - Domain model generation
+  # Phase 1: Domain model generation
   - from: Start
     to: Generate All Domain Models
   
-  # Wait for domain models before generating node UI
+  # Phase 2: Backend generation after domain models
   - from: Generate All Domain Models
     to: Generate Backend Node Files
   
-  # Frontend can start after domain models are ready
-  - from: Generate All Domain Models
+  # Phase 3: Apply staged changes after backend
+  - from: Generate Backend Node Files
+    to: Apply Staged Changes
+  
+  # Phase 4: Frontend generation after applying changes
+  - from: Apply Staged Changes
     to: Generate Frontend Node Files
   
-  # Summary waits for everything
-  - from: Generate All Domain Models
-    to: Summarize Results
-  - from: Generate Backend Node Files
-    to: Summarize Results
+  # Phase 5: Export GraphQL schema after frontend
   - from: Generate Frontend Node Files
+    to: Export GraphQL Schema
+  
+  # Summary after all phases complete
+  - from: Export GraphQL Schema
     to: Summarize Results
   
   - from: Summarize Results

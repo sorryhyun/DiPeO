@@ -1,0 +1,75 @@
+# Person Queries
+query GetPerson($id: ID!) {
+  person(id: $id) {
+    id
+    label
+    llm_config {
+      service
+      model
+      api_key_id
+      system_prompt
+    }
+    type
+  }
+}
+
+query GetPersons($limit: Int = 100) {
+  persons(limit: $limit) {
+    id
+    label
+    llm_config {
+      service
+      model
+      api_key_id
+      system_prompt
+    }
+    type
+  }
+}
+
+# Person Mutations
+mutation CreatePerson($input: CreatePersonInput!) {
+  create_person(input: $input) {
+    success
+    person {
+      id
+      label
+      llm_config {
+        service
+        model
+        api_key_id
+        system_prompt
+      }
+      type
+    }
+    message
+    error
+  }
+}
+
+mutation UpdatePerson($id: ID!, $input: UpdatePersonInput!) {
+  update_person(id: $id, input: $input) {
+    success
+    person {
+      id
+      label
+      llm_config {
+        service
+        model
+        api_key_id
+        system_prompt
+      }
+      type
+    }
+    message
+    error
+  }
+}
+
+mutation DeletePerson($id: ID!) {
+  delete_person(id: $id) {
+    success
+    message
+    error
+  }
+}

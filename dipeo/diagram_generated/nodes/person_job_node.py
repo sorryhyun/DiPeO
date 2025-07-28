@@ -32,7 +32,7 @@ class PersonJobNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.person_job, init=False)
+    type: NodeType = field(default=NodeType.PERSON_JOB, init=False)
     
     # Optional node-specific fields
     person: str = ""

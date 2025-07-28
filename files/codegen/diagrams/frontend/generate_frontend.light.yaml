@@ -11,25 +11,31 @@ nodes:
       custom_data:
         message: Starting batch generation using TypeScript specifications
 
+  # Run batch parser for all node specs
+  - label: Parse All Node Specs
+    type: sub_diagram
+    position: {x: 200, y: 200}
+    props:
+      diagram_name: codegen/diagrams/shared/parse_all_node_specs_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
   - label: Load Manifest
     type: db
-    position: {x: 200, y: 200}
+    position: {x: 350, y: 200}
     props:
       file: files/codegen/manifests/all.json
       operation: read
 
   - label: Prepare Node List
     type: code_job
-    position: {x: 350, y: 200}
+    position: {x: 500, y: 200}
     props:
       language: python
       code: |
-        import json
-        
-        # Parse the manifest data from DB node
+        # DB node now returns DataOutput, no need to parse JSON
         manifest_data = inputs.get('default', {})
-        if isinstance(manifest_data, str):
-            manifest_data = json.loads(manifest_data)
         
         # Get node types from manifest
         node_types = manifest_data.get('nodes', [])
@@ -48,7 +54,7 @@ nodes:
 
   - label: Batch Generate Frontend
     type: sub_diagram
-    position: {x: 550, y: 200}
+    position: {x: 700, y: 200}
     props:
       diagram_name: codegen/diagrams/frontend/generate_frontend_single_ts
       diagram_format: light
@@ -58,7 +64,7 @@ nodes:
 
   - label: Process Results
     type: code_job
-    position: {x: 750, y: 200}
+    position: {x: 900, y: 200}
     props:
       language: python
       code: |
@@ -94,19 +100,36 @@ nodes:
 
   - label: Generate Registry
     type: sub_diagram
-    position: {x: 950, y: 200}
+    position: {x: 1100, y: 200}
     props:
       diagram_name: codegen/diagrams/frontend/generate_frontend_registry
       diagram_format: light
 
+  - label: Generate GraphQL Queries
+    type: sub_diagram
+    position: {x: 1300, y: 200}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_graphql_queries
+      diagram_format: light
+
+  - label: Generate Zod Schemas
+    type: sub_diagram
+    position: {x: 1300, y: 300}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_zod_schemas
+      diagram_format: light
+
   - label: End
     type: endpoint
-    position: {x: 1150, y: 200}
+    position: {x: 1500, y: 200}
     props:
       save_to_file: false
 
 connections:
   - from: Start
+    to: Parse All Node Specs
+  
+  - from: Parse All Node Specs
     to: Load Manifest
   
   - from: Load Manifest
@@ -122,4 +145,13 @@ connections:
     to: Generate Registry
   
   - from: Generate Registry
+    to: Generate GraphQL Queries
+  
+  - from: Generate Registry
+    to: Generate Zod Schemas
+  
+  - from: Generate GraphQL Queries
+    to: End
+  
+  - from: Generate Zod Schemas
     to: End

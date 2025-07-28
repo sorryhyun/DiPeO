@@ -5,7 +5,6 @@ import type { DataType } from '@dipeo/domain-models';
 import type { LLMService } from '@dipeo/domain-models';
 import type { DiagramFormat } from '@dipeo/domain-models';
 import type { ExecutionStatus } from '@dipeo/domain-models';
-import type { ContentType } from '@dipeo/domain-models';
 import type { ApiKeyID } from '@dipeo/domain-models';
 import type { ArrowID } from '@dipeo/domain-models';
 import type { DiagramID } from '@dipeo/domain-models';
@@ -30,40 +29,44 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  /** Unique identifier for an API key */
+  /** Unique identifier for API keys */
   ApiKeyID: { input: ApiKeyID; output: ApiKeyID; }
-  /** Unique identifier for an arrow */
+  /** Unique identifier for arrows */
   ArrowID: { input: ArrowID; output: ArrowID; }
   /** Date with time (isoformat) */
   DateTime: { input: any; output: any; }
-  /** Unique identifier for a diagram */
+  /** Unique identifier for diagrams */
   DiagramID: { input: DiagramID; output: DiagramID; }
-  /** Unique identifier for an execution */
+  /** Unique identifier for executions */
   ExecutionID: { input: ExecutionID; output: ExecutionID; }
-  /** Unique identifier for a handle */
+  /** Unique identifier for handles */
   HandleID: { input: HandleID; output: HandleID; }
-  /** Arbitrary JSON data */
-  JSONScalar: { input: any; output: any; }
-  /** Unique identifier for a node */
+  /** Unique identifier for hooks */
+  HookID: { input: any; output: any; }
+  /** The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf). */
+  JSON: { input: any; output: any; }
+  /** Unique identifier for nodes */
   NodeID: { input: NodeID; output: NodeID; }
-  /** Unique identifier for a person */
+  /** Unique identifier for persons */
   PersonID: { input: PersonID; output: PersonID; }
+  /** Unique identifier for tasks */
+  TaskID: { input: any; output: any; }
   Upload: { input: any; output: any; }
 };
 
 export enum APIServiceType {
-  anthropic = 'anthropic',
-  bedrock = 'bedrock',
-  deepseek = 'deepseek',
-  gemini = 'gemini',
-  github = 'github',
-  google = 'google',
-  google_search = 'google_search',
-  jira = 'jira',
-  notion = 'notion',
-  openai = 'openai',
-  slack = 'slack',
-  vertex = 'vertex'
+  ANTHROPIC = 'ANTHROPIC',
+  BEDROCK = 'BEDROCK',
+  DEEPSEEK = 'DEEPSEEK',
+  GEMINI = 'GEMINI',
+  GITHUB = 'GITHUB',
+  GOOGLE = 'GOOGLE',
+  GOOGLE_SEARCH = 'GOOGLE_SEARCH',
+  JIRA = 'JIRA',
+  NOTION = 'NOTION',
+  OPENAI = 'OPENAI',
+  SLACK = 'SLACK',
+  VERTEX = 'VERTEX'
 }
 
 export type ApiKeyResult = {
@@ -73,8 +76,6 @@ export type ApiKeyResult = {
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
-
-export { ContentType };
 
 export type CreateApiKeyInput = {
   key: Scalars['String']['input'];
@@ -90,28 +91,21 @@ export type CreateDiagramInput = {
 };
 
 export type CreateNodeInput = {
-  label: Scalars['String']['input'];
+  data: Scalars['JSON']['input'];
   position: Vec2Input;
-  properties?: InputMaybe<Scalars['JSONScalar']['input']>;
   type: NodeType;
 };
 
 export type CreatePersonInput = {
-  api_key_id: Scalars['ApiKeyID']['input'];
   label: Scalars['String']['input'];
-  max_tokens?: InputMaybe<Scalars['Int']['input']>;
-  model: Scalars['String']['input'];
-  service: LLMService;
-  system_prompt?: InputMaybe<Scalars['String']['input']>;
-  temperature?: InputMaybe<Scalars['Float']['input']>;
-  top_p?: InputMaybe<Scalars['Float']['input']>;
+  llm_config: PersonLLMConfigInput;
+  type?: Scalars['String']['input'];
 };
 
 export { DataType };
 
 export type DeleteResult = {
   __typename?: 'DeleteResult';
-  deleted_count: Scalars['Int']['output'];
   deleted_id?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
@@ -122,9 +116,8 @@ export type DiagramConvertResult = {
   __typename?: 'DiagramConvertResult';
   content?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
-  filename?: Maybe<Scalars['String']['output']>;
-  format?: Maybe<Scalars['String']['output']>;
-  message: Scalars['String']['output'];
+  format?: Maybe<DiagramFormat>;
+  message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
 
@@ -132,8 +125,7 @@ export type DiagramFilterInput = {
   author?: InputMaybe<Scalars['String']['input']>;
   created_after?: InputMaybe<Scalars['DateTime']['input']>;
   created_before?: InputMaybe<Scalars['DateTime']['input']>;
-  modified_after?: InputMaybe<Scalars['DateTime']['input']>;
-  name_contains?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
   tags?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
@@ -141,9 +133,9 @@ export { DiagramFormat };
 
 export type DiagramFormatInfo = {
   __typename?: 'DiagramFormatInfo';
-  description: Scalars['String']['output'];
+  description?: Maybe<Scalars['String']['output']>;
   extension: Scalars['String']['output'];
-  id: Scalars['String']['output'];
+  format: Scalars['String']['output'];
   name: Scalars['String']['output'];
   supports_export: Scalars['Boolean']['output'];
   supports_import: Scalars['Boolean']['output'];
@@ -171,16 +163,15 @@ export type DiagramResult = {
 
 export type DiagramValidationResult = {
   __typename?: 'DiagramValidationResult';
-  arrow_count?: Maybe<Scalars['Int']['output']>;
-  errors: Array<Scalars['String']['output']>;
-  is_valid: Scalars['Boolean']['output'];
-  node_count?: Maybe<Scalars['Int']['output']>;
-  person_count?: Maybe<Scalars['Int']['output']>;
+  errors?: Maybe<Array<Scalars['String']['output']>>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+  warnings?: Maybe<Array<Scalars['String']['output']>>;
 };
 
 export type DomainApiKeyType = {
   __typename?: 'DomainApiKeyType';
-  id: Scalars['ApiKeyID']['output'];
+  id: Scalars['String']['output'];
   key?: Maybe<Scalars['String']['output']>;
   label: Scalars['String']['output'];
   service: APIServiceType;
@@ -188,12 +179,10 @@ export type DomainApiKeyType = {
 
 export type DomainArrowType = {
   __typename?: 'DomainArrowType';
-  content_type?: Maybe<ContentType>;
-  data?: Maybe<Scalars['JSONScalar']['output']>;
-  id: Scalars['ArrowID']['output'];
-  label?: Maybe<Scalars['String']['output']>;
-  source: Scalars['HandleID']['output'];
-  target: Scalars['HandleID']['output'];
+  data?: Maybe<Scalars['JSON']['output']>;
+  id: Scalars['String']['output'];
+  source: Scalars['String']['output'];
+  target: Scalars['String']['output'];
 };
 
 export type DomainDiagramType = {
@@ -204,7 +193,6 @@ export type DomainDiagramType = {
   metadata?: Maybe<DiagramMetadataType>;
   nodeCount: Scalars['Int']['output'];
   nodes: Array<DomainNodeType>;
-  personCount: Scalars['Int']['output'];
   persons: Array<DomainPersonType>;
 };
 
@@ -212,47 +200,45 @@ export type DomainHandleType = {
   __typename?: 'DomainHandleType';
   data_type: DataType;
   direction: HandleDirection;
-  id: Scalars['HandleID']['output'];
+  id: Scalars['String']['output'];
   label: HandleLabel;
-  node_id: Scalars['NodeID']['output'];
+  node_id: Scalars['String']['output'];
   position?: Maybe<Scalars['String']['output']>;
 };
 
 export type DomainNodeType = {
   __typename?: 'DomainNodeType';
-  data: Scalars['JSONScalar']['output'];
-  id: Scalars['NodeID']['output'];
+  data: Scalars['JSON']['output'];
+  id: Scalars['String']['output'];
   position: Vec2Type;
   type: NodeType;
 };
 
 export type DomainPersonType = {
   __typename?: 'DomainPersonType';
-  id: Scalars['PersonID']['output'];
+  id: Scalars['String']['output'];
   label: Scalars['String']['output'];
   llm_config: PersonLLMConfigType;
-  masked_api_key?: Maybe<Scalars['String']['output']>;
   type: Scalars['String']['output'];
 };
 
 export type ExecuteDiagramInput = {
-  debug_mode?: Scalars['Boolean']['input'];
-  diagram_data?: InputMaybe<Scalars['JSONScalar']['input']>;
-  diagram_id?: InputMaybe<Scalars['DiagramID']['input']>;
-  max_iterations?: Scalars['Int']['input'];
+  debug_mode?: InputMaybe<Scalars['Boolean']['input']>;
+  diagram_data?: InputMaybe<Scalars['JSON']['input']>;
+  diagram_id?: InputMaybe<Scalars['ID']['input']>;
+  max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
-  variables?: InputMaybe<Scalars['JSONScalar']['input']>;
+  variables?: InputMaybe<Scalars['JSON']['input']>;
 };
 
 export type ExecutionControlInput = {
   action: Scalars['String']['input'];
-  execution_id: Scalars['ExecutionID']['input'];
-  node_id?: InputMaybe<Scalars['NodeID']['input']>;
+  execution_id: Scalars['ID']['input'];
+  reason?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ExecutionFilterInput = {
-  active_only?: Scalars['Boolean']['input'];
-  diagram_id?: InputMaybe<Scalars['DiagramID']['input']>;
+  diagram_id?: InputMaybe<Scalars['ID']['input']>;
   started_after?: InputMaybe<Scalars['DateTime']['input']>;
   started_before?: InputMaybe<Scalars['DateTime']['input']>;
   status?: InputMaybe<ExecutionStatus>;
@@ -273,17 +259,27 @@ export type ExecutionStateType = {
   duration_seconds?: Maybe<Scalars['Float']['output']>;
   ended_at?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  exec_counts: Scalars['JSON']['output'];
+  executed_nodes: Array<Scalars['String']['output']>;
   id: Scalars['String']['output'];
   is_active?: Maybe<Scalars['Boolean']['output']>;
-  node_outputs: Scalars['JSONScalar']['output'];
-  node_states: Scalars['JSONScalar']['output'];
+  node_outputs: Scalars['JSON']['output'];
+  node_states: Scalars['JSON']['output'];
   started_at: Scalars['String']['output'];
   status: ExecutionStatus;
   token_usage: TokenUsageType;
-  variables: Scalars['JSONScalar']['output'];
+  variables?: Maybe<Scalars['JSON']['output']>;
 };
 
 export { ExecutionStatus };
+
+export type ExecutionUpdate = {
+  __typename?: 'ExecutionUpdate';
+  data: Scalars['JSON']['output'];
+  event_type: Scalars['String']['output'];
+  execution_id: Scalars['String']['output'];
+  timestamp: Scalars['String']['output'];
+};
 
 export type FileUploadResult = {
   __typename?: 'FileUploadResult';
@@ -299,18 +295,10 @@ export { HandleDirection };
 
 export { HandleLabel };
 
-export type InteractivePrompt = {
-  __typename?: 'InteractivePrompt';
-  execution_id: Scalars['ExecutionID']['output'];
-  node_id: Scalars['NodeID']['output'];
-  prompt: Scalars['String']['output'];
-  timeout_seconds?: Maybe<Scalars['Int']['output']>;
-  timestamp: Scalars['DateTime']['output'];
-};
-
 export type InteractiveResponseInput = {
-  execution_id: Scalars['ExecutionID']['input'];
-  node_id: Scalars['NodeID']['input'];
+  execution_id: Scalars['ID']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  node_id: Scalars['ID']['input'];
   response: Scalars['String']['input'];
 };
 
@@ -318,10 +306,8 @@ export { LLMService };
 
 export type Mutation = {
   __typename?: 'Mutation';
-  clear_conversations: DeleteResult;
   control_execution: ExecutionResult;
-  /** Convert a diagram to a different format */
-  convert_diagram: DiagramConvertResult;
+  convert_diagram_format: DiagramConvertResult;
   create_api_key: ApiKeyResult;
   create_diagram: DiagramResult;
   create_node: NodeResult;
@@ -331,27 +317,26 @@ export type Mutation = {
   delete_node: DeleteResult;
   delete_person: DeleteResult;
   execute_diagram: ExecutionResult;
-  initialize_model: PersonResult;
-  submit_interactive_response: ExecutionResult;
+  send_interactive_response: ExecutionResult;
   test_api_key: TestApiKeyResult;
   update_node: NodeResult;
+  update_node_state: ExecutionResult;
   update_person: PersonResult;
-  /** Upload a file to the server */
+  upload_diagram: DiagramResult;
   upload_file: FileUploadResult;
-  /** Validate a diagram structure */
   validate_diagram: DiagramValidationResult;
 };
 
 
 export type Mutationcontrol_executionArgs = {
-  data: ExecutionControlInput;
+  input: ExecutionControlInput;
 };
 
 
-export type Mutationconvert_diagramArgs = {
-  content: Scalars['JSONScalar']['input'];
-  include_metadata?: Scalars['Boolean']['input'];
-  target_format?: DiagramFormat;
+export type Mutationconvert_diagram_formatArgs = {
+  content: Scalars['String']['input'];
+  from_format: DiagramFormat;
+  to_format: DiagramFormat;
 };
 
 
@@ -366,92 +351,97 @@ export type Mutationcreate_diagramArgs = {
 
 
 export type Mutationcreate_nodeArgs = {
-  diagram_id: Scalars['DiagramID']['input'];
-  input_data: CreateNodeInput;
+  diagram_id: Scalars['ID']['input'];
+  input: CreateNodeInput;
 };
 
 
 export type Mutationcreate_personArgs = {
-  diagram_id: Scalars['DiagramID']['input'];
-  person_input: CreatePersonInput;
+  input: CreatePersonInput;
 };
 
 
 export type Mutationdelete_api_keyArgs = {
-  id: Scalars['ApiKeyID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type Mutationdelete_diagramArgs = {
-  id: Scalars['DiagramID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type Mutationdelete_nodeArgs = {
-  node_id: Scalars['NodeID']['input'];
+  diagram_id: Scalars['ID']['input'];
+  node_id: Scalars['ID']['input'];
 };
 
 
 export type Mutationdelete_personArgs = {
-  person_id: Scalars['PersonID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type Mutationexecute_diagramArgs = {
-  data: ExecuteDiagramInput;
+  input: ExecuteDiagramInput;
 };
 
 
-export type Mutationinitialize_modelArgs = {
-  api_key_id: Scalars['ApiKeyID']['input'];
-  label?: Scalars['String']['input'];
-  model: Scalars['String']['input'];
-  person_id: Scalars['PersonID']['input'];
-};
-
-
-export type Mutationsubmit_interactive_responseArgs = {
-  data: InteractiveResponseInput;
+export type Mutationsend_interactive_responseArgs = {
+  input: InteractiveResponseInput;
 };
 
 
 export type Mutationtest_api_keyArgs = {
-  id: Scalars['ApiKeyID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type Mutationupdate_nodeArgs = {
-  input_data: UpdateNodeInput;
+  diagram_id: Scalars['ID']['input'];
+  input: UpdateNodeInput;
+  node_id: Scalars['ID']['input'];
+};
+
+
+export type Mutationupdate_node_stateArgs = {
+  input: UpdateNodeStateInput;
 };
 
 
 export type Mutationupdate_personArgs = {
-  person_input: UpdatePersonInput;
+  id: Scalars['ID']['input'];
+  input: UpdatePersonInput;
+};
+
+
+export type Mutationupload_diagramArgs = {
+  file: Scalars['Upload']['input'];
+  format: DiagramFormat;
 };
 
 
 export type Mutationupload_fileArgs = {
-  category?: Scalars['String']['input'];
   file: Scalars['Upload']['input'];
+  path?: InputMaybe<Scalars['String']['input']>;
 };
 
 
 export type Mutationvalidate_diagramArgs = {
-  diagram_content: Scalars['JSONScalar']['input'];
+  content: Scalars['String']['input'];
+  format: DiagramFormat;
 };
 
-export type NodeExecution = {
-  __typename?: 'NodeExecution';
-  error?: Maybe<Scalars['String']['output']>;
-  execution_id: Scalars['ExecutionID']['output'];
-  node_id: Scalars['NodeID']['output'];
-  node_type: NodeType;
-  output?: Maybe<Scalars['JSONScalar']['output']>;
-  progress?: Maybe<Scalars['String']['output']>;
-  status: Scalars['String']['output'];
-  timestamp: Scalars['DateTime']['output'];
-  tokens_used?: Maybe<Scalars['Int']['output']>;
-};
+export enum NodeExecutionStatus {
+  ABORTED = 'ABORTED',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  MAXITER_REACHED = 'MAXITER_REACHED',
+  PAUSED = 'PAUSED',
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  SKIPPED = 'SKIPPED'
+}
 
 export type NodeResult = {
   __typename?: 'NodeResult';
@@ -463,9 +453,16 @@ export type NodeResult = {
 
 export { NodeType };
 
+export type PersonLLMConfigInput = {
+  api_key_id: Scalars['ID']['input'];
+  model: Scalars['String']['input'];
+  service: LLMService;
+  system_prompt?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type PersonLLMConfigType = {
   __typename?: 'PersonLLMConfigType';
-  api_key_id?: Maybe<Scalars['ApiKeyID']['output']>;
+  api_key_id: Scalars['String']['output'];
   model: Scalars['String']['output'];
   service: LLMService;
   system_prompt?: Maybe<Scalars['String']['output']>;
@@ -484,25 +481,25 @@ export type Query = {
   api_key?: Maybe<DomainApiKeyType>;
   api_keys: Array<DomainApiKeyType>;
   available_models: Array<Scalars['String']['output']>;
-  conversations: Scalars['JSONScalar']['output'];
+  conversations: Scalars['JSON']['output'];
   diagram?: Maybe<DomainDiagramType>;
   diagrams: Array<DomainDiagramType>;
   execution?: Maybe<ExecutionStateType>;
-  execution_capabilities: Scalars['JSONScalar']['output'];
-  execution_order: Scalars['JSONScalar']['output'];
+  execution_capabilities: Scalars['JSON']['output'];
+  execution_order: Scalars['JSON']['output'];
   executions: Array<ExecutionStateType>;
-  health: Scalars['JSONScalar']['output'];
+  health: Scalars['JSON']['output'];
   person?: Maybe<DomainPersonType>;
   persons: Array<DomainPersonType>;
-  prompt_file: Scalars['JSONScalar']['output'];
-  prompt_files: Array<Scalars['JSONScalar']['output']>;
+  prompt_file: Scalars['JSON']['output'];
+  prompt_files: Array<Scalars['JSON']['output']>;
   supported_formats: Array<DiagramFormatInfo>;
-  system_info: Scalars['JSONScalar']['output'];
+  system_info: Scalars['JSON']['output'];
 };
 
 
 export type Queryapi_keyArgs = {
-  id: Scalars['ApiKeyID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
@@ -512,16 +509,16 @@ export type Queryapi_keysArgs = {
 
 
 export type Queryavailable_modelsArgs = {
-  api_key_id: Scalars['ApiKeyID']['input'];
+  api_key_id: Scalars['ID']['input'];
   service: Scalars['String']['input'];
 };
 
 
 export type QueryconversationsArgs = {
-  execution_id?: InputMaybe<Scalars['ExecutionID']['input']>;
+  execution_id?: InputMaybe<Scalars['ID']['input']>;
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
-  person_id?: InputMaybe<Scalars['PersonID']['input']>;
+  person_id?: InputMaybe<Scalars['ID']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
   show_forgotten?: Scalars['Boolean']['input'];
   since?: InputMaybe<Scalars['DateTime']['input']>;
@@ -529,7 +526,7 @@ export type QueryconversationsArgs = {
 
 
 export type QuerydiagramArgs = {
-  id: Scalars['DiagramID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
@@ -541,12 +538,12 @@ export type QuerydiagramsArgs = {
 
 
 export type QueryexecutionArgs = {
-  id: Scalars['ExecutionID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
 export type Queryexecution_orderArgs = {
-  execution_id: Scalars['ExecutionID']['input'];
+  execution_id: Scalars['ID']['input'];
 };
 
 
@@ -558,7 +555,7 @@ export type QueryexecutionsArgs = {
 
 
 export type QuerypersonArgs = {
-  id: Scalars['PersonID']['input'];
+  id: Scalars['ID']['input'];
 };
 
 
@@ -573,72 +570,59 @@ export type Queryprompt_fileArgs = {
 
 export type Subscription = {
   __typename?: 'Subscription';
-  diagram_changes: DomainDiagramType;
-  execution_events: ExecutionStatus;
-  execution_updates: ExecutionStateType;
-  interactive_prompts?: Maybe<InteractivePrompt>;
-  node_updates: NodeExecution;
-};
-
-
-export type Subscriptiondiagram_changesArgs = {
-  diagram_id: Scalars['DiagramID']['input'];
-};
-
-
-export type Subscriptionexecution_eventsArgs = {
-  execution_id: Scalars['ExecutionID']['input'];
+  execution_updates: ExecutionUpdate;
+  interactive_prompts: Scalars['JSON']['output'];
+  node_updates: Scalars['JSON']['output'];
 };
 
 
 export type Subscriptionexecution_updatesArgs = {
-  execution_id: Scalars['ExecutionID']['input'];
+  execution_id: Scalars['ID']['input'];
 };
 
 
 export type Subscriptioninteractive_promptsArgs = {
-  execution_id: Scalars['ExecutionID']['input'];
+  execution_id: Scalars['ID']['input'];
 };
 
 
 export type Subscriptionnode_updatesArgs = {
-  execution_id: Scalars['ExecutionID']['input'];
-  node_types?: InputMaybe<Array<NodeType>>;
+  execution_id: Scalars['ID']['input'];
+  node_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type TestApiKeyResult = {
   __typename?: 'TestApiKeyResult';
-  available_models?: Maybe<Array<Scalars['String']['output']>>;
   error?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
+  model_info?: Maybe<Scalars['JSON']['output']>;
   success: Scalars['Boolean']['output'];
-  valid?: Maybe<Scalars['Boolean']['output']>;
 };
 
 export type TokenUsageType = {
   __typename?: 'TokenUsageType';
-  cached?: Maybe<Scalars['Float']['output']>;
+  cached?: Maybe<Scalars['Int']['output']>;
   input: Scalars['Int']['output'];
   output: Scalars['Int']['output'];
-  total?: Maybe<Scalars['Float']['output']>;
+  total?: Maybe<Scalars['Int']['output']>;
 };
 
 export type UpdateNodeInput = {
-  id: Scalars['NodeID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
+  data?: InputMaybe<Scalars['JSON']['input']>;
   position?: InputMaybe<Vec2Input>;
-  properties?: InputMaybe<Scalars['JSONScalar']['input']>;
+};
+
+export type UpdateNodeStateInput = {
+  error?: InputMaybe<Scalars['String']['input']>;
+  execution_id: Scalars['ID']['input'];
+  node_id: Scalars['ID']['input'];
+  output?: InputMaybe<Scalars['JSON']['input']>;
+  status: NodeExecutionStatus;
 };
 
 export type UpdatePersonInput = {
-  api_key_id?: InputMaybe<Scalars['ApiKeyID']['input']>;
-  id: Scalars['PersonID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
-  max_tokens?: InputMaybe<Scalars['Int']['input']>;
-  model?: InputMaybe<Scalars['String']['input']>;
-  system_prompt?: InputMaybe<Scalars['String']['input']>;
-  temperature?: InputMaybe<Scalars['Float']['input']>;
-  top_p?: InputMaybe<Scalars['Float']['input']>;
+  llm_config?: InputMaybe<PersonLLMConfigInput>;
 };
 
 export type Vec2Input = {
@@ -648,34 +632,27 @@ export type Vec2Input = {
 
 export type Vec2Type = {
   __typename?: 'Vec2Type';
-  x: Scalars['Float']['output'];
-  y: Scalars['Float']['output'];
+  x: Scalars['Int']['output'];
+  y: Scalars['Int']['output'];
 };
-
-export type ExecutionOrderQueryVariables = Exact<{
-  executionId: Scalars['ExecutionID']['input'];
-}>;
-
-
-export type ExecutionOrderQuery = { __typename?: 'Query', execution_order: any };
 
 export type GetApiKeysQueryVariables = Exact<{
   service?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type GetApiKeysQuery = { __typename?: 'Query', api_keys: Array<{ __typename?: 'DomainApiKeyType', id: ApiKeyID, label: string, service: APIServiceType, key?: string | null }> };
+export type GetApiKeysQuery = { __typename?: 'Query', api_keys: Array<{ __typename?: 'DomainApiKeyType', id: string, label: string, service: APIServiceType, key?: string | null }> };
 
 export type GetApiKeyQueryVariables = Exact<{
-  id: Scalars['ApiKeyID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
-export type GetApiKeyQuery = { __typename?: 'Query', api_key?: { __typename?: 'DomainApiKeyType', id: ApiKeyID, label: string, service: APIServiceType } | null };
+export type GetApiKeyQuery = { __typename?: 'Query', api_key?: { __typename?: 'DomainApiKeyType', id: string, label: string, service: APIServiceType } | null };
 
 export type GetAvailableModelsQueryVariables = Exact<{
   service: Scalars['String']['input'];
-  apiKeyId: Scalars['ApiKeyID']['input'];
+  apiKeyId: Scalars['ID']['input'];
 }>;
 
 
@@ -686,25 +663,25 @@ export type CreateApiKeyMutationVariables = Exact<{
 }>;
 
 
-export type CreateApiKeyMutation = { __typename?: 'Mutation', create_api_key: { __typename?: 'ApiKeyResult', success: boolean, message?: string | null, error?: string | null, api_key?: { __typename?: 'DomainApiKeyType', id: ApiKeyID, label: string, service: APIServiceType } | null } };
+export type CreateApiKeyMutation = { __typename?: 'Mutation', create_api_key: { __typename?: 'ApiKeyResult', success: boolean, message?: string | null, error?: string | null, api_key?: { __typename?: 'DomainApiKeyType', id: string, label: string, service: APIServiceType } | null } };
 
 export type TestApiKeyMutationVariables = Exact<{
-  id: Scalars['ApiKeyID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
 export type TestApiKeyMutation = { __typename?: 'Mutation', test_api_key: { __typename?: 'TestApiKeyResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type DeleteApiKeyMutationVariables = Exact<{
-  id: Scalars['ApiKeyID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
 export type DeleteApiKeyMutation = { __typename?: 'Mutation', delete_api_key: { __typename?: 'DeleteResult', success: boolean, message?: string | null } };
 
 export type GetConversationsQueryVariables = Exact<{
-  person_id?: InputMaybe<Scalars['PersonID']['input']>;
-  execution_id?: InputMaybe<Scalars['ExecutionID']['input']>;
+  person_id?: InputMaybe<Scalars['ID']['input']>;
+  execution_id?: InputMaybe<Scalars['ID']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
   show_forgotten?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -715,17 +692,12 @@ export type GetConversationsQueryVariables = Exact<{
 
 export type GetConversationsQuery = { __typename?: 'Query', conversations: any };
 
-export type ClearConversationsMutationVariables = Exact<{ [key: string]: never; }>;
-
-
-export type ClearConversationsMutation = { __typename?: 'Mutation', clear_conversations: { __typename?: 'DeleteResult', success: boolean, message?: string | null } };
-
 export type GetDiagramQueryVariables = Exact<{
-  id: Scalars['DiagramID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
-export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: NodeID, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: HandleID, node_id: NodeID, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: ArrowID, source: HandleID, target: HandleID, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
+export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
 
 export type ListDiagramsQueryVariables = Exact<{
   filter?: InputMaybe<DiagramFilterInput>;
@@ -734,7 +706,7 @@ export type ListDiagramsQueryVariables = Exact<{
 }>;
 
 
-export type ListDiagramsQuery = { __typename?: 'Query', diagrams: Array<{ __typename?: 'DomainDiagramType', nodeCount: number, arrowCount: number, personCount: number, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, author?: string | null, created: string, modified: string, tags?: Array<string> | null } | null }> };
+export type ListDiagramsQuery = { __typename?: 'Query', diagrams: Array<{ __typename?: 'DomainDiagramType', nodeCount: number, arrowCount: number, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, author?: string | null, created: string, modified: string, tags?: Array<string> | null } | null }> };
 
 export type CreateDiagramMutationVariables = Exact<{
   input: CreateDiagramInput;
@@ -744,25 +716,25 @@ export type CreateDiagramMutationVariables = Exact<{
 export type CreateDiagramMutation = { __typename?: 'Mutation', create_diagram: { __typename?: 'DiagramResult', success: boolean, message?: string | null, error?: string | null, diagram?: { __typename?: 'DomainDiagramType', metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null } | null } | null } };
 
 export type ExecuteDiagramMutationVariables = Exact<{
-  data: ExecuteDiagramInput;
+  input: ExecuteDiagramInput;
 }>;
 
 
 export type ExecuteDiagramMutation = { __typename?: 'Mutation', execute_diagram: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string } | null } };
 
 export type DeleteDiagramMutationVariables = Exact<{
-  id: Scalars['DiagramID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
-export type DeleteDiagramMutation = { __typename?: 'Mutation', delete_diagram: { __typename?: 'DeleteResult', success: boolean, deleted_id?: string | null, message?: string | null, error?: string | null } };
+export type DeleteDiagramMutation = { __typename?: 'Mutation', delete_diagram: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type GetExecutionQueryVariables = Exact<{
-  id: Scalars['ExecutionID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
-export type GetExecutionQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, diagram_id?: string | null, started_at: string, ended_at?: string | null, node_states: any, node_outputs: any, variables: any, error?: string | null, duration_seconds?: number | null, is_active?: boolean | null, token_usage: { __typename?: 'TokenUsageType', input: number, output: number, cached?: number | null } } | null };
+export type GetExecutionQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, diagram_id?: string | null, started_at: string, ended_at?: string | null, node_states: any, node_outputs: any, variables?: any | null, error?: string | null, duration_seconds?: number | null, is_active?: boolean | null, token_usage: { __typename?: 'TokenUsageType', input: number, output: number, cached?: number | null } } | null };
 
 export type ListExecutionsQueryVariables = Exact<{
   filter?: InputMaybe<ExecutionFilterInput>;
@@ -774,137 +746,131 @@ export type ListExecutionsQueryVariables = Exact<{
 export type ListExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, diagram_id?: string | null, started_at: string, ended_at?: string | null, is_active?: boolean | null, duration_seconds?: number | null }> };
 
 export type ExecutionUpdatesSubscriptionVariables = Exact<{
-  executionId: Scalars['ExecutionID']['input'];
+  executionId: Scalars['ID']['input'];
 }>;
 
 
-export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', execution_updates: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, node_states: any, node_outputs: any, error?: string | null, token_usage: { __typename?: 'TokenUsageType', input: number, output: number, cached?: number | null } } };
+export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', execution_updates: { __typename?: 'ExecutionUpdate', execution_id: string, event_type: string, data: any, timestamp: string } };
 
 export type NodeUpdatesSubscriptionVariables = Exact<{
-  executionId: Scalars['ExecutionID']['input'];
-  nodeTypes?: InputMaybe<Array<NodeType> | NodeType>;
+  executionId: Scalars['ID']['input'];
+  nodeId?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type NodeUpdatesSubscription = { __typename?: 'Subscription', node_updates: { __typename?: 'NodeExecution', execution_id: ExecutionID, node_id: NodeID, node_type: NodeType, status: string, progress?: string | null, output?: any | null, error?: string | null, tokens_used?: number | null, timestamp: any } };
+export type NodeUpdatesSubscription = { __typename?: 'Subscription', node_updates: any };
 
 export type InteractivePromptsSubscriptionVariables = Exact<{
-  executionId: Scalars['ExecutionID']['input'];
+  executionId: Scalars['ID']['input'];
 }>;
 
 
-export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactive_prompts?: { __typename?: 'InteractivePrompt', execution_id: ExecutionID, node_id: NodeID, prompt: string, timeout_seconds?: number | null, timestamp: any } | null };
+export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactive_prompts: any };
 
 export type ControlExecutionMutationVariables = Exact<{
-  data: ExecutionControlInput;
+  input: ExecutionControlInput;
 }>;
 
 
 export type ControlExecutionMutation = { __typename?: 'Mutation', control_execution: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus } | null } };
 
-export type SubmitInteractiveResponseMutationVariables = Exact<{
-  data: InteractiveResponseInput;
+export type SendInteractiveResponseMutationVariables = Exact<{
+  input: InteractiveResponseInput;
 }>;
 
 
-export type SubmitInteractiveResponseMutation = { __typename?: 'Mutation', submit_interactive_response: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, node_states: any } | null } };
+export type SendInteractiveResponseMutation = { __typename?: 'Mutation', send_interactive_response: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, node_states: any } | null } };
 
 export type UploadFileMutationVariables = Exact<{
   file: Scalars['Upload']['input'];
-  category?: Scalars['String']['input'];
+  path?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
 export type UploadFileMutation = { __typename?: 'Mutation', upload_file: { __typename?: 'FileUploadResult', success: boolean, path?: string | null, size_bytes?: number | null, content_type?: string | null, message?: string | null, error?: string | null } };
 
 export type ValidateDiagramMutationVariables = Exact<{
-  diagramContent: Scalars['JSONScalar']['input'];
+  content: Scalars['String']['input'];
+  format: DiagramFormat;
 }>;
 
 
-export type ValidateDiagramMutation = { __typename?: 'Mutation', validate_diagram: { __typename?: 'DiagramValidationResult', is_valid: boolean, errors: Array<string>, node_count?: number | null, arrow_count?: number | null, person_count?: number | null } };
+export type ValidateDiagramMutation = { __typename?: 'Mutation', validate_diagram: { __typename?: 'DiagramValidationResult', success: boolean, message?: string | null, errors?: Array<string> | null, warnings?: Array<string> | null } };
 
-export type ConvertDiagramMutationVariables = Exact<{
-  content: Scalars['JSONScalar']['input'];
-  targetFormat?: InputMaybe<DiagramFormat>;
-  includeMetadata?: InputMaybe<Scalars['Boolean']['input']>;
+export type ConvertDiagramFormatMutationVariables = Exact<{
+  content: Scalars['String']['input'];
+  fromFormat: DiagramFormat;
+  toFormat: DiagramFormat;
 }>;
 
 
-export type ConvertDiagramMutation = { __typename?: 'Mutation', convert_diagram: { __typename?: 'DiagramConvertResult', success: boolean, message: string, error?: string | null, content?: string | null, format?: string | null, filename?: string | null } };
+export type ConvertDiagramFormatMutation = { __typename?: 'Mutation', convert_diagram_format: { __typename?: 'DiagramConvertResult', success: boolean, message?: string | null, error?: string | null, content?: string | null, format?: DiagramFormat | null } };
 
 export type GetSupportedFormatsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetSupportedFormatsQuery = { __typename?: 'Query', supported_formats: Array<{ __typename?: 'DiagramFormatInfo', id: string, name: string, description: string, extension: string, supports_import: boolean, supports_export: boolean }> };
+export type GetSupportedFormatsQuery = { __typename?: 'Query', supported_formats: Array<{ __typename?: 'DiagramFormatInfo', format: string, name: string, extension: string, supports_export: boolean, supports_import: boolean, description?: string | null }> };
 
 export type CreateNodeMutationVariables = Exact<{
-  diagramId: Scalars['DiagramID']['input'];
-  inputData: CreateNodeInput;
+  diagramId: Scalars['ID']['input'];
+  input: CreateNodeInput;
 }>;
 
 
-export type CreateNodeMutation = { __typename?: 'Mutation', create_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: NodeID, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
+export type CreateNodeMutation = { __typename?: 'Mutation', create_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
 
 export type UpdateNodeMutationVariables = Exact<{
-  inputData: UpdateNodeInput;
+  diagramId: Scalars['ID']['input'];
+  nodeId: Scalars['ID']['input'];
+  input: UpdateNodeInput;
 }>;
 
 
-export type UpdateNodeMutation = { __typename?: 'Mutation', update_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: NodeID, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
+export type UpdateNodeMutation = { __typename?: 'Mutation', update_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
 
 export type DeleteNodeMutationVariables = Exact<{
-  nodeId: Scalars['NodeID']['input'];
+  diagramId: Scalars['ID']['input'];
+  nodeId: Scalars['ID']['input'];
 }>;
 
 
-export type DeleteNodeMutation = { __typename?: 'Mutation', delete_node: { __typename?: 'DeleteResult', success: boolean, deleted_id?: string | null, message?: string | null, error?: string | null } };
+export type DeleteNodeMutation = { __typename?: 'Mutation', delete_node: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type GetPersonQueryVariables = Exact<{
-  id: Scalars['PersonID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
-export type GetPersonQuery = { __typename?: 'Query', person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null };
+export type GetPersonQuery = { __typename?: 'Query', person?: { __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } } | null };
 
 export type GetPersonsQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type GetPersonsQuery = { __typename?: 'Query', persons: Array<{ __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } }> };
+export type GetPersonsQuery = { __typename?: 'Query', persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }> };
 
 export type CreatePersonMutationVariables = Exact<{
-  diagramId: Scalars['DiagramID']['input'];
-  personInput: CreatePersonInput;
+  input: CreatePersonInput;
 }>;
 
 
-export type CreatePersonMutation = { __typename?: 'Mutation', create_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null } };
+export type CreatePersonMutation = { __typename?: 'Mutation', create_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } } | null } };
 
 export type UpdatePersonMutationVariables = Exact<{
-  personInput: UpdatePersonInput;
+  id: Scalars['ID']['input'];
+  input: UpdatePersonInput;
 }>;
 
 
-export type UpdatePersonMutation = { __typename?: 'Mutation', update_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null } };
+export type UpdatePersonMutation = { __typename?: 'Mutation', update_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } } | null } };
 
 export type DeletePersonMutationVariables = Exact<{
-  personId: Scalars['PersonID']['input'];
+  id: Scalars['ID']['input'];
 }>;
 
 
-export type DeletePersonMutation = { __typename?: 'Mutation', delete_person: { __typename?: 'DeleteResult', success: boolean, deleted_id?: string | null, message?: string | null, error?: string | null } };
-
-export type InitializeModelMutationVariables = Exact<{
-  personId: Scalars['PersonID']['input'];
-  apiKeyId: Scalars['ApiKeyID']['input'];
-  model: Scalars['String']['input'];
-  label: Scalars['String']['input'];
-}>;
-
-
-export type InitializeModelMutation = { __typename?: 'Mutation', initialize_model: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null } };
+export type DeletePersonMutation = { __typename?: 'Mutation', delete_person: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type GetPromptFilesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -923,45 +889,14 @@ export type GetSystemInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type GetSystemInfoQuery = { __typename?: 'Query', system_info: any };
 
+export type ExecutionOrderQueryVariables = Exact<{
+  executionId: Scalars['ID']['input'];
+}>;
 
-export const ExecutionOrderDocument = gql`
-    query ExecutionOrder($executionId: ExecutionID!) {
-  execution_order(execution_id: $executionId)
-}
-    `;
 
-/**
- * __useExecutionOrderQuery__
- *
- * To run a query within a React component, call `useExecutionOrderQuery` and pass it any options that fit your needs.
- * When your component renders, `useExecutionOrderQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useExecutionOrderQuery({
- *   variables: {
- *      executionId: // value for 'executionId'
- *   },
- * });
- */
-export function useExecutionOrderQuery(baseOptions: Apollo.QueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables> & ({ variables: ExecutionOrderQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
-      }
-export function useExecutionOrderLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
-        }
-export function useExecutionOrderSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
-        }
-export type ExecutionOrderQueryHookResult = ReturnType<typeof useExecutionOrderQuery>;
-export type ExecutionOrderLazyQueryHookResult = ReturnType<typeof useExecutionOrderLazyQuery>;
-export type ExecutionOrderSuspenseQueryHookResult = ReturnType<typeof useExecutionOrderSuspenseQuery>;
-export type ExecutionOrderQueryResult = Apollo.QueryResult<ExecutionOrderQuery, ExecutionOrderQueryVariables>;
+export type ExecutionOrderQuery = { __typename?: 'Query', execution_order: any };
+
+
 export const GetApiKeysDocument = gql`
     query GetApiKeys($service: String) {
   api_keys(service: $service) {
@@ -1006,7 +941,7 @@ export type GetApiKeysLazyQueryHookResult = ReturnType<typeof useGetApiKeysLazyQ
 export type GetApiKeysSuspenseQueryHookResult = ReturnType<typeof useGetApiKeysSuspenseQuery>;
 export type GetApiKeysQueryResult = Apollo.QueryResult<GetApiKeysQuery, GetApiKeysQueryVariables>;
 export const GetApiKeyDocument = gql`
-    query GetApiKey($id: ApiKeyID!) {
+    query GetApiKey($id: ID!) {
   api_key(id: $id) {
     id
     label
@@ -1048,7 +983,7 @@ export type GetApiKeyLazyQueryHookResult = ReturnType<typeof useGetApiKeyLazyQue
 export type GetApiKeySuspenseQueryHookResult = ReturnType<typeof useGetApiKeySuspenseQuery>;
 export type GetApiKeyQueryResult = Apollo.QueryResult<GetApiKeyQuery, GetApiKeyQueryVariables>;
 export const GetAvailableModelsDocument = gql`
-    query GetAvailableModels($service: String!, $apiKeyId: ApiKeyID!) {
+    query GetAvailableModels($service: String!, $apiKeyId: ID!) {
   available_models(service: $service, api_key_id: $apiKeyId)
 }
     `;
@@ -1127,7 +1062,7 @@ export type CreateApiKeyMutationHookResult = ReturnType<typeof useCreateApiKeyMu
 export type CreateApiKeyMutationResult = Apollo.MutationResult<CreateApiKeyMutation>;
 export type CreateApiKeyMutationOptions = Apollo.BaseMutationOptions<CreateApiKeyMutation, CreateApiKeyMutationVariables>;
 export const TestApiKeyDocument = gql`
-    mutation TestApiKey($id: ApiKeyID!) {
+    mutation TestApiKey($id: ID!) {
   test_api_key(id: $id) {
     success
     message
@@ -1162,7 +1097,7 @@ export type TestApiKeyMutationHookResult = ReturnType<typeof useTestApiKeyMutati
 export type TestApiKeyMutationResult = Apollo.MutationResult<TestApiKeyMutation>;
 export type TestApiKeyMutationOptions = Apollo.BaseMutationOptions<TestApiKeyMutation, TestApiKeyMutationVariables>;
 export const DeleteApiKeyDocument = gql`
-    mutation DeleteApiKey($id: ApiKeyID!) {
+    mutation DeleteApiKey($id: ID!) {
   delete_api_key(id: $id) {
     success
     message
@@ -1196,7 +1131,7 @@ export type DeleteApiKeyMutationHookResult = ReturnType<typeof useDeleteApiKeyMu
 export type DeleteApiKeyMutationResult = Apollo.MutationResult<DeleteApiKeyMutation>;
 export type DeleteApiKeyMutationOptions = Apollo.BaseMutationOptions<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>;
 export const GetConversationsDocument = gql`
-    query GetConversations($person_id: PersonID, $execution_id: ExecutionID, $search: String, $show_forgotten: Boolean = false, $limit: Int = 100, $offset: Int = 0, $since: DateTime) {
+    query GetConversations($person_id: ID, $execution_id: ID, $search: String, $show_forgotten: Boolean = false, $limit: Int = 100, $offset: Int = 0, $since: DateTime) {
   conversations(
     person_id: $person_id
     execution_id: $execution_id
@@ -1247,41 +1182,8 @@ export type GetConversationsQueryHookResult = ReturnType<typeof useGetConversati
 export type GetConversationsLazyQueryHookResult = ReturnType<typeof useGetConversationsLazyQuery>;
 export type GetConversationsSuspenseQueryHookResult = ReturnType<typeof useGetConversationsSuspenseQuery>;
 export type GetConversationsQueryResult = Apollo.QueryResult<GetConversationsQuery, GetConversationsQueryVariables>;
-export const ClearConversationsDocument = gql`
-    mutation ClearConversations {
-  clear_conversations {
-    success
-    message
-  }
-}
-    `;
-export type ClearConversationsMutationFn = Apollo.MutationFunction<ClearConversationsMutation, ClearConversationsMutationVariables>;
-
-/**
- * __useClearConversationsMutation__
- *
- * To run a mutation, you first call `useClearConversationsMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useClearConversationsMutation` returns a tuple that includes:
- * - A mutate function that you can call at any time to execute the mutation
- * - An object with fields that represent the current status of the mutation's execution
- *
- * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
- *
- * @example
- * const [clearConversationsMutation, { data, loading, error }] = useClearConversationsMutation({
- *   variables: {
- *   },
- * });
- */
-export function useClearConversationsMutation(baseOptions?: Apollo.MutationHookOptions<ClearConversationsMutation, ClearConversationsMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ClearConversationsMutation, ClearConversationsMutationVariables>(ClearConversationsDocument, options);
-      }
-export type ClearConversationsMutationHookResult = ReturnType<typeof useClearConversationsMutation>;
-export type ClearConversationsMutationResult = Apollo.MutationResult<ClearConversationsMutation>;
-export type ClearConversationsMutationOptions = Apollo.BaseMutationOptions<ClearConversationsMutation, ClearConversationsMutationVariables>;
 export const GetDiagramDocument = gql`
-    query GetDiagram($id: DiagramID!) {
+    query GetDiagram($id: ID!) {
   diagram(id: $id) {
     nodes {
       id
@@ -1304,8 +1206,6 @@ export const GetDiagramDocument = gql`
       id
       source
       target
-      content_type
-      label
       data
     }
     persons {
@@ -1317,7 +1217,6 @@ export const GetDiagramDocument = gql`
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     metadata {
@@ -1380,7 +1279,6 @@ export const ListDiagramsDocument = gql`
     }
     nodeCount
     arrowCount
-    personCount
   }
 }
     `;
@@ -1461,8 +1359,8 @@ export type CreateDiagramMutationHookResult = ReturnType<typeof useCreateDiagram
 export type CreateDiagramMutationResult = Apollo.MutationResult<CreateDiagramMutation>;
 export type CreateDiagramMutationOptions = Apollo.BaseMutationOptions<CreateDiagramMutation, CreateDiagramMutationVariables>;
 export const ExecuteDiagramDocument = gql`
-    mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
-  execute_diagram(data: $data) {
+    mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
+  execute_diagram(input: $input) {
     success
     execution {
       id
@@ -1487,7 +1385,7 @@ export type ExecuteDiagramMutationFn = Apollo.MutationFunction<ExecuteDiagramMut
  * @example
  * const [executeDiagramMutation, { data, loading, error }] = useExecuteDiagramMutation({
  *   variables: {
- *      data: // value for 'data'
+ *      input: // value for 'input'
  *   },
  * });
  */
@@ -1499,10 +1397,9 @@ export type ExecuteDiagramMutationHookResult = ReturnType<typeof useExecuteDiagr
 export type ExecuteDiagramMutationResult = Apollo.MutationResult<ExecuteDiagramMutation>;
 export type ExecuteDiagramMutationOptions = Apollo.BaseMutationOptions<ExecuteDiagramMutation, ExecuteDiagramMutationVariables>;
 export const DeleteDiagramDocument = gql`
-    mutation DeleteDiagram($id: DiagramID!) {
+    mutation DeleteDiagram($id: ID!) {
   delete_diagram(id: $id) {
     success
-    deleted_id
     message
     error
   }
@@ -1535,7 +1432,7 @@ export type DeleteDiagramMutationHookResult = ReturnType<typeof useDeleteDiagram
 export type DeleteDiagramMutationResult = Apollo.MutationResult<DeleteDiagramMutation>;
 export type DeleteDiagramMutationOptions = Apollo.BaseMutationOptions<DeleteDiagramMutation, DeleteDiagramMutationVariables>;
 export const GetExecutionDocument = gql`
-    query GetExecution($id: ExecutionID!) {
+    query GetExecution($id: ID!) {
   execution(id: $id) {
     id
     status
@@ -1638,18 +1535,12 @@ export type ListExecutionsLazyQueryHookResult = ReturnType<typeof useListExecuti
 export type ListExecutionsSuspenseQueryHookResult = ReturnType<typeof useListExecutionsSuspenseQuery>;
 export type ListExecutionsQueryResult = Apollo.QueryResult<ListExecutionsQuery, ListExecutionsQueryVariables>;
 export const ExecutionUpdatesDocument = gql`
-    subscription ExecutionUpdates($executionId: ExecutionID!) {
+    subscription ExecutionUpdates($executionId: ID!) {
   execution_updates(execution_id: $executionId) {
-    id
-    status
-    node_states
-    node_outputs
-    token_usage {
-      input
-      output
-      cached
-    }
-    error
+    execution_id
+    event_type
+    data
+    timestamp
   }
 }
     `;
@@ -1677,18 +1568,8 @@ export function useExecutionUpdatesSubscription(baseOptions: Apollo.Subscription
 export type ExecutionUpdatesSubscriptionHookResult = ReturnType<typeof useExecutionUpdatesSubscription>;
 export type ExecutionUpdatesSubscriptionResult = Apollo.SubscriptionResult<ExecutionUpdatesSubscription>;
 export const NodeUpdatesDocument = gql`
-    subscription NodeUpdates($executionId: ExecutionID!, $nodeTypes: [NodeType!]) {
-  node_updates(execution_id: $executionId, node_types: $nodeTypes) {
-    execution_id
-    node_id
-    node_type
-    status
-    progress
-    output
-    error
-    tokens_used
-    timestamp
-  }
+    subscription NodeUpdates($executionId: ID!, $nodeId: String) {
+  node_updates(execution_id: $executionId, node_id: $nodeId)
 }
     `;
 
@@ -1705,7 +1586,7 @@ export const NodeUpdatesDocument = gql`
  * const { data, loading, error } = useNodeUpdatesSubscription({
  *   variables: {
  *      executionId: // value for 'executionId'
- *      nodeTypes: // value for 'nodeTypes'
+ *      nodeId: // value for 'nodeId'
  *   },
  * });
  */
@@ -1716,14 +1597,8 @@ export function useNodeUpdatesSubscription(baseOptions: Apollo.SubscriptionHookO
 export type NodeUpdatesSubscriptionHookResult = ReturnType<typeof useNodeUpdatesSubscription>;
 export type NodeUpdatesSubscriptionResult = Apollo.SubscriptionResult<NodeUpdatesSubscription>;
 export const InteractivePromptsDocument = gql`
-    subscription InteractivePrompts($executionId: ExecutionID!) {
-  interactive_prompts(execution_id: $executionId) {
-    execution_id
-    node_id
-    prompt
-    timeout_seconds
-    timestamp
-  }
+    subscription InteractivePrompts($executionId: ID!) {
+  interactive_prompts(execution_id: $executionId)
 }
     `;
 
@@ -1750,8 +1625,8 @@ export function useInteractivePromptsSubscription(baseOptions: Apollo.Subscripti
 export type InteractivePromptsSubscriptionHookResult = ReturnType<typeof useInteractivePromptsSubscription>;
 export type InteractivePromptsSubscriptionResult = Apollo.SubscriptionResult<InteractivePromptsSubscription>;
 export const ControlExecutionDocument = gql`
-    mutation ControlExecution($data: ExecutionControlInput!) {
-  control_execution(data: $data) {
+    mutation ControlExecution($input: ExecutionControlInput!) {
+  control_execution(input: $input) {
     success
     execution {
       id
@@ -1777,7 +1652,7 @@ export type ControlExecutionMutationFn = Apollo.MutationFunction<ControlExecutio
  * @example
  * const [controlExecutionMutation, { data, loading, error }] = useControlExecutionMutation({
  *   variables: {
- *      data: // value for 'data'
+ *      input: // value for 'input'
  *   },
  * });
  */
@@ -1788,9 +1663,9 @@ export function useControlExecutionMutation(baseOptions?: Apollo.MutationHookOpt
 export type ControlExecutionMutationHookResult = ReturnType<typeof useControlExecutionMutation>;
 export type ControlExecutionMutationResult = Apollo.MutationResult<ControlExecutionMutation>;
 export type ControlExecutionMutationOptions = Apollo.BaseMutationOptions<ControlExecutionMutation, ControlExecutionMutationVariables>;
-export const SubmitInteractiveResponseDocument = gql`
-    mutation SubmitInteractiveResponse($data: InteractiveResponseInput!) {
-  submit_interactive_response(data: $data) {
+export const SendInteractiveResponseDocument = gql`
+    mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
+  send_interactive_response(input: $input) {
     success
     execution {
       id
@@ -1802,35 +1677,35 @@ export const SubmitInteractiveResponseDocument = gql`
   }
 }
     `;
-export type SubmitInteractiveResponseMutationFn = Apollo.MutationFunction<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>;
+export type SendInteractiveResponseMutationFn = Apollo.MutationFunction<SendInteractiveResponseMutation, SendInteractiveResponseMutationVariables>;
 
 /**
- * __useSubmitInteractiveResponseMutation__
+ * __useSendInteractiveResponseMutation__
  *
- * To run a mutation, you first call `useSubmitInteractiveResponseMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useSubmitInteractiveResponseMutation` returns a tuple that includes:
+ * To run a mutation, you first call `useSendInteractiveResponseMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSendInteractiveResponseMutation` returns a tuple that includes:
  * - A mutate function that you can call at any time to execute the mutation
  * - An object with fields that represent the current status of the mutation's execution
  *
  * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
  *
  * @example
- * const [submitInteractiveResponseMutation, { data, loading, error }] = useSubmitInteractiveResponseMutation({
+ * const [sendInteractiveResponseMutation, { data, loading, error }] = useSendInteractiveResponseMutation({
  *   variables: {
- *      data: // value for 'data'
+ *      input: // value for 'input'
  *   },
  * });
  */
-export function useSubmitInteractiveResponseMutation(baseOptions?: Apollo.MutationHookOptions<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>) {
+export function useSendInteractiveResponseMutation(baseOptions?: Apollo.MutationHookOptions<SendInteractiveResponseMutation, SendInteractiveResponseMutationVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>(SubmitInteractiveResponseDocument, options);
+        return Apollo.useMutation<SendInteractiveResponseMutation, SendInteractiveResponseMutationVariables>(SendInteractiveResponseDocument, options);
       }
-export type SubmitInteractiveResponseMutationHookResult = ReturnType<typeof useSubmitInteractiveResponseMutation>;
-export type SubmitInteractiveResponseMutationResult = Apollo.MutationResult<SubmitInteractiveResponseMutation>;
-export type SubmitInteractiveResponseMutationOptions = Apollo.BaseMutationOptions<SubmitInteractiveResponseMutation, SubmitInteractiveResponseMutationVariables>;
+export type SendInteractiveResponseMutationHookResult = ReturnType<typeof useSendInteractiveResponseMutation>;
+export type SendInteractiveResponseMutationResult = Apollo.MutationResult<SendInteractiveResponseMutation>;
+export type SendInteractiveResponseMutationOptions = Apollo.BaseMutationOptions<SendInteractiveResponseMutation, SendInteractiveResponseMutationVariables>;
 export const UploadFileDocument = gql`
-    mutation UploadFile($file: Upload!, $category: String! = "general") {
-  upload_file(file: $file, category: $category) {
+    mutation UploadFile($file: Upload!, $path: String) {
+  upload_file(file: $file, path: $path) {
     success
     path
     size_bytes
@@ -1856,7 +1731,7 @@ export type UploadFileMutationFn = Apollo.MutationFunction<UploadFileMutation, U
  * const [uploadFileMutation, { data, loading, error }] = useUploadFileMutation({
  *   variables: {
  *      file: // value for 'file'
- *      category: // value for 'category'
+ *      path: // value for 'path'
  *   },
  * });
  */
@@ -1868,13 +1743,12 @@ export type UploadFileMutationHookResult = ReturnType<typeof useUploadFileMutati
 export type UploadFileMutationResult = Apollo.MutationResult<UploadFileMutation>;
 export type UploadFileMutationOptions = Apollo.BaseMutationOptions<UploadFileMutation, UploadFileMutationVariables>;
 export const ValidateDiagramDocument = gql`
-    mutation ValidateDiagram($diagramContent: JSONScalar!) {
-  validate_diagram(diagram_content: $diagramContent) {
-    is_valid
+    mutation ValidateDiagram($content: String!, $format: DiagramFormat!) {
+  validate_diagram(content: $content, format: $format) {
+    success
+    message
     errors
-    node_count
-    arrow_count
-    person_count
+    warnings
   }
 }
     `;
@@ -1893,7 +1767,8 @@ export type ValidateDiagramMutationFn = Apollo.MutationFunction<ValidateDiagramM
  * @example
  * const [validateDiagramMutation, { data, loading, error }] = useValidateDiagramMutation({
  *   variables: {
- *      diagramContent: // value for 'diagramContent'
+ *      content: // value for 'content'
+ *      format: // value for 'format'
  *   },
  * });
  */
@@ -1904,59 +1779,59 @@ export function useValidateDiagramMutation(baseOptions?: Apollo.MutationHookOpti
 export type ValidateDiagramMutationHookResult = ReturnType<typeof useValidateDiagramMutation>;
 export type ValidateDiagramMutationResult = Apollo.MutationResult<ValidateDiagramMutation>;
 export type ValidateDiagramMutationOptions = Apollo.BaseMutationOptions<ValidateDiagramMutation, ValidateDiagramMutationVariables>;
-export const ConvertDiagramDocument = gql`
-    mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = native, $includeMetadata: Boolean = true) {
-  convert_diagram(
+export const ConvertDiagramFormatDocument = gql`
+    mutation ConvertDiagramFormat($content: String!, $fromFormat: DiagramFormat!, $toFormat: DiagramFormat!) {
+  convert_diagram_format(
     content: $content
-    target_format: $targetFormat
-    include_metadata: $includeMetadata
+    from_format: $fromFormat
+    to_format: $toFormat
   ) {
     success
     message
     error
     content
     format
-    filename
+    format
   }
 }
     `;
-export type ConvertDiagramMutationFn = Apollo.MutationFunction<ConvertDiagramMutation, ConvertDiagramMutationVariables>;
+export type ConvertDiagramFormatMutationFn = Apollo.MutationFunction<ConvertDiagramFormatMutation, ConvertDiagramFormatMutationVariables>;
 
 /**
- * __useConvertDiagramMutation__
+ * __useConvertDiagramFormatMutation__
  *
- * To run a mutation, you first call `useConvertDiagramMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useConvertDiagramMutation` returns a tuple that includes:
+ * To run a mutation, you first call `useConvertDiagramFormatMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useConvertDiagramFormatMutation` returns a tuple that includes:
  * - A mutate function that you can call at any time to execute the mutation
  * - An object with fields that represent the current status of the mutation's execution
  *
  * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
  *
  * @example
- * const [convertDiagramMutation, { data, loading, error }] = useConvertDiagramMutation({
+ * const [convertDiagramFormatMutation, { data, loading, error }] = useConvertDiagramFormatMutation({
  *   variables: {
  *      content: // value for 'content'
- *      targetFormat: // value for 'targetFormat'
- *      includeMetadata: // value for 'includeMetadata'
+ *      fromFormat: // value for 'fromFormat'
+ *      toFormat: // value for 'toFormat'
  *   },
  * });
  */
-export function useConvertDiagramMutation(baseOptions?: Apollo.MutationHookOptions<ConvertDiagramMutation, ConvertDiagramMutationVariables>) {
+export function useConvertDiagramFormatMutation(baseOptions?: Apollo.MutationHookOptions<ConvertDiagramFormatMutation, ConvertDiagramFormatMutationVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ConvertDiagramMutation, ConvertDiagramMutationVariables>(ConvertDiagramDocument, options);
+        return Apollo.useMutation<ConvertDiagramFormatMutation, ConvertDiagramFormatMutationVariables>(ConvertDiagramFormatDocument, options);
       }
-export type ConvertDiagramMutationHookResult = ReturnType<typeof useConvertDiagramMutation>;
-export type ConvertDiagramMutationResult = Apollo.MutationResult<ConvertDiagramMutation>;
-export type ConvertDiagramMutationOptions = Apollo.BaseMutationOptions<ConvertDiagramMutation, ConvertDiagramMutationVariables>;
+export type ConvertDiagramFormatMutationHookResult = ReturnType<typeof useConvertDiagramFormatMutation>;
+export type ConvertDiagramFormatMutationResult = Apollo.MutationResult<ConvertDiagramFormatMutation>;
+export type ConvertDiagramFormatMutationOptions = Apollo.BaseMutationOptions<ConvertDiagramFormatMutation, ConvertDiagramFormatMutationVariables>;
 export const GetSupportedFormatsDocument = gql`
     query GetSupportedFormats {
   supported_formats {
-    id
+    format
     name
-    description
     extension
-    supports_import
     supports_export
+    supports_import
+    description
   }
 }
     `;
@@ -1993,8 +1868,8 @@ export type GetSupportedFormatsLazyQueryHookResult = ReturnType<typeof useGetSup
 export type GetSupportedFormatsSuspenseQueryHookResult = ReturnType<typeof useGetSupportedFormatsSuspenseQuery>;
 export type GetSupportedFormatsQueryResult = Apollo.QueryResult<GetSupportedFormatsQuery, GetSupportedFormatsQueryVariables>;
 export const CreateNodeDocument = gql`
-    mutation CreateNode($diagramId: DiagramID!, $inputData: CreateNodeInput!) {
-  create_node(diagram_id: $diagramId, input_data: $inputData) {
+    mutation CreateNode($diagramId: ID!, $input: CreateNodeInput!) {
+  create_node(diagram_id: $diagramId, input: $input) {
     success
     node {
       id
@@ -2026,7 +1901,7 @@ export type CreateNodeMutationFn = Apollo.MutationFunction<CreateNodeMutation, C
  * const [createNodeMutation, { data, loading, error }] = useCreateNodeMutation({
  *   variables: {
  *      diagramId: // value for 'diagramId'
- *      inputData: // value for 'inputData'
+ *      input: // value for 'input'
  *   },
  * });
  */
@@ -2038,8 +1913,8 @@ export type CreateNodeMutationHookResult = ReturnType<typeof useCreateNodeMutati
 export type CreateNodeMutationResult = Apollo.MutationResult<CreateNodeMutation>;
 export type CreateNodeMutationOptions = Apollo.BaseMutationOptions<CreateNodeMutation, CreateNodeMutationVariables>;
 export const UpdateNodeDocument = gql`
-    mutation UpdateNode($inputData: UpdateNodeInput!) {
-  update_node(input_data: $inputData) {
+    mutation UpdateNode($diagramId: ID!, $nodeId: ID!, $input: UpdateNodeInput!) {
+  update_node(diagram_id: $diagramId, node_id: $nodeId, input: $input) {
     success
     node {
       id
@@ -2070,7 +1945,9 @@ export type UpdateNodeMutationFn = Apollo.MutationFunction<UpdateNodeMutation, U
  * @example
  * const [updateNodeMutation, { data, loading, error }] = useUpdateNodeMutation({
  *   variables: {
- *      inputData: // value for 'inputData'
+ *      diagramId: // value for 'diagramId'
+ *      nodeId: // value for 'nodeId'
+ *      input: // value for 'input'
  *   },
  * });
  */
@@ -2082,10 +1959,9 @@ export type UpdateNodeMutationHookResult = ReturnType<typeof useUpdateNodeMutati
 export type UpdateNodeMutationResult = Apollo.MutationResult<UpdateNodeMutation>;
 export type UpdateNodeMutationOptions = Apollo.BaseMutationOptions<UpdateNodeMutation, UpdateNodeMutationVariables>;
 export const DeleteNodeDocument = gql`
-    mutation DeleteNode($nodeId: NodeID!) {
-  delete_node(node_id: $nodeId) {
+    mutation DeleteNode($diagramId: ID!, $nodeId: ID!) {
+  delete_node(diagram_id: $diagramId, node_id: $nodeId) {
     success
-    deleted_id
     message
     error
   }
@@ -2106,6 +1982,7 @@ export type DeleteNodeMutationFn = Apollo.MutationFunction<DeleteNodeMutation, D
  * @example
  * const [deleteNodeMutation, { data, loading, error }] = useDeleteNodeMutation({
  *   variables: {
+ *      diagramId: // value for 'diagramId'
  *      nodeId: // value for 'nodeId'
  *   },
  * });
@@ -2118,7 +1995,7 @@ export type DeleteNodeMutationHookResult = ReturnType<typeof useDeleteNodeMutati
 export type DeleteNodeMutationResult = Apollo.MutationResult<DeleteNodeMutation>;
 export type DeleteNodeMutationOptions = Apollo.BaseMutationOptions<DeleteNodeMutation, DeleteNodeMutationVariables>;
 export const GetPersonDocument = gql`
-    query GetPerson($id: PersonID!) {
+    query GetPerson($id: ID!) {
   person(id: $id) {
     id
     label
@@ -2128,7 +2005,6 @@ export const GetPersonDocument = gql`
       api_key_id
       system_prompt
     }
-    masked_api_key
     type
   }
 }
@@ -2177,7 +2053,6 @@ export const GetPersonsDocument = gql`
       api_key_id
       system_prompt
     }
-    masked_api_key
     type
   }
 }
@@ -2216,8 +2091,8 @@ export type GetPersonsLazyQueryHookResult = ReturnType<typeof useGetPersonsLazyQ
 export type GetPersonsSuspenseQueryHookResult = ReturnType<typeof useGetPersonsSuspenseQuery>;
 export type GetPersonsQueryResult = Apollo.QueryResult<GetPersonsQuery, GetPersonsQueryVariables>;
 export const CreatePersonDocument = gql`
-    mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) {
-  create_person(diagram_id: $diagramId, person_input: $personInput) {
+    mutation CreatePerson($input: CreatePersonInput!) {
+  create_person(input: $input) {
     success
     person {
       id
@@ -2228,7 +2103,6 @@ export const CreatePersonDocument = gql`
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     message
@@ -2251,8 +2125,7 @@ export type CreatePersonMutationFn = Apollo.MutationFunction<CreatePersonMutatio
  * @example
  * const [createPersonMutation, { data, loading, error }] = useCreatePersonMutation({
  *   variables: {
- *      diagramId: // value for 'diagramId'
- *      personInput: // value for 'personInput'
+ *      input: // value for 'input'
  *   },
  * });
  */
@@ -2264,8 +2137,8 @@ export type CreatePersonMutationHookResult = ReturnType<typeof useCreatePersonMu
 export type CreatePersonMutationResult = Apollo.MutationResult<CreatePersonMutation>;
 export type CreatePersonMutationOptions = Apollo.BaseMutationOptions<CreatePersonMutation, CreatePersonMutationVariables>;
 export const UpdatePersonDocument = gql`
-    mutation UpdatePerson($personInput: UpdatePersonInput!) {
-  update_person(person_input: $personInput) {
+    mutation UpdatePerson($id: ID!, $input: UpdatePersonInput!) {
+  update_person(id: $id, input: $input) {
     success
     person {
       id
@@ -2276,7 +2149,6 @@ export const UpdatePersonDocument = gql`
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     message
@@ -2299,7 +2171,8 @@ export type UpdatePersonMutationFn = Apollo.MutationFunction<UpdatePersonMutatio
  * @example
  * const [updatePersonMutation, { data, loading, error }] = useUpdatePersonMutation({
  *   variables: {
- *      personInput: // value for 'personInput'
+ *      id: // value for 'id'
+ *      input: // value for 'input'
  *   },
  * });
  */
@@ -2311,10 +2184,9 @@ export type UpdatePersonMutationHookResult = ReturnType<typeof useUpdatePersonMu
 export type UpdatePersonMutationResult = Apollo.MutationResult<UpdatePersonMutation>;
 export type UpdatePersonMutationOptions = Apollo.BaseMutationOptions<UpdatePersonMutation, UpdatePersonMutationVariables>;
 export const DeletePersonDocument = gql`
-    mutation DeletePerson($personId: PersonID!) {
-  delete_person(person_id: $personId) {
+    mutation DeletePerson($id: ID!) {
+  delete_person(id: $id) {
     success
-    deleted_id
     message
     error
   }
@@ -2335,7 +2207,7 @@ export type DeletePersonMutationFn = Apollo.MutationFunction<DeletePersonMutatio
  * @example
  * const [deletePersonMutation, { data, loading, error }] = useDeletePersonMutation({
  *   variables: {
- *      personId: // value for 'personId'
+ *      id: // value for 'id'
  *   },
  * });
  */
@@ -2346,61 +2218,6 @@ export function useDeletePersonMutation(baseOptions?: Apollo.MutationHookOptions
 export type DeletePersonMutationHookResult = ReturnType<typeof useDeletePersonMutation>;
 export type DeletePersonMutationResult = Apollo.MutationResult<DeletePersonMutation>;
 export type DeletePersonMutationOptions = Apollo.BaseMutationOptions<DeletePersonMutation, DeletePersonMutationVariables>;
-export const InitializeModelDocument = gql`
-    mutation InitializeModel($personId: PersonID!, $apiKeyId: ApiKeyID!, $model: String!, $label: String!) {
-  initialize_model(
-    person_id: $personId
-    api_key_id: $apiKeyId
-    model: $model
-    label: $label
-  ) {
-    success
-    person {
-      id
-      label
-      llm_config {
-        service
-        model
-        api_key_id
-        system_prompt
-      }
-      masked_api_key
-      type
-    }
-    message
-    error
-  }
-}
-    `;
-export type InitializeModelMutationFn = Apollo.MutationFunction<InitializeModelMutation, InitializeModelMutationVariables>;
-
-/**
- * __useInitializeModelMutation__
- *
- * To run a mutation, you first call `useInitializeModelMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useInitializeModelMutation` returns a tuple that includes:
- * - A mutate function that you can call at any time to execute the mutation
- * - An object with fields that represent the current status of the mutation's execution
- *
- * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
- *
- * @example
- * const [initializeModelMutation, { data, loading, error }] = useInitializeModelMutation({
- *   variables: {
- *      personId: // value for 'personId'
- *      apiKeyId: // value for 'apiKeyId'
- *      model: // value for 'model'
- *      label: // value for 'label'
- *   },
- * });
- */
-export function useInitializeModelMutation(baseOptions?: Apollo.MutationHookOptions<InitializeModelMutation, InitializeModelMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<InitializeModelMutation, InitializeModelMutationVariables>(InitializeModelDocument, options);
-      }
-export type InitializeModelMutationHookResult = ReturnType<typeof useInitializeModelMutation>;
-export type InitializeModelMutationResult = Apollo.MutationResult<InitializeModelMutation>;
-export type InitializeModelMutationOptions = Apollo.BaseMutationOptions<InitializeModelMutation, InitializeModelMutationVariables>;
 export const GetPromptFilesDocument = gql`
     query GetPromptFiles {
   prompt_files
@@ -2513,3 +2330,41 @@ export type GetSystemInfoQueryHookResult = ReturnType<typeof useGetSystemInfoQue
 export type GetSystemInfoLazyQueryHookResult = ReturnType<typeof useGetSystemInfoLazyQuery>;
 export type GetSystemInfoSuspenseQueryHookResult = ReturnType<typeof useGetSystemInfoSuspenseQuery>;
 export type GetSystemInfoQueryResult = Apollo.QueryResult<GetSystemInfoQuery, GetSystemInfoQueryVariables>;
+export const ExecutionOrderDocument = gql`
+    query ExecutionOrder($executionId: ID!) {
+  execution_order(execution_id: $executionId)
+}
+    `;
+
+/**
+ * __useExecutionOrderQuery__
+ *
+ * To run a query within a React component, call `useExecutionOrderQuery` and pass it any options that fit your needs.
+ * When your component renders, `useExecutionOrderQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useExecutionOrderQuery({
+ *   variables: {
+ *      executionId: // value for 'executionId'
+ *   },
+ * });
+ */
+export function useExecutionOrderQuery(baseOptions: Apollo.QueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables> & ({ variables: ExecutionOrderQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
+      }
+export function useExecutionOrderLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
+        }
+export function useExecutionOrderSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
+        }
+export type ExecutionOrderQueryHookResult = ReturnType<typeof useExecutionOrderQuery>;
+export type ExecutionOrderLazyQueryHookResult = ReturnType<typeof useExecutionOrderLazyQuery>;
+export type ExecutionOrderSuspenseQueryHookResult = ReturnType<typeof useExecutionOrderSuspenseQuery>;
+export type ExecutionOrderQueryResult = Apollo.QueryResult<ExecutionOrderQuery, ExecutionOrderQueryVariables>;

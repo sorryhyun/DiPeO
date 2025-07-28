@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/ConditionNodeData",
+  "definitions": {
+    "ConditionNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_type": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "node_indices": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "condition_type",
+        "label"
+      ],
+      "type": "object"
+    }
+  }
+}

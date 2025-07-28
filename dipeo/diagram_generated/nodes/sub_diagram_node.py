@@ -30,7 +30,7 @@ class SubDiagramNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.sub_diagram, init=False)
+    type: NodeType = field(default=NodeType.SUB_DIAGRAM, init=False)
     
     # Optional node-specific fields
     diagram_name: str = ""

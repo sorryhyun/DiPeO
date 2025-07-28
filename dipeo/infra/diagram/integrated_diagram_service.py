@@ -57,7 +57,7 @@ class IntegratedDiagramService(DiagramPort):
         format = self.format_service.determine_format_from_filename(path)
         
         # For YAML formats, use converter to get properly formatted string
-        if format in [DiagramFormat.light, DiagramFormat.readable]:
+        if format in [DiagramFormat.LIGHT, DiagramFormat.READABLE]:
             # Convert dict to domain model
             domain_diagram = dict_to_domain_diagram(diagram)
             
@@ -76,12 +76,12 @@ class IntegratedDiagramService(DiagramPort):
         """Create a new diagram with unique filename."""
         # Determine format from parameter
         if format == "json":
-            diagram_format = DiagramFormat.native
+            diagram_format = DiagramFormat.NATIVE
         else:
             if diagram.get("format") == "readable" or diagram.get("version") == "readable":
-                diagram_format = DiagramFormat.readable
+                diagram_format = DiagramFormat.READABLE
             else:
-                diagram_format = DiagramFormat.light
+                diagram_format = DiagramFormat.LIGHT
         
         # Get file extension for format
         extension = self.format_service.get_file_extension_for_format(diagram_format)
@@ -139,6 +139,42 @@ class IntegratedDiagramService(DiagramPort):
         # First try to find by ID using repository
         path = await self.file_repository.find_by_id(diagram_id)
         if path:
-            return await self.file_repository.read_file(path)
+            # Read raw content
+            raw_content = await self.file_repository.read_raw_content(path)
+            
+            # Detect format and load through converter to ensure proper structure
+            format = self.loader_adapter.detect_format(raw_content)
+            domain_diagram = self.loader_adapter.load_diagram(raw_content, format)
+            
+            # Convert to dict format with proper structure
+            # This ensures nodes have 'id' fields and are in the expected format
+            from dipeo.diagram_generated.conversions import diagram_maps_to_arrays
+            diagram_dict = domain_diagram.model_dump()
+            
+            # Convert to array format if needed for compatibility
+            if isinstance(diagram_dict.get("nodes"), dict):
+                diagram_dict = diagram_maps_to_arrays(diagram_dict)
+            
+            # Ensure metadata is present with required fields
+            if "metadata" not in diagram_dict or not diagram_dict["metadata"]:
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc).isoformat()
+                diagram_dict["metadata"] = {
+                    "id": diagram_id,
+                    "name": diagram_id,
+                    "version": "1.0.0",
+                    "created": now,
+                    "modified": now
+                }
+            else:
+                # Ensure created/modified exist
+                metadata = diagram_dict["metadata"]
+                from datetime import datetime, timezone
+                if "created" not in metadata:
+                    metadata["created"] = datetime.now(timezone.utc).isoformat()
+                if "modified" not in metadata:
+                    metadata["modified"] = metadata.get("created", datetime.now(timezone.utc).isoformat())
+            
+            return diagram_dict
         
         return None

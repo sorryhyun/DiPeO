@@ -30,7 +30,7 @@ class JsonSchemaValidatorNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.json_schema_validator, init=False)
+    type: NodeType = field(default=NodeType.JSON_SCHEMA_VALIDATOR, init=False)
     
     # Optional node-specific fields
     schema_path: str = ""

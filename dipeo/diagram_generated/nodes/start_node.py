@@ -32,7 +32,7 @@ class StartNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.start, init=False)
+    type: NodeType = field(default=NodeType.START, init=False)
     
     # Optional node-specific fields
     trigger_mode: HookTriggerMode = None

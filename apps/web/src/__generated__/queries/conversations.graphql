@@ -1,0 +1,20 @@
+# Conversation Queries
+query GetConversations(
+  $person_id: ID
+  $execution_id: ID
+  $search: String
+  $show_forgotten: Boolean = false
+  $limit: Int = 100
+  $offset: Int = 0
+  $since: DateTime
+) {
+  conversations(
+    person_id: $person_id
+    execution_id: $execution_id
+    search: $search
+    show_forgotten: $show_forgotten
+    limit: $limit
+    offset: $offset
+    since: $since
+  )
+}

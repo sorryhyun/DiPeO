@@ -15,6 +15,7 @@ class DbNodeData(BaseModel):
     operation: str = Field(description="Operation configuration")
     query: Optional[str] = Field(description="Query configuration")
     data: Optional[Dict[str, Any]] = Field(description="Data configuration")
+    serialize_json: Optional[bool] = Field(description="Serialize structured data to JSON string (for backward compatibility)")
 
     class Config:
         extra = "forbid"

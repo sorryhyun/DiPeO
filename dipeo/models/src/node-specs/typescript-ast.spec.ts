@@ -3,7 +3,7 @@
  */
 
 import { NodeType, SupportedLanguage } from '../diagram.js';
-import { NodeSpecification } from '../node-specifications.js';
+import { NodeSpecification } from './node-specifications';
 
 export const typescriptAstSpec: NodeSpecification = {
   nodeType: NodeType.TYPESCRIPT_AST,
@@ -62,6 +62,44 @@ export const typescriptAstSpec: NodeSpecification = {
         options: [
           { value: "module", label: "Module" },
           { value: "script", label: "Script" }
+        ]
+      }
+    },
+    {
+      name: "transformEnums",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "Transform enum definitions to a simpler format",
+      uiConfig: {
+        inputType: "checkbox"
+      }
+    },
+    {
+      name: "flattenOutput",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "Flatten the output structure for easier consumption",
+      uiConfig: {
+        inputType: "checkbox"
+      }
+    },
+    {
+      name: "outputFormat",
+      type: "enum",
+      required: false,
+      defaultValue: "standard",
+      description: "Output format for the parsed data",
+      validation: {
+        allowedValues: ["standard", "for_codegen", "for_analysis"]
+      },
+      uiConfig: {
+        inputType: "select",
+        options: [
+          { value: "standard", label: "Standard" },
+          { value: "for_codegen", label: "For Code Generation" },
+          { value: "for_analysis", label: "For Analysis" }
         ]
       }
     }

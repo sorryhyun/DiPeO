@@ -1,0 +1,33 @@
+# File Operations
+
+
+mutation UploadFile($file: Upload!, $path: String) {
+  upload_file(file: $file, path: $path) {
+    success
+    path
+    size_bytes
+    content_type
+    message
+    error
+  }
+}
+
+mutation ValidateDiagram($content: String!, $format: DiagramFormat!) {
+  validate_diagram(content: $content, format: $format) {
+    success
+    message
+    errors
+    warnings
+  }
+}
+
+mutation ConvertDiagramFormat($content: String!, $fromFormat: DiagramFormat!, $toFormat: DiagramFormat!) {
+  convert_diagram_format(content: $content, from_format: $fromFormat, to_format: $toFormat) {
+    success
+    message
+    error
+    content
+    format
+    format
+  }
+}

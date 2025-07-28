@@ -1,29 +1,43 @@
-"""Unified GraphQL schema with direct streaming support."""
+"""GraphQL router creation for the DiPeO server.
+
+This module creates the GraphQL router for serving the schema from the application layer.
+The actual schema definition lives in dipeo.application.graphql.
+"""
 
 import strawberry
 from strawberry.fastapi import GraphQLRouter
-from strawberry.schema.config import StrawberryConfig
 from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 
-from .mutations import Mutation
-from .queries import Query
-from .subscriptions import Subscription
+# Import schema from application layer
+from dipeo.application.graphql import create_schema
+from dipeo.application.unified_service_registry import UnifiedServiceRegistry
 
-# Create unified schema with direct streaming subscriptions
-# Disable auto camelCase conversion to keep snake_case field names
-unified_schema = strawberry.Schema(
-    query=Query,
-    mutation=Mutation,
-    subscription=Subscription,
-    extensions=[],
-    config=StrawberryConfig(auto_camel_case=False),
-)
+# The schema will be created with the service registry in create_unified_graphql_router
+unified_schema = None
 
 
-def create_unified_graphql_router(context_getter=None):
+def create_unified_graphql_router(context_getter=None, container=None):
     # Create a GraphQL router with direct streaming support
+    
+    # If container is provided, use it directly
+    if container:
+        registry = container.application.service_registry()
+    else:
+        # Try to get container (may fail during import)
+        try:
+            from dipeo_server.application.app_context import get_container
+            container = get_container()
+            registry = container.application.service_registry()
+        except RuntimeError:
+            # Container not initialized yet, create a mock registry for now
+            # This will be replaced when the router is actually used
+            registry = UnifiedServiceRegistry()
+    
+    # Create the schema with the injected registry
+    schema = create_schema(registry)
+    
     return GraphQLRouter(
-        unified_schema,
+        schema,
         context_getter=context_getter,
         # Enable GraphQL playground UI
         graphiql=True,
@@ -38,19 +52,5 @@ def create_unified_graphql_router(context_getter=None):
     )
 
 
-# Export schema for code generation
-if __name__ == "__main__":
-    import sys
-
-    schema_str = unified_schema.as_str()
-
-    # If output path is provided as argument, write to file
-    if len(sys.argv) > 1:
-        output_path = sys.argv[1]
-        with open(output_path, "w") as f:
-            f.write(schema_str)
-        print(f"Unified GraphQL schema exported to {output_path}", file=sys.stderr)
-        print(f"Schema length: {len(schema_str)} characters", file=sys.stderr)
-    else:
-        # Otherwise, print to stdout for piping
-        print(schema_str)
+# Note: Schema export functionality has been moved to dipeo.application.graphql.export_schema
+# This keeps the server layer focused on HTTP/WebSocket concerns only

@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/SubDiagramNodeData",
+  "definitions": {
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "SubDiagramNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "batch": {
+          "type": "boolean"
+        },
+        "batch_input_key": {
+          "type": "string"
+        },
+        "batch_parallel": {
+          "type": "boolean"
+        },
+        "diagram_data": {
+          "$ref": "#/definitions/Record<string,any>"
+        },
+        "diagram_format": {
+          "enum": [
+            "light",
+            "native",
+            "readable"
+          ],
+          "type": "string"
+        },
+        "diagram_name": {
+          "type": "string"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "ignoreIfSub": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "type": "object"
+    }
+  }
+}

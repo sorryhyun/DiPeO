@@ -3,7 +3,7 @@
  * Export all node specifications from this central location
  */
 
-import { NodeSpecificationRegistry } from '../node-specifications.js';
+import { NodeSpecificationRegistry } from './node-specifications';
 import { personJobSpec } from './person-job.spec.js';
 import { apiJobSpec } from './api-job.spec.js';
 import { codeJobSpec } from './code-job.spec.js';

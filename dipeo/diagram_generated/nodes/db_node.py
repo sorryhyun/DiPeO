@@ -32,13 +32,14 @@ class DbNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.db, init=False)
+    type: NodeType = field(default=NodeType.DB, init=False)
     
     # Optional node-specific fields
     file: str = ""
     collection: str = ""
     query: str = ""
     data: Dict[str, Any] = field(default_factory=dict)
+    serialize_json: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -59,4 +60,5 @@ class DbNode:
         data["operation"] = self.operation
         data["query"] = self.query
         data["data"] = self.data
+        data["serialize_json"] = self.serialize_json
         return data

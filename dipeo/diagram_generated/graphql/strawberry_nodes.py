@@ -1,0 +1,217 @@
+"""
+Strawberry GraphQL types for DiPeO nodes.
+Generated automatically from node specifications.
+
+Generated at: 2025-07-28T23:12:46.902701
+"""
+
+import strawberry
+from typing import Optional, List, Dict, Any
+from strawberry.types import Info
+
+# Import Pydantic models
+from dipeo.diagram_generated.models import (
+
+    ApiJobNodeData,
+
+    CodeJobNodeData,
+
+    ConditionNodeData,
+
+    DbNodeData,
+
+    EndpointNodeData,
+
+    HookNodeData,
+
+    JsonSchemaValidatorNodeData,
+
+    NotionNodeData,
+
+    PersonBatchJobNodeData,
+
+    PersonJobNodeData,
+
+    StartNodeData,
+
+    SubDiagramNodeData,
+
+    TemplateJobNodeData,
+
+    TypescriptAstNodeData,
+
+    UserResponseNodeData,
+
+)
+
+# Import scalars
+from dipeo.application.graphql.types.scalars import JSONScalar
+
+
+# Generate Strawberry types for node data
+
+@strawberry.experimental.pydantic.type(ApiJobNodeData, all_fields=True)
+class ApiJobDataType:
+    """Make HTTP API requests - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(CodeJobNodeData, all_fields=True)
+class CodeJobDataType:
+    """Execute custom code functions - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(ConditionNodeData, all_fields=True)
+class ConditionDataType:
+    """Conditional branching based on expressions - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(DbNodeData, all_fields=True)
+class DbDataType:
+    """Database operations - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(EndpointNodeData, all_fields=True)
+class EndpointDataType:
+    """Exit point for diagram execution - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(HookNodeData, all_fields=True)
+class HookDataType:
+    """Executes hooks at specific points in the diagram execution - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(JsonSchemaValidatorNodeData, all_fields=True)
+class JsonSchemaValidatorDataType:
+    """Validate data against JSON schema - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(NotionNodeData, all_fields=True)
+class NotionDataType:
+    """Integrate with Notion API to query, create, or update database entries - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(PersonBatchJobNodeData, all_fields=True)
+class PersonBatchJobDataType:
+    """Execute AI tasks on batches of data using language models - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(PersonJobNodeData, all_fields=True)
+class PersonJobDataType:
+    """Execute tasks using AI language models - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(StartNodeData, all_fields=True)
+class StartDataType:
+    """Entry point for diagram execution - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(SubDiagramNodeData, all_fields=True)
+class SubDiagramDataType:
+    """Execute another diagram as a node within the current diagram - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(TemplateJobNodeData, all_fields=True)
+class TemplateJobDataType:
+    """Process templates with data - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(TypescriptAstNodeData, all_fields=True)
+class TypescriptAstDataType:
+    """Parses TypeScript source code and extracts AST, interfaces, types, and enums - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(UserResponseNodeData, all_fields=True)
+class UserResponseDataType:
+    """Collect user input - Data fields only"""
+    pass
+
+
+
+# Create union type for all node data types
+NodeDataUnion = strawberry.union(
+    "NodeDataUnion",
+    (
+
+        ApiJobDataType,
+
+        CodeJobDataType,
+
+        ConditionDataType,
+
+        DbDataType,
+
+        EndpointDataType,
+
+        HookDataType,
+
+        JsonSchemaValidatorDataType,
+
+        NotionDataType,
+
+        PersonBatchJobDataType,
+
+        PersonJobDataType,
+
+        StartDataType,
+
+        SubDiagramDataType,
+
+        TemplateJobDataType,
+
+        TypescriptAstDataType,
+
+        UserResponseDataType,
+
+    )
+)
+
+
+# Export all types
+__all__ = [
+    'NodeDataUnion',
+
+    'ApiJobDataType',
+
+    'CodeJobDataType',
+
+    'ConditionDataType',
+
+    'DbDataType',
+
+    'EndpointDataType',
+
+    'HookDataType',
+
+    'JsonSchemaValidatorDataType',
+
+    'NotionDataType',
+
+    'PersonBatchJobDataType',
+
+    'PersonJobDataType',
+
+    'StartDataType',
+
+    'SubDiagramDataType',
+
+    'TemplateJobDataType',
+
+    'TypescriptAstDataType',
+
+    'UserResponseDataType',
+
+]

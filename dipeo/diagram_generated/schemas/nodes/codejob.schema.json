@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/CodeJobNodeData",
+  "definitions": {
+    "CodeJobNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "filePath": {
+          "type": "string"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "functionName": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "language": {
+          "$ref": "#/definitions/SupportedLanguage"
+        },
+        "timeout": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "label",
+        "language"
+      ],
+      "type": "object"
+    },
+    "SupportedLanguage": {
+      "enum": [
+        "python",
+        "typescript",
+        "bash",
+        "shell"
+      ],
+      "type": "string"
+    }
+  }
+}

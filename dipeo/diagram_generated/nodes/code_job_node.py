@@ -32,7 +32,7 @@ class CodeJobNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.code_job, init=False)
+    type: NodeType = field(default=NodeType.CODE_JOB, init=False)
     
     # Optional node-specific fields
     functionName: str = ""

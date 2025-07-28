@@ -11,11 +11,9 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 ## Quickstart
 
-[windows installer](https://github.com/sorryhyun/DiPeO/releases/tag/betav6)
+For Korean guide for quickstart, read [Korean docs](docs/korean/index.md)
 
-For Korean guide for quickstart, read [Korean docs](docs/korean_install_guide.md)
-
-dev settings:
+## dev settings:
 
 ```bash
 make install
@@ -44,8 +42,9 @@ dipeo run examples/simple_iter --debug --light --no-browser --timeout=10
 dipeo run files/diagrams/native_examples/quicksave.native.json --debug
 ```
 
-### Docs
-Note [docs](docs)
+### Documentation
+- [Full Documentation Index](docs/index.md) - Complete list of guides and technical documentation
+- [User Guide](docs/README.md) - Getting started with DiPeO diagram editor
 
 ## Requirements
 - Node.js 22+ with pnpm 10+

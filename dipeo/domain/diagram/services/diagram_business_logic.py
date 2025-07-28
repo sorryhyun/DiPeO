@@ -132,7 +132,7 @@ class DiagramBusinessLogic:
                 continue
                 
         # Default to native for files without format directory
-        return DiagramFormat.native
+        return DiagramFormat.NATIVE
 
     def generate_file_info(
         self,
@@ -227,14 +227,14 @@ class DiagramBusinessLogic:
         # Clean enum values first
         cleaned = self.clean_enum_values(diagram)
         
-        if target_format == DiagramFormat.light:
+        if target_format == DiagramFormat.LIGHT:
             # Remove verbose fields for light format
             if "metadata" in cleaned:
                 cleaned["metadata"] = {
                     k: v for k, v in cleaned["metadata"].items()
                     if k in ["name", "version", "description"]
                 }
-        elif target_format == DiagramFormat.readable:
+        elif target_format == DiagramFormat.READABLE:
             # Add human-readable annotations
             if "nodes" in cleaned:
                 for node in cleaned["nodes"]:

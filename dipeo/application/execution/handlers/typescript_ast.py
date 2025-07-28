@@ -123,15 +123,60 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             metadata = result.get('metadata', {})
 
 
-            output_data = {
-                'ast': metadata.get('astSummary', {}),
-                'interfaces': ast_data.get('interfaces', []),
-                'types': ast_data.get('types', []),
-                'enums': ast_data.get('enums', []),
-                'classes': ast_data.get('classes', []),
-                'functions': ast_data.get('functions', []),
-                'constants': ast_data.get('constants', [])
-            }
+            # Apply transformations based on node configuration
+            transform_enums = getattr(node, 'transformEnums', False)
+            flatten_output = getattr(node, 'flattenOutput', False)
+            output_format = getattr(node, 'outputFormat', 'standard')
+            
+            # Transform enums if requested
+            enums = ast_data.get('enums', [])
+            if transform_enums and enums:
+                enums = self._transform_enums(enums)
+            
+            # Build output data based on format
+            if output_format == 'for_codegen':
+                # Optimized format for code generation
+                output_data = {
+                    'interfaces': ast_data.get('interfaces', []),
+                    'types': ast_data.get('types', []),
+                    'enums': enums,
+                    'consts': ast_data.get('constants', []),
+                    'total_definitions': (
+                        len(ast_data.get('interfaces', [])) +
+                        len(ast_data.get('types', [])) +
+                        len(enums) +
+                        len(ast_data.get('constants', []))
+                    )
+                }
+            elif output_format == 'for_analysis':
+                # Detailed format for analysis
+                output_data = {
+                    'ast': ast_data,
+                    'metadata': metadata,
+                    'summary': {
+                        'interfaces': len(ast_data.get('interfaces', [])),
+                        'types': len(ast_data.get('types', [])),
+                        'enums': len(enums),
+                        'classes': len(ast_data.get('classes', [])),
+                        'functions': len(ast_data.get('functions', [])),
+                        'constants': len(ast_data.get('constants', []))
+                    }
+                }
+            else:
+                # Standard format (default)
+                output_data = {
+                    'ast': metadata.get('astSummary', {}),
+                    'interfaces': ast_data.get('interfaces', []),
+                    'types': ast_data.get('types', []),
+                    'enums': enums,
+                    'classes': ast_data.get('classes', []),
+                    'functions': ast_data.get('functions', []),
+                    'constants': ast_data.get('constants', [])
+                }
+            
+            # Flatten output if requested
+            if flatten_output and output_format == 'standard':
+                output_data = self._flatten_output(output_data)
 
             # Return successful result with all extracted data
             return DataOutput(
@@ -140,10 +185,13 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 metadata={
                     'interfaces_count': len(ast_data.get('interfaces', [])),
                     'types_count': len(ast_data.get('types', [])),
-                    'enums_count': len(ast_data.get('enums', [])),
+                    'enums_count': len(enums),
                     'classes_count': len(ast_data.get('classes', [])),
                     'functions_count': len(ast_data.get('functions', [])),
                     'constants_count': len(ast_data.get('constants', [])),
+                    'transform_enums': transform_enums,
+                    'flatten_output': flatten_output,
+                    'output_format': output_format,
                     'success': True
                 }
             )
@@ -176,3 +224,58 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     print(f"[TypescriptAstNode] Extracted: {', '.join(stats)}")
         
         return output
+    
+    def _transform_enums(self, enums: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Transform enum definitions to a simpler format.
+        
+        Converts enum member references from 'EnumName.MEMBER' to 'member' format.
+        """
+        transformed_enums = []
+        
+        for enum in enums:
+            transformed = enum.copy()
+            
+            # Transform members if they exist
+            if 'members' in transformed and isinstance(transformed['members'], list):
+                transformed_members = []
+                for member in transformed['members']:
+                    if isinstance(member, dict):
+                        # Transform member value if it's an enum reference
+                        if 'value' in member and isinstance(member['value'], str):
+                            value = member['value']
+                            # Handle "EnumName.MEMBER" -> "member"
+                            if '.' in value:
+                                value = value.split('.')[-1]
+                            # Handle "UPPER_CASE" -> "upper_case"
+                            if value.isupper() and '_' in value:
+                                value = value.lower()
+                            member = member.copy()
+                            member['value'] = value
+                    transformed_members.append(member)
+                transformed['members'] = transformed_members
+            
+            transformed_enums.append(transformed)
+        
+        return transformed_enums
+    
+    def _flatten_output(self, output_data: dict[str, Any]) -> dict[str, Any]:
+        """Flatten the output structure for easier consumption.
+        
+        Merges all definition types into a single 'definitions' array.
+        """
+        flattened = {
+            'definitions': [],
+            'ast': output_data.get('ast', {})
+        }
+        
+        # Add all definition types to the definitions array
+        for def_type in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
+            if def_type in output_data and isinstance(output_data[def_type], list):
+                for item in output_data[def_type]:
+                    if isinstance(item, dict):
+                        # Add the definition type to each item
+                        item_with_type = item.copy()
+                        item_with_type['definition_type'] = def_type.rstrip('s')  # Remove plural 's'
+                        flattened['definitions'].append(item_with_type)
+        
+        return flattened

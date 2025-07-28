@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DiPeO Light Diagram Schema",
+  "type": "object",
+  "required": ["version", "nodes", "connections"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["light"]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "type", "position"],
+        "properties": {
+          "label": {"type": "string"},
+          "type": {
+            "type": "string",
+            "enum": ["start", "endpoint", "db", "code_job", "person_job", "api_job", "condition", "template_job", "merge", "select", "iterator", "variable", "formatter", "saver", "sub_diagram", "hook", "user_response", "json_schema_validator", "notion", "typescript_ast", "person_batch_job"]
+          },
+          "position": {
+            "type": "object",
+            "required": ["x", "y"],
+            "properties": {
+              "x": {"type": "number"},
+              "y": {"type": "number"}
+            }
+          },
+          "props": {
+            "type": "object",
+            "properties": {
+              "file": {"type": "string"},
+              "filePath": {"type": "string"},
+              "operation": {"type": "string"},
+              "sub_type": {"type": "string"},
+              "source_details": {"type": "string"},
+              "language": {"type": "string"},
+              "code": {"type": "string"},
+              "functionName": {"type": "string"}
+            }
+          }
+        }
+      },
+      "minItems": 2
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "label": {"type": "string"}
+        }
+      }
+    }
+  }
+}

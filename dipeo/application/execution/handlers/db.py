@@ -133,15 +133,34 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     f"{meta['file_path']} ({meta.get('size', 0)} bytes)"
                 )
 
-            # Convert structured data to JSON string for consistent handling
-            if isinstance(output_value, (dict, list)):
+            # Check if we should serialize to JSON for backward compatibility
+            serialize_json = getattr(node, 'serialize_json', False)
+            
+            # Return appropriate output type based on data structure and serialization flag
+            if isinstance(output_value, (dict, list)) and serialize_json:
+                # Backward compatibility: serialize to JSON string
                 import json
                 return TextOutput(
                     value=json.dumps(output_value),
                     node_id=node.id,
                     metadata={"serialized": True, "original_type": type(output_value).__name__}
                 )
+            elif isinstance(output_value, dict):
+                # Return DataOutput for dict data
+                return DataOutput(
+                    value=output_value,
+                    node_id=node.id,
+                    metadata={}
+                )
+            elif isinstance(output_value, list):
+                # Wrap list in dict for DataOutput compatibility
+                return DataOutput(
+                    value={"default": output_value},
+                    node_id=node.id,
+                    metadata={"wrapped_list": True}
+                )
             else:
+                # Return TextOutput for string data
                 return TextOutput(
                     value=str(output_value),
                     node_id=node.id,

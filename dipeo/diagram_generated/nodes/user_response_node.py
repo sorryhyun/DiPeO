@@ -32,7 +32,7 @@ class UserResponseNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.user_response, init=False)
+    type: NodeType = field(default=NodeType.USER_RESPONSE, init=False)
     
     # Optional node-specific fields
 

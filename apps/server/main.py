@@ -51,6 +51,10 @@ async def lifespan(app: FastAPI):
     # Initialize container
     container = initialize_container()
     await init_server_resources(container)
+    
+    # Setup routes after container is initialized
+    setup_routes(app)
+    
     yield
     await shutdown_server_resources(container)
 
@@ -62,7 +66,6 @@ app = FastAPI(
 )
 
 setup_middleware(app)
-setup_routes(app)
 
 
 @app.get("/health")

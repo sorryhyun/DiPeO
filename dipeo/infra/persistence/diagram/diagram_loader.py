@@ -27,8 +27,8 @@ class DiagramLoaderAdapter:
                 data = json.loads(content)
                 # Check for native format indicators
                 if "nodes" in data and isinstance(data["nodes"], dict):
-                    return DiagramFormat.native
-                return DiagramFormat.native
+                    return DiagramFormat.NATIVE
+                return DiagramFormat.NATIVE
             except json.JSONDecodeError:
                 pass
         
@@ -42,12 +42,12 @@ class DiagramLoaderAdapter:
                     (isinstance(data.get("nodes"), list) and 
                      "connections" in data and 
                      "persons" in data)):
-                    return DiagramFormat.light
+                    return DiagramFormat.LIGHT
                 # Check for readable format
                 if data.get("format") == "readable" or data.get("version") == "readable":
-                    return DiagramFormat.readable
+                    return DiagramFormat.READABLE
                 # Default YAML is light format
-                return DiagramFormat.light
+                return DiagramFormat.LIGHT
         except yaml.YAMLError:
             pass
         

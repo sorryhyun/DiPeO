@@ -30,7 +30,7 @@ class TemplateJobNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.template_job, init=False)
+    type: NodeType = field(default=NodeType.TEMPLATE_JOB, init=False)
     
     # Optional node-specific fields
     template_path: str = ""

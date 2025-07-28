@@ -32,7 +32,7 @@ class ApiJobNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.api_job, init=False)
+    type: NodeType = field(default=NodeType.API_JOB, init=False)
     
     # Optional node-specific fields
     headers: Dict[str, Any] = field(default_factory=dict)

@@ -64,8 +64,8 @@ nodes:
     position: {x: 700, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/extractors/field_config_extractor.py
-      functionName: main
+      filePath: files/codegen/code/models/generate_field_configs/field_configs_generator.py
+      functionName: extract_field_configs
 
   # Load field configs template
   - label: Load Field Configs Template
@@ -82,26 +82,8 @@ nodes:
     position: {x: 900, y: 350}
     props:
       language: python
-      code: |
-        from datetime import datetime
-        
-        # Get the extracted field configs - it returns a dict with 'node_configs' key
-        field_configs_data = inputs.get('node_configs', {})
-        
-        # Extract the actual node configs array
-        if isinstance(field_configs_data, dict):
-            node_configs = field_configs_data.get('node_configs', [])
-        else:
-            node_configs = field_configs_data
-        
-        print(f"Preparing template data with {len(node_configs)} node configs")
-        if node_configs:
-            print(f"First node config keys: {list(node_configs[0].keys()) if node_configs else []}")
-        
-        result = {
-            'node_configs': node_configs,
-            'now': datetime.now().isoformat()
-        }
+      filePath: files/codegen/code/models/generate_field_configs/field_configs_generator.py
+      functionName: prepare_template_data
 
   # Generate TypeScript field configs
   - label: Generate Field Configs Code
@@ -109,34 +91,8 @@ nodes:
     position: {x: 1100, y: 400}
     props:
       language: python
-      code: |
-        from datetime import datetime
-        from jinja2 import Template, StrictUndefined
-        import traceback
-        
-        # Get template content
-        template_content = inputs.get('template_content', '')
-        
-        # Get prepared data
-        template_data = inputs.get('default', {})
-        
-        print(f"Template data keys: {list(template_data.keys())}")
-        print(f"Node configs count: {len(template_data.get('node_configs', []))}")
-        
-        try:
-            # Render template
-            jinja_template = Template(template_content, undefined=StrictUndefined)
-            rendered = jinja_template.render(**template_data)
-            
-            print(f"Successfully rendered template, length: {len(rendered)}")
-            
-            # DB write node expects the string directly as 'default' input
-            result = rendered
-        except Exception as e:
-            print(f"Template rendering error: {e}")
-            print(traceback.format_exc())
-            # Return error as content so we can see it
-            result = f"/* Template rendering error: {e} */\n"
+      filePath: files/codegen/code/models/generate_field_configs/field_configs_generator.py
+      functionName: render_field_configs
 
   # Write TypeScript file
   - label: Write Field Configs TS
@@ -153,7 +109,7 @@ nodes:
     position: {x: 1300, y: 500}
     props:
       language: python
-      filePath: files/codegen/code/models/writers/json_writer.py
+      filePath: files/codegen/code/shared/writers/json_writer.py
       functionName: main
 
   # Generate success summary
@@ -162,7 +118,7 @@ nodes:
     position: {x: 1500, y: 450}
     props:
       language: python
-      filePath: files/codegen/code/models/generators/summary_generator.py
+      filePath: files/codegen/code/shared/generators/summary_generator.py
       functionName: main
 
   - label: End

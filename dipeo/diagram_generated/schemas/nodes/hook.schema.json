@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/HookNodeData",
+  "definitions": {
+    "HookNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "command": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "env": {
+          "$ref": "#/definitions/Record<string,string>"
+        },
+        "file_path": {
+          "type": "string"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "format": {
+          "enum": [
+            "json",
+            "text",
+            "yaml"
+          ],
+          "type": "string"
+        },
+        "function_name": {
+          "type": "string"
+        },
+        "headers": {
+          "$ref": "#/definitions/Record<string,string>"
+        },
+        "hook_type": {
+          "$ref": "#/definitions/HookType"
+        },
+        "label": {
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "DELETE",
+            "GET",
+            "PATCH",
+            "POST",
+            "PUT"
+          ],
+          "type": "string"
+        },
+        "retry_count": {
+          "type": "number"
+        },
+        "retry_delay": {
+          "type": "number"
+        },
+        "script": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hook_type",
+        "label"
+      ],
+      "type": "object"
+    },
+    "HookType": {
+      "enum": [
+        "shell",
+        "webhook",
+        "python",
+        "file"
+      ],
+      "type": "string"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

@@ -31,7 +31,7 @@ class EndpointNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.endpoint, init=False)
+    type: NodeType = field(default=NodeType.ENDPOINT, init=False)
     
     # Optional node-specific fields
     file_name: str = ""

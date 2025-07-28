@@ -1,0 +1,44 @@
+# Node Mutations
+mutation CreateNode($diagramId: ID!, $input: CreateNodeInput!) {
+  create_node(diagram_id: $diagramId, input: $input) {
+    success
+    node {
+      id
+      type
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+
+mutation UpdateNode($diagramId: ID!, $nodeId: ID!, $input: UpdateNodeInput!) {
+  update_node(diagram_id: $diagramId, node_id: $nodeId, input: $input) {
+    success
+    node {
+      id
+      type
+      position {
+        x
+        y
+      }
+      data
+    }
+    message
+    error
+  }
+}
+
+mutation DeleteNode($diagramId: ID!, $nodeId: ID!) {
+  delete_node(diagram_id: $diagramId, node_id: $nodeId) {
+    success
+    message
+    error
+  }
+}
+
+

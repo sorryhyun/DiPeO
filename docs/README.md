@@ -2,6 +2,8 @@
 
 Welcome to DiPeO! This guide will help you create AI-powered workflows using the visual diagram editor in your browser. Since you've already installed DiPeO, let's jump right into building your first diagram.
 
+> **Looking for other documentation?** Check out the [Documentation Index](index.md) for developer guides, technical specifications, and more.
+
 ## Table of Contents
 1. [Getting Started](#getting-started)
 2. [Core Concepts](#core-concepts)

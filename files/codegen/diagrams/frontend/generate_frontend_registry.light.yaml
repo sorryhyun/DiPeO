@@ -21,12 +21,8 @@ nodes:
     props:
       language: python
       code: |
-        import json
-        
-        # Parse manifest
+        # DB node now returns DataOutput, no need to parse JSON
         manifest_data = default
-        if isinstance(manifest_data, str):
-            manifest_data = json.loads(manifest_data)
         
         # Get node types
         node_types = manifest_data.get('nodes', [])

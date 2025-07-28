@@ -57,14 +57,6 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Generate Zod schemas
-  - label: Generate Zod Schemas
-    type: sub_diagram
-    position: {x: 400, y: 450}
-    props:
-      diagram_name: codegen/diagrams/models/generate_zod_schemas
-      diagram_format: light
-      passInputData: false
 
   # Generate GraphQL schema
   - label: Generate GraphQL Schema
@@ -81,6 +73,33 @@ nodes:
     position: {x: 400, y: 650}
     props:
       diagram_name: codegen/diagrams/models/generate_static_nodes
+      diagram_format: light
+      passInputData: false
+
+  # Generate Strawberry GraphQL types
+  - label: Generate Strawberry Types
+    type: sub_diagram
+    position: {x: 400, y: 450}
+    props:
+      diagram_name: codegen/diagrams/models/generate_strawberry_types
+      diagram_format: light
+      passInputData: false
+
+  # Generate Strawberry GraphQL mutations
+  - label: Generate Strawberry Mutations
+    type: sub_diagram
+    position: {x: 400, y: 500}
+    props:
+      diagram_name: codegen/diagrams/models/generate_strawberry_mutations
+      diagram_format: light
+      passInputData: false
+
+  # Generate Validation Models (JSON Schema + Pydantic)
+  - label: Generate Validation Models
+    type: sub_diagram
+    position: {x: 400, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/generate_validation_models
       diagram_format: light
       passInputData: false
 
@@ -109,7 +128,6 @@ nodes:
         enums = inputs.get('enums', {})
         conversions = inputs.get('conversions', {})
         field_configs = inputs.get('field_configs', {})
-        zod_schemas = inputs.get('zod_schemas', {})
         graphql_schema = inputs.get('graphql_schema', {})
         static_nodes = inputs.get('static_nodes', {})
         build_result = inputs.get('build_result', {})
@@ -123,9 +141,12 @@ nodes:
         print(f"  ✓ Python enums (dipeo/diagram_generated_staged/enums.py)")
         print(f"  ✓ Type conversions (dipeo/diagram_generated_staged/conversions.py)")
         print(f"  ✓ Field configurations (apps/web/src/__generated__/nodes/fields.ts)")
-        print(f"  ✓ Zod validation schemas (apps/web/src/__generated__/schemas.ts)")
         print(f"  ✓ GraphQL schema (dipeo/diagram_generated_staged/domain-schema.graphql)")
         print(f"  ✓ Static node classes (dipeo/diagram_generated_staged/generated_nodes.py)")
+        print(f"  ✓ Strawberry GraphQL types (dipeo/diagram_generated_staged/graphql/strawberry_nodes.py)")
+        print(f"  ✓ Strawberry mutations (dipeo/diagram_generated_staged/graphql/node_mutations.py)")
+        print(f"  ✓ JSON schemas (dipeo/diagram_generated/schemas/nodes/)")
+        print(f"  ✓ Pydantic validation models (dipeo/diagram_generated/validation/nodes/)")
         print(f"  ✓ TypeScript build completed")
         print(f"\nAll domain model generation tasks completed successfully!")
         print(f"{'='*60}\n")
@@ -170,6 +191,12 @@ connections:
     to: Generate GraphQL Schema
   - from: Parse All TypeScript
     to: Generate Static Nodes
+  - from: Parse All TypeScript
+    to: Generate Strawberry Types
+  - from: Parse All TypeScript
+    to: Generate Strawberry Mutations
+  - from: Parse All TypeScript
+    to: Generate Validation Models
   
   # Only TypeScript-generating tasks need to complete before building TypeScript
   - from: Generate Field Configs
@@ -195,6 +222,15 @@ connections:
   - from: Generate Static Nodes
     to: Generate Summary
     label: static_nodes
+  - from: Generate Strawberry Types
+    to: Generate Summary
+    label: strawberry_types
+  - from: Generate Strawberry Mutations
+    to: Generate Summary
+    label: strawberry_mutations
+  - from: Generate Validation Models
+    to: Generate Summary
+    label: validation_models
   
   # Generate final summary
   - from: Build TypeScript Models

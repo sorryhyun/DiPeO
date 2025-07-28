@@ -131,7 +131,7 @@ Execute Python, TypeScript, Bash, or Shell code either inline or from external f
   position: {x: 400, y: 200}
   props:
     code_type: python  # or typescript, bash, shell
-    code: files/code/my_functions.py  # Path to code file
+    filePath: files/code/my_functions.py  # Path to code file
     functionName: process_data  # Specific function to call
 
 # The external file should contain:

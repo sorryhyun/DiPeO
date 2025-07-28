@@ -3,7 +3,7 @@
  */
 
 import { NodeType } from '../diagram.js';
-import { NodeSpecification } from '../node-specifications.js';
+import { NodeSpecification } from './node-specifications';
 
 export const dbSpec: NodeSpecification = {
   nodeType: NodeType.DB,
@@ -76,6 +76,16 @@ export const dbSpec: NodeSpecification = {
       uiConfig: {
         inputType: "code",
         collapsible: true
+      }
+    },
+    {
+      name: "serialize_json",
+      type: "boolean",
+      required: false,
+      description: "Serialize structured data to JSON string (for backward compatibility)",
+      defaultValue: false,
+      uiConfig: {
+        inputType: "checkbox"
       }
     }
   ],

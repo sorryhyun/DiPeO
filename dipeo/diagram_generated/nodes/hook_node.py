@@ -31,7 +31,7 @@ class HookNode:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.hook, init=False)
+    type: NodeType = field(default=NodeType.HOOK, init=False)
     
     # Optional node-specific fields
     command: str = ""

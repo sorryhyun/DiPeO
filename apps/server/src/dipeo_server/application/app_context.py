@@ -30,13 +30,7 @@ def initialize_container() -> ServerContainer:
         _container = ServerContainer()
 
         # Wire the container to necessary modules
-        _container.wire(
-            modules=[
-                "dipeo_server.api.graphql.queries",
-                "dipeo_server.api.graphql.mutations",
-                "dipeo_server.api.graphql.subscriptions",
-                "dipeo_server.api.graphql.resolvers",
-            ]
-        )
+        # Note: GraphQL schema is now handled by dipeo.application.graphql
+        # No server-specific wiring needed for GraphQL
 
     return _container

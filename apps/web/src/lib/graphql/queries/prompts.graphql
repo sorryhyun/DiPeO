@@ -1,7 +1,0 @@
-query GetPromptFiles {
-  prompt_files
-}
-
-query GetPromptFile($filename: String!) {
-  prompt_file(filename: $filename)
-}
