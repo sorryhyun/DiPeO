@@ -1,11 +1,9 @@
 # Format Queries
 query GetSupportedFormats {
   supported_formats {
-    id
+    format
     name
-    description
     extension
-    supports_import
     supports_export
   }
 }

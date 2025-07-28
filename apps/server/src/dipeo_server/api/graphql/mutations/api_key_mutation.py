@@ -3,10 +3,10 @@
 import logging
 
 import strawberry
-from dipeo.models import DomainApiKey
+from dipeo.diagram_generated import DomainApiKey
 
 from ..context import GraphQLContext
-from ..types import (
+from ..types_new import (
     ApiKeyID,
     ApiKeyResult,
     CreateApiKeyInput,

@@ -25,9 +25,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.32",
-    "typescript": "^5.8.3",
+    "prettier": "^3.5.3",
     "tsx": "^4.0.0",
-    "prettier": "^3.5.3"
+    "typescript": "^5.8.3",
+    "typescript-json-schema": "^0.65.1"
   },
   "peerDependencies": {
     "zod": "^3.25.42"

@@ -38,15 +38,15 @@ codegen:
 	@echo "✅ All code generation completed using DiPeO diagrams!"
 
 # Diagram-based code generation for node UI
-codegen-diagram:
-	@echo "🎨 Running diagram-based node UI code generation for all nodes..."
-	dipeo run codegen/node_ui_codegen --light --debug --no-browser --timeout=120
-	@echo "✅ Diagram-based code generation completed for all nodes!"
+codegen-models:
+	@echo "🎨 Running diagram-based model generation for all nodes..."
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --no-browser --timeout=30
+	@echo "✅ Diagram-based code generation completed!"
 
 # Generate all nodes using diagram approach
-codegen-diagram-all:
+codegen-backend:
 	@echo "🎨 Generating UI for all node types using diagram..."
-	@python files/codegen/generate_all_nodes.py
+	dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=30
 	@echo "✅ All nodes generated via diagram!"
 
 # New codegen approach using diagram-based generation
@@ -103,6 +103,9 @@ graphql-schema:
 	@echo "📝 Exporting GraphQL schema..."
 	cd apps/server && PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo_server.api.graphql.schema > schema.graphql
 	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
+	@echo "🔄 Generating GraphQL TypeScript types..."
+	pnpm --filter web codegen
+	@echo "✅ GraphQL TypeScript types generated!"
 
 # Python directories
 PY_DIRS := apps/server apps/cli dipeo

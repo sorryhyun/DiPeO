@@ -218,13 +218,17 @@ class PersonLLMConfigType:
 
 @strawberry.experimental.pydantic.type(
     DomainPerson,
-    fields=["label", "llm_config", "type"]
+    fields=["label", "llm_config"]
 )
 class DomainPersonType:
     @strawberry.field
     def id(self) -> PersonID:
         obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
         return PersonID(str(obj.id))
+
+    @strawberry.field
+    def type(self) -> str:
+        return "person"
 
 
 @strawberry.experimental.pydantic.type(
@@ -281,17 +285,48 @@ class NodeStateType:
 
 @strawberry.experimental.pydantic.type(
     ExecutionState,
-    all_fields=True
+    fields=["id", "status", "diagram_id", "started_at", "ended_at", "token_usage", "error", "duration_seconds", "is_active", "executed_nodes"]
 )
 class ExecutionStateType:
-    pass
+    @strawberry.field
+    def node_states(self) -> JSONScalar:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        if hasattr(obj, "node_states"):
+            # Convert NodeState objects to dicts
+            return {k: v.model_dump() if hasattr(v, "model_dump") else v for k, v in obj.node_states.items()}
+        return {}
+
+    @strawberry.field
+    def node_outputs(self) -> JSONScalar:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return obj.node_outputs if hasattr(obj, "node_outputs") else {}
+
+    @strawberry.field
+    def variables(self) -> JSONScalar:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return obj.variables if hasattr(obj, "variables") else {}
+
+    @strawberry.field
+    def exec_counts(self) -> JSONScalar:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return obj.exec_counts if hasattr(obj, "exec_counts") else {}
+
 
 @strawberry.experimental.pydantic.type(
     ExecutionOptions,
-    all_fields=True
+    fields=["timeout", "debug"]
 )
 class ExecutionOptionsType:
-    pass
+    @strawberry.field
+    def mode(self) -> Optional[str]:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return obj.mode if hasattr(obj, "mode") else None
+
+    @strawberry.field
+    def variables(self) -> JSONScalar:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return obj.variables if hasattr(obj, "variables") else {}
+
 
 @strawberry.experimental.pydantic.type(
     InteractivePromptData,
@@ -316,10 +351,19 @@ class NodeDefinitionType:
 
 @strawberry.experimental.pydantic.type(
     Message,
-    all_fields=True
+    fields=["id", "to_person_id", "content", "timestamp", "token_count", "metadata"]
 )
 class MessageType:
-    pass
+    @strawberry.field
+    def from_person_id(self) -> str:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return str(obj.from_person_id) if hasattr(obj, "from_person_id") else ""
+
+    @strawberry.field
+    def message_type(self) -> str:
+        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self
+        return obj.message_type if hasattr(obj, "message_type") else ""
+
 
 @strawberry.experimental.pydantic.type(
     ConversationMetadata,
@@ -382,6 +426,13 @@ class EndpointNodeDataType:
     all_fields=True
 )
 class DBNodeDataType:
+    pass
+
+@strawberry.experimental.pydantic.type(
+    UserResponseNodeData,
+    all_fields=True
+)
+class UserResponseNodeDataType:
     pass
 
 @strawberry.experimental.pydantic.type(
@@ -488,4 +539,4 @@ class ExecutionUpdate:
 
 # ============ Unions ============
 
-NodeData = strawberry.union("NodeData", types=[BaseNodeData, StartNodeDataType, ConditionNodeDataType, PersonJobNodeDataType, CodeJobNodeDataType, ApiJobNodeDataType, EndpointNodeDataType, DBNodeDataType, NotionNodeDataType, HookNodeDataType, TemplateJobNodeDataType, JsonSchemaValidatorNodeDataType, TypescriptAstNodeData, SubDiagramNodeDataType])
+NodeData = strawberry.union("NodeData", types=[BaseNodeData, StartNodeDataType, ConditionNodeDataType, PersonJobNodeDataType, CodeJobNodeDataType, ApiJobNodeDataType, EndpointNodeDataType, DBNodeDataType, UserResponseNodeDataType, NotionNodeDataType, HookNodeDataType, TemplateJobNodeDataType, JsonSchemaValidatorNodeDataType, TypescriptAstNodeData, SubDiagramNodeDataType])

@@ -6,12 +6,12 @@ import uuid
 from datetime import UTC, datetime
 
 import strawberry
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ExecutionStatus,
 )
 
 from ..context import GraphQLContext
-from ..types import (
+from ..types_new import (
     ExecuteDiagramInput,
     ExecutionControlInput,
     ExecutionResult,

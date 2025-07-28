@@ -36,7 +36,6 @@ mutation UpdateNode($inputData: UpdateNodeInput!) {
 mutation DeleteNode($nodeId: NodeID!) {
   delete_node(node_id: $nodeId) {
     success
-    deleted_id
     message
     error
   }

@@ -9,7 +9,6 @@ query GetPerson($id: PersonID!) {
       api_key_id
       system_prompt
     }
-    masked_api_key
     type
   }
 }
@@ -24,7 +23,6 @@ query GetPersons($limit: Int = 100) {
       api_key_id
       system_prompt
     }
-    masked_api_key
     type
   }
 }
@@ -42,8 +40,7 @@ mutation CreatePerson($diagramId: DiagramID!, $personInput: CreatePersonInput!) 
         api_key_id
         system_prompt
       }
-      masked_api_key
-      type
+        type
     }
     message
     error
@@ -62,8 +59,7 @@ mutation UpdatePerson($personInput: UpdatePersonInput!) {
         api_key_id
         system_prompt
       }
-      masked_api_key
-      type
+        type
     }
     message
     error
@@ -73,7 +69,6 @@ mutation UpdatePerson($personInput: UpdatePersonInput!) {
 mutation DeletePerson($personId: PersonID!) {
   delete_person(person_id: $personId) {
     success
-    deleted_id
     message
     error
   }
@@ -91,8 +86,7 @@ mutation InitializeModel($personId: PersonID!, $apiKeyId: ApiKeyID!, $model: Str
         api_key_id
         system_prompt
       }
-      masked_api_key
-      type
+        type
     }
     message
     error

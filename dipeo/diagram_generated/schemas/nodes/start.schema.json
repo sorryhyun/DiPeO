@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/StartNodeData",
+  "definitions": {
+    "StartNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "custom_data": {
+          "$ref": "#/definitions/Record<string,string|number|boolean>"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "hook_event": {
+          "type": "string"
+        },
+        "hook_filters": {
+          "$ref": "#/definitions/Record<string,any>"
+        },
+        "label": {
+          "type": "string"
+        },
+        "output_data_structure": {
+          "$ref": "#/definitions/Record<string,string>"
+        },
+        "trigger_mode": {
+          "enum": [
+            "hook",
+            "manual"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "custom_data",
+        "label",
+        "output_data_structure"
+      ],
+      "type": "object"
+    },
+    "Record<string,string|number|boolean>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

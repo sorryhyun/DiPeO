@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/TypescriptAstNodeData",
+  "definitions": {
+    "TypescriptAstNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "extractPatterns": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "includeJSDoc": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "parseMode": {
+          "enum": [
+            "module",
+            "script"
+          ],
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "type": "object"
+    }
+  }
+}

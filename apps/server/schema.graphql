@@ -1,19 +1,19 @@
 enum APIServiceType {
-  openai
-  anthropic
-  google
-  gemini
-  bedrock
-  vertex
-  deepseek
-  notion
-  google_search
-  slack
-  github
-  jira
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  GEMINI
+  BEDROCK
+  VERTEX
+  DEEPSEEK
+  NOTION
+  GOOGLE_SEARCH
+  SLACK
+  GITHUB
+  JIRA
 }
 
-"""Unique identifier for an API key"""
+"""Unique identifier for apikey"""
 scalar ApiKeyID
 
 type ApiKeyResult {
@@ -23,13 +23,13 @@ type ApiKeyResult {
   api_key: DomainApiKeyType
 }
 
-"""Unique identifier for an arrow"""
+"""Unique identifier for arrow"""
 scalar ArrowID
 
 enum ContentType {
-  raw_text
-  conversation_state
-  object
+  RAW_TEXT
+  CONVERSATION_STATE
+  OBJECT
 }
 
 input CreateApiKeyInput {
@@ -48,28 +48,22 @@ input CreateDiagramInput {
 input CreateNodeInput {
   type: NodeType!
   position: Vec2Input!
-  label: String!
-  properties: JSONScalar = null
+  data: JSONScalar!
 }
 
 input CreatePersonInput {
   label: String!
-  service: LLMService!
-  model: String!
-  api_key_id: ApiKeyID!
-  system_prompt: String = null
-  temperature: Float = null
-  max_tokens: Int = null
-  top_p: Float = null
+  llm_config: PersonLLMConfigInput!
+  type: String! = "user"
 }
 
 enum DataType {
-  any
-  string
-  number
-  boolean
-  object
-  array
+  ANY
+  STRING
+  NUMBER
+  BOOLEAN
+  OBJECT
+  ARRAY
 }
 
 """Date with time (isoformat)"""
@@ -79,8 +73,6 @@ type DeleteResult {
   success: Boolean!
   message: String
   error: String
-  deleted_count: Int!
-  deleted_id: String
 }
 
 type DiagramConvertResult {
@@ -93,30 +85,29 @@ type DiagramConvertResult {
 }
 
 input DiagramFilterInput {
-  name_contains: String = null
+  name: String = null
   author: String = null
   tags: [String!] = null
   created_after: DateTime = null
   created_before: DateTime = null
-  modified_after: DateTime = null
 }
 
 enum DiagramFormat {
-  native
-  light
-  readable
+  NATIVE
+  LIGHT
+  READABLE
 }
 
 type DiagramFormatInfo {
-  id: String!
+  format: String!
   name: String!
-  description: String!
   extension: String!
-  supports_import: Boolean!
   supports_export: Boolean!
+  supports_import: Boolean!
+  description: String
 }
 
-"""Unique identifier for a diagram"""
+"""Unique identifier for diagram"""
 scalar DiagramID
 
 type DiagramMetadataType {
@@ -132,9 +123,9 @@ type DiagramMetadataType {
 
 type DiagramResult {
   success: Boolean!
+  diagram: DomainDiagramType
   message: String
   error: String
-  diagram: DomainDiagramType
 }
 
 type DiagramValidationResult {
@@ -164,7 +155,6 @@ type DomainArrowType {
 type DomainDiagramType {
   nodeCount: Int!
   arrowCount: Int!
-  personCount: Int!
   nodes: [DomainNodeType!]!
   handles: [DomainHandleType!]!
   arrows: [DomainArrowType!]!
@@ -191,7 +181,6 @@ type DomainNodeType {
 type DomainPersonType {
   id: PersonID!
   type: String!
-  masked_api_key: String
   label: String!
   llm_config: PersonLLMConfigType!
 }
@@ -200,15 +189,15 @@ input ExecuteDiagramInput {
   diagram_id: DiagramID = null
   diagram_data: JSONScalar = null
   variables: JSONScalar = null
-  debug_mode: Boolean! = false
-  max_iterations: Int! = 100
+  debug_mode: Boolean = null
+  max_iterations: Int = null
   timeout_seconds: Int = null
 }
 
 input ExecutionControlInput {
   execution_id: ExecutionID!
   action: String!
-  node_id: NodeID = null
+  reason: String = null
 }
 
 input ExecutionFilterInput {
@@ -216,24 +205,24 @@ input ExecutionFilterInput {
   status: ExecutionStatus = null
   started_after: DateTime = null
   started_before: DateTime = null
-  active_only: Boolean! = false
 }
 
-"""Unique identifier for an execution"""
+"""Unique identifier for execution"""
 scalar ExecutionID
 
 type ExecutionResult {
   success: Boolean!
+  execution_id: ExecutionID
+  execution: ExecutionStateType
   message: String
   error: String
-  execution: ExecutionStateType
-  execution_id: String
 }
 
 type ExecutionStateType {
   node_states: JSONScalar!
   node_outputs: JSONScalar!
   variables: JSONScalar!
+  exec_counts: JSONScalar!
   id: String!
   status: ExecutionStatus!
   diagram_id: String
@@ -243,6 +232,7 @@ type ExecutionStateType {
   error: String
   duration_seconds: Float
   is_active: Boolean
+  executed_nodes: [String!]!
 }
 
 enum ExecutionStatus {
@@ -258,25 +248,28 @@ enum ExecutionStatus {
 type FileUploadResult {
   success: Boolean!
   message: String
-  error: String
   path: String
   size_bytes: Int
   content_type: String
+  error: String
 }
 
 enum HandleDirection {
-  input
-  output
+  INPUT
+  OUTPUT
 }
 
-"""Unique identifier for a handle"""
+"""Unique identifier for handle"""
 scalar HandleID
 
 enum HandleLabel {
-  default
-  first
-  condtrue
-  condfalse
+  DEFAULT
+  FIRST
+  CONDITION_TRUE
+  CONDITION_FALSE
+  SUCCESS
+  ERROR
+  RESULTS
 }
 
 type InteractivePrompt {
@@ -291,18 +284,19 @@ input InteractiveResponseInput {
   execution_id: ExecutionID!
   node_id: NodeID!
   response: String!
+  metadata: JSONScalar = null
 }
 
 """Arbitrary JSON data"""
 scalar JSONScalar
 
 enum LLMService {
-  openai
-  anthropic
-  google
-  bedrock
-  vertex
-  deepseek
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  BEDROCK
+  VERTEX
+  DEEPSEEK
 }
 
 type Mutation {
@@ -330,7 +324,7 @@ type Mutation {
   validate_diagram(diagram_content: JSONScalar!): DiagramValidationResult!
 
   """Convert a diagram to a different format"""
-  convert_diagram(content: JSONScalar!, target_format: DiagramFormat! = native, include_metadata: Boolean! = true): DiagramConvertResult!
+  convert_diagram(content: JSONScalar!, target_format: DiagramFormat! = NATIVE, include_metadata: Boolean! = true): DiagramConvertResult!
 }
 
 type NodeExecution {
@@ -345,46 +339,56 @@ type NodeExecution {
   timestamp: DateTime!
 }
 
-"""Unique identifier for a node"""
+"""Unique identifier for node"""
 scalar NodeID
 
 type NodeResult {
   success: Boolean!
+  node: DomainNodeType
   message: String
   error: String
-  node: DomainNodeType
 }
 
 enum NodeType {
-  start
-  person_job
-  condition
-  job
-  code_job
-  api_job
-  endpoint
-  db
-  user_response
-  notion
-  person_batch_job
-  hook
+  START
+  PERSON_JOB
+  CONDITION
+  CODE_JOB
+  API_JOB
+  ENDPOINT
+  DB
+  USER_RESPONSE
+  NOTION
+  PERSON_BATCH_JOB
+  HOOK
+  TEMPLATE_JOB
+  JSON_SCHEMA_VALIDATOR
+  TYPESCRIPT_AST
+  SUB_DIAGRAM
 }
 
-"""Unique identifier for a person"""
+"""Unique identifier for person"""
 scalar PersonID
 
-type PersonLLMConfigType {
-  api_key_id: ApiKeyID
+input PersonLLMConfigInput {
   service: LLMService!
   model: String!
+  api_key_id: ApiKeyID!
+  system_prompt: String = null
+}
+
+type PersonLLMConfigType {
+  service: LLMService!
+  model: String!
+  api_key_id: String!
   system_prompt: String
 }
 
 type PersonResult {
   success: Boolean!
+  person: DomainPersonType
   message: String
   error: String
-  person: DomainPersonType
 }
 
 type Query {
@@ -419,33 +423,24 @@ type TestApiKeyResult {
   success: Boolean!
   message: String
   error: String
-  valid: Boolean
-  available_models: [String!]
+  model_info: JSONScalar
 }
 
 type TokenUsageType {
   input: Int!
   output: Int!
-  cached: Float
-  total: Float
+  cached: Int
+  total: Int
 }
 
 input UpdateNodeInput {
-  id: NodeID!
   position: Vec2Input = null
-  label: String = null
-  properties: JSONScalar = null
+  data: JSONScalar = null
 }
 
 input UpdatePersonInput {
-  id: PersonID!
   label: String = null
-  model: String = null
-  api_key_id: ApiKeyID = null
-  system_prompt: String = null
-  temperature: Float = null
-  max_tokens: Int = null
-  top_p: Float = null
+  llm_config: PersonLLMConfigInput = null
 }
 
 scalar Upload
@@ -456,6 +451,6 @@ input Vec2Input {
 }
 
 type Vec2Type {
-  x: Float!
-  y: Float!
+  x: Int!
+  y: Int!
 }

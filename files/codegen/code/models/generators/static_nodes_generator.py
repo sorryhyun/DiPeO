@@ -31,6 +31,26 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append(')')
     lines.append('')
     lines.append('')
+    lines.append('def _to_enum(value: Optional[str], enum_class) -> Optional[Any]:')
+    lines.append('    """Convert string value to enum instance if not None."""')
+    lines.append('    if value is None:')
+    lines.append('        return None')
+    lines.append('    if isinstance(value, enum_class):')
+    lines.append('        return value')
+    lines.append('    return enum_class(value)')
+    lines.append('')
+    lines.append('')
+    
+    # Enum fields mapping for factory function
+    enum_fields = {
+        'method': 'HttpMethod',
+        'language': 'SupportedLanguage', 
+        'sub_type': 'DBBlockSubType',
+        'hook_type': 'HookType',
+        'operation': 'NotionOperation',  # Note: This is for NotionNode, not DBNode
+        'trigger_mode': 'HookTriggerMode',
+        'diagram_format': 'DiagramFormat'
+    }
     
     # Base class
     lines.append('@dataclass(frozen=True)')
@@ -99,23 +119,15 @@ def generate_python_code(static_nodes_data: dict) -> str:
         lines.append('        if self.metadata:')
         lines.append('            data["metadata"] = self.metadata')
         
-        # Enum fields that need .value
-        enum_fields = {
-            'method': 'HttpMethod',
-            'language': 'SupportedLanguage', 
-            'sub_type': 'DBBlockSubType',
-            'hook_type': 'HookType',
-            'operation': 'NotionOperation',
-            'trigger_mode': 'HookTriggerMode',
-            'diagram_format': 'DiagramFormat'
-        }
-        
         for field in node_class['fields']:
             field_name = field["py_name"]
             ts_name = field["ts_name"]
             
-            if ts_name in enum_fields:
-                lines.append(f'        data["{ts_name}"] = self.{field_name}.value if self.{field_name} else None')
+            # Check if this field is an enum type that needs .value
+            # Special case: operation is only an enum for NotionNode, not DBNode
+            if ts_name in enum_fields and not (ts_name == 'operation' and node_class['node_type'] == 'db'):
+                # Always check if not None before accessing .value to be defensive
+                lines.append(f'        data["{ts_name}"] = self.{field_name}.value if self.{field_name} is not None else None')
             else:
                 lines.append(f'        data["{ts_name}"] = self.{field_name}')
         
@@ -165,12 +177,23 @@ def generate_python_code(static_nodes_data: dict) -> str:
         lines.append('            metadata=metadata,')
         
         for field in node_class['fields']:
-            if field.get('special_handling'):
-                lines.append(f'            {field["py_name"]}={field["special_handling"]},')
+            field_name = field["py_name"]
+            ts_name = field["ts_name"]
+            
+            # Check if this field is an enum type
+            # Special case: operation is only an enum for NotionNode, not DBNode
+            if ts_name in enum_fields and not (ts_name == 'operation' and node_class['node_type'] == 'db'):
+                enum_class = enum_fields[ts_name]
+                if field.get('has_default') and field["default_value"] == "None":
+                    lines.append(f'            {field_name}=_to_enum(data.get("{ts_name}", None), {enum_class}),')
+                else:
+                    lines.append(f'            {field_name}=_to_enum(data.get("{ts_name}"), {enum_class}),')
+            elif field.get('special_handling'):
+                lines.append(f'            {field_name}={field["special_handling"]},')
             elif field.get('has_default') and not field.get('is_field_default'):
-                lines.append(f'            {field["py_name"]}=data.get("{field["ts_name"]}", {field["default_value"]}),')
+                lines.append(f'            {field_name}=data.get("{ts_name}", {field["default_value"]}),')
             else:
-                lines.append(f'            {field["py_name"]}=data.get("{field["ts_name"]}"),')
+                lines.append(f'            {field_name}=data.get("{ts_name}"),')
         
         lines.append('        )')
         lines.append('    ')
@@ -187,12 +210,22 @@ def generate_python_code(static_nodes_data: dict) -> str:
     person_job_fields = next((nc['fields'] for nc in node_classes if nc['node_type'] == 'person_job'), [])
     
     for field in person_job_fields:
-        if field.get('special_handling'):
-            lines.append(f'            {field["py_name"]}={field["special_handling"]},')
+        field_name = field["py_name"]
+        ts_name = field["ts_name"]
+        
+        # Check if this field is an enum type
+        if ts_name in enum_fields:
+            enum_class = enum_fields[ts_name]
+            if field.get('has_default') and field["default_value"] == "None":
+                lines.append(f'            {field_name}=_to_enum(data.get("{ts_name}", None), {enum_class}),')
+            else:
+                lines.append(f'            {field_name}=_to_enum(data.get("{ts_name}"), {enum_class}),')
+        elif field.get('special_handling'):
+            lines.append(f'            {field_name}={field["special_handling"]},')
         elif field.get('has_default') and not field.get('is_field_default'):
-            lines.append(f'            {field["py_name"]}=data.get("{field["ts_name"]}", {field["default_value"]}),')
+            lines.append(f'            {field_name}=data.get("{ts_name}", {field["default_value"]}),')
         else:
-            lines.append(f'            {field["py_name"]}=data.get("{field["ts_name"]}"),')
+            lines.append(f'            {field_name}=data.get("{ts_name}"),')
     lines.append('        )')
     lines.append('    ')
     

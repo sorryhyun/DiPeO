@@ -30,40 +30,40 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  /** Unique identifier for an API key */
+  /** Unique identifier for apikey */
   ApiKeyID: { input: ApiKeyID; output: ApiKeyID; }
-  /** Unique identifier for an arrow */
+  /** Unique identifier for arrow */
   ArrowID: { input: ArrowID; output: ArrowID; }
   /** Date with time (isoformat) */
   DateTime: { input: any; output: any; }
-  /** Unique identifier for a diagram */
+  /** Unique identifier for diagram */
   DiagramID: { input: DiagramID; output: DiagramID; }
-  /** Unique identifier for an execution */
+  /** Unique identifier for execution */
   ExecutionID: { input: ExecutionID; output: ExecutionID; }
-  /** Unique identifier for a handle */
+  /** Unique identifier for handle */
   HandleID: { input: HandleID; output: HandleID; }
   /** Arbitrary JSON data */
   JSONScalar: { input: any; output: any; }
-  /** Unique identifier for a node */
+  /** Unique identifier for node */
   NodeID: { input: NodeID; output: NodeID; }
-  /** Unique identifier for a person */
+  /** Unique identifier for person */
   PersonID: { input: PersonID; output: PersonID; }
   Upload: { input: any; output: any; }
 };
 
 export enum APIServiceType {
-  anthropic = 'anthropic',
-  bedrock = 'bedrock',
-  deepseek = 'deepseek',
-  gemini = 'gemini',
-  github = 'github',
-  google = 'google',
-  google_search = 'google_search',
-  jira = 'jira',
-  notion = 'notion',
-  openai = 'openai',
-  slack = 'slack',
-  vertex = 'vertex'
+  ANTHROPIC = 'ANTHROPIC',
+  BEDROCK = 'BEDROCK',
+  DEEPSEEK = 'DEEPSEEK',
+  GEMINI = 'GEMINI',
+  GITHUB = 'GITHUB',
+  GOOGLE = 'GOOGLE',
+  GOOGLE_SEARCH = 'GOOGLE_SEARCH',
+  JIRA = 'JIRA',
+  NOTION = 'NOTION',
+  OPENAI = 'OPENAI',
+  SLACK = 'SLACK',
+  VERTEX = 'VERTEX'
 }
 
 export type ApiKeyResult = {
@@ -90,29 +90,21 @@ export type CreateDiagramInput = {
 };
 
 export type CreateNodeInput = {
-  label: Scalars['String']['input'];
+  data: Scalars['JSONScalar']['input'];
   position: Vec2Input;
-  properties?: InputMaybe<Scalars['JSONScalar']['input']>;
   type: NodeType;
 };
 
 export type CreatePersonInput = {
-  api_key_id: Scalars['ApiKeyID']['input'];
   label: Scalars['String']['input'];
-  max_tokens?: InputMaybe<Scalars['Int']['input']>;
-  model: Scalars['String']['input'];
-  service: LLMService;
-  system_prompt?: InputMaybe<Scalars['String']['input']>;
-  temperature?: InputMaybe<Scalars['Float']['input']>;
-  top_p?: InputMaybe<Scalars['Float']['input']>;
+  llm_config: PersonLLMConfigInput;
+  type?: Scalars['String']['input'];
 };
 
 export { DataType };
 
 export type DeleteResult = {
   __typename?: 'DeleteResult';
-  deleted_count: Scalars['Int']['output'];
-  deleted_id?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
@@ -132,8 +124,7 @@ export type DiagramFilterInput = {
   author?: InputMaybe<Scalars['String']['input']>;
   created_after?: InputMaybe<Scalars['DateTime']['input']>;
   created_before?: InputMaybe<Scalars['DateTime']['input']>;
-  modified_after?: InputMaybe<Scalars['DateTime']['input']>;
-  name_contains?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
   tags?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
@@ -141,9 +132,9 @@ export { DiagramFormat };
 
 export type DiagramFormatInfo = {
   __typename?: 'DiagramFormatInfo';
-  description: Scalars['String']['output'];
+  description?: Maybe<Scalars['String']['output']>;
   extension: Scalars['String']['output'];
-  id: Scalars['String']['output'];
+  format: Scalars['String']['output'];
   name: Scalars['String']['output'];
   supports_export: Scalars['Boolean']['output'];
   supports_import: Scalars['Boolean']['output'];
@@ -204,7 +195,6 @@ export type DomainDiagramType = {
   metadata?: Maybe<DiagramMetadataType>;
   nodeCount: Scalars['Int']['output'];
   nodes: Array<DomainNodeType>;
-  personCount: Scalars['Int']['output'];
   persons: Array<DomainPersonType>;
 };
 
@@ -231,15 +221,14 @@ export type DomainPersonType = {
   id: Scalars['PersonID']['output'];
   label: Scalars['String']['output'];
   llm_config: PersonLLMConfigType;
-  masked_api_key?: Maybe<Scalars['String']['output']>;
   type: Scalars['String']['output'];
 };
 
 export type ExecuteDiagramInput = {
-  debug_mode?: Scalars['Boolean']['input'];
+  debug_mode?: InputMaybe<Scalars['Boolean']['input']>;
   diagram_data?: InputMaybe<Scalars['JSONScalar']['input']>;
   diagram_id?: InputMaybe<Scalars['DiagramID']['input']>;
-  max_iterations?: Scalars['Int']['input'];
+  max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
   variables?: InputMaybe<Scalars['JSONScalar']['input']>;
 };
@@ -247,11 +236,10 @@ export type ExecuteDiagramInput = {
 export type ExecutionControlInput = {
   action: Scalars['String']['input'];
   execution_id: Scalars['ExecutionID']['input'];
-  node_id?: InputMaybe<Scalars['NodeID']['input']>;
+  reason?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ExecutionFilterInput = {
-  active_only?: Scalars['Boolean']['input'];
   diagram_id?: InputMaybe<Scalars['DiagramID']['input']>;
   started_after?: InputMaybe<Scalars['DateTime']['input']>;
   started_before?: InputMaybe<Scalars['DateTime']['input']>;
@@ -262,7 +250,7 @@ export type ExecutionResult = {
   __typename?: 'ExecutionResult';
   error?: Maybe<Scalars['String']['output']>;
   execution?: Maybe<ExecutionStateType>;
-  execution_id?: Maybe<Scalars['String']['output']>;
+  execution_id?: Maybe<Scalars['ExecutionID']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
@@ -273,6 +261,8 @@ export type ExecutionStateType = {
   duration_seconds?: Maybe<Scalars['Float']['output']>;
   ended_at?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  exec_counts: Scalars['JSONScalar']['output'];
+  executed_nodes: Array<Scalars['String']['output']>;
   id: Scalars['String']['output'];
   is_active?: Maybe<Scalars['Boolean']['output']>;
   node_outputs: Scalars['JSONScalar']['output'];
@@ -310,6 +300,7 @@ export type InteractivePrompt = {
 
 export type InteractiveResponseInput = {
   execution_id: Scalars['ExecutionID']['input'];
+  metadata?: InputMaybe<Scalars['JSONScalar']['input']>;
   node_id: Scalars['NodeID']['input'];
   response: Scalars['String']['input'];
 };
@@ -463,9 +454,16 @@ export type NodeResult = {
 
 export { NodeType };
 
+export type PersonLLMConfigInput = {
+  api_key_id: Scalars['ApiKeyID']['input'];
+  model: Scalars['String']['input'];
+  service: LLMService;
+  system_prompt?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type PersonLLMConfigType = {
   __typename?: 'PersonLLMConfigType';
-  api_key_id?: Maybe<Scalars['ApiKeyID']['output']>;
+  api_key_id: Scalars['String']['output'];
   model: Scalars['String']['output'];
   service: LLMService;
   system_prompt?: Maybe<Scalars['String']['output']>;
@@ -608,37 +606,28 @@ export type Subscriptionnode_updatesArgs = {
 
 export type TestApiKeyResult = {
   __typename?: 'TestApiKeyResult';
-  available_models?: Maybe<Array<Scalars['String']['output']>>;
   error?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
+  model_info?: Maybe<Scalars['JSONScalar']['output']>;
   success: Scalars['Boolean']['output'];
-  valid?: Maybe<Scalars['Boolean']['output']>;
 };
 
 export type TokenUsageType = {
   __typename?: 'TokenUsageType';
-  cached?: Maybe<Scalars['Float']['output']>;
+  cached?: Maybe<Scalars['Int']['output']>;
   input: Scalars['Int']['output'];
   output: Scalars['Int']['output'];
-  total?: Maybe<Scalars['Float']['output']>;
+  total?: Maybe<Scalars['Int']['output']>;
 };
 
 export type UpdateNodeInput = {
-  id: Scalars['NodeID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
+  data?: InputMaybe<Scalars['JSONScalar']['input']>;
   position?: InputMaybe<Vec2Input>;
-  properties?: InputMaybe<Scalars['JSONScalar']['input']>;
 };
 
 export type UpdatePersonInput = {
-  api_key_id?: InputMaybe<Scalars['ApiKeyID']['input']>;
-  id: Scalars['PersonID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
-  max_tokens?: InputMaybe<Scalars['Int']['input']>;
-  model?: InputMaybe<Scalars['String']['input']>;
-  system_prompt?: InputMaybe<Scalars['String']['input']>;
-  temperature?: InputMaybe<Scalars['Float']['input']>;
-  top_p?: InputMaybe<Scalars['Float']['input']>;
+  llm_config?: InputMaybe<PersonLLMConfigInput>;
 };
 
 export type Vec2Input = {
@@ -648,8 +637,8 @@ export type Vec2Input = {
 
 export type Vec2Type = {
   __typename?: 'Vec2Type';
-  x: Scalars['Float']['output'];
-  y: Scalars['Float']['output'];
+  x: Scalars['Int']['output'];
+  y: Scalars['Int']['output'];
 };
 
 export type ExecutionOrderQueryVariables = Exact<{
@@ -725,7 +714,7 @@ export type GetDiagramQueryVariables = Exact<{
 }>;
 
 
-export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: NodeID, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: HandleID, node_id: NodeID, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: ArrowID, source: HandleID, target: HandleID, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
+export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: NodeID, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: HandleID, node_id: NodeID, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: ArrowID, source: HandleID, target: HandleID, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: PersonID, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
 
 export type ListDiagramsQueryVariables = Exact<{
   filter?: InputMaybe<DiagramFilterInput>;
@@ -734,7 +723,7 @@ export type ListDiagramsQueryVariables = Exact<{
 }>;
 
 
-export type ListDiagramsQuery = { __typename?: 'Query', diagrams: Array<{ __typename?: 'DomainDiagramType', nodeCount: number, arrowCount: number, personCount: number, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, author?: string | null, created: string, modified: string, tags?: Array<string> | null } | null }> };
+export type ListDiagramsQuery = { __typename?: 'Query', diagrams: Array<{ __typename?: 'DomainDiagramType', nodeCount: number, arrowCount: number, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, author?: string | null, created: string, modified: string, tags?: Array<string> | null } | null }> };
 
 export type CreateDiagramMutationVariables = Exact<{
   input: CreateDiagramInput;
@@ -755,7 +744,7 @@ export type DeleteDiagramMutationVariables = Exact<{
 }>;
 
 
-export type DeleteDiagramMutation = { __typename?: 'Mutation', delete_diagram: { __typename?: 'DeleteResult', success: boolean, deleted_id?: string | null, message?: string | null, error?: string | null } };
+export type DeleteDiagramMutation = { __typename?: 'Mutation', delete_diagram: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type GetExecutionQueryVariables = Exact<{
   id: Scalars['ExecutionID']['input'];
@@ -836,7 +825,7 @@ export type ConvertDiagramMutation = { __typename?: 'Mutation', convert_diagram:
 export type GetSupportedFormatsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetSupportedFormatsQuery = { __typename?: 'Query', supported_formats: Array<{ __typename?: 'DiagramFormatInfo', id: string, name: string, description: string, extension: string, supports_import: boolean, supports_export: boolean }> };
+export type GetSupportedFormatsQuery = { __typename?: 'Query', supported_formats: Array<{ __typename?: 'DiagramFormatInfo', format: string, name: string, extension: string, supports_export: boolean }> };
 
 export type CreateNodeMutationVariables = Exact<{
   diagramId: Scalars['DiagramID']['input'];
@@ -858,21 +847,21 @@ export type DeleteNodeMutationVariables = Exact<{
 }>;
 
 
-export type DeleteNodeMutation = { __typename?: 'Mutation', delete_node: { __typename?: 'DeleteResult', success: boolean, deleted_id?: string | null, message?: string | null, error?: string | null } };
+export type DeleteNodeMutation = { __typename?: 'Mutation', delete_node: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type GetPersonQueryVariables = Exact<{
   id: Scalars['PersonID']['input'];
 }>;
 
 
-export type GetPersonQuery = { __typename?: 'Query', person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null };
+export type GetPersonQuery = { __typename?: 'Query', person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } } | null };
 
 export type GetPersonsQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type GetPersonsQuery = { __typename?: 'Query', persons: Array<{ __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } }> };
+export type GetPersonsQuery = { __typename?: 'Query', persons: Array<{ __typename?: 'DomainPersonType', id: PersonID, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }> };
 
 export type CreatePersonMutationVariables = Exact<{
   diagramId: Scalars['DiagramID']['input'];
@@ -880,21 +869,21 @@ export type CreatePersonMutationVariables = Exact<{
 }>;
 
 
-export type CreatePersonMutation = { __typename?: 'Mutation', create_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null } };
+export type CreatePersonMutation = { __typename?: 'Mutation', create_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } } | null } };
 
 export type UpdatePersonMutationVariables = Exact<{
   personInput: UpdatePersonInput;
 }>;
 
 
-export type UpdatePersonMutation = { __typename?: 'Mutation', update_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null } };
+export type UpdatePersonMutation = { __typename?: 'Mutation', update_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } } | null } };
 
 export type DeletePersonMutationVariables = Exact<{
   personId: Scalars['PersonID']['input'];
 }>;
 
 
-export type DeletePersonMutation = { __typename?: 'Mutation', delete_person: { __typename?: 'DeleteResult', success: boolean, deleted_id?: string | null, message?: string | null, error?: string | null } };
+export type DeletePersonMutation = { __typename?: 'Mutation', delete_person: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type InitializeModelMutationVariables = Exact<{
   personId: Scalars['PersonID']['input'];
@@ -904,7 +893,7 @@ export type InitializeModelMutationVariables = Exact<{
 }>;
 
 
-export type InitializeModelMutation = { __typename?: 'Mutation', initialize_model: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, masked_api_key?: string | null, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id?: ApiKeyID | null, system_prompt?: string | null } } | null } };
+export type InitializeModelMutation = { __typename?: 'Mutation', initialize_model: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: PersonID, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } } | null } };
 
 export type GetPromptFilesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1317,7 +1306,6 @@ export const GetDiagramDocument = gql`
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     metadata {
@@ -1380,7 +1368,6 @@ export const ListDiagramsDocument = gql`
     }
     nodeCount
     arrowCount
-    personCount
   }
 }
     `;
@@ -1502,7 +1489,6 @@ export const DeleteDiagramDocument = gql`
     mutation DeleteDiagram($id: DiagramID!) {
   delete_diagram(id: $id) {
     success
-    deleted_id
     message
     error
   }
@@ -1905,7 +1891,7 @@ export type ValidateDiagramMutationHookResult = ReturnType<typeof useValidateDia
 export type ValidateDiagramMutationResult = Apollo.MutationResult<ValidateDiagramMutation>;
 export type ValidateDiagramMutationOptions = Apollo.BaseMutationOptions<ValidateDiagramMutation, ValidateDiagramMutationVariables>;
 export const ConvertDiagramDocument = gql`
-    mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = native, $includeMetadata: Boolean = true) {
+    mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = NATIVE, $includeMetadata: Boolean = true) {
   convert_diagram(
     content: $content
     target_format: $targetFormat
@@ -1951,11 +1937,9 @@ export type ConvertDiagramMutationOptions = Apollo.BaseMutationOptions<ConvertDi
 export const GetSupportedFormatsDocument = gql`
     query GetSupportedFormats {
   supported_formats {
-    id
+    format
     name
-    description
     extension
-    supports_import
     supports_export
   }
 }
@@ -2085,7 +2069,6 @@ export const DeleteNodeDocument = gql`
     mutation DeleteNode($nodeId: NodeID!) {
   delete_node(node_id: $nodeId) {
     success
-    deleted_id
     message
     error
   }
@@ -2128,7 +2111,6 @@ export const GetPersonDocument = gql`
       api_key_id
       system_prompt
     }
-    masked_api_key
     type
   }
 }
@@ -2177,7 +2159,6 @@ export const GetPersonsDocument = gql`
       api_key_id
       system_prompt
     }
-    masked_api_key
     type
   }
 }
@@ -2228,7 +2209,6 @@ export const CreatePersonDocument = gql`
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     message
@@ -2276,7 +2256,6 @@ export const UpdatePersonDocument = gql`
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     message
@@ -2314,7 +2293,6 @@ export const DeletePersonDocument = gql`
     mutation DeletePerson($personId: PersonID!) {
   delete_person(person_id: $personId) {
     success
-    deleted_id
     message
     error
   }
@@ -2364,7 +2342,6 @@ export const InitializeModelDocument = gql`
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     message

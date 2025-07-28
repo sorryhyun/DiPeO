@@ -11,7 +11,7 @@ import strawberry
 from dipeo.application.services.apikey_service import APIKeyService
 from dipeo.infra.diagram import converter_registry
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DiagramMetadata,
     DomainDiagram,
 )
@@ -24,8 +24,8 @@ FILES_DIR = Path(BASE_DIR) / "files"
 UPLOAD_DIR = FILES_DIR / "uploads"
 
 from ..context import GraphQLContext
-from ..types import (
-    DiagramFormat,
+from dipeo.diagram_generated.enums import DiagramFormat
+from ..types_new import (
     FileUploadResult,
     JSONScalar,
 )

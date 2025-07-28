@@ -1,5 +1,0 @@
-{
-  "nodeType": "testnode",
-  "displayName": "Test Node",
-  "debug_info": "Received keys: ['nodeType', 'displayName']"
-}

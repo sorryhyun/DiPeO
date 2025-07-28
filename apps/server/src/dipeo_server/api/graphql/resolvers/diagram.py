@@ -10,7 +10,7 @@ from dipeo.models import DiagramMetadata, DomainDiagram
 
 from dipeo_server.shared.constants import DIAGRAM_VERSION
 
-from ..types import (
+from ..types_new import (
     DiagramFilterInput,
     DiagramID,
     DomainDiagramType,

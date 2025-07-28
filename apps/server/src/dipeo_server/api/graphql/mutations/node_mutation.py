@@ -4,11 +4,11 @@ import logging
 import uuid
 
 import strawberry
-from dipeo.models import DomainNode, NodeType, Vec2
-from dipeo.models import NodeID as DomainNodeID
+from dipeo.diagram_generated import DomainNode, NodeType, Vec2
+from dipeo.diagram_generated import NodeID as DomainNodeID
 
 from ..context import GraphQLContext
-from ..types import (
+from ..types_new import (
     CreateNodeInput,
     DeleteResult,
     DiagramID,

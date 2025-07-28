@@ -68,55 +68,8 @@ nodes:
     position: {x: 400, y: 700}
     props:
       language: python
-      code: |
-        import json
-        import os
-        from pathlib import Path
-        
-        # Get base directory
-        base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
-        
-        # Read all node data AST files from cache
-        cache_dir = base_dir / '.temp'
-        
-        # Combine all interfaces, types, and enums from node data files
-        all_interfaces = []
-        all_types = []
-        all_enums = []
-        
-        # List of node data cache files
-        node_data_files = [
-            'start_data_ast.json', 'condition_data_ast.json', 'person-job_data_ast.json',
-            'code-job_data_ast.json', 'api-job_data_ast.json', 'endpoint_data_ast.json',
-            'db_data_ast.json', 'user-response_data_ast.json', 'notion_data_ast.json',
-            'person-batch-job_data_ast.json', 'hook_data_ast.json', 'template-job_data_ast.json',
-            'json-schema-validator_data_ast.json', 'typescript-ast_data_ast.json', 'sub-diagram_data_ast.json'
-        ]
-        
-        print(f"Looking for cache files in: {cache_dir}")
-        
-        for filename in node_data_files:
-            file_path = cache_dir / filename
-            if file_path.exists():
-                try:
-                    with open(file_path, 'r') as f:
-                        data = json.load(f)
-                        all_interfaces.extend(data.get('interfaces', []))
-                        all_types.extend(data.get('types', []))
-                        all_enums.extend(data.get('enums', []))
-                        print(f"  Loaded {filename}: {len(data.get('interfaces', []))} interfaces")
-                except Exception as e:
-                    print(f"  Error reading {filename}: {e}")
-            else:
-                print(f"  File not found: {filename}")
-        
-        print(f"Combined node data: {len(all_interfaces)} interfaces, {len(all_types)} types, {len(all_enums)} enums")
-        
-        result = {
-            'interfaces': all_interfaces,
-            'types': all_types,
-            'enums': all_enums
-        }
+      filePath: files/codegen/code/models/utils/combine_node_data_ast.py
+      functionName: main
 
 
   # Extract GraphQL types
@@ -143,22 +96,8 @@ nodes:
     position: {x: 800, y: 350}
     props:
       language: python
-      code: |
-        from datetime import datetime
-        
-        graphql_types = inputs.get('graphql_types', {})
-        
-        # Prepare the template data
-        template_data = {
-            'scalars': graphql_types.get('scalars', []),
-            'enums': graphql_types.get('enums', []),
-            'types': graphql_types.get('types', []),
-            'input_types': graphql_types.get('input_types', []),
-            'node_types': graphql_types.get('node_types', []),
-            'now': datetime.now().isoformat()
-        }
-        
-        result = template_data
+      filePath: files/codegen/code/models/generators/prepare_graphql_template_data.py
+      functionName: main
 
   # Generate GraphQL schema
   - label: Generate GraphQL Schema
@@ -166,38 +105,8 @@ nodes:
     position: {x: 1000, y: 400}
     props:
       language: python
-      code: |
-        from datetime import datetime
-        from jinja2 import Template, StrictUndefined
-        
-        # Get template content - it comes as a direct string input
-        template_content = inputs.get('template_content', '')
-        
-        # Get prepared data - it comes from the 'default' connection
-        template_data = inputs.get('default', {})
-        
-        # Ensure all expected keys exist with proper defaults
-        template_context = {
-            'scalars': template_data.get('scalars', []),
-            'enums': template_data.get('enums', []),
-            'types': template_data.get('types', []),
-            'input_types': template_data.get('input_types', []),
-            'node_types': template_data.get('node_types', []),
-            'now': template_data.get('now', datetime.now().isoformat())
-        }
-        
-        # Render template with error handling
-        try:
-            jinja_template = Template(template_content, undefined=StrictUndefined)
-            rendered = jinja_template.render(**template_context)
-            # Return the rendered content as 'generated_code' for DB node
-            result = {'generated_code': rendered}
-        except Exception as e:
-            import traceback
-            error_msg = f"Template rendering error: {str(e)}\n{traceback.format_exc()}"
-            print(error_msg)
-            # Return the error as the generated content so we can see it
-            result = {'generated_code': error_msg}
+      filePath: files/codegen/code/models/generators/render_graphql_schema.py
+      functionName: main
 
   # Write GraphQL schema file
   - label: Write GraphQL Schema

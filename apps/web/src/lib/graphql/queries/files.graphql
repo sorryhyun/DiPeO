@@ -21,7 +21,7 @@ mutation ValidateDiagram($diagramContent: JSONScalar!) {
   }
 }
 
-mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = native, $includeMetadata: Boolean = true) {
+mutation ConvertDiagram($content: JSONScalar!, $targetFormat: DiagramFormat = NATIVE, $includeMetadata: Boolean = true) {
   convert_diagram(content: $content, target_format: $targetFormat, include_metadata: $includeMetadata) {
     success
     message

@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/NotionNodeData",
+  "definitions": {
+    "NotionNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "database_id": {
+          "type": "string"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "operation": {
+          "$ref": "#/definitions/NotionOperation"
+        },
+        "page_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "operation"
+      ],
+      "type": "object"
+    },
+    "NotionOperation": {
+      "enum": [
+        "create_page",
+        "update_page",
+        "read_page",
+        "delete_page",
+        "create_database",
+        "query_database",
+        "update_database"
+      ],
+      "type": "string"
+    }
+  }
+}

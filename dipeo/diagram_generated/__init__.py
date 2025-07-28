@@ -29,7 +29,7 @@ from .domain_models import (
     NodeID,
     HandleID,
     ApiKeyID,
-    
+
     # Domain models
     Vec2,
     DomainHandle,
@@ -39,17 +39,17 @@ from .domain_models import (
     DomainApiKey,
     DomainDiagram,
     DiagramMetadata,
-    
+
     # Execution models
     NodeState,
     ExecutionState,
     ExecutionOptions,
     TokenUsage,
-    
+
     # Configuration models
     MemorySettings,
     PersonLLMConfig,
-    
+
     # Other models
     BaseNodeData,
     InteractivePromptData,
@@ -99,7 +99,7 @@ __all__ = [
     "NodeID",
     "HandleID",
     "ApiKeyID",
-    
+
     # Enums
     "NodeType",
     "NodeExecutionStatus",
@@ -120,7 +120,7 @@ __all__ = [
     "APIServiceType",
     "NotionOperation",
     "ToolType",
-    
+
     # Domain models
     "Vec2",
     "DomainHandle",
@@ -130,17 +130,17 @@ __all__ = [
     "DomainApiKey",
     "DomainDiagram",
     "DiagramMetadata",
-    
+
     # Execution models
     "NodeState",
     "ExecutionState",
     "ExecutionOptions",
     "TokenUsage",
-    
+
     # Configuration models
     "MemorySettings",
     "PersonLLMConfig",
-    
+
     # Other models
     "BaseNodeData",
     "InteractivePromptData",
@@ -165,14 +165,14 @@ __all__ = [
     "ToolOutput",
     "ChatResult",
     "LLMRequestOptions",
-    
+
     # Functions from handle_utils
     "create_handle_id",
     "parse_handle_id",
     "parse_handle_id_safe",
     "extract_node_id_from_handle",
     "is_valid_handle_id",
-    
+
     # Functions from conversions
     "node_kind_to_domain_type",
     "domain_type_to_node_kind",

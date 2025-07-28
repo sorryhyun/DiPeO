@@ -4,11 +4,11 @@ import logging
 import uuid
 
 import strawberry
-from dipeo.models import DomainPerson, LLMService, PersonLLMConfig
-from dipeo.models import PersonID as DomainPersonID
+from dipeo.diagram_generated import DomainPerson, LLMService, PersonLLMConfig
+from dipeo.diagram_generated.domain_models import PersonID as DomainPersonID
 
 from ..context import GraphQLContext
-from ..types import (
+from ..types_new import (
     ApiKeyID,
     CreatePersonInput,
     DeleteResult,

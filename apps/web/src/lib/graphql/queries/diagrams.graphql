@@ -34,7 +34,6 @@ query GetDiagram($id: DiagramID!) {
         api_key_id
         system_prompt
       }
-      masked_api_key
       type
     }
     metadata {
@@ -63,7 +62,6 @@ query ListDiagrams($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
     }
     nodeCount
     arrowCount
-    personCount
   }
 }
 
@@ -95,7 +93,6 @@ mutation ExecuteDiagram($data: ExecuteDiagramInput!) {
 mutation DeleteDiagram($id: DiagramID!) {
   delete_diagram(id: $id) {
     success
-    deleted_id
     message
     error
   }

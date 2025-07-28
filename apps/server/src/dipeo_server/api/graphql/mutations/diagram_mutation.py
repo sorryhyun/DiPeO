@@ -4,13 +4,13 @@ import logging
 from datetime import datetime
 
 import strawberry
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DiagramMetadata,
     DomainDiagram,
 )
 
 from ..context import GraphQLContext
-from ..types import (
+from ..types_new import (
     CreateDiagramInput,
     DeleteResult,
     DiagramID,

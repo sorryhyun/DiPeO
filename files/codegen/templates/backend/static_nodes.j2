@@ -35,7 +35,7 @@ class {{ nodeType | pascal_case }}Node:
     metadata: Optional[Dict[str, Any]] = None
     
     # Node type (fixed for this node class)
-    type: NodeType = field(default=NodeType.{{ nodeType | replace('-', '_') }}, init=False)
+    type: NodeType = field(default=NodeType.{{ nodeType | replace('-', '_') | upper }}, init=False)
     
     # Optional node-specific fields
 {%- for field in fields %}

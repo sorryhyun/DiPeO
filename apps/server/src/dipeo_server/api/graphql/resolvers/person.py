@@ -5,7 +5,7 @@ import logging
 from dipeo.models import APIServiceType, DomainApiKey, DomainPerson
 
 from ..context import GraphQLContext
-from ..types import (
+from ..types_new import (
     ApiKeyID,
     PersonID,
 )

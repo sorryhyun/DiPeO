@@ -227,9 +227,12 @@ def generate_strawberry_types(schema_data: Dict[str, Any]) -> str:
         'DomainHandle': ['id', 'node_id'],
         'DomainNode': ['id', 'data'],
         'DomainArrow': ['id', 'source', 'target', 'data'],
-        'DomainPerson': ['id'],
+        'DomainPerson': ['id', 'type'],  # type is Literal["person"]
         'DomainApiKey': ['id'],
-        'DomainDiagram': []
+        'DomainDiagram': [],
+        'ExecutionState': ['node_states', 'node_outputs', 'variables', 'exec_counts'],  # Dict fields
+        'ExecutionOptions': ['mode', 'variables'],  # mode is Literal, variables is Dict
+        'Message': ['from_person_id', 'message_type']  # Literal fields
     }
     
     # Generate Pydantic-based types
@@ -300,6 +303,41 @@ def generate_strawberry_types(schema_data: Dict[str, Any]) -> str:
                             else:
                                 lines.append(f'            return self._pydantic_object.{field_name} or {{}}')
                             lines.append(f'        return getattr(self, "{field_name}", {{}})' if base_name != 'DomainArrow' else f'        return getattr(self, "{field_name}", None)')
+                        elif field_name == 'type' and base_name == 'DomainPerson':
+                            # Handle Literal type field
+                            lines.append(f'    @strawberry.field')
+                            lines.append(f'    def type(self) -> str:')
+                            lines.append(f'        return "person"')
+                        elif field_name in ['node_states', 'node_outputs', 'variables', 'exec_counts']:
+                            # Handle Dict fields
+                            lines.append(f'    @strawberry.field')
+                            lines.append(f'    def {field_name}(self) -> JSONScalar:')
+                            lines.append(f'        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self')
+                            if field_name == 'node_states':
+                                lines.append(f'        if hasattr(obj, "{field_name}"):')
+                                lines.append(f'            # Convert NodeState objects to dicts')
+                                lines.append(f'            return {{k: v.model_dump() if hasattr(v, "model_dump") else v for k, v in obj.{field_name}.items()}}')
+                                lines.append(f'        return {{}}')
+                            else:
+                                lines.append(f'        return obj.{field_name} if hasattr(obj, "{field_name}") else {{}}')
+                        elif field_name == 'mode' and base_name == 'ExecutionOptions':
+                            # Handle Optional Literal field
+                            lines.append(f'    @strawberry.field')
+                            lines.append(f'    def mode(self) -> Optional[str]:')
+                            lines.append(f'        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self')
+                            lines.append(f'        return obj.mode if hasattr(obj, "mode") else None')
+                        elif field_name == 'from_person_id' and base_name == 'Message':
+                            # Handle Union[PersonID, Literal["system"]] field
+                            lines.append(f'    @strawberry.field')
+                            lines.append(f'    def from_person_id(self) -> str:')
+                            lines.append(f'        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self')
+                            lines.append(f'        return str(obj.from_person_id) if hasattr(obj, "from_person_id") else ""')
+                        elif field_name == 'message_type' and base_name == 'Message':
+                            # Handle Literal field
+                            lines.append(f'    @strawberry.field')
+                            lines.append(f'    def message_type(self) -> str:')
+                            lines.append(f'        obj = self._pydantic_object if hasattr(self, "_pydantic_object") else self')
+                            lines.append(f'        return obj.message_type if hasattr(obj, "message_type") else ""')
                         lines.append('')
             
             # Add any additional computed fields

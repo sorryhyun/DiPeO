@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/ApiJobNodeData",
+  "definitions": {
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
+      "type": "string"
+    },
+    "ApiJobNodeData": {
+      "additionalProperties": false,
+      "properties": {
+        "auth_config": {
+          "$ref": "#/definitions/Record<string,string>"
+        },
+        "auth_type": {
+          "enum": [
+            "api_key",
+            "basic",
+            "bearer",
+            "none"
+          ],
+          "type": "string"
+        },
+        "body": {},
+        "flipped": {
+          "type": "boolean"
+        },
+        "headers": {
+          "$ref": "#/definitions/Record<string,string>"
+        },
+        "label": {
+          "type": "string"
+        },
+        "method": {
+          "$ref": "#/definitions/HttpMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/Record<string,any>"
+        },
+        "timeout": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "method",
+        "url"
+      ],
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

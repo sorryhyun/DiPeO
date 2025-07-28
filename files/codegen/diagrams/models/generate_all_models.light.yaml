@@ -84,6 +84,15 @@ nodes:
       diagram_format: light
       passInputData: false
 
+  # Generate Validation Models (JSON Schema + Pydantic)
+  - label: Generate Validation Models
+    type: sub_diagram
+    position: {x: 400, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/generate_validation_models
+      diagram_format: light
+      passInputData: false
+
   # Build TypeScript models
   - label: Build TypeScript Models
     type: code_job
@@ -126,6 +135,8 @@ nodes:
         print(f"  ✓ Zod validation schemas (apps/web/src/__generated__/schemas.ts)")
         print(f"  ✓ GraphQL schema (dipeo/diagram_generated_staged/domain-schema.graphql)")
         print(f"  ✓ Static node classes (dipeo/diagram_generated_staged/generated_nodes.py)")
+        print(f"  ✓ JSON schemas (dipeo/diagram_generated/schemas/nodes/)")
+        print(f"  ✓ Pydantic validation models (dipeo/diagram_generated/validation/nodes/)")
         print(f"  ✓ TypeScript build completed")
         print(f"\nAll domain model generation tasks completed successfully!")
         print(f"{'='*60}\n")
@@ -170,6 +181,8 @@ connections:
     to: Generate GraphQL Schema
   - from: Parse All TypeScript
     to: Generate Static Nodes
+  - from: Parse All TypeScript
+    to: Generate Validation Models
   
   # Only TypeScript-generating tasks need to complete before building TypeScript
   - from: Generate Field Configs
@@ -195,6 +208,9 @@ connections:
   - from: Generate Static Nodes
     to: Generate Summary
     label: static_nodes
+  - from: Generate Validation Models
+    to: Generate Summary
+    label: validation_models
   
   # Generate final summary
   - from: Build TypeScript Models

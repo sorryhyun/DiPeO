@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-28T00:02:24.560930
+# Generated at: 2025-07-28T15:59:13.067241
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -402,6 +402,10 @@ type DBNodeData {
   query: String
   data: JSONScalar
 }
+type UserResponseNodeData {
+  prompt: String!
+  timeout: Float!
+}
 type NotionNodeData {
   operation: NotionOperation!
   page_id: String
@@ -516,4 +520,4 @@ Union type for all possible node data configurations.
 In practice, DiPeO uses JSONScalar for the data field, but this union
 documents all possible node data types.
 """
-union NodeData = BaseNodeData | StartNodeData | ConditionNodeData | PersonJobNodeData | CodeJobNodeData | ApiJobNodeData | EndpointNodeData | DBNodeData | NotionNodeData | HookNodeData | TemplateJobNodeData | JsonSchemaValidatorNodeData | TypescriptAstNodeData | SubDiagramNodeData
+union NodeData = BaseNodeData | StartNodeData | ConditionNodeData | PersonJobNodeData | CodeJobNodeData | ApiJobNodeData | EndpointNodeData | DBNodeData | UserResponseNodeData | NotionNodeData | HookNodeData | TemplateJobNodeData | JsonSchemaValidatorNodeData | TypescriptAstNodeData | SubDiagramNodeData

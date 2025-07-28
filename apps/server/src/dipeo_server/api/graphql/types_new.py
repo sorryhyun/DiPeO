@@ -27,7 +27,7 @@ from .__generated__.types import (
     EndpointNodeDataType, DBNodeDataType, UserResponseNodeDataType,
     NotionNodeDataType, HookNodeDataType, TemplateJobNodeDataType,
     JsonSchemaValidatorNodeDataType, TypescriptAstNodeData,
-    SubDiagramNodeDataType, ToolConfigType, WebSearchResultType,
+    SubDiagramNodeDataType, PersonBatchJobNodeData, ToolConfigType, WebSearchResultType,
     ImageGenerationResultType, ToolOutputType, ChatResultType,
     LLMRequestOptionsType, MemorySettingsType,
     
@@ -74,6 +74,9 @@ from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchem
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 from dipeo.diagram_generated.models.person_batch_job_model import PersonBatchJobNodeData
+
+# Create a fixed DomainPerson model without the literal type field
+from typing import Literal as TypingLiteral
 
 # Import additional server-specific types
 import strawberry
@@ -150,8 +153,12 @@ class CreateApiKeyInput:
 
 @strawberry.input
 class ExecuteDiagramInput:
-    diagram_id: DiagramID
+    diagram_id: Optional[DiagramID] = None
+    diagram_data: Optional[JSONScalar] = None
     variables: Optional[JSONScalar] = None
+    debug_mode: Optional[bool] = None
+    max_iterations: Optional[int] = None
+    timeout_seconds: Optional[int] = None
 
 
 @strawberry.input
@@ -183,6 +190,7 @@ class DiagramOperationResult:
 class ExecutionResult:
     success: bool
     execution_id: Optional[ExecutionID] = None
+    execution: Optional[ExecutionStateType] = None
     message: Optional[str] = None
     error: Optional[str] = None
 
@@ -209,6 +217,97 @@ class ApiKeyResult:
     message: Optional[str] = None
     error: Optional[str] = None
     api_key: Optional[DomainApiKeyType] = None
+
+
+@strawberry.type
+class DeleteResult:
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
+class DiagramResult:
+    success: bool
+    diagram: Optional[DomainDiagramType] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
+class NodeResult:
+    success: bool
+    node: Optional[DomainNodeType] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
+class FileUploadResult:
+    success: bool
+    message: Optional[str] = None
+    path: Optional[str] = None
+    size_bytes: Optional[int] = None
+    content_type: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
+class TestApiKeyResult:
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    model_info: Optional[JSONScalar] = None
+
+
+@strawberry.type
+class DiagramFormatInfo:
+    format: str
+    name: str
+    extension: str
+    supports_export: bool
+    supports_import: bool
+    description: Optional[str] = None
+
+
+# ============ Additional Input Types ============
+
+@strawberry.input
+class UpdatePersonInput:
+    label: Optional[str] = None
+    llm_config: Optional[PersonLLMConfigInput] = None
+
+
+@strawberry.input
+class DiagramFilterInput:
+    name: Optional[str] = None
+    author: Optional[str] = None
+    tags: Optional[List[str]] = None
+    created_after: Optional[datetime] = None
+    created_before: Optional[datetime] = None
+
+
+@strawberry.input
+class ExecutionFilterInput:
+    diagram_id: Optional[DiagramID] = None
+    status: Optional[ExecutionStatusEnum] = None
+    started_after: Optional[datetime] = None
+    started_before: Optional[datetime] = None
+
+
+@strawberry.input
+class ExecutionControlInput:
+    execution_id: ExecutionID
+    action: str  # "pause", "resume", "cancel"
+    reason: Optional[str] = None
+
+
+@strawberry.input
+class InteractiveResponseInput:
+    execution_id: ExecutionID
+    node_id: NodeID
+    response: str
+    metadata: Optional[JSONScalar] = None
 
 
 # ============ Export all types ============
@@ -244,7 +343,7 @@ __all__ = [
     'EndpointNodeDataType', 'DBNodeDataType', 'UserResponseNodeDataType',
     'NotionNodeDataType', 'HookNodeDataType', 'TemplateJobNodeDataType',
     'JsonSchemaValidatorNodeDataType', 'TypescriptAstNodeData',
-    'SubDiagramNodeDataType', 'ToolConfigType', 'WebSearchResultType',
+    'SubDiagramNodeDataType', 'PersonBatchJobNodeData', 'ToolConfigType', 'WebSearchResultType',
     'ImageGenerationResultType', 'ToolOutputType', 'ChatResultType',
     'LLMRequestOptionsType', 'MemorySettingsType',
     
@@ -256,7 +355,12 @@ __all__ = [
     
     # Result Types
     'DiagramOperationResult', 'ExecutionResult', 'FileOperationResult',
-    'PersonResult', 'ApiKeyResult',
+    'PersonResult', 'ApiKeyResult', 'DeleteResult', 'DiagramResult',
+    'NodeResult', 'FileUploadResult', 'TestApiKeyResult', 'DiagramFormatInfo',
+    
+    # Additional Input Types
+    'UpdatePersonInput', 'DiagramFilterInput', 'ExecutionFilterInput',
+    'ExecutionControlInput', 'InteractiveResponseInput',
     
     # Unions
     'NodeData',
@@ -271,7 +375,7 @@ __all__ = [
     'CodeJobNodeData', 'ApiJobNodeData', 'EndpointNodeData',
     'DbNodeData', 'UserResponseNodeData', 'NotionNodeData',
     'HookNodeData', 'TemplateJobNodeData', 'JsonSchemaValidatorNodeData',
-    'TypescriptAstNodeData', 'SubDiagramNodeData',
+    'TypescriptAstNodeData', 'SubDiagramNodeData', 'PersonBatchJobNodeData',
     'MemorySettings', 'ToolConfig', 'WebSearchResult',
     'ImageGenerationResult', 'ToolOutput', 'ChatResult',
     'LLMRequestOptions'
