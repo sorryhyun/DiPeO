@@ -146,6 +146,7 @@ export type DiagramMetadataType = {
   author?: Maybe<Scalars['String']['output']>;
   created: Scalars['String']['output'];
   description?: Maybe<Scalars['String']['output']>;
+  format?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   modified: Scalars['String']['output'];
   name?: Maybe<Scalars['String']['output']>;

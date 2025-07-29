@@ -211,6 +211,8 @@ class DiagramMetadata(BaseModel):
     
     tags: Optional[List[str]] = Field(default=None)
     
+    format: Optional[str] = Field(default=None)
+    
     
 
 

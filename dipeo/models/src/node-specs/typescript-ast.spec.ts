@@ -106,8 +106,8 @@ export const typescriptAstSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["source"],
-    outputs: ["ast", "interfaces", "types", "enums", "error"]
+    inputs: ["default"],
+    outputs: ["results", "error"]
   },
   
   outputs: {

@@ -38,8 +38,8 @@ export const userResponseSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["in"],
-    outputs: ["out"]
+    inputs: ["default"],
+    outputs: ["default"]
   },
   
   outputs: {

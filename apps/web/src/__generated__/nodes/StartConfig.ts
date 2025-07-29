@@ -9,11 +9,8 @@ export const startConfig: UnifiedNodeConfig = {
   nodeType: 'start',
   category: 'control',
   handles: {
-    input: [
-      { id: 'data', label: '', position: 'left' },
-    ],
     output: [
-      { id: 'result', label: '', position: 'right' },
+      { label: 'default', displayLabel: 'Default', position: 'right' },
     ],
   },
   defaults: {

@@ -6,6 +6,10 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "Record<string,string|number|boolean>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "StartNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -43,10 +47,6 @@
       "type": "object"
     },
     "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "Record<string,string|number|boolean>": {
       "additionalProperties": false,
       "type": "object"
     }

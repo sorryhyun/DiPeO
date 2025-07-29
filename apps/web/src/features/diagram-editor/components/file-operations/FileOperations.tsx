@@ -58,11 +58,11 @@ export const FileOperations: React.FC = () => {
     // Build the diagram path based on selected format
     let diagramPath = finalName;
     if (selectedFormat === DiagramFormat.LIGHT) {
-      diagramPath = `light/${finalName}`;
+      diagramPath = `${selectedFormat}/${finalName}`;
     } else if (selectedFormat === DiagramFormat.READABLE) {
-      diagramPath = `readable/${finalName}`;
+      diagramPath = `${selectedFormat}/${finalName}`;
     } else if (selectedFormat === DiagramFormat.NATIVE) {
-      diagramPath = `native/${finalName}`;
+      diagramPath = `${selectedFormat}/${finalName}`;
     }
     
     // Update URL without page refresh
@@ -88,7 +88,7 @@ export const FileOperations: React.FC = () => {
       // For native format, use the existing saveDiagram function
       if (selectedFormat === DiagramFormat.NATIVE) {
         await saveDiagram(filename, selectedFormat);
-        const formatDir = selectedFormat.toLowerCase();
+        const formatDir = selectedFormat;
         toast.success(`Saved to ${formatDir}/${filename}`);
         return;
       }

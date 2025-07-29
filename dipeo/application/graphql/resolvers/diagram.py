@@ -89,24 +89,39 @@ class DiagramResolver:
             # Apply pagination
             paginated_infos = filtered_infos[offset:offset + limit]
             
-            # Load full diagrams
+            # Convert file info to simple diagram objects without loading content
             diagrams = []
             for info in paginated_infos:
-                diagram_id = info.get("id") or info.get("path", "").split(".")[0]
-                if diagram_id:
-                    try:
-                        diagram_data = await service.get_diagram(diagram_id)
-                        if diagram_data:
-                            # Ensure diagram_data is a dict
-                            if not isinstance(diagram_data, dict):
-                                logger.warning(f"Diagram {diagram_id} returned non-dict data: {type(diagram_data)}")
-                                continue
-                            domain_diagram = dict_to_domain_diagram(diagram_data)
-                            diagrams.append(domain_diagram)
-                    except (KeyError, ValueError) as e:
-                        # Skip diagrams that fail to load
-                        logger.warning(f"Skipping diagram {diagram_id}: {e}")
-                        continue
+                try:
+                    # Create a minimal diagram object from file metadata
+                    # Use modified time for both created and modified since we only have modified time
+                    modified_time = info.get("modified", "")
+                    
+                    # Use the full path as ID to preserve extension information
+                    diagram_id = info.get("path") or info.get("id") or info.get("name", "unknown")
+                    
+                    diagram_dict = {
+                        "id": diagram_id,
+                        "metadata": {
+                            "id": diagram_id,  # Use full path as ID
+                            "name": info.get("name", ""),
+                            "description": "",  # Empty since file info doesn't have description
+                            "tags": [],  # Empty since file info doesn't have tags
+                            "created": modified_time,  # Use modified time as created
+                            "modified": modified_time,
+                            "version": "1.0.0",  # Default version
+                        },
+                        "nodes": {},
+                        "arrows": {},
+                        "handles": {},
+                        "persons": {},
+                    }
+                    
+                    domain_diagram = dict_to_domain_diagram(diagram_dict)
+                    diagrams.append(domain_diagram)
+                except Exception as e:
+                    logger.warning(f"Failed to create diagram object from info: {e}")
+                    continue
             
             return diagrams
             

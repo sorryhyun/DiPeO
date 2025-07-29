@@ -87,9 +87,9 @@ input DiagramFilterInput {
 }
 
 enum DiagramFormat {
-  NATIVE
-  LIGHT
-  READABLE
+  native
+  light
+  readable
 }
 
 type DiagramFormatInfo {
@@ -113,6 +113,7 @@ type DiagramMetadataType {
   modified: String!
   author: String
   tags: [String!]
+  format: String
 }
 
 type DiagramResult {

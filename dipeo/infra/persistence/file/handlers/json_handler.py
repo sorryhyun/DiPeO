@@ -61,11 +61,6 @@ class JsonHandler:
             Formatted JSON string
         """
         if isinstance(content, str):
-            # If already a string, parse and re-format for consistency
-            try:
-                parsed = json.loads(content)
-                return json.dumps(parsed, indent=2, ensure_ascii=False)
-            except json.JSONDecodeError:
-                # If not valid JSON, write as-is
-                return content
+            # If already a string, assume it's already formatted JSON and return as-is
+            return content
         return json.dumps(content, indent=2, ensure_ascii=False)

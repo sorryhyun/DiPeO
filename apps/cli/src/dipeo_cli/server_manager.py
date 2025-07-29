@@ -74,7 +74,11 @@ class ServerManager:
             self.process.wait()
             self.process = None
 
-    def execute_diagram(self, diagram_data: dict[str, Any], input_variables: dict[str, Any] | None = None) -> dict[str, Any]:
+    def execute_diagram(
+        self,
+        diagram_data: dict[str, Any],
+        input_variables: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
         mutation ExecuteDiagram($diagramData: JSON, $variables: JSON) {
@@ -89,11 +93,11 @@ class ServerManager:
         response = requests.post(
             f"{self.base_url}/graphql",
             json={
-                "query": query, 
+                "query": query,
                 "variables": {
                     "diagramData": diagram_data,
-                    "variables": input_variables
-                }
+                    "variables": input_variables,
+                },
             },
         )
 

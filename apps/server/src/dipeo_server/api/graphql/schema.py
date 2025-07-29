@@ -18,7 +18,7 @@ unified_schema = None
 
 def create_unified_graphql_router(context_getter=None, container=None):
     # Create a GraphQL router with direct streaming support
-    
+
     # If container is provided, use it directly
     if container:
         registry = container.application.service_registry()
@@ -26,16 +26,17 @@ def create_unified_graphql_router(context_getter=None, container=None):
         # Try to get container (may fail during import)
         try:
             from dipeo_server.application.app_context import get_container
+
             container = get_container()
             registry = container.application.service_registry()
         except RuntimeError:
             # Container not initialized yet, create a mock registry for now
             # This will be replaced when the router is actually used
             registry = UnifiedServiceRegistry()
-    
+
     # Create the schema with the injected registry
     schema = create_schema(registry)
-    
+
     return GraphQLRouter(
         schema,
         context_getter=context_getter,

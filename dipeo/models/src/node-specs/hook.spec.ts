@@ -91,7 +91,7 @@ export const hookSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["trigger"],
+    inputs: ["default"],
     outputs: ["success", "error"]
   },
   

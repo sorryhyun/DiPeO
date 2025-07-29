@@ -54,7 +54,9 @@ export const NODE_TYPE_REVERSE_MAP: Record<NodeType, string> = Object.entries(NO
  * Convert frontend node type to domain node type
  */
 export function nodeKindToDomainType(kind: string): NodeType {
-  const domainType = NODE_TYPE_MAP[kind];
+  // Handle both uppercase and lowercase node kinds
+  const normalizedKind = kind.toLowerCase();
+  const domainType = NODE_TYPE_MAP[normalizedKind];
   if (!domainType) {
     throw new Error(`Unknown node kind: ${kind}`);
   }
@@ -64,8 +66,11 @@ export function nodeKindToDomainType(kind: string): NodeType {
 /**
  * Convert domain node type to frontend node type
  */
-export function domainTypeToNodeKind(type: NodeType): string {
-  const kind = NODE_TYPE_REVERSE_MAP[type];
+export function domainTypeToNodeKind(type: NodeType | string): string {
+  // Handle uppercase string values from GraphQL by converting to lowercase
+  const normalizedType = typeof type === 'string' ? type.toLowerCase() : type;
+  const kind = NODE_TYPE_REVERSE_MAP[normalizedType as NodeType];
+  
   if (!kind) {
     throw new Error(`Unknown node type: ${type}`);
   }

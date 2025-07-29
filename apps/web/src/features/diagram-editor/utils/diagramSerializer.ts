@@ -125,8 +125,8 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   
   // Generate input handles
   if (config.handles.input) {
-    config.handles.input.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleLabel = handleConfig.id as HandleLabel;
+    config.handles.input.forEach((handleConfig: { label: string; displayLabel?: string; position?: string }) => {
+      const handleLabel = handleConfig.label as HandleLabel;
       const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.INPUT);
       handles.push({
         id: handleId,
@@ -141,8 +141,8 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   
   // Generate output handles
   if (config.handles.output) {
-    config.handles.output.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleLabel = handleConfig.id as HandleLabel;
+    config.handles.output.forEach((handleConfig: { label: string; displayLabel?: string; position?: string }) => {
+      const handleLabel = handleConfig.label as HandleLabel;
       const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.OUTPUT);
       handles.push({
         id: handleId,

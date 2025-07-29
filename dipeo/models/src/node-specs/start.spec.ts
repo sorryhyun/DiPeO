@@ -71,8 +71,8 @@ export const startSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["in"],
-    outputs: ["out"]
+    inputs: [],
+    outputs: ["default"]
   },
   
   outputs: {

@@ -126,6 +126,7 @@ class _JsonMixin:
     # Minimal JSON helpers
 
     def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
+        # Parse JSON content
         return json.loads(content or "{}")
 
     def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]

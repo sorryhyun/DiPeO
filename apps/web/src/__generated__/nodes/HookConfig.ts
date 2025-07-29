@@ -10,11 +10,11 @@ export const hookConfig: UnifiedNodeConfig = {
   category: 'control',
   handles: {
     input: [
-      { id: 'data', label: '', position: 'left' },
+      { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { id: 'result', label: '', position: 'right' },
-      { id: 'result', label: '', position: 'right' },
+      { label: 'success', displayLabel: 'Success', position: 'right' },
+      { label: 'error', displayLabel: 'Error', position: 'right' },
     ],
   },
   defaults: {

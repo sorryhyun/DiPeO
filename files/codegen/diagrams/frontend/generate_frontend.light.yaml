@@ -119,6 +119,13 @@ nodes:
       diagram_name: codegen/diagrams/frontend/generate_zod_schemas
       diagram_format: light
 
+  - label: Generate Field Configs
+    type: sub_diagram
+    position: {x: 1300, y: 400}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_field_configs
+      diagram_format: light
+
   - label: End
     type: endpoint
     position: {x: 1500, y: 200}
@@ -150,8 +157,14 @@ connections:
   - from: Generate Registry
     to: Generate Zod Schemas
   
+  - from: Generate Registry
+    to: Generate Field Configs
+  
   - from: Generate GraphQL Queries
     to: End
   
   - from: Generate Zod Schemas
+    to: End
+  
+  - from: Generate Field Configs
     to: End

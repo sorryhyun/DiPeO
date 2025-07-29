@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-28T23:12:46.887826
+# Generated at: 2025-07-29T13:18:15.751322
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -35,80 +35,80 @@ scalar JSONScalar
 # ============================================================================
 
 enum NodeType {
-  START
-  PERSON_JOB
-  CONDITION
-  CODE_JOB
-  API_JOB
-  ENDPOINT
-  DB
-  USER_RESPONSE
-  NOTION
-  PERSON_BATCH_JOB
-  HOOK
-  TEMPLATE_JOB
-  JSON_SCHEMA_VALIDATOR
-  TYPESCRIPT_AST
-  SUB_DIAGRAM
+  start
+  person_job
+  condition
+  code_job
+  api_job
+  endpoint
+  db
+  user_response
+  notion
+  person_batch_job
+  hook
+  template_job
+  json_schema_validator
+  typescript_ast
+  sub_diagram
 }
 
 enum HandleDirection {
-  INPUT
-  OUTPUT
+  input
+  output
 }
 
 enum HandleLabel {
-  DEFAULT
-  FIRST
-  CONDITION_TRUE
-  CONDITION_FALSE
-  SUCCESS
-  ERROR
-  RESULTS
+  default
+  first
+  condtrue
+  condfalse
+  success
+  error
+  results
 }
 
 enum DataType {
-  ANY
-  STRING
-  NUMBER
-  BOOLEAN
-  OBJECT
-  ARRAY
+  any
+  string
+  number
+  boolean
+  object
+  array
 }
 
 enum MemoryView {
-  ALL_INVOLVED
-  SENT_BY_ME
-  SENT_TO_ME
-  SYSTEM_AND_ME
-  CONVERSATION_PAIRS
-  ALL_MESSAGES
+  all_involved
+  sent_by_me
+  sent_to_me
+  system_and_me
+  conversation_pairs
+  all_messages
 }
 
 enum DiagramFormat {
-  NATIVE
-  LIGHT
-  READABLE
+  native
+  light
+  readable
 }
 
 enum DBBlockSubType {
-  FIXED_PROMPT
-  FILE
-  CODE
-  API_TOOL
+  fixed_prompt
+  file
+  code
+  api_tool
 }
 
 enum ContentType {
-  RAW_TEXT
-  CONVERSATION_STATE
-  OBJECT
+  raw_text
+  conversation_state
+  object
 }
 
 enum SupportedLanguage {
-  PYTHON
-  TYPESCRIPT
-  BASH
-  SHELL
+  python
+  typescript
+  bash
+  shell
 }
 
 enum HttpMethod {
@@ -120,15 +120,15 @@ enum HttpMethod {
 }
 
 enum HookType {
-  SHELL
-  WEBHOOK
-  PYTHON
-  FILE
+  shell
+  webhook
+  python
+  file
 }
 
 enum HookTriggerMode {
-  MANUAL
-  HOOK
+  manual
+  hook
 }
 
 enum ExecutionStatus {
@@ -163,43 +163,43 @@ enum EventType {
 }
 
 enum LLMService {
-  OPENAI
-  ANTHROPIC
-  GOOGLE
-  BEDROCK
-  VERTEX
-  DEEPSEEK
+  openai
+  anthropic
+  google
+  bedrock
+  vertex
+  deepseek
 }
 
 enum APIServiceType {
-  OPENAI
-  ANTHROPIC
-  GOOGLE
-  GEMINI
-  BEDROCK
-  VERTEX
-  DEEPSEEK
-  NOTION
-  GOOGLE_SEARCH
-  SLACK
-  GITHUB
-  JIRA
+  openai
+  anthropic
+  google
+  gemini
+  bedrock
+  vertex
+  deepseek
+  notion
+  google_search
+  slack
+  github
+  jira
 }
 
 enum NotionOperation {
-  CREATE_PAGE
-  UPDATE_PAGE
-  READ_PAGE
-  DELETE_PAGE
-  CREATE_DATABASE
-  QUERY_DATABASE
-  UPDATE_DATABASE
+  create_page
+  update_page
+  read_page
+  delete_page
+  create_database
+  query_database
+  update_database
 }
 
 enum ToolType {
-  WEB_SEARCH
-  WEB_SEARCH_PREVIEW
-  IMAGE_GENERATION
+  web_search
+  web_search_preview
+  image_generation
 }
 
 # ============================================================================
@@ -263,6 +263,7 @@ type DiagramMetadata {
   modified: String!
   author: String
   tags: [String]
+  format: String
 }
 type DomainDiagram {
   nodes: [DomainNode]!

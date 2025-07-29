@@ -253,14 +253,14 @@ class BaseConversionStrategy(FormatStrategy, ABC):
                 continue
                 
             node_id = node_data["id"]
-            node_type_str = node_data.get("type", "job")
+            node_type_str = node_data.get("type", "person_job")
             
             # Convert node type string to domain enum
             try:
                 node_type = node_kind_to_domain_type(node_type_str)
             except ValueError:
-                log.warning(f"Unknown node type '{node_type_str}', defaulting to 'job'")
-                node_type = node_kind_to_domain_type("job")
+                log.warning(f"Unknown node type '{node_type_str}', defaulting to 'person_job'")
+                node_type = node_kind_to_domain_type("person_job")
             
             # Ensure position exists
             position = node_data.get("position")

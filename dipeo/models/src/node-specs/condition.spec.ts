@@ -47,8 +47,8 @@ export const conditionSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["in"],
-    outputs: ["true", "false"]
+    inputs: ["default"],
+    outputs: ["condtrue", "condfalse"]
   },
   
   outputs: {

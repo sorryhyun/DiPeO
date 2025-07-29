@@ -12,14 +12,14 @@ export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
 {%- if handles.inputs %}
     input: [
 {%- for input in handles.inputs %}
-      { id: '{{ input.id | default('data') }}', label: '{{ input.label | default('') }}', position: '{{ input.position | default('left') }}' },
+      { label: '{{ input.label }}', displayLabel: '{{ input.displayLabel }}', position: '{{ input.position }}' },
 {%- endfor %}
     ],
 {%- endif %}
 {%- if handles.outputs %}
     output: [
 {%- for output in handles.outputs %}
-      { id: '{{ output.id | default('result') }}', label: '{{ output.label | default('') }}', position: '{{ output.position | default('right') }}' },
+      { label: '{{ output.label }}', displayLabel: '{{ output.displayLabel }}', position: '{{ output.position }}' },
 {%- endfor %}
     ],
 {%- endif %}

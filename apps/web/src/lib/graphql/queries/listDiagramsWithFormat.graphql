@@ -1,0 +1,15 @@
+query ListDiagramsWithFormat($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
+  diagrams(filter: $filter, limit: $limit, offset: $offset) {
+    metadata {
+      id
+      name
+      description
+      author
+      created
+      modified
+      tags
+    }
+    nodeCount
+    arrowCount
+  }
+}

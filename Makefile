@@ -61,17 +61,6 @@ register-nodes:
 	@python files/codegen/code/node_registrar.py
 	@echo "✅ Node registration completed!"
 
-# Generate code for a specific node type
-codegen-node:
-	@if [ -z "$(NODE_SPEC)" ]; then \
-		echo "❌ Error: NODE_SPEC is required"; \
-		echo "Usage: make codegen-node NODE_SPEC=path/to/spec.json"; \
-		exit 1; \
-	fi
-	@echo "🔄 Generating code for node specification: $(NODE_SPEC)"
-	@python scripts/run_codegen.py $(NODE_SPEC)
-	@echo "✅ Node code generation completed!"
-
 # Watch for changes in node specifications
 codegen-watch:
 	@echo "👀 Starting file watcher for node specifications..."

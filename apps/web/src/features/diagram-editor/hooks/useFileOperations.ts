@@ -112,7 +112,7 @@ export const useFileOperations = () => {
     setIsProcessing(true);
     try {
       // Serialize the current diagram state
-      const diagramContent = JSON.stringify(serializeDiagram());
+      const diagramContent = serializeDiagram();
       
       // Use the regular upload for all saves
       const actualFilename = filename || 'diagram.json';

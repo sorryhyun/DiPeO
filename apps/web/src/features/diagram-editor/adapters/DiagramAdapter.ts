@@ -384,18 +384,47 @@ export class DiagramAdapter {
     // Pre-index handles for O(1) lookups
     const handleIndex = createHandleIndex(diagram.handles || []);
     
+    // Extract handle label from the full handle ID
+    // Handle ID format: nodeId_handleLabel_direction
+    const extractHandleLabel = (handleId: string | null): string => {
+      if (!handleId) return 'default';
+      const parts = handleId.split('_');
+      if (parts.length >= 3) {
+        // Return the second-to-last part (the label)
+        return parts[parts.length - 2] || 'default';
+      }
+      return handleId;
+    };
+    
+    const sourceLabel = extractHandleLabel(connection.sourceHandle);
+    const targetLabel = extractHandleLabel(connection.targetHandle);
+    
     const sourceHandle = findHandleByLabel(
       handleIndex,
       ConversionService.toNodeId(connection.source),
-      connection.sourceHandle || 'default'
+      sourceLabel
     );
     const targetHandle = findHandleByLabel(
       handleIndex,
       ConversionService.toNodeId(connection.target),
-      connection.targetHandle || 'default'
+      targetLabel
     );
 
     if (!sourceHandle || !targetHandle) {
+      // Log details for debugging
+      console.error('Handle lookup failed:', {
+        sourceNode: connection.source,
+        sourceHandleId: connection.sourceHandle,
+        sourceLabel,
+        targetNode: connection.target,
+        targetHandleId: connection.targetHandle,
+        targetLabel,
+        availableHandles: diagram.handles?.map(h => ({ 
+          nodeId: h.node_id, 
+          label: h.label, 
+          direction: h.direction 
+        }))
+      });
       validated.isValid = false;
       validated.validationMessage = 'Handle not found';
       return validated;

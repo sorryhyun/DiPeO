@@ -95,7 +95,9 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
 
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
-  const nodeConfig = getNodeConfig(nodeType);
+  // Convert uppercase node types from GraphQL to lowercase for config lookup
+  const normalizedNodeType = typeof nodeType === 'string' ? nodeType.toLowerCase() : nodeType;
+  const nodeConfig = getNodeConfig(normalizedNodeType);
   const queryClient = useQueryClient();
   
   // Use context instead of individual hooks
