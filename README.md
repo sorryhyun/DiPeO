@@ -13,6 +13,8 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 
 For Korean guide for quickstart, read [Korean docs](docs/korean/index.md)
 
+## dev settings:
+
 ```bash
 make install
 make codegen
