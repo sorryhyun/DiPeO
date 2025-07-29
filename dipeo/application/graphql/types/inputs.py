@@ -14,9 +14,11 @@ from .scalars import (
 
 # Import enums from generated modules
 from dipeo.diagram_generated.enums import (
-    NodeType, DiagramFormat, ExecutionStatus, NodeExecutionStatus,
+    NodeType, ExecutionStatus, NodeExecutionStatus,
     LLMService, APIServiceType
 )
+# Import DiagramFormat with proper GraphQL mapping
+from dipeo.application.graphql.enums import DiagramFormat
 
 
 @strawberry.input

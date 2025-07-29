@@ -12,8 +12,12 @@ import warnings
 from .cli import DiPeOCLI
 
 # Suppress non-critical warnings
-warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
-warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
+warnings.filterwarnings(
+    "ignore", message="Pydantic serializer warnings", category=UserWarning
+)
+warnings.filterwarnings(
+    "ignore", message="Field name.*shadows an attribute", category=UserWarning
+)
 
 
 def main():
@@ -38,7 +42,7 @@ def main():
         default=300,
         help="Execution timeout in seconds (default: 300)",
     )
-    
+
     # Input data options (mutually exclusive)
     input_group = run_parser.add_mutually_exclusive_group()
     input_group.add_argument(
@@ -49,7 +53,7 @@ def main():
     input_group.add_argument(
         "--input-data",
         type=str,
-        help="Inline JSON string with input variables (e.g., '{\"node_spec_path\": \"sub_diagram\"}')",
+        help='Inline JSON string with input variables (e.g., \'{"node_spec_path": "sub_diagram"}\')',
     )
 
     # Format options (mutually exclusive)
@@ -105,13 +109,14 @@ def main():
                 format_type = "native"
             elif args.readable:
                 format_type = "readable"
-            
+
             # Parse input data
             input_variables = None
             if args.inputs:
                 # Load from file
                 import json
                 from pathlib import Path
+
                 input_path = Path(args.inputs)
                 if not input_path.exists():
                     print(f"Error: Input file not found: {args.inputs}")
@@ -125,6 +130,7 @@ def main():
             elif args.input_data:
                 # Parse inline JSON
                 import json
+
                 try:
                     input_variables = json.loads(args.input_data)
                 except json.JSONDecodeError as e:
@@ -132,7 +138,12 @@ def main():
                     sys.exit(1)
 
             success = cli.run(
-                args.diagram, args.debug, args.no_browser, args.timeout, format_type, input_variables
+                args.diagram,
+                args.debug,
+                args.no_browser,
+                args.timeout,
+                format_type,
+                input_variables,
             )
             sys.exit(0 if success else 1)
         elif args.command == "convert":

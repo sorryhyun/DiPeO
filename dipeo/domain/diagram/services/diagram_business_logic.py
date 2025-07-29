@@ -149,7 +149,15 @@ class DiagramBusinessLogic:
         file_extension = FileExtension(extension) if extension else None
         
         # Generate ID from path (without extension)
-        file_id = str(path_obj.with_suffix(""))
+        # Handle compound extensions like .native.json, .light.yaml
+        path_str = str(path_obj)
+        for ext in [".native.json", ".light.yaml", ".readable.yaml"]:
+            if path_str.endswith(ext):
+                file_id = path_str[:-len(ext)]
+                break
+        else:
+            # Fallback for simple extensions
+            file_id = str(path_obj.with_suffix(""))
         
         return {
             "id": file_id,
@@ -191,8 +199,7 @@ class DiagramBusinessLogic:
         path_obj = Path(diagram_id)
         has_valid_extension = any(
             diagram_id.endswith(ext) for ext in 
-            [".yaml", ".yml", ".json", ".light.yaml", ".light.yml", 
-             ".native.json", ".readable.yaml", ".readable.yml"]
+            [".light.yaml", ".native.json", ".readable.yaml"]
         )
         
         # If it already has a valid extension, try it as-is first

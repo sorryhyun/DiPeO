@@ -10,11 +10,11 @@ export const conditionConfig: UnifiedNodeConfig = {
   category: 'control',
   handles: {
     input: [
-      { id: 'input', label: '', position: 'left' },
+      { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { id: 'output', label: '', position: 'right' },
-      { id: 'output', label: '', position: 'right' },
+      { label: 'condtrue', displayLabel: 'True', position: 'right' },
+      { label: 'condfalse', displayLabel: 'False', position: 'right' },
     ],
   },
   defaults: {

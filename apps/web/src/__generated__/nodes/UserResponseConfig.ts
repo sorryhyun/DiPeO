@@ -10,10 +10,10 @@ export const userResponseConfig: UnifiedNodeConfig = {
   category: 'interaction',
   handles: {
     input: [
-      { id: 'input', label: '', position: 'left' },
+      { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { id: 'output', label: '', position: 'right' },
+      { label: 'default', displayLabel: 'Default', position: 'right' },
     ],
   },
   defaults: {

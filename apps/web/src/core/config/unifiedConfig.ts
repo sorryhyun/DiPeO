@@ -42,6 +42,7 @@ export interface UnifiedFieldDefinition<T = any> {
   showPromptFileButton?: boolean; // for variableTextArea
   language?: string; // for code field (e.g., 'json', 'javascript', 'python')
   readOnly?: boolean; // for read-only fields
+  adjustable?: boolean; // for resizable text fields
   
   // Nested fields for composite types
   fields?: UnifiedFieldDefinition<T>[];
@@ -102,7 +103,8 @@ function convertToPanelFieldConfig<T>(field: UnifiedFieldDefinition<T>): TypedPa
     conditional: field.conditional,
     fields: field.fields?.map(f => convertToPanelFieldConfig(f)),
     validate: field.validate,
-    column: field.column
+    column: field.column,
+    adjustable: field.adjustable
   };
 }
 

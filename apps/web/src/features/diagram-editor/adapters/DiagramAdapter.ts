@@ -27,7 +27,6 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, Domai
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, HandleLabel, createHandleId, parseHandleId } from '@dipeo/domain-models';
-import { ContentType } from '@/__generated__/graphql';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 import { ConversionService } from '@/core/services/ConversionService';
 
@@ -62,7 +61,7 @@ export interface DiPeoEdge extends Edge {
   data?: {
     label?: string;
     dataType?: string;
-    content_type?: ContentType | null;
+    content_type?: string | null;
   };
 }
 
@@ -297,7 +296,7 @@ export class DiagramAdapter {
     
     // Add content_type and label as direct fields if present
     if (content_type !== undefined && content_type !== null) {
-      domainArrow.content_type = content_type as ContentType;
+      (domainArrow as any).content_type = content_type;
     }
     if (label !== undefined && label !== null && typeof label === 'string') {
       domainArrow.label = label;
@@ -385,18 +384,47 @@ export class DiagramAdapter {
     // Pre-index handles for O(1) lookups
     const handleIndex = createHandleIndex(diagram.handles || []);
     
+    // Extract handle label from the full handle ID
+    // Handle ID format: nodeId_handleLabel_direction
+    const extractHandleLabel = (handleId: string | null): string => {
+      if (!handleId) return 'default';
+      const parts = handleId.split('_');
+      if (parts.length >= 3) {
+        // Return the second-to-last part (the label)
+        return parts[parts.length - 2] || 'default';
+      }
+      return handleId;
+    };
+    
+    const sourceLabel = extractHandleLabel(connection.sourceHandle);
+    const targetLabel = extractHandleLabel(connection.targetHandle);
+    
     const sourceHandle = findHandleByLabel(
       handleIndex,
       ConversionService.toNodeId(connection.source),
-      connection.sourceHandle || 'default'
+      sourceLabel
     );
     const targetHandle = findHandleByLabel(
       handleIndex,
       ConversionService.toNodeId(connection.target),
-      connection.targetHandle || 'default'
+      targetLabel
     );
 
     if (!sourceHandle || !targetHandle) {
+      // Log details for debugging
+      console.error('Handle lookup failed:', {
+        sourceNode: connection.source,
+        sourceHandleId: connection.sourceHandle,
+        sourceLabel,
+        targetNode: connection.target,
+        targetHandleId: connection.targetHandle,
+        targetLabel,
+        availableHandles: diagram.handles?.map(h => ({ 
+          nodeId: h.node_id, 
+          label: h.label, 
+          direction: h.direction 
+        }))
+      });
       validated.isValid = false;
       validated.validationMessage = 'Handle not found';
       return validated;

@@ -13,14 +13,13 @@ from dipeo_server.shared.constants import BASE_DIR
 ServerContainer = BaseContainer.with_overrides(
     # Override base directory to use server-specific constant
     base_dir=providers.Factory(lambda: BASE_DIR),
-    
     # Override persistence container with server-specific implementation
     persistence=providers.Container(
         ServerPersistenceContainer,
         config=BaseContainer.config,
         base_dir=providers.Factory(lambda: BASE_DIR),
         business=BaseContainer.business,
-    )
+    ),
 )
 
 

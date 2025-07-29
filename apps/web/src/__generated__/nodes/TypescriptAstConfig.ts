@@ -10,14 +10,11 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
   category: 'utility',
   handles: {
     input: [
-      { id: 'input', label: '', position: 'left' },
+      { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { id: 'output', label: '', position: 'right' },
-      { id: 'output', label: '', position: 'right' },
-      { id: 'output', label: '', position: 'right' },
-      { id: 'output', label: '', position: 'right' },
-      { id: 'output', label: '', position: 'right' },
+      { label: 'results', displayLabel: 'Results', position: 'right' },
+      { label: 'error', displayLabel: 'Error', position: 'right' },
     ],
   },
   defaults: {

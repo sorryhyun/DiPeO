@@ -4,6 +4,7 @@ export * from './execution.js';
 export * from './conversation.js';
 export * from './integration.js';
 export * from './conversions.js';
+export * from './enums.js';
 export * from './service-utils.js';
 export * from './node-specs/node-specifications';
 export * from './node-specs/index.js';

@@ -10,7 +10,7 @@ export const endpointConfig: UnifiedNodeConfig = {
   category: 'control',
   handles: {
     input: [
-      { id: 'input', label: '', position: 'left' },
+      { label: 'default', displayLabel: '', position: 'left' },
     ],
   },
   defaults: {

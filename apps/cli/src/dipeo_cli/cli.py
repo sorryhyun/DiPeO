@@ -43,11 +43,11 @@ class DiPeOCLI:
             diagram_path = diagram[6:]  # Remove "files/"
         else:
             diagram_path = diagram
-        
+
         if not format_type:
             # Try to find the diagram with known extensions
             extensions = [".native.json", ".light.yaml", ".readable.yaml"]
-            
+
             for ext in extensions:
                 path = FILES_DIR / f"{diagram_path}{ext}"
                 if path.exists():

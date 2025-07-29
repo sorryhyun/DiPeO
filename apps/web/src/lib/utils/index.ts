@@ -4,3 +4,4 @@ export * from './geometry';
 export * from './math';
 export * from './dispatchTable';
 export * from './logger';
+export * from './graphql';

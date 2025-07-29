@@ -18,6 +18,7 @@ interface BaseNodeProps {
   data: Record<string, unknown>;
   showFlipButton?: boolean;
   className?: string;
+  dragging?: boolean;
 }
 
 // Custom hook for node execution status
@@ -95,15 +96,27 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
           position = position === Position.Top ? Position.Bottom : Position.Top;
         }
         
+        // When vertical flip is active, reverse the order of handles on horizontal sides
+        let effectiveIndex = index;
+        if (flippedState.vertical && isHorizontal) {
+          effectiveIndex = count - 1 - index;
+        }
+        
         let offsetPercentage: number;
         
         if (handle.offset) {
           // Use explicit offset with better scaling for pill-shaped handles
           const offset = handle.offset;
           const scaleFactor = 0.8; // Increased from 0.5 to give more spacing
-          offsetPercentage = isVertical 
-            ? 50 + (offset.x * scaleFactor)
-            : 50 + (offset.y * scaleFactor);
+          
+          // When vertical flip is active, also invert the offset on horizontal sides
+          if (flippedState.vertical && isHorizontal) {
+            offsetPercentage = 50 - (offset.y * scaleFactor);
+          } else {
+            offsetPercentage = isVertical 
+              ? 50 + (offset.x * scaleFactor)
+              : 50 + (offset.y * scaleFactor);
+          }
         } else {
           // Auto-space handles when no offset is defined
           if (count === 1) {
@@ -113,11 +126,11 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
             const padding = 35; // significantly increased percentage from edge for better spacing
             const availableSpace = 100 - (2 * padding);
             const spacing = availableSpace / (count - 1);
-            offsetPercentage = padding + (index * spacing);
+            offsetPercentage = padding + (effectiveIndex * spacing);
           }
         }
         
-        const handleName = handle.id || 'default';
+        const handleName = handle.label || 'default';
         const uniqueId = `${nodeId}_${handle.type}_${handleName}`;
         
         processedHandles.push({
@@ -281,10 +294,14 @@ export function BaseNode({
   selected, 
   data, 
   showFlipButton = true,
-  className 
+  className,
+  dragging = false
 }: BaseNodeProps) {
   // Local state
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Use dragging state to override hover
+  const effectiveHover = dragging || isHovered;
   
   // Store selectors
   const nodeOps = useNodeOperations();
@@ -320,16 +337,16 @@ export function BaseNode({
   const handles = useHandles(id, type, flippedState);
   
   // Handle horizontal flip
-  const handleFlipHorizontal = useCallback(async () => {
+  const handleFlipHorizontal = useCallback(() => {
     const newFlipped = [!flippedState.horizontal, flippedState.vertical];
-    await nodeOps.updateNode(nId, { data: { ...data, flipped: newFlipped } });
+    nodeOps.updateNode(nId, { data: { ...data, flipped: newFlipped } });
     updateNodeInternals(id);
   }, [nId, id, data, flippedState, nodeOps, updateNodeInternals]);
   
   // Handle vertical flip
-  const handleFlipVertical = useCallback(async () => {
+  const handleFlipVertical = useCallback(() => {
     const newFlipped = [flippedState.horizontal, !flippedState.vertical];
-    await nodeOps.updateNode(nId, { data: { ...data, flipped: newFlipped } });
+    nodeOps.updateNode(nId, { data: { ...data, flipped: newFlipped } });
     updateNodeInternals(id);
   }, [nId, id, data, flippedState, nodeOps, updateNodeInternals]);
   
@@ -348,7 +365,7 @@ export function BaseNode({
     const padding = isSmallNode ? 'p-4' : 'p-5';
     const minWidth = isSmallNode ? 'min-w-40' : 'min-w-48';
     
-    const baseClasses = `relative ${padding} border-2 rounded-lg transition-all duration-200 ${minWidth}`;
+    const baseClasses = `relative ${padding} border-2 rounded-lg ${minWidth}`;
     const executionClasses = isExecutionMode ? 'shadow-lg' : 'shadow-sm';
     return `${baseClasses} ${executionClasses} ${className || ''}`;
   }, [type, isExecutionMode, className]);
@@ -395,8 +412,8 @@ export function BaseNode({
     <div
       className={nodeClassNames}
       title={status.progress || `${config?.label || 'Unknown'} Node`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => !dragging && setIsHovered(true)}
+      onMouseLeave={() => !dragging && setIsHovered(false)}
       {...dataAttributes}
     >
       {/* Status indicators */}
@@ -410,14 +427,14 @@ export function BaseNode({
       )}
       
       {/* Flip buttons */}
-      {isHovered && showFlipButton && !status.isRunning && (
+      {effectiveHover && showFlipButton && !status.isRunning && (
         <>
           {/* Flip horizontal button - swaps left/right handles */}
           <Button
             onClick={handleFlipHorizontal}
             variant="outline"
             size="icon"
-            className={`absolute -top-10 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full shadow-md transition-all duration-200 ${
+            className={`absolute -top-10 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full shadow-md ${
               flippedState.horizontal ? 'bg-blue-100 hover:bg-blue-200' : 'bg-white hover:bg-gray-50'
             }`}
             title="Flip handles left/right"
@@ -431,7 +448,7 @@ export function BaseNode({
             onClick={handleFlipVertical}
             variant="outline"
             size="icon"
-            className={`absolute -top-10 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full shadow-md transition-all duration-200 ${
+            className={`absolute -top-10 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full shadow-md ${
               flippedState.vertical ? 'bg-blue-100 hover:bg-blue-200' : 'bg-white hover:bg-gray-50'
             }`}
             title="Flip handles up/down"

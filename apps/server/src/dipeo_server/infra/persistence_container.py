@@ -33,6 +33,22 @@ def _create_server_api_key_service():
     return APIKeyService(storage=storage)
 
 
+def _create_server_file_service():
+    """Create file service with files/ directory as base."""
+    from dipeo.domain.file.services import BackupService
+    from dipeo.domain.validators import FileValidator
+    from dipeo.infra.persistence.file import ModularFileService
+
+    # Always use files/ directory as base
+    files_dir = Path(BASE_DIR) / "files"
+
+    return ModularFileService(
+        base_dir=files_dir,
+        backup_service=BackupService(),
+        validator=FileValidator()
+    )
+
+
 class ServerPersistenceContainer(PersistenceServicesContainer):
     """Server-specific persistence container with proper overrides."""
 
@@ -47,3 +63,6 @@ class ServerPersistenceContainer(PersistenceServicesContainer):
 
     # Override api_key_service to use our storage
     api_key_service = providers.Singleton(_create_server_api_key_service)
+
+    # Override file_service to use files/ directory as base
+    file_service = providers.Singleton(_create_server_file_service)

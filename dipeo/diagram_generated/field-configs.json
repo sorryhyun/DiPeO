@@ -4,21 +4,21 @@
       "nodeType": "start",
       "fields": [
         {
+          "name": "trigger_mode",
+          "type": "select",
+          "label": "Trigger Mode",
+          "required": true
+        },
+        {
           "name": "custom_data",
           "type": "code",
           "label": "Custom Data",
-          "required": true
+          "required": false
         },
         {
           "name": "output_data_structure",
           "type": "code",
           "label": "Output Data Structure",
-          "required": true
-        },
-        {
-          "name": "trigger_mode",
-          "type": "select",
-          "label": "Trigger Mode",
           "required": false
         },
         {
@@ -70,6 +70,12 @@
           "max": 100
         },
         {
+          "name": "memory_profile",
+          "type": "select",
+          "label": "Memory Profile",
+          "required": false
+        },
+        {
           "name": "memory_settings",
           "type": "text",
           "label": "Memory Settings",
@@ -77,7 +83,7 @@
         },
         {
           "name": "tools",
-          "type": "textarea",
+          "type": "select",
           "label": "Tools",
           "required": false
         }

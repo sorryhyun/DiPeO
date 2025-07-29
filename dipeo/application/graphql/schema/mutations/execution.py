@@ -125,7 +125,7 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 )
                 
                 # Send update event
-                await message_router.send_event(
+                await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
                     event_type=EventType.node_update,
                     data={
@@ -163,7 +163,7 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 status_map = {
                     "pause": ExecutionStatus.PAUSED,
                     "resume": ExecutionStatus.RUNNING,
-                    "cancel": ExecutionStatus.CANCELLED,
+                    "abort": ExecutionStatus.ABORTED,
                 }
                 
                 new_status = status_map.get(input.action)
@@ -171,12 +171,12 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                     raise ValueError(f"Invalid action: {input.action}")
                 
                 # Update execution status
-                await state_store.update_execution_status(
+                await state_store.update_status(
                     input.execution_id, new_status
                 )
                 
                 # Send control event
-                await message_router.send_event(
+                await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
                     event_type=EventType.execution_control,
                     data={
@@ -211,7 +211,7 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 state_store = registry.require(STATE_STORE)
                 
                 # Send interactive response
-                await message_router.send_event(
+                await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
                     event_type=EventType.interactive_response,
                     data={

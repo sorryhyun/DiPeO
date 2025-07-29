@@ -67,15 +67,13 @@ try:
 except ImportError as e:
     warnings.warn(f"Could not import some domain items: {e}", ImportWarning)
 
-# For convenience, re-export commonly used items from diagram infrastructure
+# For convenience, re-export commonly used items from core ports and domain utils
 try:
     from .core.ports import DiagramConverter, FormatStrategy
-    from .infra.diagram import UnifiedDiagramConverter, converter_registry
     from .domain.diagram.utils import dict_to_domain_diagram, domain_diagram_to_dict
     
     _imported_modules.extend([
-        "UnifiedDiagramConverter", "DiagramConverter",
-        "FormatStrategy", "converter_registry",
+        "DiagramConverter", "FormatStrategy",
         "dict_to_domain_diagram", "domain_diagram_to_dict"
     ])
 except ImportError as e:

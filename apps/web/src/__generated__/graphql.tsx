@@ -77,6 +77,12 @@ export type ApiKeyResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export enum ContentType {
+  CONVERSATION_STATE = 'CONVERSATION_STATE',
+  OBJECT = 'OBJECT',
+  RAW_TEXT = 'RAW_TEXT'
+}
+
 export type CreateApiKeyInput = {
   key: Scalars['String']['input'];
   label: Scalars['String']['input'];
@@ -146,6 +152,7 @@ export type DiagramMetadataType = {
   author?: Maybe<Scalars['String']['output']>;
   created: Scalars['String']['output'];
   description?: Maybe<Scalars['String']['output']>;
+  format?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   modified: Scalars['String']['output'];
   name?: Maybe<Scalars['String']['output']>;
@@ -179,8 +186,10 @@ export type DomainApiKeyType = {
 
 export type DomainArrowType = {
   __typename?: 'DomainArrowType';
+  content_type?: Maybe<ContentType>;
   data?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['String']['output'];
+  label?: Maybe<Scalars['String']['output']>;
   source: Scalars['String']['output'];
   target: Scalars['String']['output'];
 };

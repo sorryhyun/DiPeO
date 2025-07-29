@@ -3,6 +3,7 @@
 // Data hooks
 export * from './useDiagramLoader';
 export * from './useFileOperations';
+export * from './useDiagramSave';
 
 // Feature hooks
 export * from './useDiagramManager';

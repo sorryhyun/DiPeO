@@ -74,7 +74,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: files/codegen/templates/models/zod_schemas.j2
+      source_details: files/codegen/templates/frontend/zod_schemas.j2
 
   # Generate TypeScript Zod schemas
   - label: Generate Zod Code

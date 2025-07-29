@@ -206,6 +206,9 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         # Parse content to dict
         data = self.parse(content)
         
+        # Remove any __typename fields that might be present from GraphQL
+        data = self._clean_graphql_fields(data)
+        
         # Extract and process nodes
         nodes_list = self.extract_nodes(data)
         nodes_dict = self._build_nodes_dict(nodes_list)
@@ -253,14 +256,14 @@ class BaseConversionStrategy(FormatStrategy, ABC):
                 continue
                 
             node_id = node_data["id"]
-            node_type_str = node_data.get("type", "job")
+            node_type_str = node_data.get("type", "person_job")
             
             # Convert node type string to domain enum
             try:
                 node_type = node_kind_to_domain_type(node_type_str)
             except ValueError:
-                log.warning(f"Unknown node type '{node_type_str}', defaulting to 'job'")
-                node_type = node_kind_to_domain_type("job")
+                log.warning(f"Unknown node type '{node_type_str}', defaulting to 'person_job'")
+                node_type = node_kind_to_domain_type("person_job")
             
             # Ensure position exists
             position = node_data.get("position")
@@ -328,3 +331,16 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     ) -> dict[str, Any]:
         """Apply format-specific transformations. Override in subclasses."""
         return diagram_dict
+    
+    def _clean_graphql_fields(self, data: Any) -> Any:
+        """Recursively remove GraphQL-specific fields like __typename."""
+        if isinstance(data, dict):
+            return {
+                k: self._clean_graphql_fields(v) 
+                for k, v in data.items() 
+                if not k.startswith('__')  # Remove all fields starting with __
+            }
+        elif isinstance(data, list):
+            return [self._clean_graphql_fields(item) for item in data]
+        else:
+            return data

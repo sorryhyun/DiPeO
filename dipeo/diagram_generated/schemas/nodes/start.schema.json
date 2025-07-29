@@ -28,17 +28,12 @@
           "$ref": "#/definitions/Record<string,string>"
         },
         "trigger_mode": {
-          "enum": [
-            "hook",
-            "manual"
-          ],
-          "type": "string"
+          "$ref": "#/definitions/HookTriggerMode"
         }
       },
       "required": [
-        "custom_data",
         "label",
-        "output_data_structure"
+        "trigger_mode"
       ],
       "type": "object"
     },
@@ -49,6 +44,14 @@
     "Record<string,string|number|boolean>": {
       "additionalProperties": false,
       "type": "object"
+    },
+    "HookTriggerMode": {
+      "enum": [
+        "none",
+        "manual",
+        "hook"
+      ],
+      "type": "string"
     }
   }
 }

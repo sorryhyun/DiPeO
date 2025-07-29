@@ -53,6 +53,16 @@ export interface UIConfiguration {
   min?: number;    // For number input
   max?: number;    // For number input
   showPromptFileButton?: boolean;  // Show button to load prompt from file
+  adjustable?: boolean;  // Allow field to be resized
+}
+
+/**
+ * Conditional display configuration
+ */
+export interface ConditionalConfig {
+  field: string;  // Field name to check
+  values: any[];  // Values that make this field visible
+  operator?: 'equals' | 'notEquals' | 'includes';  // Default: 'includes'
 }
 
 /**
@@ -68,6 +78,7 @@ export interface FieldSpecification {
   uiConfig: UIConfiguration;
   nestedFields?: FieldSpecification[];  // For object types
   affects?: string[];  // Other fields affected by this field's value
+  conditional?: ConditionalConfig;  // Show/hide field based on another field's value
 }
 
 /**

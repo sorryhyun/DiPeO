@@ -13,7 +13,7 @@ import { usePropertyManager } from '../hooks';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from './fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from './fields/FormComponents';
 import { apolloClient } from '@/lib/graphql/client';
-import { GetApiKeysDocument, InitializeModelDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
+import { GetApiKeysDocument, UpdatePersonDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };
@@ -95,8 +95,15 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
 
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
-  const nodeConfig = getNodeConfig(nodeType);
+  // Convert uppercase node types from GraphQL to lowercase for config lookup
+  const normalizedNodeType = typeof nodeType === 'string' ? nodeType.toLowerCase() : nodeType;
+  const nodeConfig = getNodeConfig(normalizedNodeType);
   const queryClient = useQueryClient();
+  
+  // Debug logging for node config lookup
+  if (!nodeConfig && nodeType !== 'arrow' && nodeType !== 'person') {
+    console.warn(`No config found for node type: ${nodeType} (normalized: ${normalizedNodeType})`);
+  }
   
   // Use context instead of individual hooks
   const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperations();
@@ -186,23 +193,24 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         return;
       }
       
-      // Initialize the model directly without requiring saved diagram
+      // Update the person's model directly without requiring saved diagram
       try {
         const personData = data as DomainPerson;
-        const { data: initResult } = await apolloClient.mutate({
-          mutation: InitializeModelDocument,
+        const { data: updateResult } = await apolloClient.mutate({
+          mutation: UpdatePersonDocument,
           variables: { 
-            personId: entityId,
-            apiKeyId: apiKeyIdStr,
-            model: value as string,
-            label: personData.label || ''
+            id: entityId,
+            input: {
+              api_key_id: apiKeyIdStr,
+              default_model: value as string
+            }
           }
         });
         
-        if (!initResult?.initialize_model?.success) {
-          console.error('Failed to initialize model:', initResult?.initialize_model?.error);
+        if (!updateResult?.update_person?.success) {
+          console.error('Failed to update model:', updateResult?.update_person?.message);
         } else {
-          console.log('Model initialized successfully:', value);
+          console.log('Model updated successfully:', value);
         }
       } catch (error) {
         console.error('Error initializing model:', error);
@@ -294,6 +302,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         persons={getUnifiedFieldType(fieldConfig) === FIELD_TYPES.PERSON_SELECT ? personsForSelect : undefined}
         showFieldKey={false}
         showPromptFileButton={fieldConfig.showPromptFileButton}
+        adjustable={fieldConfig.adjustable}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);
@@ -333,15 +342,29 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between border-b pb-2">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-1">
           <span>{nodeConfig?.icon || '⚙️'}</span>
-          <h3 className="text-lg font-semibold">
-            {nodeConfig?.label ? `${nodeConfig.label} Properties` : `${nodeType} Properties`}
+          <h3 className="text-lg font-semibold whitespace-nowrap">
+            {nodeConfig?.label || `${nodeType}`} Properties
           </h3>
+          {/* Universal label field for all nodes */}
+          {(entityType === 'node' || entityType === 'arrow') && (
+            <div className="flex-1 ml-4">
+              <UnifiedFormField
+                type="text"
+                name="label"
+                label=""
+                value={formData.label as FieldValue}
+                onChange={(v) => handleFieldUpdate('label', v)}
+                placeholder="Enter label"
+                disabled={isReadOnly}
+              />
+            </div>
+          )}
         </div>
         <button
           onClick={handleDelete}
-          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors ml-2"
           title="Delete"
         >
           <Trash2 className="w-4 h-4" />

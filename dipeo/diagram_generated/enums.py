@@ -104,6 +104,21 @@ class MemoryView(str, Enum):
     
 
 
+class MemoryProfile(str, Enum):
+    """MemoryProfile enum values"""
+    
+    FULL = "FULL"
+    
+    FOCUSED = "FOCUSED"
+    
+    MINIMAL = "MINIMAL"
+    
+    GOLDFISH = "GOLDFISH"
+    
+    CUSTOM = "CUSTOM"
+    
+
+
 class DiagramFormat(str, Enum):
     """DiagramFormat enum values"""
     
@@ -182,6 +197,8 @@ class HookType(str, Enum):
 
 class HookTriggerMode(str, Enum):
     """HookTriggerMode enum values"""
+    
+    NONE = "none"
     
     MANUAL = "manual"
     
@@ -324,6 +341,17 @@ class ToolType(str, Enum):
     
 
 
+class ToolSelection(str, Enum):
+    """ToolSelection enum values"""
+    
+    NONE = "none"
+    
+    IMAGE = "image"
+    
+    WEBSEARCH = "websearch"
+    
+
+
 
 # Export all enums
 __all__ = [
@@ -337,6 +365,8 @@ __all__ = [
     "DataType",
     
     "MemoryView",
+    
+    "MemoryProfile",
     
     "DiagramFormat",
     
@@ -365,5 +395,7 @@ __all__ = [
     "NotionOperation",
     
     "ToolType",
+    
+    "ToolSelection",
     
 ]

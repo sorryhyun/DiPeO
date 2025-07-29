@@ -42,6 +42,12 @@ def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> DomainDiagram:
     for node_id, node in nodes.items():
         if isinstance(node, dict) and not hasattr(node, 'type'):
             # Convert dict to DomainNode
+            # Round position values to integers if they exist
+            if 'position' in node and isinstance(node['position'], dict):
+                if 'x' in node['position']:
+                    node['position']['x'] = round(node['position']['x'])
+                if 'y' in node['position']:
+                    node['position']['y'] = round(node['position']['y'])
             nodes_map[node_id] = DomainNode(**node)
         else:
             nodes_map[node_id] = node
@@ -126,7 +132,14 @@ class _JsonMixin:
     # Minimal JSON helpers
 
     def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
-        return json.loads(content or "{}")
+        # Parse JSON content
+        try:
+            result = json.loads(content or "{}")
+            if not isinstance(result, dict):
+                raise ValueError(f"Expected dict from JSON parse, got {type(result).__name__}")
+            return result
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON content: {e}")
 
     def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
         return json.dumps(data, indent=2, ensure_ascii=False)

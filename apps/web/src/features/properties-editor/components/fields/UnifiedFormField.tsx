@@ -56,12 +56,14 @@ export interface UnifiedFormFieldProps {
   isLoading?: boolean;
   showFieldKey?: boolean;
   showPromptFileButton?: boolean;
+  adjustable?: boolean;
 }
 
 type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layout' | 'error' | 'helperText'> & {
   fieldId: string;
   isLoadingState: boolean;
   setLocalLoading: (loading: boolean) => void;
+  adjustable?: boolean;
 };
 
 // Normalize legacy type names
@@ -117,28 +119,36 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     />
   ),
   
-  [FIELD_TYPES.TEXTAREA]: (p) => (
-    <div className="relative">
-      <textarea
-        id={p.fieldId}
-        value={String(p.value || '')}
-        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => p.onChange(e.target.value)}
-        placeholder={p.placeholder}
-        disabled={p.disabled}
-        rows={p.rows}
-        className={TEXTAREA_CLASSES}
-        {...p.customProps}
-      />
-      {p.showPromptFileButton && (
-        <div className="absolute top-2 right-2">
-          <PromptFileButton
-            onSelectContent={(content) => p.onChange(content)}
-            tooltip="Load prompt from file"
-          />
-        </div>
-      )}
-    </div>
-  ),
+  [FIELD_TYPES.TEXTAREA]: (p) => {
+    // For adjustable textareas, remove transition to prevent resize delay
+    const textareaClasses = p.adjustable 
+      ? TEXTAREA_CLASSES.replace('resize-none', 'resize-y').replace('transition-all duration-200', '')
+      : TEXTAREA_CLASSES;
+    
+    return (
+      <div className="relative">
+        <textarea
+          id={p.fieldId}
+          value={String(p.value || '')}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => p.onChange(e.target.value)}
+          placeholder={p.placeholder}
+          disabled={p.disabled}
+          rows={p.rows}
+          className={textareaClasses}
+          style={p.adjustable ? { minHeight: '120px' } : undefined}
+          {...p.customProps}
+        />
+        {p.showPromptFileButton && (
+          <div className="absolute top-2 right-2">
+            <PromptFileButton
+              onSelectContent={(content) => p.onChange(content)}
+              tooltip="Load prompt from file"
+            />
+          </div>
+        )}
+      </div>
+    );
+  },
   
   [FIELD_TYPES.VARIABLE_TEXTAREA]: (p) => widgets[FIELD_TYPES.TEXTAREA](p),
   
@@ -336,7 +346,8 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   onFileUpload,
   isLoading = false,
   showFieldKey = false,
-  showPromptFileButton = false
+  showPromptFileButton = false,
+  adjustable = false
 }) => {
   const fieldId = `field-${name}`;
   const [localLoading, setLocalLoading] = useState(false);
@@ -369,16 +380,20 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     fieldId,
     isLoadingState,
     setLocalLoading,
-    showPromptFileButton
+    showPromptFileButton,
+    adjustable
   };
   
   // Normalize field type for lookup
   const normalizedType = normalizeUnifiedFieldType(type);
   const fieldElement = widgets[normalizedType]?.(widgetProps) ?? null;
   
-  if (layout === 'vertical') {
+  // Use vertical layout for adjustable fields or when explicitly specified
+  const effectiveLayout = adjustable ? 'vertical' : layout;
+  
+  if (effectiveLayout === 'vertical') {
     return (
-      <div className={`${SPACE_Y_2} ${className}`}>
+      <div className={`${SPACE_Y_2} ${className} ${adjustable ? 'w-full' : ''}`}>
         <label htmlFor={fieldId} className={`block ${LABEL_TEXT}`}>
           {label}
           {showFieldKey && name && <span className="text-xs text-gray-500 ml-1">({name})</span>}

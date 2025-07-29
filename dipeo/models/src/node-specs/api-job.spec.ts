@@ -115,8 +115,8 @@ export const apiJobSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["in"],
-    outputs: ["out"]
+    inputs: ["default"],
+    outputs: ["default"]
   },
   
   outputs: {

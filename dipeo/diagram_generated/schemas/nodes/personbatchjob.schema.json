@@ -2,6 +2,19 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonBatchJobNodeData",
   "definitions": {
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
     "MemoryView": {
       "enum": [
         "all_involved",
@@ -10,14 +23,6 @@
         "system_and_me",
         "conversation_pairs",
         "all_messages"
-      ],
-      "type": "string"
-    },
-    "ToolType": {
-      "enum": [
-        "web_search",
-        "web_search_preview",
-        "image_generation"
       ],
       "type": "string"
     },
@@ -60,6 +65,16 @@
         "max_iteration": {
           "type": "number"
         },
+        "memory_profile": {
+          "enum": [
+            "CUSTOM",
+            "FOCUSED",
+            "FULL",
+            "GOLDFISH",
+            "MINIMAL"
+          ],
+          "type": "string"
+        },
         "memory_settings": {
           "anyOf": [
             {
@@ -74,58 +89,18 @@
           "$ref": "#/definitions/PersonID"
         },
         "tools": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/definitions/ToolConfig"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "enum": [
+            "image",
+            "none",
+            "websearch"
+          ],
+          "type": "string"
         }
       },
       "required": [
         "first_only_prompt",
         "label",
         "max_iteration"
-      ],
-      "type": "object"
-    },
-    "ToolConfig": {
-      "additionalProperties": false,
-      "properties": {
-        "config": {
-          "$ref": "#/definitions/Record<string,any>"
-        },
-        "enabled": {
-          "type": "boolean"
-        },
-        "type": {
-          "$ref": "#/definitions/ToolType"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "type": "object"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
       ],
       "type": "object"
     }

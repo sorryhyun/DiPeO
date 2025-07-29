@@ -74,7 +74,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: files/codegen/templates/models/field_configs.j2
+      source_details: files/codegen/templates/frontend/field_configs.j2
 
   # Prepare template data
   - label: Prepare Template Data

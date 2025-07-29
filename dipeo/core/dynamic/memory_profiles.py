@@ -20,22 +20,22 @@ class MemoryProfileFactory:
     
     _profiles = {
         MemoryProfile.FULL: MemorySettings(
-            view=MemoryViewEnum.all_messages,
+            view=MemoryViewEnum.ALL_MESSAGES,
             max_messages=None,
             preserve_system=True
         ),
         MemoryProfile.FOCUSED: MemorySettings(
-            view=MemoryViewEnum.conversation_pairs,
+            view=MemoryViewEnum.CONVERSATION_PAIRS,
             max_messages=20,
             preserve_system=True
         ),
         MemoryProfile.MINIMAL: MemorySettings(
-            view=MemoryViewEnum.system_and_me,
+            view=MemoryViewEnum.SYSTEM_AND_ME,
             max_messages=5,
             preserve_system=True
         ),
         MemoryProfile.GOLDFISH: MemorySettings(
-            view=MemoryViewEnum.conversation_pairs,
+            view=MemoryViewEnum.CONVERSATION_PAIRS,
             max_messages=2,
             preserve_system=False
         ),

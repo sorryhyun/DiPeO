@@ -7,7 +7,6 @@ import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { getNodeConfig } from '../config/nodes';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat } from '@dipeo/domain-models';
-import { ContentType } from '@/__generated__/graphql';
 
 export interface DiagramSlice {
   // Core data structures
@@ -147,37 +146,27 @@ export const createDiagramSlice: StateCreator<
   // Arrow operations
   addArrow: (source, target, data) => {
     // Extract content_type and label from data if present
-    let content_type: ContentType | undefined;
+    let content_type: string | undefined;
     let label: string | undefined;
     let arrowData = data;
     
     if (data) {
       const { content_type: ct, label: l, ...restData } = data;
-      content_type = ct as ContentType | undefined;
+      content_type = typeof ct === 'string' ? ct : undefined;
       label = l as string | undefined;
       arrowData = Object.keys(restData).length > 0 ? restData : undefined;
     }
     
-    // React Flow generates handle IDs in format: handle_nodeId_label_direction
-    // We need to convert to our format: nodeId_label_direction
-    const normalizeHandleIdForStorage = (handleId: string): string => {
-      if (handleId.startsWith('handle_')) {
-        // Remove the 'handle_' prefix
-        return handleId.substring(7);
-      }
-      return handleId;
-    };
-    
     const arrow: DomainArrow = {
       id: generateArrowId(),
-      source: normalizeHandleIdForStorage(source) as HandleID,
-      target: normalizeHandleIdForStorage(target) as HandleID,
+      source: source as HandleID,
+      target: target as HandleID,
       data: arrowData  // DomainArrow.data is optional
     };
     
     // Add optional fields only if they have actual values
     if (content_type !== undefined && content_type !== null) {
-      arrow.content_type = content_type;
+      (arrow as any).content_type = content_type;
     }
     if (label !== undefined && label !== null) {
       arrow.label = label;
@@ -185,28 +174,18 @@ export const createDiagramSlice: StateCreator<
     
     set(state => {
       // Validate source and target nodes exist
-      // React Flow adds a 'handle_' prefix to handle IDs
-      const normalizeHandleId = (handleId: string): string => {
-        if (handleId.startsWith('handle_')) {
-          return handleId.substring(7); // Remove 'handle_' prefix
-        }
-        return handleId;
-      };
-      
-      const normalizedSource = normalizeHandleId(source);
-      const normalizedTarget = normalizeHandleId(target);
 
       let sourceNodeId: NodeID;
       let targetNodeId: NodeID;
       
       try {
-        const sourceParsed = ConversionService.parseHandleId(ConversionService.toHandleId(normalizedSource));
-        const targetParsed = ConversionService.parseHandleId(ConversionService.toHandleId(normalizedTarget));
+        const sourceParsed = ConversionService.parseHandleId(ConversionService.toHandleId(source));
+        const targetParsed = ConversionService.parseHandleId(ConversionService.toHandleId(target));
         sourceNodeId = sourceParsed.node_id;
         targetNodeId = targetParsed.node_id;
       } catch (e) {
         console.error('Failed to parse handle IDs:', e);
-        throw new Error(`Invalid handle ID format: ${normalizedSource} or ${normalizedTarget}`);
+        throw new Error(`Invalid handle ID format: ${source} or ${target}`);
       }
       
       if (!state.nodes.has(sourceNodeId)) {

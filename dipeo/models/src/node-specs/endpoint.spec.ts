@@ -35,7 +35,7 @@ export const endpointSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["in"],
+    inputs: ["default"],
     outputs: []
   },
   

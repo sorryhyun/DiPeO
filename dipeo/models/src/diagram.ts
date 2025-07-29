@@ -97,6 +97,7 @@ export interface DiagramMetadata {
   modified: string; // ISO datetime string
   author?: string | null;
   tags?: string[] | null;
+  format?: string | null; // 'native' | 'light' | 'readable'
 }
 
 // Main diagram type used in GraphQL API (array format)

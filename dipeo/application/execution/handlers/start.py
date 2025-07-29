@@ -80,9 +80,30 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                     input_variables = execution_state.variables
         
         # Direct typed access to node properties
-        trigger_mode = node.trigger_mode or HookTriggerMode.MANUAL
+        trigger_mode = node.trigger_mode or HookTriggerMode.NONE
         
-        if trigger_mode == HookTriggerMode.MANUAL:
+        if trigger_mode == HookTriggerMode.NONE:
+            # Simple start point - pass through variables if available
+            # This is important for sub-diagrams that receive input variables
+            
+            # Check if input_variables already has a 'default' key to avoid double nesting
+            if input_variables and 'default' in input_variables:
+                # Variables already structured with default, pass as-is
+                return DataOutput(
+                    value=input_variables,
+                    node_id=node.id,
+                    metadata={"message": "Simple start point"}
+                )
+            else:
+                # Wrap in default for consistency
+                output_data = input_variables if input_variables else {}
+                return DataOutput(
+                    value={"default": output_data},
+                    node_id=node.id,
+                    metadata={"message": "Simple start point"}
+                )
+        
+        elif trigger_mode == HookTriggerMode.MANUAL:
             # Merge input variables with custom_data (custom_data takes precedence)
             output_data = {**input_variables, **(node.custom_data or {})}
             
@@ -92,7 +113,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                 metadata={"message": "Manual execution started"}
             )
         
-        elif trigger_mode == HookTriggerMode.hook:
+        elif trigger_mode == HookTriggerMode.HOOK:
             hook_data = await self._get_hook_event_data(node, context, request.services)
             
             if hook_data:

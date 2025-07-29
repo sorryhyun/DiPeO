@@ -47,7 +47,9 @@ def create_person_mutations(registry: UnifiedServiceRegistry) -> type:
                 )
                 
                 # Add to manager
-                await person_manager.add_person(person)
+                await person_manager.create_person(person_id=person_id,
+                                                   name=input.label,
+                                                   llm_config=llm_config)
                 
                 return PersonResult(
                     success=True,
@@ -71,7 +73,7 @@ def create_person_mutations(registry: UnifiedServiceRegistry) -> type:
                 person_manager = registry.require(PERSON_MANAGER)
                 
                 # Get existing person
-                persons = await person_manager.list_persons()
+                persons = await person_manager.get_all_persons()
                 existing_person = None
                 for person in persons:
                     if person.id == person_id:
@@ -95,7 +97,7 @@ def create_person_mutations(registry: UnifiedServiceRegistry) -> type:
                 )
                 
                 # Update in manager
-                await person_manager.update_person(updated_person)
+                await person_manager.update_person_config(updated_person)
                 
                 return PersonResult(
                     success=True,

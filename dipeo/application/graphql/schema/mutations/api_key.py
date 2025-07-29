@@ -40,7 +40,7 @@ def create_api_key_mutations(registry: UnifiedServiceRegistry) -> type:
                 )
                 
                 # Save to service
-                await apikey_service.create_api_key(api_key)
+                await apikey_service.save_all(api_key)
                 
                 # Return without exposing the actual key
                 safe_api_key = DomainApiKey(
@@ -70,7 +70,7 @@ def create_api_key_mutations(registry: UnifiedServiceRegistry) -> type:
                 apikey_service = registry.require(APIKEY_SERVICE)
                 
                 # Delete API key
-                await apikey_service.delete_api_key(api_key_id)
+                await apikey_service.save_all(api_key_id)
                 
                 return DeleteResult(
                     success=True,
@@ -115,7 +115,7 @@ def create_api_key_mutations(registry: UnifiedServiceRegistry) -> type:
                 # Test the API key
                 try:
                     models = await llm_service.get_available_models(
-                        api_key.service, api_key.key
+                        api_key_id
                     )
                     
                     return TestApiKeyResult(

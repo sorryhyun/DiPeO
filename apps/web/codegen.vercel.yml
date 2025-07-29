@@ -3,7 +3,7 @@
 overwrite: true
 schema: "../server/schema.graphql"
 documents: 
-  - "src/**/*.graphql"
+  - "src/__generated__/queries/*.graphql"
   - "src/**/*.{ts,tsx}"
 generates:
   src/__generated__/graphql.tsx:
@@ -26,11 +26,11 @@ generates:
       enumValues:
         NodeType: "@dipeo/domain-models#NodeType"
         HandleDirection: "@dipeo/domain-models#HandleDirection"
+        HandleLabel: "@dipeo/domain-models#HandleLabel"
         DataType: "@dipeo/domain-models#DataType"
         LLMService: "@dipeo/domain-models#LLMService"
         DiagramFormat: "@dipeo/domain-models#DiagramFormat"
         ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
-        ContentType: "@dipeo/domain-models#ContentType"
       # Skip generating TypeScript types for enums
       skipTypename: false
       # Use proper imports

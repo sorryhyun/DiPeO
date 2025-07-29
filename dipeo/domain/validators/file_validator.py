@@ -77,8 +77,10 @@ class FileValidator(BaseValidator):
         Raises:
             ValidationError: If filename is invalid
         """
-        result = self.validate_filename(filename, strict=True)
-        if result.has_errors():
+        # Use PathValidator to validate filename
+        path_validator = PathValidator()
+        result = path_validator.validate_filename(filename, strict=True)
+        if result.errors:
             raise result.errors[0]
     
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:

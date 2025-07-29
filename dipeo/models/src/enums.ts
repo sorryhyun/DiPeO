@@ -54,6 +54,14 @@ export enum MemoryView {
   ALL_MESSAGES = 'all_messages',  // All messages in conversation (for judges/observers)
 }
 
+export enum MemoryProfile {
+  FULL = 'FULL',             // No limits, see everything
+  FOCUSED = 'FOCUSED',       // Last 20 messages, conversation pairs
+  MINIMAL = 'MINIMAL',       // Last 5 messages, system + direct only
+  GOLDFISH = 'GOLDFISH',     // Last 1-2 exchanges only
+  CUSTOM = 'CUSTOM'          // Use custom memory_settings
+}
+
 export enum DiagramFormat {
   NATIVE = 'native',
   LIGHT = 'light',
@@ -96,6 +104,7 @@ export enum HookType {
 }
 
 export enum HookTriggerMode {
+  NONE = 'none',
   MANUAL = 'manual',
   HOOK = 'hook'
 }
@@ -171,4 +180,10 @@ export enum ToolType {
   WEB_SEARCH = 'web_search',
   WEB_SEARCH_PREVIEW = 'web_search_preview',
   IMAGE_GENERATION = 'image_generation'
+}
+
+export enum ToolSelection {
+  NONE = 'none',
+  IMAGE = 'image', 
+  WEBSEARCH = 'websearch'
 }

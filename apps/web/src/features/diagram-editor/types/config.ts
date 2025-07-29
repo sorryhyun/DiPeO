@@ -8,9 +8,9 @@
  * Configuration for a node handle (connection point)
  */
 export interface HandleConfig {
-  id: string;
+  label: string;  // The handle label identifier (e.g., 'default', 'condtrue', 'condfalse')
   position: 'top' | 'right' | 'bottom' | 'left';
-  label?: string;
+  displayLabel?: string;  // The display label shown in the UI
   offset?: { x: number; y: number };
   color?: string;
 }

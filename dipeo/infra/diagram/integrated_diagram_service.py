@@ -49,6 +49,14 @@ class IntegratedDiagramService(DiagramPort):
         """Delegate file loading to loader adapter."""
         return await self.loader_adapter.load_from_file(file_path, format)
     
+    async def load_from_string(
+        self,
+        content: str,
+        format: DiagramFormat | None = None,
+    ) -> DomainDiagram:
+        """Load diagram from string content."""
+        return self.load_diagram(content, format)
+    
     async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
         return await self.file_repository.list_files()
     

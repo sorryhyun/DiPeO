@@ -26,7 +26,8 @@ class DiagramLoaderAdapter:
             try:
                 data = json.loads(content)
                 # Check for native format indicators
-                if "nodes" in data and isinstance(data["nodes"], dict):
+                if "nodes" in data:
+                    # Native format can have nodes as either dict or array
                     return DiagramFormat.NATIVE
                 return DiagramFormat.NATIVE
             except json.JSONDecodeError:

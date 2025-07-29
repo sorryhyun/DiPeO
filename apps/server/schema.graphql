@@ -26,6 +26,12 @@ type ApiKeyResult {
 """Unique identifier for arrows"""
 scalar ArrowID
 
+enum ContentType {
+  RAW_TEXT
+  CONVERSATION_STATE
+  OBJECT
+}
+
 input CreateApiKeyInput {
   label: String!
   service: APIServiceType!
@@ -87,9 +93,9 @@ input DiagramFilterInput {
 }
 
 enum DiagramFormat {
-  NATIVE
-  LIGHT
-  READABLE
+  native
+  light
+  readable
 }
 
 type DiagramFormatInfo {
@@ -113,6 +119,7 @@ type DiagramMetadataType {
   modified: String!
   author: String
   tags: [String!]
+  format: String
 }
 
 type DiagramResult {
@@ -141,6 +148,8 @@ type DomainArrowType {
   id: String!
   source: String!
   target: String!
+  content_type: ContentType
+  label: String
 }
 
 type DomainDiagramType {
@@ -297,10 +306,10 @@ enum LLMService {
 type Mutation {
   create_diagram(input: CreateDiagramInput!): DiagramResult!
   delete_diagram(id: ID!): DeleteResult!
-  execute_diagram(input: ExecuteDiagramInput!): ExecutionResult!
-  update_node_state(input: UpdateNodeStateInput!): ExecutionResult!
-  control_execution(input: ExecutionControlInput!): ExecutionResult!
-  send_interactive_response(input: InteractiveResponseInput!): ExecutionResult!
+  execute_diagram(diagram_input: ExecuteDiagramInput!): ExecutionResult!
+  update_node_state(node_input: UpdateNodeStateInput!): ExecutionResult!
+  control_execution(control_input: ExecutionControlInput!): ExecutionResult!
+  send_interactive_response(response_input: InteractiveResponseInput!): ExecutionResult!
   create_person(input: CreatePersonInput!): PersonResult!
   update_person(id: ID!, input: UpdatePersonInput!): PersonResult!
   delete_person(id: ID!): DeleteResult!
@@ -380,13 +389,13 @@ type PersonResult {
 }
 
 type Query {
-  diagram(id: ID!): DomainDiagramType
-  diagrams(filter: DiagramFilterInput = null, limit: Int! = 100, offset: Int! = 0): [DomainDiagramType!]!
-  execution(id: ID!): ExecutionStateType
-  executions(filter: ExecutionFilterInput = null, limit: Int! = 100, offset: Int! = 0): [ExecutionStateType!]!
-  person(id: ID!): DomainPersonType
+  diagram(diagram_id: ID!): DomainDiagramType
+  diagrams(diagram_filter: DiagramFilterInput = null, limit: Int! = 100, offset: Int! = 0): [DomainDiagramType!]!
+  execution(execution_id: ID!): ExecutionStateType
+  executions(execution_filter: ExecutionFilterInput = null, limit: Int! = 100, offset: Int! = 0): [ExecutionStateType!]!
+  person(person_id: ID!): DomainPersonType
   persons(limit: Int! = 100): [DomainPersonType!]!
-  api_key(id: ID!): DomainApiKeyType
+  api_key(key_id: ID!): DomainApiKeyType
   api_keys(service: String = null): [DomainApiKeyType!]!
   available_models(service: String!, api_key_id: ID!): [String!]!
   system_info: JSON!

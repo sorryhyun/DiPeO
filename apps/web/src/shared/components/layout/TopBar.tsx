@@ -1,23 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layers } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
 import { Select } from '@/shared/components/forms/Select';
 import { useUIState } from '@/core/store/hooks/state';
-import { useDiagramManager, useFileOperations } from '@/features/diagram-editor/hooks';
+import { useDiagramManager, useFileOperations, useDiagramSave } from '@/features/diagram-editor/hooks';
 import { useUIOperations, useExecutionOperations } from '@/core/store/hooks';
 import { toast } from 'sonner';
 import { useUnifiedStore, useDiagramFormat } from '@/core/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { DiagramFormat } from '@dipeo/domain-models';
-import { useConvertDiagramMutation, useUploadFileMutation } from '@/__generated__/graphql';
-import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
 
 
 const TopBar = () => {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
-  const [isSaving, setIsSaving] = useState(false);
   
   // Use UI state for mode control
   const { activeCanvas } = useUIState();
@@ -49,14 +46,14 @@ const TopBar = () => {
   // Extract what we need
   const {
     newDiagram: clearDiagram,
-    saveDiagram: basicSaveDiagram,
     isDirty
   } = diagramManager;
   
-  // File operations and GraphQL mutations
+  // File operations
   const { saveDiagram: saveToFileSystem } = useFileOperations();
-  const [convertDiagramMutation] = useConvertDiagramMutation();
-  const [uploadFileMutation] = useUploadFileMutation();
+  
+  // Use the new diagram save hook
+  const { isSaving, handleSave } = useDiagramSave({ saveToFileSystem });
   
 
   // Handle monitor mode
@@ -83,163 +80,13 @@ const TopBar = () => {
   }, [diagramFormatFromStore]);
 
   // Convert and save functionality
-  const handleConvertAndSave = useCallback(async () => {
-    try {
-      setIsSaving(true);
-      // Use the user-provided name or default
-      const finalName = diagramName.trim() || 'diagram';
-      
-      // Determine the save path
-      let savePath: string;
-      let filename: string;
-      
-      if (diagramId) {
-        // Parse the diagram ID to extract directory and base filename
-        const pathParts = diagramId.split('/');
-        const fullFilename = pathParts[pathParts.length - 1] || '';
-        const directories = pathParts.slice(0, -1);
-        
-        // Extract base name by removing ALL known extensions patterns
-        let baseName = fullFilename;
-        
-        // Remove format-specific double extensions first (e.g., .light.yaml, .readable.yaml)
-        const formatExtensionRemoved = baseName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
-        if (formatExtensionRemoved !== baseName) {
-          baseName = formatExtensionRemoved;
-        } else {
-          // If no format-specific extension, just remove the file extension
-          baseName = baseName.replace(/\.(json|yaml|yml)$/i, '');
-        }
-        
-        // If nothing was removed (edge case), use everything before the last dot
-        if (baseName === fullFilename && fullFilename.includes('.')) {
-          baseName = fullFilename.substring(0, fullFilename.lastIndexOf('.'));
-        }
-        
-        // Use the user-provided name if it's different from the extracted base name
-        if (finalName.trim() && finalName !== 'diagram' && finalName !== baseName) {
-          // Extract just the filename part from finalName (in case user entered a path)
-          const finalNameParts = finalName.split('/');
-          const finalNameOnly = finalNameParts[finalNameParts.length - 1];
-          
-          // Remove extensions from the final name as well
-          let cleanFinalName = finalNameOnly || '';
-          const formatExtRemoved = cleanFinalName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
-          if (formatExtRemoved !== cleanFinalName) {
-            cleanFinalName = formatExtRemoved;
-          } else {
-            cleanFinalName = cleanFinalName.replace(/\.(json|yaml|yml)$/i, '');
-          }
-          
-          // If still has extension, remove it
-          if (cleanFinalName.includes('.') && cleanFinalName === finalNameOnly) {
-            cleanFinalName = cleanFinalName.substring(0, cleanFinalName.lastIndexOf('.'));
-          }
-          
-          baseName = cleanFinalName;
-        }
-        
-        // Generate filename based on selected format
-        if (selectedFormat === DiagramFormat.NATIVE) {
-          filename = `${baseName}.json`;
-        } else if (selectedFormat === DiagramFormat.LIGHT) {
-          filename = `${baseName}.light.yaml`;
-        } else if (selectedFormat === DiagramFormat.READABLE) {
-          filename = `${baseName}.readable.yaml`;
-        } else {
-          filename = `${baseName}.yaml`;
-        }
-        
-        // Reconstruct the path
-        if (directories.length > 0) {
-          // Check if we're in a format-specific directory that needs to be changed
-          const lastDir = directories[directories.length - 1];
-          if (lastDir === 'light' || lastDir === 'readable' || lastDir === 'native') {
-            // Replace the format directory with the new format
-            const newFormatDir = selectedFormat.toLowerCase();
-            savePath = [...directories.slice(0, -1), newFormatDir, filename].join('/');
-          } else {
-            // Keep the existing directory structure
-            savePath = [...directories, filename].join('/');
-          }
-        } else {
-          // No directory, just use the filename
-          savePath = filename;
-        }
-      } else {
-        // For new diagrams, save in format-specific directory
-        const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
-        filename = `${finalName}.${extension}`;
-        const formatDir = selectedFormat.toLowerCase();
-        savePath = `${formatDir}/${filename}`;
-      }
-      
-      // For native format, use the existing saveDiagram function
-      if (selectedFormat === DiagramFormat.NATIVE) {
-        await saveToFileSystem(savePath, selectedFormat);
-        toast.success(`Saved to ${savePath}`);
-        return;
-      }
-      
-      // For light and readable formats, use convert + upload approach
-      // First, serialize the current diagram state
-      const diagramContent = serializeDiagram();
-      
-      // Convert diagram to the desired format
-      const convertResult = await convertDiagramMutation({
-        variables: {
-          content: diagramContent,
-          targetFormat: selectedFormat,
-          includeMetadata: true
-        }
-      });
-      
-      if (!convertResult.data?.convert_diagram?.success) {
-        throw new Error(convertResult.data?.convert_diagram?.error || 'Conversion failed');
-      }
-      
-      // Get the converted content
-      const convertedContent = convertResult.data.convert_diagram.content;
-      if (!convertedContent) {
-        throw new Error('No content returned from conversion');
-      }
-      
-      // Extract directory and filename from savePath
-      const savePathParts = savePath.split('/');
-      const saveFilename = savePathParts[savePathParts.length - 1];
-      // For diagrams, we need to include 'diagrams/' as the base,
-      // then the subdirectory if any (without duplicating 'diagrams/')
-      const subdirectory = savePathParts.length > 1 
-        ? savePathParts.slice(0, -1).join('/')
-        : '';
-      const category = subdirectory ? `diagrams/${subdirectory}` : 'diagrams';
-      
-      // Create a File object from the converted content
-      const file = new File([convertedContent], saveFilename || 'diagram.yaml', { 
-        type: 'text/yaml' 
-      });
-      
-      // Upload the file to the appropriate directory
-      const uploadResult = await uploadFileMutation({
-        variables: {
-          file,
-          category
-        }
-      });
-      
-      if (!uploadResult.data?.upload_file?.success) {
-        throw new Error(uploadResult.data?.upload_file?.error || 'Upload failed');
-      }
-      
-      // Show success message
-      toast.success(`Saved to ${savePath}`);
-    } catch (error) {
-      console.error('Save error:', error);
-      toast.error(error instanceof Error ? error.message : 'Save failed');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedFormat, diagramName, diagramId, saveToFileSystem, convertDiagramMutation, uploadFileMutation]);
+  const handleConvertAndSave = async () => {
+    await handleSave({
+      selectedFormat,
+      diagramName,
+      diagramId
+    });
+  };
 
 
   return (
@@ -288,18 +135,16 @@ const TopBar = () => {
                   // Use filename directly if it already has format suffix
                   diagramPath = name;
                 } else {
-                  // Map DiagramFormat enum to string format
-                  let format = 'native';
+                  // Add format-specific extension based on selected format
                   if (selectedFormat === DiagramFormat.LIGHT) {
-                    format = 'light';
+                    diagramPath = `${name}.light.yaml`;
                   } else if (selectedFormat === DiagramFormat.READABLE) {
-                    format = 'readable';
+                    diagramPath = `${name}.readable.yaml`;
                   } else if (selectedFormat === DiagramFormat.NATIVE) {
-                    format = 'native';
+                    diagramPath = `${name}.native.json`;
+                  } else {
+                    diagramPath = `${name}.yaml`;
                   }
-                  
-                  // Build the diagram path with format prefix
-                  diagramPath = `${format}/${name}`;
                 }
                 
                 // Update URL and trigger reload
@@ -388,9 +233,9 @@ const TopBar = () => {
                 stopExecution();
                 // When leaving execution mode, readOnly remains controlled by monitor mode
               } else {
+                // Simply switch to execution mode
+                // The ExecutionControls component will handle running the diagram from memory
                 setActiveCanvas('execution');
-                // Execution mode has its own read-only state (executionReadOnly)
-                // Monitor mode (readOnly) remains independent
               }
             }}
             title={activeCanvas === 'execution' ? 'Back to Diagram Canvas' : 'Enter Execution Mode'}

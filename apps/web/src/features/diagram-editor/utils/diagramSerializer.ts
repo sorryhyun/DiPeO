@@ -9,6 +9,7 @@ import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { ConversionService } from '@/core/services/ConversionService';
+import { stripTypenames } from '@/lib/utils';
 
 // The serialized diagram should match the GraphQL schema format
 export interface SerializedDiagram {
@@ -125,8 +126,8 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   
   // Generate input handles
   if (config.handles.input) {
-    config.handles.input.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleLabel = handleConfig.id as HandleLabel;
+    config.handles.input.forEach((handleConfig: { label: string; displayLabel?: string; position?: string }) => {
+      const handleLabel = handleConfig.label as HandleLabel;
       const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.INPUT);
       handles.push({
         id: handleId,
@@ -141,8 +142,8 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   
   // Generate output handles
   if (config.handles.output) {
-    config.handles.output.forEach((handleConfig: { id: string; label?: string; position?: string }) => {
-      const handleLabel = handleConfig.id as HandleLabel;
+    config.handles.output.forEach((handleConfig: { label: string; displayLabel?: string; position?: string }) => {
+      const handleLabel = handleConfig.label as HandleLabel;
       const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.OUTPUT);
       handles.push({
         id: handleId,
@@ -291,13 +292,13 @@ export function serializeDiagram(): SerializedDiagram {
     return cleanPerson as DomainPerson;
   });
 
-  // Return the serialized diagram
-  return {
+  // Return the serialized diagram, stripping __typename fields
+  return stripTypenames({
     nodes: cleanNodes,
     arrows: validArrows,
     persons: cleanPersons,
     handles: validHandles,
     metadata
-  };
+  });
 }
 

@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/shared/components/forms/buttons/Button';
 import { Select } from '@/shared/components/forms/Select';
 import { 
-  useConvertDiagramMutation,
+  useConvertDiagramFormatMutation,
   useUploadFileMutation
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
@@ -16,7 +16,7 @@ export const FileOperations: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   const [diagramName, setDiagramName] = useState<string>('diagram');
 
-  const [convertDiagramMutation] = useConvertDiagramMutation();
+  const [convertDiagramMutation] = useConvertDiagramFormatMutation();
   const [uploadFileMutation] = useUploadFileMutation();
   const { saveDiagram } = useFileOperations();
 
@@ -58,11 +58,11 @@ export const FileOperations: React.FC = () => {
     // Build the diagram path based on selected format
     let diagramPath = finalName;
     if (selectedFormat === DiagramFormat.LIGHT) {
-      diagramPath = `light/${finalName}`;
+      diagramPath = `${selectedFormat}/${finalName}`;
     } else if (selectedFormat === DiagramFormat.READABLE) {
-      diagramPath = `readable/${finalName}`;
+      diagramPath = `${selectedFormat}/${finalName}`;
     } else if (selectedFormat === DiagramFormat.NATIVE) {
-      diagramPath = `native/${finalName}`;
+      diagramPath = `${selectedFormat}/${finalName}`;
     }
     
     // Update URL without page refresh
@@ -81,54 +81,58 @@ export const FileOperations: React.FC = () => {
       // Use the user-provided name or default
       const finalName = diagramName.trim() || 'diagram';
       
+      // Check if the user already included the extension
+      const hasExtension = finalName.endsWith('.json') || finalName.endsWith('.yaml') || finalName.endsWith('.yml');
+      
       // Generate filename based on format
       const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
-      const filename = `${finalName}.${extension}`;
+      const filename = hasExtension ? finalName : `${finalName}.${extension}`;
       
       // For native format, use the existing saveDiagram function
       if (selectedFormat === DiagramFormat.NATIVE) {
         await saveDiagram(filename, selectedFormat);
-        const formatDir = selectedFormat.toLowerCase();
-        toast.success(`Saved to ${formatDir}/${filename}`);
+        toast.success(`Saved as ${filename}`);
         return;
       }
       
       // For light and readable formats, use convert + upload approach
       // First, serialize the current diagram state
-      const diagramContent = serializeDiagram();
+      const diagramContent = JSON.stringify(serializeDiagram());
       
       // Convert diagram to the desired format
       const convertResult = await convertDiagramMutation({
         variables: {
           content: diagramContent,
-          targetFormat: selectedFormat,
-          includeMetadata: true
+          fromFormat: DiagramFormat.NATIVE,
+          toFormat: selectedFormat
         }
       });
       
-      if (!convertResult.data?.convert_diagram?.success) {
-        throw new Error(convertResult.data?.convert_diagram?.error || 'Conversion failed');
+      if (!convertResult.data?.convert_diagram_format?.success) {
+        throw new Error(convertResult.data?.convert_diagram_format?.error || 'Conversion failed');
       }
       
       // Get the converted content
-      const convertedContent = convertResult.data.convert_diagram.content;
+      const convertedContent = convertResult.data.convert_diagram_format.content;
       if (!convertedContent) {
         throw new Error('No content returned from conversion');
       }
       
-      // Determine the category based on format
-      const category = `diagrams/${selectedFormat}`;
+      
+      // Simply use the filename as the path
+      // The saveDiagram function will prepend 'files/' to it
+      const path = filename;
       
       // Create a File object from the converted content
       const file = new File([convertedContent], filename, { 
         type: 'text/yaml' 
       });
       
-      // Upload the file directly to diagrams/{format}/ directory
+      // Upload the converted file
       const uploadResult = await uploadFileMutation({
         variables: {
           file,
-          category
+          path: filename
         }
       });
       
@@ -136,8 +140,7 @@ export const FileOperations: React.FC = () => {
         throw new Error(uploadResult.data?.upload_file?.error || 'Upload failed');
       }
       
-      // Show success message
-      toast.success(`Saved to ${category}/${filename}`);
+      toast.success(`Saved as ${filename}`);
     } catch (error) {
       console.error('Export error:', error);
       toast.error(error instanceof Error ? error.message : 'Export failed');

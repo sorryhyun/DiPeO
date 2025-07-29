@@ -46,11 +46,54 @@ def generate_node_config(spec_data: Dict[str, Any], template_content: str) -> st
         field['component'] = get_field_component(field)
         field['props'] = get_field_props(field)
     
-    # Add handle configuration - use the actual handles from spec
-    if 'handles' not in spec_data:
+    # Add handle configuration - transform from spec format to template format
+    if 'handles' in spec_data:
+        handles = spec_data['handles']
+        transformed_handles = {
+            'inputs': [],
+            'outputs': []
+        }
+        
+        # Transform input handles - the string is the handle identifier
+        if 'inputs' in handles and isinstance(handles['inputs'], list):
+            for handle_id in handles['inputs']:
+                # Derive label from handle ID
+                label = {
+                    'default': '',  # Empty label for default
+                    'data': 'Data',
+                }.get(handle_id, handle_id.title())
+                
+                transformed_handles['inputs'].append({
+                    'label': handle_id,  # This is the handle label identifier
+                    'displayLabel': label,  # This is the display label
+                    'position': 'left'
+                })
+        
+        # Transform output handles - the string is the handle identifier
+        if 'outputs' in handles and isinstance(handles['outputs'], list):
+            for handle_id in handles['outputs']:
+                # Derive label from handle ID
+                label = {
+                    'result': '',  # Empty label for result
+                    'output': '',  # Empty label for output
+                    'condtrue': 'True',
+                    'condfalse': 'False',
+                    'hookcontinue': 'Continue',
+                    'hookfail': 'Fail',
+                }.get(handle_id, handle_id.title())
+                
+                transformed_handles['outputs'].append({
+                    'label': handle_id,  # This is the handle label identifier
+                    'displayLabel': label,  # This is the display label
+                    'position': 'right'
+                })
+        
+        config_spec['handles'] = transformed_handles
+    else:
+        # Default handles if not specified
         config_spec['handles'] = {
-            'inputs': [{'id': 'input', 'label': ''}],
-            'outputs': [{'id': 'output', 'label': ''}],
+            'inputs': [{'label': 'default', 'displayLabel': '', 'position': 'left'}],
+            'outputs': [{'label': 'result', 'displayLabel': '', 'position': 'right'}],
         }
     
     # Add behavior configuration

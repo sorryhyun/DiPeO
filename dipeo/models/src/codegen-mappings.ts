@@ -46,7 +46,9 @@ export const TS_TO_PY_TYPE: Record<string, string> = {
   'HookType': 'HookType',
   'DiagramFormat': 'DiagramFormat',
   'ContentType': 'ContentType',
-  'MemoryView': 'MemoryView'
+  'MemoryView': 'MemoryView',
+  'MemoryProfile': 'MemoryProfile',
+  'ToolSelection': 'ToolSelection'
 };
 
 // Type to UI field type mapping
@@ -63,7 +65,9 @@ export const TYPE_TO_FIELD: Record<string, string> = {
   'HookTriggerMode': 'select',
   'ContentType': 'select',
   'MemoryView': 'select',
-  'DiagramFormat': 'select'
+  'DiagramFormat': 'select',
+  'MemoryProfile': 'select',
+  'ToolSelection': 'select'
 };
 
 // Type to Zod schema mapping
@@ -85,7 +89,9 @@ export const TYPE_TO_ZOD: Record<string, string> = {
   'ContentType': 'z.nativeEnum(ContentType)',
   'NodeType': 'z.nativeEnum(NodeType)',
   'MemoryView': 'z.nativeEnum(MemoryView)',
-  'DiagramFormat': 'z.nativeEnum(DiagramFormat)'
+  'DiagramFormat': 'z.nativeEnum(DiagramFormat)',
+  'MemoryProfile': 'z.nativeEnum(MemoryProfile)',
+  'ToolSelection': 'z.nativeEnum(ToolSelection)'
 };
 
 // Branded types that shouldn't be generated as schemas
@@ -93,7 +99,8 @@ export const BRANDED_TYPES = [
   'PersonID', 'NodeID', 'HandleID', 'ArrowID', 'NodeType',
   'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 
   'HookType', 'NotionOperation',
-  'HookTriggerMode', 'ContentType', 'MemoryView'
+  'HookTriggerMode', 'ContentType', 'MemoryView',
+  'MemoryProfile', 'ToolSelection'
 ];
 
 // Base fields to skip in generation

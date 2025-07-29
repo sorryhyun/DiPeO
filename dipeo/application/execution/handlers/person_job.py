@@ -14,6 +14,7 @@ from dipeo.application.unified_service_registry import (
     PROMPT_BUILDER
 )
 from dipeo.core.dynamic import Person
+from dipeo.core.dynamic.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData, MemorySettings
@@ -103,14 +104,35 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # Apply memory settings if configured
             # Note: We apply memory settings even on first execution because some nodes
             # (like judge panels) need to see full conversation history from the start
-            if node.memory_settings:
+            memory_settings = None
+            
+            # Check if memory_profile is set (new way)
+            if hasattr(node, 'memory_profile') and node.memory_profile:
+                try:
+                    # Convert string to MemoryProfile enum
+                    profile_enum = MemoryProfile[node.memory_profile]
+                    if profile_enum != MemoryProfile.CUSTOM:
+                        # Get settings from profile
+                        memory_settings = MemoryProfileFactory.get_settings(profile_enum)
+                    else:
+                        # Use custom memory_settings if profile is CUSTOM
+                        memory_settings = node.memory_settings
+                except (KeyError, AttributeError):
+                    logger.warning(f"Invalid memory profile: {node.memory_profile}")
+                    # Fall back to memory_settings
+                    memory_settings = node.memory_settings
+            else:
+                # Fall back to legacy memory_settings
+                memory_settings = node.memory_settings
+            
+            if memory_settings:
                 # Convert dict to MemorySettings object if needed
-                if isinstance(node.memory_settings, dict):
+                if isinstance(memory_settings, dict):
                     from dipeo.diagram_generated import MemorySettings as MemorySettingsModel
-                    memory_settings = MemorySettingsModel(**node.memory_settings)
+                    memory_settings = MemorySettingsModel(**memory_settings)
                     person.apply_memory_settings(memory_settings)
                 else:
-                    person.apply_memory_settings(node.memory_settings)
+                    person.apply_memory_settings(memory_settings)
             
             # Use inputs directly
             transformed_inputs = inputs
@@ -155,9 +177,25 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 "max_tokens": 4096,
             }
             
-            # Add tools only if they exist
-            if node.tools:
-                complete_kwargs["tools"] = node.tools
+            # Handle tools configuration
+            if hasattr(node, 'tools') and node.tools and node.tools != 'none':
+                # Convert string tools value to ToolConfig array
+                tools_config = []
+                if node.tools == 'image':
+                    from dipeo.diagram_generated.domain_models import ToolConfig, ToolType
+                    tools_config.append(ToolConfig(
+                        type=ToolType.IMAGE_GENERATION,
+                        enabled=True
+                    ))
+                elif node.tools == 'websearch':
+                    from dipeo.diagram_generated.domain_models import ToolConfig, ToolType
+                    tools_config.append(ToolConfig(
+                        type=ToolType.WEB_SEARCH,
+                        enabled=True
+                    ))
+                
+                if tools_config:
+                    complete_kwargs["tools"] = tools_config
                 
             result = await person.complete(**complete_kwargs)
             

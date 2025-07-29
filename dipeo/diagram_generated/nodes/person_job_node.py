@@ -37,9 +37,10 @@ class PersonJobNode:
     # Optional node-specific fields
     person: str = ""
     default_prompt: str = ""
+    memory_profile: str = ""
     memory_config: Dict[str, Any] = field(default_factory=dict)
     memory_settings: Dict[str, Any] = field(default_factory=dict)
-    tools: List[Any] = field(default_factory=list)
+    tools: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -58,6 +59,7 @@ class PersonJobNode:
         data["first_only_prompt"] = self.first_only_prompt
         data["default_prompt"] = self.default_prompt
         data["max_iteration"] = self.max_iteration
+        data["memory_profile"] = self.memory_profile
         data["memory_config"] = self.memory_config
         data["memory_settings"] = self.memory_settings
         data["tools"] = self.tools

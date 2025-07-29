@@ -7,7 +7,7 @@ import strawberry
 from strawberry.file_uploads import Upload
 
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
-from dipeo.diagram_generated.enums import DiagramFormat
+from dipeo.application.graphql.enums import DiagramFormat
 
 from ...types.results import FileUploadResult, DiagramResult
 
@@ -62,12 +62,35 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
                 if not path:
                     path = f"uploads/{file.filename}"
                 
-                # Save file
-                await file_service.write_file(path, content)
+                # Split path into directory and filename
+                from pathlib import Path
+                path_obj = Path(path)
+                target_dir = str(path_obj.parent) if path_obj.parent != Path('.') else None
+                target_filename = path_obj.name
+                
+                # Save file using the correct method
+                # Check if this is a diagram file based on extension
+                is_diagram_file = target_filename.endswith(('.json', '.yaml', '.yml', 
+                                                           '.native.json', '.light.yaml', 
+                                                           '.readable.yaml'))
+                
+                result = await file_service.save_file(
+                    content=content,
+                    filename=target_filename,
+                    target_path=target_dir,
+                    create_backup=not is_diagram_file  # Don't create backups for diagram files
+                )
+                
+                # Check if save was successful
+                if not result.get("success", False):
+                    return FileUploadResult(
+                        success=False,
+                        error=result.get("error", "Failed to save file"),
+                    )
                 
                 return FileUploadResult(
                     success=True,
-                    path=path,
+                    path=result.get("path", path),
                     size_bytes=len(content),
                     content_type=file.content_type,
                     message=f"Uploaded file: {file.filename}",
@@ -92,9 +115,17 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
                 content = await file.read()
                 content_str = content.decode('utf-8')
                 
-                # Parse and validate diagram based on format
-                # This is simplified - full implementation would use
-                # the diagram converter service
+                # Convert GraphQL enum to Python enum
+                format_python = format.to_python_enum()
+                
+                # Load and validate diagram based on format
+                diagram = await integrated_service.load_from_string(
+                    content=content_str,
+                    format=format_python
+                )
+                
+                # Save the diagram
+                # Note: This would need actual implementation
                 
                 return DiagramResult(
                     success=True,
@@ -116,9 +147,14 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
             try:
                 integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
                 
-                # Validate diagram
-                # This is simplified - full implementation would use
-                # proper validation logic
+                # Convert GraphQL enum to Python enum
+                format_python = format.to_python_enum()
+                
+                # Validate diagram by attempting to load it
+                diagram = await integrated_service.load_from_string(
+                    content=content,
+                    format=format_python
+                )
                 
                 return DiagramValidationResult(
                     success=True,
@@ -141,16 +177,23 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
         ) -> DiagramConvertResult:
             """Convert diagram between formats."""
             try:
-                integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
+                from dipeo.infra.diagram import converter_registry
                 
-                # Convert diagram format
-                # This is simplified - full implementation would use
-                # the diagram converter service
+                # Convert GraphQL enums to Python enum values (strings)
+                from_format_str = from_format.to_python_enum().value
+                to_format_str = to_format.to_python_enum().value
+                
+                # Convert diagram using the converter registry
+                converted_content = converter_registry.convert(
+                    content=content,
+                    from_format=from_format_str,
+                    to_format=to_format_str
+                )
                 
                 return DiagramConvertResult(
                     success=True,
-                    message=f"Converted from {from_format} to {to_format}",
-                    content=content,  # Would be actual converted content
+                    message=f"Converted from {from_format_str} to {to_format_str}",
+                    content=converted_content,
                     format=to_format,
                 )
                 

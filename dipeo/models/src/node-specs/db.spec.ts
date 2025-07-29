@@ -91,8 +91,8 @@ export const dbSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["in"],
-    outputs: ["out"]
+    inputs: ["default"],
+    outputs: ["default"]
   },
   
   outputs: {
