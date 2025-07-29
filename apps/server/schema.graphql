@@ -26,6 +26,12 @@ type ApiKeyResult {
 """Unique identifier for arrows"""
 scalar ArrowID
 
+enum ContentType {
+  RAW_TEXT
+  CONVERSATION_STATE
+  OBJECT
+}
+
 input CreateApiKeyInput {
   label: String!
   service: APIServiceType!
@@ -142,6 +148,8 @@ type DomainArrowType {
   id: String!
   source: String!
   target: String!
+  content_type: ContentType
+  label: String
 }
 
 type DomainDiagramType {

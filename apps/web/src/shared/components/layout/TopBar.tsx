@@ -91,7 +91,7 @@ const TopBar = () => {
       
       // Determine the save path
       let savePath: string;
-      let filename: string;
+      let filename: string = '';
       
       if (diagramId) {
         // Parse the diagram ID to extract directory and base filename
@@ -122,32 +122,49 @@ const TopBar = () => {
           const finalNameParts = finalName.split('/');
           const finalNameOnly = finalNameParts[finalNameParts.length - 1];
           
-          // Remove extensions from the final name as well
-          let cleanFinalName = finalNameOnly || '';
-          const formatExtRemoved = cleanFinalName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
-          if (formatExtRemoved !== cleanFinalName) {
-            cleanFinalName = formatExtRemoved;
-          } else {
-            cleanFinalName = cleanFinalName.replace(/\.(json|yaml|yml)$/i, '');
+          // Check if the final name already has the correct format extension
+          let alreadyHasCorrectExtension = false;
+          if (selectedFormat === DiagramFormat.NATIVE && finalNameOnly?.endsWith('.native.json')) {
+            alreadyHasCorrectExtension = true;
+            filename = finalNameOnly;
+          } else if (selectedFormat === DiagramFormat.LIGHT && finalNameOnly?.endsWith('.light.yaml')) {
+            alreadyHasCorrectExtension = true;
+            filename = finalNameOnly;
+          } else if (selectedFormat === DiagramFormat.READABLE && finalNameOnly?.endsWith('.readable.yaml')) {
+            alreadyHasCorrectExtension = true;
+            filename = finalNameOnly;
           }
           
-          // If still has extension, remove it
-          if (cleanFinalName.includes('.') && cleanFinalName === finalNameOnly) {
-            cleanFinalName = cleanFinalName.substring(0, cleanFinalName.lastIndexOf('.'));
+          if (!alreadyHasCorrectExtension) {
+            // Remove extensions from the final name
+            let cleanFinalName = finalNameOnly || '';
+            const formatExtRemoved = cleanFinalName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
+            if (formatExtRemoved !== cleanFinalName) {
+              cleanFinalName = formatExtRemoved;
+            } else {
+              cleanFinalName = cleanFinalName.replace(/\.(json|yaml|yml)$/i, '');
+            }
+            
+            // If still has extension, remove it
+            if (cleanFinalName.includes('.') && cleanFinalName === finalNameOnly) {
+              cleanFinalName = cleanFinalName.substring(0, cleanFinalName.lastIndexOf('.'));
+            }
+            
+            baseName = cleanFinalName;
           }
-          
-          baseName = cleanFinalName;
         }
         
-        // Generate filename based on selected format
-        if (selectedFormat === DiagramFormat.NATIVE) {
-          filename = `${baseName}.json`;
-        } else if (selectedFormat === DiagramFormat.LIGHT) {
-          filename = `${baseName}.light.yaml`;
-        } else if (selectedFormat === DiagramFormat.READABLE) {
-          filename = `${baseName}.readable.yaml`;
-        } else {
-          filename = `${baseName}.yaml`;
+        // Generate filename based on selected format (only if not already set)
+        if (!filename) {
+          if (selectedFormat === DiagramFormat.NATIVE) {
+            filename = `${baseName}.native.json`;
+          } else if (selectedFormat === DiagramFormat.LIGHT) {
+            filename = `${baseName}.light.yaml`;
+          } else if (selectedFormat === DiagramFormat.READABLE) {
+            filename = `${baseName}.readable.yaml`;
+          } else {
+            filename = `${baseName}.yaml`;
+          }
         }
         
         // Reconstruct the path
@@ -163,15 +180,45 @@ const TopBar = () => {
             savePath = [...directories, filename].join('/');
           }
         } else {
-          // No directory, just use the filename
+          // No directory, save directly in files/
           savePath = filename;
         }
       } else {
-        // For new diagrams, save in format-specific directory
-        const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
-        filename = `${finalName}.${extension}`;
-        const formatDir = selectedFormat.toLowerCase();
-        savePath = `${formatDir}/${filename}`;
+        // For new diagrams, check if finalName already has the correct extension
+        let hasCorrectExtension = false;
+        
+        if (selectedFormat === DiagramFormat.NATIVE && finalName.endsWith('.native.json')) {
+          hasCorrectExtension = true;
+          filename = finalName;
+        } else if (selectedFormat === DiagramFormat.LIGHT && finalName.endsWith('.light.yaml')) {
+          hasCorrectExtension = true;
+          filename = finalName;
+        } else if (selectedFormat === DiagramFormat.READABLE && finalName.endsWith('.readable.yaml')) {
+          hasCorrectExtension = true;
+          filename = finalName;
+        }
+        
+        if (!hasCorrectExtension) {
+          // Clean the filename first
+          let cleanName = finalName;
+          // Remove any existing format extensions
+          cleanName = cleanName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
+          // Remove regular extensions
+          cleanName = cleanName.replace(/\.(json|yaml|yml)$/i, '');
+          
+          // Add the appropriate extension
+          if (selectedFormat === DiagramFormat.NATIVE) {
+            filename = `${cleanName}.native.json`;
+          } else if (selectedFormat === DiagramFormat.LIGHT) {
+            filename = `${cleanName}.light.yaml`;
+          } else if (selectedFormat === DiagramFormat.READABLE) {
+            filename = `${cleanName}.readable.yaml`;
+          } else {
+            filename = `${cleanName}.yaml`;
+          }
+        }
+        
+        savePath = filename;
       }
       
       // For native format, use the existing saveDiagram function
@@ -207,13 +254,9 @@ const TopBar = () => {
       // Extract directory and filename from savePath
       const savePathParts = savePath.split('/');
       const saveFilename = savePathParts[savePathParts.length - 1];
-      // For diagrams, we need to include 'diagrams/' as the base,
-      // then the subdirectory if any (without duplicating 'diagrams/')
-      const subdirectory = savePathParts.length > 1 
-        ? savePathParts.slice(0, -1).join('/')
-        : '';
-      const dirPath = subdirectory ? `diagrams/${subdirectory}` : 'diagrams';
-      const fullPath = `${dirPath}/${saveFilename || 'diagram.yaml'}`;
+      
+      // Use savePath directly - it already includes the correct directory structure
+      const fullPath = savePath;
       
       // Create a File object from the converted content
       const file = new File([convertedContent], saveFilename || 'diagram.yaml', { 
@@ -289,18 +332,16 @@ const TopBar = () => {
                   // Use filename directly if it already has format suffix
                   diagramPath = name;
                 } else {
-                  // Map DiagramFormat enum to string format
-                  let format = 'native';
+                  // Add format-specific extension based on selected format
                   if (selectedFormat === DiagramFormat.LIGHT) {
-                    format = 'light';
+                    diagramPath = `${name}.light.yaml`;
                   } else if (selectedFormat === DiagramFormat.READABLE) {
-                    format = 'readable';
+                    diagramPath = `${name}.readable.yaml`;
                   } else if (selectedFormat === DiagramFormat.NATIVE) {
-                    format = 'native';
+                    diagramPath = `${name}.native.json`;
+                  } else {
+                    diagramPath = `${name}.yaml`;
                   }
-                  
-                  // Build the diagram path with format prefix
-                  diagramPath = `${format}/${name}`;
                 }
                 
                 // Update URL and trigger reload

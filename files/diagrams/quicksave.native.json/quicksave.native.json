@@ -1,0 +1,764 @@
+{
+  "nodes": [
+    {
+      "id": "node_0",
+      "type": "start",
+      "position": {
+        "x": -728,
+        "y": 348
+      },
+      "data": {
+        "label": "start",
+        "trigger_mode": "manual",
+        "custom_data": {
+          "processing_config": {
+            "quality_threshold": 70,
+            "output_format": "json"
+          }
+        },
+        "output_data_structure": {}
+      }
+    },
+    {
+      "id": "node_1",
+      "type": "db",
+      "position": {
+        "x": -386,
+        "y": 146
+      },
+      "data": {
+        "label": "load raw data",
+        "operation": "read",
+        "sub_type": "file",
+        "file": "files/uploads/raw_data.csv"
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "db",
+      "position": {
+        "x": -413,
+        "y": 481
+      },
+      "data": {
+        "label": "load config",
+        "flipped": [
+          false,
+          true
+        ],
+        "operation": "read",
+        "sub_type": "file",
+        "file": "files/config/processing_rules.json"
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "code_job",
+      "position": {
+        "x": 19,
+        "y": 342
+      },
+      "data": {
+        "label": "parse data",
+        "code": "files/code_examples/data_processor.py",
+        "functionName": "parse_data",
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "person_job",
+      "position": {
+        "x": 355,
+        "y": 233
+      },
+      "data": {
+        "label": "quality check",
+        "default_prompt": "Analyze this data summary and provide a quality score (0-100):\nTotal rows: {{parsed_data.total_rows}}\nValid rows: {{parsed_data.valid_rows}}\nInvalid rows: {{parsed_data.invalid_rows}}\nColumns: {{parsed_data.columns}}\nStatistics: {{parsed_data.statistics}}\n\nIMPORTANT: You MUST respond with ONLY a valid JSON object with score and issues.\n\nRequired format:\n{\n  \"score\": <number 0-100>,\n  \"issues\": [\"issue1\", \"issue2\"]\n}\n\nExample response:\n{\n  \"score\": 85,\n  \"issues\": [\"Missing data in row 9\", \"Invalid region in 1 row\"]\n}\n\nDO NOT include any explanatory text before or after the JSON.\n",
+        "max_iteration": 1,
+        "person": "person_QualityChecker"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "code_job",
+      "position": {
+        "x": 731,
+        "y": 425
+      },
+      "data": {
+        "label": "extract score",
+        "code": "files/code_examples/data_processor.py",
+        "functionName": "extract_score",
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "condition",
+      "position": {
+        "x": 720,
+        "y": 775
+      },
+      "data": {
+        "label": "check quality threshold",
+        "condition_type": "custom",
+        "expression": "processing_result.quality_score >= 70",
+        "flipped": [
+          true,
+          false
+        ]
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "code_job",
+      "position": {
+        "x": 271,
+        "y": 943
+      },
+      "data": {
+        "label": "transform data",
+        "code": "files/code_examples/data_processor.py",
+        "functionName": "transform_data",
+        "flipped": [
+          true,
+          false
+        ],
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "api_job",
+      "position": {
+        "x": -79,
+        "y": 995
+      },
+      "data": {
+        "label": "enrich with api",
+        "flipped": [
+          true,
+          false
+        ],
+        "headers": {
+          "Accept": "application/json"
+        },
+        "method": "get",
+        "url": "https://api.exchangerate-api.com/v4/latest/USD"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "code_job",
+      "position": {
+        "x": -393,
+        "y": 854
+      },
+      "data": {
+        "label": "merge enriched data",
+        "code": "files/code_examples/data_processor.py",
+        "flipped": [
+          true,
+          false
+        ],
+        "functionName": "enrich_data",
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "code_job",
+      "position": {
+        "x": -550,
+        "y": 950
+      },
+      "data": {
+        "label": "pattern analysis",
+        "code": "files/code_examples/data_processor.py",
+        "functionName": "analyze_patterns",
+        "flipped": [
+          true,
+          false
+        ],
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "person_job",
+      "position": {
+        "x": -722,
+        "y": 1054
+      },
+      "data": {
+        "label": "analyze patterns",
+        "default_prompt": "Analyze these patterns in the enriched data:\n{{enriched_result.patterns}}\n\nProvide insights on:\n1. Key trends\n2. Anomalies\n3. Recommendations\n\nFormat as JSON with sections for each.\n",
+        "flipped": [
+          true,
+          false
+        ],
+        "max_iteration": 1,
+        "memory_profile": "FOCUSED",
+        "person": "person_DataAnalyst",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 20,
+          "preserve_system": true
+        }
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "code_job",
+      "position": {
+        "x": 276,
+        "y": 655
+      },
+      "data": {
+        "label": "handle low quality",
+        "code": "files/code_examples/data_processor.py",
+        "flipped": [
+          true,
+          false
+        ],
+        "functionName": "handle_error",
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_13",
+      "type": "person_job",
+      "position": {
+        "x": -1040,
+        "y": 836
+      },
+      "data": {
+        "label": "generate report",
+        "default_prompt": "Create a comprehensive data processing report combining:\n- Processing summary: {{final_data.enriched_data}}\n- Pattern analysis: {{final_data.analysis}}\n- Quality metrics: Score {{final_data.quality_score}}\n\nFormat as a professional markdown report with sections, tables, and recommendations.\n",
+        "flipped": [
+          true,
+          false
+        ],
+        "max_iteration": 1,
+        "memory_profile": "FULL",
+        "person": "person_ReportWriter",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        }
+      }
+    },
+    {
+      "id": "node_14",
+      "type": "endpoint",
+      "position": {
+        "x": -1305,
+        "y": 657
+      },
+      "data": {
+        "label": "save success report",
+        "file_format": "md",
+        "save_to_file": true,
+        "file_name": "files/results/data_processing_report.md"
+      }
+    },
+    {
+      "id": "node_15",
+      "type": "endpoint",
+      "position": {
+        "x": -869,
+        "y": 638
+      },
+      "data": {
+        "label": "save processed data",
+        "file_format": "json",
+        "save_to_file": true,
+        "file_name": "files/results/processed_data.json"
+      }
+    },
+    {
+      "id": "node_16",
+      "type": "endpoint",
+      "position": {
+        "x": -102,
+        "y": 600
+      },
+      "data": {
+        "label": "save error report",
+        "file_format": "json",
+        "save_to_file": true,
+        "file_name": "files/results/error_report.json"
+      }
+    }
+  ],
+  "arrows": [
+    {
+      "id": "arrow_0",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_1",
+      "source": "node_0_default_output",
+      "target": "node_2_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_0_default_output",
+      "target": "node_3_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_1_default_output",
+      "target": "node_3_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_3_default_output",
+      "target": "node_4_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_4_default_output",
+      "target": "node_5_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_3_default_output",
+      "target": "node_5_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_0_default_output",
+      "target": "node_6_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_6_condtrue_output",
+      "target": "node_7_default_input",
+      "data": {
+        "branch": "true"
+      }
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_7_default_output",
+      "target": "node_8_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_8_default_output",
+      "target": "node_9_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_13",
+      "source": "node_7_default_output",
+      "target": "node_9_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_14",
+      "source": "node_9_default_output",
+      "target": "node_10_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_15",
+      "source": "node_10_default_output",
+      "target": "node_11_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_16",
+      "source": "node_11_default_output",
+      "target": "node_13_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_17",
+      "source": "node_10_default_output",
+      "target": "node_13_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_18",
+      "source": "node_13_default_output",
+      "target": "node_14_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_19",
+      "source": "node_10_default_output",
+      "target": "node_15_default_input",
+      "data": null
+    },
+    {
+      "id": "arrow_20",
+      "source": "node_6_condfalse_output",
+      "target": "node_12_default_input",
+      "data": {
+        "branch": "false"
+      }
+    },
+    {
+      "id": "arrow_21",
+      "source": "node_12_default_output",
+      "target": "node_16_default_input",
+      "data": null
+    }
+  ],
+  "persons": [
+    {
+      "id": "person_DataAnalyst",
+      "label": "dataanalyst",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a data analyst expert. Analyze data patterns and provide insights in JSON format."
+      },
+      "type": "person"
+    },
+    {
+      "id": "person_QualityChecker",
+      "label": "qualitychecker",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a data quality expert. ALWAYS respond with ONLY valid JSON in the exact format {\"score\": number, \"issues\": []}. Never include explanatory text."
+      },
+      "type": "person"
+    },
+    {
+      "id": "person_ReportWriter",
+      "label": "reportwriter",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You write comprehensive data analysis reports in markdown format."
+      },
+      "type": "person"
+    },
+    {
+      "id": "person_Transformer",
+      "label": "transformer",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You transform data according to business rules. Output clean, structured data."
+      },
+      "type": "person"
+    }
+  ],
+  "handles": [
+    {
+      "id": "node_0_default_output",
+      "node_id": "node_0",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_1_default_input",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_1_default_output",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_2_default_input",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_2_default_output",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_3_default_input",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_input",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_output",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_condtrue_output",
+      "node_id": "node_6",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_6_condfalse_output",
+      "node_id": "node_6",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_default_output",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_default_output",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_first_input",
+      "node_id": "node_11",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_12_default_output",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_13_first_input",
+      "node_id": "node_13",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_13_default_input",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_13_default_output",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_14_default_input",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_15_default_input",
+      "node_id": "node_15",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_16_default_input",
+      "node_id": "node_16",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    }
+  ],
+  "metadata": {
+    "name": "diagrams/complex_examples/data_processing_pipeline_fixed.light.yaml",
+    "description": null,
+    "author": null,
+    "tags": null,
+    "created": "2025-07-29T05:17:17.058Z",
+    "modified": "2025-07-29T05:17:17.058Z",
+    "version": "1.0.0",
+    "id": "diagrams/complex_examples/data_processing_pipeline_fixed.light.yaml"
+  }
+}

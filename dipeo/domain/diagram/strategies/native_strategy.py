@@ -26,6 +26,11 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
     # ---- extraction ------------------------------------------------------- #
     def _get_raw_nodes(self, data: dict[str, Any]) -> list[Any]:
         """Get nodes from native format (dict of dicts)."""
+        # Ensure data is a dict
+        if not isinstance(data, dict):
+            log.error(f"Expected dict for data, got {type(data)}: {data}")
+            raise ValueError(f"Invalid data type for native format: expected dict, got {type(data).__name__}")
+        
         nodes_raw = data.get("nodes", {})
 
         # Handle both dict and list formats
@@ -64,30 +69,30 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
         if not isinstance(ndata, dict):
             return None
 
+        # Remove __typename fields that may come from GraphQL
+        cleaned_ndata = self._remove_typename_fields(ndata)
+
         return build_node(
             id=nid,
-            type_=ndata.get("type", "job"),
-            pos=ndata.get("position", {}),
-            **ndata.get("data", {}),
+            type_=cleaned_ndata.get("type", "job"),
+            pos=cleaned_ndata.get("position", {}),
+            **cleaned_ndata.get("data", {}),
         )
 
     # ---- export ----------------------------------------------------------- #
     def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
-        # Export as arrays (matching frontend format) instead of dictionaries
         return {
-            "nodes": [
-                {
-                    "id": n.id,
+            "nodes": {
+                n.id: {
                     "type": n.type,
                     "position": n.position.model_dump(),
                     "data": n.data,
                 }
                 for n in diagram.nodes
-            ],
-            "handles": [h.model_dump(by_alias=True) for h in diagram.handles],
-            "arrows": [
-                {
-                    "id": a.id,
+            },
+            "handles": {h.id: h.model_dump(by_alias=True) for h in diagram.handles},
+            "arrows": {
+                a.id: {
                     "source": a.source,
                     "target": a.target,
                     "data": a.data,
@@ -103,8 +108,8 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
                     **({"label": a.label} if a.label else {}),
                 }
                 for a in diagram.arrows
-            ],
-            "persons": [p.model_dump(by_alias=True) for p in diagram.persons],
+            },
+            "persons": {p.id: p.model_dump(by_alias=True) for p in diagram.persons},
             "metadata": diagram.metadata.model_dump(by_alias=True) if diagram.metadata else None,
         }
 
@@ -114,3 +119,16 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
 
     def quick_match(self, content: str) -> bool:
         return content.lstrip().startswith("{") and '"nodes"' in content
+    
+    def _remove_typename_fields(self, data: Any) -> Any:
+        """Recursively remove __typename fields from data structures."""
+        if isinstance(data, dict):
+            return {
+                k: self._remove_typename_fields(v) 
+                for k, v in data.items() 
+                if k != "__typename"
+            }
+        elif isinstance(data, list):
+            return [self._remove_typename_fields(item) for item in data]
+        else:
+            return data

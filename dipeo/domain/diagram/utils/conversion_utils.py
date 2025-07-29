@@ -127,7 +127,13 @@ class _JsonMixin:
 
     def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
         # Parse JSON content
-        return json.loads(content or "{}")
+        try:
+            result = json.loads(content or "{}")
+            if not isinstance(result, dict):
+                raise ValueError(f"Expected dict from JSON parse, got {type(result).__name__}")
+            return result
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON content: {e}")
 
     def format(self, data: dict[str, Any]) -> str:  # type: ignore[override]
         return json.dumps(data, indent=2, ensure_ascii=False)

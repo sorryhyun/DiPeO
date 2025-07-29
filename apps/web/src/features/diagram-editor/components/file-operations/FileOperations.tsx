@@ -79,17 +79,19 @@ export const FileOperations: React.FC = () => {
   const handleExport = useCallback(async () => {
     try {
       // Use the user-provided name or default
-      const finalName = diagramName.trim() || 'diagram';
+      let finalName = diagramName.trim() || 'diagram';
+      
+      // Check if the user already included the extension
+      const hasExtension = finalName.endsWith('.json') || finalName.endsWith('.yaml') || finalName.endsWith('.yml');
       
       // Generate filename based on format
       const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
-      const filename = `${finalName}.${extension}`;
+      const filename = hasExtension ? finalName : `${finalName}.${extension}`;
       
       // For native format, use the existing saveDiagram function
       if (selectedFormat === DiagramFormat.NATIVE) {
         await saveDiagram(filename, selectedFormat);
-        const formatDir = selectedFormat;
-        toast.success(`Saved to ${formatDir}/${filename}`);
+        toast.success(`Saved as ${filename}`);
         return;
       }
       
@@ -116,19 +118,21 @@ export const FileOperations: React.FC = () => {
         throw new Error('No content returned from conversion');
       }
       
-      // Determine the path based on format
-      const path = `diagrams/${selectedFormat}/${filename}`;
+      
+      // Simply use the filename as the path
+      // The saveDiagram function will prepend 'files/' to it
+      const path = filename;
       
       // Create a File object from the converted content
       const file = new File([convertedContent], filename, { 
         type: 'text/yaml' 
       });
       
-      // Upload the file directly to diagrams/{format}/ directory
+      // Upload the converted file
       const uploadResult = await uploadFileMutation({
         variables: {
           file,
-          path
+          path: filename
         }
       });
       
@@ -136,8 +140,7 @@ export const FileOperations: React.FC = () => {
         throw new Error(uploadResult.data?.upload_file?.error || 'Upload failed');
       }
       
-      // Show success message
-      toast.success(`Saved to ${path}`);
+      toast.success(`Saved as ${filename}`);
     } catch (error) {
       console.error('Export error:', error);
       toast.error(error instanceof Error ? error.message : 'Export failed');

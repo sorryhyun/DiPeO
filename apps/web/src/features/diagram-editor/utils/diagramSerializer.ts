@@ -9,6 +9,7 @@ import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { ConversionService } from '@/core/services/ConversionService';
+import { stripTypenames } from '@/lib/utils';
 
 // The serialized diagram should match the GraphQL schema format
 export interface SerializedDiagram {
@@ -291,13 +292,13 @@ export function serializeDiagram(): SerializedDiagram {
     return cleanPerson as DomainPerson;
   });
 
-  // Return the serialized diagram
-  return {
+  // Return the serialized diagram, stripping __typename fields
+  return stripTypenames({
     nodes: cleanNodes,
     arrows: validArrows,
     persons: cleanPersons,
     handles: validHandles,
     metadata
-  };
+  });
 }
 

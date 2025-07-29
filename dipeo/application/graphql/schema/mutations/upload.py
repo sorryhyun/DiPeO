@@ -62,12 +62,35 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
                 if not path:
                     path = f"uploads/{file.filename}"
                 
-                # Save file
-                await file_service.write_file(path, content)
+                # Split path into directory and filename
+                from pathlib import Path
+                path_obj = Path(path)
+                target_dir = str(path_obj.parent) if path_obj.parent != Path('.') else None
+                target_filename = path_obj.name
+                
+                # Save file using the correct method
+                # Check if this is a diagram file based on extension
+                is_diagram_file = target_filename.endswith(('.json', '.yaml', '.yml', 
+                                                           '.native.json', '.light.yaml', 
+                                                           '.readable.yaml'))
+                
+                result = await file_service.save_file(
+                    content=content,
+                    filename=target_filename,
+                    target_path=target_dir,
+                    create_backup=not is_diagram_file  # Don't create backups for diagram files
+                )
+                
+                # Check if save was successful
+                if not result.get("success", False):
+                    return FileUploadResult(
+                        success=False,
+                        error=result.get("error", "Failed to save file"),
+                    )
                 
                 return FileUploadResult(
                     success=True,
-                    path=path,
+                    path=result.get("path", path),
                     size_bytes=len(content),
                     content_type=file.content_type,
                     message=f"Uploaded file: {file.filename}",

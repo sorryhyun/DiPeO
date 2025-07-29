@@ -93,6 +93,8 @@ class DomainArrowType:
     id: strawberry.auto
     source: strawberry.auto
     target: strawberry.auto
+    content_type: strawberry.auto
+    label: strawberry.auto
     
     @strawberry.field
     def data(self) -> Optional[JSONScalar]:

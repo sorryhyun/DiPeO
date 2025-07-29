@@ -247,7 +247,13 @@ export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagr
   }
   
   if (diagram.arrows) {
-    result.arrows = diagram.arrows;
+    // Ensure arrow properties are preserved during conversion
+    result.arrows = diagram.arrows.map((arrow: any) => ({
+      ...arrow,
+      // Explicitly preserve these properties if they exist
+      content_type: arrow.content_type || arrow.contentType,
+      label: arrow.label,
+    }));
   }
   
   if (diagram.persons) {

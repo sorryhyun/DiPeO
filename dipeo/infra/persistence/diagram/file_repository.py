@@ -95,6 +95,7 @@ class DiagramFileRepository:
         else:
             raise ValueError(f"Unsupported file format: {path}")
 
+        # Write directly without creating backup
         file_path.write_text(content, encoding="utf-8")
 
     async def delete_file(self, path: str) -> None:

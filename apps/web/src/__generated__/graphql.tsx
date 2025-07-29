@@ -77,6 +77,12 @@ export type ApiKeyResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export enum ContentType {
+  CONVERSATION_STATE = 'CONVERSATION_STATE',
+  OBJECT = 'OBJECT',
+  RAW_TEXT = 'RAW_TEXT'
+}
+
 export type CreateApiKeyInput = {
   key: Scalars['String']['input'];
   label: Scalars['String']['input'];
@@ -180,8 +186,10 @@ export type DomainApiKeyType = {
 
 export type DomainArrowType = {
   __typename?: 'DomainArrowType';
+  content_type?: Maybe<ContentType>;
   data?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['String']['output'];
+  label?: Maybe<Scalars['String']['output']>;
   source: Scalars['String']['output'];
   target: Scalars['String']['output'];
 };
@@ -698,7 +706,7 @@ export type GetDiagramQueryVariables = Exact<{
 }>;
 
 
-export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
+export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, data?: any | null, content_type?: ContentType | null, label?: string | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
 
 export type ListDiagramsQueryVariables = Exact<{
   filter?: InputMaybe<DiagramFilterInput>;
@@ -1208,6 +1216,8 @@ export const GetDiagramDocument = gql`
       source
       target
       data
+      content_type
+      label
     }
     persons {
       id
