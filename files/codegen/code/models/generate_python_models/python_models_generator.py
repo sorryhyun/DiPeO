@@ -59,29 +59,75 @@ def parse_ast_data(data):
 
 
 def combine_ast_data(inputs):
-    """Combine multiple AST data sources into a single structure."""
-    # Parse all AST inputs from cache
-    diagram_ast = parse_ast_data(inputs.get('diagram_ast', {}))
-    execution_ast = parse_ast_data(inputs.get('execution_ast', {}))
-    conversation_ast = parse_ast_data(inputs.get('conversation_ast', {}))
-    node_specs_ast = parse_ast_data(inputs.get('node_specs_ast', {}))
-    utils_ast = parse_ast_data(inputs.get('utils_ast', {}))
-    integration_ast = parse_ast_data(inputs.get('integration_ast', {}))
-    node_data_ast = parse_ast_data(inputs.get('node_data_ast', {}))
+    """Combine multiple AST data sources into a single structure.
     
-    # Merge all definitions
-    all_interfaces = []
-    all_types = []
-    all_enums = []
-    all_consts = []
+    Handles two input formats:
+    1. Legacy: Individual inputs with labels (diagram_ast, execution_ast, etc.)
+    2. New: Single input 'ast_files' containing a dictionary of file paths to contents
+    """
+    # Check if we have the new format (single input with multiple files)
+    if 'ast_files' in inputs and isinstance(inputs['ast_files'], dict):
+        # New format: dictionary where keys are file paths and values are file contents
+        file_dict = inputs['ast_files']
+        
+        # Map file names to expected AST types
+        file_mapping = {
+            '.temp/diagram_ast.json': 'diagram_ast',
+            '.temp/execution_ast.json': 'execution_ast',
+            '.temp/conversation_ast.json': 'conversation_ast',
+            '.temp/node_specifications_ast.json': 'node_specs_ast',
+            '.temp/utils_ast.json': 'utils_ast',
+            '.temp/integration_ast.json': 'integration_ast',
+            '.temp/node_data_ast.json': 'node_data_ast'
+        }
+        
+        # Parse each file's content
+        parsed_asts = []
+        for file_path, content in file_dict.items():
+            ast_data = parse_ast_data(content)
+            if ast_data:
+                parsed_asts.append(ast_data)
+                # Log which file we're processing
+                ast_type = file_mapping.get(file_path, file_path)
+                print(f"  Processing {ast_type}: {len(ast_data.get('interfaces', []))} interfaces")
+        
+        # Merge all definitions from parsed ASTs
+        all_interfaces = []
+        all_types = []
+        all_enums = []
+        all_consts = []
+        
+        for ast in parsed_asts:
+            if isinstance(ast, dict):
+                all_interfaces.extend(ast.get('interfaces', []))
+                all_types.extend(ast.get('types', []))
+                all_enums.extend(ast.get('enums', []))
+                # Handle both 'consts' and 'constants' keys for compatibility
+                all_consts.extend(ast.get('consts', []) or ast.get('constants', []))
     
-    for ast in [diagram_ast, execution_ast, conversation_ast, node_specs_ast, utils_ast, integration_ast, node_data_ast]:
-        if isinstance(ast, dict):
-            all_interfaces.extend(ast.get('interfaces', []))
-            all_types.extend(ast.get('types', []))
-            all_enums.extend(ast.get('enums', []))
-            # Handle both 'consts' and 'constants' keys for compatibility
-            all_consts.extend(ast.get('consts', []) or ast.get('constants', []))
+    else:
+        # Legacy format: individual inputs with specific labels
+        diagram_ast = parse_ast_data(inputs.get('diagram_ast', {}))
+        execution_ast = parse_ast_data(inputs.get('execution_ast', {}))
+        conversation_ast = parse_ast_data(inputs.get('conversation_ast', {}))
+        node_specs_ast = parse_ast_data(inputs.get('node_specs_ast', {}))
+        utils_ast = parse_ast_data(inputs.get('utils_ast', {}))
+        integration_ast = parse_ast_data(inputs.get('integration_ast', {}))
+        node_data_ast = parse_ast_data(inputs.get('node_data_ast', {}))
+        
+        # Merge all definitions
+        all_interfaces = []
+        all_types = []
+        all_enums = []
+        all_consts = []
+        
+        for ast in [diagram_ast, execution_ast, conversation_ast, node_specs_ast, utils_ast, integration_ast, node_data_ast]:
+            if isinstance(ast, dict):
+                all_interfaces.extend(ast.get('interfaces', []))
+                all_types.extend(ast.get('types', []))
+                all_enums.extend(ast.get('enums', []))
+                # Handle both 'consts' and 'constants' keys for compatibility
+                all_consts.extend(ast.get('consts', []) or ast.get('constants', []))
     
     result = {
         'interfaces': all_interfaces,

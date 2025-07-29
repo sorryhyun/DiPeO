@@ -7,12 +7,16 @@ delegating to specialized persistence layer components.
 import logging
 from typing import Any
 
+from typing import TYPE_CHECKING
+
 from dipeo.core.ports.diagram_port import DiagramPort
-from dipeo.infra.persistence.diagram import DiagramFileRepository, DiagramLoaderAdapter
 from dipeo.models import DiagramFormat, DomainDiagram
 from dipeo.domain.diagram.services import DiagramFormatService
 from dipeo.infra.diagram.unified_converter import converter_registry
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
+
+if TYPE_CHECKING:
+    from dipeo.infra.persistence.diagram import DiagramFileRepository, DiagramLoaderAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +28,7 @@ class IntegratedDiagramService(DiagramPort):
     delegating actual implementation to specialized adapters.
     """
     
-    def __init__(self, file_repository: DiagramFileRepository, loader_adapter: DiagramLoaderAdapter):
+    def __init__(self, file_repository: "DiagramFileRepository", loader_adapter: "DiagramLoaderAdapter"):
         self.file_repository = file_repository
         self.loader_adapter = loader_adapter
         self.format_service = DiagramFormatService()

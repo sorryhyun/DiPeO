@@ -18,7 +18,7 @@ export const dbSpec: NodeSpecification = {
       name: "file",
       type: "string",
       required: false,
-      description: "File configuration",
+      description: "File configuration (can be a single file path or array of file paths)",
       uiConfig: {
         inputType: "text"
       }

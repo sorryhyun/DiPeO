@@ -21,56 +21,35 @@ nodes:
       passInputData: false
       ignoreIfSub: true
 
-  # Load cached AST data
-  - label: Load Diagram AST
-    type: db
-    position: {x: 400, y: 200}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/diagram_ast.json
-
-  - label: Load Execution AST
-    type: db
-    position: {x: 400, y: 300}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/execution_ast.json
-
-  - label: Load Conversation AST
+  # Load all cached AST data at once
+  - label: Load All AST Files
     type: db
     position: {x: 400, y: 400}
     props:
       operation: read
       sub_type: file
-      source_details: .temp/conversation_ast.json
-
-  - label: Load Enums AST
-    type: db
-    position: {x: 400, y: 500}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/enums_ast.json
-
-  - label: Load Integration AST
-    type: db
-    position: {x: 400, y: 600}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/integration_ast.json
-
-  # Combine all node data AST files
-  - label: Combine Node Data AST
-    type: code_job
-    position: {x: 400, y: 700}
-    props:
-      language: python
-      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
-      functionName: combine_node_data_ast
-
+      serialize_json: true
+      source_details:
+        - .temp/diagram_ast.json
+        - .temp/execution_ast.json
+        - .temp/conversation_ast.json
+        - .temp/enums_ast.json
+        - .temp/integration_ast.json
+        - .temp/start_data_ast.json
+        - .temp/condition_data_ast.json
+        - .temp/person-job_data_ast.json
+        - .temp/code-job_data_ast.json
+        - .temp/api-job_data_ast.json
+        - .temp/endpoint_data_ast.json
+        - .temp/db_data_ast.json
+        - .temp/user-response_data_ast.json
+        - .temp/notion_data_ast.json
+        - .temp/person-batch-job_data_ast.json
+        - .temp/hook_data_ast.json
+        - .temp/template-job_data_ast.json
+        - .temp/json-schema-validator_data_ast.json
+        - .temp/typescript-ast_data_ast.json
+        - .temp/sub-diagram_data_ast.json
 
   # Extract GraphQL types
   - label: Extract GraphQL Types
@@ -79,7 +58,7 @@ nodes:
     props:
       language: python
       filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
-      functionName: extract_graphql_types
+      functionName: extract_graphql_types_from_multi_read
 
   # Load GraphQL template
   - label: Load GraphQL Template
@@ -139,37 +118,12 @@ connections:
   
   # Load cached AST data after parsing
   - from: Parse TypeScript Batch
-    to: Load Diagram AST
-  - from: Parse TypeScript Batch
-    to: Load Execution AST
-  - from: Parse TypeScript Batch
-    to: Load Conversation AST
-  - from: Parse TypeScript Batch
-    to: Load Enums AST
-  - from: Parse TypeScript Batch
-    to: Load Integration AST
-  - from: Parse TypeScript Batch
-    to: Combine Node Data AST
+    to: Load All AST Files
   
   # Extract GraphQL types from cached data
-  - from: Load Diagram AST
+  - from: Load All AST Files
     to: Extract GraphQL Types
-    label: diagram_ast
-  - from: Load Execution AST
-    to: Extract GraphQL Types
-    label: execution_ast
-  - from: Load Conversation AST
-    to: Extract GraphQL Types
-    label: conversation_ast
-  - from: Combine Node Data AST
-    to: Extract GraphQL Types
-    label: node_data_ast
-  - from: Load Enums AST
-    to: Extract GraphQL Types
-    label: enums_ast
-  - from: Load Integration AST
-    to: Extract GraphQL Types
-    label: integration_ast
+    label: all_ast_files
   
   # Prepare template data
   - from: Extract GraphQL Types

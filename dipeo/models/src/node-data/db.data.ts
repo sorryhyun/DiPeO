@@ -6,7 +6,7 @@ import { BaseNodeData } from '../diagram';
 import { DBBlockSubType } from '../enums';
 
 export interface DBNodeData extends BaseNodeData {
-  file?: string;
+  file?: string | string[];
   collection?: string;
   sub_type: DBBlockSubType;
   operation: string;

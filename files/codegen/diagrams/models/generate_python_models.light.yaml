@@ -22,62 +22,21 @@ nodes:
       passInputData: false
       ignoreIfSub: true
 
-  # Load cached AST data
-  - label: Load Diagram AST
-    type: db
-    position: {x: 400, y: 100}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/diagram_ast.json
-
-  - label: Load Execution AST
-    type: db
-    position: {x: 400, y: 200}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/execution_ast.json
-
-  - label: Load Conversation AST
-    type: db
-    position: {x: 400, y: 300}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/conversation_ast.json
-
-  - label: Load Node Specifications AST
+  # Load all cached AST data at once
+  - label: Load All AST Files
     type: db
     position: {x: 400, y: 400}
     props:
       operation: read
       sub_type: file
-      source_details: .temp/node_specifications_ast.json
-
-  - label: Load Utils AST
-    type: db
-    position: {x: 400, y: 500}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/utils_ast.json
-
-  - label: Load Integration AST
-    type: db
-    position: {x: 400, y: 600}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/integration_ast.json
-
-  - label: Load Node Data AST
-    type: db
-    position: {x: 400, y: 700}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/node_data_ast.json
+      source_details:
+        - .temp/diagram_ast.json
+        - .temp/execution_ast.json
+        - .temp/conversation_ast.json
+        - .temp/node_specifications_ast.json
+        - .temp/utils_ast.json
+        - .temp/integration_ast.json
+        - .temp/node_data_ast.json
 
   # Combine all AST data
   - label: Combine AST Data
@@ -137,42 +96,12 @@ connections:
   
   # Load cached AST data after parsing
   - from: Parse TypeScript Batch
-    to: Load Diagram AST
-  - from: Parse TypeScript Batch
-    to: Load Execution AST
-  - from: Parse TypeScript Batch
-    to: Load Conversation AST
-  - from: Parse TypeScript Batch
-    to: Load Node Specifications AST
-  - from: Parse TypeScript Batch
-    to: Load Utils AST
-  - from: Parse TypeScript Batch
-    to: Load Integration AST
-  - from: Parse TypeScript Batch
-    to: Load Node Data AST
+    to: Load All AST Files
   
-  # Combine AST data
-  - from: Load Diagram AST
+  # Pass all AST data to combine
+  - from: Load All AST Files
     to: Combine AST Data
-    label: diagram_ast
-  - from: Load Execution AST
-    to: Combine AST Data
-    label: execution_ast
-  - from: Load Conversation AST
-    to: Combine AST Data
-    label: conversation_ast
-  - from: Load Node Specifications AST
-    to: Combine AST Data
-    label: node_specs_ast
-  - from: Load Utils AST
-    to: Combine AST Data
-    label: utils_ast
-  - from: Load Integration AST
-    to: Combine AST Data
-    label: integration_ast
-  - from: Load Node Data AST
-    to: Combine AST Data
-    label: node_data_ast
+    label: ast_files
   
   # Generate Python models
   - from: Combine AST Data

@@ -70,7 +70,8 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     Args:
         inputs: Dictionary containing:
             - spec_data: Node specification
-            - template_content: Template string
+            - template_content: Template string (legacy)
+            - templates: Dictionary of templates (new format)
             
     Returns:
         Dictionary with:
@@ -78,7 +79,18 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
             - filename: Suggested filename for the output
     """
     spec_data = inputs.get('spec_data', {})
-    template_content = inputs.get('template_content', '')
+    
+    # Handle both legacy and new template formats
+    template_content = ''
+    if 'templates' in inputs and isinstance(inputs['templates'], dict):
+        # New format: find the typescript_model.j2 template
+        for filepath, content in inputs['templates'].items():
+            if filepath.endswith('typescript_model.j2'):
+                template_content = content
+                break
+    else:
+        # Legacy format
+        template_content = inputs.get('template_content', '')
     
     if not spec_data:
         raise ValueError("spec_data is required")
