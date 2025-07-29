@@ -37,7 +37,7 @@ nodes:
         # Apply staged domain model changes to active directory
         if [ -d "dipeo/diagram_generated_staged" ]; then
           echo "Applying staged changes..."
-          cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+          make apply
           echo "✓ Staged changes applied successfully"
         else
           echo "⚠️ No staged directory found"

@@ -9,6 +9,26 @@ def generate_python_code(static_nodes_data: dict) -> str:
     node_classes = static_nodes_data.get('node_classes', [])
     now = static_nodes_data.get('now', datetime.now().isoformat())
     
+    # Collect all enum types used in the node classes
+    used_enums = set(['NodeType'])  # Always include NodeType
+    enum_types = {
+        'HookTriggerMode', 'SupportedLanguage', 'HttpMethod',
+        'DBBlockSubType', 'NotionOperation', 'HookType', 'DiagramFormat',
+        'MemoryProfile', 'ToolSelection'
+    }
+    
+    # Scan all fields to find enum types
+    for node_class in node_classes:
+        for field in node_class['fields']:
+            py_type = field.get('py_type', '')
+            # Check if the type contains any known enum
+            for enum_type in enum_types:
+                if enum_type in py_type:
+                    used_enums.add(enum_type)
+    
+    # Sort enums for consistent output
+    sorted_enums = sorted(used_enums)
+    
     lines = []
     
     # Header
@@ -26,8 +46,12 @@ def generate_python_code(static_nodes_data: dict) -> str:
     lines.append('    Vec2, NodeID, PersonID, MemorySettings, ToolConfig')
     lines.append(')')
     lines.append('from dipeo.diagram_generated.enums import (')
-    lines.append('    NodeType, HookTriggerMode, SupportedLanguage, HttpMethod,')
-    lines.append('    DBBlockSubType, NotionOperation, HookType, DiagramFormat')
+    # Generate enum imports dynamically
+    for i, enum_name in enumerate(sorted_enums):
+        if i == len(sorted_enums) - 1:
+            lines.append(f'    {enum_name}')
+        else:
+            lines.append(f'    {enum_name},')
     lines.append(')')
     lines.append('')
     lines.append('')
@@ -49,7 +73,9 @@ def generate_python_code(static_nodes_data: dict) -> str:
         'hook_type': 'HookType',
         'operation': 'NotionOperation',  # Note: This is for NotionNode, not DBNode
         'trigger_mode': 'HookTriggerMode',
-        'diagram_format': 'DiagramFormat'
+        'diagram_format': 'DiagramFormat',
+        'memory_profile': 'MemoryProfile',
+        'tools': 'ToolSelection'
     }
     
     # Base class

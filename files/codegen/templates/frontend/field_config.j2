@@ -45,6 +45,9 @@ export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
 {%- if field.uiConfig.readOnly %}
     readOnly: {{ field.uiConfig.readOnly | lower }},
 {%- endif %}
+{%- if field.uiConfig.adjustable %}
+    adjustable: {{ field.uiConfig.adjustable | lower }},
+{%- endif %}
 {%- if field.uiConfig.options %}
     options: [
 {%- for option in field.uiConfig.options %}

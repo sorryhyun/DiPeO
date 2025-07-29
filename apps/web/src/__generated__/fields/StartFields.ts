@@ -8,10 +8,6 @@ export const startFields: UnifiedFieldDefinition[] = [
     label: 'Custom Data',
     required: false,
     description: 'Custom data to pass when manually triggered',
-    conditional: {
-      field: 'trigger_mode',
-      values: ['manual']
-    }
   },
   {
     name: 'hook_event',
@@ -20,10 +16,6 @@ export const startFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: 'e.g., webhook.received, file.uploaded',
     description: 'Event name to listen for',
-    conditional: {
-      field: 'trigger_mode',
-      values: ['hook']
-    }
   },
   {
     name: 'hook_filters',
@@ -31,10 +23,6 @@ export const startFields: UnifiedFieldDefinition[] = [
     label: 'Hook Filters',
     required: false,
     description: 'Filters to apply to incoming events',
-    conditional: {
-      field: 'trigger_mode',
-      values: ['hook']
-    }
   },
   {
     name: 'output_data_structure',
@@ -42,10 +30,6 @@ export const startFields: UnifiedFieldDefinition[] = [
     label: 'Output Data Structure',
     required: false,
     description: 'Expected output data structure',
-    conditional: {
-      field: 'trigger_mode',
-      values: ['manual']
-    }
   },
   {
     name: 'trigger_mode',

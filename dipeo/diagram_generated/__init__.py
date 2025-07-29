@@ -141,6 +141,14 @@ __all__ = [
     "MemorySettings",
     "PersonLLMConfig",
 
+    # Functions from handle_utils
+    "create_handle_id",
+    "parse_handle_id",
+    "parse_handle_id_safe",
+    "extract_node_id_from_handle",
+    "is_valid_handle_id",
+
+
     # Other models
     "BaseNodeData",
     "InteractivePromptData",

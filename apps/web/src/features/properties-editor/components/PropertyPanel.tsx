@@ -302,6 +302,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         persons={getUnifiedFieldType(fieldConfig) === FIELD_TYPES.PERSON_SELECT ? personsForSelect : undefined}
         showFieldKey={false}
         showPromptFileButton={fieldConfig.showPromptFileButton}
+        adjustable={fieldConfig.adjustable}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);
@@ -344,7 +345,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         <div className="flex items-center space-x-2 flex-1">
           <span>{nodeConfig?.icon || '⚙️'}</span>
           <h3 className="text-lg font-semibold whitespace-nowrap">
-            {nodeConfig?.label || panelConfig?.title || `${nodeType}`} Properties
+            {nodeConfig?.label || `${nodeType}`} Properties
           </h3>
           {/* Universal label field for all nodes */}
           {(entityType === 'node' || entityType === 'arrow') && (

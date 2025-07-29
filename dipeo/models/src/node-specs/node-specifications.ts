@@ -53,6 +53,7 @@ export interface UIConfiguration {
   min?: number;    // For number input
   max?: number;    // For number input
   showPromptFileButton?: boolean;  // Show button to load prompt from file
+  adjustable?: boolean;  // Allow field to be resized
 }
 
 /**

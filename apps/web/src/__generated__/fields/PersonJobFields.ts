@@ -11,6 +11,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     description: 'Default Prompt configuration',
     rows: 10,
     column: 2,
+    adjustable: true,
   },
   {
     name: 'first_only_prompt',
@@ -21,6 +22,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     description: 'First Only Prompt configuration',
     rows: 10,
     column: 2,
+    adjustable: true,
   },
   {
     name: 'max_iteration',
@@ -59,10 +61,6 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     label: 'Memory Settings',
     required: false,
     description: 'Memory Settings configuration (only used when memory_profile is CUSTOM)',
-    conditional: {
-      field: 'memory_profile',
-      values: ['CUSTOM']
-    },
     nestedFields: [
       {
         name: 'view',

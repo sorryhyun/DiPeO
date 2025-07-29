@@ -60,6 +60,7 @@ export interface BasePanelFieldConfig {
   labelPlaceholder?: string;
   personPlaceholder?: string;
   showPromptFileButton?: boolean;
+  adjustable?: boolean;
 }
 
 export interface TypedPanelFieldConfig<T = unknown> extends BasePanelFieldConfig {
@@ -174,6 +175,11 @@ export class FieldConfigBuilder<T extends Record<string, unknown> = Record<strin
 
   showPromptFileButton(show = true): this {
     this.config.showPromptFileButton = show;
+    return this;
+  }
+
+  adjustable(adjustable = true): this {
+    this.config.adjustable = adjustable;
     return this;
   }
 

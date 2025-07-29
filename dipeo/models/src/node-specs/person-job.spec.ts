@@ -32,7 +32,8 @@ export const personJobSpec: NodeSpecification = {
         inputType: "textarea",
         placeholder: "Enter prompt template...",
         column: 2,
-        rows: 10
+        rows: 10,
+        adjustable: true
       }
     },
     {
@@ -44,7 +45,8 @@ export const personJobSpec: NodeSpecification = {
         inputType: "textarea",
         placeholder: "Enter prompt template...",
         column: 2,
-        rows: 10
+        rows: 10,
+        adjustable: true
       }
     },
     {
