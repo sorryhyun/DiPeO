@@ -54,3 +54,9 @@ jobs:
 
     - name: Type check TypeScript
       run: pnpm typecheck
+
+    - name: Lint Python code
+      run: make lint-server
+
+    - name: Lint TypeScript code  
+      run: make lint-web

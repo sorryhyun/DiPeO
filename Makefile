@@ -1,6 +1,6 @@
 # DiPeO Makefile
 
-.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema lint-imports diff-staged apply backup-generated
+.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema diff-staged apply backup-generated
 
 # Default target
 help:
@@ -14,7 +14,6 @@ help:
 	@echo "  make dev-web      - Run frontend server"
 	@echo "  make graphql-schema - Export GraphQL schema from server"
 	@echo "  make lint-{server, web, cli} - Run linters"
-	@echo "  make lint-imports - Check import dependencies"
 	@echo "  make format       - Format all code"
 	@echo "  make clean        - Clean generated files"
 	@echo ""
@@ -112,11 +111,6 @@ lint-cli:
 		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
 	@cd apps/cli && mypy src || true
-
-# Import linting
-lint-imports:
-	@echo "🔍 Checking import dependencies..."
-	@lint-imports || (echo "❌ Import violations found!" && exit 1)
 
 # Formatting
 format:
