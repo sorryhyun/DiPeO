@@ -71,6 +71,23 @@ export interface UseExecutionReturn {
   nodes?: Array<any>;
 }
 
+// Helper to clean GraphQL data for backend consumption
+function cleanGraphQLData(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(cleanGraphQLData);
+  }
+  if (obj && typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // Skip __typename fields
+      if (key === '__typename') continue;
+      cleaned[key] = cleanGraphQLData(value);
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 // Main Hook
 export function useExecution(options: UseExecutionOptions = {}): UseExecutionReturn {
   const {
@@ -126,16 +143,23 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     try {
       // Prepare diagram data for execution
       const diagramData = diagram ? {
-        nodes: diagram.nodes.reduce((acc: Record<string, unknown>, node) => ({ ...acc, [node.id]: node }), {}),
-        arrows: diagram.arrows.reduce((acc: Record<string, unknown>, arrow) => ({ ...acc, [arrow.id]: arrow }), {}),
-        persons: diagram.persons.reduce((acc: Record<string, unknown>, person) => ({ ...acc, [person.id]: person }), {}),
-        handles: diagram.handles?.reduce((acc: Record<string, unknown>, handle) => ({ ...acc, [handle.id]: handle }), {}) || {},
-        metadata: diagram.metadata
+        nodes: diagram.nodes.reduce((acc: Record<string, unknown>, node) => {
+          const cleanedNode = cleanGraphQLData(node);
+          // Convert node type to lowercase
+          if (cleanedNode.type) {
+            cleanedNode.type = cleanedNode.type.toLowerCase();
+          }
+          return { ...acc, [node.id]: cleanedNode };
+        }, {}),
+        arrows: diagram.arrows.reduce((acc: Record<string, unknown>, arrow) => ({ ...acc, [arrow.id]: cleanGraphQLData(arrow) }), {}),
+        persons: diagram.persons.reduce((acc: Record<string, unknown>, person) => ({ ...acc, [person.id]: cleanGraphQLData(person) }), {}),
+        handles: diagram.handles?.reduce((acc: Record<string, unknown>, handle) => ({ ...acc, [handle.id]: cleanGraphQLData(handle) }), {}) || {},
+        metadata: cleanGraphQLData(diagram.metadata)
       } : null;
 
       const result = await graphql.executeDiagram({
         variables: {
-          data: {
+          input: {
             diagram_data: diagramData,
             diagram_id: diagramData ? undefined : diagram?.metadata?.id || diagramId('current'),
             variables: (options as ExecutionOptions & { variables?: Record<string, unknown> })?.variables || {},
@@ -171,7 +195,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     try {
       await graphql.controlExecution({
         variables: {
-          data: {
+          input: {
             execution_id: executionIdRef.current,
             action,
             node_id: nodeIdStr
@@ -212,7 +236,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     try {
       await graphql.submitInteractiveResponse({
         variables: {
-          data: {
+          input: {
             executionId: executionIdRef.current,
             nodeId: interactivePrompt.nodeId,
             response

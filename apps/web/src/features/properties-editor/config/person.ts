@@ -33,7 +33,11 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
         });
         // Filter to only show LLM service API keys
         return data.api_keys
-          .filter((key) => isLLMService(key.service as any))
+          .filter((key) => {
+            // Convert uppercase enum name to lowercase for comparison
+            const serviceLowercase = key.service.toLowerCase();
+            return isLLMService(serviceLowercase as any);
+          })
           .map((key) => ({
             value: key.id,
             label: `${key.label} (${key.service})`

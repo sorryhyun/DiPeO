@@ -115,7 +115,7 @@ def create_api_key_mutations(registry: UnifiedServiceRegistry) -> type:
                 # Test the API key
                 try:
                     models = await llm_service.get_available_models(
-                        api_key.service, api_key.key
+                        api_key_id
                     )
                     
                     return TestApiKeyResult(

@@ -79,7 +79,7 @@ export const FileOperations: React.FC = () => {
   const handleExport = useCallback(async () => {
     try {
       // Use the user-provided name or default
-      let finalName = diagramName.trim() || 'diagram';
+      const finalName = diagramName.trim() || 'diagram';
       
       // Check if the user already included the extension
       const hasExtension = finalName.endsWith('.json') || finalName.endsWith('.yaml') || finalName.endsWith('.yml');

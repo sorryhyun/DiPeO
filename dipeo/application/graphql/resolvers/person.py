@@ -10,7 +10,7 @@ from dipeo.diagram_generated.domain_models import (
     DomainApiKey
 )
 from dipeo.core.dynamic import PersonManager
-from dipeo.core.ports import APIKeyPort
+from dipeo.core.ports import SupportsAPIKey
 from dipeo.infra.llm import LLMInfraService
 
 from ..types.inputs import PersonLLMConfigInput
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Service keys
 PERSON_MANAGER = ServiceKey[PersonManager]("person_manager")
-APIKEY_SERVICE = ServiceKey[APIKeyPort]("apikey_service")
+APIKEY_SERVICE = ServiceKey[SupportsAPIKey]("apikey_service")
 LLM_SERVICE = ServiceKey[LLMInfraService]("llm_service")
 
 
@@ -105,8 +105,10 @@ class PersonResolver:
         """List API keys, optionally filtered by service."""
         try:
             apikey_service = self.registry.require(APIKEY_SERVICE)
+            logger.debug(f"Got apikey_service: {apikey_service}")
             # list_api_keys is not async and returns list of dicts
             api_keys = apikey_service.list_api_keys()
+            logger.debug(f"Got {len(api_keys)} API keys from service")
             
             # Convert to DomainApiKey objects
             domain_keys = []
@@ -139,7 +141,7 @@ class PersonResolver:
             
             # Get available models from LLM service
             llm_service = self.registry.require(LLM_SERVICE)
-            models = await llm_service.get_available_models(service, api_key.key)
+            models = await llm_service.get_available_models(api_key_id)
             
             return models
             

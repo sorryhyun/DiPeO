@@ -27,7 +27,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   // Get execution hook
   const execution = useExecution({ showToasts: true });
   
-  // Get diagram loading state
+  // Get diagram loading state - but this won't load in execution mode without monitor mode anymore
   const { hasLoaded, diagramId } = useDiagramLoader();
   
   // Get diagram data from store

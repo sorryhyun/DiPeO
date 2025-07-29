@@ -29,6 +29,9 @@ export function useDiagramLoader() {
   // Track what diagram we've actually loaded to prevent reloads
   const loadedDiagramIdRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
+  
+  // Get activeCanvas to check if we're in execution mode
+  const activeCanvas = useUnifiedStore(state => state.activeCanvas);
 
   // Parse diagram parameter from URL
   const parseDiagramParam = (diagramParam: string | null): { id: string | null; format: DiagramFormat | null } => {
@@ -74,6 +77,14 @@ export function useDiagramLoader() {
     const checkUrl = () => {
       const params = new URLSearchParams(window.location.search);
       const diagramParam = params.get('diagram');
+      const isMonitorMode = params.get('monitor') === 'true' || !!params.get('executionId');
+      
+      // Skip URL-based loading if we're in execution mode but NOT monitor mode
+      // This prevents reloading when user enters execution mode to run the canvas diagram
+      if (activeCanvas === 'execution' && !isMonitorMode) {
+        return;
+      }
+      
       const { id, format } = parseDiagramParam(diagramParam);
       
       // Only proceed if diagram ID is different from what we've loaded
@@ -90,13 +101,23 @@ export function useDiagramLoader() {
     // Listen for URL changes
     window.addEventListener('popstate', checkUrl);
     return () => window.removeEventListener('popstate', checkUrl);
-  }, []); // No dependencies - we want this to run once
+  }, [activeCanvas]); // Add activeCanvas as dependency
+
+  // Check if we should skip diagram loading
+  const isMonitorMode = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('monitor') === 'true' || !!params.get('executionId');
+  };
+  
+  const shouldSkipLoading = !diagramIdFromUrl || 
+    loadedDiagramIdRef.current === diagramIdFromUrl ||
+    (activeCanvas === 'execution' && !isMonitorMode());
 
   // Query for diagram data using factory-generated hook
   const { data, loading, error } = useDiagramQuery(
     { id: diagramId(diagramIdFromUrl || '') },
     { 
-      skip: !diagramIdFromUrl || loadedDiagramIdRef.current === diagramIdFromUrl,
+      skip: shouldSkipLoading,
       // Custom error handling
       onError: (error) => {
         console.error('Failed to fetch diagram:', error);
@@ -119,6 +140,11 @@ export function useDiagramLoader() {
   useEffect(() => {
     // Skip if already loaded this diagram
     if (loadedDiagramIdRef.current === diagramIdFromUrl) {
+      return;
+    }
+    
+    // Also skip if we're in execution mode but not monitor mode
+    if (activeCanvas === 'execution' && !isMonitorMode()) {
       return;
     }
     
@@ -229,7 +255,7 @@ export function useDiagramLoader() {
       // Cleanup timer on unmount or when dependencies change
       return () => clearTimeout(loadTimer);
     }
-  }, [data, loading, diagramIdFromUrl, diagramFormatFromUrl]);
+  }, [data, loading, diagramIdFromUrl, diagramFormatFromUrl, activeCanvas]);
 
   return {
     isLoading: loading || isLoading,
