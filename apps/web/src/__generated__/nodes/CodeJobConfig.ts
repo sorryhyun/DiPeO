@@ -10,10 +10,10 @@ export const codeJobConfig: UnifiedNodeConfig = {
   category: 'compute',
   handles: {
     input: [
-      { id: 'input', label: '', position: 'left' },
+      { id: 'data', label: '', position: 'left' },
     ],
     output: [
-      { id: 'output', label: '', position: 'right' },
+      { id: 'result', label: '', position: 'right' },
     ],
   },
   defaults: {

@@ -13,7 +13,7 @@ import { usePropertyManager } from '../hooks';
 import { UnifiedFormField, type FieldValue, type UnifiedFieldType } from './fields';
 import { Form, FormRow, TwoColumnPanelLayout, SingleColumnPanelLayout } from './fields/FormComponents';
 import { apolloClient } from '@/lib/graphql/client';
-import { GetApiKeysDocument, InitializeModelDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
+import { GetApiKeysDocument, UpdatePersonDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
 
 // Union type for all possible data types
 type NodeData = Dict & { type: string };
@@ -186,23 +186,24 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         return;
       }
       
-      // Initialize the model directly without requiring saved diagram
+      // Update the person's model directly without requiring saved diagram
       try {
         const personData = data as DomainPerson;
-        const { data: initResult } = await apolloClient.mutate({
-          mutation: InitializeModelDocument,
+        const { data: updateResult } = await apolloClient.mutate({
+          mutation: UpdatePersonDocument,
           variables: { 
-            personId: entityId,
-            apiKeyId: apiKeyIdStr,
-            model: value as string,
-            label: personData.label || ''
+            id: entityId,
+            input: {
+              api_key_id: apiKeyIdStr,
+              default_model: value as string
+            }
           }
         });
         
-        if (!initResult?.initialize_model?.success) {
-          console.error('Failed to initialize model:', initResult?.initialize_model?.error);
+        if (!updateResult?.update_person?.success) {
+          console.error('Failed to update model:', updateResult?.update_person?.message);
         } else {
-          console.log('Model initialized successfully:', value);
+          console.log('Model updated successfully:', value);
         }
       } catch (error) {
         console.error('Error initializing model:', error);

@@ -27,7 +27,6 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, Domai
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, HandleLabel, createHandleId, parseHandleId } from '@dipeo/domain-models';
-import { ContentType } from '@/__generated__/graphql';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 import { ConversionService } from '@/core/services/ConversionService';
 
@@ -62,7 +61,7 @@ export interface DiPeoEdge extends Edge {
   data?: {
     label?: string;
     dataType?: string;
-    content_type?: ContentType | null;
+    content_type?: string | null;
   };
 }
 
@@ -297,7 +296,7 @@ export class DiagramAdapter {
     
     // Add content_type and label as direct fields if present
     if (content_type !== undefined && content_type !== null) {
-      domainArrow.content_type = content_type as ContentType;
+      (domainArrow as any).content_type = content_type;
     }
     if (label !== undefined && label !== null && typeof label === 'string') {
       domainArrow.label = label;

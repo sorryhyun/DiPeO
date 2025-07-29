@@ -114,11 +114,6 @@ class ExecuteDiagramUseCase(BaseService):
         # Start execution in background
         async def run_execution():
             try:
-                import logging
-
-                logger = logging.getLogger(__name__)
-                logger.debug("Starting engine execution")
-                
                 # Update state to running
                 state = await self.state_store.get_state(execution_id)
                 if state:
@@ -134,9 +129,7 @@ class ExecuteDiagramUseCase(BaseService):
                     interactive_handler,
                 ):
                     pass  # Engine uses observers for updates
-                    
-                logger.debug("Engine execution completed")
-                
+
                 # Finalize execution state as completed
                 await self._finalize_execution_state(execution_id, ExecutionStatus.COMPLETED)
                 

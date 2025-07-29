@@ -9,16 +9,16 @@ import { DiagramFormat } from '@dipeo/domain-models';
 import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
 import { createEntityMutation } from '@/lib/graphql/hooks';
 import { 
-  ConvertDiagramDocument,
-  type ConvertDiagramMutation,
-  type ConvertDiagramMutationVariables
+  ConvertDiagramFormatDocument,
+  type ConvertDiagramFormatMutation,
+  type ConvertDiagramFormatMutationVariables
 } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // Create the mutation hook using factory pattern
-const useConvertDiagramMutation = createEntityMutation<ConvertDiagramMutation, ConvertDiagramMutationVariables>({
+const useConvertDiagramMutation = createEntityMutation<ConvertDiagramFormatMutation, ConvertDiagramFormatMutationVariables>({
   entityName: 'Diagram',
-  document: ConvertDiagramDocument,
+  document: ConvertDiagramFormatDocument,
   silent: true, // We handle our own toast messages
 });
 
@@ -112,7 +112,7 @@ export const useFileOperations = () => {
     setIsProcessing(true);
     try {
       // Serialize the current diagram state
-      const diagramContent = serializeDiagram();
+      const diagramContent = JSON.stringify(serializeDiagram());
       
       // Use the regular upload for all saves
       const actualFilename = filename || 'diagram.json';
@@ -158,25 +158,25 @@ export const useFileOperations = () => {
     setIsProcessing(true);
     try {
       // Serialize the current diagram state
-      const diagramContent = serializeDiagram();
+      const diagramContent = JSON.stringify(serializeDiagram());
       
       // Export via GraphQL - convert format to uppercase for GraphQL enum
       const { data } = await convertDiagram({
         variables: {
           content: diagramContent,
-          targetFormat: format,
-          includeMetadata
+          fromFormat: DiagramFormat.NATIVE,
+          toFormat: format
         }
       });
       
-      if (!data?.convert_diagram.success) {
-        throw new Error(data?.convert_diagram.error || 'Failed to convert diagram');
+      if (!data?.convert_diagram_format.success) {
+        throw new Error(data?.convert_diagram_format.error || 'Failed to convert diagram');
       }
       
-      const exportResult = data.convert_diagram;
+      const exportResult = data.convert_diagram_format;
       
       // Determine filename
-      const actualFilename = filename || exportResult.filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`;
+      const actualFilename = filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`;
       
       // Download the file
       if (exportResult.content) {
@@ -187,7 +187,7 @@ export const useFileOperations = () => {
       return {
         success: true,
         filename: actualFilename,
-        format: exportResult.format
+        format: exportResult.format || format
       };
     } catch (error) {
       console.error('[Export diagram]', error);
@@ -206,26 +206,26 @@ export const useFileOperations = () => {
     includeMetadata: boolean = true
   ): Promise<{ content: string; format: string; filename: string }> => {
     try {
-      const diagramContent = serializeDiagram();
+      const diagramContent = JSON.stringify(serializeDiagram());
       
       const { data } = await convertDiagram({
         variables: {
           content: diagramContent,
-          targetFormat: format,
-          includeMetadata
+          fromFormat: DiagramFormat.NATIVE,
+          toFormat: format
         }
       });
       
-      if (!data?.convert_diagram.success) {
-        throw new Error(data?.convert_diagram.error || 'Failed to convert diagram');
+      if (!data?.convert_diagram_format.success) {
+        throw new Error(data?.convert_diagram_format.error || 'Failed to convert diagram');
       }
       
-      const result = data.convert_diagram;
+      const result = data.convert_diagram_format;
       
       return {
         content: result.content || '',
         format: result.format || format,
-        filename: result.filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`
+        filename: `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`
       };
     } catch (error) {
       console.error('[Convert format]', error);

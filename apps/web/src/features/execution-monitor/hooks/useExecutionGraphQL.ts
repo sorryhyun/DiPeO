@@ -4,7 +4,7 @@ import {
   InteractivePromptsDocument,
   ExecuteDiagramDocument,
   ControlExecutionDocument,
-  SubmitInteractiveResponseDocument,
+  SendInteractiveResponseDocument,
 } from '@/__generated__/graphql';
 import { createEntityMutation, createEntitySubscription } from '@/lib/graphql/hooks';
 
@@ -32,7 +32,7 @@ const useControlExecutionMutation = createEntityMutation({
 
 const useSubmitInteractiveResponseMutation = createEntityMutation({
   entityName: 'Execution',
-  document: SubmitInteractiveResponseDocument,
+  document: SendInteractiveResponseDocument,
   silent: true // Custom handling in component
 });
 

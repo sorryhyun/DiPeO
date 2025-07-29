@@ -7,7 +7,6 @@ import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { getNodeConfig } from '../config/nodes';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat } from '@dipeo/domain-models';
-import { ContentType } from '@/__generated__/graphql';
 
 export interface DiagramSlice {
   // Core data structures
@@ -147,13 +146,13 @@ export const createDiagramSlice: StateCreator<
   // Arrow operations
   addArrow: (source, target, data) => {
     // Extract content_type and label from data if present
-    let content_type: ContentType | undefined;
+    let content_type: string | undefined;
     let label: string | undefined;
     let arrowData = data;
     
     if (data) {
       const { content_type: ct, label: l, ...restData } = data;
-      content_type = ct as ContentType | undefined;
+      content_type = typeof ct === 'string' ? ct : undefined;
       label = l as string | undefined;
       arrowData = Object.keys(restData).length > 0 ? restData : undefined;
     }
@@ -177,7 +176,7 @@ export const createDiagramSlice: StateCreator<
     
     // Add optional fields only if they have actual values
     if (content_type !== undefined && content_type !== null) {
-      arrow.content_type = content_type;
+      (arrow as any).content_type = content_type;
     }
     if (label !== undefined && label !== null) {
       arrow.label = label;

@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/shared/components/forms/buttons/Button';
 import { Select } from '@/shared/components/forms/Select';
 import { 
-  useConvertDiagramMutation,
+  useConvertDiagramFormatMutation,
   useUploadFileMutation
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
@@ -16,7 +16,7 @@ export const FileOperations: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   const [diagramName, setDiagramName] = useState<string>('diagram');
 
-  const [convertDiagramMutation] = useConvertDiagramMutation();
+  const [convertDiagramMutation] = useConvertDiagramFormatMutation();
   const [uploadFileMutation] = useUploadFileMutation();
   const { saveDiagram } = useFileOperations();
 
@@ -95,29 +95,29 @@ export const FileOperations: React.FC = () => {
       
       // For light and readable formats, use convert + upload approach
       // First, serialize the current diagram state
-      const diagramContent = serializeDiagram();
+      const diagramContent = JSON.stringify(serializeDiagram());
       
       // Convert diagram to the desired format
       const convertResult = await convertDiagramMutation({
         variables: {
           content: diagramContent,
-          targetFormat: selectedFormat,
-          includeMetadata: true
+          fromFormat: DiagramFormat.NATIVE,
+          toFormat: selectedFormat
         }
       });
       
-      if (!convertResult.data?.convert_diagram?.success) {
-        throw new Error(convertResult.data?.convert_diagram?.error || 'Conversion failed');
+      if (!convertResult.data?.convert_diagram_format?.success) {
+        throw new Error(convertResult.data?.convert_diagram_format?.error || 'Conversion failed');
       }
       
       // Get the converted content
-      const convertedContent = convertResult.data.convert_diagram.content;
+      const convertedContent = convertResult.data.convert_diagram_format.content;
       if (!convertedContent) {
         throw new Error('No content returned from conversion');
       }
       
-      // Determine the category based on format
-      const category = `diagrams/${selectedFormat}`;
+      // Determine the path based on format
+      const path = `diagrams/${selectedFormat}/${filename}`;
       
       // Create a File object from the converted content
       const file = new File([convertedContent], filename, { 
@@ -128,7 +128,7 @@ export const FileOperations: React.FC = () => {
       const uploadResult = await uploadFileMutation({
         variables: {
           file,
-          category
+          path
         }
       });
       
@@ -137,7 +137,7 @@ export const FileOperations: React.FC = () => {
       }
       
       // Show success message
-      toast.success(`Saved to ${category}/${filename}`);
+      toast.success(`Saved to ${path}`);
     } catch (error) {
       console.error('Export error:', error);
       toast.error(error instanceof Error ? error.message : 'Export failed');

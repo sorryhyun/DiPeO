@@ -80,7 +80,6 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         template_content = inputs.get('template_content', '')
         
         # Debug logging
-        print(f"[Field Config Debug] Type of spec_data: {type(spec_data)}")
         if isinstance(spec_data, str):
             print(f"[Field Config Debug] spec_data is string: {spec_data[:100]}...")
         

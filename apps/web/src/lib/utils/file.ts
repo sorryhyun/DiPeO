@@ -105,13 +105,13 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
 }> => {
   try {
     // All diagrams now use the same directory with format-specific extensions
-    const category = 'diagrams/';
+    const path = `diagrams/${file.name}`;
     
     const { data } = await apolloClient.mutate<UploadFileMutation, UploadFileMutationVariables>({
       mutation: UploadFileDocument,
       variables: {
         file,
-        category
+        path
       }
     });
     
@@ -163,7 +163,7 @@ export const uploadFile = async (
           contentBase64,
           contentType
         },
-        category: 'uploads'
+        path: `uploads/${filename}`
       }
     });
     
