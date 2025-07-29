@@ -56,6 +56,15 @@ export interface UIConfiguration {
 }
 
 /**
+ * Conditional display configuration
+ */
+export interface ConditionalConfig {
+  field: string;  // Field name to check
+  values: any[];  // Values that make this field visible
+  operator?: 'equals' | 'notEquals' | 'includes';  // Default: 'includes'
+}
+
+/**
  * Field specification defining a single field in a node
  */
 export interface FieldSpecification {
@@ -68,6 +77,7 @@ export interface FieldSpecification {
   uiConfig: UIConfiguration;
   nestedFields?: FieldSpecification[];  // For object types
   affects?: string[];  // Other fields affected by this field's value
+  conditional?: ConditionalConfig;  // Show/hide field based on another field's value
 }
 
 /**

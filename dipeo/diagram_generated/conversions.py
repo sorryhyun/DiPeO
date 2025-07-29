@@ -1,5 +1,5 @@
 """
-Auto-generated 2025-07-29T12:08:13.284673. Do NOT edit by hand.
+Auto-generated 2025-07-29T15:13:47.290872. Do NOT edit by hand.
 Source of truth: `conversions.ts`
 """
 
@@ -35,10 +35,8 @@ NODE_TYPE_MAP: Dict[str, NodeType] = {
 NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.items()}
 
 def node_kind_to_domain_type(kind: str) -> NodeType:
-    # Handle both uppercase and lowercase node kinds
-    normalized_kind = kind.lower()
     try:
-        return NODE_TYPE_MAP[normalized_kind]
+        return NODE_TYPE_MAP[kind]
     except KeyError as exc:
         raise ValueError(f"Unknown node kind: {kind}") from exc
 

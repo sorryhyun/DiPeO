@@ -23,8 +23,7 @@ class StartNode:
     position: Vec2
     
     # Required node-specific fields
-    custom_data: str
-    output_data_structure: Dict[str, Any]
+    trigger_mode: HookTriggerMode
     
     # Optional base fields
     label: str = ""
@@ -35,7 +34,8 @@ class StartNode:
     type: NodeType = field(default=NodeType.START, init=False)
     
     # Optional node-specific fields
-    trigger_mode: HookTriggerMode = None
+    custom_data: str = ""
+    output_data_structure: Dict[str, Any] = field(default_factory=dict)
     hook_event: str = ""
     hook_filters: Dict[str, Any] = field(default_factory=dict)
 
@@ -52,9 +52,9 @@ class StartNode:
             data["metadata"] = self.metadata
             
         # Add node-specific fields
+        data["trigger_mode"] = self.trigger_mode
         data["custom_data"] = self.custom_data
         data["output_data_structure"] = self.output_data_structure
-        data["trigger_mode"] = self.trigger_mode
         data["hook_event"] = self.hook_event
         data["hook_filters"] = self.hook_filters
         return data

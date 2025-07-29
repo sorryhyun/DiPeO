@@ -33,9 +33,15 @@ def setup_node_batch(inputs: Dict[str, Any]) -> Dict[str, Any]:
     os.makedirs(temp_dir, exist_ok=True)
     
     # Create array of inputs for batch processing
-    # Each item needs to have default key for sub_diagram batch processing
+    # Match the pattern used in working batch examples
+    items = [{'node_type': node_type} for node_type in node_types]
+    
+    # Debug output
+    print(f"[setup_node_batch] Created {len(items)} batch items")
+    print(f"[setup_node_batch] First 3 items: {items[:3]}")
+    
     result = {
-        'items': [{'default': {'node_type': node_type}} for node_type in node_types],
+        'items': items,
         'node_types': node_types,
         'temp_dir': temp_dir
     }

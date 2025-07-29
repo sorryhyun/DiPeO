@@ -15,10 +15,32 @@ export const startSpec: NodeSpecification = {
   
   fields: [
     {
+      name: "trigger_mode",
+      type: "enum",
+      required: true,
+      defaultValue: "none",
+      description: "How this start node is triggered",
+      validation: {
+        allowedValues: ["none", "manual", "hook"]
+      },
+      uiConfig: {
+        inputType: "select",
+        options: [
+          { value: "none", label: "None - Simple start point" },
+          { value: "manual", label: "Manual - Triggered manually with data" },
+          { value: "hook", label: "Hook - Triggered by external events" }
+        ]
+      }
+    },
+    {
       name: "custom_data",
       type: "string",
-      required: true,
-      description: "Custom Data configuration",
+      required: false,
+      description: "Custom data to pass when manually triggered",
+      conditional: {
+        field: "trigger_mode",
+        values: ["manual"]
+      },
       uiConfig: {
         inputType: "text"
       }
@@ -26,43 +48,40 @@ export const startSpec: NodeSpecification = {
     {
       name: "output_data_structure",
       type: "object",
-      required: true,
-      description: "Output Data Structure configuration",
+      required: false,
+      description: "Expected output data structure",
+      conditional: {
+        field: "trigger_mode",
+        values: ["manual"]
+      },
       uiConfig: {
         inputType: "code",
         collapsible: true
       }
     },
     {
-      name: "trigger_mode",
-      type: "enum",
-      required: false,
-      description: "Trigger Mode configuration",
-      validation: {
-        allowedValues: ["manual", "hook"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "manual", label: "Manual" },
-          { value: "hook", label: "Hook" }
-        ]
-      }
-    },
-    {
       name: "hook_event",
       type: "string",
       required: false,
-      description: "Hook Event configuration",
+      description: "Event name to listen for",
+      conditional: {
+        field: "trigger_mode",
+        values: ["hook"]
+      },
       uiConfig: {
-        inputType: "text"
+        inputType: "text",
+        placeholder: "e.g., webhook.received, file.uploaded"
       }
     },
     {
       name: "hook_filters",
       type: "object",
       required: false,
-      description: "Hook Filters configuration",
+      description: "Filters to apply to incoming events",
+      conditional: {
+        field: "trigger_mode",
+        values: ["hook"]
+      },
       uiConfig: {
         inputType: "code",
         collapsible: true

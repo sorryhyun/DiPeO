@@ -14,9 +14,10 @@ class PersonJobNodeData(BaseModel):
     first_only_prompt: str = Field(description="First Only Prompt configuration")
     default_prompt: Optional[str] = Field(description="Default Prompt configuration")
     max_iteration: float = Field(description="Max Iteration configuration")
-    memory_config: Optional[Dict[str, Any]] = Field(description="Memory Config configuration (deprecated - use memory_settings)")
-    memory_settings: Optional[Dict[str, Any]] = Field(description="Memory Settings configuration")
-    tools: Optional[List[Any]] = Field(description="Tools configuration")
+    memory_profile: Optional[str] = Field(description="Memory profile for conversation context")
+    memory_config: Optional[Dict[str, Any]] = Field(description="Memory Config configuration (deprecated - use memory_profile or memory_settings)")
+    memory_settings: Optional[Dict[str, Any]] = Field(description="Memory Settings configuration (only used when memory_profile is CUSTOM)")
+    tools: Optional[str] = Field(description="Tools available to the AI agent")
 
     class Config:
         extra = "forbid"

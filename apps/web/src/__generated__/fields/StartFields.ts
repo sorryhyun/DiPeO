@@ -6,39 +6,58 @@ export const startFields: UnifiedFieldDefinition[] = [
     name: 'custom_data',
     type: 'text',
     label: 'Custom Data',
-    required: true,
-    description: 'Custom Data configuration',
+    required: false,
+    description: 'Custom data to pass when manually triggered',
+    conditional: {
+      field: 'trigger_mode',
+      values: ['manual']
+    }
   },
   {
     name: 'hook_event',
     type: 'text',
     label: 'Hook Event',
     required: false,
-    description: 'Hook Event configuration',
+    placeholder: 'e.g., webhook.received, file.uploaded',
+    description: 'Event name to listen for',
+    conditional: {
+      field: 'trigger_mode',
+      values: ['hook']
+    }
   },
   {
     name: 'hook_filters',
     type: 'code',
     label: 'Hook Filters',
     required: false,
-    description: 'Hook Filters configuration',
+    description: 'Filters to apply to incoming events',
+    conditional: {
+      field: 'trigger_mode',
+      values: ['hook']
+    }
   },
   {
     name: 'output_data_structure',
     type: 'code',
     label: 'Output Data Structure',
-    required: true,
-    description: 'Output Data Structure configuration',
+    required: false,
+    description: 'Expected output data structure',
+    conditional: {
+      field: 'trigger_mode',
+      values: ['manual']
+    }
   },
   {
     name: 'trigger_mode',
     type: 'select',
     label: 'Trigger Mode',
-    required: false,
-    description: 'Trigger Mode configuration',
+    required: true,
+    defaultValue: "none",
+    description: 'How this start node is triggered',
     options: [
-      { value: 'manual', label: 'Manual' },
-      { value: 'hook', label: 'Hook' },
+      { value: 'none', label: 'None - Simple start point' },
+      { value: 'manual', label: 'Manual - Triggered manually with data' },
+      { value: 'hook', label: 'Hook - Triggered by external events' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

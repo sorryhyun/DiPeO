@@ -2,60 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonBatchJobNodeData",
   "definitions": {
-    "ToolType": {
-      "enum": [
-        "web_search",
-        "web_search_preview",
-        "image_generation"
-      ],
-      "type": "string"
-    },
-    "ToolConfig": {
-      "additionalProperties": false,
-      "properties": {
-        "config": {
-          "$ref": "#/definitions/Record<string,any>"
-        },
-        "enabled": {
-          "type": "boolean"
-        },
-        "type": {
-          "$ref": "#/definitions/ToolType"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "type": "object"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
-      ],
-      "type": "object"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "MemoryView": {
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
-    },
     "MemorySettings": {
       "additionalProperties": false,
       "properties": {
@@ -77,6 +23,30 @@
       ],
       "type": "object"
     },
+    "MemoryView": {
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
+      ],
+      "type": "string"
+    },
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
     "PersonBatchJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -95,6 +65,16 @@
         "max_iteration": {
           "type": "number"
         },
+        "memory_profile": {
+          "enum": [
+            "CUSTOM",
+            "FOCUSED",
+            "FULL",
+            "GOLDFISH",
+            "MINIMAL"
+          ],
+          "type": "string"
+        },
         "memory_settings": {
           "anyOf": [
             {
@@ -109,17 +89,12 @@
           "$ref": "#/definitions/PersonID"
         },
         "tools": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/definitions/ToolConfig"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "enum": [
+            "image",
+            "none",
+            "websearch"
+          ],
+          "type": "string"
         }
       },
       "required": [

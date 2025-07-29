@@ -59,10 +59,27 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
+      name: "memory_profile",
+      type: "string",
+      required: false,
+      description: "Memory profile for conversation context",
+      defaultValue: "FOCUSED",
+      uiConfig: {
+        inputType: "select",
+        options: [
+          { value: "FULL", label: "Full 🧠 - No limits, see everything" },
+          { value: "FOCUSED", label: "Focused 🎯 - Last 20 messages, conversation pairs" },
+          { value: "MINIMAL", label: "Minimal 💭 - Last 5 messages, system + direct only" },
+          { value: "GOLDFISH", label: "Goldfish 🐠 - Last 1-2 exchanges only" },
+          { value: "CUSTOM", label: "Custom ⚙️ - Use memory_settings below" }
+        ]
+      }
+    },
+    {
       name: "memory_config",
       type: "object",
       required: false,
-      description: "Memory Config configuration (deprecated - use memory_settings)",
+      description: "Memory Config configuration (deprecated - use memory_profile or memory_settings)",
       uiConfig: {
         inputType: "code",
         collapsible: true
@@ -72,7 +89,7 @@ export const personJobSpec: NodeSpecification = {
       name: "memory_settings",
       type: "object",
       required: false,
-      description: "Memory Settings configuration",
+      description: "Memory Settings configuration (only used when memory_profile is CUSTOM)",
       nestedFields: [
         {
           name: "view",
@@ -123,15 +140,17 @@ export const personJobSpec: NodeSpecification = {
     },
     {
       name: "tools",
-      type: "array",
+      type: "string",
       required: false,
-      description: "Tools configuration",
-      validation: {
-        itemType: "object"
-      },
+      description: "Tools available to the AI agent",
+      defaultValue: "none",
       uiConfig: {
-        inputType: "code",
-        collapsible: true
+        inputType: "select",
+        options: [
+          { value: "none", label: "None - No tools" },
+          { value: "image", label: "Image - Image generation capabilities" },
+          { value: "websearch", label: "Web Search - Search the internet" }
+        ]
       }
     }
   ],

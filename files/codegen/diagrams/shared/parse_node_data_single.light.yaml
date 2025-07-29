@@ -16,30 +16,35 @@ nodes:
       language: python
       code: |
         # Handle input from batch processing
-        # Try different ways to get node_type
+        # In batch mode, the item data is available in 'default' variable
+        # Try to get node_type from default first (batch case), then inputs
         node_type = None
         
-        # Handle deeply nested structure from batch processing
-        current = default
+        # Try getting from default variable (batch processing)
+        if 'default' in locals():
+            if isinstance(default, dict) and 'node_type' in default:
+                node_type = default['node_type']
+            elif isinstance(default, str):
+                node_type = default
         
-        # Keep unwrapping 'default' keys until we find node_type
-        max_depth = 5  # Prevent infinite loops
-        depth = 0
-        while isinstance(current, dict) and 'default' in current and depth < max_depth:
-            current = current['default']
-            depth += 1
-        
-        # Now check if we have node_type
-        if isinstance(current, dict) and 'node_type' in current:
-            node_type = current['node_type']
-        elif isinstance(current, str):
-            # In case it's passed as a string directly
-            node_type = current
-        elif 'node_type' in inputs:
+        # If not found, try inputs
+        if not node_type and 'node_type' in inputs:
             node_type = inputs['node_type']
         
+        # If still not found, check if default is in inputs
+        if not node_type and 'default' in inputs:
+            default_data = inputs['default']
+            if isinstance(default_data, dict) and 'node_type' in default_data:
+                node_type = default_data['node_type']
+        
         if not node_type:
-            raise ValueError(f"node_type not provided in input")
+            # Debug output to understand what we're receiving
+            debug_info = {
+                'inputs': inputs,
+                'has_default_var': 'default' in locals(),
+                'default_value': locals().get('default', 'NOT_FOUND')
+            }
+            raise ValueError(f"node_type not provided in input. Debug: {debug_info}")
         
         # Convert underscore to hyphen for cache filename
         cache_filename = node_type.replace('_', '-') + '_data'

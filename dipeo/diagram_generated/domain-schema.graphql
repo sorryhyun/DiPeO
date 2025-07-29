@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-29T13:18:15.751322
+# Generated at: 2025-07-29T15:13:47.527101
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -85,6 +85,14 @@ enum MemoryView {
   all_messages
 }
 
+enum MemoryProfile {
+  FULL
+  FOCUSED
+  MINIMAL
+  GOLDFISH
+  CUSTOM
+}
+
 enum DiagramFormat {
   native
   light
@@ -127,6 +135,7 @@ enum HookType {
 }
 
 enum HookTriggerMode {
+  none
   manual
   hook
 }
@@ -200,6 +209,12 @@ enum ToolType {
   web_search
   web_search_preview
   image_generation
+}
+
+enum ToolSelection {
+  none
+  image
+  websearch
 }
 
 # ============================================================================
@@ -355,9 +370,9 @@ type Conversation {
   metadata: ConversationMetadata
 }
 type StartNodeData {
-  custom_data: JSONScalar!
-  output_data_structure: JSONScalar!
-  trigger_mode: HookTriggerMode
+  trigger_mode: HookTriggerMode!
+  custom_data: JSONScalar
+  output_data_structure: JSONScalar
   hook_event: String
   hook_filters: JSONScalar
 }
@@ -371,8 +386,9 @@ type PersonJobNodeData {
   first_only_prompt: String!
   default_prompt: String
   max_iteration: Float!
+  memory_profile: MemoryProfile
   memory_settings: MemorySettings
-  tools: [ToolConfig]
+  tools: ToolSelection
 }
 type CodeJobNodeData {
   language: SupportedLanguage!

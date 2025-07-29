@@ -535,6 +535,21 @@ class UIConfiguration(BaseModel):
     
 
 
+class ConditionalConfig(BaseModel):
+    """ConditionalConfig model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    
+    
+    field: str
+    
+    values: List[Any]
+    
+    operator: Optional[Literal["equals", "notEquals", "includes"]] = Field(default=None)
+    
+    
+
+
 class FieldSpecification(BaseModel):
     """FieldSpecification model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -558,6 +573,8 @@ class FieldSpecification(BaseModel):
     nestedFields: Optional[List[FieldSpecification]] = Field(default=None)
     
     affects: Optional[List[str]] = Field(default=None)
+    
+    conditional: Optional[ConditionalConfig] = Field(default=None)
     
     
 
@@ -790,6 +807,8 @@ def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:
 def is_domainnode(node: Any) -> bool:
     """Check if a node is a DomainNode."""
     return hasattr(node, 'type') and node.type == NodeType.domain
+
+
 
 
 

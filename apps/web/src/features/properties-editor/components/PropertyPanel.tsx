@@ -100,6 +100,11 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   const nodeConfig = getNodeConfig(normalizedNodeType);
   const queryClient = useQueryClient();
   
+  // Debug logging for node config lookup
+  if (!nodeConfig && nodeType !== 'arrow' && nodeType !== 'person') {
+    console.warn(`No config found for node type: ${nodeType} (normalized: ${normalizedNodeType})`);
+  }
+  
   // Use context instead of individual hooks
   const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperations();
   const { personsWithUsage } = useCanvasState();
@@ -336,15 +341,29 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between border-b pb-2">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-1">
           <span>{nodeConfig?.icon || '⚙️'}</span>
-          <h3 className="text-lg font-semibold">
-            {nodeConfig?.label ? `${nodeConfig.label} Properties` : `${nodeType} Properties`}
+          <h3 className="text-lg font-semibold whitespace-nowrap">
+            {nodeConfig?.label || panelConfig?.title || `${nodeType}`} Properties
           </h3>
+          {/* Universal label field for all nodes */}
+          {(entityType === 'node' || entityType === 'arrow') && (
+            <div className="flex-1 ml-4">
+              <UnifiedFormField
+                type="text"
+                name="label"
+                label=""
+                value={formData.label as FieldValue}
+                onChange={(v) => handleFieldUpdate('label', v)}
+                placeholder="Enter label"
+                disabled={isReadOnly}
+              />
+            </div>
+          )}
         </div>
         <button
           onClick={handleDelete}
-          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors ml-2"
           title="Delete"
         >
           <Trash2 className="w-4 h-4" />

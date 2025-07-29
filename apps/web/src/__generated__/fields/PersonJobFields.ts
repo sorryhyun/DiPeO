@@ -36,14 +36,33 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'code',
     label: 'Memory Config',
     required: false,
-    description: 'Memory Config configuration (deprecated - use memory_settings)',
+    description: 'Memory Config configuration (deprecated - use memory_profile or memory_settings)',
+  },
+  {
+    name: 'memory_profile',
+    type: 'select',
+    label: 'Memory Profile',
+    required: false,
+    defaultValue: "FOCUSED",
+    description: 'Memory profile for conversation context',
+    options: [
+      { value: 'FULL', label: 'Full 🧠 - No limits, see everything' },
+      { value: 'FOCUSED', label: 'Focused 🎯 - Last 20 messages, conversation pairs' },
+      { value: 'MINIMAL', label: 'Minimal 💭 - Last 5 messages, system + direct only' },
+      { value: 'GOLDFISH', label: 'Goldfish 🐠 - Last 1-2 exchanges only' },
+      { value: 'CUSTOM', label: 'Custom ⚙️ - Use memory_settings below' },
+    ],
   },
   {
     name: 'memory_settings',
     type: 'group',
     label: 'Memory Settings',
     required: false,
-    description: 'Memory Settings configuration',
+    description: 'Memory Settings configuration (only used when memory_profile is CUSTOM)',
+    conditional: {
+      field: 'memory_profile',
+      values: ['CUSTOM']
+    },
     nestedFields: [
       {
         name: 'view',
@@ -97,12 +116,15 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   },
   {
     name: 'tools',
-    type: 'code',
+    type: 'select',
     label: 'Tools',
     required: false,
-    description: 'Tools configuration',
-    validate: (value: unknown) => {
-      return { isValid: true };
-    },
+    defaultValue: "none",
+    description: 'Tools available to the AI agent',
+    options: [
+      { value: 'none', label: 'None - No tools' },
+      { value: 'image', label: 'Image - Image generation capabilities' },
+      { value: 'websearch', label: 'Web Search - Search the internet' },
+    ],
   },
 ];

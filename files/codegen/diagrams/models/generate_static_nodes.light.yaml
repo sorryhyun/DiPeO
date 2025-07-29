@@ -164,6 +164,7 @@ connections:
   # Batch parse node data
   - from: Prepare Batch Processing
     to: Batch Parse Node Data
+    label: default
   
   # Extract base interface
   - from: Load Diagram AST
