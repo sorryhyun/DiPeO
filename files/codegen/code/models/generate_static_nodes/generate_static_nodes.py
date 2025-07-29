@@ -9,6 +9,24 @@ def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str
     # Clean type
     clean_type = ts_type.replace(' | null', '').replace(' | undefined', '').strip()
     
+    # Handle union types like "string | string[]"
+    if '|' in clean_type and not (("'" in clean_type or '"' in clean_type)):
+        # Split union types
+        union_parts = [part.strip() for part in clean_type.split('|')]
+        # Convert each part
+        py_parts = []
+        for part in union_parts:
+            py_part = get_python_type(part, False, ts_to_py_type)
+            py_parts.append(py_part)
+        # Create union type
+        if len(py_parts) == 2 and 'None' in py_parts:
+            # Handle Optional case
+            other_type = [p for p in py_parts if p != 'None'][0]
+            return f"Optional[{other_type}]"
+        else:
+            union_type = f"Union[{', '.join(py_parts)}]"
+            return f"Optional[{union_type}]" if is_optional else union_type
+    
     # Handle string literal unions
     if ("'" in clean_type or '"' in clean_type) and '|' in clean_type:
         literals = []

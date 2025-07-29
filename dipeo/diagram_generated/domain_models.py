@@ -532,6 +532,8 @@ class UIConfiguration(BaseModel):
     
     showPromptFileButton: Optional[bool] = Field(default=None)
     
+    adjustable: Optional[bool] = Field(default=None)
+    
     
 
 

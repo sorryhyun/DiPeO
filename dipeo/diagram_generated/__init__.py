@@ -85,6 +85,7 @@ from .handle_utils import (
     is_valid_handle_id,
 )
 
+
 # Re-export functions from conversions
 from .conversions import (
     node_kind_to_domain_type,
@@ -148,7 +149,6 @@ __all__ = [
     "extract_node_id_from_handle",
     "is_valid_handle_id",
 
-
     # Other models
     "BaseNodeData",
     "InteractivePromptData",
@@ -173,13 +173,6 @@ __all__ = [
     "ToolOutput",
     "ChatResult",
     "LLMRequestOptions",
-
-    # Functions from handle_utils
-    "create_handle_id",
-    "parse_handle_id",
-    "parse_handle_id_safe",
-    "extract_node_id_from_handle",
-    "is_valid_handle_id",
 
     # Functions from conversions
     "node_kind_to_domain_type",

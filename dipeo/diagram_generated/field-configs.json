@@ -135,7 +135,7 @@
       "fields": [
         {
           "name": "file",
-          "type": "text",
+          "type": "textarea",
           "label": "File",
           "required": false
         },

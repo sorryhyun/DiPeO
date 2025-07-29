@@ -1,6 +1,6 @@
 """Pure generator for Pydantic models."""
 import traceback
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from files.codegen.code.shared.template_env import create_template_env
 from files.codegen.code.backend.utils.python_mapper import (
     map_to_python_type,
@@ -15,13 +15,14 @@ from files.codegen.code.backend.utils.pydantic_helpers import (
 )
 
 
-def generate_pydantic_model(spec_data: Dict[str, Any], template_content: str) -> str:
+def generate_pydantic_model(spec_data: Dict[str, Any], template_content: str, mappings: Optional[Dict[str, Any]] = None) -> str:
     """
     Pure function: Generate Pydantic model from spec and template.
     
     Args:
         spec_data: Node specification data
         template_content: Jinja2 template content
+        mappings: Optional codegen mappings containing type conversions
         
     Returns:
         Generated Python Pydantic model code
@@ -40,6 +41,18 @@ def generate_pydantic_model(spec_data: Dict[str, Any], template_content: str) ->
         'class_name': f"{spec_data.get('nodeType', 'unknown').title().replace('_', '')}Node",
     }
     
+    # Extract type mappings if provided
+    ts_to_py_type = None
+    if mappings:
+        ts_to_py_type = mappings.get('ts_to_py_type', {})  # TypeScript to Python type mappings
+        # Debug logging
+        if spec_data.get('nodeType') == 'person_job':
+            print(f"DEBUG: PersonJob mappings received: {list(ts_to_py_type.keys()) if ts_to_py_type else 'None'}")
+            if 'MemoryProfile' in ts_to_py_type:
+                print(f"DEBUG: MemoryProfile maps to: {ts_to_py_type['MemoryProfile']}")
+            if 'ToolSelection' in ts_to_py_type:
+                print(f"DEBUG: ToolSelection maps to: {ts_to_py_type['ToolSelection']}")
+        
     # Process each field
     for field in spec_data.get('fields', []):
         original_name = field['name']
@@ -49,8 +62,8 @@ def generate_pydantic_model(spec_data: Dict[str, Any], template_content: str) ->
         field['python_name'] = python_name
         field['needs_alias'] = python_name != original_name
         
-        # Type mapping
-        py_spec['type_mappings'][python_name] = map_to_python_type(field.get('type', 'string'))
+        # Type mapping with centralized mappings
+        py_spec['type_mappings'][python_name] = map_to_python_type(field.get('type', 'string'), ts_to_py_type)
         
         # Field definition with Pydantic Field()
         py_spec['field_definitions'][python_name] = get_pydantic_field(field)
@@ -96,13 +109,18 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     try:
         spec_data = inputs.get('spec_data', {})
         template_content = inputs.get('template_content', '')
+        mappings = inputs.get('mappings', {})
+        
+        # Debug logging
+        print(f"\nDEBUG pydantic_model.py: Processing node type: {spec_data.get('nodeType', 'unknown')}")
+        print(f"DEBUG pydantic_model.py: Mappings keys: {list(mappings.keys()) if mappings else 'None'}")
         
         if not spec_data:
             raise ValueError("spec_data is required")
         if not template_content:
             raise ValueError("template_content is required")
         
-        generated_code = generate_pydantic_model(spec_data, template_content)
+        generated_code = generate_pydantic_model(spec_data, template_content, mappings)
         
         # Generate filename from node type
         node_type = spec_data.get('nodeType', 'unknown')

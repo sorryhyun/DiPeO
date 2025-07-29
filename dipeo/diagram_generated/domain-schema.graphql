@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-29T16:07:44.949640
+# Generated at: 2025-07-29T22:31:33.661901
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -412,7 +412,7 @@ type EndpointNodeData {
   file_name: String
 }
 type DBNodeData {
-  file: String
+  file: [String]
   collection: String
   sub_type: DBBlockSubType!
   operation: String!
