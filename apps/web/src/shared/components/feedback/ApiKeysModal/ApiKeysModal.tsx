@@ -14,17 +14,20 @@ interface ApiKeysModalProps {
 // Helper function to get display name for known services
 const getServiceDisplayName = (service: string): string => {
   const serviceNames: Record<string, string> = {
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    google: 'Google AI',
-    gemini: 'Google Gemini',
-    grok: 'Grok',
-    notion: 'Notion',
-    google_search: 'Google Search',
-    slack: 'Slack',
-    github: 'GitHub',
+    OPENAI: 'OpenAI',
+    ANTHROPIC: 'Anthropic',
+    GOOGLE: 'Google AI',
+    GEMINI: 'Google Gemini',
+    DEEPSEEK: 'DeepSeek',
+    NOTION: 'Notion',
+    GOOGLE_SEARCH: 'Google Search',
+    SLACK: 'Slack',
+    GITHUB: 'GitHub',
+    JIRA: 'Jira',
+    BEDROCK: 'AWS Bedrock',
+    VERTEX: 'Google Vertex AI',
   };
-  return serviceNames[service.toLowerCase()] || service;
+  return serviceNames[service.toUpperCase()] || service;
 };
 
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
@@ -77,7 +80,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       // Use GraphQL mutation
       await graphQLOperations.createApiKey(
         newKeyForm.label.trim(),
-        newKeyForm.service!.trim(),
+        newKeyForm.service!.trim().toUpperCase(),
         newKeyForm.key.trim()
       );
       
@@ -194,14 +197,14 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                 Service
               </label>
               <Input
-                placeholder="e.g., openai, anthropic, notion, google_search"
+                placeholder="e.g., OPENAI, ANTHROPIC, NOTION, GOOGLE_SEARCH"
                 value={newKeyForm.service || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKeyForm({ ...newKeyForm, service: e.target.value.toLowerCase() })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKeyForm({ ...newKeyForm, service: e.target.value })}
                 className={errors.service ? 'border-red-500' : ''}
               />
               {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Common: openai, anthropic, gemini, grok, notion, google_search
+                Available: OPENAI, ANTHROPIC, GEMINI, DEEPSEEK, NOTION, GOOGLE_SEARCH, SLACK, GITHUB, JIRA, BEDROCK, VERTEX
               </p>
             </div>
             

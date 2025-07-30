@@ -12,7 +12,7 @@ from dipeo.diagram_generated.domain_models import (
     PersonLLMConfig
 )
 from dipeo.core.dynamic import PersonManager
-from dipeo.core.ports import SupportsAPIKey
+from dipeo.core.ports import APIKeyPort
 from dipeo.infra.llm import LLMInfraService
 
 from ..types.inputs import PersonLLMConfigInput
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Service keys
 PERSON_MANAGER = ServiceKey[PersonManager]("person_manager")
-APIKEY_SERVICE = ServiceKey[SupportsAPIKey]("apikey_service")
+APIKEY_SERVICE = ServiceKey[APIKeyPort]("apikey_service")
 LLM_SERVICE = ServiceKey[LLMInfraService]("llm_service")
 
 

@@ -8,23 +8,16 @@ from ..base import MutableBaseContainer
 # File service removed - use filesystem_adapter instead
 
 
-def _create_api_key_storage(store_file=None):
-    """Create API key storage implementation."""
+def _create_api_key_service(store_file=None):
+    """Create API key service with integrated file storage."""
     from pathlib import Path
-
-    from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
+    from dipeo.application.services.apikey_service import APIKeyService
     
     # Use provided file or default location
     if store_file is None:
         store_file = Path.home() / ".dipeo" / "apikeys.json"
     
-    return FileAPIKeyStorage(file_path=Path(store_file))
-
-
-def _create_api_key_service(storage):
-    """Create API key service."""
-    from dipeo.application.services.apikey_service import APIKeyService
-    return APIKeyService(storage=storage)
+    return APIKeyService(file_path=Path(store_file))
 
 
 def _create_diagram_storage_service(base_dir, diagram_domain_service):
@@ -140,14 +133,9 @@ class PersistenceServicesContainer(MutableBaseContainer):
     # File service removed - use filesystem_adapter instead
     
     # API key management
-    api_key_storage = providers.Singleton(
-        _create_api_key_storage,
-        store_file=config.api_key_store_file.optional(None),
-    )
-    
     api_key_service = providers.Singleton(
         _create_api_key_service,
-        storage=api_key_storage,
+        store_file=config.api_key_store_file.optional(None),
     )
     
     # Storage adapters

@@ -4,10 +4,10 @@ import os
 
 from dipeo.core import APIKeyError, BaseService, ValidationError
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.core.ports.apikey_port import SupportsAPIKey
+from dipeo.core.ports.apikey_port import APIKeyPort
 
 
-class EnvironmentAPIKeyService(BaseService, SupportsAPIKey):
+class EnvironmentAPIKeyService(BaseService, APIKeyPort):
     """API Key service that reads from environment variables.
     
     This adapter allows applications to use environment variables for API key management,

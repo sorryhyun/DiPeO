@@ -6,6 +6,7 @@ from dipeo.models import (
     ExecutionStatus,
     NodeExecutionStatus,
     NodeState,
+    EventType,
 )
 try:
     from .scoped_observer import ObserverMetadata
@@ -16,9 +17,10 @@ except ImportError:
 class StreamingObserver(ExecutionObserver):
     """Observer that publishes real-time updates."""
 
-    def __init__(self, message_router, propagate_to_sub: bool = True, scope_to_parent: bool = False):
+    def __init__(self, message_router, propagate_to_sub: bool = True, scope_to_parent: bool = False, execution_runtime=None):
         self.message_router = message_router
         self._queues: dict[str, asyncio.Queue] = {}
+        self.execution_runtime = execution_runtime
         # Configure metadata for sub-diagram propagation
         self.metadata = ObserverMetadata(
             propagate_to_sub=propagate_to_sub,
@@ -36,22 +38,34 @@ class StreamingObserver(ExecutionObserver):
         await self._publish(
             execution_id,
             {
-                "type": "execution_start",
+                "type": EventType.EXECUTION_STATUS_CHANGED.value,
                 "execution_id": execution_id,
-                "diagram_id": diagram_id,
-                "timestamp": datetime.utcnow().isoformat(),
+                "data": {
+                    "status": ExecutionStatus.RUNNING.value,
+                    "diagram_id": diagram_id,
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
             },
         )
 
     async def on_node_start(self, execution_id: str, node_id: str):
+        # Get node type if runtime is available
+        node_type = None
+        if self.execution_runtime:
+            from dipeo.models import NodeID
+            node = self.execution_runtime.get_node(NodeID(node_id))
+            if node:
+                node_type = node.type.value if hasattr(node.type, 'value') else str(node.type)
+        
         await self._publish(
             execution_id,
             {
-                "type": "node_update",
+                "type": EventType.NODE_STATUS_CHANGED.value,
                 "execution_id": execution_id,
                 "data": {
                     "node_id": node_id,
-                    "state": NodeExecutionStatus.RUNNING.value,
+                    "status": NodeExecutionStatus.RUNNING.value,
+                    "node_type": node_type,
                     "timestamp": datetime.utcnow().isoformat(),
                 },
             },
@@ -60,32 +74,51 @@ class StreamingObserver(ExecutionObserver):
     async def on_node_complete(
         self, execution_id: str, node_id: str, state: NodeState
     ):
+        # Get node type if runtime is available
+        node_type = None
+        if self.execution_runtime:
+            from dipeo.models import NodeID
+            node = self.execution_runtime.get_node(NodeID(node_id))
+            if node:
+                node_type = node.type.value if hasattr(node.type, 'value') else str(node.type)
+        
         await self._publish(
             execution_id,
             {
-                "type": "node_update",
+                "type": EventType.NODE_STATUS_CHANGED.value,
                 "execution_id": execution_id,
                 "data": {
                     "node_id": node_id,
-                    "state": state.status.value,
+                    "status": state.status.value,
+                    "node_type": node_type,
                     "output": state.output if state.output else None,
                     "started_at": state.started_at,
                     "ended_at": state.ended_at,
                     "token_usage": state.token_usage.model_dump() if state.token_usage else None,
+                    "tokens_used": state.token_usage.total if state.token_usage else None,
                     "timestamp": datetime.utcnow().isoformat(),
                 },
             },
         )
 
     async def on_node_error(self, execution_id: str, node_id: str, error: str):
+        # Get node type if runtime is available
+        node_type = None
+        if self.execution_runtime:
+            from dipeo.models import NodeID
+            node = self.execution_runtime.get_node(NodeID(node_id))
+            if node:
+                node_type = node.type.value if hasattr(node.type, 'value') else str(node.type)
+        
         await self._publish(
             execution_id,
             {
-                "type": "node_update",
+                "type": EventType.NODE_STATUS_CHANGED.value,
                 "execution_id": execution_id,
                 "data": {
                     "node_id": node_id,
-                    "state": NodeExecutionStatus.FAILED.value,
+                    "status": NodeExecutionStatus.FAILED.value,
+                    "node_type": node_type,
                     "error": error,
                     "timestamp": datetime.utcnow().isoformat(),
                 },
@@ -96,9 +129,11 @@ class StreamingObserver(ExecutionObserver):
         await self._publish(
             execution_id,
             {
-                "type": "execution_complete",
+                "type": EventType.EXECUTION_STATUS_CHANGED.value,
                 "execution_id": execution_id,
-                "status": "completed",
+                "data": {
+                    "status": ExecutionStatus.COMPLETED.value,
+                },
             },
         )
 
@@ -106,9 +141,11 @@ class StreamingObserver(ExecutionObserver):
         await self._publish(
             execution_id,
             {
-                "type": "execution_error",
+                "type": EventType.EXECUTION_ERROR.value,
                 "execution_id": execution_id,
-                "error": error,
+                "data": {
+                    "error": error,
+                },
             },
         )
 

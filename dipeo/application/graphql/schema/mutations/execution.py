@@ -127,8 +127,8 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 # Send update event
                 await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
-                    event_type=EventType.node_update,
-                    data={
+                    message={
+                        "type": EventType.NODE_STATUS_CHANGED.value,
                         "node_id": input.node_id,
                         "status": input.status,
                         "output": input.output,
@@ -178,10 +178,11 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 # Send control event
                 await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
-                    event_type=EventType.execution_control,
-                    data={
+                    message={
+                        "type": EventType.EXECUTION_STATUS_CHANGED.value,
                         "action": input.action,
                         "reason": input.reason,
+                        "status": new_status.value,
                     }
                 )
                 
@@ -213,8 +214,8 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
                 # Send interactive response
                 await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
-                    event_type=EventType.interactive_response,
-                    data={
+                    message={
+                        "type": EventType.INTERACTIVE_RESPONSE.value,
                         "node_id": input.node_id,
                         "response": input.response,
                         "metadata": input.metadata,

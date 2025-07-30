@@ -15,7 +15,7 @@ from tenacity import (
 from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.core.ports import LLMServicePort
-from dipeo.core.ports.apikey_port import SupportsAPIKey
+from dipeo.core.ports.apikey_port import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
 from dipeo.infra.config.settings import get_settings
 from dipeo.models import ChatResult
@@ -25,7 +25,7 @@ from .factory import create_adapter
 
 class LLMInfraService(BaseService, LLMServicePort):
 
-    def __init__(self, api_key_service: SupportsAPIKey, llm_domain_service: LLMDomainService | None = None):
+    def __init__(self, api_key_service: APIKeyPort, llm_domain_service: LLMDomainService | None = None):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}

@@ -121,7 +121,7 @@ export function useExecutionUpdates({
   useEffect(() => {
     if (!executionUpdates) return;
     
-    if (executionUpdates.status === ExecutionStatus.COMPLETED) {
+    if (executionUpdates.status === ExecutionStatus.COMPLETED || executionUpdates.status === 'MAXITER_REACHED') {
       const totalTokens = executionUpdates.tokenUsage ? 
         (executionUpdates.tokenUsage.input + executionUpdates.tokenUsage.output + (executionUpdates.tokenUsage.cached || 0)) : 
         undefined;
@@ -131,7 +131,8 @@ export function useExecutionUpdates({
       
       if (showToasts) {
         const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
-        toast.success(`Execution completed${tokensMsg}`);
+        const statusMsg = executionUpdates.status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
+        toast.success(`Execution ${statusMsg}${tokensMsg}`);
       }
       
       onUpdate?.({ 
@@ -178,8 +179,30 @@ export function useExecutionUpdates({
 
     if (status === 'RUNNING') {
       handleNodeStart(nodeUpdates.node_id, nodeUpdates.node_type);
-    } else if (status === 'COMPLETED') {
+    } else if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
       handleNodeComplete(nodeUpdates.node_id, nodeUpdates.tokens_used || undefined, nodeUpdates.output);
+      
+      // Check if all nodes are done and we should complete the execution
+      if (status === 'MAXITER_REACHED') {
+        const totalNodes = state.execution.totalNodes;
+        const completedNodes = state.execution.completedNodes + 1; // +1 for the current node
+        
+        if (completedNodes >= totalNodes && state.execution.isRunning) {
+          // All nodes done, complete the execution
+          completeExecution();
+          executionActions.stopExecution();
+          
+          if (showToasts) {
+            toast.success('Execution completed (max iterations reached)');
+          }
+          
+          onUpdate?.({ 
+            type: EventType.EXECUTION_STATUS_CHANGED, 
+            execution_id: executionId(executionIdRef.current!),
+            timestamp: new Date().toISOString() 
+          });
+        }
+      }
     } else if (status === 'FAILED') {
       updateNodeState(nodeUpdates.node_id, {
         status: 'error',
@@ -254,7 +277,7 @@ export function useExecutionUpdates({
         timestamp: new Date().toISOString() 
       });
     }
-  }, [nodeUpdates, handleNodeStart, handleNodeComplete, updateNodeState, incrementCompletedNodes, addSkippedNode, executionActions, showToasts, onUpdate, executionIdRef]);
+  }, [nodeUpdates, handleNodeStart, handleNodeComplete, updateNodeState, incrementCompletedNodes, addSkippedNode, executionActions, showToasts, onUpdate, executionIdRef, state, completeExecution]);
 
   // Process interactive prompt updates
   useEffect(() => {

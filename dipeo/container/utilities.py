@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from dipeo.core.dynamic.conversation_manager import ConversationManager
-from dipeo.core.ports import LLMServicePort, NotionServicePort, SupportsAPIKey
+from dipeo.core.ports import LLMServicePort, NotionServicePort, APIKeyPort
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.domain.ports.storage import FileSystemPort
 
@@ -253,7 +253,7 @@ async def shutdown_resources(container) -> None:
 def validate_protocol_compliance(container) -> None:
     """Validate that all services implement their required protocols."""
     validations = [
-        (container.persistence.api_key_service(), SupportsAPIKey, "APIKeyService"),
+        (container.persistence.api_key_service(), APIKeyPort, "APIKeyService"),
         (container.integration.llm_service(), LLMServicePort, "LLMInfrastructureService"),
         (container.persistence.filesystem_adapter(), FileSystemPort, "LocalFileSystemAdapter"),
         (container.dynamic.conversation_manager(), ConversationManager, "ConversationManagerImpl"),
