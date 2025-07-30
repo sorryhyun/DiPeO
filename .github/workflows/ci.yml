@@ -47,13 +47,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Build TypeScript models
+      run: pnpm --filter @dipeo/domain-models build
+
     - name: Generate code
       run: make codegen
 
-    - name: Build packages
-      run: |
-        pnpm --filter @dipeo/domain-models build
-        pnpm --filter web build
+    - name: Build frontend
+      run: pnpm --filter web build
 
     - name: Type check TypeScript
       run: pnpm typecheck

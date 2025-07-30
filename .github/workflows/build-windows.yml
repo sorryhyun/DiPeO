@@ -101,6 +101,9 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
       
+      - name: Build TypeScript models
+        run: pnpm --filter @dipeo/domain-models build
+      
       - name: Generate code
         run: |
           # Run code generation

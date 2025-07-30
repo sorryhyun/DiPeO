@@ -32,6 +32,7 @@ class {{ type_info.class_name }}DataType:
     pass
 
 {% endfor %}
+{% if strawberry_types %}
 
 # Create union type for all node data types
 NodeDataUnion = strawberry.union(
@@ -42,6 +43,16 @@ NodeDataUnion = strawberry.union(
 {% endfor %}
     )
 )
+{% else %}
+
+# Placeholder type when no node types are available yet
+@strawberry.type
+class PlaceholderNodeData:
+    """Placeholder type used during initial generation"""
+    message: str = "No node types generated yet"
+
+NodeDataUnion = PlaceholderNodeData
+{% endif %}
 
 
 # Export all types
