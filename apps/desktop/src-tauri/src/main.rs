@@ -52,15 +52,13 @@ async fn start_backend(
             .resource_dir()
             .map_err(|e| e.to_string())?;
         
-        // In production, the backend exe is in the same directory as the main exe
+        // In production, the backend exe is bundled as a resource
         let backend_exe = if cfg!(debug_assertions) {
             // Development mode - use the Python script
             resource_path.join("..").join("..").join("..").join("apps").join("server").join("run.py")
         } else {
-            // Production mode - use the bundled exe
-            resource_path.parent()
-                .ok_or("Failed to get parent directory")?
-                .join("dipeo-server.exe")
+            // Production mode - use the bundled exe from resources
+            resource_path.join("dipeo-server.exe")
         };
         
         log::info!("Starting backend from: {:?}", backend_exe);
@@ -133,10 +131,8 @@ async fn start_web_server(
         // Development mode - use the built web files
         resource_path.join("..").join("..").join("..").join("apps").join("web").join("dist")
     } else {
-        // Production mode - use the installed web files
-        resource_path.parent()
-            .ok_or("Failed to get parent directory")?
-            .join("web")
+        // Production mode - use the bundled web files from resources
+        resource_path.join("web")
     };
     
     if !web_dir.exists() {

@@ -75,7 +75,7 @@ class DiPeOCLI:
         if not path.exists():
             raise FileNotFoundError(f"Diagram file not found: {file_path}")
 
-        with path.open() as f:
+        with path.open(encoding='utf-8') as f:
             content = f.read()
 
         # Parse based on extension
@@ -224,7 +224,7 @@ class DiPeOCLI:
             # Load and save to handle any formatting differences
             data = self.load_diagram(input_path)
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with Path(output_path).open("w") as f:
+            with Path(output_path).open("w", encoding='utf-8') as f:
                 if output_path.endswith(".json"):
                     json.dump(data, f, indent=2)
                 else:
@@ -241,7 +241,7 @@ class DiPeOCLI:
             converter = UnifiedDiagramConverter()
 
             # Load the diagram data
-            with Path(input_path).open() as f:
+            with Path(input_path).open(encoding='utf-8') as f:
                 content = f.read()
 
             # Convert: deserialize from source format, serialize to target format
@@ -250,7 +250,7 @@ class DiPeOCLI:
 
             # Save the converted content
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with Path(output_path).open("w") as f:
+            with Path(output_path).open("w", encoding='utf-8') as f:
                 f.write(output_content)
 
             print("✓ Conversion complete")
