@@ -107,8 +107,36 @@ jobs:
       
       - name: Generate code
         run: |
-          # Run code generation
-          make codegen
+          Write-Host "Running unified diagram-based code generation..."
+          
+          # Generate models
+          dipeo run codegen/diagrams/models/generate_all_models --light --debug --no-browser --timeout=30
+          
+          # Apply staged changes (copy files)
+          if (Test-Path "dipeo/diagram_generated_staged") {
+            Write-Host "Copying staged files to active directory..."
+            Copy-Item -Path "dipeo/diagram_generated_staged/*" -Destination "dipeo/diagram_generated/" -Recurse -Force
+            Write-Host "Staged changes applied successfully!"
+          }
+          
+          # Generate backend
+          dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=30
+          
+          # Generate frontend
+          dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --no-browser --timeout=30
+          
+          # Export GraphQL schema
+          Write-Host "Exporting GraphQL schema from application layer..."
+          $env:PYTHONPATH = "${{ github.workspace }};$env:PYTHONPATH"
+          python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
+          Write-Host "GraphQL schema exported to apps/server/schema.graphql"
+          
+          # Generate GraphQL TypeScript types
+          Write-Host "Generating GraphQL TypeScript types..."
+          pnpm --filter web codegen
+          Write-Host "GraphQL TypeScript types generated!"
+          
+          Write-Host "All code generation completed using DiPeO diagrams!"
       
       - name: Build Python Server
         working-directory: apps/server
