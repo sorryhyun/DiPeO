@@ -13,10 +13,12 @@ from .llm_service import LLMServicePort
 from .message_router import MessageRouterPort
 from .notion_service import NotionServicePort
 from .state_store import StateStorePort
+from .diagram_port import DiagramPort
 
 __all__ = [
     "APIKeyPort",
     "DiagramConverter",
+    "DiagramPort",
     "ExecutionObserver",
     "FileServicePort",
     "FormatStrategy",

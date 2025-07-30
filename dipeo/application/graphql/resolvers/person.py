@@ -1,5 +1,6 @@
 """Person and API key resolver using UnifiedServiceRegistry."""
 
+import asyncio
 import logging
 from typing import Optional, List
 
@@ -33,8 +34,10 @@ class PersonResolver:
         """Get a single person by ID."""
         try:
             person_manager = self.registry.require(PERSON_MANAGER)
-            # get_all_persons is not async and returns dict[PersonID, Person]
-            persons_dict = person_manager.get_all_persons()
+            # Run blocking operation in thread pool to avoid blocking event loop
+            persons_dict = await asyncio.to_thread(
+                person_manager.get_all_persons
+            )
             
             # Check if person exists
             if id in persons_dict:
@@ -57,8 +60,10 @@ class PersonResolver:
         """List all persons."""
         try:
             person_manager = self.registry.require(PERSON_MANAGER)
-            # get_all_persons is not async and returns dict[PersonID, Person]
-            persons_dict = person_manager.get_all_persons()
+            # Run blocking operation in thread pool to avoid blocking event loop
+            persons_dict = await asyncio.to_thread(
+                person_manager.get_all_persons
+            )
             
             # Convert to DomainPerson list
             domain_persons = []
@@ -81,8 +86,10 @@ class PersonResolver:
         """Get a single API key by ID."""
         try:
             apikey_service = self.registry.require(APIKEY_SERVICE)
-            # list_api_keys is not async and returns list of dicts
-            api_keys = apikey_service.list_api_keys()
+            # Run blocking operation in thread pool to avoid blocking event loop
+            api_keys = await asyncio.to_thread(
+                apikey_service.list_api_keys
+            )
             
             # Find API key with matching ID
             for key_data in api_keys:
@@ -106,8 +113,10 @@ class PersonResolver:
         try:
             apikey_service = self.registry.require(APIKEY_SERVICE)
             logger.debug(f"Got apikey_service: {apikey_service}")
-            # list_api_keys is not async and returns list of dicts
-            api_keys = apikey_service.list_api_keys()
+            # Run blocking operation in thread pool to avoid blocking event loop
+            api_keys = await asyncio.to_thread(
+                apikey_service.list_api_keys
+            )
             logger.debug(f"Got {len(api_keys)} API keys from service")
             
             # Convert to DomainApiKey objects

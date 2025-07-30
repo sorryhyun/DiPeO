@@ -1,50 +1,69 @@
-"""Application layer container - Use cases and orchestration."""
+"""Migration adapter to transition from UnifiedServiceRegistry to new ServiceRegistry."""
 
-from dependency_injector import providers
+from typing import Any, Optional
 
-from dipeo.container.base import ImmutableBaseContainer
+from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from .service_registry import ServiceRegistry, ServiceKey
 
 
-def _create_execution_preparation_use_case(storage_service, validator, api_key_service):
-    """Factory for PrepareDiagramForExecutionUseCase.
+class MigrationServiceRegistry(UnifiedServiceRegistry):
+    """Adapter that wraps the new ServiceRegistry to provide backward compatibility.
     
-    This use case validates and prepares diagrams before execution,
-    ensuring all required resources and configurations are available.
+    This allows existing code using UnifiedServiceRegistry to work with the new
+    ServiceRegistry implementation during the migration period.
     """
-    from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
-
-    return PrepareDiagramForExecutionUseCase(
-        storage_service=storage_service,
-        validator=validator,
-        api_key_service=api_key_service,
-    )
-
-
-def _create_execute_diagram_use_case(
-    state_store,
-    message_router,
-    diagram_storage_service,
-    service_registry,
-):
-    """Factory for ExecuteDiagramUseCase.
     
-    This use case orchestrates the complete diagram execution flow,
-    including compilation, state management, and node execution.
+    def __init__(self, parent: Optional["MigrationServiceRegistry"] = None, **services):
+        # Initialize the UnifiedServiceRegistry part
+        super().__init__(parent=parent, **services)
+        
+        # Create internal new registry
+        self._new_registry = ServiceRegistry()
+        
+        # Register initial services in new registry
+        for name, service in services.items():
+            key = type("ServiceKey", (), {"name": name})()
+            self._new_registry.register(key, service)
+    
+    def register(self, name: str, service: Any) -> None:
+        """Register a service in both registries."""
+        # Register in old registry
+        super().register(name, service)
+        
+        # Register in new registry
+        key = type("ServiceKey", (), {"name": name})()
+        self._new_registry.register(key, service)
+    
+    def register_typed(self, key: ServiceKey[Any], service: Any) -> None:
+        """Register a service with a typed key (new API)."""
+        # Register in both registries
+        self.register(key.name, service)
+    
+    def get_new_registry(self) -> ServiceRegistry:
+        """Get the underlying new registry for migration."""
+        return self._new_registry
+    
+    def migrate_to_new_registry(self) -> ServiceRegistry:
+        """Migrate all services to a new ServiceRegistry instance."""
+        new_registry = ServiceRegistry()
+        
+        # Migrate all services from the old registry
+        all_services = self.get_all_services()
+        for name, service in all_services.items():
+            key = type("ServiceKey", (), {"name": name})()
+            new_registry.register(key, service)
+        
+        return new_registry
+
+
+def create_unified_service_registry_from_dependencies(
+    static, business, dynamic, persistence, integration
+) -> MigrationServiceRegistry:
+    """Factory for MigrationServiceRegistry using automatic service discovery.
+    
+    This is a drop-in replacement for the existing factory function that
+    creates a migration-compatible registry.
     """
-    from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
-
-    return ExecuteDiagramUseCase(
-        service_registry=service_registry,
-        state_store=state_store,
-        message_router=message_router,
-        diagram_storage_service=diagram_storage_service,
-    )
-
-
-def _create_unified_service_registry_from_dependencies(static, business, dynamic, persistence, integration):
-    """Factory for UnifiedServiceRegistry using automatic service discovery."""
-    # Use migration adapter during transition to new registry
-    from dipeo.application.registry.migration_adapter import MigrationServiceRegistry
     import logging
     
     logger = logging.getLogger(__name__)
@@ -155,51 +174,3 @@ def _create_unified_service_registry_from_dependencies(static, business, dynamic
             logger.error(f"Failed to register {container_name} services: {e}")
     
     return registry
-
-
-class ApplicationContainer(ImmutableBaseContainer):
-    """Application layer container - Use cases and orchestration.
-    
-    This container provides high-level use cases that orchestrate
-    the execution of diagrams using services from all other layers.
-    All services are stateless and can be safely shared.
-    """
-    
-    config = providers.Configuration()
-    
-    # Dependencies from other containers
-    static = providers.DependenciesContainer()
-    business = providers.DependenciesContainer()
-    dynamic = providers.DependenciesContainer()
-    persistence = providers.DependenciesContainer()
-    integration = providers.DependenciesContainer()
-    
-    # Service registry for node handlers - manually registering from dependencies
-    service_registry = providers.Singleton(
-        _create_unified_service_registry_from_dependencies,
-        static=static,
-        business=business,
-        dynamic=dynamic,
-        persistence=persistence,
-        integration=integration,
-    )
-    
-    # Alias for backward compatibility
-    unified_service_registry = service_registry
-    
-    # Use case: Prepare diagram for execution
-    execution_preparation_service = providers.Singleton(
-        _create_execution_preparation_use_case,
-        storage_service=persistence.diagram_storage_service,
-        validator=static.diagram_validator,
-        api_key_service=persistence.api_key_service,
-    )
-    
-    # Use case: Execute diagram
-    execution_service = providers.Singleton(
-        _create_execute_diagram_use_case,
-        state_store=persistence.state_store,
-        message_router=persistence.message_router,
-        diagram_storage_service=persistence.diagram_storage_service,
-        service_registry=service_registry,
-    )

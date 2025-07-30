@@ -1,0 +1,109 @@
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      trigger_mode: manual
+
+  # Generate test data for files
+  - label: Generate File 1 Data
+    type: code_job
+    position: {x: 200, y: 100}
+    props:
+      language: python
+      code: |
+        result = {"message": "Hello from file 1", "id": 1}
+
+  - label: Generate File 2 Data
+    type: code_job
+    position: {x: 200, y: 200}
+    props:
+      language: python
+      code: |
+        result = {"message": "Hello from file 2", "id": 2}
+
+  - label: Generate File 3 Data
+    type: code_job
+    position: {x: 200, y: 300}
+    props:
+      language: python
+      code: |
+        result = {"message": "Hello from file 3", "id": 3}
+
+  # Create test files
+  - label: Create File 1
+    type: db
+    position: {x: 400, y: 100}
+    props:
+      operation: write
+      sub_type: file
+      source_details: test_file1.json
+
+  - label: Create File 2
+    type: db
+    position: {x: 400, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      source_details: test_file2.json
+      
+  - label: Create File 3
+    type: db
+    position: {x: 400, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      source_details: test_file3.json
+
+  # Read multiple files at once
+  - label: Read Multiple Files
+    type: db
+    position: {x: 600, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: 
+        - test_file1.json
+        - test_file2.json
+        - test_file3.json
+
+  # Display results as another write operation
+  - label: Save Results
+    type: db
+    position: {x: 800, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      source_details: test_results.json
+
+  - label: End
+    type: endpoint
+    position: {x: 1000, y: 200}
+
+connections:
+  - from: Start
+    to: Generate File 1 Data
+  - from: Start
+    to: Generate File 2 Data
+  - from: Start
+    to: Generate File 3 Data
+  - from: Generate File 1 Data
+    to: Create File 1
+  - from: Generate File 2 Data
+    to: Create File 2
+  - from: Generate File 3 Data
+    to: Create File 3
+  - from: Create File 1
+    to: Read Multiple Files
+  - from: Create File 2
+    to: Read Multiple Files
+  - from: Create File 3
+    to: Read Multiple Files
+  - from: Read Multiple Files
+    to: Save Results
+  - from: Save Results
+    to: End
+
+persons: {}

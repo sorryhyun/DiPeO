@@ -1,4 +1,7 @@
 # Unified service registry that works for both server and local execution.
+#
+# NOTE: This implementation is being consolidated into dipeo.application.registry.ServiceRegistry
+# for better type safety and cleaner architecture. New code should use the registry module.
 
 from dataclasses import dataclass
 from typing import Any, Generic, Optional, TypeVar, cast
