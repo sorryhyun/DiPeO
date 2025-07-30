@@ -114,6 +114,7 @@ class TemplateRenderer:
     
     def render_string(self, template_string: str, **context) -> str:
         """Render a template string with given context"""
+        # print(f"[DEBUG] TemplateRenderer.render_string called with context keys: {list(context.keys())}")
         # Include macros if available
         if self.macro_library:
             template_string = self.macro_library.to_template_string() + '\n' + template_string
@@ -126,7 +127,10 @@ class TemplateRenderer:
         else:
             template = self.env.from_string(template_string)
         
-        return template.render(**context)
+        # print(f"[DEBUG] About to render template...")
+        result = template.render(**context)
+        # print(f"[DEBUG] Template rendered successfully, length: {len(result)}")
+        return result
 
 
 class TemplateService:
@@ -297,7 +301,9 @@ export interface {{ name }}{% if extends %} extends {{ extends | join(', ') }}{%
     
     def render_string(self, template_string: str, **context) -> str:
         """Render a template string directly"""
+        # print(f"[DEBUG] TemplateService.render_string called")
         renderer = self.get_renderer('')
+        # print(f"[DEBUG] Got renderer, calling renderer.render_string...")
         return renderer.render_string(template_string, **context)
     
     def get_environment(self) -> Environment:

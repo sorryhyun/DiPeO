@@ -272,6 +272,10 @@ class ExecuteDiagramUseCase(BaseService):
             container=self.container
         )
         
+        # Propagate metadata from options to the execution runtime
+        if options.get('metadata'):
+            typed_execution.metadata.update(options['metadata'])
+        
         # Store stateful_execution reference in execution_state for later access
         execution_state._stateful_execution = typed_execution
         

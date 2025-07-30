@@ -94,222 +94,112 @@ jobs:
           
           Write-Host "Python environment setup complete"
       
-      - name: Build Python Backend
-        run: |
-          # Activate root virtual environment
-          & ".\.venv\Scripts\Activate.ps1"
-          
-          # Set working directory
-          Set-Location "apps/server"
-          
-          # Set PYTHONPATH and BUILD_TYPE for the build
-          $env:PYTHONPATH = "${{ github.workspace }};${{ github.workspace }}\dipeo;${{ github.workspace }}\apps\server"
-          $env:BUILD_TYPE = "SERVER"
-          
-          # Windows-specific PyInstaller workarounds
-          $env:PYTHONIOENCODING = "utf-8"
-          $env:PYTHONLEGACYWINDOWSSTDIO = "1"
-          
-          # Clear PyInstaller cache to avoid conflicts
-          if (Test-Path "$env:LOCALAPPDATA\pyinstaller") {
-            Remove-Item -Path "$env:LOCALAPPDATA\pyinstaller" -Recurse -Force
-          }
-          
-          # Ensure the custom hook file is present
-          if (!(Test-Path "hook-dependency_injector.py")) {
-            Write-Host "Creating hook-dependency_injector.py..."
-            @'
-"""PyInstaller hook for dependency_injector package.
-
-This hook ensures all submodules of dependency_injector are properly included,
-especially the errors module and C extensions which are dynamically imported.
-"""
-
-from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files, collect_dynamic_libs
-
-# Collect all data files, binaries, and submodules
-datas, binaries, hiddenimports = collect_all('dependency_injector')
-
-# Also collect dynamic libraries (for .pyd files on Windows)
-binaries += collect_dynamic_libs('dependency_injector')
-
-# Critical modules that must be included (based on actual package inspection)
-critical_modules = [
-    'dependency_injector._cwiring',
-    'dependency_injector.containers',
-    'dependency_injector.errors',
-    'dependency_injector.ext',
-    'dependency_injector.ext.aiohttp',
-    'dependency_injector.ext.flask',
-    'dependency_injector.ext.starlette',
-    'dependency_injector.providers',
-    'dependency_injector.resources',
-    'dependency_injector.schema',
-    'dependency_injector.wiring',
-]
-
-# Ensure all critical modules are in hiddenimports
-for module in critical_modules:
-    if module not in hiddenimports:
-        hiddenimports.append(module)
-
-# Also collect data files specifically
-datas += collect_data_files('dependency_injector')
-
-# Debug output
-print(f"dependency_injector hook: Found {len(hiddenimports)} hidden imports")
-print(f"dependency_injector hook: Found {len(binaries)} binaries")
-print(f"dependency_injector hook: Found {len(datas)} data files")
-print("Hidden imports:", hiddenimports)
-'@ | Out-File -FilePath "hook-dependency_injector.py" -Encoding UTF8
-          }
-          
-          try {
-            # Check if spec file exists, otherwise use fallback
-            if (Test-Path "dipeo-server-hooks.spec") {
-              Write-Host "Using dipeo-server-hooks.spec"
-              pyinstaller dipeo-server-hooks.spec --clean --noconfirm --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
-            } elseif (Test-Path "dipeo-server-correct.spec") {
-              Write-Host "Using dipeo-server-correct.spec"
-              pyinstaller dipeo-server-correct.spec --clean --noconfirm --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
-            } elseif (Test-Path "dipeo-server.spec") {
-              Write-Host "Using dipeo-server.spec"
-              pyinstaller dipeo-server.spec --clean --noconfirm --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
-            } else {
-              Write-Host "Using centralized build spec"
-              pyinstaller "${{ github.workspace }}/dipeo/build-windows.spec" --clean --noconfirm --distpath dist --log-level INFO 2>&1 | Tee-Object -FilePath "pyinstaller-backend.log"
-            }
-          } catch {
-            Write-Host "PyInstaller failed. Log contents:"
-            Get-Content "pyinstaller-backend.log" -Tail 100
-            throw
-          }
-          
-          # Verify executable was created
-          if (!(Test-Path "dist/dipeo-server.exe")) {
-            Write-Host "PyInstaller log contents:"
-            Get-Content "pyinstaller-backend.log" -Tail 100
-            Write-Error "Backend build failed"
-            exit 1
-          }
-          
-          Write-Host "Backend build complete: $(Get-Item dist/dipeo-server.exe).Length bytes"
-      
-
-      - name: Install all dependencies
+      - name: Install Node dependencies
         run: |
           pnpm install --frozen-lockfile
+      
+      - name: Generate code
+        run: |
+          # Set environment variable
+          $env:DIPEO_BASE_DIR = $pwd
+          
+          # Run code generation
+          make codegen
+      
+      - name: Build Python Server
+        working-directory: apps/server
+        run: |
+          # Activate virtual environment
+          & "${{ github.workspace }}\.venv\Scripts\Activate.ps1"
+          
+          # Build with PyInstaller
+          pyinstaller --clean dipeo-server-correct.spec
+          
+          # Verify build
+          if (!(Test-Path "dist\dipeo-server.exe")) {
+            Write-Error "Failed to build dipeo-server.exe"
+            exit 1
+          }
+          Write-Host "Backend built successfully!"
       
       - name: Build Frontend
         working-directory: apps/web
         run: |
-          pnpm build
+          # Build frontend using the build script
+          & .\build-frontend.ps1
           
-          # Verify build output
-          if (!(Test-Path "dist/index.html")) {
-            Write-Error "Frontend build failed"
+          # Verify build
+          if (!(Test-Path "dist\dipeo-frontend.exe")) {
+            Write-Error "Failed to build dipeo-frontend.exe"
             exit 1
           }
-
+          Write-Host "Frontend built successfully!"
       
-      - name: Build Tauri Application
-        working-directory: apps/desktop
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - name: Download and Install NSIS
         run: |
-          # Verify backend and CLI executables exist
-          if (!(Test-Path "${{ github.workspace }}/apps/server/dist/dipeo-server.exe")) {
-            Write-Error "Backend executable not found"
-            exit 1
-          }
+          # Download NSIS
+          Invoke-WebRequest -Uri "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09-setup.exe/download" -OutFile nsis-setup.exe
           
-          if (!(Test-Path "${{ github.workspace }}/apps/cli/dist/dipeo.exe")) {
-            Write-Error "CLI executable not found"
-            exit 1
-          }
+          # Install NSIS silently
+          Start-Process -FilePath ".\nsis-setup.exe" -ArgumentList "/S" -Wait
           
-          # Build Tauri application
-          pnpm tauri build --target x86_64-pc-windows-msvc
+          # Add NSIS to PATH for this session
+          $env:PATH = "${env:ProgramFiles(x86)}\NSIS;$env:PATH"
       
-      - name: Prepare artifacts
+      - name: Build Installer
         run: |
-          # Create output directory
-          New-Item -ItemType Directory -Force -Path "./dist"
-          
-          # Find and copy installers
-          $version = "${{ github.event.inputs.version || '0.1.0' }}"
-          
-          # Find installer (could be in nsis or other bundle directories)
-          $installerPath = Get-ChildItem -Path "apps/desktop/src-tauri/target/release/bundle" -Recurse -Include "*.msi", "*.exe" | 
-                           Where-Object { $_.Name -like "*setup*" -or $_.Name -like "*installer*" -or $_.Directory.Name -eq "nsis" } | 
-                           Select-Object -First 1
-          
-          if ($installerPath) {
-            $outputFile = "./dist/DiPeO-Setup-$version-x64$($installerPath.Extension)"
-            Copy-Item -Path $installerPath.FullName -Destination $outputFile
-            Write-Host "Installer copied to: $outputFile"
+          # Find NSIS path
+          $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          if (!(Test-Path $nsisPath)) {
+            $nsisPath = "${env:ProgramFiles}\NSIS\makensis.exe"
           }
           
-          # Copy MSI installer separately if exists
-          $msiInstaller = Get-ChildItem -Path "apps/desktop/src-tauri/target/release/bundle/msi" -Filter "*.msi" | Select-Object -First 1
-          if ($msiInstaller) {
-            Copy-Item $msiInstaller.FullName -Destination "./dist/DiPeO-$version-x64.msi"
+          if (!(Test-Path $nsisPath)) {
+            Write-Error "NSIS not found!"
+            exit 1
           }
           
-          # Copy CLI executable
-          Copy-Item -Path "apps/cli/dist/dipeo.exe" -Destination "./dist/dipeo.exe"
-          Write-Host "CLI executable copied to: ./dist/dipeo.exe"
+          # Build the installer
+          & $nsisPath minimal-installer.nsi
           
-          # List artifacts
-          Get-ChildItem -Path "./dist"
+          # Verify installer was created
+          if (!(Test-Path "DiPeO-Setup-Minimal.exe")) {
+            Write-Error "Failed to create installer!"
+            exit 1
+          }
+          
+          Write-Host "Installer built successfully!"
       
-      - name: Upload Installer
+      - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dipeo-windows-installer
-          path: dist/DiPeO-Setup-*
+          name: DiPeO-Windows-Installer
+          path: DiPeO-Setup-Minimal.exe
           retention-days: 30
       
-      - name: Upload MSI Installer
+      - name: Upload Server Executable
         uses: actions/upload-artifact@v4
         with:
-          name: dipeo-windows-msi
-          path: dist/DiPeO-*.msi
+          name: DiPeO-Server-Windows
+          path: apps/server/dist/dipeo-server.exe
           retention-days: 30
       
-      - name: Upload CLI Executable
+      - name: Upload Frontend Executable
         uses: actions/upload-artifact@v4
         with:
-          name: dipeo-cli-windows
-          path: dist/dipeo.exe
+          name: DiPeO-Frontend-Windows
+          path: apps/web/dist/dipeo-frontend.exe
           retention-days: 30
       
       - name: Create Release (if tagged)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          draft: true
-          prerelease: false
           files: |
-            dist/DiPeO-Setup-*.exe
-            dist/DiPeO-*.msi
-          body: |
-            # DiPeO ${{ github.ref_name }}
-            
-            ## Downloads
-            - 🪟 **Windows Installer (Recommended):** `DiPeO-Setup-${{ github.ref_name }}-x64.exe`
-            - 📦 **Windows MSI:** `DiPeO-${{ github.ref_name }}-x64.msi`
-            
-            ## Installation
-            1. Download the installer for your platform
-            2. Run the installer (you may need to click "More info" → "Run anyway" if you see a SmartScreen warning)
-            3. Follow the installation wizard
-            4. Launch DiPeO from the Start Menu or Desktop shortcut
-            
-            ## System Requirements
-            - Windows 10 or later (64-bit)
-            - 4GB RAM minimum (8GB recommended)
-            - 200MB free disk space
+            DiPeO-Setup-Minimal.exe
+            apps/server/dist/dipeo-server.exe
+            apps/web/dist/dipeo-frontend.exe
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

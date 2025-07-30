@@ -67,17 +67,45 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         """Execute the sub-diagram node."""
         node = request.node
         
+        # Debug logging for sub-diagram detection
+        log.info(f"SubDiagramNode {node.id}: Checking ignoreIfSub={getattr(node, 'ignoreIfSub', False)}")
+        log.info(f"SubDiagramNode {node.id}: request.metadata={request.metadata}")
+        if hasattr(request.context, 'metadata'):
+            log.info(f"SubDiagramNode {node.id}: request.context.metadata={request.context.metadata}")
+        
         # Check if we should skip execution when running as a sub-diagram
         if getattr(node, 'ignoreIfSub', False):
-            # Check if this execution is a sub-diagram by looking at execution variables
-            if request.runtime:
-                variables = request.runtime.get_variables()
-                if variables.get('is_sub_diagram', False):
-                    log.info(f"Skipping sub-diagram node {node.id} - ignoreIfSub is true and running as sub-diagram")
-                    return DataOutput(
-                        value={"status": "skipped", "reason": "ignoreIfSub is true and running as sub-diagram"},
-                        node_id=node.id
-                    )
+            # Check if we're actually running as a sub-diagram
+            is_sub_diagram = False
+            
+            # Primary detection: Check metadata for sub-diagram indicators
+            if request.metadata:
+                # Check for parent_execution_id (indicates sub-diagram)
+                if request.metadata.get('parent_execution_id'):
+                    is_sub_diagram = True
+                # Check for explicit is_sub_diagram flag
+                if request.metadata.get('is_sub_diagram'):
+                    is_sub_diagram = True
+            
+            # Secondary detection: Check context metadata if available
+            if hasattr(request.context, 'metadata') and request.context.metadata:
+                if request.context.metadata.get('is_sub_diagram'):
+                    is_sub_diagram = True
+                if request.context.metadata.get('parent_execution_id'):
+                    is_sub_diagram = True
+            
+            # Note: We don't check parent_container or parent_registry existence
+            # because ExecutionRuntime always has these attributes
+            
+            log.info(f"SubDiagramNode {node.id}: is_sub_diagram={is_sub_diagram}")
+            
+            # Only skip if both ignoreIfSub is true AND we're actually in a sub-diagram
+            if is_sub_diagram:
+                log.info(f"Node {node.id} skipped because ignoreIfSub=true and running as sub-diagram")
+                return DataOutput(
+                    value={"status": "skipped", "reason": "Skipped because running as sub-diagram with ignoreIfSub=true"},
+                    node_id=node.id
+                )
         
         # Check if batch mode is enabled
         if getattr(node, 'batch', False):
@@ -99,7 +127,11 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             options = {
                 "variables": request.inputs or {},  # Pass inputs directly as variables
                 "parent_execution_id": request.execution_id,
-                "is_sub_diagram": True
+                "is_sub_diagram": True,
+                "metadata": {
+                    "is_sub_diagram": True,
+                    "parent_execution_id": request.execution_id
+                }
             }
 
             # Create a unique execution ID for the sub-diagram
@@ -276,23 +308,48 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             observers=parent_observers
         ):
             update_count += 1
+            # log.info(f"[DEBUG] Sub-diagram update #{update_count}: type={update.get('type')}, keys={list(update.keys())}")
 
             # Process execution updates
-            if update.get("type") == "node_complete":
+            update_type = update.get("type", "")
+            
+            if update_type == "NODE_STATUS_CHANGED":
+                # Check if this is a node completion
+                data = update.get("data", {})
+                if data.get("status") == "COMPLETED":
+                    node_id = data.get("node_id")
+                    node_output = data.get("output")
+                    if node_id and node_output:
+                        execution_results[node_id] = node_output
+            
+            elif update_type == "EXECUTION_STATUS_CHANGED":
+                # Check if execution is complete
+                data = update.get("data", {})
+                if data.get("status") == "COMPLETED":
+                    # log.info(f"[DEBUG] Sub-diagram execution completed")
+                    break
+                elif data.get("status") == "FAILED":
+                    execution_error = data.get("error", "Execution failed")
+                    log.error(f"Sub-diagram execution failed: {execution_error}")
+                    break
+            
+            # Legacy support for old update types
+            elif update_type == "node_complete":
                 # Collect outputs from completed nodes
                 node_id = update.get("node_id")
                 node_output = update.get("output")
                 if node_id and node_output:
                     execution_results[node_id] = node_output
             
-            elif update.get("type") == "execution_complete":
+            elif update_type == "execution_complete":
                 break
             
-            elif update.get("type") == "execution_error":
+            elif update_type == "execution_error":
                 execution_error = update.get("error", "Unknown error")
                 log.error(f"Sub-diagram execution failed: {execution_error}")
                 break
         
+        # log.info(f"[DEBUG] Sub-diagram execution loop exited after {update_count} updates. Results: {len(execution_results)} nodes, Error: {execution_error}")
         return execution_results, execution_error
     
     def post_execute(

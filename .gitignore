@@ -38,8 +38,8 @@ dipeo/diagram_generated_staged/
 **/.ruff_cache/
 .logs
 apps/server/.import_linter_cache
-part1.md
-part2.md
+docs/part1.md
+docs/part2.md
 part4.md
 TODO.md
 files/uploads

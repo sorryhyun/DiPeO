@@ -12,14 +12,7 @@ from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
-from dipeo.application.utils.template import TemplateProcessor
-
-# Try to import enhanced services
-try:
-    from dipeo.infrastructure.services.template.template_integration import get_enhanced_template_service
-    TEMPLATE_SERVICE_AVAILABLE = True
-except ImportError:
-    TEMPLATE_SERVICE_AVAILABLE = False
+from dipeo.infrastructure.services.template.template_integration import get_enhanced_template_service
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -30,12 +23,8 @@ if TYPE_CHECKING:
 class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
-        self._processor = TemplateProcessor()
         self.filesystem_adapter = filesystem_adapter
-        
-        # Initialize enhanced template service if available
-        if TEMPLATE_SERVICE_AVAILABLE:
-            self._template_service = get_enhanced_template_service()
+        self._template_service = None  # Lazy initialization
     
     @property
     def node_class(self) -> type[TemplateJobNode]:
@@ -67,11 +56,21 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         
         return None
     
+    def _get_template_service(self):
+        """Get or create the template service."""
+        if self._template_service is None:
+            # print("[DEBUG] Creating template service...")
+            self._template_service = get_enhanced_template_service()
+            # print("[DEBUG] Template service created successfully")
+        return self._template_service
+    
     async def execute_request(self, request: ExecutionRequest[TemplateJobNode]) -> NodeOutputProtocol:
         """Execute the template rendering."""
+        # print(f"[DEBUG] TemplateJobNode.execute_request started for node {request.node.id}")
         node = request.node
         inputs = request.inputs
         services = request.services
+
         
         # Get filesystem adapter from services or use injected one
         filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
@@ -96,23 +95,23 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             # Add node-defined variables
             if node.variables:
                 template_vars.update(node.variables)
-            
+
             # Add inputs from connected nodes
             if inputs:
                 template_vars.update(inputs)
-            
+
             # Get template content
+            # print(f"[DEBUG] Getting template content...")
             if node.template_content:
                 template_content = node.template_content
             else:
-                # Process template_path through template processor to handle variables
-                processed_template_path = self._processor.process_simple(node.template_path, template_vars)
+                # Process template_path through template service to handle variables
+                template_service = self._get_template_service()
+                processed_template_path = template_service.render_string(node.template_path, **template_vars).strip()
+                # print(f"[DEBUG] Processed template_path: {processed_template_path}")
                 
-                # Load from file
+                # Load from file - just use the path as-is since filesystem adapter handles base path
                 template_path = Path(processed_template_path)
-                if not template_path.is_absolute():
-                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    template_path = Path(base_dir) / processed_template_path
                 
                 if not filesystem_adapter.exists(template_path):
                     return ErrorOutput(
@@ -126,24 +125,23 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Choose template engine
             engine = node.engine or "internal"
-            
+
             try:
                 if engine == "internal":
-                    # Use built-in TemplateProcessor
-                    rendered = self._processor.process_simple(template_content, template_vars)
+                    # Use built-in template service
+                    template_service = self._get_template_service()
+                    rendered = template_service.render_string(template_content, **template_vars)
                 elif engine == "jinja2":
-                    # Use enhanced Jinja2 if available
-                    if TEMPLATE_SERVICE_AVAILABLE and hasattr(self, '_template_service'):
-                        try:
-                            rendered = self._template_service.render_string(template_content, **template_vars)
-                            request.add_metadata("enhanced_rendering", True)
-                        except Exception as e:
-                            # Fall back to standard Jinja2
-                            rendered = await self._render_jinja2(template_content, template_vars)
-                            request.add_metadata("enhancement_fallback", str(e))
-                    else:
-                        # Use standard Jinja2
+                    # Use enhanced template service for jinja2
+                    try:
+                        template_service = self._get_template_service()
+                        rendered = template_service.render_string(template_content, **template_vars)
+                        # print(f"[DEBUG] Jinja2 rendering complete")
+                        request.add_metadata("enhanced_rendering", True)
+                    except Exception as e:
+                        # Fall back to standard Jinja2
                         rendered = await self._render_jinja2(template_content, template_vars)
+                        request.add_metadata("enhancement_fallback", str(e))
                 elif engine == "handlebars":
                     # Use Python handlebars implementation
                     rendered = await self._render_handlebars(template_content, template_vars)
@@ -163,13 +161,11 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
-                # Process output_path through template processor to handle variables
-                processed_output_path = self._processor.process_simple(node.output_path, template_vars)
+                # Process output_path through template service to handle variables
+                template_service = self._get_template_service()
+                processed_output_path = template_service.render_string(node.output_path, **template_vars).strip()
                 
                 output_path = Path(processed_output_path)
-                if not output_path.is_absolute():
-                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    output_path = Path(base_dir) / processed_output_path
                 
                 # Create parent directories if needed
                 parent_dir = output_path.parent

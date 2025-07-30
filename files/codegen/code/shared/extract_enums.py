@@ -86,7 +86,6 @@ def extract_enums(ast_data: dict) -> List[dict]:
 def main(inputs: dict) -> dict:
     """Main entry point for enum extraction."""
     ast_data = inputs.get('default', {})
-    
     enums = extract_enums(ast_data)
     
     # Return as a dict to preserve structure when passed between nodes
