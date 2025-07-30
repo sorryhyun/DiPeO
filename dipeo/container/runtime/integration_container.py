@@ -18,21 +18,21 @@ def _create_notion_service():
     return NotionAPIService()
 
 
-def _create_api_service(api_business_logic, file_service):
+def _create_api_service(api_business_logic):
     """Create infrastructure API service."""
     from dipeo.infra.adapters.http import APIService
     return APIService(
         business_logic=api_business_logic,
-        file_service=file_service
+        file_service=None  # File service removed - save_response method won't work
     )
 
 
-def _create_integrated_diagram_service(file_repository, loader_adapter):
-    """Create integrated diagram service with conversion capabilities."""
-    from dipeo.infra.diagram.integrated_diagram_service import IntegratedDiagramService
-    return IntegratedDiagramService(
-        file_repository=file_repository,
-        loader_adapter=loader_adapter
+def _create_integrated_diagram_service(diagram_storage_adapter):
+    """Create diagram service with conversion capabilities."""
+    from dipeo.infrastructure.services.diagram import DiagramService
+    return DiagramService(
+        storage=diagram_storage_adapter,
+        converter=None  # Will create default converter
     )
 
 
@@ -113,14 +113,12 @@ class IntegrationServicesContainer(MutableBaseContainer):
     api_service = providers.Singleton(
         _create_api_service,
         api_business_logic=business.api_business_logic,
-        file_service=persistence.file_service,
     )
     
     # Diagram integration service
     integrated_diagram_service = providers.Singleton(
         _create_integrated_diagram_service,
-        file_repository=persistence.diagram_storage_service,
-        loader_adapter=persistence.diagram_loader,
+        diagram_storage_adapter=persistence.diagram_storage_adapter,
     )
     
     # Parser services

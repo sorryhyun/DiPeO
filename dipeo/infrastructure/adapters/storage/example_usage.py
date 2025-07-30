@@ -11,6 +11,7 @@ from dipeo.infrastructure.adapters.storage import (
     LocalFileSystemAdapter,
     ArtifactStoreAdapter,
     S3Adapter,
+    DiagramStorageAdapter,
 )
 
 
@@ -168,6 +169,102 @@ async def artifact_management_example():
     print(f"\n✓ Downloaded artifact to: {local_path}")
 
 
+async def diagram_storage_example():
+    """Example using DiagramStoragePort for format-aware diagram storage."""
+    print("\n=== Diagram Storage Example ===")
+    
+    # Initialize filesystem adapter and diagram storage
+    fs = LocalFileSystemAdapter(base_path="/tmp/dipeo_diagrams")
+    await fs.initialize()
+    
+    diagram_storage = DiagramStorageAdapter(fs, "/tmp/dipeo_diagrams")
+    await diagram_storage.initialize()
+    
+    # Native JSON format example
+    native_content = json.dumps({
+        "nodes": {
+            "node_1": {
+                "type": "person_job",
+                "position": {"x": 100, "y": 200},
+                "data": {"personId": "alice", "prompt": "Analyze data"}
+            }
+        },
+        "arrows": {
+            "arrow_1": {
+                "source": "node_1",
+                "target": "output",
+                "data": {"label": "results"}
+            }
+        }
+    }, indent=2)
+    
+    info = await diagram_storage.save_diagram("analysis_workflow", native_content, "native")
+    print(f"✓ Saved native format diagram: {info.path}")
+    print(f"  Format: {info.format}")
+    print(f"  Size: {info.size} bytes")
+    
+    # Light YAML format example
+    light_content = """version: light
+nodes:
+  - id: start
+    type: person_job
+    personId: bob
+    prompt: Generate report
+connections:
+  - from: start
+    to: review
+    label: draft
+persons:
+  - id: bob
+    name: Bob Smith
+    role: Analyst"""
+    
+    info2 = await diagram_storage.save_diagram("report_workflow", light_content, "light")
+    print(f"\n✓ Saved light format diagram: {info2.path}")
+    
+    # Readable YAML format example
+    readable_content = """format: readable
+title: Data Processing Pipeline
+nodes:
+  - Collect user feedback
+  - Analyze sentiment
+  - Generate insights
+flow:
+  - Collect user feedback -> Analyze sentiment: raw feedback
+  - Analyze sentiment -> Generate insights: sentiment scores"""
+    
+    info3 = await diagram_storage.save_diagram("feedback_pipeline", readable_content, "readable")
+    print(f"✓ Saved readable format diagram: {info3.path}")
+    
+    # List all diagrams
+    print("\nAll stored diagrams:")
+    diagrams = await diagram_storage.list_diagrams()
+    for diag in diagrams:
+        print(f"  - {diag.id} ({diag.format}) - {diag.path}")
+    
+    # Load a diagram
+    content, format = await diagram_storage.load_diagram("analysis_workflow")
+    print(f"\nLoaded analysis_workflow:")
+    print(f"  Format: {format}")
+    print(f"  Content preview: {content[:100]}...")
+    
+    # Convert format
+    print("\nConverting report_workflow from light to native format...")
+    converted_info = await diagram_storage.convert_format("report_workflow", "native")
+    print(f"✓ Converted to: {converted_info.path}")
+    
+    # Check if diagram exists
+    exists = await diagram_storage.exists("feedback_pipeline")
+    print(f"\nDoes feedback_pipeline exist? {exists}")
+    
+    # Get diagram info without loading content
+    info = await diagram_storage.get_info("feedback_pipeline")
+    if info:
+        print(f"Feedback pipeline info:")
+        print(f"  Modified: {info.modified}")
+        print(f"  Size: {info.size} bytes")
+
+
 async def s3_example():
     """Example using S3 adapter (requires AWS credentials)."""
     print("\n=== S3 Adapter Example ===")
@@ -209,6 +306,7 @@ async def main():
     await filesystem_example()
     await blob_storage_example()
     await artifact_management_example()
+    await diagram_storage_example()
     
     # Uncomment to run S3 example (requires AWS setup)
     # await s3_example()

@@ -76,16 +76,17 @@ def create_unified_service_registry_from_dependencies(
             "services": [
                 "state_store",
                 "message_router",
-                "file_service",
                 "api_key_service",
-                "diagram_storage_service",
                 "diagram_storage_adapter",
                 "diagram_loader",
+                "diagram_converter",
+                "diagram_service",
                 "db_operations_service",
+                "filesystem_adapter",
             ],
             "aliases": {
-                "file": "file_service",  # Legacy alias
                 "apikey_service": "api_key_service",  # GraphQL expects this name
+                "diagram_storage_service": "diagram_storage_adapter",  # Migration alias
             }
         },
         "integration": {
@@ -157,6 +158,8 @@ def create_unified_service_registry_from_dependencies(
                 if hasattr(container, service_name):
                     service = getattr(container, service_name)()
                     registry.register(service_name, service)
+                else:
+                    logger.debug(f"Service {service_name} not found in {container_name} container")
             
             # Register optional services
             for service_name in config.get("optional_services", []):

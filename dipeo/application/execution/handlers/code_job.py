@@ -12,6 +12,7 @@ from io import StringIO
 from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
+from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -32,8 +33,9 @@ logger = logging.getLogger(__name__)
 @register_handler
 class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     
-    def __init__(self):
+    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
         self._processor = TemplateProcessor()
+        self.filesystem_adapter = filesystem_adapter
 
     @property
     def node_class(self) -> type[CodeJobNode]:
@@ -50,7 +52,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return ["template"]
+        return ["template", "filesystem_adapter"]
 
     @property
     def description(self) -> str:
@@ -81,6 +83,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
                 file_path = Path(base_dir) / node.filePath
             
+            # Note: We can't use filesystem_adapter in validate() since services aren't available yet
+            # The actual file existence check will happen in execute_request()
+            # For now, we'll use basic path validation
             if not file_path.exists():
                 return f"File not found: {node.filePath}"
             

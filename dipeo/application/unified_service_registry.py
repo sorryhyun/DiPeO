@@ -50,7 +50,7 @@ PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder", "Prompt template 
 CONDITION_EVALUATION_SERVICE = ServiceKey["ConditionEvaluator"]("condition_evaluation_service", "Condition expression evaluator")
 
 # Infrastructure service keys
-FILE_SERVICE = ServiceKey["FileServicePort"]("file_service", "File operations service")
+# FILE_SERVICE removed - use FILESYSTEM_ADAPTER instead
 API_SERVICE = ServiceKey["APIService"]("api_service", "HTTP API client service")
 NOTION_SERVICE = ServiceKey["NotionServicePort"]("notion_service", "Notion API service")
 DIAGRAM_STORAGE_SERVICE = ServiceKey["DiagramStorageAdapter"]("diagram_storage_service", "Diagram file storage and retrieval")
@@ -308,7 +308,6 @@ __all__ = [
     'CONVERSATION_SERVICE',
     'PROMPT_BUILDER',
     'CONDITION_EVALUATION_SERVICE',
-    'FILE_SERVICE',
     'API_SERVICE',
     'NOTION_SERVICE',
     'DIAGRAM_STORAGE_SERVICE',

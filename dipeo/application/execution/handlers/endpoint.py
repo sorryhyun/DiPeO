@@ -1,5 +1,7 @@
 
 from typing import TYPE_CHECKING, Any, Optional
+from pathlib import Path
+import json
 
 from pydantic import BaseModel
 
@@ -13,13 +15,14 @@ from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.domain.ports.storage import FileSystemPort
 
 
 @register_handler
 class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     
-    def __init__(self, file_service=None):
-        self.file_service = file_service
+    def __init__(self, filesystem_adapter: Optional["FileSystemPort"] = None):
+        self.filesystem_adapter = filesystem_adapter
 
 
     @property
@@ -37,7 +40,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["file_service"]
+        return ["filesystem_adapter"]
 
     @property
     def description(self) -> str:
@@ -47,10 +50,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         """Validate the endpoint node configuration."""
         node = request.node
         
-        # Validate file service is available if save_to_file is enabled
+        # Validate filesystem adapter is available if save_to_file is enabled
         if node.save_to_file:
-            if not request.services.get("file_service") and not self.file_service:
-                return "File service is required when save_to_file is enabled"
+            if not request.services.get("filesystem_adapter") and not self.filesystem_adapter:
+                return "Filesystem adapter is required when save_to_file is enabled"
         
         return None
     
@@ -68,7 +71,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             })
         
         # Get service from services dict
-        file_service = self.file_service or services.get("file_service")
+        filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
 
         # Endpoint nodes pass through their inputs
         result_data = inputs if inputs else {}
@@ -89,14 +92,27 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                 node_dict = typed_node.to_dict()
                 file_name = node_dict.get('file_path') or node_dict.get('file_name')
 
-        if save_to_file and file_name:
+        if save_to_file and file_name and filesystem_adapter:
             try:
-                if isinstance(result_data, dict) and "default" in result_data:
-                    content = str(result_data["default"])
+                # Prepare content to save
+                if isinstance(result_data, dict):
+                    # Save as JSON for dict data
+                    content = json.dumps(result_data, indent=2)
                 else:
+                    # Save as string for other types
                     content = str(result_data)
-
-                await file_service.write(file_name, None, None, content)
+                
+                # Convert to Path object
+                file_path = Path(file_name)
+                
+                # Ensure parent directory exists
+                parent_dir = file_path.parent
+                if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+                    filesystem_adapter.mkdir(parent_dir, parents=True)
+                
+                # Write the file using FileSystemPort
+                with filesystem_adapter.open(file_path, "wb") as f:
+                    f.write(content.encode('utf-8'))
 
                 return DataOutput(
                     value={"default": result_data},

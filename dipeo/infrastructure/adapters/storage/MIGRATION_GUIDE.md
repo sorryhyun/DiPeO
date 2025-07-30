@@ -2,9 +2,87 @@
 
 This guide helps migrate from the old file service implementations to the new port-based storage adapters.
 
+## Migration Status
+
+### ✅ Completed
+
+- Service registrations in persistence containers
+- DBOperationsAdapter migrated to FileSystemPort
+- EndpointNodeHandler migrated to FileSystemPort
+- FILESYSTEM_ADAPTER service key added to registry
+- SubDiagramNodeHandler migrated (uses diagram_service instead of direct file access)
+- GraphQL resolvers migrated (queries.py, mutations/upload.py)
+- DiagramStorageAdapter implemented (replaced DiagramLoaderAdapter)
+- Removed ModularFileService imports from all containers
+- Updated all service registrations to remove file_service
+- FileOperationError replaced with StorageError in server exceptions
+- template_job handler migrated to use filesystem_adapter
+- json_schema_validator handler migrated to use filesystem_adapter
+- hook handler migrated to use filesystem_adapter
+- code_job handler updated to include filesystem_adapter
+- Removed old infra/persistence/file directory (ModularFileService, BaseFileService, etc.)
+- Removed old domain/file/services directory (FileBusinessLogic, BackupService)
+- Updated container configurations and exports
+
+### 🚧 In Progress / TODO
+
+#### ✅ Priority 1: Complete File Service Migration - COMPLETED
+
+All file service migrations have been completed. The old file_service has been fully replaced with the new port-based storage adapters.
+
+**What was migrated:**
+- SubDiagramNodeHandler now uses diagram_service instead of direct file access
+- GraphQL queries.py prompt file operations now use filesystem_adapter
+- GraphQL mutations/upload.py file uploads now use filesystem_adapter  
+- All ModularFileService imports removed from containers
+- APIService updated to work without file_service (save_response method won't work)
+- Service registrations updated to exclude file_service
+
+#### ✅ Priority 2: Error Handling - COMPLETED
+
+**What was migrated:**
+- Removed FileOperationError import from server exceptions.py
+- Added StorageError import to server exceptions.py
+- FileOperationError is now only used in legacy file services that are being phased out
+
+#### ✅ Priority 3: Service Wiring - COMPLETED
+
+**What was migrated:**
+- template_job handler now uses filesystem_adapter for reading templates and writing output
+- json_schema_validator handler now uses filesystem_adapter for reading schema and data files
+- hook handler now uses filesystem_adapter for file operations in file hooks
+- code_job handler updated to include filesystem_adapter in services (minimal migration)
+- All handlers properly request filesystem_adapter in their requires_services property
+
+#### Priority 4: Integration Tests
+
+- [ ] Update integration tests to use new storage adapters
+- [ ] Add tests for error handling with StorageError
+- [ ] Verify all handlers work with filesystem_adapter
+
+#### Future Enhancements
+
+- [ ] Migrate diagram storage to BlobStorePort for versioning
+- [ ] Implement S3 adapter for cloud deployments
+- [ ] Add artifact management for ML models
+
+## Quick Decision Guide
+
+### Which Storage Port to Use?
+
+| Use Case                | Port                | Example            |
+| ----------------------- | ------------------- | ------------------ |
+| Config files, JSON data | `FileSystemPort`    | API keys, DB files |
+| User uploads, outputs   | `FileSystemPort`    | Endpoint outputs   |
+| Versioned diagrams      | `BlobStorePort`     | Diagram history    |
+| ML models               | `ArtifactStorePort` | Model versions     |
+| Temporary files         | `FileSystemPort`    | Processing cache   |
+| S3 uploads              | `S3Adapter`         | Cloud storage      |
+
 ## Overview of Changes
 
 ### Old Structure
+
 ```
 dipeo/infra/persistence/file/
 ├── base_file_service.py
@@ -20,6 +98,7 @@ dipeo/domain/file/services/
 ```
 
 ### New Structure
+
 ```
 dipeo/domain/ports/
 └── storage.py (Protocol definitions)
@@ -30,171 +109,132 @@ dipeo/infrastructure/adapters/storage/
 └── artifact_adapter.py (ArtifactStoreAdapter)
 ```
 
-## Migration Examples
+## Completed Migration Examples
 
-### 1. Basic File Operations
+### 1. DBOperationsAdapter (✅ COMPLETED)
 
-**Old Code:**
+**Migration Pattern:**
+
 ```python
-from dipeo.infra.persistence.file import BaseFileService
+# Old
+def __init__(self, file_service: FileServicePort, ...):
+    self.file_service = file_service
 
-file_service = BaseFileService(base_dir="/data")
-await file_service.initialize()
+# New
+def __init__(self, file_system: FileSystemPort, ...):
+    self.file_system = file_system
 
-# Read file
-result = file_service.read("config.json")
-content = result["content"]
-
-# Write file
-await file_service.write("output.json", content=json_data)
-
-# Check existence
-exists = await file_service.file_exists("data.txt")
+# File operations updated
+with self.file_system.open(file_path, "rb") as f:
+    raw_content = f.read()
 ```
 
-**New Code:**
+### 2. EndpointNodeHandler (✅ COMPLETED)
+
+**Migration Pattern:**
+
 ```python
-from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+# Service requirement changed
+@property
+def requires_services(self) -> list[str]:
+    return ["filesystem_adapter"]  # was "file_service"
 
-fs_adapter = LocalFileSystemAdapter(base_path="/data")
-await fs_adapter.initialize()
-
-# Read file
-with fs_adapter.open(Path("config.json"), "r") as f:
-    content = f.read()
-
-# Write file
-with fs_adapter.open(Path("output.json"), "w") as f:
-    f.write(json_data)
-
-# Check existence
-exists = fs_adapter.exists(Path("data.txt"))
+# File writing updated
+with filesystem_adapter.open(file_path, "wb") as f:
+    f.write(content.encode('utf-8'))
 ```
 
-### 2. Blob Storage Operations
+## Future Migration Patterns
 
-**Old Code:**
+### Blob Storage for Versioning (TODO)
+
 ```python
-# Storing versioned content (not directly supported)
-await file_service.save_file(
-    content=data_bytes,
-    filename="model.pkl",
-    create_backup=True
-)
-```
-
-**New Code:**
-```python
-from dipeo.infrastructure.adapters.storage import LocalBlobAdapter
-
+# When you need version history
 blob_adapter = LocalBlobAdapter(base_path="/data/blobs")
-await blob_adapter.initialize()
-
-# Store with automatic versioning
-version_id = await blob_adapter.put("models/model.pkl", data_bytes)
+version_id = await blob_adapter.put("diagrams/workflow.json", data_bytes)
 
 # Retrieve specific version
-data_io = await blob_adapter.get("models/model.pkl", version=version_id)
-data = data_io.read()
-
-# List objects
-async for key in blob_adapter.list("models/"):
-    print(key)
+data_io = await blob_adapter.get("diagrams/workflow.json", version=version_id)
 ```
 
-### 3. S3 Storage
+### S3 for Cloud Deployment (Future)
 
-**New Code (no old equivalent):**
 ```python
-from dipeo.infrastructure.adapters.storage import S3Adapter
-
-s3_adapter = S3Adapter(bucket="my-dipeo-bucket", region="us-west-2")
-await s3_adapter.initialize()
-
-# Store in S3
+# For cloud deployments
+s3_adapter = S3Adapter(bucket="dipeo-bucket", region="us-west-2")
 version_id = await s3_adapter.put("diagrams/workflow.json", diagram_data)
-
-# Generate presigned URL
 url = s3_adapter.presign_url("diagrams/workflow.json", expires_in=3600)
 ```
 
-### 4. Artifact Management
+### Artifact Management (When Needed)
 
-**Old Code:**
 ```python
-# Manual version management
-backup_path = backup_service.create_backup_name(file_path)
-await file_service.copy_file(file_path, backup_path)
-```
-
-**New Code:**
-```python
-from dipeo.infrastructure.adapters.storage import ArtifactStoreAdapter
-from dipeo.domain.ports.storage import Artifact
-
-artifact_store = ArtifactStoreAdapter(blob_store=blob_adapter)
-await artifact_store.initialize()
-
-# Push versioned artifact
+# For ML models, trained artifacts, etc.
 artifact = Artifact(
     name="trained-model",
     version="v1.2.0",
     data=model_bytes,
-    metadata={"accuracy": "0.95", "dataset": "production"}
+    metadata={"accuracy": "0.95"}
 )
 ref = await artifact_store.push(artifact)
-
-# Promote to production
 await artifact_store.promote(ref, "prod")
-
-# Get latest production version
-latest = await artifact_store.get_latest("trained-model", stage="prod")
 ```
 
-## Service Registration
+## Service Registration (✅ COMPLETED)
 
-### Old Registry Pattern
+### Updated Container Registration
+
 ```python
-from dipeo.domain.service_registry import get_domain_service_registry
-
-registry = get_domain_service_registry()
-file_service = registry.get_file_service()
+# In ServerPersistenceContainer
+filesystem_adapter = providers.Singleton(_create_server_filesystem_adapter)
+blob_adapter = providers.Singleton(_create_server_blob_adapter)
+artifact_adapter = providers.Singleton(
+    _create_server_artifact_adapter,
+    blob_store=blob_adapter
+)
 ```
 
-### New Registry Pattern
+### New Service Keys
+
 ```python
-from dipeo.application.registry import ServiceRegistry, BLOB_STORE, FILE_SYSTEM
+from dipeo.application.registry import FILESYSTEM_ADAPTER, BLOB_STORE, ARTIFACT_STORE
 
-registry = ServiceRegistry()
-
-# Register adapters
-registry.register(BLOB_STORE, LocalBlobAdapter("/data/blobs"))
-registry.register(FILE_SYSTEM, LocalFileSystemAdapter("/data"))
-
-# Resolve when needed
+# Use in handlers/services
+filesystem = registry.resolve(FILESYSTEM_ADAPTER)
 blob_store = registry.resolve(BLOB_STORE)
-fs = registry.resolve(FILE_SYSTEM)
 ```
 
-## Migration Steps
+## Remaining Migration Steps
 
-1. **Identify Usage Patterns**
-   - Simple file I/O → Use `FileSystemPort`
-   - Versioned storage → Use `BlobStorePort`
-   - Artifact management → Use `ArtifactStorePort`
+### 1. **Error Handling Update (Priority 2)**
 
-2. **Update Service Registration**
-   - Replace old file service registrations with new adapters
-   - Update dependency injection to use new ports
+```python
+# Old
+from dipeo.core import FileOperationError
+try:
+    # file operation
+except FileOperationError as e:
+    # handle
 
-3. **Refactor File Operations**
-   - Replace `read()`/`write()` with `open()` and context managers
-   - Use Path objects instead of strings
-   - Handle binary mode explicitly
+# New
+from dipeo.core import StorageError
+try:
+    # storage operation
+except StorageError as e:
+    # handle
+```
 
-4. **Add Error Handling**
-   - Catch `StorageError` instead of `FileOperationError` for storage operations
-   - Handle specific storage scenarios (S3 permissions, local disk space, etc.)
+### 2. **Diagram Storage Migration (Optional)**
+
+Consider migrating to versioned storage:
+
+```python
+# Current: filesystem-based
+diagram_loader = DiagramLoaderAdapter(file_service)
+
+# Future: blob-based with versioning
+diagram_loader = DiagramBlobAdapter(blob_store)
+```
 
 ## Benefits of Migration
 
@@ -214,64 +254,75 @@ fs = registry.resolve(FILE_SYSTEM)
    - Built-in versioning for blob storage
    - Artifact promotion workflows
 
-## Common Patterns
+## Migration Patterns for Remaining Work
 
-### File Format Handling
+### Pattern 1: Service Resolution
+
 ```python
-# Old: Format handlers were built into file service
-content, raw = file_service.formats.read_file(path)
+# In handlers requiring file operations
+from dipeo.application.registry import FILESYSTEM_ADAPTER
 
-# New: Handle formats in application layer
-with fs.open(path, "rb") as f:
-    raw_content = f.read()
-    
-# Parse based on extension
+filesystem = request.services.get("filesystem_adapter")
+# or
+filesystem = registry.resolve(FILESYSTEM_ADAPTER)
+```
+
+### Pattern 2: Path Handling
+
+```python
+# Always use Path objects
+from pathlib import Path
+
+file_path = Path(filename)
+parent_dir = file_path.parent
+
+# Check parent directory exists
+if not filesystem.exists(parent_dir):
+    filesystem.mkdir(parent_dir, parents=True)
+```
+
+### Pattern 3: File I/O with Context Managers
+
+```python
+# Reading
+with filesystem.open(path, "rb") as f:
+    content = f.read().decode('utf-8')
+
+# Writing
+with filesystem.open(path, "wb") as f:
+    f.write(content.encode('utf-8'))
+```
+
+### Pattern 4: Format-Specific Handling
+
+```python
+# Handle different file formats in application layer
 if path.suffix == ".json":
-    content = json.loads(raw_content)
-elif path.suffix == ".yaml":
-    content = yaml.safe_load(raw_content)
-```
-
-### Backup Management
-```python
-# Old: Built-in backup on write
-await file_service.write(file_id, content, create_backup=True)
-
-# New: Explicit backup using blob versioning
-version_before = await blob_store.put(key, original_data)
-version_after = await blob_store.put(key, new_data)
-# Both versions are retained
-```
-
-### Directory Operations
-```python
-# Old: Mixed file/directory operations
-files = await file_service.list_files(directory)
-
-# New: Clear filesystem operations
-for path in fs.listdir(Path(directory)):
-    if path.is_file():
-        info = fs.stat(path)
-        print(f"{path.name}: {info.size} bytes")
+    content = json.dumps(data, indent=2)
+elif path.suffix in [".yaml", ".yml"]:
+    content = yaml.dump(data)
+else:
+    content = str(data)
 ```
 
 ## Testing
 
 ### Mock Implementations
+
 ```python
 from dipeo.domain.ports.storage import BlobStorePort
 
 class MockBlobStore(BlobStorePort):
     def __init__(self):
         self.storage = {}
-    
+
     async def put(self, key: str, data: bytes | BinaryIO, metadata: dict[str, str] | None = None) -> str:
         version = f"v{len(self.storage.get(key, []))}"
         if key not in self.storage:
             self.storage[key] = []
         self.storage[key].append((version, data, metadata))
         return version
-    
+
     # ... implement other methods
 ```
 
@@ -284,10 +335,10 @@ from dipeo.domain.ports.storage import FileSystemPort
 
 class LegacyFileServiceAdapter(FileSystemPort):
     """Adapter to use old file service with new port interface."""
-    
+
     def __init__(self, legacy_service):
         self.legacy = legacy_service
-    
+
     def open(self, path: Path, mode: str = "r") -> BinaryIO:
         # Adapt old read() to new open()
         if "r" in mode:

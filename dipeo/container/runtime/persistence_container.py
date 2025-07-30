@@ -5,17 +5,7 @@ from dependency_injector import providers
 from ..base import MutableBaseContainer
 
 
-def _create_file_service(base_dir, backup_service=None, domain_validator=None):
-    """Create modular file service."""
-    from dipeo.domain.file.services import BackupService
-    from dipeo.domain.validators import FileValidator
-    from dipeo.infra.persistence.file import ModularFileService
-    
-    return ModularFileService(
-        base_dir=base_dir,
-        backup_service=backup_service or BackupService(),
-        validator=domain_validator or FileValidator()
-    )
+# File service removed - use filesystem_adapter instead
 
 
 def _create_api_key_storage(store_file=None):
@@ -38,36 +28,38 @@ def _create_api_key_service(storage):
 
 
 def _create_diagram_storage_service(base_dir, diagram_domain_service):
-    """Create diagram file repository."""
-    from dipeo.infra.persistence.diagram import DiagramFileRepository
-    return DiagramFileRepository(
-        domain_service=diagram_domain_service,
-        base_dir=base_dir
-    )
+    """Create diagram service - legacy compatibility wrapper."""
+    # This is kept for backward compatibility but returns None
+    # The actual diagram service is now created separately
+    return None
 
 
-def _create_diagram_storage_adapter(storage_service, diagram_domain_service):
-    """Create diagram storage adapter."""
-    from dipeo.infra.persistence.diagram import DiagramStorageAdapter
+def _create_diagram_storage_adapter(filesystem_adapter, base_dir):
+    """Create diagram storage adapter with format awareness."""
+    from pathlib import Path
+    from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
+    
+    # Ensure base_dir is a Path object
+    base_path = Path(base_dir)
     
     return DiagramStorageAdapter(
-        file_repository=storage_service,
-        domain_service=diagram_domain_service
+        filesystem=filesystem_adapter,
+        base_path=base_path / "files"
     )
 
 
 
-def _create_diagram_loader(file_service):
-    """Create diagram loader adapter."""
-    from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
-    return DiagramLoaderAdapter(file_service=file_service)
+def _create_diagram_loader():
+    """Create diagram converter service."""
+    from dipeo.infrastructure.services.diagram import DiagramConverterService
+    return DiagramConverterService()
 
 
-def _create_db_operations_service(file_service, db_validator):
+def _create_db_operations_service(filesystem_adapter, db_validator):
     """Create database operations service."""
     from dipeo.infra.database import DBOperationsDomainService
     
-    return DBOperationsDomainService(file_service, db_validator)
+    return DBOperationsDomainService(filesystem_adapter, db_validator)
 
 
 def _create_state_store():
@@ -102,6 +94,35 @@ def _create_person_persistence():
     return None
 
 
+def _create_filesystem_adapter(base_dir):
+    """Create filesystem adapter for basic file operations."""
+    from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+    
+    # Use base_dir as the root for filesystem operations
+    adapter = LocalFileSystemAdapter(base_path=base_dir)
+    return adapter
+
+
+def _create_blob_adapter():
+    """Create blob storage adapter - must be overridden by implementation."""
+    return None
+
+
+def _create_artifact_adapter():
+    """Create artifact storage adapter - must be overridden by implementation."""
+    return None
+
+
+def _create_diagram_service(diagram_storage_adapter, diagram_converter):
+    """Create high-level diagram service."""
+    from dipeo.infrastructure.services.diagram import DiagramService
+    
+    return DiagramService(
+        storage=diagram_storage_adapter,
+        converter=diagram_converter
+    )
+
+
 class PersistenceServicesContainer(MutableBaseContainer):
     """Mutable services for storage, repositories, and persistence.
     
@@ -116,13 +137,7 @@ class PersistenceServicesContainer(MutableBaseContainer):
     # Dependencies from other containers
     business = providers.DependenciesContainer()
     
-    # File system services
-    file_service = providers.Singleton(
-        _create_file_service,
-        base_dir=base_dir,
-        backup_service=business.backup_service,
-        domain_validator=business.file_validator,
-    )
+    # File service removed - use filesystem_adapter instead
     
     # API key management
     api_key_storage = providers.Singleton(
@@ -135,28 +150,35 @@ class PersistenceServicesContainer(MutableBaseContainer):
         storage=api_key_storage,
     )
     
-    # Diagram storage
-    diagram_storage_service = providers.Singleton(
-        _create_diagram_storage_service,
-        base_dir=base_dir,
-        diagram_domain_service=business.diagram_business_logic,
+    # Storage adapters
+    filesystem_adapter = providers.Singleton(
+        _create_filesystem_adapter,
+        base_dir=base_dir
     )
     
+    # Diagram storage adapter
     diagram_storage_adapter = providers.Singleton(
         _create_diagram_storage_adapter,
-        storage_service=diagram_storage_service,
-        diagram_domain_service=business.diagram_business_logic,
+        filesystem_adapter=filesystem_adapter,
+        base_dir=base_dir,
+    )
+    
+    # Diagram storage service - alias for backward compatibility
+    # Points to diagram_storage_adapter for code expecting the old service name
+    # We'll use a factory that just returns the diagram_storage_adapter
+    diagram_storage_service = providers.Factory(
+        lambda adapter: adapter,
+        adapter=diagram_storage_adapter
     )
 
     diagram_loader = providers.Singleton(
         _create_diagram_loader,
-        file_service=file_service,
     )
     
     # Database operations
     db_operations_service = providers.Singleton(
         _create_db_operations_service,
-        file_service=file_service,
+        filesystem_adapter=filesystem_adapter,
         db_validator=business.db_validator,
     )
     
@@ -167,3 +189,18 @@ class PersistenceServicesContainer(MutableBaseContainer):
     # Conversation and person persistence (future)
     conversation_persistence = providers.Singleton(_create_conversation_persistence)
     person_persistence = providers.Singleton(_create_person_persistence)
+    
+    # New storage adapters (must be overridden by implementation)
+    blob_adapter = providers.Singleton(_create_blob_adapter)
+    artifact_adapter = providers.Singleton(_create_artifact_adapter)
+    
+    # Diagram services
+    diagram_converter = providers.Singleton(
+        _create_diagram_loader,  # Using the converter function
+    )
+    
+    diagram_service = providers.Singleton(
+        _create_diagram_service,
+        diagram_storage_adapter=diagram_storage_adapter,
+        diagram_converter=diagram_converter,
+    )

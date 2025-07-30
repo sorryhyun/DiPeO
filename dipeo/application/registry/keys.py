@@ -25,11 +25,13 @@ if TYPE_CHECKING:
         ConditionEvaluator,
         PersonManagerImpl,
     )
-    from dipeo.infra.persistence import (
+    from dipeo.infrastructure.adapters.storage import (
         DiagramStorageAdapter,
         BlobStoreAdapter,
         ArtifactStoreAdapter,
     )
+    from dipeo.domain.ports.storage import DiagramStoragePort
+    from dipeo.infrastructure.services.diagram import DiagramService, DiagramConverterService
     from dipeo.domain.db.services import DBOperationsDomainService
     from dipeo.models import ExecutableDiagram, ExecutionContext
     from typing import Any, Dict
@@ -45,6 +47,8 @@ MESSAGE_ROUTER = ServiceKey["MessageRouterPort"]("message_router")
 BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
 ARTIFACT_STORE = ServiceKey["ArtifactStoreAdapter"]("artifact_store")
 DIAGRAM_STORAGE_SERVICE = ServiceKey["DiagramStorageAdapter"]("diagram_storage_service")
+DIAGRAM_STORAGE = ServiceKey["DiagramStoragePort"]("diagram_storage_adapter")
+FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 
 # Application Services
 CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
@@ -56,6 +60,8 @@ PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
 DIAGRAM_CONVERTER = ServiceKey["DiagramConverter"]("diagram_converter")
+DIAGRAM_CONVERTER_SERVICE = ServiceKey["DiagramConverterService"]("diagram_converter")
+DIAGRAM_SERVICE_NEW = ServiceKey["DiagramService"]("diagram_service")
 
 # External Integration Services
 API_SERVICE = ServiceKey["APIService"]("api_service")
@@ -108,6 +114,8 @@ __all__ = [
     "BLOB_STORE",
     "ARTIFACT_STORE",
     "DIAGRAM_STORAGE_SERVICE",
+    "DIAGRAM_STORAGE",
+    "FILESYSTEM_ADAPTER",
     
     # Application
     "CONVERSATION_MANAGER",
@@ -119,6 +127,8 @@ __all__ = [
     # Domain
     "DB_OPERATIONS_SERVICE",
     "DIAGRAM_CONVERTER",
+    "DIAGRAM_CONVERTER_SERVICE",
+    "DIAGRAM_SERVICE_NEW",
     
     # External Integration
     "API_SERVICE",

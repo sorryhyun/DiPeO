@@ -16,7 +16,7 @@ from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
+    from dipeo.infrastructure.services.diagram import DiagramConverterService
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return ["state_store", "message_router", "diagram_loader"]
+        return ["state_store", "message_router", "diagram_service"]
     
     @property
     def node_class(self) -> type[SubDiagramNode]:
@@ -87,13 +87,13 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Get required services
             state_store = request.services.get("state_store")
             message_router = request.services.get("message_router")
-            diagram_loader = request.services.get("diagram_loader")
+            diagram_service = request.services.get("diagram_service")
             
             if not all([state_store, message_router]):
                 raise ValueError("Required services not available")
             
             # Load the diagram to execute
-            diagram_data = await self._load_diagram(node, diagram_loader)
+            diagram_data = await self._load_diagram(node, diagram_service)
 
             # Prepare execution options - simple like CLI does it
             options = {
@@ -129,7 +129,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 service_registry=service_registry,
                 state_store=state_store,
                 message_router=message_router,
-                diagram_storage_service=diagram_loader,
+                diagram_storage_service=request.services.get("diagram_storage_service"),
                 container=container
             )
             
@@ -185,7 +185,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 }
             )
     
-    async def _load_diagram(self, node: SubDiagramNode, diagram_loader: Optional["DiagramLoaderAdapter"]) -> dict[str, Any]:
+    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> dict[str, Any]:
         """Load the diagram to execute."""
         # If diagram_data is provided directly, use it
         if node.diagram_data:
@@ -195,8 +195,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         if not node.diagram_name:
             raise ValueError("No diagram specified for execution")
         
-        if not diagram_loader:
-            raise ValueError("Diagram loader not available")
+        if not diagram_service:
+            raise ValueError("Diagram service not available")
         
         # Construct file path based on diagram name and format
         diagram_name = node.diagram_name
@@ -217,33 +217,12 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             file_path = f"files/diagrams/{diagram_name}{format_suffix}"
         
         try:
-            # Get the file service from diagram loader to read the file
-            file_service = getattr(diagram_loader, 'file_service', None)
-            if not file_service:
-                raise ValueError("File service not available in diagram loader")
+            # Use diagram service to load the diagram
+            diagram = await diagram_service.load_from_file(file_path)
             
-            # Read the diagram file
-            result = file_service.read(file_path)
-            if not result.get("success") or not result.get("content"):
-                raise ValueError(f"Failed to read diagram file: {file_path}")
+            # Convert to dict for execution
+            return diagram.model_dump(by_alias=True)
             
-            content = result["content"]
-            
-            # If content is already a dict (parsed YAML/JSON), return it
-            if isinstance(content, dict):
-                return content
-            
-            # Otherwise parse based on format
-            if file_path.endswith('.yaml'):
-                import yaml
-                diagram_dict = yaml.safe_load(content)
-            elif file_path.endswith('.json'):
-                import json
-                diagram_dict = json.loads(content)
-            else:
-                raise ValueError(f"Unknown file format: {file_path}")
-            
-            return diagram_dict
         except Exception as e:
             log.error(f"Error loading diagram from '{file_path}': {str(e)}")
             raise ValueError(f"Failed to load diagram '{node.diagram_name}': {str(e)}")
@@ -416,8 +395,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def _execute_batch_item(self, original_request: ExecutionRequest[SubDiagramNode], 
                                   item_inputs: dict[str, Any], index: int, total: int) -> Any:
         """Execute a single item in the batch."""
-        log.info(f"[BATCH SUB_DIAGRAM] Processing item {index + 1}/{total}")
-        
         # Create a new node instance without batch enabled to avoid recursion
         from dataclasses import replace
         node_without_batch = replace(original_request.node, batch=False)

@@ -81,7 +81,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             **{
                 k: v
                 for k, v in n.items()
-                if k not in {"label", "type", "position", "props"}
+                if k not in {"id", "label", "type", "position", "props"}
             },
         }
 

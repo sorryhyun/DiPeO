@@ -13,8 +13,8 @@ def _create_api_business_logic():
 
 def _create_file_business_logic():
     """Create pure file business logic utilities."""
-    from dipeo.domain.file.services import FileBusinessLogic
-    return FileBusinessLogic()
+    # Removed - old file services are deprecated
+    return None
 
 
 def _create_diagram_business_logic():
@@ -69,8 +69,8 @@ def _create_db_validator():
 
 def _create_backup_service():
     """Create backup service."""
-    from dipeo.domain.file.services import BackupService
-    return BackupService()
+    # Removed - old file services are deprecated
+    return None
 
 
 def _create_path_validator():

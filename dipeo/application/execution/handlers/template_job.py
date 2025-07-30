@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
+from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -21,8 +22,9 @@ if TYPE_CHECKING:
 @register_handler
 class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
-    def __init__(self):
+    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
         self._processor = TemplateProcessor()
+        self.filesystem_adapter = filesystem_adapter
     
     @property
     def node_class(self) -> type[TemplateJobNode]:
@@ -38,7 +40,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return []
+        return ["filesystem_adapter"]
     
     @property
     def description(self) -> str:
@@ -58,6 +60,16 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Execute the template rendering."""
         node = request.node
         inputs = request.inputs
+        services = request.services
+        
+        # Get filesystem adapter from services or use injected one
+        filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+        if not filesystem_adapter:
+            return ErrorOutput(
+                value="Filesystem adapter is required for template job execution",
+                node_id=node.id,
+                error_type="ServiceError"
+            )
 
         # Store execution metadata
         request.add_metadata("engine", node.engine or "internal")
@@ -91,8 +103,15 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                     base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
                     template_path = Path(base_dir) / processed_template_path
                 
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    template_content = f.read()
+                if not filesystem_adapter.exists(template_path):
+                    return ErrorOutput(
+                        value=f"Template file not found: {node.template_path}",
+                        node_id=node.id,
+                        error_type="FileNotFoundError"
+                    )
+                
+                with filesystem_adapter.open(template_path, 'rb') as f:
+                    template_content = f.read().decode('utf-8')
             
             # Choose template engine
             engine = node.engine or "internal"
@@ -132,10 +151,12 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                     output_path = Path(base_dir) / processed_output_path
                 
                 # Create parent directories if needed
-                output_path.parent.mkdir(parents=True, exist_ok=True)
+                parent_dir = output_path.parent
+                if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+                    filesystem_adapter.mkdir(parent_dir, parents=True)
                 
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    f.write(rendered)
+                with filesystem_adapter.open(output_path, 'wb') as f:
+                    f.write(rendered.encode('utf-8'))
                 
                 request.add_metadata("output_written", str(output_path))
             

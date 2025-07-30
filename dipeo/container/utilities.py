@@ -4,8 +4,9 @@ import asyncio
 import logging
 
 from dipeo.core.dynamic.conversation_manager import ConversationManager
-from dipeo.core.ports import FileServicePort, LLMServicePort, NotionServicePort, SupportsAPIKey
+from dipeo.core.ports import LLMServicePort, NotionServicePort, SupportsAPIKey
 from dipeo.core.ports.diagram_port import DiagramPort
+from dipeo.domain.ports.storage import FileSystemPort
 
 from .profiling import get_profiler
 
@@ -50,11 +51,18 @@ async def init_resources(container) -> None:
     # Initialize services
     # Always initialize diagram storage (needed for all modes) - but skip for sub-containers
     if not is_sub_container:
+        # Initialize the new diagram storage adapter and service
         if profiler:
-            async with profiler.profile_async("persistence.diagram_storage"):
-                await container.persistence.diagram_storage_service().initialize()
+            async with profiler.profile_async("persistence.diagram_storage_adapter"):
+                await container.persistence.diagram_storage_adapter().initialize()
+            async with profiler.profile_async("persistence.diagram_converter"):
+                await container.persistence.diagram_converter().initialize()
+            async with profiler.profile_async("persistence.diagram_service"):
+                await container.persistence.diagram_service().initialize()
         else:
-            await container.persistence.diagram_storage_service().initialize()
+            await container.persistence.diagram_storage_adapter().initialize()
+            await container.persistence.diagram_converter().initialize()
+            await container.persistence.diagram_service().initialize()
     
     # Initialize LLM service only if needed - skip for sub-containers
     if not is_sub_container:
@@ -118,8 +126,9 @@ async def init_resources(container) -> None:
         "message_router",
         "llm_service",
         "api_key_service",
-        "file_service",
-        "diagram_storage_service"
+        "filesystem_adapter",
+        "diagram_storage_adapter",
+        "diagram_service"
     ]
     
     validation_results = service_registry.validate_required_services(required_services)
@@ -221,7 +230,7 @@ async def shutdown_resources(container) -> None:
             service_registry = container.application.service_registry()
             
             # Additional services that might be in registry but not in containers
-            additional_services = ['template', 'file']  # Legacy aliases
+            additional_services = ['template']  # Legacy aliases
             
             for service_name in additional_services:
                 if service_name in cleaned_services:
@@ -246,7 +255,7 @@ def validate_protocol_compliance(container) -> None:
     validations = [
         (container.persistence.api_key_service(), SupportsAPIKey, "APIKeyService"),
         (container.integration.llm_service(), LLMServicePort, "LLMInfrastructureService"),
-        (container.persistence.file_service(), FileServicePort, "FileSystemRepository"),
+        (container.persistence.filesystem_adapter(), FileSystemPort, "LocalFileSystemAdapter"),
         (container.dynamic.conversation_manager(), ConversationManager, "ConversationManagerImpl"),
         (container.integration.notion_service(), NotionServicePort, "NotionAPIService"),
         (container.integration.integrated_diagram_service(), DiagramPort, "IntegratedDiagramService"),

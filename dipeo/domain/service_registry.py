@@ -78,11 +78,11 @@ class DomainServiceRegistry:
     
     def _register_file_services(self) -> None:
         """Register file domain services."""
-        from .file.services.file_business_logic import FileBusinessLogic
+        # FileBusinessLogic removed - old file services are deprecated
         from .validators import FileValidator
         
         self._validators["file"] = FileValidator()
-        self._business_services["file"] = FileBusinessLogic()
+        # self._business_services["file"] = FileBusinessLogic()  # Removed
     
     def _register_diagram_services(self) -> None:
         """Register diagram domain services."""

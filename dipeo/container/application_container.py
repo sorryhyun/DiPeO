@@ -57,15 +57,15 @@ def _create_unified_service_registry_from_dependencies(static, business, dynamic
             "services": [
                 "state_store",
                 "message_router",
-                "file_service",
                 "api_key_service",
                 "diagram_storage_service",
                 "diagram_storage_adapter",
                 "diagram_loader",
+                "diagram_service",
                 "db_operations_service",
+                "filesystem_adapter",
             ],
             "aliases": {
-                "file": "file_service",  # Legacy alias
                 "apikey_service": "api_key_service",  # GraphQL expects this name
             }
         },
@@ -190,7 +190,7 @@ class ApplicationContainer(ImmutableBaseContainer):
     # Use case: Prepare diagram for execution
     execution_preparation_service = providers.Singleton(
         _create_execution_preparation_use_case,
-        storage_service=persistence.diagram_storage_service,
+        storage_service=persistence.diagram_storage_adapter,
         validator=static.diagram_validator,
         api_key_service=persistence.api_key_service,
     )
@@ -200,6 +200,6 @@ class ApplicationContainer(ImmutableBaseContainer):
         _create_execute_diagram_use_case,
         state_store=persistence.state_store,
         message_router=persistence.message_router,
-        diagram_storage_service=persistence.diagram_storage_service,
+        diagram_storage_service=persistence.diagram_storage_adapter,
         service_registry=service_registry,
     )

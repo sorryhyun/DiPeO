@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.core.ports.state_store import StateStorePort
     from dipeo.core.static.executable_diagram import ExecutableDiagram
-    from dipeo.infra.persistence.diagram import DiagramStorageAdapter
+    from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
     from dipeo.models import DomainDiagram
 
     from ...unified_service_registry import UnifiedServiceRegistry
@@ -166,14 +166,36 @@ class ExecuteDiagramUseCase(BaseService):
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""
-        # Get the diagram loader from service registry
-        from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
-        diagram_loader: DiagramLoaderAdapter = self.service_registry.get('diagram_loader')
-        if not diagram_loader:
-            raise ValueError("DiagramLoaderAdapter not found in service registry")
+        # Handle different diagram representations
+        from dipeo.models import DomainDiagram
+        from dipeo.domain.diagram.utils import dict_to_domain_diagram
+        from dipeo.infrastructure.services.diagram import DiagramConverterService
         
-        # Use the infrastructure adapter to prepare the diagram
-        domain_diagram = diagram_loader.prepare_diagram(diagram)
+        # Check if this is a format-specific diagram (light, readable) that needs conversion
+        if isinstance(diagram, dict):
+            # Check for format markers
+            version = diagram.get("version")
+            format_type = diagram.get("format")
+            
+            # If it's a light or readable format, deserialize it first
+            if version in ["light", "readable"] or format_type in ["light", "readable"]:
+                converter = DiagramConverterService()
+                await converter.initialize()
+                
+                # Serialize the dict to YAML for deserialization
+                import yaml
+                yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
+                
+                # Deserialize using the appropriate strategy
+                format_id = version or format_type
+                domain_diagram = converter.deserialize(yaml_content, format_id)
+            else:
+                # Standard domain format, convert directly
+                domain_diagram = dict_to_domain_diagram(diagram)
+        elif isinstance(diagram, DomainDiagram):
+            domain_diagram = diagram
+        else:
+            raise ValueError(f"Unsupported diagram type: {type(diagram)}")
         
         # TODO: Add updated validation logic if needed
         # Validation has been temporarily removed while updating the flow validation system

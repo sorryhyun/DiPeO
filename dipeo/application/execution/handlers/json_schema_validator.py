@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
+from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -20,8 +21,9 @@ if TYPE_CHECKING:
 @register_handler
 class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     
-    def __init__(self):
+    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
         self._validator = None  # Lazy load jsonschema
+        self.filesystem_adapter = filesystem_adapter
     
     @property
     def node_class(self) -> type[JsonSchemaValidatorNode]:
@@ -37,7 +39,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return []
+        return ["filesystem_adapter"]
     
     @property
     def description(self) -> str:
@@ -58,11 +60,8 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                 base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
                 schema_path = Path(base_dir) / node.schema_path
             
-            if not schema_path.exists():
-                return f"Schema file not found: {node.schema_path}"
-            
-            if not schema_path.is_file():
-                return f"Schema path is not a file: {node.schema_path}"
+            # Note: We can't use filesystem_adapter here as it's not available in validate()
+            # The actual file existence check will happen in execute_request()
         
         return None
     
@@ -70,6 +69,16 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         """Execute the JSON schema validation."""
         node = request.node
         inputs = request.inputs
+        services = request.services
+        
+        # Get filesystem adapter from services or use injected one
+        filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+        if not filesystem_adapter:
+            return ErrorOutput(
+                value="Filesystem adapter is required for JSON schema validation",
+                node_id=node.id,
+                error_type="ServiceError"
+            )
         
         # Store execution metadata
         request.add_metadata("strict_mode", node.strict_mode or False)
@@ -88,8 +97,15 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
                     schema_path = Path(base_dir) / node.schema_path
                 
-                with open(schema_path, 'r', encoding='utf-8') as f:
-                    schema = json.load(f)
+                if not filesystem_adapter.exists(schema_path):
+                    return ErrorOutput(
+                        value=f"Schema file not found: {node.schema_path}",
+                        node_id=node.id,
+                        error_type="FileNotFoundError"
+                    )
+                
+                with filesystem_adapter.open(schema_path, 'rb') as f:
+                    schema = json.loads(f.read().decode('utf-8'))
             
             # Get data to validate
             data_to_validate = None
@@ -101,15 +117,15 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
                     data_path = Path(base_dir) / node.data_path
                 
-                if not data_path.exists():
+                if not filesystem_adapter.exists(data_path):
                     return ErrorOutput(
                         value=f"Data file not found: {node.data_path}",
                         node_id=node.id,
                         error_type="FileNotFoundError"
                     )
                 
-                with open(data_path, 'r', encoding='utf-8') as f:
-                    data_to_validate = json.load(f)
+                with filesystem_adapter.open(data_path, 'rb') as f:
+                    data_to_validate = json.loads(f.read().decode('utf-8'))
             else:
                 # Use input data
                 if not inputs:
