@@ -3,10 +3,11 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
 from pydantic import BaseModel
+from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
@@ -23,8 +24,8 @@ if TYPE_CHECKING:
 @register_handler
 class HookNodeHandler(TypedNodeHandler[HookNode]):
     
-    def __init__(self):
-        pass
+    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+        self.filesystem_adapter = filesystem_adapter
 
     
     @property
@@ -44,6 +45,10 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     def description(self) -> str:
         return "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
     
+    @property
+    def requires_services(self) -> list[str]:
+        return ["filesystem_adapter"]
+    
     async def execute(
         self,
         node: HookNode,
@@ -60,6 +65,13 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         inputs: dict[str, Any],
         services: dict[str, Any]
     ) -> NodeOutputProtocol:
+        # Get filesystem adapter from services for file hooks
+        if node.hook_type == HookType.file:
+            filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+            if not filesystem_adapter:
+                raise NodeExecutionError("Filesystem adapter is required for file hooks")
+            self._temp_filesystem_adapter = filesystem_adapter
+        
         try:
             result = await self._execute_hook(node, inputs)
             return TextOutput(
@@ -69,6 +81,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             )
         except Exception as e:
             raise NodeExecutionError(f"Hook execution failed: {e!s}") from e
+        finally:
+            if hasattr(self, '_temp_filesystem_adapter'):
+                delattr(self, '_temp_filesystem_adapter')
     
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         if node.hook_type == HookType.shell:
@@ -227,18 +242,27 @@ print(json.dumps(result))
         
         try:
             path = Path(file_path)
-            path.parent.mkdir(parents=True, exist_ok=True)
+            filesystem_adapter = getattr(self, '_temp_filesystem_adapter', self.filesystem_adapter)
+            if not filesystem_adapter:
+                raise NodeExecutionError("Filesystem adapter not available")
             
+            # Create parent directories if needed
+            parent_dir = path.parent
+            if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+                filesystem_adapter.mkdir(parent_dir, parents=True)
+            
+            # Prepare content based on format
             if format_type == "json":
-                with open(path, "w") as f:
-                    json.dump(data, f, indent=2)
+                content = json.dumps(data, indent=2)
             elif format_type == "yaml":
                 import yaml
-                with open(path, "w") as f:
-                    yaml.dump(data, f, default_flow_style=False)
+                content = yaml.dump(data, default_flow_style=False)
             else:  # text
-                with open(path, "w") as f:
-                    f.write(str(data))
+                content = str(data)
+            
+            # Write file
+            with filesystem_adapter.open(path, "wb") as f:
+                f.write(content.encode('utf-8'))
             
             return {"status": "success", "file": str(path)}
             

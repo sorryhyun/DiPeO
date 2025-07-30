@@ -1,27 +1,51 @@
 """API Key orchestration service in the application layer."""
 
+import json
+import logging
+from pathlib import Path
+
 from dipeo.core import APIKeyError, BaseService
-from dipeo.core.ports import APIKeyPort, SupportsAPIKey
+from dipeo.core.ports import APIKeyPort
 
 
-class APIKeyService(BaseService, SupportsAPIKey):
-    # Orchestrates API key management between business logic and storage
+class APIKeyService(BaseService, APIKeyPort):
+    # Orchestrates API key management with integrated file storage
     
-    def __init__(self, storage: APIKeyPort):
+    def __init__(self, file_path: Path | None = None):
         super().__init__()
-        self.storage = storage
+        if file_path is None:
+            file_path = Path.home() / ".dipeo" / "apikeys.json"
+        self.file_path = Path(file_path)
+        self.file_path.parent.mkdir(parents=True, exist_ok=True)
         self._store: dict[str, dict] = {}
-        import logging
         self._logger = logging.getLogger(__name__)
-        self._logger.info(f"APIKeyService.__init__ called with storage: {storage}")
+        self._logger.info(f"APIKeyService.__init__ called with file_path: {self.file_path}")
     
     async def initialize(self) -> None:
-        self._store = await self.storage.load_all()
+        self._store = await self._load_all()
         print(f"[APIKeyService] Loaded {len(self._store)} keys")
         self._logger.info(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
     
+    async def _load_all(self) -> dict[str, dict]:
+        """Load all API keys from file storage."""
+        if not self.file_path.exists():
+            return {}
+        
+        try:
+            with open(self.file_path) as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            self._logger.error(f"Failed to load API keys from {self.file_path}: {e}")
+            return {}
+    
     async def _save_store(self) -> None:
-        await self.storage.save_all(self._store)
+        """Save all API keys to file storage."""
+        try:
+            with open(self.file_path, 'w') as f:
+                json.dump(self._store, f, indent=2)
+        except OSError as e:
+            self._logger.error(f"Failed to save API keys to {self.file_path}: {e}")
+            raise
     
     def get_api_key(self, key_id: str) -> dict:
         if key_id not in self._store:

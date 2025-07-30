@@ -41,14 +41,15 @@ class ChatGPTAdapter(BaseLLMAdapter):
     def supports_response_api(self) -> bool:
         return 'gpt-4o-mini' in self.model_name or 'gpt-4.1' in self.model_name
 
-    def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
+    def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
+        """Prepare common API request parameters for both sync and async calls."""
         tools = kwargs.pop('tools', [])
         system_prompt_kwarg = kwargs.pop('system_prompt', None)
 
         # Guard against None or empty messages
         if not messages:
             logger.warning("No messages provided to OpenAI API call")
-            return ChatResult(text='', raw_response=None)
+            return [], [], {}
 
         system_prompt, processed_messages = self._extract_system_and_messages(messages)
         
@@ -66,7 +67,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
 
-        print(f"[OPENAI DEBUG] Input text: {input_messages}")
+        logger.debug(f"Input messages: {input_messages}")
+        
         # Convert tools to API format
         api_tools = []
         if tools:
@@ -76,24 +78,20 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
                     api_tools.append({"type": "image_generation"})
         
-        # Only log tools in debug mode if needed
-        # if api_tools:
-        #     logger.debug(f"API tools: {api_tools}")
+        if api_tools:
+            logger.debug(f"API tools: {api_tools}")
         
         # Use base method to extract allowed parameters
         # Note: responses API doesn't support max_tokens parameter
         api_params = self._extract_api_params(kwargs, ["temperature"])
         
-        # Make response API call with retry logic
-        response = self._make_api_call_with_retry(
-            input_messages=input_messages,
-            api_tools=api_tools,
-            api_params=api_params
-        )
-        
+        return input_messages, api_tools, api_params
+    
+    def _process_api_response(self, response: Any) -> tuple[str, list[ToolOutput] | None, dict]:
+        """Process API response to extract text, tool outputs, and token usage."""
         # Extract text output
         text = getattr(response, 'output_text', '')
-        print(f"[OPENAI DEBUG] Output text: {text}")
+        logger.debug(f"Output text: {text}")
         
         # Process tool outputs
         tool_outputs = []
@@ -134,66 +132,41 @@ class ChatGPTAdapter(BaseLLMAdapter):
             output_field="output_tokens"
         )
         
-        result = ChatResult(
+        return text, tool_outputs if tool_outputs else None, token_usage
+    
+    def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
+        # Prepare request
+        input_messages, api_tools, api_params = self._prepare_api_request(messages, **kwargs)
+        
+        if not input_messages:
+            return ChatResult(text='', raw_response=None)
+        
+        # Make response API call with retry logic
+        response = self._make_api_call_with_retry(
+            input_messages=input_messages,
+            api_tools=api_tools,
+            api_params=api_params
+        )
+        
+        # Process response
+        text, tool_outputs, token_usage = self._process_api_response(response)
+        
+        return ChatResult(
             text=text,
             token_usage=token_usage,
             raw_response=response,
-            tool_outputs=tool_outputs if tool_outputs else None
+            tool_outputs=tool_outputs
         )
-        
-        return result
     
     def _make_api_call_with_retry(self, input_messages: list, api_tools: list, api_params: dict) -> Any:
-        """Make API call with exponential backoff retry logic."""
-        last_exception = None
-        
-        for attempt in range(self.max_retries):
-            try:
-                # Build API call parameters
-                create_params = {
-                    "model": self.model_name,
-                    "input": input_messages,
-                    **api_params
-                }
-                
-                # Add tools if they exist and are supported
-                if api_tools and self.supports_tools():
-                    create_params["tools"] = api_tools
-                    logger.debug(f"Using tools with responses API: {api_tools}")
-                
-                # Try to make the API call
-                return self.client.responses.create(**create_params)
-                
-            except Exception as e:
-                last_exception = e
-                error_msg = str(e)
-                
-                # Check if it's a rate limit error
-                if "rate_limit" in error_msg.lower() or "429" in error_msg:
-                    if attempt < self.max_retries - 1:
-                        # Calculate exponential backoff
-                        delay = self.retry_delay * (2 ** attempt)
-                        logger.warning(f"Rate limit hit, retrying in {delay} seconds... (attempt {attempt + 1}/{self.max_retries})")
-                        time.sleep(delay)
-                        continue
-                
-                # Log error
-                logger.error(f"OpenAI API error: {error_msg}")
-                
-                # Retry for connection errors
-                if attempt < self.max_retries - 1 and self._is_retriable_error(e):
-                    delay = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"Retrying after error: {e} (attempt {attempt + 1}/{self.max_retries})")
-                    time.sleep(delay)
-                    continue
-                    
-                # For final attempt or non-retriable errors, return empty result
-                if attempt == self.max_retries - 1:
-                    logger.error(f"All retry attempts exhausted for OpenAI API")
-                    return self._create_empty_response(f"API call failed after {self.max_retries} attempts")
-        
-        # If we've exhausted all retries, return empty response
-        return self._create_empty_response("Failed to get response from OpenAI API")
+        """Make API call with exponential backoff retry logic (sync version)."""
+        # Run the async version in a new event loop for sync context
+        return asyncio.run(self._make_api_call_with_retry_async(
+            input_messages=input_messages,
+            api_tools=api_tools,
+            api_params=api_params,
+            is_sync=True
+        ))
     
     def _is_retriable_error(self, error: Exception) -> bool:
         """Check if an error is retriable."""
@@ -240,45 +213,11 @@ class ChatGPTAdapter(BaseLLMAdapter):
             if options.response_format is not None:
                 kwargs['response_format'] = options.response_format
         
-        return await self._make_api_call_async(messages, **kwargs)
-    
-    async def _make_api_call_async(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
-        """Make async API call to OpenAI and return ChatResult."""
-        tools = kwargs.pop('tools', [])
-        system_prompt_kwarg = kwargs.pop('system_prompt', None)
-
-        # Guard against None or empty messages
-        if not messages:
-            logger.warning("No messages provided to OpenAI API call")
+        # Prepare request
+        input_messages, api_tools, api_params = self._prepare_api_request(messages, **kwargs)
+        
+        if not input_messages:
             return ChatResult(text='', raw_response=None)
-
-        system_prompt, processed_messages = self._extract_system_and_messages(messages)
-        
-        # Use system_prompt from kwargs if provided, otherwise use extracted one
-        if system_prompt_kwarg:
-            system_prompt = system_prompt_kwarg
-        
-        # Build input messages with response API format
-        input_messages = []
-        if system_prompt:
-            # Response API uses developer instead of system
-            input_messages.append({"role": "developer", "content": system_prompt})
-        
-        # Add other messages
-        for msg in processed_messages:
-            input_messages.append({"role": msg["role"], "content": msg["content"]})
-
-        # Convert tools to API format
-        api_tools = []
-        if tools:
-            for tool in tools:
-                if tool.type == "web_search_preview" or (hasattr(tool.type, 'value') and tool.type.value == "web_search_preview"):
-                    api_tools.append({"type": "web_search_preview"})
-                elif tool.type == "image_generation" or (hasattr(tool.type, 'value') and tool.type.value == "image_generation"):
-                    api_tools.append({"type": "image_generation"})
-        
-        # Use base method to extract allowed parameters
-        api_params = self._extract_api_params(kwargs, ["temperature"])
         
         # Make response API call with retry logic
         response = await self._make_api_call_with_retry_async(
@@ -287,61 +226,26 @@ class ChatGPTAdapter(BaseLLMAdapter):
             api_params=api_params
         )
         
-        # Extract text output
-        text = getattr(response, 'output_text', '')
-        
-        # Process tool outputs
-        tool_outputs = []
-        if hasattr(response, 'output') and response.output:
-            for output in response.output:
-                if output.type == 'web_search_call' and hasattr(output, 'result'):
-                    # Parse web search results
-                    search_results = []
-                    for result in output.result:
-                        search_results.append(WebSearchResult(
-                            url=result.get('url', ''),
-                            title=result.get('title', ''),
-                            snippet=result.get('snippet', ''),
-                            score=result.get('score')
-                        ))
-                    tool_outputs.append(ToolOutput(
-                        type=ToolType.web_search,
-                        result=search_results,
-                        raw_response=output.result
-                    ))
-                elif output.type == 'image_generation_call' and hasattr(output, 'result'):
-                    # Handle image generation result
-                    tool_outputs.append(ToolOutput(
-                        type=ToolType.image_generation,
-                        result=ImageGenerationResult(
-                            image_data=output.result,  # Base64 encoded
-                            format='png',
-                            width=1024,  # Default values, could be extracted from metadata
-                            height=1024
-                        ),
-                        raw_response=output.result
-                    ))
-        
-        # Create token usage without logging
-        token_usage = self._create_token_usage(
-            response,
-            input_field="input_tokens",
-            output_field="output_tokens"
-        )
+        # Process response
+        text, tool_outputs, token_usage = self._process_api_response(response)
         
         return ChatResult(
             text=text,
             token_usage=token_usage,
             raw_response=response,
-            tool_outputs=tool_outputs if tool_outputs else None
+            tool_outputs=tool_outputs
         )
     
-    async def _make_api_call_with_retry_async(self, input_messages: list, api_tools: list, api_params: dict) -> Any:
+    
+    async def _make_api_call_with_retry_async(self, input_messages: list, api_tools: list, api_params: dict, is_sync: bool = False) -> Any:
         """Make async API call with exponential backoff retry logic."""
         last_exception = None
         
-        # Create async client
-        async_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+        # Create appropriate client based on context
+        if is_sync:
+            client = self.client
+        else:
+            client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
         
         for attempt in range(self.max_retries):
             try:
@@ -355,9 +259,13 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 # Add tools if they exist and are supported
                 if api_tools and self.supports_tools():
                     create_params["tools"] = api_tools
+                    logger.debug(f"Using tools with responses API: {api_tools}")
                 
                 # Try to make the API call
-                return await async_client.responses.create(**create_params)
+                if is_sync:
+                    return client.responses.create(**create_params)
+                else:
+                    return await client.responses.create(**create_params)
                 
             except Exception as e:
                 last_exception = e

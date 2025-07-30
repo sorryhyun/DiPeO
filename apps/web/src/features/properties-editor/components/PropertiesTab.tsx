@@ -47,8 +47,12 @@ export const PropertiesTab: React.FC = () => {
       const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
       
       return {
-        ...selectedArrow.data,
-        content_type: selectedArrow.content_type,
+        ...(selectedArrow.data || {}),
+        content_type: selectedArrow.content_type 
+          ? typeof selectedArrow.content_type === 'string'
+            ? selectedArrow.content_type.toLowerCase()
+            : selectedArrow.content_type
+          : undefined,
         label: selectedArrow.label,
         id: selectedArrow.id,
         type: 'arrow' as const,

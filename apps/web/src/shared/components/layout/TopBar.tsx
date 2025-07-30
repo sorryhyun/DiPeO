@@ -99,8 +99,8 @@ const TopBar = () => {
               type="text"
               value={diagramName}
               onChange={(e) => setDiagramName(e.target.value)}
-              className="w-96 px-2 py-1 text-lg font-semibold bg-transparent border-b border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
-              placeholder="Diagram Title"
+              className="w-[450px] px-2 py-1 text-lg font-semibold bg-transparent border-b border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
+              placeholder="Diagram path (e.g., diagrams/my_diagram.light.yaml)"
             />
             {/* Action Buttons */}
             <div className="flex items-center space-x-1">

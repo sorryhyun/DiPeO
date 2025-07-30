@@ -21,6 +21,8 @@ query GetDiagram($id: ID!) {
       id
       source
       target
+      content_type
+      label
       data
     }
     persons {
@@ -47,8 +49,8 @@ query GetDiagram($id: ID!) {
   }
 }
 
-query ListDiagrams($diagram_filter: DiagramFilterInput, $limit: Int, $offset: Int) {
-  diagrams(diagram_filter: $diagram_filter, limit: $limit, offset: $offset) {
+query ListDiagrams($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
+  diagrams(filter: $filter, limit: $limit, offset: $offset) {
     metadata {
       id
       name

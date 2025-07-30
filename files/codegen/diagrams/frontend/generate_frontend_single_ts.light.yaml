@@ -96,30 +96,17 @@ nodes:
         
         result = spec_data
       
-  # Load frontend templates
-  - label: Load TypeScript Template
-    type: db
-    position: {x: 100, y: 300}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/frontend/typescript_model.j2
-  
-  - label: Load Node Config Template
+  # Load all frontend templates at once
+  - label: Load All Templates
     type: db
     position: {x: 100, y: 400}
     props:
       operation: read
       sub_type: file
-      source_details: files/codegen/templates/frontend/node_config.j2
-
-  - label: Load Field Config Template
-    type: db
-    position: {x: 100, y: 500}
-    props:
-      operation: read
-      sub_type: file
-      source_details: files/codegen/templates/frontend/field_config.j2
+      source_details:
+        - files/codegen/templates/frontend/typescript_model.j2
+        - files/codegen/templates/frontend/node_config.j2
+        - files/codegen/templates/frontend/field_config.j2
 
   # Generate frontend code
   - label: Generate TypeScript Model
@@ -173,7 +160,7 @@ nodes:
       operation: write
       sub_type: file
       source_details: apps/web/src/__generated__/models/{node_naming.node_name}Node.ts
-  
+
   - label: Write Node Config
     type: db
     position: {x: 900, y: 400}
@@ -232,29 +219,27 @@ connections:
     to: Write Field Config
     label: node_naming
 
-  # Connect spec and templates to TypeScript generator
-  - from: Extract Specification
+  # Connect templates to generators
+  - from: Load All Templates
     to: Generate TypeScript Model
-    label: spec_data
-  - from: Load TypeScript Template
-    to: Generate TypeScript Model
-    label: template_content
+    label: templates
+  - from: Load All Templates
+    to: Generate Node Config
+    label: templates
+  - from: Load All Templates
+    to: Generate Field Config
+    label: templates
   
-  # Connect spec and templates to Node Config generator  
+  # Connect spec to generators
+  - from: Extract Specification
+    to: Generate TypeScript Model
+    label: spec_data
   - from: Extract Specification
     to: Generate Node Config
     label: spec_data
-  - from: Load Node Config Template
-    to: Generate Node Config
-    label: template_content
-
-  # Connect spec and templates to Field Config generator
   - from: Extract Specification
     to: Generate Field Config
     label: spec_data
-  - from: Load Field Config Template
-    to: Generate Field Config
-    label: template_content
   
   # Connect generators to writers (passing generated code)
   - from: Generate TypeScript Model

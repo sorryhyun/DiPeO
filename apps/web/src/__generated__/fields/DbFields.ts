@@ -21,7 +21,7 @@ export const dbFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: 'File',
     required: false,
-    description: 'File configuration',
+    description: 'File configuration (can be a single file path or array of file paths)',
   },
   {
     name: 'operation',

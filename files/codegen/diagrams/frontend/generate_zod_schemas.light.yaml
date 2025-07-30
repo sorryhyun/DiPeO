@@ -22,14 +22,17 @@ nodes:
       passInputData: false
       ignoreIfSub: true
 
-  # Load cached codegen mappings AST
-  - label: Load Mappings AST
+  # Load all cached AST files at once
+  - label: Load All AST Files
     type: db
-    position: {x: 400, y: 150}
+    position: {x: 400, y: 300}
     props:
       operation: read
       sub_type: file
-      source_details: .temp/codegen_mappings_ast.json
+      source_details:
+        - .temp/codegen_mappings_ast.json
+        - .temp/diagram_ast.json
+        - .temp/node_data_ast.json
 
   # Extract mappings
   - label: Extract Mappings
@@ -39,24 +42,6 @@ nodes:
       language: python
       filePath: files/codegen/code/shared/extract_mappings.py
       functionName: main
-
-  # Load cached diagram AST
-  - label: Load Diagram AST
-    type: db
-    position: {x: 400, y: 300}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/diagram_ast.json
-
-  # Load cached node data AST
-  - label: Load Node Data AST
-    type: db
-    position: {x: 400, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      source_details: .temp/node_data_ast.json
 
   # Generate Zod schemas
   - label: Generate Zod Schemas
@@ -140,25 +125,19 @@ connections:
   
   # Load cached data after parsing
   - from: Parse TypeScript Batch
-    to: Load Mappings AST
-  - from: Parse TypeScript Batch
-    to: Load Diagram AST
-  - from: Parse TypeScript Batch
-    to: Load Node Data AST
+    to: Load All AST Files
   - from: Parse TypeScript Batch
     to: Load Zod Template
   
-  # Extract mappings
-  - from: Load Mappings AST
+  # Extract mappings from the loaded files
+  - from: Load All AST Files
     to: Extract Mappings
     label: default
   
-  # Generate schemas with all cached data
-  - from: Load Diagram AST
+  # Pass all AST files to Generate Zod Schemas
+  - from: Load All AST Files
     to: Generate Zod Schemas
-  - from: Load Node Data AST
-    to: Generate Zod Schemas
-    label: node_data
+    label: ast_files
   - from: Extract Mappings
     to: Generate Zod Schemas
     label: mappings

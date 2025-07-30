@@ -1,6 +1,19 @@
-"""Domain Service Registry - Unified access to domain services."""
+"""Domain Service Registry - Unified access to domain services.
 
+DEPRECATED: This registry violates hexagonal architecture principles.
+Use dipeo.application.registry.ServiceRegistry instead.
+This will be removed in a future version.
+"""
+
+import warnings
 from typing import Any, Protocol
+
+warnings.warn(
+    "dipeo.domain.service_registry is deprecated. "
+    "Use dipeo.application.registry.ServiceRegistry instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class BaseValidator(Protocol):
@@ -65,11 +78,11 @@ class DomainServiceRegistry:
     
     def _register_file_services(self) -> None:
         """Register file domain services."""
-        from .file.services.file_business_logic import FileBusinessLogic
+        # FileBusinessLogic removed - old file services are deprecated
         from .validators import FileValidator
         
         self._validators["file"] = FileValidator()
-        self._business_services["file"] = FileBusinessLogic()
+        # self._business_services["file"] = FileBusinessLogic()  # Removed
     
     def _register_diagram_services(self) -> None:
         """Register diagram domain services."""
@@ -239,7 +252,16 @@ _registry: DomainServiceRegistry | None = None
 
 
 def get_domain_service_registry() -> DomainServiceRegistry:
-    """Get the global domain service registry instance."""
+    """Get the global domain service registry instance.
+    
+    DEPRECATED: Use dipeo.application.registry.ServiceRegistry instead.
+    """
+    warnings.warn(
+        "get_domain_service_registry() is deprecated. "
+        "Use dipeo.application.registry.ServiceRegistry instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     global _registry
     if _registry is None:
         _registry = DomainServiceRegistry()

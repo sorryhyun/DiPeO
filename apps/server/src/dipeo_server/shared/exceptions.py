@@ -14,11 +14,11 @@ from dipeo.core.base.exceptions import (  # noqa: F401  # noqa: F401
     DependencyError,
     DiPeOError,
     ExecutionError,
-    FileOperationError,
     LLMServiceError,
     MaxIterationsError,
     NodeExecutionError,
     ServiceError,
+    StorageError,
     ValidationError,
 )
 

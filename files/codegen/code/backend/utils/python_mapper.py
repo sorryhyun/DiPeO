@@ -9,6 +9,25 @@ def map_to_python_type(field_type: str, ts_to_py_type: Optional[Dict[str, str]] 
         field_type: TypeScript type to convert
         ts_to_py_type: Optional mapping from extracted codegen-mappings.ts
     """
+    # Known enum types that should be imported from enums module
+    known_enums = {
+        'MemoryProfile': 'MemoryProfile',
+        'ToolSelection': 'ToolSelection',
+        'SupportedLanguage': 'SupportedLanguage',
+        'HttpMethod': 'HttpMethod',
+        'DBBlockSubType': 'DBBlockSubType',
+        'HookType': 'HookType',
+        'NotionOperation': 'NotionOperation',
+        'HookTriggerMode': 'HookTriggerMode',
+        'ContentType': 'ContentType',
+        'DiagramFormat': 'DiagramFormat',
+        'MemoryView': 'MemoryView'
+    }
+    
+    # Check known enums first
+    if field_type in known_enums:
+        return known_enums[field_type]
+    
     # Use centralized mappings if provided
     if ts_to_py_type and field_type in ts_to_py_type:
         return ts_to_py_type[field_type]
@@ -171,12 +190,29 @@ def calculate_python_imports(spec_data: Dict[str, Any], ts_to_py_type: Optional[
     imports.add("from typing import Dict, Any, List, Optional, Union")
     imports.add("from pydantic import Field, BaseModel, validator")
     
+    # Known enum types
+    known_enums = {
+        'MemoryProfile', 'ToolSelection', 'SupportedLanguage', 'HttpMethod',
+        'DBBlockSubType', 'HookType', 'NotionOperation', 'HookTriggerMode',
+        'ContentType', 'DiagramFormat', 'MemoryView'
+    }
+    
     # Check field types for additional imports
     field_types = set()
+    enums_to_import = set()
+    
     for field in spec_data.get('fields', []):
         field_type = field.get('type', 'string')
         py_type = map_to_python_type(field_type, ts_to_py_type)
         field_types.add(py_type)
+        
+        # Check if this is an enum type
+        if field_type in known_enums:
+            enums_to_import.add(field_type)
+    
+    # Add enum imports if needed
+    if enums_to_import:
+        imports.add(f"from dipeo.diagram_generated.enums import {', '.join(sorted(enums_to_import))}")
     
     # Add imports based on types
     if any('datetime' in t for t in field_types):

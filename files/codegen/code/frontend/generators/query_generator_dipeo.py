@@ -78,6 +78,8 @@ class DiPeOQueryGenerator:
                 {'name': 'id'},
                 {'name': 'source'},
                 {'name': 'target'},
+                {'name': 'content_type'},
+                {'name': 'label'},
                 {'name': 'data'}
             ]},
             {'name': 'persons', 'fields': [

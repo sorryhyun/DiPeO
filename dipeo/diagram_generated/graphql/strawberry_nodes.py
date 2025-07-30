@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-07-29T16:07:44.866623
+Generated at: 2025-07-30T20:41:42.415728
 """
 
 import strawberry
@@ -10,6 +10,7 @@ from typing import Optional, List, Dict, Any
 from strawberry.types import Info
 
 # Import Pydantic models
+
 from dipeo.diagram_generated.models import (
 
     ApiJobNodeData,
@@ -43,6 +44,7 @@ from dipeo.diagram_generated.models import (
     UserResponseNodeData,
 
 )
+
 
 # Import scalars
 from dipeo.application.graphql.types.scalars import JSONScalar

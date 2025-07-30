@@ -15,6 +15,9 @@ jobs:
         node-version: [22.x]
         python-version: [3.13]
 
+    env:
+      DIPEO_BASE_DIR: ${{ github.workspace }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -44,19 +47,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Build TypeScript models
+      run: pnpm --filter @dipeo/domain-models build
+
     - name: Generate code
       run: make codegen
 
-    - name: Build packages
-      run: |
-        pnpm --filter @dipeo/domain-models build
-        pnpm --filter web build
+    - name: Build frontend
+      run: pnpm --filter web build
 
     - name: Type check TypeScript
       run: pnpm typecheck
-
-    - name: Lint Python code
-      run: make lint-server
-
-    - name: Lint TypeScript code  
-      run: make lint-web

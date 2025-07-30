@@ -1,6 +1,6 @@
 """
-Auto-generated {{ now }}. Do NOT edit by hand.
-Source of truth: `conversions.ts`
+{{ generated_warning }}
+Auto-generated. Source of truth: `conversions.ts`
 """
 
 from typing import Dict, Any, TypedDict, NewType
@@ -15,7 +15,7 @@ HandleID = NewType('HandleID', str)
 # ---------------------------------------------------------------------------
 
 NODE_TYPE_MAP: Dict[str, NodeType] = {
-{%- for key, value in node_type_map.items() %}
+{%- for key, value in conversions_data.node_type_map.items() %}
     "{{ key }}": NodeType.{{ value }},
 {%- endfor %}
 }

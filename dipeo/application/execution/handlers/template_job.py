@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
+from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -11,7 +12,7 @@ from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
-from dipeo.application.utils.template import TemplateProcessor
+from dipeo.infrastructure.services.template.template_integration import get_enhanced_template_service
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -21,8 +22,9 @@ if TYPE_CHECKING:
 @register_handler
 class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
-    def __init__(self):
-        self._processor = TemplateProcessor()
+    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+        self.filesystem_adapter = filesystem_adapter
+        self._template_service = None  # Lazy initialization
     
     @property
     def node_class(self) -> type[TemplateJobNode]:
@@ -38,7 +40,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return []
+        return ["filesystem_adapter"]
     
     @property
     def description(self) -> str:
@@ -54,10 +56,30 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         
         return None
     
+    def _get_template_service(self):
+        """Get or create the template service."""
+        if self._template_service is None:
+            # print("[DEBUG] Creating template service...")
+            self._template_service = get_enhanced_template_service()
+            # print("[DEBUG] Template service created successfully")
+        return self._template_service
+    
     async def execute_request(self, request: ExecutionRequest[TemplateJobNode]) -> NodeOutputProtocol:
         """Execute the template rendering."""
+        # print(f"[DEBUG] TemplateJobNode.execute_request started for node {request.node.id}")
         node = request.node
         inputs = request.inputs
+        services = request.services
+
+        
+        # Get filesystem adapter from services or use injected one
+        filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+        if not filesystem_adapter:
+            return ErrorOutput(
+                value="Filesystem adapter is required for template job execution",
+                node_id=node.id,
+                error_type="ServiceError"
+            )
 
         # Store execution metadata
         request.add_metadata("engine", node.engine or "internal")
@@ -73,37 +95,53 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             # Add node-defined variables
             if node.variables:
                 template_vars.update(node.variables)
-            
+
             # Add inputs from connected nodes
             if inputs:
                 template_vars.update(inputs)
-            
+
             # Get template content
+            # print(f"[DEBUG] Getting template content...")
             if node.template_content:
                 template_content = node.template_content
             else:
-                # Process template_path through template processor to handle variables
-                processed_template_path = self._processor.process_simple(node.template_path, template_vars)
+                # Process template_path through template service to handle variables
+                template_service = self._get_template_service()
+                processed_template_path = template_service.render_string(node.template_path, **template_vars).strip()
+                # print(f"[DEBUG] Processed template_path: {processed_template_path}")
                 
-                # Load from file
+                # Load from file - just use the path as-is since filesystem adapter handles base path
                 template_path = Path(processed_template_path)
-                if not template_path.is_absolute():
-                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    template_path = Path(base_dir) / processed_template_path
                 
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    template_content = f.read()
+                if not filesystem_adapter.exists(template_path):
+                    return ErrorOutput(
+                        value=f"Template file not found: {node.template_path}",
+                        node_id=node.id,
+                        error_type="FileNotFoundError"
+                    )
+                
+                with filesystem_adapter.open(template_path, 'rb') as f:
+                    template_content = f.read().decode('utf-8')
             
             # Choose template engine
             engine = node.engine or "internal"
-            
+
             try:
                 if engine == "internal":
-                    # Use built-in TemplateProcessor
-                    rendered = self._processor.process_simple(template_content, template_vars)
+                    # Use built-in template service
+                    template_service = self._get_template_service()
+                    rendered = template_service.render_string(template_content, **template_vars)
                 elif engine == "jinja2":
-                    # Use Jinja2
-                    rendered = await self._render_jinja2(template_content, template_vars)
+                    # Use enhanced template service for jinja2
+                    try:
+                        template_service = self._get_template_service()
+                        rendered = template_service.render_string(template_content, **template_vars)
+                        # print(f"[DEBUG] Jinja2 rendering complete")
+                        request.add_metadata("enhanced_rendering", True)
+                    except Exception as e:
+                        # Fall back to standard Jinja2
+                        rendered = await self._render_jinja2(template_content, template_vars)
+                        request.add_metadata("enhancement_fallback", str(e))
                 elif engine == "handlebars":
                     # Use Python handlebars implementation
                     rendered = await self._render_handlebars(template_content, template_vars)
@@ -123,19 +161,19 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
-                # Process output_path through template processor to handle variables
-                processed_output_path = self._processor.process_simple(node.output_path, template_vars)
+                # Process output_path through template service to handle variables
+                template_service = self._get_template_service()
+                processed_output_path = template_service.render_string(node.output_path, **template_vars).strip()
                 
                 output_path = Path(processed_output_path)
-                if not output_path.is_absolute():
-                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    output_path = Path(base_dir) / processed_output_path
                 
                 # Create parent directories if needed
-                output_path.parent.mkdir(parents=True, exist_ok=True)
+                parent_dir = output_path.parent
+                if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+                    filesystem_adapter.mkdir(parent_dir, parents=True)
                 
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    f.write(rendered)
+                with filesystem_adapter.open(output_path, 'wb') as f:
+                    f.write(rendered.encode('utf-8'))
                 
                 request.add_metadata("output_written", str(output_path))
             

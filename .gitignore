@@ -38,8 +38,8 @@ dipeo/diagram_generated_staged/
 **/.ruff_cache/
 .logs
 apps/server/.import_linter_cache
-part1.md
-part2.md
+docs/part1.md
+docs/part2.md
 part4.md
 TODO.md
 files/uploads
@@ -162,3 +162,4 @@ yarn.lock
 /dipeo/models/schemas/
 
 /apps/server/src/__generated__/
+/files/codegen/code/services/tests/.dipeo_cache/

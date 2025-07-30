@@ -227,7 +227,10 @@ export class DiagramAdapter {
     // Merge arrow's direct fields (content_type, label) into data
     const edgeData = { ...(arrow.data || {}) };
     if (arrow.content_type) {
-      edgeData.content_type = arrow.content_type;
+      // Normalize content_type to lowercase for UI consistency
+      edgeData.content_type = typeof arrow.content_type === 'string' 
+        ? arrow.content_type.toLowerCase() 
+        : arrow.content_type;
     }
     if (arrow.label) {
       edgeData.label = arrow.label;
@@ -296,6 +299,7 @@ export class DiagramAdapter {
     
     // Add content_type and label as direct fields if present
     if (content_type !== undefined && content_type !== null) {
+      // Keep content_type as lowercase for backend compatibility
       (domainArrow as any).content_type = content_type;
     }
     if (label !== undefined && label !== null && typeof label === 'string') {

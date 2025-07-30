@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 #!/usr/bin/env python3
 # __generated__ by DiPeO
 """
@@ -10,7 +18,6 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, NewType, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
-# Import all enums from the separate enums module
 from .enums import (
     NodeType, HandleDirection, HandleLabel, DataType,
     MemoryView, DiagramFormat, DBBlockSubType, ContentType, SupportedLanguage,
@@ -18,16 +25,9 @@ from .enums import (
     EventType, LLMService, APIServiceType, NotionOperation, ToolType
 )
 
-# ============ Type Aliases ============
-
-NodeCategory = Literal["control", "ai", "compute", "data", "integration", "interaction", "validation", "utility"]
-
-FieldType = Literal["string", "number", "boolean", "array", "object", "enum", "any"]
-
-UIInputType = Union[Any, Literal["text"], Literal["textarea"], Literal["number"], Literal["checkbox"], Literal["select"], Literal["code"], Literal["group"], Literal["json"], Literal["personSelect"]]
 
 
-# ============ Branded IDs ============
+
 
 ApiKeyID = NewType('ApiKeyID', str)
 
@@ -49,7 +49,96 @@ TaskID = NewType('TaskID', str)
 
 
 
-# ============ Models ============
+
+
+
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+    
+      
+    
+  
+
+  
+  
+  
+  
+    
+      
+    
+  
+
+  
+  
+  
+  
+    
+      
+    
+  
+
+  
+  
+  
+  
+    
+      
+    
+  
+
+
+
+
+NodeCategory = Literal["control", "ai", "compute", "data", "integration", "interaction", "validation", "utility"]
+
+FieldType = Literal["string", "number", "boolean", "array", "object", "enum", "any"]
+
+UIInputType = Union[Any, Literal["text"], Literal["textarea"], Literal["number"], Literal["checkbox"], Literal["select"], Literal["code"], Literal["group"], Literal["json"], Literal["personSelect"]]
+
+
+
+
+
+
+
 
 class Vec2(BaseModel):
     """Vec2 model"""
@@ -57,11 +146,24 @@ class Vec2(BaseModel):
     
     
     
+    
+    
+    
+    
     x: int
+    
+    
+    
+    
+    
+    
     
     y: int
     
     
+    
+
+
 
 
 class DomainHandle(BaseModel):
@@ -70,19 +172,58 @@ class DomainHandle(BaseModel):
     
     
     
+    
+    
+    
+    
     id: HandleID
+    
+    
+    
+    
+    
+    
     
     node_id: NodeID
     
+    
+    
+    
+    
+    
+    
     label: HandleLabel
+    
+    
+    
+    
+    
+    
     
     direction: HandleDirection
     
+    
+    
+    
+    
+    
+    
     data_type: DataType
+    
+    
+    
+    
+    
+    
+    
     
     position: Optional[str] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class DomainNode(BaseModel):
@@ -91,15 +232,40 @@ class DomainNode(BaseModel):
     
     
     
+    
+    
+    
+    
     id: NodeID
+    
+    
+    
+    
+    
+    
     
     type: NodeType
     
+    
+    
+    
+    
+    
+    
     position: Vec2
+    
+    
+    
+    
+    
+    
     
     data: Dict[str, Any]
     
     
+    
+
+
 
 
 class DomainArrow(BaseModel):
@@ -108,19 +274,62 @@ class DomainArrow(BaseModel):
     
     
     
+    
+    
+    
+    
     id: ArrowID
+    
+    
+    
+    
+    
+    
     
     source: HandleID
     
+    
+    
+    
+    
+    
+    
     target: HandleID
+    
+    
+    
+    
+    
+    
+    
     
     content_type: Optional[ContentType] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     label: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     data: Optional[Dict[str, Any]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class MemorySettings(BaseModel):
@@ -129,13 +338,36 @@ class MemorySettings(BaseModel):
     
     
     
+    
+    
+    
+    
     view: MemoryView
     
+    
+    
+    
+    
+    
+    
+    
     max_messages: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     preserve_system: Optional[bool] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class PersonLLMConfig(BaseModel):
@@ -144,15 +376,42 @@ class PersonLLMConfig(BaseModel):
     
     
     
+    
+    
+    
+    
     service: LLMService
+    
+    
+    
+    
+    
+    
     
     model: str
     
+    
+    
+    
+    
+    
+    
     api_key_id: ApiKeyID
+    
+    
+    
+    
+    
+    
+    
     
     system_prompt: Optional[str] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class DomainPerson(BaseModel):
@@ -161,15 +420,40 @@ class DomainPerson(BaseModel):
     
     
     
+    
+    
+    
+    
     id: PersonID
+    
+    
+    
+    
+    
+    
     
     label: str
     
+    
+    
+    
+    
+    
+    
     llm_config: PersonLLMConfig
+    
+    
+    
+    
+    
+    
     
     type: Literal["person"]
     
     
+    
+
+
 
 
 class DomainApiKey(BaseModel):
@@ -178,15 +462,42 @@ class DomainApiKey(BaseModel):
     
     
     
+    
+    
+    
+    
     id: ApiKeyID
+    
+    
+    
+    
+    
+    
     
     label: str
     
+    
+    
+    
+    
+    
+    
     service: APIServiceType
+    
+    
+    
+    
+    
+    
+    
     
     key: Optional[str] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class DiagramMetadata(BaseModel):
@@ -195,25 +506,92 @@ class DiagramMetadata(BaseModel):
     
     
     
+    
+    
+    
+    
+    
     id: Optional[DiagramID] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     name: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     description: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
     
     version: str
     
+    
+    
+    
+    
+    
+    
     created: str
+    
+    
+    
+    
+    
+    
     
     modified: str
     
+    
+    
+    
+    
+    
+    
+    
     author: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     tags: Optional[List[str]] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     format: Optional[str] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class DomainDiagram(BaseModel):
@@ -222,17 +600,50 @@ class DomainDiagram(BaseModel):
     
     
     
+    
+    
+    
+    
     nodes: List[DomainNode]
+    
+    
+    
+    
+    
+    
     
     handles: List[DomainHandle]
     
+    
+    
+    
+    
+    
+    
     arrows: List[DomainArrow]
     
+    
+    
+    
+    
+    
+    
     persons: List[DomainPerson]
+    
+    
+    
+    
+    
+    
+    
     
     metadata: Optional[DiagramMetadata] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class BaseNodeData(BaseModel):
@@ -241,11 +652,26 @@ class BaseNodeData(BaseModel):
     
     
     
+    
+    
+    
+    
     label: str
+    
+    
+    
+    
+    
+    
+    
     
     flipped: Optional[bool] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class TokenUsage(BaseModel):
@@ -254,15 +680,44 @@ class TokenUsage(BaseModel):
     
     
     
+    
+    
+    
+    
     input: int
+    
+    
+    
+    
+    
+    
     
     output: int
     
+    
+    
+    
+    
+    
+    
+    
     cached: Optional[int] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     total: Optional[int] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class NodeState(BaseModel):
@@ -271,19 +726,66 @@ class NodeState(BaseModel):
     
     
     
+    
+    
+    
+    
     status: NodeExecutionStatus
+    
+    
+    
+    
+    
+    
+    
     
     started_at: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     ended_at: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     error: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     token_usage: Optional[TokenUsage] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     output: Optional[Dict[str, Any]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class ExecutionState(BaseModel):
@@ -292,35 +794,132 @@ class ExecutionState(BaseModel):
     
     
     
+    
+    
+    
+    
     id: ExecutionID
+    
+    
+    
+    
+    
+    
     
     status: ExecutionStatus
     
+    
+    
+    
+    
+    
+    
+    
     diagram_id: Optional[DiagramID] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
     
     started_at: str
     
+    
+    
+    
+    
+    
+    
+    
     ended_at: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
     
     node_states: Dict[str, NodeState]
     
+    
+    
+    
+    
+    
+    
     node_outputs: Dict[str, Dict[str, Any]]
+    
+    
+    
+    
+    
+    
     
     token_usage: TokenUsage
     
+    
+    
+    
+    
+    
+    
+    
     error: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     variables: Optional[Dict[str, Any]] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     duration_seconds: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     is_active: Optional[bool] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
     exec_counts: Dict[str, float]
+    
+    
+    
+    
+    
+    
     
     executed_nodes: List[str]
     
     
+    
+
+
 
 
 class ExecutionOptions(BaseModel):
@@ -329,15 +928,48 @@ class ExecutionOptions(BaseModel):
     
     
     
+    
+    
+    
+    
+    
     mode: Optional[Literal["normal", "debug", "monitor"]] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     timeout: Optional[int] = Field(default=None)
     
-    variables: Dict[str, Any] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
+    variables: Optional[Dict[str, Any]] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     debug: Optional[bool] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class InteractivePromptData(BaseModel):
@@ -346,15 +978,44 @@ class InteractivePromptData(BaseModel):
     
     
     
+    
+    
+    
+    
     node_id: NodeID
+    
+    
+    
+    
+    
+    
     
     prompt: str
     
-    timeout: int = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    timeout: Optional[int] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     default_value: Optional[str] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class InteractiveResponse(BaseModel):
@@ -363,13 +1024,32 @@ class InteractiveResponse(BaseModel):
     
     
     
+    
+    
+    
+    
     node_id: NodeID
     
+    
+    
+    
+    
+    
+    
     response: str
+    
+    
+    
+    
+    
+    
     
     timestamp: str
     
     
+    
+
+
 
 
 class ExecutionUpdate(BaseModel):
@@ -378,29 +1058,114 @@ class ExecutionUpdate(BaseModel):
     
     
     
+    
+    
+    
+    
     type: EventType
+    
+    
+    
+    
+    
+    
     
     execution_id: ExecutionID
     
+    
+    
+    
+    
+    
+    
+    
     node_id: Optional[NodeID] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     status: Optional[NodeExecutionStatus] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     result: Optional[Any] = Field(default=None)
     
-    error: str = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
+    error: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     timestamp: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     total_tokens: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     node_type: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     tokens: Optional[float] = Field(default=None)
     
-    data: Dict[str, Any] = Field(default=None)
     
     
+    
+    
+    
+    
+    
+    
+    data: Optional[Dict[str, Any]] = Field(default=None)
+    
+    
+    
+    
+
+
 
 
 class NodeDefinition(BaseModel):
@@ -409,17 +1174,52 @@ class NodeDefinition(BaseModel):
     
     
     
+    
+    
+    
+    
     type: str
+    
+    
+    
+    
+    
+    
     
     node_schema: Any
     
+    
+    
+    
+    
+    
+    
     handler: Any
+    
+    
+    
+    
+    
+    
+    
     
     requires_services: Optional[List[str]] = Field(default=None)
     
-    description: str = Field(default=None)
     
     
+    
+    
+    
+    
+    
+    
+    description: Optional[str] = Field(default=None)
+    
+    
+    
+    
+
+
 
 
 class Message(BaseModel):
@@ -428,23 +1228,80 @@ class Message(BaseModel):
     
     
     
+    
+    
+    
+    
+    
     id: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
     
     from_person_id: Union[PersonID, Literal["system"]]
     
+    
+    
+    
+    
+    
+    
     to_person_id: PersonID
+    
+    
+    
+    
+    
+    
     
     content: str
     
-    timestamp: str = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    timestamp: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     token_count: Optional[float] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
     message_type: Literal["person_to_person", "system_to_person", "person_to_system"]
+    
+    
+    
+    
+    
+    
+    
     
     metadata: Optional[Dict[str, Any]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class ConversationMetadata(BaseModel):
@@ -453,17 +1310,48 @@ class ConversationMetadata(BaseModel):
     
     
     
+    
+    
+    
+    
     started_at: str
+    
+    
+    
+    
+    
+    
     
     last_message_at: str
     
+    
+    
+    
+    
+    
+    
     total_tokens: float
     
+    
+    
+    
+    
+    
+    
     message_count: float
+    
+    
+    
+    
+    
+    
     
     context_resets: float
     
     
+    
+
+
 
 
 class Conversation(BaseModel):
@@ -472,11 +1360,26 @@ class Conversation(BaseModel):
     
     
     
+    
+    
+    
+    
     messages: List[Message]
+    
+    
+    
+    
+    
+    
+    
     
     metadata: Optional[ConversationMetadata] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class ValidationRules(BaseModel):
@@ -485,23 +1388,88 @@ class ValidationRules(BaseModel):
     
     
     
+    
+    
+    
+    
+    
     min: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     max: Optional[float] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     minLength: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     maxLength: Optional[float] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     pattern: Optional[str] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     message: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     itemType: Optional[FieldType] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     allowedValues: Optional[List[str]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class UIConfiguration(BaseModel):
@@ -510,29 +1478,126 @@ class UIConfiguration(BaseModel):
     
     
     
+    
+    
+    
+    
     inputType: UIInputType
+    
+    
+    
+    
+    
+    
+    
     
     placeholder: Optional[str] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     column: Optional[Literal[1, 2]] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     rows: Optional[float] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     language: Optional[SupportedLanguage] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     collapsible: Optional[bool] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     readOnly: Optional[bool] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     options: Optional[List[Dict[str, Any]]] = Field(default=None)
     
-    min: float = Field(default=None)
     
-    max: float = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    min: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    max: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     showPromptFileButton: Optional[bool] = Field(default=None)
     
     
+    
+    
+    
+    
+    
+    
+    
+    adjustable: Optional[bool] = Field(default=None)
+    
+    
+    
+    
+
+
 
 
 class ConditionalConfig(BaseModel):
@@ -541,13 +1606,34 @@ class ConditionalConfig(BaseModel):
     
     
     
+    
+    
+    
+    
     field: str
     
+    
+    
+    
+    
+    
+    
     values: List[Any]
+    
+    
+    
+    
+    
+    
+    
     
     operator: Optional[Literal["equals", "notEquals", "includes"]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class FieldSpecification(BaseModel):
@@ -556,27 +1642,98 @@ class FieldSpecification(BaseModel):
     
     
     
+    
+    
+    
+    
     name: str
+    
+    
+    
+    
+    
+    
     
     type: FieldType
     
+    
+    
+    
+    
+    
+    
     required: bool
+    
+    
+    
+    
+    
+    
     
     description: str
     
+    
+    
+    
+    
+    
+    
+    
     defaultValue: Optional[Any] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     validation: Optional[ValidationRules] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
     uiConfig: UIConfiguration
+    
+    
+    
+    
+    
+    
+    
     
     nestedFields: Optional[List[FieldSpecification]] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     affects: Optional[List[str]] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     conditional: Optional[ConditionalConfig] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class HandleConfiguration(BaseModel):
@@ -585,11 +1742,24 @@ class HandleConfiguration(BaseModel):
     
     
     
+    
+    
+    
+    
     inputs: List[str]
+    
+    
+    
+    
+    
+    
     
     outputs: List[str]
     
     
+    
+
+
 
 
 class OutputSpecification(BaseModel):
@@ -598,11 +1768,24 @@ class OutputSpecification(BaseModel):
     
     
     
+    
+    
+    
+    
     type: Union[DataType, Literal["any"]]
+    
+    
+    
+    
+    
+    
     
     description: str
     
     
+    
+
+
 
 
 class ExecutionConfiguration(BaseModel):
@@ -611,15 +1794,48 @@ class ExecutionConfiguration(BaseModel):
     
     
     
-    timeout: int = Field(default=None)
+    
+    
+    
+    
+    
+    timeout: Optional[int] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     retryable: Optional[bool] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     maxRetries: Optional[int] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     requires: Optional[List[str]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class ExampleConfiguration(BaseModel):
@@ -628,13 +1844,32 @@ class ExampleConfiguration(BaseModel):
     
     
     
+    
+    
+    
+    
     name: str
     
+    
+    
+    
+    
+    
+    
     description: str
+    
+    
+    
+    
+    
+    
     
     configuration: Dict[str, Any]
     
     
+    
+
+
 
 
 class NodeSpecification(BaseModel):
@@ -643,38 +1878,112 @@ class NodeSpecification(BaseModel):
     
     
     
+    
+    
+    
+    
     nodeType: NodeType
+    
+    
+    
+    
+    
+    
     
     displayName: str
     
+    
+    
+    
+    
+    
+    
     category: NodeCategory
+    
+    
+    
+    
+    
+    
     
     icon: str
     
+    
+    
+    
+    
+    
+    
     color: str
+    
+    
+    
+    
+    
+    
     
     description: str
     
+    
+    
+    
+    
+    
+    
     fields: List[FieldSpecification]
+    
+    
+    
+    
+    
+    
     
     handles: HandleConfiguration
     
+    
+    
+    
+    
+    
+    
+    
     outputs: Optional[Dict[str, OutputSpecification]] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     execution: Optional[ExecutionConfiguration] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     examples: Optional[List[ExampleConfiguration]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class NodeSpecificationRegistry(BaseModel):
     """NodeSpecificationRegistry model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    
     pass
     
+
+
 
 
 class ToolConfig(BaseModel):
@@ -683,13 +1992,36 @@ class ToolConfig(BaseModel):
     
     
     
+    
+    
+    
+    
     type: ToolType
     
+    
+    
+    
+    
+    
+    
+    
     enabled: Optional[bool] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     config: Optional[Dict[str, Any]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class WebSearchResult(BaseModel):
@@ -698,15 +2030,42 @@ class WebSearchResult(BaseModel):
     
     
     
+    
+    
+    
+    
     url: str
+    
+    
+    
+    
+    
+    
     
     title: str
     
+    
+    
+    
+    
+    
+    
     snippet: str
+    
+    
+    
+    
+    
+    
+    
     
     score: Optional[float] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class ImageGenerationResult(BaseModel):
@@ -715,15 +2074,44 @@ class ImageGenerationResult(BaseModel):
     
     
     
+    
+    
+    
+    
     image_data: str
+    
+    
+    
+    
+    
+    
     
     format: str
     
-    width: Optional[float] = Field(default=None)
-    
-    height: Optional[float] = Field(default=None)
     
     
+    
+    
+    
+    
+    
+    width: Optional[int] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    height: Optional[int] = Field(default=None)
+    
+    
+    
+    
+
+
 
 
 class ToolOutput(BaseModel):
@@ -732,13 +2120,34 @@ class ToolOutput(BaseModel):
     
     
     
+    
+    
+    
+    
     type: ToolType
     
+    
+    
+    
+    
+    
+    
     result: Union[List[WebSearchResult], ImageGenerationResult, Any]
+    
+    
+    
+    
+    
+    
+    
     
     raw_response: Optional[Any] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class ChatResult(BaseModel):
@@ -747,15 +2156,46 @@ class ChatResult(BaseModel):
     
     
     
+    
+    
+    
+    
     text: str
+    
+    
+    
+    
+    
+    
+    
     
     token_usage: Optional[TokenUsage] = Field(default=None)
     
-    raw_response: Any = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
+    raw_response: Optional[Any] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     tool_outputs: Optional[List[ToolOutput]] = Field(default=None)
     
     
+    
+    
+
+
 
 
 class LLMRequestOptions(BaseModel):
@@ -764,23 +2204,81 @@ class LLMRequestOptions(BaseModel):
     
     
     
+    
+    
+    
+    
+    
     temperature: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     max_tokens: Optional[float] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     top_p: Optional[float] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     n: Optional[float] = Field(default=None)
     
+    
+    
+    
+    
+    
+    
+    
+    
     tools: Optional[List[ToolConfig]] = Field(default=None)
+    
+    
+    
+    
+    
+    
+    
+    
     
     response_format: Optional[Any] = Field(default=None)
     
     
+    
+    
 
 
 
-# ============ Helper Functions ============
+
+
+# Type aliases that reference models
+
+PersonMemoryMessage = Message
+
+
+
+
+
+
+
 def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
     """Parse a handle ID into its components."""
     parts = handle_id.split('_')
@@ -797,97 +2295,162 @@ def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:
     """Create a handle ID from components."""
     return HandleID(f"{node_id}_{label}_{direction}")
 
-# ============ Type Guards ============
 
 
+# Type guard functions
 
+def is_vec2(obj: Any) -> bool:
+    """Check if object is a Vec2."""
+    return isinstance(obj, Vec2)
 
+def is_domain_handle(obj: Any) -> bool:
+    """Check if object is a DomainHandle."""
+    return isinstance(obj, DomainHandle)
 
+def is_domain_node(obj: Any) -> bool:
+    """Check if object is a DomainNode."""
+    return isinstance(obj, DomainNode)
 
-def is_domainnode(node: Any) -> bool:
-    """Check if a node is a DomainNode."""
-    return hasattr(node, 'type') and node.type == NodeType.domain
+def is_domain_arrow(obj: Any) -> bool:
+    """Check if object is a DomainArrow."""
+    return isinstance(obj, DomainArrow)
 
+def is_memory_settings(obj: Any) -> bool:
+    """Check if object is a MemorySettings."""
+    return isinstance(obj, MemorySettings)
 
+def is_person_llm_config(obj: Any) -> bool:
+    """Check if object is a PersonLLMConfig."""
+    return isinstance(obj, PersonLLMConfig)
 
+def is_domain_person(obj: Any) -> bool:
+    """Check if object is a DomainPerson."""
+    return isinstance(obj, DomainPerson)
 
+def is_domain_api_key(obj: Any) -> bool:
+    """Check if object is a DomainApiKey."""
+    return isinstance(obj, DomainApiKey)
 
+def is_diagram_metadata(obj: Any) -> bool:
+    """Check if object is a DiagramMetadata."""
+    return isinstance(obj, DiagramMetadata)
 
+def is_domain_diagram(obj: Any) -> bool:
+    """Check if object is a DomainDiagram."""
+    return isinstance(obj, DomainDiagram)
 
+def is_base_node_data(obj: Any) -> bool:
+    """Check if object is a BaseNodeData."""
+    return isinstance(obj, BaseNodeData)
 
+def is_token_usage(obj: Any) -> bool:
+    """Check if object is a TokenUsage."""
+    return isinstance(obj, TokenUsage)
 
+def is_node_state(obj: Any) -> bool:
+    """Check if object is a NodeState."""
+    return isinstance(obj, NodeState)
 
+def is_execution_state(obj: Any) -> bool:
+    """Check if object is a ExecutionState."""
+    return isinstance(obj, ExecutionState)
 
+def is_execution_options(obj: Any) -> bool:
+    """Check if object is a ExecutionOptions."""
+    return isinstance(obj, ExecutionOptions)
 
+def is_interactive_prompt_data(obj: Any) -> bool:
+    """Check if object is a InteractivePromptData."""
+    return isinstance(obj, InteractivePromptData)
 
+def is_interactive_response(obj: Any) -> bool:
+    """Check if object is a InteractiveResponse."""
+    return isinstance(obj, InteractiveResponse)
 
+def is_execution_update(obj: Any) -> bool:
+    """Check if object is a ExecutionUpdate."""
+    return isinstance(obj, ExecutionUpdate)
 
+def is_node_definition(obj: Any) -> bool:
+    """Check if object is a NodeDefinition."""
+    return isinstance(obj, NodeDefinition)
 
+def is_message(obj: Any) -> bool:
+    """Check if object is a Message."""
+    return isinstance(obj, Message)
 
+def is_conversation_metadata(obj: Any) -> bool:
+    """Check if object is a ConversationMetadata."""
+    return isinstance(obj, ConversationMetadata)
 
+def is_conversation(obj: Any) -> bool:
+    """Check if object is a Conversation."""
+    return isinstance(obj, Conversation)
 
+def is_validation_rules(obj: Any) -> bool:
+    """Check if object is a ValidationRules."""
+    return isinstance(obj, ValidationRules)
 
+def is_ui_configuration(obj: Any) -> bool:
+    """Check if object is a UIConfiguration."""
+    return isinstance(obj, UIConfiguration)
 
+def is_conditional_config(obj: Any) -> bool:
+    """Check if object is a ConditionalConfig."""
+    return isinstance(obj, ConditionalConfig)
 
+def is_field_specification(obj: Any) -> bool:
+    """Check if object is a FieldSpecification."""
+    return isinstance(obj, FieldSpecification)
 
+def is_handle_configuration(obj: Any) -> bool:
+    """Check if object is a HandleConfiguration."""
+    return isinstance(obj, HandleConfiguration)
 
+def is_output_specification(obj: Any) -> bool:
+    """Check if object is a OutputSpecification."""
+    return isinstance(obj, OutputSpecification)
 
+def is_execution_configuration(obj: Any) -> bool:
+    """Check if object is a ExecutionConfiguration."""
+    return isinstance(obj, ExecutionConfiguration)
 
+def is_example_configuration(obj: Any) -> bool:
+    """Check if object is a ExampleConfiguration."""
+    return isinstance(obj, ExampleConfiguration)
 
+def is_node_specification(obj: Any) -> bool:
+    """Check if object is a NodeSpecification."""
+    return isinstance(obj, NodeSpecification)
 
+def is_node_specification_registry(obj: Any) -> bool:
+    """Check if object is a NodeSpecificationRegistry."""
+    return isinstance(obj, NodeSpecificationRegistry)
 
+def is_tool_config(obj: Any) -> bool:
+    """Check if object is a ToolConfig."""
+    return isinstance(obj, ToolConfig)
 
+def is_web_search_result(obj: Any) -> bool:
+    """Check if object is a WebSearchResult."""
+    return isinstance(obj, WebSearchResult)
 
+def is_image_generation_result(obj: Any) -> bool:
+    """Check if object is a ImageGenerationResult."""
+    return isinstance(obj, ImageGenerationResult)
 
+def is_tool_output(obj: Any) -> bool:
+    """Check if object is a ToolOutput."""
+    return isinstance(obj, ToolOutput)
 
+def is_chat_result(obj: Any) -> bool:
+    """Check if object is a ChatResult."""
+    return isinstance(obj, ChatResult)
 
+def is_llm_request_options(obj: Any) -> bool:
+    """Check if object is a LLMRequestOptions."""
+    return isinstance(obj, LLMRequestOptions)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ============ Deferred Type Aliases (Forward References) ============
-
-
-PersonMemoryMessage = Message
-
-
-
-# ============ Constants ============
-VALID_NODE_TYPES = []
-VALID_HANDLE_DIRECTIONS = ['input', 'output']

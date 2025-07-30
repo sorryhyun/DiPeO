@@ -118,9 +118,7 @@ Execute Python, TypeScript, Bash, or Shell code either inline or from external f
       
       # 2. Or use return statement
       # return processed
-      
-      # NOTE: print() is NOT supported in code_job nodes
-      # Variables not assigned to 'result' won't be passed forward
+
 ```
 
 #### Option 2: External Code File (Recommended for complex logic)
@@ -142,16 +140,11 @@ Execute Python, TypeScript, Bash, or Shell code either inline or from external f
 
 **Important Notes for code_job:**
 - Variables from incoming connections are available by their label names
-- For inline code, you MUST either:
-  - Assign the output to a variable named `result`
-  - Use a `return` statement (the code will be wrapped in a function)
 - For external files:
   - Specify the file path in the `code` field
   - Use `functionName` to specify which function to call
   - The function receives input variables as arguments
   - The function's return value is passed to subsequent nodes
-- If neither `result` nor `return` is used (inline), the node outputs "Code executed successfully"
-- The `print()` function is not supported and won't produce output
 
 ### 5. **endpoint** - Output/Save
 

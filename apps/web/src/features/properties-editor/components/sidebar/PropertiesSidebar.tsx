@@ -42,10 +42,14 @@ export const PropertiesSidebar = React.memo(() => {
       const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as NodeID) : undefined;
       
       selectedData = { 
-        ...arrow.data,
+        ...(arrow.data || {}),
         id: arrow.id,
         type: 'arrow' as const,
-        content_type: arrow.content_type,
+        content_type: arrow.content_type 
+          ? typeof arrow.content_type === 'string'
+            ? arrow.content_type.toLowerCase()
+            : arrow.content_type
+          : undefined,
         label: arrow.label,
         _sourceNodeType: sourceNode?.type
       };

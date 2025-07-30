@@ -192,7 +192,7 @@ class Container(containers.DeclarativeContainer):
             New container instance with selective isolation
         """
         from .application_container import ApplicationContainer
-        from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+        from dipeo.application.registry.migration_adapter import MigrationServiceRegistry
         
         # Get sub_diagram profile as base
         sub_profile = get_profile('sub_diagram')
@@ -240,7 +240,7 @@ class Container(containers.DeclarativeContainer):
         parent_registry = self.application().unified_service_registry()
         
         # Create hierarchical registry for inheritance
-        sub_registry = UnifiedServiceRegistry(parent=parent_registry)
+        sub_registry = MigrationServiceRegistry(parent=parent_registry)
         
         # Override application container with new registry
         sub_container.application.override(

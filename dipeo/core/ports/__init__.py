@@ -5,7 +5,7 @@ They enable the core and domain layers to depend on abstractions rather than con
 
 """
 
-from .apikey_port import APIKeyPort, SupportsAPIKey
+from .apikey_port import APIKeyPort
 from .diagram_converter import DiagramConverter, FormatStrategy
 from .execution_observer import ExecutionObserver
 from .file_service import FileServicePort
@@ -13,10 +13,11 @@ from .llm_service import LLMServicePort
 from .message_router import MessageRouterPort
 from .notion_service import NotionServicePort
 from .state_store import StateStorePort
+from .diagram_port import DiagramPort
 
 __all__ = [
-    "APIKeyPort",
     "DiagramConverter",
+    "DiagramPort",
     "ExecutionObserver",
     "FileServicePort",
     "FormatStrategy",
@@ -24,5 +25,5 @@ __all__ = [
     "MessageRouterPort",
     "NotionServicePort",
     "StateStorePort",
-    "SupportsAPIKey",
+    "APIKeyPort",
 ]

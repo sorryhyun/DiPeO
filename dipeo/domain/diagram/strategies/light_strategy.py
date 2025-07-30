@@ -81,7 +81,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             **{
                 k: v
                 for k, v in n.items()
-                if k not in {"label", "type", "position", "props"}
+                if k not in {"id", "label", "type", "position", "props"}
             },
         }
 
@@ -294,7 +294,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             base = n.data.get("label") or str(n.type).split(".")[-1].title()
             label = _unique(base)
             id_to_label[n.id] = label
-            node_type = str(n.type).split(".")[-1]
+            node_type = str(n.type).split(".")[-1].lower()
             node_dict = {
                 "label": label,
                 "type": node_type,

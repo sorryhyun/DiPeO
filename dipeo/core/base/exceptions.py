@@ -159,6 +159,25 @@ class FileOperationError(DiPeOError):
         super().__init__(f"File {operation} failed for {path}: {message}", details)
 
 
+class StorageError(ServiceError):
+    """Raised when storage operations fail."""
+
+    error_code = "STORAGE_ERROR"
+
+    def __init__(
+        self,
+        message: str,
+        operation: str | None = None,
+        details: dict[str, Any] | None = None,
+    ):
+        self.operation = operation
+        full_message = f"Storage operation"
+        if operation:
+            full_message += f" ({operation})"
+        full_message += f" failed: {message}"
+        super().__init__(full_message, details)
+
+
 class DiagramError(ValidationError):
     """Base class for diagram-related errors."""
 
@@ -209,6 +228,7 @@ ERROR_CODE_MAP = {
     "API_KEY_NOT_FOUND": APIKeyNotFoundError,
     "LLM_SERVICE_ERROR": LLMServiceError,
     "FILE_OPERATION_ERROR": FileOperationError,
+    "STORAGE_ERROR": StorageError,
     "DIAGRAM_ERROR": DiagramError,
     "DIAGRAM_NOT_FOUND": DiagramNotFoundError,
     "INVALID_DIAGRAM": InvalidDiagramError,

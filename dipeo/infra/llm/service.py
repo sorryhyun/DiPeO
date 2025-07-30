@@ -1,10 +1,12 @@
 """LLM infrastructure service implementation."""
 
+import asyncio
+import hashlib
 import time
 from typing import Any
 
 from tenacity import (
-    retry,
+    AsyncRetrying,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
@@ -13,7 +15,7 @@ from tenacity import (
 from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.core.ports import LLMServicePort
-from dipeo.core.ports.apikey_port import SupportsAPIKey
+from dipeo.core.ports.apikey_port import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
 from dipeo.infra.config.settings import get_settings
 from dipeo.models import ChatResult
@@ -23,12 +25,29 @@ from .factory import create_adapter
 
 class LLMInfraService(BaseService, LLMServicePort):
 
-    def __init__(self, api_key_service: SupportsAPIKey, llm_domain_service: LLMDomainService | None = None):
+    def __init__(self, api_key_service: APIKeyPort, llm_domain_service: LLMDomainService | None = None):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
+        self._adapter_pool_lock = asyncio.Lock()
         self._settings = get_settings()
         self._llm_domain_service = llm_domain_service or LLMDomainService()
+        # Provider mapping configuration
+        self._provider_mapping = {
+            "gpt": "openai",
+            "o1": "openai",
+            "o3": "openai",
+            "dall-e": "openai",
+            "whisper": "openai",
+            "embedding": "openai",
+            "claude": "anthropic",
+            "haiku": "anthropic",
+            "sonnet": "anthropic",
+            "opus": "anthropic",
+            "gemini": "google",
+            "bison": "google",
+            "palm": "google"
+        }
 
     async def initialize(self) -> None:
         pass
@@ -42,7 +61,13 @@ class LLMInfraService(BaseService, LLMServicePort):
                 service="api_key_service", message=f"Failed to get API key: {e}"
             )
 
-    def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
+    def _create_cache_key(self, provider: str, model: str, api_key_id: str) -> str:
+        """Create a secure cache key for adapter pooling."""
+        key_string = f"{provider}:{model}:{api_key_id}"
+        return hashlib.sha256(key_string.encode()).hexdigest()
+
+    async def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
+        """Get or create an LLM adapter client with thread-safe caching."""
         provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
@@ -50,37 +75,46 @@ class LLMInfraService(BaseService, LLMServicePort):
                 service=service, message=f"Unsupported LLM service: {service}"
             )
 
-        cache_key = f"{provider}:{model}:{api_key_id}"
+        cache_key = self._create_cache_key(provider, model, api_key_id)
 
-        if cache_key not in self._adapter_pool:
+        async with self._adapter_pool_lock:
+            # Check if adapter exists and is not expired
+            if cache_key in self._adapter_pool:
+                entry = self._adapter_pool[cache_key]
+                # Check TTL (1 hour)
+                if time.time() - entry["created_at"] <= 3600:
+                    return entry["adapter"]
+                else:
+                    # Remove expired entry
+                    del self._adapter_pool[cache_key]
+
+            # Create new adapter
             raw_key = self._get_api_key(api_key_id)
-
+            adapter = create_adapter(provider, model, raw_key)
+            
             self._adapter_pool[cache_key] = {
-                "adapter": create_adapter(provider, model, raw_key),
+                "adapter": adapter,
                 "created_at": time.time(),
             }
+            
+            return adapter
 
-        entry = self._adapter_pool[cache_key]
-        if time.time() - entry["created_at"] > 3600:
-            del self._adapter_pool[cache_key]
-            return self._get_client(service, model, api_key_id)
-
-        return entry["adapter"]
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-    )
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
-        # Check if the adapter has an async chat method
-        if hasattr(client, 'chat_async'):
-            return await client.chat_async(messages=messages, **kwargs)
-        else:
-            # Fall back to sync method
-            return client.chat(messages=messages, **kwargs)
+        """Call LLM with async retry logic."""
+        async for attempt in AsyncRetrying(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=1, max=10),
+            retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        ):
+            with attempt:
+                # Check if the adapter has an async chat method
+                if hasattr(client, 'chat_async'):
+                    return await client.chat_async(messages=messages, **kwargs)
+                else:
+                    # Fall back to sync method wrapped in executor
+                    return await asyncio.to_thread(client.chat, messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
         self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs
@@ -89,7 +123,7 @@ class LLMInfraService(BaseService, LLMServicePort):
             if messages is None:
                 messages = []
             
-            service = LLMInfraService._infer_service_from_model(model)
+            service = self._infer_service_from_model(model)
             
             # Validate model configuration using domain service
             is_valid, error_msg = self._llm_domain_service.validate_model_config(
@@ -111,7 +145,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                 if not is_valid and hasattr(self, 'logger'):
                     self.logger.warning(f"Prompt validation warning: {error_msg}")
             
-            adapter = self._get_client(service, model, api_key_id)
+            adapter = await self._get_client(service, model, api_key_id)
 
             messages_list = messages
 
@@ -130,18 +164,17 @@ class LLMInfraService(BaseService, LLMServicePort):
         except Exception as e:
             raise LLMServiceError(service="llm", message=str(e))
 
-    @staticmethod
-    def _infer_service_from_model(model: str) -> str:
+    def _infer_service_from_model(self, model: str) -> str:
+        """Infer LLM service provider from model name using configuration."""
         model_lower = model.lower()
         
-        if any(x in model_lower for x in ["gpt", "o1", "o3", "dall-e", "whisper", "embedding"]):
-            return "openai"
-        elif any(x in model_lower for x in ["claude", "haiku", "sonnet", "opus"]):
-            return "anthropic"
-        elif any(x in model_lower for x in ["gemini", "bison", "palm"]):
-            return "google"
-        else:
-            return "openai"
+        # Check each keyword in the provider mapping
+        for keyword, provider in self._provider_mapping.items():
+            if keyword in model_lower:
+                return provider
+        
+        # Default to openai if no match found
+        return "openai"
 
     async def get_available_models(self, api_key_id: str) -> list[str]:
         try:

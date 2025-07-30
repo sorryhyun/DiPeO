@@ -9,7 +9,7 @@ from dipeo.diagram_generated.enums import DBBlockSubType
 
 class DbNodeData(BaseModel):
     """Data model for Database node."""
-    file: Optional[str] = Field(description="File configuration")
+    file: Optional[str] = Field(description="File configuration (can be a single file path or array of file paths)")
     collection: Optional[str] = Field(description="Collection configuration")
     sub_type: DBBlockSubType = Field(description="Sub Type configuration")
     operation: str = Field(description="Operation configuration")

@@ -1,7 +1,6 @@
 """API key mutations using UnifiedServiceRegistry."""
 
 import logging
-from uuid import uuid4
 
 import strawberry
 
@@ -30,30 +29,25 @@ def create_api_key_mutations(registry: UnifiedServiceRegistry) -> type:
             try:
                 apikey_service = registry.require(APIKEY_SERVICE)
                 
-                # Create API key
-                api_key_id = f"key_{uuid4().hex[:8]}"
-                api_key = DomainApiKey(
-                    id=api_key_id,
+                # Create API key using the service
+                result = await apikey_service.create_api_key(
                     label=input.label,
-                    service=input.service,
-                    key=input.key,
+                    service=input.service.value,  # Convert enum to string
+                    key=input.key
                 )
-                
-                # Save to service
-                await apikey_service.save_all(api_key)
                 
                 # Return without exposing the actual key
                 safe_api_key = DomainApiKey(
-                    id=api_key.id,
-                    label=api_key.label,
-                    service=api_key.service,
+                    id=result["id"],
+                    label=result["label"],
+                    service=input.service,  # Keep as enum
                     key="***hidden***",
                 )
                 
                 return ApiKeyResult(
                     success=True,
                     api_key=safe_api_key,
-                    message=f"Created API key: {api_key.label}",
+                    message=f"Created API key: {result['label']}",
                 )
                 
             except Exception as e:
@@ -66,15 +60,15 @@ def create_api_key_mutations(registry: UnifiedServiceRegistry) -> type:
         @strawberry.mutation
         async def delete_api_key(self, id: strawberry.ID) -> DeleteResult:
             try:
-                api_key_id = ApiKeyID(str(id))
+                api_key_id = str(id)
                 apikey_service = registry.require(APIKEY_SERVICE)
                 
                 # Delete API key
-                await apikey_service.save_all(api_key_id)
+                await apikey_service.delete_api_key(api_key_id)
                 
                 return DeleteResult(
                     success=True,
-                    deleted_id=str(api_key_id),
+                    deleted_id=api_key_id,
                     message=f"Deleted API key: {api_key_id}",
                 )
                 

@@ -16,7 +16,7 @@ from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-    from dipeo.infra.persistence.diagram.diagram_loader import DiagramLoaderAdapter
+    from dipeo.infrastructure.services.diagram import DiagramConverterService
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return ["state_store", "message_router", "diagram_loader"]
+        return ["state_store", "message_router", "diagram_service"]
     
     @property
     def node_class(self) -> type[SubDiagramNode]:
@@ -66,18 +66,34 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def execute_request(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute the sub-diagram node."""
         node = request.node
-        
+
         # Check if we should skip execution when running as a sub-diagram
         if getattr(node, 'ignoreIfSub', False):
-            # Check if this execution is a sub-diagram by looking at execution variables
-            if request.runtime:
-                variables = request.runtime.get_variables()
-                if variables.get('is_sub_diagram', False):
-                    log.info(f"Skipping sub-diagram node {node.id} - ignoreIfSub is true and running as sub-diagram")
-                    return DataOutput(
-                        value={"status": "skipped", "reason": "ignoreIfSub is true and running as sub-diagram"},
-                        node_id=node.id
-                    )
+            # Check if we're actually running as a sub-diagram
+            is_sub_diagram = False
+            
+            # Primary detection: Check metadata for sub-diagram indicators
+            if request.metadata:
+                # Check for parent_execution_id (indicates sub-diagram)
+                if request.metadata.get('parent_execution_id'):
+                    is_sub_diagram = True
+                # Check for explicit is_sub_diagram flag
+                if request.metadata.get('is_sub_diagram'):
+                    is_sub_diagram = True
+            
+            # Secondary detection: Check context metadata if available
+            if hasattr(request.context, 'metadata') and request.context.metadata:
+                if request.context.metadata.get('is_sub_diagram'):
+                    is_sub_diagram = True
+                if request.context.metadata.get('parent_execution_id'):
+                    is_sub_diagram = True
+
+            # Only skip if both ignoreIfSub is true AND we're actually in a sub-diagram
+            if is_sub_diagram:
+                return DataOutput(
+                    value={"status": "skipped", "reason": "Skipped because running as sub-diagram with ignoreIfSub=true"},
+                    node_id=node.id
+                )
         
         # Check if batch mode is enabled
         if getattr(node, 'batch', False):
@@ -87,19 +103,23 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Get required services
             state_store = request.services.get("state_store")
             message_router = request.services.get("message_router")
-            diagram_loader = request.services.get("diagram_loader")
+            diagram_service = request.services.get("diagram_service")
             
             if not all([state_store, message_router]):
                 raise ValueError("Required services not available")
             
             # Load the diagram to execute
-            diagram_data = await self._load_diagram(node, diagram_loader)
+            diagram_data = await self._load_diagram(node, diagram_service)
 
             # Prepare execution options - simple like CLI does it
             options = {
                 "variables": request.inputs or {},  # Pass inputs directly as variables
                 "parent_execution_id": request.execution_id,
-                "is_sub_diagram": True
+                "is_sub_diagram": True,
+                "metadata": {
+                    "is_sub_diagram": True,
+                    "parent_execution_id": request.execution_id
+                }
             }
 
             # Create a unique execution ID for the sub-diagram
@@ -129,7 +149,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 service_registry=service_registry,
                 state_store=state_store,
                 message_router=message_router,
-                diagram_storage_service=diagram_loader,
+                diagram_storage_service=request.services.get("diagram_storage_service"),
                 container=container
             )
             
@@ -185,7 +205,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 }
             )
     
-    async def _load_diagram(self, node: SubDiagramNode, diagram_loader: Optional["DiagramLoaderAdapter"]) -> dict[str, Any]:
+    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> dict[str, Any]:
         """Load the diagram to execute."""
         # If diagram_data is provided directly, use it
         if node.diagram_data:
@@ -195,8 +215,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         if not node.diagram_name:
             raise ValueError("No diagram specified for execution")
         
-        if not diagram_loader:
-            raise ValueError("Diagram loader not available")
+        if not diagram_service:
+            raise ValueError("Diagram service not available")
         
         # Construct file path based on diagram name and format
         diagram_name = node.diagram_name
@@ -217,33 +237,12 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             file_path = f"files/diagrams/{diagram_name}{format_suffix}"
         
         try:
-            # Get the file service from diagram loader to read the file
-            file_service = getattr(diagram_loader, 'file_service', None)
-            if not file_service:
-                raise ValueError("File service not available in diagram loader")
+            # Use diagram service to load the diagram
+            diagram = await diagram_service.load_from_file(file_path)
             
-            # Read the diagram file
-            result = file_service.read(file_path)
-            if not result.get("success") or not result.get("content"):
-                raise ValueError(f"Failed to read diagram file: {file_path}")
+            # Convert to dict for execution
+            return diagram.model_dump(by_alias=True)
             
-            content = result["content"]
-            
-            # If content is already a dict (parsed YAML/JSON), return it
-            if isinstance(content, dict):
-                return content
-            
-            # Otherwise parse based on format
-            if file_path.endswith('.yaml'):
-                import yaml
-                diagram_dict = yaml.safe_load(content)
-            elif file_path.endswith('.json'):
-                import json
-                diagram_dict = json.loads(content)
-            else:
-                raise ValueError(f"Unknown file format: {file_path}")
-            
-            return diagram_dict
         except Exception as e:
             log.error(f"Error loading diagram from '{file_path}': {str(e)}")
             raise ValueError(f"Failed to load diagram '{node.diagram_name}': {str(e)}")
@@ -297,23 +296,48 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             observers=parent_observers
         ):
             update_count += 1
+            # log.info(f"[DEBUG] Sub-diagram update #{update_count}: type={update.get('type')}, keys={list(update.keys())}")
 
             # Process execution updates
-            if update.get("type") == "node_complete":
+            update_type = update.get("type", "")
+            
+            if update_type == "NODE_STATUS_CHANGED":
+                # Check if this is a node completion
+                data = update.get("data", {})
+                if data.get("status") == "COMPLETED":
+                    node_id = data.get("node_id")
+                    node_output = data.get("output")
+                    if node_id and node_output:
+                        execution_results[node_id] = node_output
+            
+            elif update_type == "EXECUTION_STATUS_CHANGED":
+                # Check if execution is complete
+                data = update.get("data", {})
+                if data.get("status") == "COMPLETED":
+                    # log.info(f"[DEBUG] Sub-diagram execution completed")
+                    break
+                elif data.get("status") == "FAILED":
+                    execution_error = data.get("error", "Execution failed")
+                    log.error(f"Sub-diagram execution failed: {execution_error}")
+                    break
+            
+            # Legacy support for old update types
+            elif update_type == "node_complete":
                 # Collect outputs from completed nodes
                 node_id = update.get("node_id")
                 node_output = update.get("output")
                 if node_id and node_output:
                     execution_results[node_id] = node_output
             
-            elif update.get("type") == "execution_complete":
+            elif update_type == "execution_complete":
                 break
             
-            elif update.get("type") == "execution_error":
+            elif update_type == "execution_error":
                 execution_error = update.get("error", "Unknown error")
                 log.error(f"Sub-diagram execution failed: {execution_error}")
                 break
         
+        # log.info(f"[DEBUG] Sub-diagram execution loop exited after {update_count} updates. Results: {len(execution_results)} nodes, Error: {execution_error}")
         return execution_results, execution_error
     
     def post_execute(
@@ -416,8 +440,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def _execute_batch_item(self, original_request: ExecutionRequest[SubDiagramNode], 
                                   item_inputs: dict[str, Any], index: int, total: int) -> Any:
         """Execute a single item in the batch."""
-        log.info(f"[BATCH SUB_DIAGRAM] Processing item {index + 1}/{total}")
-        
         # Create a new node instance without batch enabled to avoid recursion
         from dataclasses import replace
         node_without_batch = replace(original_request.node, batch=False)

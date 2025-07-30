@@ -10,9 +10,11 @@ from typing import List, Optional
 import strawberry
 
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from dipeo.application.registry import FILESYSTEM_ADAPTER
 from dipeo.core.constants import FILES_DIR
 from dipeo.models import LLMService, NodeType
 from strawberry.scalars import JSON as JSONScalar
+from pathlib import Path
 
 # Import ID scalars as Strawberry scalars
 from ..types.scalars import (
@@ -220,7 +222,7 @@ def create_query_type(registry: UnifiedServiceRegistry) -> type:
         
         @strawberry.field
         async def supported_formats(self) -> List[DiagramFormatInfo]:
-            from dipeo.infra.diagram import converter_registry
+            from dipeo.infrastructure.services.diagram import converter_registry
             
             formats = converter_registry.list_formats()
             return [
@@ -256,16 +258,75 @@ def create_query_type(registry: UnifiedServiceRegistry) -> type:
         
         @strawberry.field
         async def prompt_files(self) -> List[JSONScalar]:
-            file_service = registry.get("file_service")
-            if file_service:
-                return await file_service.list_prompt_files()
-            return []
+            filesystem = registry.get(FILESYSTEM_ADAPTER.name)
+            if not filesystem:
+                return []
+            
+            prompts_dir = Path(FILES_DIR) / "prompts"
+            if not filesystem.exists(prompts_dir):
+                return []
+            
+            prompt_files = []
+            valid_extensions = {'.txt', '.md', '.csv', '.json', '.yaml'}
+            
+            for item in filesystem.listdir(prompts_dir):
+                if item.suffix in valid_extensions:
+                    try:
+                        file_info = filesystem.stat(prompts_dir / item.name)
+                        prompt_files.append({
+                            "name": item.name,
+                            "path": str(item.relative_to(prompts_dir)),
+                            "extension": item.suffix[1:],
+                            "size": file_info.size,
+                        })
+                    except Exception as e:
+                        import logging
+                        logging.warning(f"Failed to process prompt file {item}: {e}")
+            
+            return prompt_files
         
         @strawberry.field
         async def prompt_file(self, filename: str) -> JSONScalar:
-            file_service = registry.get("file_service")
-            if file_service:
-                return await file_service.read_prompt_file(filename)
-            return {}
+            filesystem = registry.get(FILESYSTEM_ADAPTER.name)
+            if not filesystem:
+                return {
+                    "success": False,
+                    "error": "Filesystem adapter not available",
+                    "filename": filename,
+                }
+            
+            prompts_dir = Path(FILES_DIR) / "prompts"
+            file_path = prompts_dir / filename
+            
+            if not filesystem.exists(file_path):
+                return {
+                    "success": False,
+                    "error": f"Prompt file not found: {filename}",
+                    "filename": filename,
+                }
+            
+            try:
+                with filesystem.open(file_path, "rb") as f:
+                    raw_content = f.read()
+                    content = raw_content.decode('utf-8')
+                
+                file_info = filesystem.stat(file_path)
+                
+                return {
+                    "success": True,
+                    "filename": filename,
+                    "content": content,
+                    "raw_content": content,  # Keep both for compatibility
+                    "extension": file_path.suffix[1:],
+                    "size": file_info.size,
+                }
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to read prompt file {filename}: {e}")
+                return {
+                    "success": False,
+                    "error": f"Failed to read file: {str(e)}",
+                    "filename": filename,
+                }
     
     return Query

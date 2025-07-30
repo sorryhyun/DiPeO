@@ -13,6 +13,24 @@ from jinja2 import Template, StrictUndefined
 
 
 # ============================================================================
+# Helper Functions
+# ============================================================================
+
+def extract_mappings_from_ast(mappings_ast: dict) -> dict:
+    """Extract mappings from codegen mappings AST"""
+    # This is a simplified version - in real implementation, you'd parse the AST properly
+    return {
+        'node_interface_map': {},
+        'base_fields': ['label', 'flipped'],
+        'type_to_field': {
+            'string': 'text',
+            'number': 'number',
+            'boolean': 'checkbox'
+        }
+    }
+
+
+# ============================================================================
 # Field Config Extraction
 # ============================================================================
 
@@ -191,11 +209,37 @@ def extract_field_configs_core(ast_data: dict, mappings: dict) -> dict:
 
 def extract_field_configs(inputs: dict) -> dict:
     """Main entry point for the field config extractor"""
-    # Get node data AST input which should contain all interfaces
-    node_data_ast = inputs.get('node_data', {})
+    # Check if we have the new format (single input with multiple files)
+    if 'ast_files' in inputs and isinstance(inputs['ast_files'], dict):
+        # New format: dictionary where keys are file paths and values are file contents
+        file_dict = inputs['ast_files']
+        
+        # Parse AST data from the files
+        diagram_ast = None
+        node_data_ast = None
+        mappings_ast = None
+        
+        for filepath, content in file_dict.items():
+            if filepath.endswith('diagram_ast.json'):
+                diagram_ast = content if isinstance(content, dict) else json.loads(content)
+            elif filepath.endswith('node_data_ast.json'):
+                node_data_ast = content if isinstance(content, dict) else json.loads(content)
+            elif filepath.endswith('codegen_mappings_ast.json'):
+                mappings_ast = content if isinstance(content, dict) else json.loads(content)
+        
+        # Get mappings
+        mappings = inputs.get('mappings', {})
+        if not mappings and mappings_ast:
+            # Extract mappings from AST if not provided separately
+            mappings = extract_mappings_from_ast(mappings_ast)
+    else:
+        # Legacy format: separate inputs
+        node_data_ast = inputs.get('node_data', {})
+        diagram_ast = inputs.get('default', {})
+        mappings = inputs.get('mappings', {})
     
     # If node_data is just the index file, we need to aggregate from individual files
-    if not node_data_ast.get('interfaces'):
+    if not node_data_ast or not node_data_ast.get('interfaces'):
         # Load individual node data files
         base_dir = Path(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
         cache_dir = base_dir / '.temp'

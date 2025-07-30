@@ -3,7 +3,7 @@
 
 from typing import Any
 
-from dipeo.core.ports import FileServicePort
+from dipeo.domain.ports.storage import FileSystemPort
 from dipeo.domain.db.services import DBOperationsDomainService as DomainDBService
 from dipeo.domain.validators import DataValidator
 
@@ -19,17 +19,17 @@ class DBOperationsDomainService:
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
     def __init__(
-        self, file_service: FileServicePort, validation_service: DataValidator
+        self, file_system: FileSystemPort, validation_service: DataValidator
     ):
         # Create domain service and adapter
         self.domain_service = DomainDBService()
         self.adapter = DBOperationsAdapter(
-            file_service=file_service,
+            file_system=file_system,
             domain_service=self.domain_service,
             validation_service=validation_service
         )
         # Keep references for backward compatibility
-        self.file_service = file_service
+        self.file_system = file_system
         self.validation_service = validation_service
 
     async def execute_operation(

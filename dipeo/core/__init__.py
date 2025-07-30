@@ -16,6 +16,7 @@ from .base.exceptions import (
     MaxIterationsError,
     NodeExecutionError,
     ServiceError,
+    StorageError,
     TimeoutError,
     ValidationError,
 )
@@ -87,6 +88,7 @@ __all__ = [
     "LLMServiceError",
     "MaxIterationsError",
     "NodeExecutionError",
+    "StorageError",
     "TimeoutError",
     # Common types
     "Result",

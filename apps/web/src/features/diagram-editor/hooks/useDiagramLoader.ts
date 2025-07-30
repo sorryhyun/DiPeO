@@ -13,6 +13,7 @@ import { DiagramFormat } from '@dipeo/domain-models';
  * Maintains all original functionality with cleaner code structure
  */
 
+
 // Create the diagram query using factory
 const useDiagramQuery = createEntityQuery({
   entityName: 'Diagram',
@@ -228,8 +229,13 @@ export function useDiagramLoader() {
               
               // Set diagram metadata after restoring snapshot
               if (diagramWithCounts.metadata) {
-                store.setDiagramName(diagramWithCounts.metadata.name || 'Untitled');
+                store.setDiagramName(diagramWithCounts.metadata.name || diagramIdFromUrl);
                 store.setDiagramDescription(diagramWithCounts.metadata.description || '');
+              } else {
+                // If no metadata exists, use the full path as the diagram name
+                // This allows users to edit the full path for saving
+                store.setDiagramName(diagramIdFromUrl);
+                store.setDiagramDescription('');
               }
               store.setDiagramId(diagramIdFromUrl);
               store.setDiagramFormat(diagramFormatFromUrl);

@@ -34,7 +34,7 @@ function useNodeStatus(nodeIdStr: string) {
   return useMemo(() => ({
     isRunning: nodeExecutionState?.status === NodeExecutionStatus.RUNNING || hookNodeState?.status === 'running',
     isSkipped: nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || hookNodeState?.status === 'skipped',
-    isCompleted: nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || hookNodeState?.status === 'completed',
+    isCompleted: nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED || hookNodeState?.status === 'completed',
     hasError: nodeExecutionState?.status === NodeExecutionStatus.FAILED || hookNodeState?.status === 'error',
     isMaxIterReached: nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED,
     progress: hookNodeState?.progress,
@@ -188,13 +188,7 @@ const StatusIndicator = React.memo(({ status }: { status: ReturnType<typeof useN
     );
   }
   
-  if (status.isMaxIterReached) {
-    return (
-      <div className="absolute -top-2 -right-2 w-4 h-4 bg-orange-500 rounded-full">
-        <span className="absolute inset-0 text-white text-xs flex items-center justify-center">∞</span>
-      </div>
-    );
-  }
+  // MAXITER_REACHED is now treated as completed, so no special indicator needed
   
   return null;
 });

@@ -154,12 +154,12 @@ def extract_enums(all_enums: list) -> list:
         # Skip internal enums
         if enum.get('name', '').startswith('_'):
             continue
-        # For GraphQL enums, use the actual values instead of member names
+        # For GraphQL enums, we need the member names (not values)
+        # GraphQL uses enum member names (e.g., RAW_TEXT) not values (e.g., 'raw_text')
         values = []
         for m in enum.get('members', []):
-            # Use the value if it exists, otherwise fall back to name
-            value = m.get('value', m.get('name'))
-            values.append(value)
+            # Use the member name for GraphQL enum values
+            values.append(m.get('name'))
         enums.append({
             'name': enum.get('name'),
             'values': values
@@ -393,3 +393,51 @@ def generate_summary(inputs):
 
 # Backward compatibility aliases
 main = extract_graphql_types
+
+
+def extract_graphql_types_from_multi_read(inputs: dict) -> dict:
+    """Extract GraphQL types from multiple file read with serialize_json=true"""
+    import json
+    
+    # Get the multiple file read output
+    all_files = inputs.get('all_ast_files', {})
+    
+    # Parse individual AST files from the multi-read dictionary
+    ast_data = {}
+    node_data_interfaces = []
+    node_data_types = []
+    node_data_enums = []
+    
+    for filepath, content in all_files.items():
+        if filepath.endswith('_ast.json'):
+            # Extract key name from filepath
+            key = filepath.split('/')[-1].replace('.json', '')
+            # Content is already parsed if serialize_json=true
+            parsed_content = content if isinstance(content, dict) else json.loads(content)
+            
+            # Special handling for node data files
+            if '_data_ast' in key:
+                # Accumulate node data interfaces/types/enums
+                node_data_interfaces.extend(parsed_content.get('interfaces', []))
+                node_data_types.extend(parsed_content.get('types', []))
+                node_data_enums.extend(parsed_content.get('enums', []))
+            else:
+                # Regular AST files
+                ast_data[key] = parsed_content
+    
+    # Combine all node data into a single structure
+    combined_node_data = {
+        'interfaces': node_data_interfaces,
+        'types': node_data_types,
+        'enums': node_data_enums
+    } if node_data_interfaces or node_data_types or node_data_enums else {}
+    
+    # Call the core extraction function
+    return extract_graphql_types_core(
+        diagram_ast=ast_data.get('diagram_ast', {}),
+        execution_ast=ast_data.get('execution_ast', {}),
+        conversation_ast=ast_data.get('conversation_ast', {}),
+        node_data_ast=combined_node_data,
+        enums_ast=ast_data.get('enums_ast', {}),
+        integration_ast=ast_data.get('integration_ast', {})
+    )

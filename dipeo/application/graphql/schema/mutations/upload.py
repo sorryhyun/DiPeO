@@ -7,14 +7,15 @@ import strawberry
 from strawberry.file_uploads import Upload
 
 from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import FILESYSTEM_ADAPTER
 from dipeo.application.graphql.enums import DiagramFormat
+from dipeo.core.constants import FILES_DIR
 
 from ...types.results import FileUploadResult, DiagramResult
 
 logger = logging.getLogger(__name__)
 
 # Service keys
-FILE_SERVICE = ServiceKey("file_service")
 INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
@@ -48,11 +49,11 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
         ) -> FileUploadResult:
             """Upload a file to the system."""
             try:
-                file_service = registry.get(FILE_SERVICE.name)
-                if not file_service:
+                filesystem = registry.get(FILESYSTEM_ADAPTER.name)
+                if not filesystem:
                     return FileUploadResult(
                         success=False,
-                        error="File service not available",
+                        error="Filesystem adapter not available",
                     )
                 
                 # Read file content
@@ -64,33 +65,43 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
                 
                 # Split path into directory and filename
                 from pathlib import Path
+                base_dir = Path(FILES_DIR)
                 path_obj = Path(path)
-                target_dir = str(path_obj.parent) if path_obj.parent != Path('.') else None
-                target_filename = path_obj.name
                 
-                # Save file using the correct method
+                # Create full path
+                full_path = base_dir / path_obj
+                parent_dir = full_path.parent
+                
+                # Create parent directory if needed
+                if not filesystem.exists(parent_dir):
+                    filesystem.mkdir(parent_dir, parents=True)
+                
                 # Check if this is a diagram file based on extension
-                is_diagram_file = target_filename.endswith(('.json', '.yaml', '.yml', 
-                                                           '.native.json', '.light.yaml', 
-                                                           '.readable.yaml'))
+                is_diagram_file = path_obj.name.endswith(('.json', '.yaml', '.yml', 
+                                                         '.native.json', '.light.yaml', 
+                                                         '.readable.yaml'))
                 
-                result = await file_service.save_file(
-                    content=content,
-                    filename=target_filename,
-                    target_path=target_dir,
-                    create_backup=not is_diagram_file  # Don't create backups for diagram files
-                )
+                # Create backup if needed and file exists
+                if not is_diagram_file and filesystem.exists(full_path):
+                    import time
+                    timestamp = int(time.time())
+                    backup_path = full_path.parent / f"{full_path.stem}.{timestamp}.backup{full_path.suffix}"
+                    
+                    # Read existing content and write backup
+                    with filesystem.open(full_path, "rb") as src:
+                        with filesystem.open(backup_path, "wb") as dst:
+                            dst.write(src.read())
                 
-                # Check if save was successful
-                if not result.get("success", False):
-                    return FileUploadResult(
-                        success=False,
-                        error=result.get("error", "Failed to save file"),
-                    )
+                # Write the file
+                with filesystem.open(full_path, "wb") as f:
+                    f.write(content)
+                
+                # Get relative path for response
+                relative_path = str(full_path.relative_to(base_dir))
                 
                 return FileUploadResult(
                     success=True,
-                    path=result.get("path", path),
+                    path=relative_path,
                     size_bytes=len(content),
                     content_type=file.content_type,
                     message=f"Uploaded file: {file.filename}",
@@ -177,18 +188,19 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
         ) -> DiagramConvertResult:
             """Convert diagram between formats."""
             try:
-                from dipeo.infra.diagram import converter_registry
+                from dipeo.infrastructure.services.diagram import converter_registry
                 
                 # Convert GraphQL enums to Python enum values (strings)
                 from_format_str = from_format.to_python_enum().value
                 to_format_str = to_format.to_python_enum().value
                 
-                # Convert diagram using the converter registry
-                converted_content = converter_registry.convert(
-                    content=content,
-                    from_format=from_format_str,
-                    to_format=to_format_str
-                )
+                # Initialize converter if needed
+                if not converter_registry._initialized:
+                    await converter_registry.initialize()
+                
+                # Convert diagram using deserialize then serialize
+                diagram = converter_registry.deserialize(content, from_format_str)
+                converted_content = converter_registry.serialize(diagram, to_format_str)
                 
                 return DiagramConvertResult(
                     success=True,
