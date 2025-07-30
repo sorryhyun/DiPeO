@@ -73,11 +73,7 @@ jobs:
       
       - name: Setup Python Environment
         run: |
-          # Create virtual environment at root
-          python -m venv .venv
-          
-          # Activate and install all dependencies
-          & ".\.venv\Scripts\Activate.ps1"
+          # Use the GitHub Actions Python directly (no venv)
           python -m pip install --upgrade pip setuptools wheel
           
           # Pin PyInstaller to a stable version compatible with Python 3.13
@@ -85,6 +81,9 @@ jobs:
           
           # Install other dependencies
           pip install -r requirements.txt
+          
+          # Install the CLI and server packages
+          pip install -e ./apps/server -e ./apps/cli
           
           # Add Windows-specific workarounds
           pip install --upgrade cffi pycparser
@@ -94,6 +93,8 @@ jobs:
           pip list
           Write-Host "Python version: $(python --version)"
           Write-Host "PyInstaller version: $(pyinstaller --version)"
+          Write-Host "Checking dipeo command:"
+          Get-Command dipeo -ErrorAction SilentlyContinue
           
           Write-Host "Python environment setup complete"
       
@@ -112,9 +113,6 @@ jobs:
       - name: Build Python Server
         working-directory: apps/server
         run: |
-          # Activate virtual environment
-          & "${{ github.workspace }}\.venv\Scripts\Activate.ps1"
-          
           # Build with PyInstaller
           pyinstaller --clean dipeo-server-correct.spec
           
@@ -198,11 +196,13 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
+          name: "DiPeO ${{ github.ref_name }}"
           files: |
             DiPeO-Setup-Minimal.exe
             apps/server/dist/dipeo-server.exe
             apps/web/dist/dipeo-frontend.exe
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
