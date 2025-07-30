@@ -18,6 +18,9 @@ jobs:
   build-windows:
     runs-on: windows-latest
     
+    env:
+      DIPEO_BASE_DIR: ${{ github.workspace }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -100,9 +103,6 @@ jobs:
       
       - name: Generate code
         run: |
-          # Set environment variable
-          $env:DIPEO_BASE_DIR = $pwd
-          
           # Run code generation
           make codegen
       

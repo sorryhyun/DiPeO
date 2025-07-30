@@ -15,27 +15,6 @@
       ],
       "type": "object"
     },
-    "MemorySettings": {
-      "additionalProperties": false,
-      "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
-        }
-      },
-      "required": [
-        "view"
-      ],
-      "type": "object"
-    },
     "PersonBatchJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -90,6 +69,27 @@
         "first_only_prompt",
         "label",
         "max_iteration"
+      ],
+      "type": "object"
+    },
+    "MemorySettings": {
+      "additionalProperties": false,
+      "properties": {
+        "max_messages": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "preserve_system": {
+          "type": "boolean"
+        },
+        "view": {
+          "$ref": "#/definitions/MemoryView"
+        }
+      },
+      "required": [
+        "view"
       ],
       "type": "object"
     },

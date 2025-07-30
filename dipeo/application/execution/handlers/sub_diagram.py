@@ -66,13 +66,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def execute_request(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute the sub-diagram node."""
         node = request.node
-        
-        # Debug logging for sub-diagram detection
-        log.info(f"SubDiagramNode {node.id}: Checking ignoreIfSub={getattr(node, 'ignoreIfSub', False)}")
-        log.info(f"SubDiagramNode {node.id}: request.metadata={request.metadata}")
-        if hasattr(request.context, 'metadata'):
-            log.info(f"SubDiagramNode {node.id}: request.context.metadata={request.context.metadata}")
-        
+
         # Check if we should skip execution when running as a sub-diagram
         if getattr(node, 'ignoreIfSub', False):
             # Check if we're actually running as a sub-diagram
@@ -93,15 +87,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                     is_sub_diagram = True
                 if request.context.metadata.get('parent_execution_id'):
                     is_sub_diagram = True
-            
-            # Note: We don't check parent_container or parent_registry existence
-            # because ExecutionRuntime always has these attributes
-            
-            log.info(f"SubDiagramNode {node.id}: is_sub_diagram={is_sub_diagram}")
-            
+
             # Only skip if both ignoreIfSub is true AND we're actually in a sub-diagram
             if is_sub_diagram:
-                log.info(f"Node {node.id} skipped because ignoreIfSub=true and running as sub-diagram")
                 return DataOutput(
                     value={"status": "skipped", "reason": "Skipped because running as sub-diagram with ignoreIfSub=true"},
                     node_id=node.id
