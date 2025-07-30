@@ -24,49 +24,49 @@ help:
 
 # Combined install
 install:
-	@echo "📦 Installing dependencies..."
+	@echo "Installing dependencies..."
 	pip install -r requirements.txt
 	pip install -e ./apps/server -e ./apps/cli
 	pnpm install
-	@echo "✅ All dependencies installed!"
+	@echo "All dependencies installed!"
 
 # Diagram-based code generation (NEW DEFAULT)
 codegen:
-	@echo "🚀 Running unified diagram-based code generation..."
+	@echo "Running unified diagram-based code generation..."
 	dipeo run codegen/diagrams/models/generate_all_models --light --debug --no-browser --timeout=30
 	make apply
 	dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=30
 	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --no-browser --timeout=30
 	make graphql-schema
-	@echo "✅ All code generation completed using DiPeO diagrams!"
+	@echo "All code generation completed using DiPeO diagrams!"
 
 # Diagram-based code generation for node UI
 codegen-models:
-	@echo "🎨 Running diagram-based model generation for all nodes..."
+	@echo "Running diagram-based model generation for all nodes..."
 	dipeo run codegen/diagrams/models/generate_all_models --light --debug --no-browser --timeout=30
-	@echo "✅ Diagram-based code generation completed!"
+	@echo "Diagram-based code generation completed!"
 
 # Generate all nodes using diagram approach
 codegen-backend:
-	@echo "🎨 Generating UI for all node types using diagram..."
+	@echo "Generating UI for all node types using diagram..."
 	dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=30
-	@echo "✅ All nodes generated via diagram!"
+	@echo "All nodes generated via diagram!"
 
 codegen-frontend:
-	@echo "🎨 Generating UI for all node types using diagram..."
+	@echo "Generating UI for all node types using diagram..."
 	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --no-browser --timeout=30
-	@echo "✅ All nodes generated via diagram!"
+	@echo "All nodes generated via diagram!"
 
 
 # Register generated nodes separately
 register-nodes:
-	@echo "📝 Registering generated nodes..."
+	@echo "Registering generated nodes..."
 	@python files/codegen/code/node_registrar.py
-	@echo "✅ Node registration completed!"
+	@echo "Node registration completed!"
 
 # Watch for changes in node specifications
 codegen-watch:
-	@echo "👀 Starting file watcher for node specifications..."
+	@echo "Starting file watcher for node specifications..."
 	@echo "Press Ctrl+C to stop watching"
 	@python scripts/watch_codegen.py
 
@@ -79,7 +79,7 @@ dev-web:
 
 # Run both servers in parallel
 dev-all:
-	@echo "🚀 Starting all development servers..."
+	@echo "Starting all development servers..."
 	@trap 'kill 0' INT; \
 	(make dev-server 2>&1 | sed 's/^/[server] /' &) && \
 	(sleep 3 && make dev-web 2>&1 | sed 's/^/[web] /' &) && \
@@ -87,30 +87,30 @@ dev-all:
 
 # Export GraphQL schema
 graphql-schema:
-	@echo "📝 Exporting GraphQL schema from application layer..."
+	@echo "Exporting GraphQL schema from application layer..."
 	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
-	@echo "✅ GraphQL schema exported to apps/server/schema.graphql"
-	@echo "🔄 Generating GraphQL TypeScript types..."
+	@echo "GraphQL schema exported to apps/server/schema.graphql"
+	@echo "Generating GraphQL TypeScript types..."
 	pnpm --filter web codegen
-	@echo "✅ GraphQL TypeScript types generated!"
+	@echo "GraphQL TypeScript types generated!"
 
 # Python directories
 PY_DIRS := apps/server apps/cli dipeo
 
 # Linting
 lint-web:
-	@echo "🔍 Linting..."
+	@echo "Linting..."
 	pnpm run lint
 
 lint-server:
-	@echo "🔍 Linting..."
+	@echo "Linting..."
 	@for dir in $(PY_DIRS); do \
 		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
 	@cd apps/server && mypy src || true
 
 lint-cli:
-	@echo "🔍 Linting..."
+	@echo "Linting..."
 	@for dir in $(PY_DIRS); do \
 		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
@@ -118,37 +118,37 @@ lint-cli:
 
 # Formatting
 format:
-	@echo "✨ Formatting..."
+	@echo "Formatting..."
 	@for dir in $(PY_DIRS); do \
 		[ -d "$$dir/src" ] && (cd $$dir && ruff format src $$([ -d tests ] && echo tests)) || true; \
 	done
 
 # Staging Commands
 diff-staged:
-	@echo "📊 Showing differences between staged and active generated files..."
+	@echo "Showing differences between staged and active generated files..."
 	@diff -rq dipeo/diagram_generated dipeo/diagram_generated_staged 2>/dev/null || true
 	@echo ""
 	@echo "For detailed diffs, run: diff -r dipeo/diagram_generated dipeo/diagram_generated_staged"
 
 apply:
-	@echo "📋 Applying staged changes to active directory..."
+	@echo "Applying staged changes to active directory..."
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
-		echo "❌ Error: No staged directory found. Run 'make codegen' first."; \
+		echo "Error: No staged directory found. Run 'make codegen' first."; \
 		exit 1; \
 	fi
-	@echo "✅ Copying staged files to active directory..."
+	@echo "Copying staged files to active directory..."
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
-	@echo "✅ Staged changes applied successfully!"
+	@echo "Staged changes applied successfully!"
 
 backup-generated:
-	@echo "💾 Backing up current generated files..."
+	@echo "Backing up current generated files..."
 	@mkdir -p .backups
 	@tar -czf .backups/diagram_generated.backup.$$(date +%Y%m%d_%H%M%S).tar.gz dipeo/diagram_generated/
-	@echo "✅ Backup created in .backups/"
+	@echo "Backup created in .backups/"
 
 # Clean
 clean:
-	@echo "🧹 Cleaning..."
+	@echo "Cleaning..."
 	find . -type d \( -name "__pycache__" -o -name "*.egg-info" -o -name ".pytest_cache" \
 		-o -name ".ruff_cache" -o -name "__generated__" -o -name "dist" -o -name "build" \) \
 		-exec rm -rf {} + 2>/dev/null || true
