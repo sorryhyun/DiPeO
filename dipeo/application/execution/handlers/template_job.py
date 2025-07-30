@@ -14,6 +14,13 @@ from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutput
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.application.utils.template import TemplateProcessor
 
+# Try to import enhanced services
+try:
+    from dipeo.infrastructure.services.template.template_integration import get_enhanced_template_service
+    TEMPLATE_SERVICE_AVAILABLE = True
+except ImportError:
+    TEMPLATE_SERVICE_AVAILABLE = False
+
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.dynamic.execution_context import ExecutionContext
@@ -25,6 +32,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
         self._processor = TemplateProcessor()
         self.filesystem_adapter = filesystem_adapter
+        
+        # Initialize enhanced template service if available
+        if TEMPLATE_SERVICE_AVAILABLE:
+            self._template_service = get_enhanced_template_service()
     
     @property
     def node_class(self) -> type[TemplateJobNode]:
@@ -121,8 +132,18 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                     # Use built-in TemplateProcessor
                     rendered = self._processor.process_simple(template_content, template_vars)
                 elif engine == "jinja2":
-                    # Use Jinja2
-                    rendered = await self._render_jinja2(template_content, template_vars)
+                    # Use enhanced Jinja2 if available
+                    if TEMPLATE_SERVICE_AVAILABLE and hasattr(self, '_template_service'):
+                        try:
+                            rendered = self._template_service.render_string(template_content, **template_vars)
+                            request.add_metadata("enhanced_rendering", True)
+                        except Exception as e:
+                            # Fall back to standard Jinja2
+                            rendered = await self._render_jinja2(template_content, template_vars)
+                            request.add_metadata("enhancement_fallback", str(e))
+                    else:
+                        # Use standard Jinja2
+                        rendered = await self._render_jinja2(template_content, template_vars)
                 elif engine == "handlebars":
                     # Use Python handlebars implementation
                     rendered = await self._render_handlebars(template_content, template_vars)

@@ -1,0 +1,42 @@
+# Test Template Filters - Fixed Version
+version: light
+
+nodes:
+  - label: Generate Test Data
+    type: code_job
+    position: {x: 100, y: 200}
+    props:
+      language: python
+      code: |
+        return {
+            'test_name': 'CamelCaseTest',
+            'results': []
+        }
+
+  - label: Apply Filters
+    type: template_job
+    position: {x: 300, y: 200}
+    props:
+      engine: jinja2
+      template_content: |
+        Testing Enhanced Filters:
+        
+        Input: {{ default.test_name }}
+        snake_case result: {{ default.test_name | snake_case }}
+        
+        Success!
+      output_path: /tmp/test_filters_output.txt
+
+  - label: End
+    type: endpoint
+    position: {x: 500, y: 200}
+    props:
+      save_to_file: true
+
+connections:
+  - from: Generate Test Data
+    to: Apply Filters
+    label: default  # Pass the entire output as 'default'
+
+  - from: Apply Filters
+    to: End

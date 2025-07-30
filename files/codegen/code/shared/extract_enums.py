@@ -89,5 +89,5 @@ def main(inputs: dict) -> dict:
     
     enums = extract_enums(ast_data)
     
-    # Return the list directly - the engine will handle the connection
-    return enums
+    # Return as a dict to preserve structure when passed between nodes
+    return {'enums': enums}

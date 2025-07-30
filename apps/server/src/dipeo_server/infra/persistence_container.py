@@ -39,7 +39,7 @@ def _create_server_api_key_service():
 def _create_server_filesystem_adapter():
     """Create filesystem adapter for basic file operations."""
     from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
-    
+
     # Use BASE_DIR as base, not files/ directory
     adapter = LocalFileSystemAdapter(base_path=str(BASE_DIR))
     return adapter
@@ -48,7 +48,7 @@ def _create_server_filesystem_adapter():
 def _create_server_blob_adapter():
     """Create blob storage adapter for versioned storage."""
     from dipeo.infrastructure.adapters.storage import LocalBlobAdapter
-    
+
     # Use blobs/ directory for versioned storage
     blobs_dir = Path(BASE_DIR) / "blobs"
     adapter = LocalBlobAdapter(base_path=str(blobs_dir))
@@ -58,17 +58,16 @@ def _create_server_blob_adapter():
 def _create_server_artifact_adapter(blob_store):
     """Create artifact store adapter for high-level artifact management."""
     from dipeo.infrastructure.adapters.storage import ArtifactStoreAdapter
-    
+
     return ArtifactStoreAdapter(blob_store=blob_store)
 
 
 def _create_server_diagram_storage_adapter(filesystem_adapter):
     """Create diagram storage adapter with server-specific paths."""
     from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
-    
+
     return DiagramStorageAdapter(
-        filesystem=filesystem_adapter,
-        base_path=Path(BASE_DIR) / "files" / "diagrams"
+        filesystem=filesystem_adapter, base_path=Path(BASE_DIR) / "files" / "diagrams"
     )
 
 
@@ -88,17 +87,15 @@ class ServerPersistenceContainer(PersistenceServicesContainer):
     api_key_service = providers.Singleton(_create_server_api_key_service)
 
     # File service removed - use filesystem_adapter instead
-    
+
     # New storage adapters
     filesystem_adapter = providers.Singleton(_create_server_filesystem_adapter)
     blob_adapter = providers.Singleton(_create_server_blob_adapter)
     artifact_adapter = providers.Singleton(
-        _create_server_artifact_adapter,
-        blob_store=blob_adapter
+        _create_server_artifact_adapter, blob_store=blob_adapter
     )
-    
+
     # Override diagram_storage_adapter with server-specific configuration
     diagram_storage_adapter = providers.Singleton(
-        _create_server_diagram_storage_adapter,
-        filesystem_adapter=filesystem_adapter
+        _create_server_diagram_storage_adapter, filesystem_adapter=filesystem_adapter
     )

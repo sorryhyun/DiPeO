@@ -162,3 +162,4 @@ yarn.lock
 /dipeo/models/schemas/
 
 /apps/server/src/__generated__/
+/files/codegen/code/services/tests/.dipeo_cache/
