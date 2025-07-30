@@ -201,8 +201,12 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           variables: { 
             id: entityId,
             input: {
-              api_key_id: apiKeyIdStr,
-              default_model: value as string
+              llm_config: {
+                service: personData.llm_config.service,
+                model: value as string,
+                api_key_id: apiKeyIdStr,
+                system_prompt: personData.llm_config.system_prompt
+              }
             }
           }
         });

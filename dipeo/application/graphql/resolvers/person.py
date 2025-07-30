@@ -8,7 +8,8 @@ from dipeo.application.unified_service_registry import UnifiedServiceRegistry, S
 from dipeo.diagram_generated.domain_models import (
     PersonID, ApiKeyID,
     DomainPerson,
-    DomainApiKey
+    DomainApiKey,
+    PersonLLMConfig
 )
 from dipeo.core.dynamic import PersonManager
 from dipeo.core.ports import SupportsAPIKey
@@ -33,22 +34,41 @@ class PersonResolver:
     async def get_person(self, id: PersonID) -> Optional[DomainPerson]:
         """Get a single person by ID."""
         try:
-            person_manager = self.registry.require(PERSON_MANAGER)
-            # Run blocking operation in thread pool to avoid blocking event loop
-            persons_dict = await asyncio.to_thread(
-                person_manager.get_all_persons
-            )
+            # Get integrated diagram service to find person in diagrams
+            integrated_service = self.registry.get("integrated_diagram_service")
+            if not integrated_service:
+                logger.warning("Integrated diagram service not available")
+                return None
             
-            # Check if person exists
-            if id in persons_dict:
-                person = persons_dict[id]
-                # Convert Person to DomainPerson
-                return DomainPerson(
-                    id=person.id,
-                    label=person.name,
-                    llm_config=person.llm_config,
-                    type="person"
-                )
+            # Search through all diagrams for the person
+            diagram_infos = await integrated_service.list_diagrams()
+            
+            for diagram_info in diagram_infos:
+                # Extract diagram ID from path
+                path = diagram_info.get("path", "")
+                diagram_id = path.split(".")[0] if path else diagram_info.get("id")
+                
+                # Load diagram
+                diagram_dict = await integrated_service.get_diagram(diagram_id)
+                if not diagram_dict:
+                    continue
+                
+                # Check if this diagram contains the person
+                persons = diagram_dict.get("persons", {})
+                if str(id) in persons:
+                    person_data = persons[str(id)]
+                    # Convert to DomainPerson
+                    return DomainPerson(
+                        id=id,
+                        label=person_data.get("name", ""),
+                        llm_config=PersonLLMConfig(
+                            service=person_data.get("service", "openai"),
+                            model=person_data.get("modelName", "gpt-4.1-nano"),
+                            api_key_id=person_data.get("apiKeyId", ""),
+                            system_prompt=person_data.get("systemPrompt", ""),
+                        ),
+                        type="person"
+                    )
             
             return None
             
@@ -59,23 +79,44 @@ class PersonResolver:
     async def list_persons(self, limit: int = 100) -> List[DomainPerson]:
         """List all persons."""
         try:
-            person_manager = self.registry.require(PERSON_MANAGER)
-            # Run blocking operation in thread pool to avoid blocking event loop
-            persons_dict = await asyncio.to_thread(
-                person_manager.get_all_persons
-            )
+            # Get integrated diagram service to find persons in diagrams
+            integrated_service = self.registry.get("integrated_diagram_service")
+            if not integrated_service:
+                logger.warning("Integrated diagram service not available")
+                return []
             
-            # Convert to DomainPerson list
-            domain_persons = []
-            for person in persons_dict.values():
-                domain_persons.append(DomainPerson(
-                    id=person.id,
-                    label=person.name,
-                    llm_config=person.llm_config,
-                    type="person"
-                ))
+            # Collect all unique persons across all diagrams
+            all_persons = {}
+            diagram_infos = await integrated_service.list_diagrams()
             
-            # Apply limit
+            for diagram_info in diagram_infos:
+                # Extract diagram ID from path
+                path = diagram_info.get("path", "")
+                diagram_id = path.split(".")[0] if path else diagram_info.get("id")
+                
+                # Load diagram
+                diagram_dict = await integrated_service.get_diagram(diagram_id)
+                if not diagram_dict:
+                    continue
+                
+                # Add all persons from this diagram
+                persons = diagram_dict.get("persons", {})
+                for person_id, person_data in persons.items():
+                    if person_id not in all_persons:
+                        all_persons[person_id] = DomainPerson(
+                            id=PersonID(person_id),
+                            label=person_data.get("name", ""),
+                            llm_config=PersonLLMConfig(
+                                service=person_data.get("service", "openai"),
+                                model=person_data.get("modelName", "gpt-4.1-nano"),
+                                api_key_id=person_data.get("apiKeyId", ""),
+                                system_prompt=person_data.get("systemPrompt", ""),
+                            ),
+                            type="person"
+                        )
+            
+            # Convert to list and apply limit
+            domain_persons = list(all_persons.values())
             return domain_persons[:limit]
             
         except Exception as e:

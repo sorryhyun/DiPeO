@@ -149,7 +149,10 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
         } else if (entityType === 'arrow') {
           const { content_type, label, ...restData } = data as any;
           const updates: any = { data: restData };
-          if (content_type !== undefined) updates.content_type = content_type;
+          if (content_type !== undefined) {
+            // Keep content_type as lowercase for backend compatibility
+            updates.content_type = content_type;
+          }
           if (label !== undefined) updates.label = label;
           updateArrow(arrowId(entityId), updates);
         } else {

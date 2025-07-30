@@ -78,7 +78,10 @@ export enum DBBlockSubType {
 export enum ContentType {
   RAW_TEXT = 'raw_text',
   CONVERSATION_STATE = 'conversation_state',
-  OBJECT = 'object'
+  OBJECT = 'object',
+  EMPTY = 'empty',
+  GENERIC = 'generic',
+  VARIABLE = 'variable'
 }
 
 export enum SupportedLanguage {

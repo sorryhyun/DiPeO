@@ -61,6 +61,8 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
     }
     
     if (arrowData?.content_type) {
+      // Support both uppercase and lowercase enum values
+      const contentType = arrowData.content_type.toLowerCase();
       const icons: Record<string, string> = {
         'conversation_state': '💬',
         'object': '🔗',
@@ -68,7 +70,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
         'empty': '⚪',
         'generic': '🔄',
       };
-      return <span>{icons[arrowData.content_type] || '📋'}</span>;
+      return <span>{icons[contentType] || '📋'}</span>;
     }
     
     // If arrow has a label but no content_type, assume it's raw text

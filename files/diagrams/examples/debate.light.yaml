@@ -1,20 +1,22 @@
 version: light
 nodes:
-- label: Optimist
+- label: optimist
   type: person_job
-  position: {x: 600, y: 453}
+  position: {x: 600, y: 452}
   props:
     default_prompt: Argue against the argument.
     first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
     max_iteration: 2
     memory_profile: GOLDFISH
-    person: Optimist
-- label: End
+    person: optimist
+    flipped: [false, true]
+- label: end
   type: endpoint
   position: {x: 58, y: 668}
   props:
     file_format: txt
     save_to_file: true
+    flipped: [true, false]
     file_path: files/results/output.txt
 - label: db
   type: db
@@ -23,7 +25,7 @@ nodes:
     operation: read
     sub_type: file
     source_details: files/uploads/questions.txt
-- label: Pessimist
+- label: pessimist
   type: person_job
   position: {x: 899, y: 380}
   props:
@@ -31,11 +33,12 @@ nodes:
     first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
     max_iteration: 3
     memory_profile: GOLDFISH
-    person: Pessimist
-- label: Start
+    person: pessimist
+    flipped: [false, true]
+- label: start
   type: start
-  position: {x: 279, y: 406}
-- label: Judge panel
+  position: {x: 177, y: 320}
+- label: judge panel
   type: person_job
   position: {x: 439, y: 663}
   props:
@@ -43,53 +46,53 @@ nodes:
     flipped: true
     max_iteration: 1
     memory_profile: FULL
-    person: Judge
-- label: Condition
+    person: judge
+- label: condition
   type: condition
   position: {x: 785, y: 647}
   props:
     condition_type: detect_max_iterations
-    flipped: true
+    flipped: [true, true]
 connections:
 - from: db
-  to: Optimist_first
+  to: optimist_first
   content_type: raw_text
   label: topic
 - from: db
-  to: Pessimist_first
+  to: pessimist_first
   content_type: raw_text
   label: topic
-- from: Start
+- from: start
   to: db
   content_type: raw_text
-- from: Judge panel
-  to: End
+- from: judge panel
+  to: end
   content_type: raw_text
-- from: Condition_condtrue
-  to: Judge panel
+- from: condition_condtrue
+  to: judge panel
   content_type: conversation_state
-- from: Optimist
-  to: Pessimist
+- from: optimist
+  to: pessimist
   content_type: conversation_state
-- from: Pessimist
-  to: Condition
+- from: pessimist
+  to: condition
   content_type: conversation_state
-- from: Condition_condfalse
-  to: Optimist
+- from: condition_condfalse
+  to: optimist
   content_type: conversation_state
 persons:
-  Judge:
+  judge:
     service: openai
     model: gpt-4.1-nano
     system_prompt: Say 25 words at most.
     api_key_id: APIKEY_52609F
-  Optimist:
+  optimist:
     service: openai
     model: gpt-4.1-nano
     system_prompt: Be optimistic and say 25 words at most.
     api_key_id: APIKEY_52609F
-  Pessimist:
+  pessimist:
     service: openai
-    model: gpt-4.1-nano
+    model: gpt-4.1-nano-2025-04-14
     system_prompt: Be pessimistic and say 25 words at most.
     api_key_id: APIKEY_52609F

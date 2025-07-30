@@ -158,7 +158,7 @@ export const personJobSpec: NodeSpecification = {
   ],
   
   handles: {
-    inputs: ["default"],
+    inputs: ["default", "first"],
     outputs: ["default"]
   },
   

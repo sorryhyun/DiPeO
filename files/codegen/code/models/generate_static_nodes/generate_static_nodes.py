@@ -9,6 +9,43 @@ def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str
     # Clean type
     clean_type = ts_type.replace(' | null', '').replace(' | undefined', '').strip()
     
+    # Handle Record types first (before checking for unions)
+    if clean_type.startswith('Record<'):
+        # Extract the value type from Record<key, value>
+        # Find the matching closing bracket
+        bracket_count = 0
+        value_start = -1
+        for i, char in enumerate(clean_type):
+            if char == '<':
+                bracket_count += 1
+                if bracket_count == 1:
+                    value_start = i + 1
+            elif char == '>':
+                bracket_count -= 1
+                if bracket_count == 0:
+                    # Extract the content between brackets
+                    record_content = clean_type[value_start:i]
+                    # Split by comma to get key and value types
+                    parts = record_content.split(',', 1)
+                    if len(parts) == 2:
+                        value_type = parts[1].strip()
+                        # Convert the value type
+                        if '|' in value_type:
+                            # Handle union value types
+                            value_parts = [p.strip() for p in value_type.split('|')]
+                            py_value_parts = []
+                            for vp in value_parts:
+                                py_vp = get_python_type(vp, False, ts_to_py_type)
+                                py_value_parts.append(py_vp)
+                            py_value_type = f"Union[{', '.join(py_value_parts)}]"
+                        else:
+                            py_value_type = get_python_type(value_type, False, ts_to_py_type)
+                        dict_type = f"Dict[str, {py_value_type}]"
+                        return f"Optional[{dict_type}]" if is_optional else dict_type
+                    break
+        # Fallback for simple Record types
+        return 'Dict[str, Any]'
+    
     # Handle union types like "string | string[]"
     if '|' in clean_type and not (("'" in clean_type or '"' in clean_type)):
         # Split union types

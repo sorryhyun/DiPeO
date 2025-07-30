@@ -30,6 +30,9 @@ enum ContentType {
   RAW_TEXT
   CONVERSATION_STATE
   OBJECT
+  EMPTY
+  GENERIC
+  VARIABLE
 }
 
 input CreateApiKeyInput {

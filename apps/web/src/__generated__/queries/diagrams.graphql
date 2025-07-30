@@ -21,6 +21,8 @@ query GetDiagram($id: ID!) {
       id
       source
       target
+      content_type
+      label
       data
     }
     persons {

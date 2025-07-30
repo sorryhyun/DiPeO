@@ -55,6 +55,20 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
     
     def _get_diagram_path(self, diagram_id: str, format: str | None = None) -> Path:
         """Get path for diagram with appropriate extension."""
+        # Check if diagram_id already contains a supported extension
+        supported_extensions = [".native.json", ".light.yaml", ".light.yml", 
+                              ".readable.yaml", ".readable.yml", ".json", ".yaml", ".yml"]
+        
+        for ext in supported_extensions:
+            if diagram_id.endswith(ext):
+                # diagram_id already has an extension, use it directly
+                path = self.base_path / diagram_id
+                if self.filesystem.exists(path):
+                    return path
+                # Even if it doesn't exist, return the path (for save operations)
+                return path
+        
+        # diagram_id doesn't have an extension, proceed with normal logic
         if format:
             # Map format to DiagramFormat enum
             format_enum = self._format_string_to_enum(format)
@@ -111,10 +125,11 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             
             # Get file info
             stat = self.filesystem.stat(path)
+            rel_path = path.relative_to(self.base_path)
             
             return DiagramInfo(
-                id=diagram_id,
-                path=path.relative_to(self.base_path),
+                id=str(rel_path).replace('\\', '/'),  # Use forward slashes for consistency
+                path=rel_path,
                 format=format,
                 size=stat.size,
                 modified=stat.modified,
@@ -155,6 +170,17 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         if not self._initialized:
             await self.initialize()
             
+        # Check if diagram_id already contains a supported extension
+        supported_extensions = [".native.json", ".light.yaml", ".light.yml", 
+                              ".readable.yaml", ".readable.yml", ".json", ".yaml", ".yml"]
+        
+        for ext in supported_extensions:
+            if diagram_id.endswith(ext):
+                # diagram_id already has an extension, check it directly
+                path = self.base_path / diagram_id
+                return self.filesystem.exists(path)
+        
+        # diagram_id doesn't have an extension, use search patterns
         patterns = self.format_service.construct_search_patterns(diagram_id)
         for pattern in patterns:
             path = self.base_path / pattern
@@ -215,14 +241,9 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
                                 # Get relative path from base
                                 rel_path = item.relative_to(self.base_path)
                                 
-                                # Extract diagram ID including subdirectory
-                                diagram_id = str(rel_path.with_suffix(""))
-                                if diagram_id.endswith(".native"):
-                                    diagram_id = diagram_id[:-7]  # Remove .native
-                                elif diagram_id.endswith(".light"):
-                                    diagram_id = diagram_id[:-6]   # Remove .light
-                                elif diagram_id.endswith(".readable"):
-                                    diagram_id = diagram_id[:-9]   # Remove .readable
+                                # Use the full relative path as diagram ID (including extension)
+                                # Convert to forward slashes for consistency across platforms
+                                diagram_id = str(rel_path).replace('\\', '/')
                                 
                                 diagrams.append(DiagramInfo(
                                     id=diagram_id,
@@ -257,10 +278,11 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
                 return None
             
             stat = self.filesystem.stat(path)
+            rel_path = path.relative_to(self.base_path)
             
             return DiagramInfo(
-                id=diagram_id,
-                path=path.relative_to(self.base_path),
+                id=str(rel_path).replace('\\', '/'),  # Use forward slashes for consistency
+                path=rel_path,
                 format=self._detect_format_from_path(path),
                 size=stat.size,
                 modified=stat.modified,

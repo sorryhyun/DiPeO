@@ -2,15 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/HookNodeData",
   "definitions": {
-    "HookType": {
-      "enum": [
-        "shell",
-        "webhook",
-        "python",
-        "file"
-      ],
-      "type": "string"
-    },
     "HookNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -90,6 +81,15 @@
     "Record<string,string>": {
       "additionalProperties": false,
       "type": "object"
+    },
+    "HookType": {
+      "enum": [
+        "shell",
+        "webhook",
+        "python",
+        "file"
+      ],
+      "type": "string"
     }
   }
 }

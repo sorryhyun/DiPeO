@@ -194,12 +194,13 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
                 from_format_str = from_format.to_python_enum().value
                 to_format_str = to_format.to_python_enum().value
                 
-                # Convert diagram using the converter registry
-                converted_content = converter_registry.convert(
-                    content=content,
-                    from_format=from_format_str,
-                    to_format=to_format_str
-                )
+                # Initialize converter if needed
+                if not converter_registry._initialized:
+                    await converter_registry.initialize()
+                
+                # Convert diagram using deserialize then serialize
+                diagram = converter_registry.deserialize(content, from_format_str)
+                converted_content = converter_registry.serialize(diagram, to_format_str)
                 
                 return DiagramConvertResult(
                     success=True,

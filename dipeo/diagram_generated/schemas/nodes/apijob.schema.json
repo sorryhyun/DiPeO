@@ -47,11 +47,11 @@
       ],
       "type": "object"
     },
-    "Record<string,string>": {
+    "Record<string,any>": {
       "additionalProperties": false,
       "type": "object"
     },
-    "Record<string,any>": {
+    "Record<string,string>": {
       "additionalProperties": false,
       "type": "object"
     },

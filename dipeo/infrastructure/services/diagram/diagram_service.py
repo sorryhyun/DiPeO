@@ -171,10 +171,13 @@ class DiagramService(BaseService, DiagramPort):
         # Convert to expected format
         diagrams = []
         for info in diagram_infos:
+            # Extract filename from path for name
+            name = Path(info.id).name if info.id else "unknown"
+            
             diagrams.append({
                 "id": info.id,
                 "path": str(info.path),
-                "name": info.id,
+                "name": name,
                 "format": info.format,
                 "size": info.size,
                 "modified": info.modified.isoformat() if info.modified else None,

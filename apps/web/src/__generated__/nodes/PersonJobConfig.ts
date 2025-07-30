@@ -11,6 +11,7 @@ export const personJobConfig: UnifiedNodeConfig = {
   handles: {
     input: [
       { label: 'default', displayLabel: '', position: 'left' },
+      { label: 'first', displayLabel: 'First', position: 'left' },
     ],
     output: [
       { label: 'default', displayLabel: 'Default', position: 'right' },

@@ -154,12 +154,12 @@ def extract_enums(all_enums: list) -> list:
         # Skip internal enums
         if enum.get('name', '').startswith('_'):
             continue
-        # For GraphQL enums, use the actual values instead of member names
+        # For GraphQL enums, we need the member names (not values)
+        # GraphQL uses enum member names (e.g., RAW_TEXT) not values (e.g., 'raw_text')
         values = []
         for m in enum.get('members', []):
-            # Use the value if it exists, otherwise fall back to name
-            value = m.get('value', m.get('name'))
-            values.append(value)
+            # Use the member name for GraphQL enum values
+            values.append(m.get('name'))
         enums.append({
             'name': enum.get('name'),
             'values': values

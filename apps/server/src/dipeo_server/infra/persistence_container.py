@@ -67,7 +67,7 @@ def _create_server_diagram_storage_adapter(filesystem_adapter):
     from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
 
     return DiagramStorageAdapter(
-        filesystem=filesystem_adapter, base_path=Path(BASE_DIR) / "files" / "diagrams"
+        filesystem=filesystem_adapter, base_path=Path(BASE_DIR) / "files"
     )
 
 

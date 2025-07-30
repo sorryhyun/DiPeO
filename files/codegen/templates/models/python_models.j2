@@ -10,7 +10,6 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, NewType, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
-# Import all enums from the separate enums module
 from .enums import (
     NodeType, HandleDirection, HandleLabel, DataType,
     MemoryView, DiagramFormat, DBBlockSubType, ContentType, SupportedLanguage,
@@ -18,34 +17,87 @@ from .enums import (
     EventType, LLMService, APIServiceType, NotionOperation, ToolType
 )
 
-# ============ Type Aliases ============
-{% for alias in type_aliases %}
-{{ alias.name }} = {{ alias.type }}
-{% endfor %}
-
-# ============ Branded IDs ============
-{% for brand in branded_ids %}
+{# ============ Branded IDs ============ #}
+{% set base_branded_ids = ['NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 'DiagramID', 'ExecutionID', 'HookID', 'TaskID'] %}
+{% set all_branded_ids = (model_data.branded_types + base_branded_ids) | unique | sort %}
+{% for brand in all_branded_ids %}
 {{ brand }} = NewType('{{ brand }}', str)
 {% endfor %}
 
+{# ============ Type Aliases ============ #}
+{% set processed_aliases = [] %}
+{% set deferred_aliases = [] %}
+{% set interface_names = model_data.interfaces | map(attribute='name') | list %}
+{% for alias in model_data.types %}
+  {% set alias_name = alias.name %}
+  {% set alias_type_raw = alias.type %}
+  {% set py_type = alias_type_raw | ts_to_python(alias_name) %}
+  {% if py_type != alias_name and alias_name not in all_branded_ids %}
+    {% if py_type in interface_names %}
+      {% set _ = deferred_aliases.append({'name': alias_name, 'type': py_type}) %}
+    {% else %}
+      {% set _ = processed_aliases.append({'name': alias_name, 'type': py_type}) %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% if processed_aliases %}
 
-# ============ Models ============
-{% for model in models %}
-class {{ model.name }}({{ model.extends or 'BaseModel' }}):
-    """{{ model.description or model.name + ' model' }}"""
-    model_config = ConfigDict(extra='{{ "allow" if allow_extra else "forbid" }}', populate_by_name=True)
-    
-    {% if model.fields %}
-    {% for field in model.fields %}
-    {{ field.name }}: {{ field.type }}{% if field.optional %} = Field(default=None){% endif %}
+{% for alias in processed_aliases %}
+{{ alias.name }} = {{ alias.type }}
+{% endfor %}
+{% endif %}
+
+{# ============ Models ============ #}
+{% for interface in model_data.interfaces %}
+{% set base_class = interface.extends[0] if interface.extends else 'BaseModel' %}
+{% set model_name = interface.name %}
+
+class {{ model_name }}({{ base_class }}):
+    """{{ interface.description or model_name + ' model' }}"""
+    model_config = ConfigDict(extra='{{ "allow" if model_data.config.allow_extra else "forbid" }}', populate_by_name=True)
+    {% if interface.properties %}
+    {% for prop in interface.properties %}
+    {% set ts_type = prop.type %}
+    {% set field_name = prop.name %}
+    {% set is_optional = prop.optional or (ts_type | is_optional_ts) %}
+    {% set py_type = ts_type | ts_to_python(field_name, {'model': model_name, 'all_fields': interface.properties}) %}
+    {% if is_optional %}
+    {% if not py_type.startswith('Optional[') %}
+    {{ field_name }}: Optional[{{ py_type }}] = Field(default=None{% if prop.description %}, description="{{ prop.description }}"{% endif %})
+    {% else %}
+    {{ field_name }}: {{ py_type }} = Field(default=None{% if prop.description %}, description="{{ prop.description }}"{% endif %})
+    {% endif %}
+    {% else %}
+    {{ field_name }}: {{ py_type }}{% if prop.description %} = Field(description="{{ prop.description }}"){% endif %}
+    {% endif %}
     {% endfor %}
     {% else %}
     pass
     {% endif %}
-
 {% endfor %}
 
-# ============ Helper Functions ============
+{# ============ Deferred Type Aliases (Forward References) ============ #}
+{% if deferred_aliases %}
+
+# Type aliases that reference models
+{% for alias in deferred_aliases %}
+{{ alias.name }} = {{ alias.type }}
+{% endfor %}
+{% endif %}
+
+{# ============ Enums ============ #}
+{% for enum in model_data.enums %}
+{% if enum.name not in ['NodeType', 'HandleDirection', 'HandleLabel', 'DataType', 'MemoryView', 'DiagramFormat', 'DBBlockSubType', 'ContentType', 'SupportedLanguage', 'HttpMethod', 'HookType', 'HookTriggerMode', 'ExecutionStatus', 'NodeExecutionStatus', 'EventType', 'LLMService', 'APIServiceType', 'NotionOperation', 'ToolType'] %}
+
+class {{ enum.name }}(str, Enum):
+    """{{ enum.description or enum.name + ' enumeration' }}"""
+    {% for member in enum.members %}
+    {{ member.name | snake_case | upper }} = "{{ member.value }}"
+    {% endfor %}
+{% endif %}
+{% endfor %}
+
+{# ============ Helper Functions ============ #}
 def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
     """Parse a handle ID into its components."""
     parts = handle_id.split('_')
@@ -62,23 +114,20 @@ def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:
     """Create a handle ID from components."""
     return HandleID(f"{node_id}_{label}_{direction}")
 
-# ============ Type Guards ============
-{% for model in models %}
-{% if model.name.endswith('Node') %}
-def is_{{ model.name|lower }}(node: Any) -> bool:
-    """Check if a node is a {{ model.name }}."""
-    return hasattr(node, 'type') and node.type == NodeType.{{ model.name|replace('Node', '')|lower }}
-
-{% endif %}
-{% endfor %}
-
-# ============ Deferred Type Aliases (Forward References) ============
-{% if deferred_aliases %}
-{% for alias in deferred_aliases %}
-{{ alias.name }} = {{ alias.type }}
+{# ============ Type Guards ============ #}
+{% if model_data.config.generate_type_guards %}
+# Type guard functions
+{% for interface in model_data.interfaces %}
+def is_{{ interface.name | snake_case }}(obj: Any) -> bool:
+    """Check if object is a {{ interface.name }}."""
+    return isinstance(obj, {{ interface.name }})
 {% endfor %}
 {% endif %}
 
-# ============ Constants ============
-VALID_NODE_TYPES = [{{ enums|selectattr('name', 'equalto', 'NodeType')|map(attribute='members')|first|map(attribute='value')|map('quote')|join(', ') if enums|selectattr('name', 'equalto', 'NodeType')|list else '' }}]
-VALID_HANDLE_DIRECTIONS = ['input', 'output']
+{# ============ Constants ============ #}
+{% if model_data.constants %}
+# Constants from TypeScript
+{% for const in model_data.constants %}
+{{ const.name }} = {{ const.value | tojson }}
+{% endfor %}
+{% endif %}
