@@ -51,7 +51,6 @@ class BaseValidator:
         path = Path(file_path)
         parent = path.parent
 
-        # Check if parent directory exists
         if not parent.exists():
             try:
                 parent.mkdir(parents=True, exist_ok=True)
@@ -60,8 +59,6 @@ class BaseValidator:
                     f"Cannot create directory for file '{file_path}': {e!s}",
                     details={"file_path": file_path, "error": str(e)}
                 )
-
-        # Check if we can write to the directory
         if not os.access(parent, os.W_OK):
             raise ValidationError(
                 f"No write permission for directory '{parent}'",

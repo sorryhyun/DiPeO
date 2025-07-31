@@ -9,10 +9,10 @@ from .memory_filters import MemoryView
 
 class MemoryProfile(Enum):
     """Predefined memory configurations."""
-    FULL = auto()           # No limits, see everything
-    FOCUSED = auto()        # Last 20 messages, conversation pairs
-    MINIMAL = auto()        # Last 5 messages, system + direct only
-    GOLDFISH = auto()       # Last 1-2 exchanges only
+    FULL = auto()
+    FOCUSED = auto()
+    MINIMAL = auto()
+    GOLDFISH = auto()
 
 
 class MemoryProfileFactory:

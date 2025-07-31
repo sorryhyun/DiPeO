@@ -9,15 +9,12 @@ from dipeo.models import Message, PersonID
 class MemoryView(Enum):
     """Different views/filters for a person's memory of the global conversation."""
     
-    # Core views
-    ALL_INVOLVED = "all_involved"  # Messages where person is sender or recipient (current default)
-    SENT_BY_ME = "sent_by_me"  # Messages I sent
-    SENT_TO_ME = "sent_to_me"  # Messages sent to me
-    
-    # Specialized views
-    SYSTEM_AND_ME = "system_and_me"  # System messages and my interactions
-    CONVERSATION_PAIRS = "conversation_pairs"  # Messages grouped as request/response pairs
-    ALL_MESSAGES = "all_messages"  # All messages in the conversation (for judges/observers)
+    ALL_INVOLVED = "all_involved"
+    SENT_BY_ME = "sent_by_me"
+    SENT_TO_ME = "sent_to_me"
+    SYSTEM_AND_ME = "system_and_me"
+    CONVERSATION_PAIRS = "conversation_pairs"
+    ALL_MESSAGES = "all_messages"
 
 
 class MemoryFilter(Protocol):
@@ -85,16 +82,13 @@ class ConversationPairsFilter:
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         result = []
         
-        # Track messages to this person and look for responses
         for i, msg in enumerate(messages):
             if msg.to_person_id == person_id:
                 result.append(msg)
                 
-                # Look for immediate response
                 if i + 1 < len(messages) and messages[i + 1].from_person_id == person_id:
                     result.append(messages[i + 1])
             elif msg.from_person_id == person_id and (not result or result[-1].from_person_id != person_id):
-                # Include orphaned responses from this person
                 result.append(msg)
         
         return result
@@ -107,7 +101,6 @@ class AllMessagesFilter:
     """Filter that shows all messages in the conversation (for judges/observers)."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
-        # Return all messages unfiltered
         return messages
     
     def describe(self) -> str:
@@ -159,16 +152,11 @@ class MemoryLimiter:
                 if msg.from_person_id != PersonID("system")
             ]
             
-            # Calculate how many non-system messages we can keep
             available_slots = self.max_messages - len(system_messages)
             if available_slots <= 0:
-                # Only system messages fit
                 return system_messages[-self.max_messages:]
-            
-            # Keep system messages and most recent non-system messages
             return system_messages + non_system_messages[-available_slots:]
         else:
-            # Simply keep the most recent messages
             return messages[-self.max_messages:]
     
     def describe(self) -> str:

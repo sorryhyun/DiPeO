@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class DiagramBusinessLogic:
-    """Pure business logic for diagram operations and validation."""
 
     def validate_diagram_data(self, data: dict[str, Any]) -> None:
         if not isinstance(data, dict):
@@ -124,15 +123,12 @@ class DiagramBusinessLogic:
         file_size = FileSize(size)
         file_extension = FileExtension(extension) if extension else None
         
-        # Generate ID from path (without extension)
-        # Handle compound extensions like .native.json, .light.yaml
         path_str = str(path_obj)
         for ext in [".native.json", ".light.yaml", ".readable.yaml"]:
             if path_str.endswith(ext):
                 file_id = path_str[:-len(ext)]
                 break
         else:
-            # Fallback for simple extensions
             file_id = str(path_obj.with_suffix(""))
         
         return {
@@ -147,7 +143,6 @@ class DiagramBusinessLogic:
         }
 
     def validate_file_extension(self, path: str, allowed_extensions: list[str]) -> None:
-        """Validate that file has allowed extension."""
         path_obj = Path(path)
         
         if not path_obj.suffix:
@@ -155,7 +150,6 @@ class DiagramBusinessLogic:
             
         extension = FileExtension(path_obj.suffix)
         
-        # Normalize allowed extensions
         normalized_allowed = {
             ext if ext.startswith('.') else f'.{ext}'
             for ext in allowed_extensions
@@ -168,32 +162,26 @@ class DiagramBusinessLogic:
             )
 
     def construct_search_paths(self, diagram_id: str, base_extensions: list[str]) -> list[str]:
-        """Construct possible file paths for a diagram ID."""
         paths = []
         
-        # First check if diagram_id already has a valid extension
         path_obj = Path(diagram_id)
         has_valid_extension = any(
             diagram_id.endswith(ext) for ext in 
             [".light.yaml", ".native.json", ".readable.yaml"]
         )
         
-        # If it already has a valid extension, try it as-is first
         if has_valid_extension:
             paths.append(diagram_id)
         
-        # Normalize extensions
         extensions = [
             FileExtension(ext if ext.startswith('.') else f'.{ext}').value
             for ext in base_extensions
         ]
         
-        # Direct paths with extensions (only if doesn't already have extension)
         if not has_valid_extension:
             for ext in extensions:
                 paths.append(f"{diagram_id}{ext}")
         
-        # Only check subdirectories if diagram_id doesn't contain a path separator
         if "/" not in diagram_id:
             for format_type in DiagramFormat:
                 for ext in extensions:
@@ -206,19 +194,15 @@ class DiagramBusinessLogic:
         diagram: dict[str, Any],
         target_format: DiagramFormat
     ) -> dict[str, Any]:
-        """Transform diagram data for export to specific format."""
-        # Clean enum values first
         cleaned = self.clean_enum_values(diagram)
         
         if target_format == DiagramFormat.LIGHT:
-            # Remove verbose fields for light format
             if "metadata" in cleaned:
                 cleaned["metadata"] = {
                     k: v for k, v in cleaned["metadata"].items()
                     if k in ["name", "version", "description"]
                 }
         elif target_format == DiagramFormat.READABLE:
-            # Add human-readable annotations
             if "nodes" in cleaned:
                 for node in cleaned["nodes"]:
                     if "type" in node:
@@ -227,7 +211,6 @@ class DiagramBusinessLogic:
         return cleaned
 
     def is_valid_diagram_format(self, format_string: str) -> bool:
-        """Check if a string is a valid diagram format."""
         try:
             DiagramFormat(format_string)
             return True
@@ -235,5 +218,4 @@ class DiagramBusinessLogic:
             return False
 
     def get_diagram_file_extensions(self) -> list[str]:
-        """Get standard file extensions for diagram files."""
         return [".json", ".yaml", ".yml"]

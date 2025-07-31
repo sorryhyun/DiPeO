@@ -27,12 +27,6 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
     """
     
     def __init__(self, filesystem: FileSystemPort, base_path: str | Path):
-        """Initialize diagram storage adapter.
-        
-        Args:
-            filesystem: FileSystem adapter for I/O operations
-            base_path: Base directory for diagram storage
-        """
         super().__init__()
         self.filesystem = filesystem
         self.base_path = Path(base_path)
@@ -41,7 +35,6 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         self._initialized = False
     
     async def initialize(self) -> None:
-        """Initialize storage directory and converter."""
         if self._initialized:
             return
             
@@ -54,39 +47,30 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             raise StorageError(f"Failed to initialize diagram storage: {e}")
     
     def _get_diagram_path(self, diagram_id: str, format: str | None = None) -> Path:
-        """Get path for diagram with appropriate extension."""
-        # Check if diagram_id already contains a supported extension
         supported_extensions = [".native.json", ".light.yaml", ".light.yml", 
                               ".readable.yaml", ".readable.yml", ".json", ".yaml", ".yml"]
         
         for ext in supported_extensions:
             if diagram_id.endswith(ext):
-                # diagram_id already has an extension, use it directly
                 path = self.base_path / diagram_id
                 if self.filesystem.exists(path):
                     return path
-                # Even if it doesn't exist, return the path (for save operations)
                 return path
         
-        # diagram_id doesn't have an extension, proceed with normal logic
         if format:
-            # Map format to DiagramFormat enum
             format_enum = self._format_string_to_enum(format)
             extension = self.format_service.get_file_extension_for_format(format_enum)
             return self.base_path / f"{diagram_id}{extension}"
         
-        # Try to find existing file with any supported extension
         patterns = self.format_service.construct_search_patterns(diagram_id)
         for pattern in patterns:
             path = self.base_path / pattern
             if self.filesystem.exists(path):
                 return path
         
-        # Default to native format if not found
         return self.base_path / f"{diagram_id}.native.json"
     
     def _format_string_to_enum(self, format: str) -> DiagramFormat:
-        """Convert format string to DiagramFormat enum."""
         format_map = {
             "native": DiagramFormat.NATIVE,
             "light": DiagramFormat.LIGHT,
@@ -97,38 +81,31 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         return format_map.get(format.lower(), DiagramFormat.NATIVE)
     
     def _detect_format_from_path(self, path: Path) -> str:
-        """Detect format from file path."""
         format_enum = self.format_service.determine_format_from_filename(str(path))
         if format_enum:
             return format_enum.value
         return "native"
     
     async def save_diagram(self, diagram_id: str, content: str, format: str) -> DiagramInfo:
-        """Save diagram with specified format."""
         if not self._initialized:
             await self.initialize()
             
         try:
-            # Get appropriate path for format
             path = self._get_diagram_path(diagram_id, format)
             
-            # Ensure parent directory exists
             self.filesystem.mkdir(path.parent, parents=True)
             
-            # Validate content matches format
             format_enum = self._format_string_to_enum(format)
             self.format_service.validate_format(content, format_enum)
             
-            # Write content
             with self.filesystem.open(path, "wb") as f:
                 f.write(content.encode('utf-8'))
             
-            # Get file info
             stat = self.filesystem.stat(path)
             rel_path = path.relative_to(self.base_path)
             
             return DiagramInfo(
-                id=str(rel_path).replace('\\', '/'),  # Use forward slashes for consistency
+                id=str(rel_path).replace('\\', '/'),
                 path=rel_path,
                 format=format,
                 size=stat.size,
@@ -140,22 +117,18 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             raise StorageError(f"Failed to save diagram {diagram_id}: {e}")
     
     async def load_diagram(self, diagram_id: str) -> tuple[str, str]:
-        """Load diagram content and return (content, format)."""
         if not self._initialized:
             await self.initialize()
             
         try:
-            # Find diagram file
             path = self._get_diagram_path(diagram_id)
             
             if not self.filesystem.exists(path):
                 raise StorageError(f"Diagram not found: {diagram_id}")
             
-            # Read content
             with self.filesystem.open(path, "rb") as f:
                 content = f.read().decode('utf-8')
             
-            # Detect format
             format = self._detect_format_from_path(path)
             
             return content, format
@@ -166,21 +139,17 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             raise StorageError(f"Failed to load diagram {diagram_id}: {e}")
     
     async def exists(self, diagram_id: str) -> bool:
-        """Check if diagram exists."""
         if not self._initialized:
             await self.initialize()
             
-        # Check if diagram_id already contains a supported extension
         supported_extensions = [".native.json", ".light.yaml", ".light.yml", 
                               ".readable.yaml", ".readable.yml", ".json", ".yaml", ".yml"]
         
         for ext in supported_extensions:
             if diagram_id.endswith(ext):
-                # diagram_id already has an extension, check it directly
                 path = self.base_path / diagram_id
                 return self.filesystem.exists(path)
         
-        # diagram_id doesn't have an extension, use search patterns
         patterns = self.format_service.construct_search_patterns(diagram_id)
         for pattern in patterns:
             path = self.base_path / pattern
@@ -189,7 +158,6 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         return False
     
     async def delete(self, diagram_id: str) -> None:
-        """Delete diagram."""
         if not self._initialized:
             await self.initialize()
             
@@ -208,41 +176,32 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             raise StorageError(f"Failed to delete diagram {diagram_id}: {e}")
     
     async def list_diagrams(self, format: str | None = None) -> list[DiagramInfo]:
-        """List all diagrams, optionally filtered by format."""
         if not self._initialized:
             await self.initialize()
             
         diagrams = []
         
-        # Define supported extensions
         if format:
             format_enum = self._format_string_to_enum(format)
             extensions = [self.format_service.get_file_extension_for_format(format_enum)]
         else:
             extensions = [".native.json", ".light.yaml", ".readable.yaml"]
         
-        # Scan directory recursively for diagram files
         try:
             def scan_directory(dir_path: Path) -> None:
-                """Recursively scan directory for diagram files."""
                 try:
                     items = self.filesystem.listdir(dir_path)
                 except Exception:
-                    # Skip directories we can't read
                     return
                     
                 for item in items:
                     if item.is_file():
-                        # Check if it has a supported extension
                         for ext in extensions:
                             if str(item).endswith(ext):
                                 stat = self.filesystem.stat(item)
                                 
-                                # Get relative path from base
                                 rel_path = item.relative_to(self.base_path)
                                 
-                                # Use the full relative path as diagram ID (including extension)
-                                # Convert to forward slashes for consistency across platforms
                                 diagram_id = str(rel_path).replace('\\', '/')
                                 
                                 diagrams.append(DiagramInfo(
@@ -255,19 +214,16 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
                                 ))
                                 break
                     elif item.is_dir():
-                        # Recursively scan subdirectories
                         scan_directory(item)
             
             scan_directory(self.base_path)
         except Exception as e:
             raise StorageError(f"Failed to list diagrams: {e}")
         
-        # Sort by modified time, most recent first
         diagrams.sort(key=lambda x: x.modified, reverse=True)
         return diagrams
     
     async def get_info(self, diagram_id: str) -> DiagramInfo | None:
-        """Get diagram metadata without loading content."""
         if not self._initialized:
             await self.initialize()
             
@@ -281,7 +237,7 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             rel_path = path.relative_to(self.base_path)
             
             return DiagramInfo(
-                id=str(rel_path).replace('\\', '/'),  # Use forward slashes for consistency
+                id=str(rel_path).replace('\\', '/'),
                 path=rel_path,
                 format=self._detect_format_from_path(path),
                 size=stat.size,
@@ -294,31 +250,24 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             return None
     
     async def convert_format(self, diagram_id: str, target_format: str) -> DiagramInfo:
-        """Convert diagram to different format."""
         if not self._initialized:
             await self.initialize()
             
         try:
-            # Load existing diagram
             content, current_format = await self.load_diagram(diagram_id)
             
-            # Skip if already in target format
             if current_format == target_format:
                 info = await self.get_info(diagram_id)
                 if info:
                     return info
                 raise StorageError(f"Failed to get info for diagram {diagram_id}")
             
-            # Deserialize from current format
             diagram = self.converter.deserialize(content, current_format)
             
-            # Serialize to target format
             new_content = self.converter.serialize(diagram, target_format)
             
-            # Delete old file
             await self.delete(diagram_id)
             
-            # Save with new format
             return await self.save_diagram(diagram_id, new_content, target_format)
             
         except Exception as e:

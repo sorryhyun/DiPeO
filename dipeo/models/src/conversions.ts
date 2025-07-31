@@ -19,13 +19,7 @@ import {
   PersonLLMConfig,
 } from './diagram';
 
-// ============================================================================
-// Node Type Mapping
-// ============================================================================
 
-/**
- * Maps node type strings to GraphQL/domain node types
- */
 export const NODE_TYPE_MAP: Record<string, NodeType> = {
   'code_job': NodeType.CODE_JOB,
   'api_job': NodeType.API_JOB,
@@ -44,17 +38,10 @@ export const NODE_TYPE_MAP: Record<string, NodeType> = {
   'sub_diagram': NodeType.SUB_DIAGRAM,
 } as const;
 
-/**
- * Reverse mapping from domain node types to frontend types
- */
 export const NODE_TYPE_REVERSE_MAP: Record<NodeType, string> = Object.entries(NODE_TYPE_MAP)
   .reduce((acc, [key, value]) => ({ ...acc, [value]: key }), {} as Record<NodeType, string>);
 
-/**
- * Convert frontend node type to domain node type
- */
 export function nodeKindToDomainType(kind: string): NodeType {
-  // Handle both uppercase and lowercase node kinds
   const normalizedKind = kind.toLowerCase();
   const domainType = NODE_TYPE_MAP[normalizedKind];
   if (!domainType) {
@@ -63,11 +50,7 @@ export function nodeKindToDomainType(kind: string): NodeType {
   return domainType;
 }
 
-/**
- * Convert domain node type to frontend node type
- */
 export function domainTypeToNodeKind(type: NodeType | string): string {
-  // Handle uppercase string values from GraphQL by converting to lowercase
   const normalizedType = typeof type === 'string' ? type.toLowerCase() : type;
   const kind = NODE_TYPE_REVERSE_MAP[normalizedType as NodeType];
   
@@ -77,37 +60,22 @@ export function domainTypeToNodeKind(type: NodeType | string): string {
   return kind;
 }
 
-// ============================================================================
-// Handle ID Management
-// ============================================================================
 
-/**
- * Create a handle ID from node ID, handle label, and direction
- * Format: [nodeId]_[handleLabel]_[direction]
- */
 export function createHandleId(
   nodeId: NodeID,
   handleLabel: HandleLabel,
   direction: HandleDirection
 ): HandleID {
-  // Use underscores for simpler format
   return `${nodeId}_${handleLabel}_${direction}` as HandleID;
 }
 
-/**
- * Parse a handle ID into its components
- * Returns (node_id, handle_label, direction)
- */
 export function parseHandleId(
   handleId: HandleID
 ): { node_id: NodeID; handle_label: HandleLabel; direction: HandleDirection } {
-  // Format: [nodeId]_[handleLabel]_[direction]
   const parts = handleId.split('_');
   if (parts.length < 3) {
     throw new Error(`Invalid handle ID format: ${handleId}`);
   }
-  
-  // Extract parts: nodeId_label_direction
   const direction = parts[parts.length - 1] as HandleDirection;
   const handleLabel = parts[parts.length - 2] as HandleLabel;
   const nodeIdParts = parts.slice(0, -2);
@@ -116,8 +84,6 @@ export function parseHandleId(
   if (!nodeId || !handleLabel || !Object.values(HandleDirection).includes(direction)) {
     throw new Error(`Invalid handle ID format: ${handleId}`);
   }
-  
-  // Validate handle label
   if (!Object.values(HandleLabel).includes(handleLabel)) {
     throw new Error(`Invalid handle label in handle ID: ${handleId}`);
   }
@@ -129,43 +95,24 @@ export function parseHandleId(
   };
 }
 
-// ============================================================================
-// Handle Compatibility
-// ============================================================================
 
-/**
- * Check if two handles are compatible for connection
- */
 export function areHandlesCompatible(
   sourceHandle: DomainHandle,
   targetHandle: DomainHandle
 ): boolean {
-  // Opposite directions required
   if (sourceHandle.direction === targetHandle.direction) {
     return false;
   }
-  
-  // Output must connect to input
   if (sourceHandle.direction !== HandleDirection.OUTPUT) {
     return false;
   }
-  
-  // Same type is always compatible
   if (sourceHandle.data_type === targetHandle.data_type) {
     return true;
   }
-  
-  // 'any' type is compatible with everything
   return sourceHandle.data_type === 'any' || targetHandle.data_type === 'any';
 }
 
-// ============================================================================
-// Data Structure Conversions
-// ============================================================================
 
-/**
- * Convert array-based diagram to map-based structure
- */
 export function diagramArraysToMaps(diagram: Partial<{
   nodes: DomainNode[];
   arrows: DomainArrow[];
@@ -185,9 +132,6 @@ export function diagramArraysToMaps(diagram: Partial<{
   };
 }
 
-/**
- * Convert map-based diagram to array-based structure
- */
 export function diagramMapsToArrays(diagram: {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
@@ -207,16 +151,8 @@ export function diagramMapsToArrays(diagram: {
   };
 }
 
-// ============================================================================
-// GraphQL Type Conversions
-// ============================================================================
 
-/**
- * Convert GraphQL DomainPersonType to domain DomainPerson
- * Handles the api_key_id optional/required mismatch
- */
 export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
-  // Handle missing or null api_key_id by providing a default value
   const apiKeyId = graphqlPerson.llm_config?.api_key_id || '';
   
   return {
@@ -232,9 +168,6 @@ export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
   };
 }
 
-/**
- * Convert GraphQL diagram data to domain format, handling type mismatches
- */
 export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagram> {
   const result: Partial<DomainDiagram> = {};
   
@@ -247,10 +180,8 @@ export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagr
   }
   
   if (diagram.arrows) {
-    // Ensure arrow properties are preserved during conversion
     result.arrows = diagram.arrows.map((arrow: any) => ({
       ...arrow,
-      // Explicitly preserve these properties if they exist
       content_type: arrow.content_type || arrow.contentType,
       label: arrow.label,
     }));

@@ -68,7 +68,7 @@ class Settings:
         )
         self.max_upload_size = int(
             os.getenv("DIPEO_MAX_UPLOAD_SIZE", str(10 * 1024 * 1024))
-        )  # 10MB default
+        )
 
         # Feature flags
         self.enable_monitoring = (
@@ -95,7 +95,6 @@ class Settings:
             return Environment.DEVELOPMENT
 
     def _get_base_dir(self) -> Path:
-        # Try environment variable first
         if base_dir := os.getenv("DIPEO_BASE_DIR"):
             return Path(base_dir)
 
@@ -109,7 +108,6 @@ class Settings:
                 return current
             current = current.parent
 
-        # Default to current directory
         return Path.cwd()
 
     def _parse_list(self, value: str) -> list[str]:

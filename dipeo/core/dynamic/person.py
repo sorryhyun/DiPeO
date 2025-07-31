@@ -35,7 +35,6 @@ class Person:
         self.llm_config = llm_config
         self._conversation_manager = conversation_manager
         
-        # Memory management
         self.memory_view = memory_view
         self._memory_filter = MemoryFilterFactory.create(memory_view)
         self._memory_limiter: MemoryLimiter | None = None
@@ -63,14 +62,10 @@ class Person:
         
         conversation = self._conversation_manager.get_conversation()
         
-        # Use specified view or default view
         view = memory_view or self.memory_view
         filter = self._memory_filter if view == self.memory_view else MemoryFilterFactory.create(view)
         
-        # Apply memory filter
         filtered_messages = filter.filter(conversation.messages, self.id)
-        
-        # Apply memory limit if configured
         if self._memory_limiter:
             filtered_messages = self._memory_limiter.limit(filtered_messages)
         
@@ -87,7 +82,6 @@ class Person:
         Note: In the global conversation model, this doesn't delete messages
         but makes the person unable to see any messages.
         """
-        # Reset memory limiter to effectively "forget" messages
         self._memory_limiter = MemoryLimiter(0, preserve_system=False)
     
     def get_message_count(self) -> int:
@@ -164,8 +158,6 @@ class Person:
             **llm_options
         )
         
-        # Add response to conversation
-        # Response goes back to whoever sent the message
         response_message = Message(
             from_person_id=self.id,
             to_person_id=from_person_id,  # type: ignore[arg-type]
@@ -183,14 +175,12 @@ class Person:
         This is the main method for configuring person memory.
         It replaces the complex forgetting strategies with a simple view + limit approach.
         """
-        # Convert from models.MemoryView to memory_filters.MemoryView
         view_mapping = {
             MemoryViewEnum.ALL_INVOLVED: MemoryView.ALL_INVOLVED,
             MemoryViewEnum.SENT_BY_ME: MemoryView.SENT_BY_ME,
             MemoryViewEnum.SENT_TO_ME: MemoryView.SENT_TO_ME,
             MemoryViewEnum.SYSTEM_AND_ME: MemoryView.SYSTEM_AND_ME,
             MemoryViewEnum.CONVERSATION_PAIRS: MemoryView.CONVERSATION_PAIRS,
-            # Note: ALL_MESSAGES is missing from generated enum, needs fixing in codegen
         }
         
         memory_view = view_mapping.get(settings.view, MemoryView.ALL_INVOLVED)
@@ -208,20 +198,16 @@ class Person:
     def _prepare_messages_for_llm(self) -> list[dict[str, str]]:
         llm_messages = []
         
-        # Add system prompt as first message if present
         if self.llm_config.system_prompt:
             llm_messages.append({
                 "role": "system",
                 "content": self.llm_config.system_prompt
             })
         
-        # Get messages relevant to this person
         for msg in self.get_messages():
-            # Map our message types to LLM roles
             if msg.from_person_id == self.id:
                 role = "assistant"
             elif msg.to_person_id == self.id:
-                # Messages TO this person are user messages (including from system)
                 role = "user"
             else:
                 role = "user"

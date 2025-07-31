@@ -35,7 +35,6 @@ class DBOperationsDomainService:
     async def execute_operation(
         self, db_name: str, operation: str, value: Any = None
     ) -> dict[str, Any]:
-        """Execute a database operation."""
         return await self.adapter.execute_operation(db_name, operation, value)
 
     # The following methods are kept for backward compatibility

@@ -63,14 +63,10 @@ class ExecutionContext(Protocol):
         """
         ...
     
-    # ========== State Transitions ==========
-    # These methods provide standardized state management
     
     @abstractmethod
     def transition_node_to_running(self, node_id: NodeID) -> int:
-        """Transition a node to running state.
-        
-        This should increment execution count and update state atomically.
+        """Transition a node to running state and increment execution count.
         
         Args:
             node_id: The ID of the node to transition
@@ -122,9 +118,7 @@ class ExecutionContext(Protocol):
     
     @abstractmethod
     def reset_node(self, node_id: NodeID) -> None:
-        """Reset a node to pending state (for loops).
-        
-        This should clear the node's output and reset its state.
+        """Reset a node to pending state, clearing output and state.
         
         Args:
             node_id: The ID of the node to reset

@@ -17,10 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class TypedExecutionEngine:
-    """Execution engine that works directly with typed ExecutableDiagram and ExecutionRuntime.
-    
-    This simplified engine leverages the consolidated ExecutionRuntime for cleaner architecture.
-    """
+    """Execution engine leveraging consolidated ExecutionRuntime."""
     
     def __init__(
         self, 
@@ -131,11 +128,9 @@ class TypedExecutionEngine:
                 
                 if isinstance(node, PersonJobNode):
                     exec_count = execution_runtime.get_node_execution_count(node.id)
-                    log.debug(f"PersonJobNode {node.id}: exec_count={exec_count}, max_iteration={node.max_iteration}")
                     
                     if exec_count >= node.max_iteration:
                         execution_runtime.transition_node_to_maxiter(node.id, output)
-                        log.debug(f"PersonJobNode {node.id}: Transitioned to MAXITER_REACHED")
                         outgoing_edges = execution_runtime.diagram.get_outgoing_edges(node.id)
                         for edge in outgoing_edges:
                             target_node = execution_runtime.diagram.get_node(edge.target_node_id)
@@ -144,7 +139,6 @@ class TypedExecutionEngine:
                                 from dipeo.models import NodeExecutionStatus
                                 if node_state and node_state.status == NodeExecutionStatus.COMPLETED:
                                     execution_runtime.reset_node(target_node.id)
-                                    log.debug(f"Reset ConditionNode {target_node.id} after PersonJobNode {node.id} reached max iterations")
                     else:
                         execution_runtime.transition_node_to_completed(node.id, output)
                         execution_runtime.reset_node(node.id)

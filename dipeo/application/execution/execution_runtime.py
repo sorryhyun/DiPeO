@@ -1,11 +1,3 @@
-"""
-Refactored execution runtime showing how to reduce monolithic design.
-
-This is an example of how ExecutionRuntime could be refactored using:
-1. Extracted components for specific responsibilities
-2. Simplified async handling without wrapper duplication
-3. Clear separation of concerns
-"""
 
 import logging
 import threading
@@ -32,10 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutionRuntime(StateTransitionMixin):
-    """Simplified execution runtime using extracted components and mixin.
-    
-    Implements the ExecutionContext protocol.
-    """
+    """Execution runtime implementing ExecutionContext protocol."""
     
     def __init__(
         self,
@@ -50,27 +39,21 @@ class ExecutionRuntime(StateTransitionMixin):
         self._service_registry = service_registry
         self._container = container
         
-        # Core state
         self._node_states: dict[NodeID, NodeState] = {}
-        self._current_node_id: list[Optional[NodeID]] = [None]  # Mutable reference
-        self.metadata: dict[str, Any] = {}  # Metadata for execution context
-        self._variables: dict[str, Any] = execution_state.variables or {}  # Store execution variables
+        self._current_node_id: list[Optional[NodeID]] = [None]
+        self.metadata: dict[str, Any] = {}
+        self._variables: dict[str, Any] = execution_state.variables or {}
         
-        # Components
         self._tracker = ExecutionTracker()
         self._state_lock = threading.Lock()
-        
-        # Initialize extracted components
         self._readiness_checker = NodeReadinessChecker(diagram, self._tracker)
         
-        # Load state
         ExecutionStatePersistence.load_from_state(
             execution_state, 
             self._node_states, 
             self._tracker
         )
         
-        # Initialize missing node states
         self._initialize_node_states()
     
     def _initialize_node_states(self) -> None:
@@ -81,7 +64,6 @@ class ExecutionRuntime(StateTransitionMixin):
                     status=NodeExecutionStatus.PENDING
                 )
     
-    # ========== Simplified Node Readiness ==========
     
     def get_ready_nodes(self) -> list["ExecutableNode"]:
         """Get all nodes that are ready to execute."""
@@ -92,19 +74,14 @@ class ExecutionRuntime(StateTransitionMixin):
     
     def is_complete(self) -> bool:
         """Check if execution is complete."""
-        # Any nodes still running?
         if any(state.status == NodeExecutionStatus.RUNNING for state in self._node_states.values()):
             return False
-        
-        # Any nodes ready to run?
         return len(self.get_ready_nodes()) == 0
     
     def get_variables(self) -> dict[str, Any]:
         """Get execution variables."""
         return self._variables.copy()
     
-    
-    # ========== ExecutionContext Protocol Implementation ==========
     
     def get_node_state(self, node_id: NodeID) -> Optional[NodeState]:
         """Get the execution state of a node."""
@@ -135,7 +112,6 @@ class ExecutionRuntime(StateTransitionMixin):
         """Get the execution count for a node."""
         return self._tracker.get_execution_count(node_id)
     
-    # ========== Service Access ==========
     
     def get_service(self, service_key: Union[str, "ServiceKey"]) -> Any:
         """Get a service from the registry."""
@@ -150,7 +126,6 @@ class ExecutionRuntime(StateTransitionMixin):
         """Get the service registry."""
         return self._service_registry
     
-    # ========== Input Resolution ==========
     
     def resolve_inputs(self, node: "ExecutableNode") -> dict[str, Any]:
         """Resolve all inputs for a node."""
@@ -159,22 +134,18 @@ class ExecutionRuntime(StateTransitionMixin):
         )
         from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
-        # Create typed input resolution service
         typed_input_service = TypedInputResolutionService()
         
-        # Get memory config if applicable
         node_memory_config = None
         if isinstance(node, PersonJobNode) and node.memory_settings:
             node_memory_config = node.memory_settings
         
-        # Collect protocol outputs
         node_outputs_dict = {}
         for n in self.diagram.nodes:
             protocol_output = self._tracker.get_last_output(n.id)
             if protocol_output:
                 node_outputs_dict[str(n.id)] = protocol_output
         
-        # Resolve inputs
         return typed_input_service.resolve_inputs_for_node(
             node_id=str(node.id),
             node_type=node.type,

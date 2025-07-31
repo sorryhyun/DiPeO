@@ -46,20 +46,20 @@ export enum DataType {
 }
 
 export enum MemoryView {
-  ALL_INVOLVED = 'all_involved',  // Messages where person is sender or recipient
-  SENT_BY_ME = 'sent_by_me',      // Messages I sent
-  SENT_TO_ME = 'sent_to_me',      // Messages sent to me
-  SYSTEM_AND_ME = 'system_and_me', // System messages and my interactions
-  CONVERSATION_PAIRS = 'conversation_pairs', // Request/response pairs
-  ALL_MESSAGES = 'all_messages',  // All messages in conversation (for judges/observers)
+  ALL_INVOLVED = 'all_involved',
+  SENT_BY_ME = 'sent_by_me',
+  SENT_TO_ME = 'sent_to_me',
+  SYSTEM_AND_ME = 'system_and_me',
+  CONVERSATION_PAIRS = 'conversation_pairs',
+  ALL_MESSAGES = 'all_messages',
 }
 
 export enum MemoryProfile {
-  FULL = 'FULL',             // No limits, see everything
-  FOCUSED = 'FOCUSED',       // Last 20 messages, conversation pairs
-  MINIMAL = 'MINIMAL',       // Last 5 messages, system + direct only
-  GOLDFISH = 'GOLDFISH',     // Last 1-2 exchanges only
-  CUSTOM = 'CUSTOM'          // Use custom memory_settings
+  FULL = 'FULL',
+  FOCUSED = 'FOCUSED',
+  MINIMAL = 'MINIMAL',
+  GOLDFISH = 'GOLDFISH',
+  CUSTOM = 'CUSTOM'
 }
 
 export enum DiagramFormat {
@@ -112,7 +112,6 @@ export enum HookTriggerMode {
   HOOK = 'hook'
 }
 
-// Execution-related enums (from execution.ts)
 export enum ExecutionStatus {
   PENDING = 'PENDING',
   RUNNING = 'RUNNING',
@@ -144,7 +143,6 @@ export enum EventType {
   EXECUTION_UPDATE = 'EXECUTION_UPDATE'
 }
 
-// Integration service enums (from integration.ts)
 export enum LLMService {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
