@@ -14,13 +14,13 @@ def create_v2_graphql_router(context_getter=None, container=None):
 
     # Get service registry
     if container:
-        registry = container.application.service_registry()
+        registry = container.registry
     else:
         try:
             from dipeo_server.application.app_context import get_container
 
             container = get_container()
-            registry = container.application.service_registry()
+            registry = container.registry
         except RuntimeError:
             registry = ServiceRegistry()
 

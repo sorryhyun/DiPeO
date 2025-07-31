@@ -1,14 +1,13 @@
 """Application context and dependency injection configuration."""
 
-import os
-
-from .container import ServerContainer
+from dipeo.container import Container
+from .simple_container import create_server_container
 
 # Global container instance
-_container: ServerContainer | None = None
+_container: Container | None = None
 
 
-def get_container() -> ServerContainer:
+def get_container() -> Container:
     if _container is None:
         raise RuntimeError(
             "Container not initialized. Call initialize_container() first."
@@ -16,21 +15,12 @@ def get_container() -> ServerContainer:
     return _container
 
 
-def initialize_container() -> ServerContainer:
+def initialize_container() -> Container:
     global _container
 
     if _container is None:
-        # Set container profile based on environment variable
-        profile = os.environ.get("DIPEO_CONTAINER_PROFILE", "full")
-        ServerContainer.set_profile(profile)
-        print(f"Initializing server with container profile: {profile}")
-
-        # Create container - ServerContainer already uses ServerPersistenceContainer
-        # which has the proper state_store, message_router, and api_key_storage overrides
-        _container = ServerContainer()
-
-        # Wire the container to necessary modules
-        # Note: GraphQL schema is now handled by dipeo.application.graphql
-        # No server-specific wiring needed for GraphQL
+        # Use new simplified container system
+        print("Initializing server with simplified container system")
+        _container = create_server_container()
 
     return _container

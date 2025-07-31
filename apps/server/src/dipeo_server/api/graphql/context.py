@@ -11,8 +11,7 @@ if TYPE_CHECKING:
         ExecuteDiagramUseCase,
     )
     from dipeo.application.registry import ServiceRegistry, ServiceKey
-
-    from dipeo_server.application.container import ServerContainer
+    from dipeo.container import Container
 
 
 @dataclass
@@ -21,22 +20,23 @@ class GraphQLContext(BaseContext):
 
     request: Optional[Request] = None  # present on HTTP
     websocket: Optional[WebSocket] = None  # present on WS
-    container: Optional["ServerContainer"] = None
+    container: Optional["Container"] = None
     user_data: dict[str, Any] = field(default_factory=dict)
 
     def get_service(self, name: str) -> Any:
         """Get a service from the service registry."""
-        key = ServiceKey(name)
-        return self.service_registry.get(key)
+        from dipeo.application.registry import ServiceKey
+        return self.container.get_service(ServiceKey(name))
 
     @property
     def service_registry(self) -> "ServiceRegistry":
-        return self.container.application.service_registry()
+        return self.container.registry
 
     @property
     def execution_service(self) -> "ExecuteDiagramUseCase":
         """Direct access to execution service to avoid circular dependency."""
-        return self.container.application.execution_service()
+        from dipeo.application.registry.keys import EXECUTION_SERVICE
+        return self.container.get_service(EXECUTION_SERVICE)
 
     @property
     def can_read_api_keys(self) -> bool:

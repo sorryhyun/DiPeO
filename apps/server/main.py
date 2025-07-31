@@ -37,26 +37,21 @@ logger = logging.getLogger(__name__)
 # Use consolidated app context
 from dipeo_server.api.middleware import setup_middleware
 from dipeo_server.api.router import setup_routes
-from dipeo_server.application.app_context import (
-    initialize_container,
-)
-from dipeo_server.application.container import (
-    init_server_resources,
-    shutdown_server_resources,
-)
+from dipeo_server.application.app_context import initialize_container
+from dipeo.container import init_resources, shutdown_resources
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize container
     container = initialize_container()
-    await init_server_resources(container)
+    await init_resources(container)
     
     # Setup routes after container is initialized
     setup_routes(app)
     
     yield
-    await shutdown_server_resources(container)
+    await shutdown_resources(container)
 
 
 app = FastAPI(

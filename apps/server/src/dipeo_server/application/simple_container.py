@@ -1,7 +1,4 @@
-"""Simplified server container using the new 3-container architecture.
-
-Enable with: export DIPEO_USE_SIMPLE_CONTAINERS=true
-"""
+"""Server container using the simplified 3-container architecture."""
 
 from pathlib import Path
 
@@ -32,16 +29,18 @@ def create_server_container() -> Container:
     # Create container with server configuration
     container = Container(config)
     
-    # Server-specific service overrides can be added here
-    # For example, if the server needs a different state store:
-    # from dipeo_server.infra.state_store import ServerStateStore
-    # container.registry.register(STATE_STORE, ServerStateStore())
+    # Server-specific service overrides
+    from dipeo.application.registry.keys import STATE_STORE, MESSAGE_ROUTER
+    
+    # Override state store with server implementation
+    from dipeo_server.infra.persistence.state_registry import StateRegistry
+    container.registry.register(STATE_STORE, StateRegistry())
+    
+    # Override message router with server implementation
+    from dipeo.infra import MessageRouter
+    container.registry.register(MESSAGE_ROUTER, MessageRouter())
     
     return container
 
 
-# Usage in app_context.py:
-# if USE_SIMPLE_CONTAINERS:
-#     _container = create_server_container()
-# else:
-#     _container = ServerContainer()  # Legacy
+# This container is used by app_context.py to initialize the server

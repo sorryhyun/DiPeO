@@ -12,22 +12,33 @@ from typing import Any
 from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
+    API_SERVICE,
     ARTIFACT_STORE,
+    AST_PARSER,
+    BLOB_STORE,
     COMPILATION_SERVICE,
+    CONDITION_EVALUATION_SERVICE,
+    CONVERSATION_MANAGER,
+    DB_OPERATIONS_SERVICE,
+    DIAGRAM_CONVERTER,
     DIAGRAM_STORAGE,
+    DIAGRAM_STORAGE_SERVICE,
     DIAGRAM_VALIDATOR,
     EXECUTION_SERVICE,
     LLM_SERVICE,
+    MESSAGE_ROUTER,
+    NOTION_SERVICE,
+    PERSON_MANAGER,
+    PROMPT_BUILDER,
+    STATE_STORE,
 )
 
 # Define additional service keys that aren't in the main registry yet
 TEMPLATE_PROCESSOR = ServiceKey("template_processor")
-PROMPT_BUILDER = ServiceKey("prompt_builder")
 NODE_REGISTRY = ServiceKey("node_registry")
 DOMAIN_SERVICE_REGISTRY = ServiceKey("domain_service_registry")
 FILESYSTEM_ADAPTER = ServiceKey("filesystem_adapter")
 API_KEY_STORAGE = ServiceKey("api_key_storage")
-DIAGRAM_CONVERTER = ServiceKey("diagram_converter")
 from dipeo.core.config import Config
 
 
@@ -95,6 +106,9 @@ class InfrastructureContainer:
         
         # LLM service
         self._setup_llm_adapter()
+        
+        # Additional infrastructure services
+        self._setup_infrastructure_services()
     
     def _setup_storage_adapters(self):
         """Configure storage adapters based on environment."""
@@ -105,29 +119,25 @@ class InfrastructureContainer:
         filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
         
-        # API key storage
-        from dipeo.infra.persistence.keys.file_apikey_storage import FileAPIKeyStorage
-        api_key_storage = FileAPIKeyStorage(
-            file_path=Path.home() / ".dipeo" / "apikeys.json"
-        )
-        self.registry.register(API_KEY_STORAGE, api_key_storage)
+        # API key storage - APIKeyService handles its own file storage
         
-        # API key service
+        # API key service with file-based storage
         from dipeo.application.services.apikey_service import APIKeyService
+        api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
-            APIKeyService(storage=api_key_storage)
+            APIKeyService(file_path=api_key_path)
         )
         
         # Diagram storage adapter
         from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
-        self.registry.register(
-            DIAGRAM_STORAGE,
-            DiagramStorageAdapter(
-                filesystem=filesystem_adapter,
-                base_path=Path(self.config.base_dir) / "files"
-            )
+        diagram_storage_adapter = DiagramStorageAdapter(
+            filesystem=filesystem_adapter,
+            base_path=Path(self.config.base_dir) / "files"
         )
+        # Register under both keys for backward compatibility
+        self.registry.register(DIAGRAM_STORAGE, diagram_storage_adapter)
+        self.registry.register(DIAGRAM_STORAGE_SERVICE, diagram_storage_adapter)
         
         # Artifact store (using existing patterns)
         self.registry.register(
@@ -154,6 +164,49 @@ class InfrastructureContainer:
                 api_key_service=api_key_service,
                 llm_domain_service=llm_domain_service
             )
+        )
+    
+    def _setup_infrastructure_services(self):
+        """Set up additional infrastructure services."""
+        # State store - use None for CLI, server should override
+        # For server usage, this should be overridden with StateRegistry
+        self.registry.register(
+            STATE_STORE,
+            None  # Server must override this
+        )
+        
+        # Message router - use None for CLI, server should override 
+        # For server usage, this should be overridden with MessageRouter
+        self.registry.register(
+            MESSAGE_ROUTER,
+            None  # Server must override this
+        )
+        
+        # Blob store
+        from dipeo.infrastructure.adapters.storage import LocalBlobAdapter
+        self.registry.register(
+            BLOB_STORE,
+            LocalBlobAdapter(
+                base_path=str(Path(self.config.base_dir) / "blobs")
+            )
+        )
+        
+        # API service - None for now, can be added when needed
+        self.registry.register(
+            API_SERVICE,
+            None  # Override when API calls are needed
+        )
+        
+        # Notion service - None for now
+        self.registry.register(
+            NOTION_SERVICE,
+            None  # Override when Notion integration is needed
+        )
+        
+        # AST parser - None for now
+        self.registry.register(
+            AST_PARSER,
+            None  # Override when AST parsing is needed
         )
 
 
@@ -184,9 +237,74 @@ class ApplicationContainer:
             DiagramConverterService()
         )
         
-        # Execution service will be added later when migrating existing services
-        # For now, we'll leave it as a placeholder
-        pass
+        # Application services
+        self._setup_app_services()
+    
+    def _setup_app_services(self):
+        """Set up application-level services."""
+        # DB operations service
+        from dipeo.domain.db.services import DBOperationsDomainService
+        self.registry.register(
+            DB_OPERATIONS_SERVICE,
+            DBOperationsDomainService()
+        )
+        
+        # Condition evaluator
+        from dipeo.application.utils.evaluator import ConditionEvaluator
+        self.registry.register(
+            CONDITION_EVALUATION_SERVICE,
+            ConditionEvaluator()
+        )
+        
+        # Person manager
+        from dipeo.application.services.person_manager_impl import PersonManagerImpl
+        self.registry.register(
+            PERSON_MANAGER,
+            PersonManagerImpl()
+        )
+        
+        # Conversation manager
+        from dipeo.application.services.conversation_manager_impl import ConversationManagerImpl
+        conversation_manager = ConversationManagerImpl()
+        self.registry.register(CONVERSATION_MANAGER, conversation_manager)
+        # Also register as CONVERSATION_SERVICE (alias)
+        from dipeo.application.registry.keys import CONVERSATION_SERVICE
+        self.registry.register(CONVERSATION_SERVICE, conversation_manager)
+        
+        # Integrated diagram service
+        from dipeo.infrastructure.services.diagram import DiagramService
+        from dipeo.application.registry.keys import INTEGRATED_DIAGRAM_SERVICE
+        self.registry.register(
+            INTEGRATED_DIAGRAM_SERVICE,
+            lambda: DiagramService(
+                storage=self.registry.resolve(DIAGRAM_STORAGE),
+                converter=None  # Will create default converter
+            )
+        )
+        
+        # Execution service with dependencies
+        from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
+        self.registry.register(
+            EXECUTION_SERVICE,
+            lambda: ExecuteDiagramUseCase(
+                file_service=self.registry.resolve(DIAGRAM_STORAGE),
+                state_store=self.registry.resolve(STATE_STORE),
+                message_router=self.registry.resolve(MESSAGE_ROUTER),
+                compilation_service=self.registry.resolve(COMPILATION_SERVICE),
+                diagram_converter_service=self.registry.resolve(DIAGRAM_CONVERTER),
+                llm_service=self.registry.resolve(LLM_SERVICE),
+                prompt_builder=self.registry.resolve(PROMPT_BUILDER),
+                db_operations_service=self.registry.resolve(DB_OPERATIONS_SERVICE),
+                condition_evaluator=self.registry.resolve(CONDITION_EVALUATION_SERVICE),
+                api_service=self.registry.resolve(API_SERVICE),
+                notion_service=self.registry.resolve(NOTION_SERVICE),
+                person_manager=self.registry.resolve(PERSON_MANAGER),
+                conversation_manager=self.registry.resolve(CONVERSATION_MANAGER),
+                api_key_service=self.registry.resolve(API_KEY_SERVICE),
+                blob_store=self.registry.resolve(BLOB_STORE),
+                ast_parser=self.registry.resolve(AST_PARSER),
+            )
+        )
 
 
 class Container:
@@ -226,9 +344,10 @@ class Container:
     
     async def initialize(self):
         """Initialize async resources if needed."""
-        # Initialize any async resources in infrastructure
-        # For now, most services are created on-demand
-        pass
+        # Initialize APIKeyService to load keys from file
+        api_key_service = self.registry.resolve(API_KEY_SERVICE)
+        if api_key_service and hasattr(api_key_service, 'initialize'):
+            await api_key_service.initialize()
     
     async def shutdown(self):
         """Clean up resources on shutdown."""
@@ -242,6 +361,9 @@ class Container:
         - Core services are always shared (immutable)
         - Infrastructure is shared (connection pooling)
         - Only execution context is isolated
+        
+        Args:
+            execution_id: The execution ID for the sub-container (reserved for future use)
         """
         # For now, return self - can add isolation later if needed
         # The execution service handles its own state isolation
