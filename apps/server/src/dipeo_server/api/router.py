@@ -12,7 +12,7 @@ from .context import get_request_context
 
 def create_graphql_router(context_getter=None, container=None):
     """Create a GraphQL router with direct streaming support."""
-    from dipeo_server.application.app_context import get_container
+    from dipeo_server.app_context import get_container
 
     # Always use the container from app context if not provided
     if not container:
@@ -37,7 +37,6 @@ def create_graphql_router(context_getter=None, container=None):
     )
 
 
-
 def setup_routes(app: FastAPI):
     """Configure all API routes for the application."""
 
@@ -51,6 +50,7 @@ def setup_routes(app: FastAPI):
 
     # SSE router for direct streaming
     from .sse import router as sse_router
+
     app.include_router(sse_router)
 
     # Future REST API routes can be added here

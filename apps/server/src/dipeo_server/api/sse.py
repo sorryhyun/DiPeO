@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 
 from dipeo.application.execution.observers import DirectStreamingObserver
-from dipeo_server.application.app_context import get_container
+from dipeo_server.app_context import get_container
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +41,15 @@ async def stream_execution(
     response: Response,
 ):
     """Stream execution updates via Server-Sent Events.
-    
+
     This endpoint allows browsers to directly connect and receive
     real-time execution updates without going through WebSocket/message router.
     """
     logger.info(f"SSE connection established for execution {execution_id}")
-    
+
     # Get or create observer for this execution
     observer = await get_or_create_observer(execution_id)
-    
+
     async def event_generator():
         """Generate SSE events from observer."""
         try:
@@ -59,32 +59,35 @@ async def stream_execution(
                 if await request.is_disconnected():
                     break
                 yield event
-                
+
         except Exception as e:
             logger.error(f"Error in SSE stream for {execution_id}: {e}")
             yield f"event: error\ndata: {{'error': '{str(e)}'}}\n\n"
         finally:
             logger.info(f"SSE connection closed for execution {execution_id}")
-    
+
     # Return SSE response
     return EventSourceResponse(
         event_generator(),
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",  # Disable Nginx buffering
-        }
+        },
     )
 
 
-def register_observer_for_execution(execution_id: str, observer: DirectStreamingObserver):
+def register_observer_for_execution(
+    execution_id: str, observer: DirectStreamingObserver
+):
     """Register an observer for a specific execution.
-    
+
     This is called by the execution use case when using direct streaming.
     """
+
     async def _register():
         async with _observers_lock:
             _streaming_observers[execution_id] = observer
-    
+
     # Run in event loop if needed
     try:
         loop = asyncio.get_running_loop()

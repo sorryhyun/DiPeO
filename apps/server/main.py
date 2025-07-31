@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # Use consolidated app context
 from dipeo_server.api.middleware import setup_middleware
 from dipeo_server.api.router import setup_routes
-from dipeo_server.application.app_context import initialize_container
+from dipeo_server.app_context import initialize_container
 from dipeo.container import init_resources, shutdown_resources
 
 

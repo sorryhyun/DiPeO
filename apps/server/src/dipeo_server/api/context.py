@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 @dataclass
 class RequestContext(BaseContext):
     """Context object that provides access to services and request information.
-    
+
     This context can be used across different protocols (GraphQL, REST, WebSocket).
     For GraphQL specifically, it extends BaseContext for Strawberry compatibility.
     """
@@ -32,7 +32,7 @@ class RequestContext(BaseContext):
 
     def get_service(self, key: "ServiceKey") -> Any:
         """Get a service from the container using a ServiceKey.
-        
+
         This is the preferred method for service access in the new container system.
         """
         return self.container.get_service(key)
@@ -61,14 +61,14 @@ GraphQLContext = RequestContext
 def get_request_context(request_or_ws=None):
     """
     Factory function for creating request context.
-    
+
     Handles both HTTP requests and WebSocket connections.
     For GraphQL, Strawberry calls this with a single positional argument:
     - HTTP: The FastAPI Request object
     - WebSocket: The WebSocket connection object
     """
     # Get the global container instance directly
-    from dipeo_server.application.app_context import get_container
+    from dipeo_server.app_context import get_container
 
     container = get_container()
 

@@ -118,16 +118,16 @@ class ServerManager:
             raise Exception(f"GraphQL errors: {result['errors']}")
 
         execution_result = result["data"]["execute_diagram"]
-        
+
         # Register CLI session if execution started successfully
         if execution_result.get("success") and execution_result.get("execution_id"):
             self.register_cli_session(
                 execution_id=execution_result["execution_id"],
                 diagram_name=diagram_name or "unknown",
                 diagram_format=diagram_format or "native",
-                diagram_data=diagram_data
+                diagram_data=diagram_data,
             )
-        
+
         return execution_result
 
     def get_execution_result(self, execution_id: str) -> dict[str, Any] | None:
@@ -146,7 +146,7 @@ class ServerManager:
             response = requests.post(
                 f"{self.base_url}/graphql",
                 json={"query": query, "variables": {"id": execution_id}},
-                timeout=5
+                timeout=5,
             )
 
             if response.status_code != 200:
@@ -155,7 +155,7 @@ class ServerManager:
                 return None
 
             result = response.json()
-            
+
             if "errors" in result:
                 print(f"[ERROR] GraphQL errors: {result['errors']}")
                 return None
@@ -167,15 +167,16 @@ class ServerManager:
         except Exception as e:
             print(f"[DEBUG] Error getting execution result: {e}")
             import traceback
+
             traceback.print_exc()
             return None
-    
+
     def register_cli_session(
         self,
         execution_id: str,
         diagram_name: str,
         diagram_format: str,
-        diagram_data: dict[str, Any] | None = None
+        diagram_data: dict[str, Any] | None = None,
     ) -> bool:
         """Register a CLI execution session with the server."""
         mutation = """
@@ -191,7 +192,7 @@ class ServerManager:
             }
         }
         """
-        
+
         try:
             response = requests.post(
                 f"{self.base_url}/graphql",
@@ -201,22 +202,25 @@ class ServerManager:
                         "executionId": execution_id,
                         "diagramName": diagram_name,
                         "diagramFormat": diagram_format,
-                        "diagramData": diagram_data
-                    }
+                        "diagramData": diagram_data,
+                    },
                 },
-                timeout=5
+                timeout=5,
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
-                if "data" in result and result["data"]["register_cli_session"]["success"]:
+                if (
+                    "data" in result
+                    and result["data"]["register_cli_session"]["success"]
+                ):
                     print(f"📡 CLI session registered for monitoring")
                     return True
         except Exception as e:
             print(f"[DEBUG] Failed to register CLI session: {e}")
-        
+
         return False
-    
+
     def unregister_cli_session(self, execution_id: str) -> bool:
         """Unregister a CLI execution session."""
         mutation = """
@@ -226,20 +230,17 @@ class ServerManager:
             }
         }
         """
-        
+
         try:
             response = requests.post(
                 f"{self.base_url}/graphql",
-                json={
-                    "query": mutation,
-                    "variables": {"executionId": execution_id}
-                },
-                timeout=5
+                json={"query": mutation, "variables": {"executionId": execution_id}},
+                timeout=5,
             )
-            
+
             if response.status_code == 200:
                 return True
         except:
             pass
-        
+
         return False
