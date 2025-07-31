@@ -8,8 +8,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useCanvas as useCanvasBase, useCanvasInteractions } from '@/features/diagram-editor/hooks';
 import { useNodeOperations, useArrowOperations, usePersonOperations, useDiagramData, usePersonsData, useExecutionProgressComputed, useRunningNodesComputed, useCompletedNodesComputed, useFailedNodesComputed } from '@/core/store/hooks';
-import { useExecution, useExecutionData } from '@/features/execution-monitor/hooks';
+import { useExecution } from '@/features/execution-monitor/hooks';
 import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/domain-models';
+import { nodeId } from '@/core/types';
 
 /**
  * Canvas state including UI, diagram data, and execution state
@@ -151,7 +152,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   
   // Get data from hooks
   const diagramData = useDiagramData();
-  const executionData = useExecutionData();
+  const execution = useExecution({ showToasts: false });
   const personsArray = usePersonsData();
   
   // Memoize Map creations to prevent recreating on every render
@@ -256,7 +257,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       personsWithUsage,
       
       // Execution state
-      nodeStates: executionData.nodeStates,
+      nodeStates: new Map(Object.entries(execution.nodeStates).map(([k, v]) => [nodeId(k), v])),
       executionProgress: executionProgress.percentage,
       runningNodeCount: runningNodes.length,
       completedNodeCount: completedNodes.length,
@@ -295,7 +296,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     }
   }), [
     selectedNodeId, selectedArrowId, selectedPersonId, selectedNodeIds,
-    uiState, nodesMap, arrowsMap, personsMap, executionData, personsWithUsage,
+    uiState, nodesMap, arrowsMap, personsMap, execution.nodeStates, personsWithUsage,
     executionProgress, runningNodes, completedNodes, failedNodes,
     selectionOps, storeOperations, nodeOps, arrowOps, personOps, canvasHandlers, interactions, executionOps
   ]);

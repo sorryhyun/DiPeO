@@ -38,22 +38,8 @@ const wsClient = createClient({
       isConnected = false;
       console.log('[GraphQL WS] Disconnected from server');
       
-      // Check if we're in monitor mode and clear canvas on disconnect
-      const store = useUnifiedStore.getState();
-      if (store.isMonitorMode) {
-        // Wait a bit to ensure it's not just a temporary disconnect
-        setTimeout(() => {
-          if (!isConnected) {
-            console.log('[GraphQL WS] Server appears to be down, clearing canvas in monitor mode');
-            store.clearDiagram();
-            store.setActiveCanvas('main');
-            // Optionally show a notification
-            import('sonner').then(({ toast }) => {
-              toast.info('Server disconnected - diagram cleared');
-            });
-          }
-        }, 2000);
-      }
+      // Monitor mode cleanup is now handled by useMonitorMode
+      // which detects when CLI sessions end
     },
     error: (error) => {
       console.error('[GraphQL WS] Error:', error);

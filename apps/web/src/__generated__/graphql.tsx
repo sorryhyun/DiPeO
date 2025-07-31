@@ -77,6 +77,24 @@ export type ApiKeyResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export type CliSession = {
+  __typename?: 'CliSession';
+  diagram_data?: Maybe<Scalars['String']['output']>;
+  diagram_format: Scalars['String']['output'];
+  diagram_name: Scalars['String']['output'];
+  execution_id: Scalars['String']['output'];
+  is_active: Scalars['Boolean']['output'];
+  session_id: Scalars['String']['output'];
+  started_at: Scalars['DateTime']['output'];
+};
+
+export type CliSessionResult = {
+  __typename?: 'CliSessionResult';
+  error?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
 export enum ContentType {
   CONVERSATION_STATE = 'CONVERSATION_STATE',
   EMPTY = 'EMPTY',
@@ -240,6 +258,7 @@ export type ExecuteDiagramInput = {
   diagram_id?: InputMaybe<Scalars['ID']['input']>;
   max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
+  use_direct_streaming?: InputMaybe<Scalars['Boolean']['input']>;
   variables?: InputMaybe<Scalars['JSON']['input']>;
 };
 
@@ -329,8 +348,10 @@ export type Mutation = {
   delete_node: DeleteResult;
   delete_person: DeleteResult;
   execute_diagram: ExecutionResult;
+  register_cli_session: CliSessionResult;
   send_interactive_response: ExecutionResult;
   test_api_key: TestApiKeyResult;
+  unregister_cli_session: CliSessionResult;
   update_node: NodeResult;
   update_node_state: ExecutionResult;
   update_person: PersonResult;
@@ -399,6 +420,11 @@ export type Mutationexecute_diagramArgs = {
 };
 
 
+export type Mutationregister_cli_sessionArgs = {
+  input: RegisterCliSessionInput;
+};
+
+
 export type Mutationsend_interactive_responseArgs = {
   input: InteractiveResponseInput;
 };
@@ -406,6 +432,11 @@ export type Mutationsend_interactive_responseArgs = {
 
 export type Mutationtest_api_keyArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type Mutationunregister_cli_sessionArgs = {
+  input: UnregisterCliSessionInput;
 };
 
 
@@ -490,6 +521,7 @@ export type PersonResult = {
 
 export type Query = {
   __typename?: 'Query';
+  active_cli_session?: Maybe<CliSession>;
   api_key?: Maybe<DomainApiKeyType>;
   api_keys: Array<DomainApiKeyType>;
   available_models: Array<Scalars['String']['output']>;
@@ -580,6 +612,13 @@ export type Queryprompt_fileArgs = {
   filename: Scalars['String']['input'];
 };
 
+export type RegisterCliSessionInput = {
+  diagram_data?: InputMaybe<Scalars['JSON']['input']>;
+  diagram_format: Scalars['String']['input'];
+  diagram_name: Scalars['String']['input'];
+  execution_id: Scalars['String']['input'];
+};
+
 export type Subscription = {
   __typename?: 'Subscription';
   execution_updates: ExecutionUpdate;
@@ -617,6 +656,10 @@ export type TokenUsageType = {
   input: Scalars['Int']['output'];
   output: Scalars['Int']['output'];
   total?: Maybe<Scalars['Int']['output']>;
+};
+
+export type UnregisterCliSessionInput = {
+  execution_id: Scalars['String']['input'];
 };
 
 export type UpdateNodeInput = {
@@ -900,6 +943,11 @@ export type GetSystemInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type GetSystemInfoQuery = { __typename?: 'Query', system_info: any };
+
+export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null } | null };
 
 export type ExecutionOrderQueryVariables = Exact<{
   executionId: Scalars['ID']['input'];
@@ -2344,6 +2392,51 @@ export type GetSystemInfoQueryHookResult = ReturnType<typeof useGetSystemInfoQue
 export type GetSystemInfoLazyQueryHookResult = ReturnType<typeof useGetSystemInfoLazyQuery>;
 export type GetSystemInfoSuspenseQueryHookResult = ReturnType<typeof useGetSystemInfoSuspenseQuery>;
 export type GetSystemInfoQueryResult = Apollo.QueryResult<GetSystemInfoQuery, GetSystemInfoQueryVariables>;
+export const ActiveCliSessionDocument = gql`
+    query ActiveCliSession {
+  active_cli_session {
+    session_id
+    execution_id
+    diagram_name
+    diagram_format
+    started_at
+    is_active
+    diagram_data
+  }
+}
+    `;
+
+/**
+ * __useActiveCliSessionQuery__
+ *
+ * To run a query within a React component, call `useActiveCliSessionQuery` and pass it any options that fit your needs.
+ * When your component renders, `useActiveCliSessionQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useActiveCliSessionQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useActiveCliSessionQuery(baseOptions?: Apollo.QueryHookOptions<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>(ActiveCliSessionDocument, options);
+      }
+export function useActiveCliSessionLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>(ActiveCliSessionDocument, options);
+        }
+export function useActiveCliSessionSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>(ActiveCliSessionDocument, options);
+        }
+export type ActiveCliSessionQueryHookResult = ReturnType<typeof useActiveCliSessionQuery>;
+export type ActiveCliSessionLazyQueryHookResult = ReturnType<typeof useActiveCliSessionLazyQuery>;
+export type ActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useActiveCliSessionSuspenseQuery>;
+export type ActiveCliSessionQueryResult = Apollo.QueryResult<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>;
 export const ExecutionOrderDocument = gql`
     query ExecutionOrder($executionId: ID!) {
   execution_order(execution_id: $executionId)

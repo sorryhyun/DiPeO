@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useExecutionGraphQL } from './useExecutionGraphQL';
 import { useDirectStreamingSSE } from './useDirectStreamingSSE';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 interface UseExecutionStreamingProps {
   executionId: string | null;
@@ -17,11 +18,11 @@ export function useExecutionStreaming({ executionId, skip = false }: UseExecutio
   const [nodeUpdates, setNodeUpdates] = useState<any>(null);
   const [interactivePrompts, setInteractivePrompts] = useState<any>(null);
 
-  // Check if this execution was launched from CLI (indicated by URL params)
+  // Check if this execution was launched from CLI (indicated by monitor mode)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const isCliMode = params.get('monitor') === 'true' || params.get('cli') === 'true';
-    setUseDirectStreaming(isCliMode);
+    // Use SSE streaming when in monitor mode (CLI executions)
+    const store = useUnifiedStore.getState();
+    setUseDirectStreaming(store.isMonitorMode);
   }, []);
 
   // GraphQL subscriptions (for web-launched executions)

@@ -151,26 +151,8 @@ export function useExecutionUpdates({
       const statusMsg = executionUpdates.status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
       showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
       
-      // Auto-exit execution mode when running in CLI mode (detected by monitor=true or executionId params)
-      const params = new URLSearchParams(window.location.search);
-      const isCliMode = params.get('monitor') === 'true' || !!params.get('executionId');
-      
-      if (isCliMode && !params.get('no-auto-exit')) {
-        // Give a brief moment for final updates to process
-        setTimeout(() => {
-          // Switch back to main canvas
-          const store = useUnifiedStore.getState();
-          store.setActiveCanvas('main');
-          
-          // Clear URL params
-          const url = new URL(window.location.href);
-          url.searchParams.delete('monitor');
-          url.searchParams.delete('executionId');
-          window.history.replaceState({}, '', url.toString());
-          
-          // No need to dispatch popstate - the canvas change will handle UI updates
-        }, 1000);
-      }
+      // Auto-exit is now handled by useMonitorMode
+      // No need to check URL params here
       
       onUpdate?.({ 
         type: EventType.EXECUTION_STATUS_CHANGED, 
@@ -191,21 +173,8 @@ export function useExecutionUpdates({
         timestamp: new Date().toISOString() 
       });
       
-      // Auto-exit on failure in CLI mode
-      const params = new URLSearchParams(window.location.search);
-      const isCliMode = params.get('monitor') === 'true' || !!params.get('executionId');
-      
-      if (isCliMode && !params.get('no-auto-exit')) {
-        setTimeout(() => {
-          const store = useUnifiedStore.getState();
-          store.setActiveCanvas('main');
-          
-          const url = new URL(window.location.href);
-          url.searchParams.delete('monitor');
-          url.searchParams.delete('executionId');
-          window.history.replaceState({}, '', url.toString());
-        }, 2000); // Give more time to see the error
-      }
+      // Auto-exit is now handled by useMonitorMode
+      // No need to check URL params here
     } else if (executionUpdates.status === ExecutionStatus.ABORTED) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();

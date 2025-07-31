@@ -5,11 +5,13 @@ import { Button } from '@/shared/components/forms/buttons/Button';
 import { Select } from '@/shared/components/forms/Select';
 import { 
   useConvertDiagramFormatMutation,
-  useUploadFileMutation
+  useUploadFileMutation,
+  useGetDiagramLazyQuery
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/domain-models';
 import { useFileOperations } from '@/features/diagram-editor/hooks';
 import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
+import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
 
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -19,6 +21,8 @@ export const FileOperations: React.FC = () => {
   const [convertDiagramMutation] = useConvertDiagramFormatMutation();
   const [uploadFileMutation] = useUploadFileMutation();
   const { saveDiagram } = useFileOperations();
+  const [getDiagram] = useGetDiagramLazyQuery();
+  const { loadDiagramFromData } = useDiagramLoader();
 
   // Initialize diagram name and format from URL
   useEffect(() => {
@@ -46,7 +50,7 @@ export const FileOperations: React.FC = () => {
     }
   }, []);
 
-  const handleConvertAndLoad = useCallback(() => {
+  const handleConvertAndLoad = useCallback(async () => {
     const finalName = diagramName.trim();
     if (!finalName) {
       toast.error('Please enter a diagram name');
@@ -55,26 +59,48 @@ export const FileOperations: React.FC = () => {
     
     setIsUploading(true);
     
-    // Build the diagram path based on selected format
-    let diagramPath = finalName;
-    if (selectedFormat === DiagramFormat.LIGHT) {
-      diagramPath = `${selectedFormat}/${finalName}`;
-    } else if (selectedFormat === DiagramFormat.READABLE) {
-      diagramPath = `${selectedFormat}/${finalName}`;
-    } else if (selectedFormat === DiagramFormat.NATIVE) {
-      diagramPath = `${selectedFormat}/${finalName}`;
+    try {
+      // Build the diagram path based on selected format
+      let diagramPath = finalName;
+      if (selectedFormat === DiagramFormat.LIGHT) {
+        diagramPath = `${selectedFormat}/${finalName}`;
+      } else if (selectedFormat === DiagramFormat.READABLE) {
+        diagramPath = `${selectedFormat}/${finalName}`;
+      } else if (selectedFormat === DiagramFormat.NATIVE) {
+        diagramPath = `${selectedFormat}/${finalName}`;
+      }
+      
+      // Fetch diagram content from server
+      const { data, error } = await getDiagram({
+        variables: { id: diagramPath }
+      });
+      
+      if (error) {
+        toast.error(`Failed to load diagram: ${error.message}`);
+        return;
+      }
+      
+      if (data?.diagram) {
+        // Load the diagram data directly without URL changes
+        loadDiagramFromData({
+          nodes: data.diagram.nodes || [],
+          arrows: data.diagram.arrows || [],
+          handles: data.diagram.handles || [],
+          persons: data.diagram.persons || [],
+          metadata: data.diagram.metadata
+        });
+        
+        toast.success(`Loaded ${finalName}`);
+      } else {
+        toast.error('Diagram not found');
+      }
+    } catch (err) {
+      console.error('Failed to load diagram:', err);
+      toast.error('Failed to load diagram');
+    } finally {
+      setIsUploading(false);
     }
-    
-    // Update URL without page refresh
-    const newUrl = `/?diagram=${diagramPath}`;
-    window.history.pushState({}, '', newUrl);
-    
-    // Dispatch a custom event that useDiagramLoader can listen to
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    
-    // Reset loading state after a short delay
-    setTimeout(() => setIsUploading(false), 1000);
-  }, [diagramName, selectedFormat]);
+  }, [diagramName, selectedFormat, getDiagram, loadDiagramFromData]);
 
   const handleExport = useCallback(async () => {
     try {

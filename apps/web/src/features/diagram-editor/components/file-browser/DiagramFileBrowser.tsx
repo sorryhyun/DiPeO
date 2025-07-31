@@ -3,38 +3,56 @@ import { Search, RefreshCw, Loader2 } from 'lucide-react';
 import { FileTree } from './FileTree';
 import { FileNode, useDiagramFiles } from './useDiagramFiles';
 import { Button } from '@/shared/components/forms/buttons';
+import { useGetDiagramLazyQuery } from '@/__generated__/graphql';
+import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
+import { toast } from 'sonner';
 
 export const DiagramFileBrowser: React.FC = () => {
   const { fileTree, loading, error, refetch } = useDiagramFiles();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPath, setSelectedPath] = useState<string>();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Get diagram loading functions
+  const [getDiagram, { loading: loadingDiagram }] = useGetDiagramLazyQuery();
+  const { loadDiagramFromData } = useDiagramLoader();
 
-  // Get current diagram from URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const diagramId = urlParams.get('diagram');
-    if (diagramId) {
-      setSelectedPath(diagramId);
-    }
-  }, []);
-
-  const handleFileClick = useCallback((file: FileNode) => {
+  const handleFileClick = useCallback(async (file: FileNode) => {
     if (file.type === 'file') {
       // Update selected path immediately for UI feedback
       setSelectedPath(file.path);
       
-      // Add a small delay to ensure React Flow has time to clean up
-      setTimeout(() => {
-        // Update URL without page refresh
-        const newUrl = `/?diagram=${file.path}`;
-        window.history.pushState({}, '', newUrl);
+      try {
+        // Fetch diagram content from server
+        const { data, error } = await getDiagram({
+          variables: { id: file.path }
+        });
         
-        // Trigger popstate event to load diagram
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }, 100); // Small delay for cleanup
+        if (error) {
+          toast.error(`Failed to load diagram: ${error.message}`);
+          return;
+        }
+        
+        if (data?.diagram) {
+          // Load the diagram data directly without URL changes
+          loadDiagramFromData({
+            nodes: data.diagram.nodes || [],
+            arrows: data.diagram.arrows || [],
+            handles: data.diagram.handles || [],
+            persons: data.diagram.persons || [],
+            metadata: data.diagram.metadata
+          });
+          
+          toast.success(`Loaded ${file.name}`);
+        } else {
+          toast.error('Diagram not found');
+        }
+      } catch (err) {
+        console.error('Failed to load diagram:', err);
+        toast.error('Failed to load diagram');
+      }
     }
-  }, []);
+  }, [getDiagram, loadDiagramFromData]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -143,11 +161,21 @@ export const DiagramFileBrowser: React.FC = () => {
             <Loader2 className="animate-spin text-gray-600" size={24} />
           </div>
         ) : (
-          <FileTree 
-            nodes={filteredTree} 
-            onFileClick={handleFileClick}
-            selectedPath={selectedPath}
-          />
+          <>
+            <FileTree 
+              nodes={filteredTree} 
+              onFileClick={handleFileClick}
+              selectedPath={selectedPath}
+            />
+            {loadingDiagram && (
+              <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin text-gray-600" size={20} />
+                  <span className="text-sm text-gray-600">Loading diagram...</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

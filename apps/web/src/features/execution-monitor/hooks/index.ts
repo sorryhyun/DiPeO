@@ -5,6 +5,4 @@ export { useExecutionStreaming } from './useExecutionStreaming';
 export { useDirectStreamingSSE } from './useDirectStreamingSSE';
 export { useExecutionState } from './useExecutionState';
 export { useExecutionUpdates } from './useExecutionUpdates';
-export { useExecutionOrder } from './useExecutionOrder';
-export { useExecutionData } from './useExecutionData';
 export type { HookExecutionState, NodeState } from './useExecutionState';

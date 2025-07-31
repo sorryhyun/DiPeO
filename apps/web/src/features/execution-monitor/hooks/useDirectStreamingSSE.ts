@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ExecutionStatus, NodeExecutionStatus, EventType } from '@dipeo/domain-models';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 interface SSEEvent {
   type: string;
@@ -29,7 +30,7 @@ export function useDirectStreamingSSE({
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const executionCompletedRef = useRef(false);
 
@@ -108,12 +109,12 @@ export function useDirectStreamingSSE({
       };
 
       eventSource.onerror = (event) => {
-        // Check if we're in CLI mode
-        const params = new URLSearchParams(window.location.search);
-        const isCliMode = params.get('monitor') === 'true' || !!params.get('executionId');
+        // Check if we're in monitor mode
+        const store = useUnifiedStore.getState();
+        const isMonitorMode = store.isMonitorMode;
         
-        // If execution has completed and we're in CLI mode, don't log errors or reconnect
-        if (executionCompletedRef.current && isCliMode) {
+        // If execution has completed and we're in monitor mode, don't log errors or reconnect
+        if (executionCompletedRef.current && isMonitorMode) {
           console.log('[SSE] Server shutting down after execution completion, not reconnecting');
           setIsConnected(false);
           return;

@@ -49,11 +49,6 @@ export { useExecution } from './hooks/useExecution';
  */
 export { useExecutionState } from './hooks/useExecutionState';
 
-/**
- * useExecutionData - Hook for accessing execution results and logs
- * Provides access to execution history and output data
- */
-export { useExecutionData } from './hooks/useExecutionData';
 
 /**
  * useExecutionUpdates - Hook for subscribing to execution updates
@@ -61,11 +56,6 @@ export { useExecutionData } from './hooks/useExecutionData';
  */
 export { useExecutionUpdates } from './hooks/useExecutionUpdates';
 
-/**
- * useExecutionOrder - Hook for computing execution order
- * Analyzes diagram topology to determine execution sequence
- */
-export { useExecutionOrder } from './hooks/useExecutionOrder';
 
 /**
  * useMonitorMode - Hook for monitor mode functionality

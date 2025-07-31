@@ -18,10 +18,9 @@ const LazyInteractivePromptModal = React.lazy(() => import('./features/execution
 function AppContent() {
   const { activeCanvas } = useCanvasState();
   const { setReadOnly, executionOps } = useCanvasOperations();
-  const { setActiveCanvas } = useUIOperations();
+  const { setActiveCanvas: _setActiveCanvas } = useUIOperations(); // Not used after refactor
   
-  // Load diagram from URL parameter
-  const { isLoading: isDiagramLoading } = useDiagramLoader();
+  // Diagram loading is now handled by CLI sessions only
   
   // Set up execution UI synchronization
   useEffect(() => {
@@ -29,40 +28,10 @@ function AppContent() {
     return unsubscribe;
   }, []);
   
+  // Document title is set based on store state, not URL
   useEffect(() => {
-    const checkMonitorMode = () => {
-      const params = new URLSearchParams(window.location.search);
-      const monitorParam = params.get('monitor') === 'true';
-      const executionIdParam = params.get('executionId');
-      const diagramName = params.get('diagram');
-      
-      // Enter monitor mode if either monitor=true OR executionId is present
-      const isMonitorMode = monitorParam || !!executionIdParam;
-      setReadOnly?.(isMonitorMode);
-
-      if (isMonitorMode) {
-        document.title = 'DiPeO - Monitor Mode';
-        
-        // Automatically switch to execution view when in monitor mode
-        if (diagramName || executionIdParam) {
-          setActiveCanvas('execution');
-        }
-      } else {
-        document.title = 'DiPeO';
-      }
-    };
-
-    // Check on mount
-    checkMonitorMode();
-
-    // Listen for URL changes
-    const handleUrlChange = () => checkMonitorMode();
-    window.addEventListener('popstate', handleUrlChange);
-
-    return () => {
-      window.removeEventListener('popstate', handleUrlChange);
-    };
-  }, [setReadOnly, setActiveCanvas]);
+    document.title = 'DiPeO';
+  }, []);
 
   // Don't create another connection - use the existing execution instance
   
@@ -86,16 +55,7 @@ function AppContent() {
                   <div className="text-text-secondary animate-pulse">Loading diagram canvas...</div>
                 </div>
               }>
-                {isDiagramLoading ? (
-                  <div className="h-full diagram-canvas flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
-                      <div className="text-text-secondary">Loading diagram from server...</div>
-                    </div>
-                  </div>
-                ) : (
-                  <LazyDiagramCanvas />
-                )}
+                <LazyDiagramCanvas />
               </Suspense>
             ) : activeCanvas === 'execution' ? (
               <Suspense fallback={

@@ -133,12 +133,25 @@ class DiPeOCLI:
         else:
             diagram_name = None
 
+        # Determine diagram format
+        diagram_format = "native"  # default
+        if diagram_path.endswith(".light.yaml"):
+            diagram_format = "light"
+        elif diagram_path.endswith(".readable.yaml"):
+            diagram_format = "readable"
+        
         # Execute diagram
         print("🔄 Executing diagram...")
         if input_variables:
             print(f"📥 With input variables: {json.dumps(input_variables, indent=2)}")
         try:
-            result = self.server.execute_diagram(diagram_data, input_variables)
+            result = self.server.execute_diagram(
+                diagram_data, 
+                input_variables,
+                use_direct_streaming=True,
+                diagram_name=diagram_name or Path(diagram_path).stem,
+                diagram_format=diagram_format
+            )
 
             if not result["success"]:
                 print(f"❌ Execution failed: {result.get('error', 'Unknown error')}")
@@ -147,11 +160,11 @@ class DiPeOCLI:
             execution_id = result["execution_id"]
             print(f"✓ Execution started: {execution_id}")
 
-            # Open browser with execution ID if requested (only once)
+            # Open browser if requested (without sensitive data in URL)
             if not no_browser:
-                monitor_url = f"http://localhost:3000/?diagram={diagram_name}&executionId={execution_id}&monitor=true&cli=true&no-auto-exit=true"
+                monitor_url = f"http://localhost:3000/?monitor=true"
                 print(f"🌐 Opening browser in monitor mode: {monitor_url}")
-                print(f"📡 Using direct streaming (SSE) for real-time updates")
+                print(f"📡 Browser will automatically detect CLI execution")
                 try:
                     if not webbrowser.open(monitor_url):
                         print("⚠️  Could not open browser automatically. Please open manually:")
@@ -204,6 +217,10 @@ class DiPeOCLI:
 
                 return True
             finally:
+                # Unregister CLI session before stopping server
+                if execution_id:
+                    self.server.unregister_cli_session(execution_id)
+                
                 # Always stop server after execution completes
                 print("🛑 Stopping server...")
                 self.server.stop()

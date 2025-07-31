@@ -9,15 +9,16 @@ import { toast } from 'sonner';
 import { useUnifiedStore, useDiagramFormat } from '@/core/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { DiagramFormat } from '@dipeo/domain-models';
+import { useGetDiagramLazyQuery } from '@/__generated__/graphql';
+import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
 
 
 const TopBar = () => {
-  const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   
   // Use UI state for mode control
   const { activeCanvas, isMonitorMode } = useUIState();
-  const { setReadOnly, setActiveCanvas, setMonitorMode } = useUIOperations();
+  const { setActiveCanvas, setMonitorMode } = useUIOperations();
   const { stopExecution } = useExecutionOperations();
   
   // Get diagram format from store
@@ -54,17 +55,36 @@ const TopBar = () => {
   // Use the new diagram save hook
   const { isSaving, handleSave } = useDiagramSave({ saveToFileSystem });
   
+  // Add GraphQL query and diagram loader
+  const [getDiagram] = useGetDiagramLazyQuery();
+  const { loadDiagramFromData } = useDiagramLoader();
+  
 
-  // Handle monitor mode from URL on mount
+  // Handle monitor mode from URL
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const isMonitor = params.get('monitor') === 'true';
+    const checkMonitorParam = () => {
+      const params = new URLSearchParams(window.location.search);
+      const monitorParam = params.get('monitor') === 'true';
+      
+      if (monitorParam !== isMonitorMode) {
+        setMonitorMode(monitorParam);
+        if (monitorParam) {
+          // When entering monitor mode from URL, automatically switch to execution canvas
+          setActiveCanvas('execution');
+        }
+      }
+    };
     
-    if (isMonitor) {
-      setMonitorMode(true);
-      // When entering monitor mode from URL, automatically switch to execution canvas
-      setActiveCanvas('execution');
-    }
+    // Check on mount
+    checkMonitorParam();
+    
+    // Listen for URL changes
+    const handleUrlChange = () => checkMonitorParam();
+    window.addEventListener('popstate', handleUrlChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
   
@@ -127,7 +147,7 @@ const TopBar = () => {
             <Button
               variant="outline"
               className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
-              onClick={() => {
+              onClick={async () => {
                 // Use title from input field
                 const name = diagramName.trim() || 'quicksave';
                 
@@ -154,14 +174,35 @@ const TopBar = () => {
                   }
                 }
                 
-                // Update URL and trigger reload
-                const newUrl = `/?diagram=${diagramPath}`;
-                window.history.pushState({}, '', newUrl);
-                
-                // Dispatch popstate event to trigger diagram loader
-                window.dispatchEvent(new PopStateEvent('popstate'));
-                
-                toast.info(`Loading ${diagramPath}...`);
+                try {
+                  // Fetch diagram content from server
+                  const { data, error } = await getDiagram({
+                    variables: { id: diagramPath }
+                  });
+                  
+                  if (error) {
+                    toast.error(`Failed to load diagram: ${error.message}`);
+                    return;
+                  }
+                  
+                  if (data?.diagram) {
+                    // Load the diagram data directly without URL changes
+                    loadDiagramFromData({
+                      nodes: data.diagram.nodes || [],
+                      arrows: data.diagram.arrows || [],
+                      handles: data.diagram.handles || [],
+                      persons: data.diagram.persons || [],
+                      metadata: data.diagram.metadata
+                    });
+                    
+                    toast.success(`Loaded ${diagramPath}`);
+                  } else {
+                    toast.error('Diagram not found');
+                  }
+                } catch (err) {
+                  console.error('Failed to load diagram:', err);
+                  toast.error('Failed to load diagram');
+                }
               }}
               title="Load diagram using title"
             >

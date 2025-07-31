@@ -26,6 +26,22 @@ type ApiKeyResult {
 """Unique identifier for arrows"""
 scalar ArrowID
 
+type CliSession {
+  execution_id: String!
+  diagram_name: String!
+  diagram_format: String!
+  started_at: DateTime!
+  is_active: Boolean!
+  diagram_data: String
+  session_id: String!
+}
+
+type CliSessionResult {
+  success: Boolean!
+  message: String
+  error: String
+}
+
 enum ContentType {
   RAW_TEXT
   CONVERSATION_STATE
@@ -195,6 +211,7 @@ input ExecuteDiagramInput {
   debug_mode: Boolean = null
   max_iterations: Int = null
   timeout_seconds: Int = null
+  use_direct_streaming: Boolean = null
 }
 
 input ExecutionControlInput {
@@ -326,6 +343,8 @@ type Mutation {
   upload_diagram(file: Upload!, format: DiagramFormat!): DiagramResult!
   validate_diagram(content: String!, format: DiagramFormat!): DiagramValidationResult!
   convert_diagram_format(content: String!, from_format: DiagramFormat!, to_format: DiagramFormat!): DiagramConvertResult!
+  register_cli_session(input: RegisterCliSessionInput!): CliSessionResult!
+  unregister_cli_session(input: UnregisterCliSessionInput!): CliSessionResult!
 }
 
 enum NodeExecutionStatus {
@@ -409,6 +428,14 @@ type Query {
   execution_order(execution_id: ID!): JSON!
   prompt_files: [JSON!]!
   prompt_file(filename: String!): JSON!
+  active_cli_session: CliSession
+}
+
+input RegisterCliSessionInput {
+  execution_id: String!
+  diagram_name: String!
+  diagram_format: String!
+  diagram_data: JSON = null
 }
 
 type Subscription {
@@ -432,6 +459,10 @@ type TokenUsageType {
   output: Int!
   cached: Int
   total: Int
+}
+
+input UnregisterCliSessionInput {
+  execution_id: String!
 }
 
 input UpdateNodeInput {
