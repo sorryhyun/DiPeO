@@ -131,6 +131,7 @@ export interface NodeSpecification {
   outputs?: Record<string, OutputSpecification>;
   execution?: ExecutionConfiguration;
   examples?: ExampleConfiguration[];
+  primaryDisplayField?: string;  // Field name to show when node is not hovered
 }
 
 /**

@@ -66,5 +66,7 @@ export const conditionSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "condition_type"
 };

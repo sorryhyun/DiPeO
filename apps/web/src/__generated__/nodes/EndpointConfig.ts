@@ -16,6 +16,7 @@ export const endpointConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: endpointFields,
+  primaryDisplayField: 'path',
 };
 
 export default endpointConfig;

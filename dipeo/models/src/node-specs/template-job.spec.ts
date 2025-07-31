@@ -88,5 +88,7 @@ export const templateJobSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "template_name"
 };

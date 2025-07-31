@@ -20,6 +20,7 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: typescriptAstFields,
+  primaryDisplayField: 'operation',
 };
 
 export default typescriptAstConfig;

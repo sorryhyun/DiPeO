@@ -20,6 +20,7 @@ export const hookConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: hookFields,
+  primaryDisplayField: 'hook_type',
 };
 
 export default hookConfig;

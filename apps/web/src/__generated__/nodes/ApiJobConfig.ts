@@ -19,6 +19,7 @@ export const apiJobConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: apiJobFields,
+  primaryDisplayField: 'method',
 };
 
 export default apiJobConfig;

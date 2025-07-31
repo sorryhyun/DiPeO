@@ -223,63 +223,93 @@ NodeHeader.displayName = 'NodeHeader';
 // Memoized node body component
 const NodeBody = React.memo(({ 
   data, 
-  _isExecutionMode 
+  _isExecutionMode,
+  isExpanded 
 }: { 
   data: Array<[string, unknown]>;
   _isExecutionMode: boolean;
-}) => (
-  <div className="space-y-1">
-    {data.map(([key, value]) => {
-      // Skip rendering objects
-      if (typeof value === 'object' && value !== null) {
-        return null;
-      }
-      
-      // Special handling for conditionType - use only emojis
-      if (key === 'condition_type') {
-        const emoji = value === 'expression' ? '📝' : 
-                     value === 'detect_max_iterations' ? '🔄' : 
-                     value === 'simple' ? '✓' : 
-                     value === 'complex' ? '⚙️' : '🔀';
+  isExpanded: boolean;
+}) => {
+  // Special formatting for known value types
+  const formatValue = (key: string, value: unknown): React.ReactNode => {
+    // Special handling for conditionType - use only emojis
+    if (key === 'condition_type') {
+      const emoji = value === 'expression' ? '📝' : 
+                   value === 'detect_max_iterations' ? '🔄' : 
+                   value === 'simple' ? '✓' : 
+                   value === 'complex' ? '⚙️' : '🔀';
+      return <span className="text-lg">{emoji}</span>;
+    }
+    
+    // Special handling for memory_settings.view - use emojis
+    if (key === 'memory_settings.view' || (key === 'memory_settings' && typeof value === 'object' && value && 'view' in value)) {
+      const viewValue = key === 'memory_settings.view' ? value : (value as any).view;
+      const emoji = viewValue === 'all_involved' ? '🧠' :
+                   viewValue === 'sent_by_me' ? '📤' :
+                   viewValue === 'sent_to_me' ? '📥' :
+                   viewValue === 'system_and_me' ? '💭' :
+                   viewValue === 'conversation_pairs' ? '🎯' : '❓';
+      return <span className="text-lg" title={`Memory View: ${viewValue}`}>{emoji}</span>;
+    }
+    
+    // Special handling for boolean values
+    if (typeof value === 'boolean') {
+      return <span className="text-sm">{value ? '✓' : '✗'}</span>;
+    }
+    
+    // Format other values
+    const displayValue = typeof value === 'string' && value.length > 20 
+      ? `${value.substring(0, 20)}...` 
+      : String(value);
+    
+    return <span className="text-sm font-medium">{displayValue}</span>;
+  };
+  
+  // Format key names for better display
+  const formatKey = (key: string): string => {
+    return key.replace(/_/g, ' ').replace(/\./g, ' ').split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+  
+  return (
+    <div className="space-y-1 transition-all duration-200">
+      {data.map(([key, value], index) => {
+        // Skip rendering objects
+        if (typeof value === 'object' && value !== null && key !== 'memory_settings') {
+          return null;
+        }
+        
+        // Skip memory_profile as it's now shown in the header
+        if (key === 'memory_profile') {
+          return null;
+        }
+        
+        // For single prop display (not expanded), center it
+        if (!isExpanded && data.length === 1) {
+          return (
+            <div key={key} className="text-center">
+              {formatValue(key, value)}
+            </div>
+          );
+        }
+        
+        // For expanded view, show key-value pairs
         return (
-          <div key={key} className="text-sm text-black font-medium text-center">
-            <span className="text-xs text-gray-500">type:</span> {emoji}
+          <div 
+            key={key} 
+            className={`text-sm text-black flex items-center justify-center gap-1 ${
+              index > 0 ? 'node-body-content' : ''
+            }`}
+          >
+            <span className="text-xs text-gray-500">{formatKey(key)}:</span>
+            {formatValue(key, value)}
           </div>
         );
-      }
-      
-      // Skip memory_profile as it's now shown in the header
-      if (key === 'memory_profile') {
-        return null;
-      }
-      
-      // Special handling for memory_settings.view - use emojis as fallback
-      if (key === 'memory_settings.view' || (key === 'memory_settings' && typeof value === 'object' && value && 'view' in value)) {
-        const viewValue = key === 'memory_settings.view' ? value : (value as any).view;
-        const emoji = viewValue === 'all_involved' ? '🧠' :
-                     viewValue === 'sent_by_me' ? '📤' :
-                     viewValue === 'sent_to_me' ? '📥' :
-                     viewValue === 'system_and_me' ? '💭' :
-                     viewValue === 'conversation_pairs' ? '🎯' : '❓';
-        return (
-          <div key={key} className="text-lg text-center" title={`Memory View: ${viewValue}`}>
-            {emoji}
-          </div>
-        );
-      }
-      
-      const displayValue = typeof value === 'string' && value.length > 20 
-        ? `${value.substring(0, 20)}...` 
-        : String(value);
-      
-      return (
-        <div key={key} className="text-sm text-black font-medium text-center">
-          <span className="text-xs text-gray-500">{key}:</span> {displayValue}
-        </div>
-      );
-    })}
-  </div>
-));
+      })}
+    </div>
+  );
+});
 NodeBody.displayName = 'NodeBody';
 
 export function BaseNode({ 
@@ -375,16 +405,25 @@ export function BaseNode({
     'data-execution': isExecutionMode,
   }), [status, selected, config?.color, isExecutionMode]);
   
+  // Get primary display field from node config
+  const primaryDisplayField = useMemo(() => {
+    return config?.primaryDisplayField || null;
+  }, [config]);
+
   // Get node display data
   const displayData = useMemo(() => {
+    // Define fields that contain long text and should be excluded
+    const longTextFields = [
+      'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 
+      'first_only_prompt', 'promptMessage', 'code', 'template', 
+      'expression', 'description', 'content', 'body', 'schema'
+    ];
+    
     const entries = Object.entries(data).filter(([key, value]) => {
-      // Filter out code field for code_job nodes
-      if (type === 'code_job' && key === 'code') {
-        return false;
-      }
-      
-      // Filter out system keys and personId
-      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 'prompt', 'defaultPrompt', 'firstOnlyPrompt', 'default_prompt', 'first_only_prompt', 'promptMessage', 'label', 'name', 'personId', 'person', 'memory_config', 'memory_config.forget_mode'].includes(key) &&
+      // Filter out system keys and long text fields
+      return !['id', 'type', 'flipped', 'x', 'y', 'width', 'height', 
+              'label', 'name', 'personId', 'person', 'memory_config', 
+              'memory_config.forget_mode', ...longTextFields].includes(key) &&
         // Filter out blank values (null, undefined, empty string)
         value !== null && value !== undefined && value !== '';
     });
@@ -399,8 +438,19 @@ export function BaseNode({
       entries.push(['memory_config.forget_mode', data['memory_config.forget_mode']]);
     }
     
-    return entries.slice(0, 3); // Limit to 3 fields for cleaner display
-  }, [data, type, personLabel]);
+    // When not hovered, show only the primary display field
+    if (!effectiveHover && primaryDisplayField) {
+      const importantEntry = entries.find(([key]) => key === primaryDisplayField);
+      if (importantEntry) {
+        return [importantEntry];
+      }
+      // If primary display field not found, show first entry
+      return entries.slice(0, 1);
+    }
+    
+    // When hovered, show up to 3 fields
+    return entries.slice(0, 3);
+  }, [data, type, personLabel, effectiveHover, primaryDisplayField]);
 
   return (
     <div
@@ -472,7 +522,7 @@ export function BaseNode({
         
         {/* Node data display - only show if there's data to display */}
         {displayData.length > 0 && (
-          <NodeBody data={displayData} _isExecutionMode={isExecutionMode} />
+          <NodeBody data={displayData} _isExecutionMode={isExecutionMode} isExpanded={effectiveHover} />
         )}
         
         {/* Progress or error message */}

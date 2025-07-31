@@ -949,13 +949,6 @@ export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null } | null };
 
-export type ExecutionOrderQueryVariables = Exact<{
-  executionId: Scalars['ID']['input'];
-}>;
-
-
-export type ExecutionOrderQuery = { __typename?: 'Query', execution_order: any };
-
 
 export const GetApiKeysDocument = gql`
     query GetApiKeys($service: String) {
@@ -2437,41 +2430,3 @@ export type ActiveCliSessionQueryHookResult = ReturnType<typeof useActiveCliSess
 export type ActiveCliSessionLazyQueryHookResult = ReturnType<typeof useActiveCliSessionLazyQuery>;
 export type ActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useActiveCliSessionSuspenseQuery>;
 export type ActiveCliSessionQueryResult = Apollo.QueryResult<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>;
-export const ExecutionOrderDocument = gql`
-    query ExecutionOrder($executionId: ID!) {
-  execution_order(execution_id: $executionId)
-}
-    `;
-
-/**
- * __useExecutionOrderQuery__
- *
- * To run a query within a React component, call `useExecutionOrderQuery` and pass it any options that fit your needs.
- * When your component renders, `useExecutionOrderQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useExecutionOrderQuery({
- *   variables: {
- *      executionId: // value for 'executionId'
- *   },
- * });
- */
-export function useExecutionOrderQuery(baseOptions: Apollo.QueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables> & ({ variables: ExecutionOrderQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
-      }
-export function useExecutionOrderLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
-        }
-export function useExecutionOrderSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
-        }
-export type ExecutionOrderQueryHookResult = ReturnType<typeof useExecutionOrderQuery>;
-export type ExecutionOrderLazyQueryHookResult = ReturnType<typeof useExecutionOrderLazyQuery>;
-export type ExecutionOrderSuspenseQueryHookResult = ReturnType<typeof useExecutionOrderSuspenseQuery>;
-export type ExecutionOrderQueryResult = Apollo.QueryResult<ExecutionOrderQuery, ExecutionOrderQueryVariables>;

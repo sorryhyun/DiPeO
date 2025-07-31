@@ -149,5 +149,7 @@ export const subDiagramSpec: NodeSpecification = {
         timeout: 30
       }
     }
-  ]
+  ],
+  
+  primaryDisplayField: "diagram_path"
 };

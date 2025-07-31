@@ -80,5 +80,7 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "schema_name"
 };
