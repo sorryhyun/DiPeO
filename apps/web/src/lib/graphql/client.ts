@@ -3,6 +3,7 @@ import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { createUploadLink } from 'apollo-upload-client';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 // HTTP link for queries and mutations with file upload support
 const httpLink = createUploadLink({
@@ -10,24 +11,44 @@ const httpLink = createUploadLink({
   credentials: 'same-origin', // Changed from 'include' to avoid CORS issues
 });
 
+// Track connection state
+let isConnected = true;
+
+// WebSocket client with disconnect detection
+const wsClient = createClient({
+  url: `ws://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,
+  connectionParams: {
+    // Add authentication params here if needed
+  },
+  // Auto-reconnect on disconnect
+  shouldRetry: () => true,
+  retryAttempts: Infinity,
+  retryWait: async (retryCount) => {
+    // Exponential backoff with jitter
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(1000 * Math.pow(2, retryCount) + Math.random() * 1000, 30000))
+    );
+  },
+  on: {
+    connected: () => {
+      isConnected = true;
+      console.log('[GraphQL WS] Connected to server');
+    },
+    closed: () => {
+      isConnected = false;
+      console.log('[GraphQL WS] Disconnected from server');
+      
+      // Monitor mode cleanup is now handled by useMonitorMode
+      // which detects when CLI sessions end
+    },
+    error: (error) => {
+      console.error('[GraphQL WS] Error:', error);
+    },
+  },
+});
+
 // WebSocket link for subscriptions
-const wsLink = new GraphQLWsLink(
-  createClient({
-    url: `ws://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,
-    connectionParams: {
-      // Add authentication params here if needed
-    },
-    // Auto-reconnect on disconnect
-    shouldRetry: () => true,
-    retryAttempts: Infinity,
-    retryWait: async (retryCount) => {
-      // Exponential backoff with jitter
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(1000 * Math.pow(2, retryCount) + Math.random() * 1000, 30000))
-      );
-    },
-  })
-);
+const wsLink = new GraphQLWsLink(wsClient);
 
 // Split link - use WebSocket for subscriptions, HTTP for everything else
 const splitLink = split(
@@ -101,8 +122,13 @@ export const apolloClient = new ApolloClient({
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-and-network',
+      // Don't show errors for failed requests when server is likely shutting down
+      errorPolicy: 'all',
     },
     query: {
+      errorPolicy: 'all',
+    },
+    mutate: {
       errorPolicy: 'all',
     },
   },

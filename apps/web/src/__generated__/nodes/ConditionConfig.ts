@@ -20,6 +20,7 @@ export const conditionConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: conditionFields,
+  primaryDisplayField: 'condition_type',
 };
 
 export default conditionConfig;

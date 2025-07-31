@@ -19,6 +19,7 @@ export const userResponseConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: userResponseFields,
+  primaryDisplayField: 'response_type',
 };
 
 export default userResponseConfig;

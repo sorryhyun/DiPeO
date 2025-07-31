@@ -132,5 +132,7 @@ export const hookSpec: NodeSpecification = {
         retry_count: 2
       }
     }
-  ]
+  ],
+  
+  primaryDisplayField: "hook_type"
 };

@@ -40,6 +40,7 @@ from ..types.domain_types import (
 from ..resolvers import DiagramResolver, ExecutionResolver, PersonResolver
 from ..types.inputs import DiagramFilterInput, ExecutionFilterInput
 from ..types.results import DiagramFormatInfo
+from ..types.cli_session import CliSession
 
 # Version constant - should be imported from shared location
 DIAGRAM_VERSION = "1.0.0"
@@ -328,5 +329,18 @@ def create_query_type(registry: UnifiedServiceRegistry) -> type:
                     "error": f"Failed to read file: {str(e)}",
                     "filename": filename,
                 }
+        
+        @strawberry.field
+        async def active_cli_session(self) -> Optional[CliSession]:
+            """Get the current active CLI execution session."""
+            cli_session_service = registry.get("cli_session_service")
+            if not cli_session_service:
+                return None
+            
+            from dipeo.application.services.cli_session_service import CliSessionService
+            if isinstance(cli_session_service, CliSessionService):
+                return await cli_session_service.get_active_session()
+            
+            return None
     
     return Query

@@ -1,9 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, RefreshCw } from 'lucide-react';
-import { useExecution, useExecutionOrder } from '../../hooks';
+import { useExecution } from '../../hooks';
 import { NodeExecutionStatus } from '../../types/execution';
 import { ExecutionID, executionId } from '@/core/types';
 import { Button } from '@/shared/components/forms/buttons';
+import { useExecutionOrderQuery } from '@/__generated__/graphql';
+import { ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
+
+interface ExecutionStep {
+  nodeId: string;
+  nodeName: string;
+  status: string;
+  startedAt?: string;
+  endedAt?: string;
+  duration?: number;
+  error?: string;
+  tokenUsage?: {
+    input: number;
+    output: number;
+    cached?: number;
+    total: number;
+  };
+}
+
+interface ExecutionOrderData {
+  executionId: ExecutionID;
+  status: string;
+  startedAt?: string;
+  endedAt?: string;
+  nodes: ExecutionStep[];
+  totalNodes: number;
+}
 
 interface ExecutionOrderViewProps {
   executionId?: ExecutionID;
@@ -12,7 +39,37 @@ interface ExecutionOrderViewProps {
 export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executionId: providedExecutionId }) => {
   const { execution } = useExecution();
   const currentExecutionId = providedExecutionId || (execution?.executionId ? executionId(execution.executionId) : undefined);
-  const { executionOrder, loading, error, refreshExecutionOrder } = useExecutionOrder(currentExecutionId);
+  const [executionOrder, setExecutionOrder] = useState<ExecutionOrderData | null>(null);
+  
+  // Determine if we should poll based on execution status
+  const shouldPoll = executionOrder ? isExecutionActive(executionOrder.status as ExecutionStatus) : true;
+  
+  // Dynamic poll interval based on execution status
+  const pollInterval = useMemo(() => {
+    if (!currentExecutionId) return 0;
+    return shouldPoll ? 2000 : 0;
+  }, [currentExecutionId, shouldPoll]);
+  
+  const { data, loading, error, refetch } = useExecutionOrderQuery({
+    variables: { executionId: currentExecutionId! },
+    skip: !currentExecutionId,
+    pollInterval,
+    onCompleted: (data) => {
+      if (data?.execution_order) {
+        // Handle case where data might be a string (JSONScalar)
+        const parsedData = typeof data.execution_order === 'string' 
+          ? JSON.parse(data.execution_order)
+          : data.execution_order;
+        setExecutionOrder(parsedData);
+      }
+    },
+  });
+  
+  const refreshExecutionOrder = async () => {
+    if (currentExecutionId) {
+      await refetch({ executionId: currentExecutionId });
+    }
+  };
 
   const getStatusIcon = (status: NodeExecutionStatus) => {
     switch (status) {

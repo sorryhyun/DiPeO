@@ -46,4 +46,8 @@ def setup_routes(app: FastAPI):
     # v2_graphql_router = create_v2_graphql_router(context_getter=get_graphql_context)
     # app.include_router(v2_graphql_router, prefix="")
 
+    # SSE router for direct streaming
+    from .sse import router as sse_router
+    app.include_router(sse_router)
+
     # Future REST API routes can be added here

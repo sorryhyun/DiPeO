@@ -108,3 +108,10 @@ class DiagramFormatInfo:
     supports_export: bool
     supports_import: bool
     description: Optional[str] = None
+
+
+@strawberry.type
+class CliSessionResult:
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None

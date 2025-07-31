@@ -173,5 +173,7 @@ export const personJobSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "person"
 };

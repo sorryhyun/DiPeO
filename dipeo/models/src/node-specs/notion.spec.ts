@@ -79,5 +79,7 @@ export const notionSpec: NodeSpecification = {
     timeout: 30,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "action"
 };

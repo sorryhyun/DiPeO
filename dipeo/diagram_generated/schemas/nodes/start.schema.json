@@ -2,14 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/StartNodeData",
   "definitions": {
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "StartNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -41,6 +33,18 @@
       ],
       "type": "object"
     },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,string|number|boolean>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "HookTriggerMode": {
       "enum": [
         "none",
@@ -48,10 +52,6 @@
         "hook"
       ],
       "type": "string"
-    },
-    "Record<string,string|number|boolean>": {
-      "additionalProperties": false,
-      "type": "object"
     }
   }
 }

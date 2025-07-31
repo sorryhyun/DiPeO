@@ -17,6 +17,7 @@ export const useUIState = () => useUnifiedStore(
     hasSelection: state.selectedId !== null,
     hasHighlight: state.highlightedPersonId !== null,
     readOnly: state.readOnly,
+    isMonitorMode: state.isMonitorMode,
     isExecuting: state.execution.isRunning,
     canEdit: !state.readOnly && !state.execution.isRunning,
     canExecute: !state.execution.isRunning && state.nodesArray.length > 0,

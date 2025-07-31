@@ -6,7 +6,7 @@ import { nodeId, diagramId, DomainDiagram } from '@/core/types';
 import { toast } from 'sonner';
 
 const ExecutionControls = () => {
-  const { isMonitorMode, diagramName } = useMonitorMode({ autoStart: true });
+  const { isMonitorMode, diagramName } = useMonitorMode();
   const execution = useExecution({ showToasts: false });
   const nodes = useNodesData();
   const arrows = useArrowsData();

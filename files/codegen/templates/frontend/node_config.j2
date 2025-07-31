@@ -36,6 +36,9 @@ export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
 {%- endfor %}
   },
   customFields: {{ nodeTypeCamel }}Fields,
+{%- if primaryDisplayField %}
+  primaryDisplayField: '{{ primaryDisplayField }}',
+{%- endif %}
 };
 
 export default {{ nodeTypeCamel }}Config;

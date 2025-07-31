@@ -19,6 +19,7 @@ export const personBatchJobConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: personBatchJobFields,
+  primaryDisplayField: 'batch_size',
 };
 
 export default personBatchJobConfig;

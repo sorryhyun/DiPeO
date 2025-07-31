@@ -39,6 +39,7 @@ def generate_node_config(spec_data: Dict[str, Any], template_content: str) -> st
         'icon': spec_data.get('icon', '🔧'),
         'color': spec_data.get('color', '#6366f1'),
         'config_name': f"{camel_case(node_type)}NodeConfig",
+        'primaryDisplayField': spec_data.get('primaryDisplayField'),  # Pass through primaryDisplayField
     }
     
     # Process fields for UI components

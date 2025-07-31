@@ -19,6 +19,7 @@ export const subDiagramConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: subDiagramFields,
+  primaryDisplayField: 'diagram_path',
 };
 
 export default subDiagramConfig;

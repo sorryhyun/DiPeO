@@ -45,5 +45,7 @@ export const endpointSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "path"
 };

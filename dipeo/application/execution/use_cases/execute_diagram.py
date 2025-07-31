@@ -1,11 +1,11 @@
 # Use case for executing a complete diagram.
 
 import asyncio
+import json
 from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.execution.observers import StreamingObserver
 from dipeo.core import BaseService
 from dipeo.models import ExecutionStatus
 
@@ -58,6 +58,7 @@ class ExecuteDiagramUseCase(BaseService):
         execution_id: str,
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
+        use_direct_streaming: bool = False,  # Use direct streaming instead of message router
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
@@ -77,17 +78,34 @@ class ExecuteDiagramUseCase(BaseService):
             # Find the streaming observer from the provided observers
             streaming_observer = None
             for obs in observers:
-                if isinstance(obs, StreamingObserver):
+                from dipeo.application.execution.observers import DirectStreamingObserver
+                if isinstance(obs, DirectStreamingObserver):
                     streaming_observer = obs
                     break
             
             if not streaming_observer:
                 # If no streaming observer found, create one
-                streaming_observer = StreamingObserver(self.message_router)
+                from dipeo.application.execution.observers import DirectStreamingObserver
+                streaming_observer = DirectStreamingObserver()
                 engine_observers = list(observers) + [streaming_observer]
         else:
             # Parent execution: create new observers
-            streaming_observer = StreamingObserver(self.message_router)
+            from dipeo.application.execution.observers import DirectStreamingObserver
+            
+            if use_direct_streaming:
+                # Use direct streaming observer for CLI executions
+                streaming_observer = DirectStreamingObserver()
+                
+                # Register observer with SSE endpoint
+                try:
+                    from dipeo_server.api.sse import register_observer_for_execution
+                    register_observer_for_execution(execution_id, streaming_observer)
+                except ImportError:
+                    # If not in server context, continue without registration
+                    pass
+            else:
+                # Use direct streaming observer for all executions
+                streaming_observer = DirectStreamingObserver()
             
             # Create engine with observers
             from dipeo.application.execution.observers import StateStoreObserver
@@ -109,18 +127,22 @@ class ExecuteDiagramUseCase(BaseService):
         )
 
         # Subscribe to streaming updates
-        update_queue = await streaming_observer.subscribe(execution_id)
+        update_iterator = None
+        if not use_direct_streaming:
+            # For message router streaming, subscribe to get updates
+            # Note: subscribe returns an async iterator, not a queue
+            update_iterator = streaming_observer.subscribe(execution_id)
 
         # Start execution in background
         async def run_execution():
             try:
                 # Update state to running
-                state = await self.state_store.get_state(execution_id)
-                if state:
-                    state.status = ExecutionStatus.RUNNING
-                    state.started_at = datetime.now(UTC).isoformat()
-                    state.is_active = True
-                    await self.state_store.save_state(state)
+                exec_state = await self.state_store.get_state(execution_id)
+                if exec_state:
+                    exec_state.status = ExecutionStatus.RUNNING
+                    exec_state.started_at = datetime.now(UTC).isoformat()
+                    exec_state.is_active = True
+                    await self.state_store.save_state(exec_state)
                 
                 async for _ in engine.execute(
                     typed_execution,
@@ -146,23 +168,49 @@ class ExecuteDiagramUseCase(BaseService):
                     error=str(e)
                 )
                 
-                await update_queue.put(
-                    {
-                        "type": "execution_error",
-                        "error": str(e),
-                    }
-                )
+                # For direct streaming, errors are already sent via observers
+                # No need to handle update_queue here as it's not used in this flow
 
         # Launch execution
         asyncio.create_task(run_execution())
 
         # Stream updates
-        while True:
-            update = await update_queue.get()
-            yield update
-
-            if update.get("type") in ["execution_complete", "execution_error"]:
-                break
+        if use_direct_streaming:
+            # For direct streaming, we don't yield updates here as they go directly to SSE
+            # Just wait for execution to complete
+            await asyncio.sleep(0.1)  # Give time for execution to start
+            
+            # Monitor execution state
+            while True:
+                state = await self.state_store.get_state(execution_id)
+                if state and state.status in [
+                    ExecutionStatus.COMPLETED,
+                    ExecutionStatus.FAILED,
+                    ExecutionStatus.ABORTED,
+                ]:
+                    break
+                await asyncio.sleep(1)
+                
+            # Yield final status
+            yield {
+                "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
+                "execution_id": execution_id,
+                "status": state.status.value,
+            }
+        else:
+            # Regular streaming with async iterator
+            async for update_str in update_iterator:
+                # Parse the SSE-formatted string
+                if update_str.startswith("data: "):
+                    try:
+                        update = json.loads(update_str[6:].strip())
+                        yield update
+                        
+                        if update.get("type") in ["execution_complete", "execution_error"]:
+                            break
+                    except json.JSONDecodeError:
+                        # Skip malformed updates
+                        continue
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""
@@ -423,13 +471,21 @@ class ExecuteDiagramUseCase(BaseService):
         }
         
         # Extract API key references from persons
-        if hasattr(diagram, 'persons'):
-            for person in diagram.persons:
+        if hasattr(diagram, 'persons') and diagram.persons:
+            # Handle both dict and list formats
+            persons_list = list(diagram.persons.values()) if isinstance(diagram.persons, dict) else diagram.persons
+            for person in persons_list:
                 api_key_id = None
                 if hasattr(person, 'api_key_id'):
                     api_key_id = person.api_key_id
                 elif hasattr(person, 'apiKeyId'):
                     api_key_id = person.apiKeyId
+                elif hasattr(person, 'llm_config'):
+                    # Handle nested llm_config structure
+                    if hasattr(person.llm_config, 'api_key_id'):
+                        api_key_id = person.llm_config.api_key_id
+                    elif hasattr(person.llm_config, 'apiKeyId'):
+                        api_key_id = person.llm_config.apiKeyId
                     
                 if api_key_id and api_key_id in all_keys:
                     api_keys[api_key_id] = all_keys[api_key_id]

@@ -26,24 +26,20 @@
         "default_prompt": "say hi",
         "max_iteration": 3,
         "memory_profile": "FULL",
-        "person": "person_Person_1",
+        "person": "person_person_1",
         "memory_settings": {
           "view": "all_involved",
           "max_messages": null,
           "preserve_system": true
-        },
-        "flipped": [
-          false,
-          false
-        ]
+        }
       }
     },
     {
       "id": "node_2",
       "type": "condition",
       "position": {
-        "x": 640.9926883664835,
-        "y": 408.9455300905548
+        "x": 620,
+        "y": 425
       },
       "data": {
         "label": "condition",
@@ -88,7 +84,7 @@
         ],
         "max_iteration": 1,
         "memory_profile": "FULL",
-        "person": "person_Person_1",
+        "person": "person_person_1",
         "memory_settings": {
           "view": "all_involved",
           "max_messages": null,
@@ -102,18 +98,24 @@
       "id": "arrow_0",
       "source": "node_0_default_output",
       "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": null,
       "data": null
     },
     {
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
+      "content_type": "conversation_state",
+      "label": null,
       "data": null
     },
     {
       "id": "arrow_2",
       "source": "node_2_condfalse_output",
       "target": "node_1_default_input",
+      "content_type": "conversation_state",
+      "label": null,
       "data": {
         "branch": "false"
       }
@@ -122,6 +124,8 @@
       "id": "arrow_3",
       "source": "node_2_condtrue_output",
       "target": "node_4_default_input",
+      "content_type": "conversation_state",
+      "label": null,
       "data": {
         "branch": "true"
       }
@@ -130,16 +134,18 @@
       "id": "arrow_4",
       "source": "node_4_default_output",
       "target": "node_3_default_input",
+      "content_type": "raw_text",
+      "label": null,
       "data": null
     }
   ],
   "persons": [
     {
-      "id": "person_Person_1",
+      "id": "person_person_1",
       "label": "person 1",
       "llm_config": {
         "service": "openai",
-        "model": "gpt-4.1-nano",
+        "model": "gpt-4.1-nano-2025-04-14",
         "api_key_id": "APIKEY_52609F",
         "system_prompt": null
       },
@@ -241,8 +247,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-07-29T07:35:05.174Z",
-    "modified": "2025-07-29T07:35:05.174Z",
+    "created": "2025-07-31T05:51:00.880Z",
+    "modified": "2025-07-31T05:51:00.880Z",
     "version": "1.0.0",
     "id": "diagrams/examples/simple_iter.light.yaml"
   }

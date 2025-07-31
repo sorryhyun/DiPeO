@@ -160,12 +160,12 @@ def main():
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
+        cli.server.stop()
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    finally:
         cli.server.stop()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ export const personJobConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: personJobFields,
+  primaryDisplayField: 'person',
 };
 
 export default personJobConfig;

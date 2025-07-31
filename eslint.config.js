@@ -23,7 +23,9 @@ export default [
       '**/__generated__/**', // Generated GraphQL files
       '.venv/**', // Python virtual environment
       'files/**', // Diagram files
-      'docs/**' // Documentation
+      'docs/**', // Documentation
+      '.temp/**', // Temporary files
+      'dipeo/**' // Domain models directory
     ],
   },
 

@@ -122,6 +122,7 @@ export const useUIOperations = () => useUnifiedStore(
     setZoom: state.setZoom,
     setPosition: state.setPosition,
     setCanvasMode: state.setCanvasMode,
+    setMonitorMode: state.setMonitorMode,
     clearUIState: state.clearUIState,
   }))
 );

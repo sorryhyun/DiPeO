@@ -24,6 +24,7 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "python-multipart>=0.0.20",
     "pyyaml>=6.0.2",
+    "sse-starlette>=2.0.0",
     "strawberry-graphql>=0.275.5",
     "structlog>=24.4.0",
     "tenacity>=8.5.0",
