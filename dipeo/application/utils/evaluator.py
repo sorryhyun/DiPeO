@@ -40,7 +40,6 @@ class ConditionEvaluator:
         return self.safe_evaluate_expression_with_context(expression, context_values)
     
     def safe_evaluate_expression(self, expression: str) -> Any:
-        # Define allowed operators
         allowed_operators = {
             ast.Eq: operator.eq,
             ast.NotEq: operator.ne,
@@ -103,7 +102,6 @@ class ConditionEvaluator:
             return False
     
     def safe_evaluate_expression_with_context(self, expression: str, context: dict[str, Any]) -> Any:
-        # Define allowed operators (same as before)
         allowed_operators = {
             ast.Eq: operator.eq,
             ast.NotEq: operator.ne,
@@ -133,10 +131,8 @@ class ConditionEvaluator:
             elif isinstance(node, ast.Num):  # For Python < 3.8 compatibility
                 return node.n
             elif isinstance(node, ast.Name):
-                # Variable lookup
                 return context.get(node.id)
             elif isinstance(node, ast.Attribute):
-                # Dot notation - evaluate the object then get attribute
                 obj = eval_node(node.value)
                 if obj is None:
                     return None
@@ -175,13 +171,11 @@ class ConditionEvaluator:
         
         try:
             result = eval_node(tree)
-            # Debug logging
             import logging
             logger = logging.getLogger(__name__)
             logger.debug(f"safe_evaluate_expression_with_context: expression='{expression}' -> result={result}")
             return result
         except Exception as e:
-            # Debug logging
             import logging
             logger = logging.getLogger(__name__)
             logger.debug(f"safe_evaluate_expression_with_context: expression='{expression}' failed with error: {e}")

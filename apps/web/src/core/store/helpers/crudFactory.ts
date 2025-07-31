@@ -14,7 +14,6 @@ interface CrudActions<T extends Entity, ID extends EntityId> {
   delete: (state: Draft<UnifiedStore>, id: ID) => void;
 }
 
-// Type-safe entity map getter
 function getEntityMap<T extends Entity, ID extends EntityId>(
   state: Draft<UnifiedStore>,
   entityType: EntityType
@@ -22,17 +21,14 @@ function getEntityMap<T extends Entity, ID extends EntityId>(
   return state[entityType] as Map<ID, T>;
 }
 
-// Type-safe entity map setter
 function setEntityMap<T extends Entity, ID extends EntityId>(
   state: Draft<UnifiedStore>,
   entityType: EntityType,
   map: Map<ID, T>
 ): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (state as any)[entityType] = map;
 }
 
-// Generic CRUD factory
 export function createCrudActions<T extends Entity, ID extends EntityId>(
   entityType: EntityType,
   options?: {
@@ -79,7 +75,6 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
       setEntityMap(state, entityType, newMap);
       state.dataVersion += 1;
       
-      // Clear selection if deleted
       if (state.selectedId === id) {
         state.selectedId = null;
         state.selectedType = null;

@@ -11,7 +11,6 @@ export function useDebouncedSave(options: UseDebouncedSaveOptions) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<string | null>(null);
 
-  // Clear any pending save on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -23,15 +22,12 @@ export function useDebouncedSave(options: UseDebouncedSaveOptions) {
   const debouncedSave = useCallback((filename: string) => {
     if (!enabled) return;
 
-    // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
-    // Store the pending save
     pendingSaveRef.current = filename;
 
-    // Set up new timeout
     timeoutRef.current = setTimeout(async () => {
       if (pendingSaveRef.current) {
         try {
@@ -54,10 +50,8 @@ export function useDebouncedSave(options: UseDebouncedSaveOptions) {
   }, []);
 
   const saveImmediately = useCallback(async (filename: string) => {
-    // Cancel any pending save
     cancelPendingSave();
     
-    // Save immediately
     await onSave(filename);
   }, [onSave, cancelPendingSave]);
 

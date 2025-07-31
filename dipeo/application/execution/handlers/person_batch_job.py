@@ -32,7 +32,6 @@ if TYPE_CHECKING:
     from dipeo.core.dynamic.execution_context import ExecutionContext
 
 # PersonBatchJobNodeData is a type alias for PersonJobNodeData in TypeScript
-# but not generated in Python, so we create it here
 PersonBatchJobNodeData = PersonJobNodeData
 
 

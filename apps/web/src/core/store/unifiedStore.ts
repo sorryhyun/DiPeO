@@ -6,7 +6,6 @@ import { UnifiedStore } from "./unifiedStore.types";
 import { logger } from "./middleware/debugMiddleware";
 import { initializeArraySync } from "./middleware/arraySyncSubscriber";
 
-// Import slices
 import {
   createDiagramSlice,
   createComputedSlice,
@@ -14,18 +13,14 @@ import {
   createPersonSlice,
   createUISlice
 } from "./slices";
-
-// Import helpers
 import { 
   createFullSnapshot, 
   recordHistory 
 } from "./helpers/entityHelpers";
 import { rebuildHandleIndex } from "./helpers/handleIndexHelper";
 
-// Custom serializer for Redux DevTools to handle Maps
 const devtoolsOptions = {
   serialize: {
-    // Custom replacer to handle Map serialization
     replacer: (key: string, value: unknown) => {
       if (value instanceof Map) {
         return {
@@ -35,7 +30,6 @@ const devtoolsOptions = {
       }
       return value;
     },
-    // Custom reviver to restore Maps
     reviver: (key: string, value: unknown) => {
       if (value && typeof value === 'object' && '_type' in value && value._type === 'Map' && '_value' in value) {
         return new Map(value._value as Array<[unknown, unknown]>);
@@ -52,18 +46,14 @@ const createStore = () => {
     [],
     UnifiedStore
   > = (set, get, api) => ({
-        // Compose all slices
         ...createDiagramSlice(set, get, api),
         ...createComputedSlice(set, get, api),
         ...createExecutionSlice(set, get, api),
         ...createPersonSlice(set, get, api),
         ...createUISlice(set, get, api),
         
-        // Additional data not in slices
         handles: new Map(),
         handleIndex: new Map(),
-        
-        // Initial history state
         history: {
           undoStack: [],
           redoStack: [],
@@ -71,7 +61,6 @@ const createStore = () => {
         },
 
 
-        // === History Operations ===
         get canUndo() {
           return get().history.undoStack.length > 0;
         },
@@ -86,23 +75,19 @@ const createStore = () => {
 
           const snapshot = state.history.undoStack[state.history.undoStack.length - 1];
           if (snapshot) {
-            // Save current state to redo stack
             set(state => {
               state.history.redoStack.push(createFullSnapshot(state));
               state.history.undoStack.pop();
             });
             
-            // Use silent restore methods to avoid multiple dataVersion increments
             state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
             state.restorePersonsSilently(snapshot.persons);
             
-            // Restore unified store data
             set(state => {
               state.handles = new Map(snapshot.handles);
               state.handleIndex = rebuildHandleIndex(state.handles);
             });
             
-            // Trigger array sync once through the diagram slice
             state.triggerArraySync();
           }
         },

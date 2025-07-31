@@ -16,16 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class DiagramConverterService(BaseService, DiagramConverter):
-    """Service for converting diagrams between different formats.
-    
-    This service uses the strategy pattern to support multiple diagram formats:
-    - Native JSON format
-    - Light YAML format
-    - Readable YAML format
-    
-    It delegates actual conversion logic to domain strategies while providing
-    a unified interface for format detection and conversion.
-    """
+    """Converts diagrams between different formats using pluggable strategies."""
     
     def __init__(self):
         super().__init__()
