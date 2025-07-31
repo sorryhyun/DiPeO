@@ -12,17 +12,10 @@ from dipeo.core.constants import (
     VALID_LLM_SERVICES as CORE_VALID_SERVICES,
 )
 
-# API Configuration
 API_BASE_PATH: Final[str] = "/api"
-
-# Application Version
 DIAGRAM_VERSION: Final[str] = "2.0.0"
-
-# LLM Default Configuration
 DEFAULT_MAX_TOKENS: Final[int] = 4096
 DEFAULT_TEMPERATURE: Final[float] = 0.7
-
-# File Extensions
 SUPPORTED_DOC_EXTENSIONS: Final[set[str]] = {".txt", ".md", ".docx", ".pdf"}
 SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {
     ".py",
@@ -34,27 +27,17 @@ SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {
 }
 SUPPORTED_DIAGRAM_EXTENSIONS: Final[set[str]] = {".json", ".yaml", ".yml"}
 
-# Additional server-specific valid services
 VALID_LLM_SERVICES: Final[set[str]] = CORE_VALID_SERVICES | {
     "bedrock",
     "vertex",
     "deepseek",
 }
 
-# Default service when none specified
 DEFAULT_SERVICE: Final[str] = "openai"
-
-# Execution defaults
-DEFAULT_EXECUTION_TIMEOUT: Final[int] = 3600  # 1 hour in seconds
+DEFAULT_EXECUTION_TIMEOUT: Final[int] = 3600
 DEFAULT_MAX_ITERATIONS: Final[int] = 100
-
-# Memory defaults
-DEFAULT_MEMORY_LIMIT: Final[int] = 100  # Maximum number of memories to retain
-DEFAULT_CONTEXT_WINDOW: Final[int] = (
-    10  # Number of recent messages to include in context
-)
-
-# Re-export for convenience
+DEFAULT_MEMORY_LIMIT: Final[int] = 100
+DEFAULT_CONTEXT_WINDOW: Final[int] = 10
 __all__ = [
     "API_BASE_PATH",
     "BASE_DIR",

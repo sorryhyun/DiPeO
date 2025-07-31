@@ -29,7 +29,6 @@ class BaseService(ABC):
     def validate_file_path(
         self, file_path: str, allowed_base: Path | None = None
     ) -> Path:
-        # Validate file path for security
         rel_path = Path(file_path)
 
         if allowed_base is None:
@@ -44,7 +43,6 @@ class BaseService(ABC):
         return full_path
 
     def safe_get_nested(self, obj: Any, path: str, default: Any = None) -> Any:
-        # Get nested value using dot notation
         if obj is None:
             return default
 

@@ -16,7 +16,6 @@ class BaseExecutableNode:
     metadata: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
         result = {
             "id": self.id,
             "type": self.type.value,
@@ -69,51 +68,38 @@ class ExecutableDiagram:
                  execution_order: list[NodeID],
                  metadata: dict[str, Any] | None = None,
                  api_keys: dict[str, str] | None = None):
-        # Make immutable by converting to tuples
         self.nodes: tuple[ExecutableNode, ...] = tuple(nodes)
         self.edges: tuple[ExecutableEdge, ...] = tuple(edges)
         self.execution_order: tuple[NodeID, ...] = tuple(execution_order)
         self.metadata: dict[str, Any] = metadata or {}
         self.api_keys: dict[str, str] = api_keys or {}
-        
-        # Create lookup indices for efficient access
         self._node_index: dict[NodeID, ExecutableNode] = {
             node.id: node for node in self.nodes
         }
         self._outgoing_edges: dict[NodeID, list[ExecutableEdge]] = {}
         self._incoming_edges: dict[NodeID, list[ExecutableEdge]] = {}
-        
-        # Build edge indices
         for edge in self.edges:
             self._outgoing_edges.setdefault(edge.source_node_id, []).append(edge)
             self._incoming_edges.setdefault(edge.target_node_id, []).append(edge)
         
-        # Execution hints cache
         self._start_nodes: list[NodeID] = []
-        self._person_nodes: dict[NodeID, str] = {}  # node_id -> person_id
-        self._node_dependencies: dict[NodeID, list[dict[str, str]]] = {}  # node_id -> [{"source": node_id, "variable": name}]
+        self._person_nodes: dict[NodeID, str] = {}
+        self._node_dependencies: dict[NodeID, list[dict[str, str]]] = {}
         
-        # Build execution hints
         self._build_execution_hints()
     
     def _build_execution_hints(self) -> None:
-        # Find start nodes
         self._start_nodes = [node.id for node in self.nodes if node.type == NodeType.START]
         
-        # Find person nodes and their person IDs
         for node in self.nodes:
             if hasattr(node, 'type') and node.type == NodeType.PERSON_JOB:
-                # Get person_id from node data if available
                 if hasattr(node, 'data') and isinstance(node.data, dict):
                     person_id = node.data.get('person_id') or node.data.get('personId')
                     if person_id:
                         self._person_nodes[node.id] = person_id
-        
-        # Build node dependencies from edges
         for node_id in self._node_index:
             dependencies = []
             for edge in self.get_incoming_edges(node_id):
-                # Extract variable name from edge metadata or use default
                 variable = "flow"
                 if edge.source_output:
                     variable = edge.source_output
@@ -153,7 +139,6 @@ class ExecutableDiagram:
     
     
     def get_execution_hints(self) -> dict[str, Any]:
-        """Get execution hints with start nodes, person nodes, and dependencies."""
         return {
             "start_nodes": self._start_nodes,
             "person_nodes": self._person_nodes,

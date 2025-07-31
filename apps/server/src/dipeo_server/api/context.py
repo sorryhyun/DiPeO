@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Optional
 from fastapi import Request, WebSocket
 from strawberry.fastapi import BaseContext
 
-# Import service keys directly for type safety
 from dipeo.application.registry.keys import EXECUTION_SERVICE
 
 if TYPE_CHECKING:
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
         ExecuteDiagramUseCase,
     )
     from dipeo.application.registry import ServiceRegistry, ServiceKey
-    from dipeo.container import Container
+    from dipeo.application.bootstrap import Container
 
 
 @dataclass
@@ -25,8 +24,8 @@ class RequestContext(BaseContext):
     For GraphQL specifically, it extends BaseContext for Strawberry compatibility.
     """
 
-    request: Optional[Request] = None  # present on HTTP
-    websocket: Optional[WebSocket] = None  # present on WS
+    request: Optional[Request] = None
+    websocket: Optional[WebSocket] = None
     container: Optional["Container"] = None
     user_data: dict[str, Any] = field(default_factory=dict)
 
@@ -67,24 +66,18 @@ def get_request_context(request_or_ws=None):
     - HTTP: The FastAPI Request object
     - WebSocket: The WebSocket connection object
     """
-    # Get the global container instance directly
     from dipeo_server.app_context import get_container
 
     container = get_container()
 
-    # Determine what type of connection we have
     request = None
     websocket = None
 
     if request_or_ws:
-        # Check if it's a Request object (has url attribute)
         if hasattr(request_or_ws, "url") and hasattr(request_or_ws, "method"):
             request = request_or_ws
-        # Otherwise assume it's a WebSocket
         else:
             websocket = request_or_ws
-
-    # Create and return the context
     return RequestContext(
         request=request,
         websocket=websocket,

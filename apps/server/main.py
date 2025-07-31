@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 
-# Load environment variables first
 load_dotenv()
 
 # Suppress non-critical warnings
@@ -16,13 +15,11 @@ warnings.filterwarnings("ignore", message="The config `workers` has no affect wh
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
 warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
-# Set up logging
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-# Reduce noisy debug logging
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -34,20 +31,16 @@ logging.getLogger("python_multipart").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-# Use consolidated app context
 from dipeo_server.api.middleware import setup_middleware
 from dipeo_server.api.router import setup_routes
 from dipeo_server.app_context import initialize_container
-from dipeo.container import init_resources, shutdown_resources
+from dipeo.application.bootstrap import init_resources, shutdown_resources
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize container
     container = initialize_container()
     await init_resources(container)
-    
-    # Setup routes after container is initialized
     setup_routes(app)
     
     yield

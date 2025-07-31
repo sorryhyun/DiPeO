@@ -1,4 +1,3 @@
-# Use case for executing a complete diagram.
 
 import asyncio
 import json
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
 
     from ...registry import ServiceRegistry
     from ..execution_runtime import ExecutionRuntime
-    from dipeo.container.container import Container
+    from dipeo.application.bootstrap import Container
 
 class ExecuteDiagramUseCase(BaseService):
 
@@ -42,12 +41,10 @@ class ExecuteDiagramUseCase(BaseService):
         self.service_registry = service_registry
         self.container = container
         
-        # Get services from registry if not provided directly (for backward compatibility)
         self.state_store = state_store or service_registry.resolve(STATE_STORE)
         self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
         self.diagram_storage_service = diagram_storage_service or service_registry.resolve(DIAGRAM_STORAGE_SERVICE)
         
-        # Validate required services
         if not self.state_store:
             raise ValueError("state_store is required but not found in service registry")
         if not self.message_router:
@@ -56,7 +53,6 @@ class ExecuteDiagramUseCase(BaseService):
             raise ValueError("diagram_storage_service is required but not found in service registry")
 
     async def initialize(self):
-        """Initialize the service."""
         pass
 
     async def execute_diagram(  # type: ignore[override]
@@ -70,20 +66,11 @@ class ExecuteDiagramUseCase(BaseService):
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
-        # Step 1: Compile to typed diagram
         typed_diagram = await self._compile_typed_diagram(diagram)
-        
-        # Step 2: Initialize execution state in persistence
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
-        
-        # Step 3: Create typed execution
         typed_execution = await self._create_typed_execution(typed_diagram, options, execution_id)
-
-        # Handle observers - use provided ones or create new ones
         if observers is not None:
-            # Sub-diagram execution: use parent's observers
             engine_observers = observers
-            # Find the streaming observer from the provided observers
             streaming_observer = None
             for obs in observers:
                 from dipeo.application.execution.observers import DirectStreamingObserver
@@ -92,59 +79,42 @@ class ExecuteDiagramUseCase(BaseService):
                     break
             
             if not streaming_observer:
-                # If no streaming observer found, create one
                 from dipeo.application.execution.observers import DirectStreamingObserver
                 streaming_observer = DirectStreamingObserver()
                 engine_observers = list(observers) + [streaming_observer]
         else:
-            # Parent execution: create new observers
             from dipeo.application.execution.observers import DirectStreamingObserver
             
             if use_direct_streaming:
-                # Use direct streaming observer for CLI executions
                 streaming_observer = DirectStreamingObserver()
                 
-                # Register observer with SSE endpoint
                 try:
                     from dipeo_server.api.sse import register_observer_for_execution
                     register_observer_for_execution(execution_id, streaming_observer)
                 except ImportError:
-                    # If not in server context, continue without registration
                     pass
             else:
-                # Use direct streaming observer for all executions
                 streaming_observer = DirectStreamingObserver()
-            
-            # Create engine with observers
             from dipeo.application.execution.observers import StateStoreObserver
             
             engine_observers = []
             
-            # Add state store observer
             if self.state_store:
                 engine_observers.append(StateStoreObserver(self.state_store))
                 
-            # Add streaming observer
             engine_observers.append(streaming_observer)
-        
-        # Create the TypedExecutionEngine with the appropriate observers
         from dipeo.application.execution.engine import TypedExecutionEngine
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             observers=engine_observers,
         )
 
-        # Subscribe to streaming updates
         update_iterator = None
         if not use_direct_streaming:
-            # For message router streaming, subscribe to get updates
-            # Note: subscribe returns an async iterator, not a queue
             update_iterator = streaming_observer.subscribe(execution_id)
 
-        # Start execution in background
         async def run_execution():
             try:
-                # Update state to running
                 exec_state = await self.state_store.get_state(execution_id)
                 if exec_state:
                     exec_state.status = ExecutionStatus.RUNNING
@@ -158,9 +128,8 @@ class ExecuteDiagramUseCase(BaseService):
                     options,
                     interactive_handler,
                 ):
-                    pass  # Engine uses observers for updates
+                    pass
 
-                # Finalize execution state as completed
                 await self._finalize_execution_state(execution_id, ExecutionStatus.COMPLETED)
                 
             except Exception as e:
@@ -169,26 +138,16 @@ class ExecuteDiagramUseCase(BaseService):
                 logger = logging.getLogger(__name__)
                 logger.error(f"Engine execution failed: {e}", exc_info=True)
                 
-                # Finalize execution state as failed
                 await self._finalize_execution_state(
                     execution_id, 
                     ExecutionStatus.FAILED,
                     error=str(e)
                 )
-                
-                # For direct streaming, errors are already sent via observers
-                # No need to handle update_queue here as it's not used in this flow
 
-        # Launch execution
         asyncio.create_task(run_execution())
 
-        # Stream updates
         if use_direct_streaming:
-            # For direct streaming, we don't yield updates here as they go directly to SSE
-            # Just wait for execution to complete
-            await asyncio.sleep(0.1)  # Give time for execution to start
-            
-            # Monitor execution state
+            await asyncio.sleep(0.1)
             while True:
                 state = await self.state_store.get_state(execution_id)
                 if state and state.status in [
@@ -198,17 +157,13 @@ class ExecuteDiagramUseCase(BaseService):
                 ]:
                     break
                 await asyncio.sleep(1)
-                
-            # Yield final status
             yield {
                 "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
                 "execution_id": execution_id,
                 "status": state.status.value,
             }
         else:
-            # Regular streaming with async iterator
             async for update_str in update_iterator:
-                # Parse the SSE-formatted string
                 if update_str.startswith("data: "):
                     try:
                         update = json.loads(update_str[6:].strip())
@@ -217,36 +172,28 @@ class ExecuteDiagramUseCase(BaseService):
                         if update.get("type") in ["execution_complete", "execution_error"]:
                             break
                     except json.JSONDecodeError:
-                        # Skip malformed updates
                         continue
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""
-        # Handle different diagram representations
         from dipeo.models import DomainDiagram
         from dipeo.domain.diagram.utils import dict_to_domain_diagram
         from dipeo.infrastructure.services.diagram import DiagramConverterService
         
-        # Check if this is a format-specific diagram (light, readable) that needs conversion
         if isinstance(diagram, dict):
-            # Check for format markers
             version = diagram.get("version")
             format_type = diagram.get("format")
             
-            # If it's a light or readable format, deserialize it first
             if version in ["light", "readable"] or format_type in ["light", "readable"]:
                 converter = DiagramConverterService()
                 await converter.initialize()
                 
-                # Serialize the dict to YAML for deserialization
                 import yaml
                 yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
                 
-                # Deserialize using the appropriate strategy
                 format_id = version or format_type
                 domain_diagram = converter.deserialize(yaml_content, format_id)
             else:
-                # Standard domain format, convert directly
                 domain_diagram = dict_to_domain_diagram(diagram)
         elif isinstance(diagram, DomainDiagram):
             domain_diagram = diagram
@@ -256,32 +203,24 @@ class ExecuteDiagramUseCase(BaseService):
         # TODO: Add updated validation logic if needed
         # Validation has been temporarily removed while updating the flow validation system
         
-        # Apply diagram compilation pipeline with static types
         from ...resolution import StaticDiagramCompiler
         compiler = StaticDiagramCompiler()
         
-        # Get API keys if available
         api_keys = None
         if hasattr(self.service_registry, 'resolve'):
             api_key_service = self.service_registry.resolve(API_KEY_SERVICE)
             if api_key_service:
-                # Extract API keys needed by the diagram
                 api_keys = self._extract_api_keys_for_typed_diagram(domain_diagram, api_key_service)
         
-        # Compile to typed diagram
         executable_diagram = compiler.compile(domain_diagram)
-        # Add API keys to metadata
         if api_keys:
             executable_diagram.metadata["api_keys"] = api_keys
         
-        # Store original domain diagram metadata if needed
         if domain_diagram.metadata:
             executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
         
-        # Copy persons data from domain diagram to executable diagram metadata
         if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
             persons_dict = {}
-            # Handle both dict and list formats
             persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
             for person in persons_list:
                 person_id = str(person.id)
@@ -296,7 +235,6 @@ class ExecuteDiagramUseCase(BaseService):
                 }
             executable_diagram.metadata['persons'] = persons_dict
         
-        # Register person configs from executable diagram
         await self._register_typed_person_configs(executable_diagram)
         
         return executable_diagram

@@ -9,8 +9,6 @@ import aiosqlite
 
 
 class MessageStore:
-    # Stores actual message content, returns only references
-
     def __init__(self, db_path: Path):
         self.db_path = db_path
 

@@ -7,8 +7,6 @@ from dipeo.models import ExecutionState, TokenUsage
 
 
 class ExecutionCache:
-    # In-memory cache for active executions
-
     def __init__(self, ttl_minutes: int = 60):
         self._cache: dict[str, ExecutionState] = {}
         self._last_access: dict[str, datetime] = {}

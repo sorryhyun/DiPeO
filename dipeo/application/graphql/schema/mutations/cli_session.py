@@ -4,15 +4,12 @@ import strawberry
 from typing import Optional
 import logging
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, CLI_SESSION_SERVICE
 from dipeo.application.services.cli_session_service import CliSessionService
 from ...types.inputs import RegisterCliSessionInput, UnregisterCliSessionInput
 from ...types.results import CliSessionResult
 
 logger = logging.getLogger(__name__)
-
-# Service key for CLI session service
-CLI_SESSION_SERVICE = ServiceKey[CliSessionService]("cli_session_service")
 
 
 def create_cli_session_mutations(registry: ServiceRegistry) -> type:

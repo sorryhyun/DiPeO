@@ -13,7 +13,6 @@ from dipeo_server.app_context import get_container
 
 logger = logging.getLogger(__name__)
 
-# Global registry for active streaming observers
 _streaming_observers: Dict[str, DirectStreamingObserver] = {}
 _observers_lock = asyncio.Lock()
 
@@ -47,15 +46,12 @@ async def stream_execution(
     """
     logger.info(f"SSE connection established for execution {execution_id}")
 
-    # Get or create observer for this execution
     observer = await get_or_create_observer(execution_id)
 
     async def event_generator():
         """Generate SSE events from observer."""
         try:
-            # Subscribe to events
             async for event in observer.subscribe(execution_id):
-                # Check if client disconnected
                 if await request.is_disconnected():
                     break
                 yield event
@@ -66,12 +62,11 @@ async def stream_execution(
         finally:
             logger.info(f"SSE connection closed for execution {execution_id}")
 
-    # Return SSE response
     return EventSourceResponse(
         event_generator(),
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # Disable Nginx buffering
+            "X-Accel-Buffering": "no",
         },
     )
 
@@ -88,14 +83,11 @@ def register_observer_for_execution(
         async with _observers_lock:
             _streaming_observers[execution_id] = observer
 
-    # Run in event loop if needed
     try:
         loop = asyncio.get_running_loop()
         loop.create_task(_register())
     except RuntimeError:
-        # No event loop, create one
         asyncio.run(_register())
 
 
-# Export for use in execution
 __all__ = ["router", "register_observer_for_execution"]

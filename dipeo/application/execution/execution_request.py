@@ -9,7 +9,7 @@ from dipeo.diagram_generated import NodeExecutionStatus
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.dynamic.execution_context import ExecutionContext
-    from dipeo.container.container import Container
+    from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
 
 # Type variable for node types

@@ -28,12 +28,6 @@ class DiagramService(BaseService, DiagramPort):
         storage: DiagramStoragePort,
         converter: DiagramConverterService | None = None
     ):
-        """Initialize diagram service.
-        
-        Args:
-            storage: Diagram storage adapter
-            converter: Diagram converter service (creates default if None)
-        """
         super().__init__()
         self.storage = storage
         self.converter = converter or DiagramConverterService()
@@ -41,33 +35,20 @@ class DiagramService(BaseService, DiagramPort):
         self._initialized = False
     
     async def initialize(self) -> None:
-        """Initialize service and dependencies."""
         if self._initialized:
             return
             
-        # Initialize storage
         await self.storage.initialize()
-        
-        # Initialize converter
         await self.converter.initialize()
         
         self._initialized = True
         logger.info("DiagramService initialized")
     
     def detect_format(self, content: str) -> DiagramFormat:
-        """Detect diagram format from content.
-        
-        Args:
-            content: Diagram content string
-            
-        Returns:
-            Detected diagram format
-        """
         format_id = self.converter.detect_format(content)
         if not format_id:
             raise ValueError("Unable to detect diagram format")
         
-        # Map string format to enum
         return self._format_string_to_enum(format_id)
     
     def load_diagram(
@@ -75,15 +56,6 @@ class DiagramService(BaseService, DiagramPort):
         content: str,
         format: DiagramFormat | None = None,
     ) -> DomainDiagram:
-        """Load diagram from content string.
-        
-        Args:
-            content: Diagram content
-            format: Expected format, or None to auto-detect
-            
-        Returns:
-            Domain diagram object
-        """
         format_id = format.value if format else None
         return self.converter.deserialize(content, format_id)
     

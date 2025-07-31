@@ -26,7 +26,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 if TYPE_CHECKING:
     from dipeo.application.registry import ServiceRegistry, ServiceKey
     from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
-    from dipeo.container.container import Container
+    from dipeo.application.bootstrap import Container
 
 logger = logging.getLogger(__name__)
 
