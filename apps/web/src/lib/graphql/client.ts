@@ -101,8 +101,13 @@ export const apolloClient = new ApolloClient({
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-and-network',
+      // Don't show errors for failed requests when server is likely shutting down
+      errorPolicy: 'all',
     },
     query: {
+      errorPolicy: 'all',
+    },
+    mutate: {
       errorPolicy: 'all',
     },
   },

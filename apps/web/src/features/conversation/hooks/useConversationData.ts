@@ -49,7 +49,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   );
 
   // GraphQL query with automatic loading state
-  const { data, loading, error, refetch, fetchMore } = useConversationsQuery(
+  const { data, loading, error, refetch, fetchMore, stopPolling } = useConversationsQuery(
     queryVariables,
     {
       skip: false,
@@ -57,6 +57,18 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       pollInterval: shouldPoll ? 5000 : 0,
     }
   );
+  
+  // Stop polling if we detect server shutdown
+  useEffect(() => {
+    if (error?.networkError) {
+      const params = new URLSearchParams(window.location.search);
+      const isCliMonitorMode = params.get('monitor') === 'true' && params.get('no-auto-exit') === 'true';
+      if (isCliMonitorMode) {
+        console.log('[ConversationData] Stopping polling due to network error');
+        stopPolling();
+      }
+    }
+  }, [error, stopPolling]);
 
   // Transform function for conversation data
   const transformConversationsData = useCallback((conversationsData: {

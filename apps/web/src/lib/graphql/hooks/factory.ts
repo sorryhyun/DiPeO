@@ -57,6 +57,23 @@ const handleError = (
   customMessage?: string | ((error: ApolloError) => string),
   silent?: boolean
 ) => {
+  // Check if this is likely a server shutdown error
+  const isServerShutdown = error.networkError && (
+    error.message.includes('Failed to fetch') ||
+    error.message.includes('NetworkError') ||
+    error.message.includes('fetch failed')
+  );
+  
+  // Check if we're in CLI monitor mode
+  const params = new URLSearchParams(window.location.search);
+  const isCliMonitorMode = params.get('monitor') === 'true' && params.get('no-auto-exit') === 'true';
+  
+  // Suppress errors if server is shutting down in CLI mode
+  if (isServerShutdown && isCliMonitorMode) {
+    console.log(`[${entityName}] Server appears to be shutting down, suppressing error`);
+    return;
+  }
+  
   const message = typeof customMessage === 'function' 
     ? customMessage(error)
     : customMessage || `Failed to ${operation} ${entityName}: ${error.message}`;

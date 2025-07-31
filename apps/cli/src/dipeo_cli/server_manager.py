@@ -1,5 +1,6 @@
 """Server management for DiPeO CLI."""
 
+import json
 import subprocess
 import time
 from typing import Any
@@ -78,11 +79,16 @@ class ServerManager:
         self,
         diagram_data: dict[str, Any],
         input_variables: dict[str, Any] | None = None,
+        use_direct_streaming: bool = True,
     ) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
-        mutation ExecuteDiagram($diagramData: JSON, $variables: JSON) {
-            execute_diagram(input: { diagram_data: $diagramData, variables: $variables }) {
+        mutation ExecuteDiagram($diagramData: JSON, $variables: JSON, $useDirectStreaming: Boolean) {
+            execute_diagram(input: { 
+                diagram_data: $diagramData, 
+                variables: $variables,
+                use_direct_streaming: $useDirectStreaming
+            }) {
                 success
                 execution_id
                 error
@@ -97,6 +103,7 @@ class ServerManager:
                 "variables": {
                     "diagramData": diagram_data,
                     "variables": input_variables,
+                    "useDirectStreaming": use_direct_streaming,
                 },
             },
         )
@@ -110,7 +117,7 @@ class ServerManager:
 
         return result["data"]["execute_diagram"]
 
-    def get_execution_result(self, execution_id: str) -> dict[str, Any]:
+    def get_execution_result(self, execution_id: str) -> dict[str, Any] | None:
         """Get execution result by ID."""
         query = """
         query GetExecutionResult($id: ID!) {
@@ -122,19 +129,30 @@ class ServerManager:
         }
         """
 
-        response = requests.post(
-            f"{self.base_url}/graphql",
-            json={"query": query, "variables": {"id": execution_id}},
-        )
+        try:
+            response = requests.post(
+                f"{self.base_url}/graphql",
+                json={"query": query, "variables": {"id": execution_id}},
+                timeout=5
+            )
 
-        if response.status_code != 200:
-            raise Exception(f"GraphQL request failed: {response.status_code}")
+            if response.status_code != 200:
+                print(f"[DEBUG] GraphQL request failed: {response.status_code}")
+                print(f"[DEBUG] Response body: {response.text}")
+                return None
 
-        result = response.json()
-        if "errors" in result:
-            raise Exception(f"GraphQL errors: {result['errors']}")
+            result = response.json()
+            
+            if "errors" in result:
+                print(f"[ERROR] GraphQL errors: {result['errors']}")
+                return None
 
-        if "data" not in result or result["data"] is None:
+            if "data" not in result or result["data"] is None:
+                return None
+
+            return result["data"].get("execution")
+        except Exception as e:
+            print(f"[DEBUG] Error getting execution result: {e}")
+            import traceback
+            traceback.print_exc()
             return None
-
-        return result["data"].get("execution")

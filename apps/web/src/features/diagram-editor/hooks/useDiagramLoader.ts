@@ -30,6 +30,9 @@ export function useDiagramLoader() {
   // Track what diagram we've actually loaded to prevent reloads
   const loadedDiagramIdRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
+  const checkUrlTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCheckTimeRef = useRef<number>(0);
+  const hasShownToastRef = useRef<string | null>(null); // Track which diagram ID we've shown toast for
   
   // Get activeCanvas to check if we're in execution mode
   const activeCanvas = useUnifiedStore(state => state.activeCanvas);
@@ -79,6 +82,7 @@ export function useDiagramLoader() {
       const params = new URLSearchParams(window.location.search);
       const diagramParam = params.get('diagram');
       const isMonitorMode = params.get('monitor') === 'true' || !!params.get('executionId');
+      const noAutoExit = params.get('no-auto-exit') === 'true';
       
       // Skip URL-based loading if we're in execution mode but NOT monitor mode
       // This prevents reloading when user enters execution mode to run the canvas diagram
@@ -86,10 +90,19 @@ export function useDiagramLoader() {
         return;
       }
       
+      // Also skip if we're in monitor mode with no-auto-exit and already loaded
+      if (isMonitorMode && noAutoExit && loadedDiagramIdRef.current) {
+        return;
+      }
+      
       const { id, format } = parseDiagramParam(diagramParam);
       
       // Only proceed if diagram ID is different from what we've loaded
       if (id !== loadedDiagramIdRef.current) {
+        // Debug: Log when we're setting a new diagram ID
+        if (id && process.env.NODE_ENV === 'development') {
+          console.log(`[DiagramLoader] Setting new diagram ID: ${id} (previous: ${loadedDiagramIdRef.current})`);
+        }
         setDiagramIdFromUrl(id);
         setDiagramFormatFromUrl(format);
       }
@@ -99,9 +112,34 @@ export function useDiagramLoader() {
     checkUrl();
     hasInitializedRef.current = true;
     
+    // Debounced popstate handler to prevent rapid repeated calls
+    const handlePopState = () => {
+      // Rate limit: ignore if called within 500ms of last check
+      const now = Date.now();
+      if (now - lastCheckTimeRef.current < 500) {
+        return;
+      }
+      
+      // Clear any pending timeout
+      if (checkUrlTimeoutRef.current) {
+        clearTimeout(checkUrlTimeoutRef.current);
+      }
+      
+      // Set a new timeout to debounce rapid popstate events
+      checkUrlTimeoutRef.current = setTimeout(() => {
+        lastCheckTimeRef.current = Date.now();
+        checkUrl();
+      }, 100);
+    };
+    
     // Listen for URL changes
-    window.addEventListener('popstate', checkUrl);
-    return () => window.removeEventListener('popstate', checkUrl);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (checkUrlTimeoutRef.current) {
+        clearTimeout(checkUrlTimeoutRef.current);
+      }
+    };
   }, [activeCanvas]); // Add activeCanvas as dependency
 
   // Check if we should skip diagram loading
@@ -245,9 +283,12 @@ export function useDiagramLoader() {
           // Mark this diagram as loaded
           loadedDiagramIdRef.current = diagramIdFromUrl;
           
-          // Show success message
-          const diagramName = diagramWithCounts.metadata?.name || 'Unnamed diagram';
-          toast.success(`Loaded diagram: ${diagramName}`);
+          // Show success message only once per diagram
+          if (hasShownToastRef.current !== diagramIdFromUrl) {
+            hasShownToastRef.current = diagramIdFromUrl;
+            const diagramName = diagramWithCounts.metadata?.name || 'Unnamed diagram';
+            toast.success(`Loaded diagram: ${diagramName}`);
+          }
           
         } catch (err) {
           console.error('Failed to load diagram:', err);

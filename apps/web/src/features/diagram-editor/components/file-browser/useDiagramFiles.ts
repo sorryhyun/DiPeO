@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import * as React from 'react';
 import { useListDiagramsQuery } from '@/__generated__/graphql';
 
 export interface FileNode {
@@ -12,13 +13,25 @@ export interface FileNode {
 }
 
 export function useDiagramFiles() {
-  const { data, loading, error, refetch } = useListDiagramsQuery({
+  const { data, loading, error, refetch, stopPolling } = useListDiagramsQuery({
     variables: {
       limit: 1000, // Get all files
       offset: 0
     },
     pollInterval: 30000, // Refresh every 30 seconds
   });
+  
+  // Stop polling if we're in CLI monitor mode and detect server shutdown
+  React.useEffect(() => {
+    if (error?.networkError) {
+      const params = new URLSearchParams(window.location.search);
+      const isCliMonitorMode = params.get('monitor') === 'true' && params.get('no-auto-exit') === 'true';
+      if (isCliMonitorMode) {
+        console.log('[DiagramFiles] Stopping polling due to network error');
+        stopPolling();
+      }
+    }
+  }, [error, stopPolling]);
 
   const fileTree = useMemo(() => {
     if (!data?.diagrams) return [];

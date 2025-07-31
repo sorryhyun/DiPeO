@@ -107,8 +107,31 @@ class DiPeOCLI:
             print("❌ Failed to start server")
             return False
 
-        # Store diagram name for later use
-        diagram_name = Path(diagram_path).stem if not no_browser else None
+        # Store diagram path for browser URL
+        if not no_browser:
+            # Convert absolute path to relative path from files/ directory
+            path = Path(diagram_path)
+            try:
+                # Try to make path relative to FILES_DIR
+                from dipeo.core.constants import FILES_DIR
+                relative_path = path.relative_to(FILES_DIR)
+                # Remove format suffix from the relative path
+                path_str = str(relative_path)
+                for suffix in ['.native.json', '.light.yaml', '.readable.yaml']:
+                    if path_str.endswith(suffix):
+                        path_str = path_str[:-len(suffix)]
+                        break
+                diagram_name = path_str
+            except ValueError:
+                # If not under FILES_DIR, use the original logic
+                name = path.name
+                for suffix in ['.native.json', '.light.yaml', '.readable.yaml']:
+                    if name.endswith(suffix):
+                        name = name[:-len(suffix)]
+                        break
+                diagram_name = name
+        else:
+            diagram_name = None
 
         # Execute diagram
         print("🔄 Executing diagram...")
@@ -126,9 +149,15 @@ class DiPeOCLI:
 
             # Open browser with execution ID if requested (only once)
             if not no_browser:
-                monitor_url = f"http://localhost:3000/?diagram={diagram_name}&executionId={execution_id}&monitor=true"
+                monitor_url = f"http://localhost:3000/?diagram={diagram_name}&executionId={execution_id}&monitor=true&no-auto-exit=true"
                 print(f"🌐 Opening browser in monitor mode: {monitor_url}")
-                webbrowser.open(monitor_url)
+                try:
+                    if not webbrowser.open(monitor_url):
+                        print("⚠️  Could not open browser automatically. Please open manually:")
+                        print(f"   {monitor_url}")
+                except Exception as e:
+                    print(f"⚠️  Error opening browser: {e}")
+                    print(f"   Please open manually: {monitor_url}")
 
             # Poll for completion
             print(f"\n⏳ Waiting for execution to complete (timeout: {timeout}s)...")
@@ -140,37 +169,43 @@ class DiPeOCLI:
                     if elapsed > timeout:
                         print(f"⏰ Execution timed out after {timeout} seconds")
                         # Stop the server before returning
-                        if debug:
-                            print("🛑 Stopping server...")
-                            self.server.stop()
+                        print("🛑 Stopping server...")
+                        self.server.stop()
                         return False
 
                     time.sleep(2)
                     exec_result = self.server.get_execution_result(execution_id)
 
                     if exec_result is None:
-                        print(f"⏳ Execution in progress... ({int(elapsed)}s)")
+                        print(f"⏳ Waiting for execution result... ({int(elapsed)}s)")
                         continue
 
                     status = exec_result.get("status")
-                    if status == "COMPLETED":
-                        print("✅ Execution completed successfully!")
+
+                    if status in ["COMPLETED", "MAXITER_REACHED"]:
+                        if status == "MAXITER_REACHED":
+                            print("✅ Execution completed (max iterations reached)")
+                        else:
+                            print("✅ Execution completed successfully!")
                         break
-                    if status == "FAILED":
-                        print(
-                            f"❌ Execution failed: {exec_result.get('error', 'Unknown error')}"
-                        )
+                    if status in ["FAILED", "ABORTED"]:
+                        if status == "ABORTED":
+                            print("❌ Execution aborted")
+                        else:
+                            print(
+                                f"❌ Execution failed: {exec_result.get('error', 'Unknown error')}"
+                            )
                         return False
-                    if status is None:
-                        print(f"⏳ Waiting for execution to start... ({int(elapsed)}s)")
+                    if status in ["RUNNING", "PENDING"]:
+                        print(f"⏳ Execution {status.lower()}... ({int(elapsed)}s)")
                     else:
                         print(f"⏳ Status: {status} ({int(elapsed)}s)")
 
                 return True
             finally:
-                # Always stop server after execution when in debug mode
-                if debug:
-                    self.server.stop()
+                # Always stop server after execution completes
+                print("🛑 Stopping server...")
+                self.server.stop()
 
         except Exception as e:
             print(f"❌ Error during execution: {e}")

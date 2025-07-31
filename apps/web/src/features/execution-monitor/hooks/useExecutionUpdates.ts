@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { NodeExecutionStatus, ExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/domain-models';
 import { nodeId, executionId } from '@/core/types';
 import { useExecutionState } from './useExecutionState';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 interface UseExecutionUpdatesProps {
   state: ReturnType<typeof useExecutionState>;
@@ -15,6 +16,7 @@ interface UseExecutionUpdatesProps {
 }
 
 const THROTTLE_DELAY = 50; // ms
+const TOAST_THROTTLE_DELAY = 2000; // ms - Prevent toast spam (increased from 1000ms)
 
 export function useExecutionUpdates({
   state,
@@ -41,6 +43,22 @@ export function useExecutionUpdates({
   // Refs for throttling
   const lastNodeStartRef = useRef<{ [nodeId: string]: number }>({});
   const lastNodeCompleteRef = useRef<{ [nodeId: string]: number }>({});
+  const lastToastRef = useRef<{ [key: string]: number }>({});
+
+  // Throttled toast function to prevent spam
+  const showThrottledToast = useCallback((key: string, type: 'success' | 'error' | 'info', message: string) => {
+    if (!showToasts) return;
+    
+    const now = Date.now();
+    const lastToast = lastToastRef.current[key] || 0;
+    
+    if (now - lastToast < TOAST_THROTTLE_DELAY) {
+      return;
+    }
+    
+    lastToastRef.current[key] = now;
+    toast[type](message);
+  }, [showToasts]);
 
   // Handle node start with manual throttling
   const handleNodeStart = useCallback((nodeIdStr: string, nodeType: string) => {
@@ -129,10 +147,29 @@ export function useExecutionUpdates({
       completeExecution();
       executionActions.stopExecution();
       
-      if (showToasts) {
-        const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
-        const statusMsg = executionUpdates.status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
-        toast.success(`Execution ${statusMsg}${tokensMsg}`);
+      const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
+      const statusMsg = executionUpdates.status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
+      showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
+      
+      // Auto-exit execution mode when running in CLI mode (detected by monitor=true or executionId params)
+      const params = new URLSearchParams(window.location.search);
+      const isCliMode = params.get('monitor') === 'true' || !!params.get('executionId');
+      
+      if (isCliMode && !params.get('no-auto-exit')) {
+        // Give a brief moment for final updates to process
+        setTimeout(() => {
+          // Switch back to main canvas
+          const store = useUnifiedStore.getState();
+          store.setActiveCanvas('main');
+          
+          // Clear URL params
+          const url = new URL(window.location.href);
+          url.searchParams.delete('monitor');
+          url.searchParams.delete('executionId');
+          window.history.replaceState({}, '', url.toString());
+          
+          // No need to dispatch popstate - the canvas change will handle UI updates
+        }, 1000);
       }
       
       onUpdate?.({ 
@@ -145,9 +182,7 @@ export function useExecutionUpdates({
       errorExecution(executionUpdates.error);
       executionActions.stopExecution();
       
-      if (showToasts) {
-        toast.error(`Execution failed: ${executionUpdates.error}`);
-      }
+      showThrottledToast('execution-error', 'error', `Execution failed: ${executionUpdates.error}`);
       
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR, 
@@ -155,13 +190,27 @@ export function useExecutionUpdates({
         error: executionUpdates.error, 
         timestamp: new Date().toISOString() 
       });
+      
+      // Auto-exit on failure in CLI mode
+      const params = new URLSearchParams(window.location.search);
+      const isCliMode = params.get('monitor') === 'true' || !!params.get('executionId');
+      
+      if (isCliMode && !params.get('no-auto-exit')) {
+        setTimeout(() => {
+          const store = useUnifiedStore.getState();
+          store.setActiveCanvas('main');
+          
+          const url = new URL(window.location.href);
+          url.searchParams.delete('monitor');
+          url.searchParams.delete('executionId');
+          window.history.replaceState({}, '', url.toString());
+        }, 2000); // Give more time to see the error
+      }
     } else if (executionUpdates.status === ExecutionStatus.ABORTED) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();
       
-      if (showToasts) {
-        toast.error('Execution aborted');
-      }
+      showThrottledToast('execution-aborted', 'error', 'Execution aborted');
       
       onUpdate?.({ 
         type: EventType.EXECUTION_STATUS_CHANGED, 
@@ -169,7 +218,7 @@ export function useExecutionUpdates({
         timestamp: new Date().toISOString() 
       });
     }
-  }, [executionUpdates, completeExecution, errorExecution, executionActions, showToasts, onUpdate, executionIdRef]);
+  }, [executionUpdates, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef]);
 
   // Process node subscription updates
   useEffect(() => {
@@ -192,9 +241,7 @@ export function useExecutionUpdates({
           completeExecution();
           executionActions.stopExecution();
           
-          if (showToasts) {
-            toast.success('Execution completed (max iterations reached)');
-          }
+          showThrottledToast('execution-maxiter', 'success', 'Execution completed (max iterations reached)');
           
           onUpdate?.({ 
             type: EventType.EXECUTION_STATUS_CHANGED, 
@@ -216,9 +263,7 @@ export function useExecutionUpdates({
         error: nodeUpdates.error ?? undefined
       });
       
-      if (showToasts) {
-        toast.error(`Node ${nodeUpdates.node_id.slice(0, 8)}... failed: ${nodeUpdates.error}`);
-      }
+      showThrottledToast(`node-error-${nodeUpdates.node_id}`, 'error', `Node ${nodeUpdates.node_id.slice(0, 8)}... failed: ${nodeUpdates.error}`);
       
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR,
@@ -277,7 +322,7 @@ export function useExecutionUpdates({
         timestamp: new Date().toISOString() 
       });
     }
-  }, [nodeUpdates, handleNodeStart, handleNodeComplete, updateNodeState, incrementCompletedNodes, addSkippedNode, executionActions, showToasts, onUpdate, executionIdRef, state, completeExecution]);
+  }, [nodeUpdates, handleNodeStart, handleNodeComplete, updateNodeState, incrementCompletedNodes, addSkippedNode, executionActions, showThrottledToast, onUpdate, executionIdRef, state, completeExecution]);
 
   // Process interactive prompt updates
   useEffect(() => {
