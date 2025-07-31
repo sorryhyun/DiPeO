@@ -33,7 +33,7 @@ def create_server_container() -> Container:
     from dipeo.application.registry.keys import STATE_STORE, MESSAGE_ROUTER
     
     # Override state store with server implementation
-    from dipeo_server.infra.persistence.state_registry import StateRegistry
+    from dipeo_server.infra.state_registry import StateRegistry
     container.registry.register(STATE_STORE, StateRegistry())
     
     # Override message router with server implementation
