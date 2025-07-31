@@ -108,14 +108,14 @@ class ChatGPTAdapter(BaseLLMAdapter):
                             score=result.get('score')
                         ))
                     tool_outputs.append(ToolOutput(
-                        type=ToolType.web_search,
+                        type=ToolType.WEB_SEARCH,
                         result=search_results,
                         raw_response=output.result
                     ))
                 elif output.type == 'image_generation_call' and hasattr(output, 'result'):
                     # Handle image generation result
                     tool_outputs.append(ToolOutput(
-                        type=ToolType.image_generation,
+                        type=ToolType.IMAGE_GENERATION,
                         result=ImageGenerationResult(
                             image_data=output.result,  # Base64 encoded
                             format='png',

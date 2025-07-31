@@ -1,9 +1,9 @@
-"""Execution resolver using UnifiedServiceRegistry."""
+"""Execution resolver using ServiceRegistry."""
 
 import logging
 from typing import Optional, List
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.diagram_generated.domain_models import ExecutionID, ExecutionState
 from dipeo.core.ports import StateStorePort
 
@@ -18,13 +18,13 @@ STATE_STORE = ServiceKey[StateStorePort]("state_store")
 class ExecutionResolver:
     """Resolver for execution-related queries using service registry."""
     
-    def __init__(self, registry: UnifiedServiceRegistry):
+    def __init__(self, registry: ServiceRegistry):
         self.registry = registry
     
     async def get_execution(self, id: ExecutionID) -> Optional[ExecutionState]:
         """Get a single execution by ID."""
         try:
-            state_store = self.registry.require(STATE_STORE)
+            state_store = self.registry.resolve(STATE_STORE)
             execution = await state_store.get_state(str(id))
             
             if not execution:
@@ -45,7 +45,7 @@ class ExecutionResolver:
     ) -> List[ExecutionState]:
         """List executions with optional filtering."""
         try:
-            state_store = self.registry.require(STATE_STORE)
+            state_store = self.registry.resolve(STATE_STORE)
             
             # Get executions from state store
             # Note: StateRegistry only supports diagram_id and status filters

@@ -1972,6 +1972,16 @@ class NodeSpecification(BaseModel):
     
     
     
+    
+    
+    
+    
+    
+    primaryDisplayField: Optional[str] = Field(default=None)
+    
+    
+    
+    
 
 
 

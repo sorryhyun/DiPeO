@@ -21,8 +21,11 @@ from .strawberry_nodes import (
 from dipeo.application.graphql.types.domain_types import DomainNodeType
 from dipeo.application.graphql.types.inputs import Vec2Input
 
-# Import services
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+# Import services and keys
+from dipeo.application.registry import ServiceRegistry, ServiceKey
+
+# Service keys
+INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
 # Generate input types for each node
@@ -59,7 +62,7 @@ class NodeMutations:
         {% if mutation.operation == 'create' %}input: {{ mutation.input_type }}{% else %}id: str, input: {{ mutation.input_type }}{% endif %}
     ) -> {{ mutation.return_type }}:
         """{{ mutation.operation.capitalize() }} a {{ mutation.node_type.replace('_', ' ').title() }} node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         {% if mutation.operation == 'create' %}
         # Prepare node data
@@ -69,16 +72,23 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         {% else %}
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         {% endif %}
         

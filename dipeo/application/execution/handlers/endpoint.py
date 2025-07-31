@@ -52,7 +52,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         # Validate filesystem adapter is available if save_to_file is enabled
         if node.save_to_file:
-            if not request.services.get("filesystem_adapter") and not self.filesystem_adapter:
+            if not request.get_service("filesystem_adapter") and not self.filesystem_adapter:
                 return "Filesystem adapter is required when save_to_file is enabled"
         
         return None
@@ -70,8 +70,14 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                 "filename": node.file_name or f"output_{node.id}.json"
             })
         
-        # Get service from services dict
-        filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+        # Get filesystem adapter (handle both dict and ServiceRegistry)
+        if isinstance(services, dict):
+            filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+        else:
+            # It's a ServiceRegistry
+            from dipeo.application.registry import ServiceKey
+            fs_key = ServiceKey("filesystem_adapter")
+            filesystem_adapter = self.filesystem_adapter or services.get(fs_key)
 
         # Endpoint nodes pass through their inputs
         result_data = inputs if inputs else {}
@@ -86,11 +92,22 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             file_name = node.metadata.get('file_path')
         
         # Check in the raw node data from services
-        if not file_name and 'typed_node' in services:
-            typed_node = services['typed_node']
-            if hasattr(typed_node, 'to_dict'):
-                node_dict = typed_node.to_dict()
-                file_name = node_dict.get('file_path') or node_dict.get('file_name')
+        if not file_name:
+            # Handle both dict and ServiceRegistry cases
+            if isinstance(services, dict) and 'typed_node' in services:
+                typed_node = services['typed_node']
+                if hasattr(typed_node, 'to_dict'):
+                    node_dict = typed_node.to_dict()
+                    file_name = node_dict.get('file_path') or node_dict.get('file_name')
+            elif hasattr(services, 'has') and hasattr(services, 'get'):
+                # It's a ServiceRegistry
+                from dipeo.application.registry import ServiceKey
+                typed_node_key = ServiceKey("typed_node")
+                if services.has(typed_node_key):
+                    typed_node = services.get(typed_node_key)
+                    if hasattr(typed_node, 'to_dict'):
+                        node_dict = typed_node.to_dict()
+                        file_name = node_dict.get('file_path') or node_dict.get('file_name')
 
         if save_to_file and file_name and filesystem_adapter:
             try:

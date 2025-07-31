@@ -8,6 +8,14 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseService
 from dipeo.models import ExecutionStatus
+from dipeo.application.registry import (
+    STATE_STORE,
+    MESSAGE_ROUTER,
+    DIAGRAM_STORAGE_SERVICE,
+    API_KEY_SERVICE,
+    CONVERSATION_SERVICE,
+    CONVERSATION_MANAGER,
+)
 
 if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
@@ -16,7 +24,7 @@ if TYPE_CHECKING:
     from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
     from dipeo.models import DomainDiagram
 
-    from ...unified_service_registry import UnifiedServiceRegistry
+    from ...registry import ServiceRegistry
     from ..execution_runtime import ExecutionRuntime
     from dipeo.container.container import Container
 
@@ -24,7 +32,7 @@ class ExecuteDiagramUseCase(BaseService):
 
     def __init__(
         self,
-        service_registry: "UnifiedServiceRegistry",
+        service_registry: "ServiceRegistry",
         state_store: Optional["StateStorePort"] = None,
         message_router: Optional["MessageRouterPort"] = None,
         diagram_storage_service: Optional["DiagramStorageAdapter"] = None,
@@ -35,9 +43,9 @@ class ExecuteDiagramUseCase(BaseService):
         self.container = container
         
         # Get services from registry if not provided directly (for backward compatibility)
-        self.state_store = state_store or service_registry.get("state_store")
-        self.message_router = message_router or service_registry.get("message_router")
-        self.diagram_storage_service = diagram_storage_service or service_registry.get("diagram_storage_service")
+        self.state_store = state_store or service_registry.resolve(STATE_STORE)
+        self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
+        self.diagram_storage_service = diagram_storage_service or service_registry.resolve(DIAGRAM_STORAGE_SERVICE)
         
         # Validate required services
         if not self.state_store:
@@ -254,8 +262,8 @@ class ExecuteDiagramUseCase(BaseService):
         
         # Get API keys if available
         api_keys = None
-        if hasattr(self.service_registry, 'get'):
-            api_key_service = self.service_registry.get('api_key_service')
+        if hasattr(self.service_registry, 'resolve'):
+            api_key_service = self.service_registry.resolve(API_KEY_SERVICE)
             if api_key_service:
                 # Extract API keys needed by the diagram
                 api_keys = self._extract_api_keys_for_typed_diagram(domain_diagram, api_key_service)
@@ -338,12 +346,12 @@ class ExecuteDiagramUseCase(BaseService):
         log = logging.getLogger(__name__)
 
         conversation_service = None
-        if hasattr(self.service_registry, 'get'):
+        if hasattr(self.service_registry, 'resolve'):
             # Try the standardized name first
-            conversation_service = self.service_registry.get('conversation_service')
+            conversation_service = self.service_registry.resolve(CONVERSATION_SERVICE)
             if not conversation_service:
-                # Fall back to legacy name for backward compatibility
-                conversation_service = self.service_registry.get('conversation')
+                # Fall back to conversation manager for backward compatibility
+                conversation_service = self.service_registry.resolve(CONVERSATION_MANAGER)
         
         if conversation_service:
             # Extract person configs from typed nodes

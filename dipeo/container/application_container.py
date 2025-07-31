@@ -42,13 +42,12 @@ def _create_execute_diagram_use_case(
 
 
 def _create_unified_service_registry_from_dependencies(static, business, dynamic, persistence, integration):
-    """Factory for UnifiedServiceRegistry using automatic service discovery."""
-    # Use migration adapter during transition to new registry
-    from dipeo.application.registry.migration_adapter import MigrationServiceRegistry
+    """Factory for ServiceRegistry using automatic service discovery."""
+    from dipeo.application.registry import ServiceRegistry, ServiceKey
     import logging
     
     logger = logging.getLogger(__name__)
-    registry = MigrationServiceRegistry()
+    registry = ServiceRegistry()
     
     # Define container mappings with their service configurations
     container_configs = {
@@ -137,19 +136,22 @@ def _create_unified_service_registry_from_dependencies(static, business, dynamic
             for service_name in config.get("services", []):
                 if hasattr(container, service_name):
                     service = getattr(container, service_name)()
-                    registry.register(service_name, service)
+                    key = ServiceKey(service_name)
+                    registry.register(key, service)
             
             # Register optional services
             for service_name in config.get("optional_services", []):
                 if hasattr(container, service_name):
                     service = getattr(container, service_name)()
-                    registry.register(service_name, service)
+                    key = ServiceKey(service_name)
+                    registry.register(key, service)
             
             # Register aliases
             for alias, target in config.get("aliases", {}).items():
                 if hasattr(container, target):
                     service = getattr(container, target)()
-                    registry.register(alias, service)
+                    key = ServiceKey(alias)
+                    registry.register(key, service)
 
         except Exception as e:
             logger.error(f"Failed to register {container_name} services: {e}")

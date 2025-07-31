@@ -131,8 +131,13 @@ async def init_resources(container) -> None:
         "diagram_service"
     ]
     
-    validation_results = service_registry.validate_required_services(required_services)
-    missing_services = [name for name, present in validation_results.items() if not present]
+    # Check for missing services using the new ServiceRegistry API
+    from dipeo.application.registry import ServiceKey
+    missing_services = []
+    for service_name in required_services:
+        key = ServiceKey(service_name)
+        if not service_registry.has(key):
+            missing_services.append(service_name)
     
     if missing_services:
         logger.warning(f"Missing required services: {missing_services}")

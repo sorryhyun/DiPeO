@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from dipeo.application.execution.use_cases import (
         ExecuteDiagramUseCase,
     )
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.application.registry import ServiceRegistry, ServiceKey
 
     from dipeo_server.application.container import ServerContainer
 
@@ -25,11 +25,12 @@ class GraphQLContext(BaseContext):
     user_data: dict[str, Any] = field(default_factory=dict)
 
     def get_service(self, name: str) -> Any:
-        """Get a service from the unified service registry."""
-        return self.service_registry.get(name)
+        """Get a service from the service registry."""
+        key = ServiceKey(name)
+        return self.service_registry.get(key)
 
     @property
-    def service_registry(self) -> "UnifiedServiceRegistry":
+    def service_registry(self) -> "ServiceRegistry":
         return self.container.application.service_registry()
 
     @property

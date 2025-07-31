@@ -1,9 +1,9 @@
-"""Diagram resolver using UnifiedServiceRegistry."""
+"""Diagram resolver using ServiceRegistry."""
 
 import logging
 from typing import Optional, List
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.diagram_generated.domain_models import DiagramID, DomainDiagram
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
 
@@ -18,13 +18,13 @@ INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 class DiagramResolver:
     """Resolver for diagram-related queries using service registry."""
     
-    def __init__(self, registry: UnifiedServiceRegistry):
+    def __init__(self, registry: ServiceRegistry):
         self.registry = registry
     
     async def get_diagram(self, id: DiagramID) -> Optional[DomainDiagram]:
         """Get a single diagram by ID."""
         try:
-            service = self.registry.require(INTEGRATED_DIAGRAM_SERVICE)
+            service = self.registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
             diagram_data = await service.get_diagram(id)
             
             if not diagram_data:
@@ -54,7 +54,7 @@ class DiagramResolver:
     ) -> List[DomainDiagram]:
         """List diagrams with optional filtering."""
         try:
-            service = self.registry.require(INTEGRATED_DIAGRAM_SERVICE)
+            service = self.registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
             
             # Get all diagram infos
             diagram_infos = await service.list_diagrams()

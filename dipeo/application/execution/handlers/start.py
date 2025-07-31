@@ -8,6 +8,7 @@ from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import StartNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.start_model import StartNodeData, HookTriggerMode
+from dipeo.application.registry import STATE_STORE
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -73,7 +74,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         
         if execution_id:
             # Try to get state store service
-            state_store = request.services.get("state_store")
+            state_store = request.services.resolve(STATE_STORE)
             if state_store:
                 execution_state = await state_store.get_state(execution_id)
                 if execution_state and execution_state.variables:

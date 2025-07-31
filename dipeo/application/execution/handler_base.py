@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, TypeVar
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.core.static.node_handler import TypedNodeHandler as CoreTypedHandler
 from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput
+from dipeo.application.registry import EXECUTION_RUNTIME
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
@@ -45,7 +46,7 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
         # Fall back to service registry
         service_registry = getattr(context, 'service_registry', None)
         if service_registry:
-            runtime = service_registry.get('execution_runtime')
+            runtime = service_registry.resolve(EXECUTION_RUNTIME)
             if runtime:
                 return runtime
         

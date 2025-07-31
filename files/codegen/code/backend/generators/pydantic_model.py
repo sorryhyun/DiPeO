@@ -110,11 +110,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         spec_data = inputs.get('spec_data', {})
         template_content = inputs.get('template_content', '')
         mappings = inputs.get('mappings', {})
-        
-        # Debug logging
-        print(f"\nDEBUG pydantic_model.py: Processing node type: {spec_data.get('nodeType', 'unknown')}")
-        print(f"DEBUG pydantic_model.py: Mappings keys: {list(mappings.keys()) if mappings else 'None'}")
-        
+
         if not spec_data:
             raise ValueError("spec_data is required")
         if not template_content:

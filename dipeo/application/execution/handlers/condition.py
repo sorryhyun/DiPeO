@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.unified_service_registry import (
+from dipeo.application.registry import (
     DIAGRAM,
     CONDITION_EVALUATION_SERVICE,
     NODE_EXEC_COUNTS,
@@ -57,10 +57,10 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     def validate(self, request: ExecutionRequest[ConditionNode]) -> Optional[str]:
         """Validate the execution request."""
         # Check for required services
-        if not request.services.get(CONDITION_EVALUATION_SERVICE.name):
+        if not request.get_service(CONDITION_EVALUATION_SERVICE.name):
             return "Condition evaluation service not available"
         
-        if not request.services.get(DIAGRAM.name):
+        if not request.get_service(DIAGRAM.name):
             return "Diagram service not available"
             
         return None
@@ -72,12 +72,12 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         context = request.context
         inputs = request.inputs
         
-        # Get services from services dict
+        # Get services using request helper methods
         evaluation_service = (
             self.condition_evaluation_service or 
-            request.services.get(CONDITION_EVALUATION_SERVICE.name)
+            request.get_service(CONDITION_EVALUATION_SERVICE.name)
         )
-        diagram = request.services.get(DIAGRAM.name)
+        diagram = request.get_service(DIAGRAM.name)
         
         if not evaluation_service or not diagram:
             raise ValueError("Required services not available")
@@ -215,12 +215,10 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             if is_conversation_list:
                 # Direct list of messages from ConversationOutput
                 messages = value
-                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (direct list)")
                 aggregated["messages"].extend(messages)
             elif isinstance(value, dict) and 'conversation' in value:
                 # Legacy format with conversation key
                 messages = value['conversation']
-                logger.debug(f"    Adding {len(messages)} messages from node {node.id} (dict format)")
                 aggregated["messages"].extend(messages)
         
         logger.debug(f"_aggregate_conversation_states: Total aggregated messages: {len(aggregated['messages'])}")
@@ -275,9 +273,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                     break
 
         result = found_executed and all_reached_max
-        logger.debug(f"_evaluate_max_iterations_with_outputs: found_executed={found_executed}, all_reached_max={all_reached_max}, result={result}")
         for node in person_job_nodes:
             exec_count = context.get_node_execution_count(node.id)
             node_state = context.get_node_state(node.id)
-            logger.debug(f"  Node {node.id}: exec_count={exec_count}, status={node_state.status if node_state else 'None'}")
         return result

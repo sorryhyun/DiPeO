@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.unified_service_registry import EXECUTION_CONTEXT
+from dipeo.application.registry import EXECUTION_CONTEXT
 from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
@@ -56,7 +56,11 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
         # Check if we have an interactive handler
-        exec_context = services.get(EXECUTION_CONTEXT.name)
+        if isinstance(services, dict):
+            exec_context = services.get(EXECUTION_CONTEXT.name)
+        else:
+            # It's a ServiceRegistry
+            exec_context = services.get(EXECUTION_CONTEXT)
         if (
             exec_context
             and hasattr(exec_context, "interactive_handler")

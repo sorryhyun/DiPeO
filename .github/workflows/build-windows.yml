@@ -189,7 +189,7 @@ jobs:
           }
           
           # Build the installer
-          & $nsisPath minimal-installer.nsi
+          & $nsisPath scripts/minimal-installer.nsi
           
           # Verify installer was created
           if (!(Test-Path "DiPeO-Setup-Minimal.exe")) {

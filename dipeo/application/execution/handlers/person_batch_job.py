@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.unified_service_registry import (
+from dipeo.application.registry import (
     CONVERSATION_SERVICE,
     LLM_SERVICE,
     DIAGRAM,
@@ -89,10 +89,16 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        # Get services from services dict
-        conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE.name)
-        llm_service = self.llm_service or services.get(LLM_SERVICE.name)
-        diagram: DomainDiagram | None = services.get(DIAGRAM.name)
+        # Get services from services (handle both dict and ServiceRegistry)
+        if isinstance(services, dict):
+            conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE.name)
+            llm_service = self.llm_service or services.get(LLM_SERVICE.name)
+            diagram: DomainDiagram | None = services.get(DIAGRAM.name)
+        else:
+            # It's a ServiceRegistry
+            conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE)
+            llm_service = self.llm_service or services.get(LLM_SERVICE)
+            diagram: DomainDiagram | None = services.get(DIAGRAM)
         
         if not conversation_service or not llm_service:
             raise ValueError("Required services not available")
@@ -201,7 +207,11 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Create message builder
         # TODO: Add method to get execution_id from context protocol
         execution_id = getattr(context, '_execution_id', 'unknown')
-        prompt_builder = services.get(PROMPT_BUILDER.name)
+        if isinstance(services, dict):
+            prompt_builder = services.get(PROMPT_BUILDER.name)
+        else:
+            # It's a ServiceRegistry
+            prompt_builder = services.get(PROMPT_BUILDER)
         
         # Apply memory settings if configured
         if node.memory_settings:
@@ -221,7 +231,11 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Check for conversation state in inputs
         # Get current node ID from service
         current_node_id = None
-        node_info = services.get(CURRENT_NODE_INFO.name)
+        if isinstance(services, dict):
+            node_info = services.get(CURRENT_NODE_INFO.name)
+        else:
+            # It's a ServiceRegistry
+            node_info = services.get(CURRENT_NODE_INFO)
         if node_info and 'node_id' in node_info:
             current_node_id = node_info['node_id']
         

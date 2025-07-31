@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.unified_service_registry import DB_OPERATIONS_SERVICE
+from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
@@ -80,8 +80,13 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
         """Run the DB operation with a strongly-typed `DBNode` instance."""
-        # Get service from services dict
-        db_service = services.get(DB_OPERATIONS_SERVICE.name)
+        # Get service from services (handle both dict and ServiceRegistry)
+        if isinstance(services, dict):
+            db_service = services.get(DB_OPERATIONS_SERVICE.name)
+        else:
+            # It's a ServiceRegistry
+            db_service = services.get(DB_OPERATIONS_SERVICE)
+        
         if db_service is None:  # Hard failure early
             raise RuntimeError("db_operations_service not available")
         

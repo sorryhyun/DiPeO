@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.unified_service_registry import (
+from dipeo.application.registry import (
     LLM_SERVICE,
     DIAGRAM,
     CONVERSATION_MANAGER,
@@ -85,11 +85,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         # Direct typed access to person_id
         person_id = node.person
 
-        # Get services from services dict
-        llm_service = request.services.get(LLM_SERVICE.name)
-        diagram = request.services.get(DIAGRAM.name)
-        conversation_manager = request.services.get(CONVERSATION_MANAGER.name)
-        prompt_builder = request.services.get(PROMPT_BUILDER.name)
+        # Get services using request helper methods
+        llm_service = request.get_service(LLM_SERVICE.name)
+        diagram = request.get_service(DIAGRAM.name)
+        conversation_manager = request.get_service(CONVERSATION_MANAGER.name)
+        prompt_builder = request.get_service(PROMPT_BUILDER.name)
         
         if not all([llm_service, diagram, conversation_manager, prompt_builder]):
             raise ValueError("Required services not available")

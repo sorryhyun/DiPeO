@@ -11,7 +11,7 @@ from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.infra.config.settings import get_settings
 
 if TYPE_CHECKING:
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.application.registry import ServiceRegistry
     from dipeo.core.ports import ExecutionObserver
 
 log = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class TypedExecutionEngine:
     
     def __init__(
         self, 
-        service_registry: "UnifiedServiceRegistry", 
+        service_registry: "ServiceRegistry", 
         observers: list["ExecutionObserver"] | None = None
     ):
         self.service_registry = service_registry
@@ -136,25 +136,22 @@ class TypedExecutionEngine:
                 execution_runtime._current_node_id[0] = node.id
                 
                 # Register services
-                execution_runtime._service_registry.register("diagram", execution_runtime.diagram)
-                execution_runtime._service_registry.register("execution_context", {
+                from dipeo.application.registry import ServiceKey
+                execution_runtime._service_registry.register(ServiceKey("diagram"), execution_runtime.diagram)
+                execution_runtime._service_registry.register(ServiceKey("execution_context"), {
                     "interactive_handler": interactive_handler
                 })
                 
-                # Get services dict from handler requirements
-                services_dict = {}
-                if hasattr(handler, 'requires_services'):
-                    for service_name in handler.requires_services:
-                        service = execution_runtime.get_service(service_name)
-                        if service:
-                            services_dict[service_name] = service
+                # Pass the service registry directly instead of converting to dict
+                # This allows handlers to use both old .get() and new .resolve() methods
+                services_registry = execution_runtime._service_registry
                 
                 # Execute handler directly
                 output = await handler.execute(
                     node=node,
                     context=execution_runtime,
                     inputs=inputs,
-                    services=services_dict
+                    services=services_registry
                 )
                 
                 # Handle PersonJobNode special logic BEFORE marking complete

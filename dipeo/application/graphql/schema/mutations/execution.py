@@ -1,4 +1,4 @@
-"""Execution mutations using UnifiedServiceRegistry."""
+"""Execution mutations using ServiceRegistry."""
 
 import asyncio
 import logging
@@ -6,7 +6,7 @@ from typing import AsyncGenerator, Dict, Any
 
 import strawberry
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.execution import ExecuteDiagramUseCase
 from dipeo.core.ports import StateStorePort, MessageRouterPort
 from dipeo.diagram_generated.enums import ExecutionStatus, EventType
@@ -25,7 +25,7 @@ MESSAGE_ROUTER = ServiceKey[MessageRouterPort]("message_router")
 INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
-def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
+def create_execution_mutations(registry: ServiceRegistry) -> type:
     """Create execution mutation methods with injected service registry."""
     
     @strawberry.type
@@ -34,9 +34,9 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
         async def execute_diagram(self, input: ExecuteDiagramInput) -> ExecutionResult:
             try:
                 # Get required services
-                state_store = registry.require(STATE_STORE)
-                message_router = registry.require(MESSAGE_ROUTER)
-                integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
+                state_store = registry.resolve(STATE_STORE)
+                message_router = registry.resolve(MESSAGE_ROUTER)
+                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
                 
                 # Get diagram data
                 diagram_data = None
@@ -113,8 +113,8 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
         @strawberry.mutation
         async def update_node_state(self, input: UpdateNodeStateInput) -> ExecutionResult:
             try:
-                state_store = registry.require(STATE_STORE)
-                message_router = registry.require(MESSAGE_ROUTER)
+                state_store = registry.resolve(STATE_STORE)
+                message_router = registry.resolve(MESSAGE_ROUTER)
                 
                 # Update node state
                 await state_store.update_node_status(
@@ -157,8 +157,8 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
         @strawberry.mutation
         async def control_execution(self, input: ExecutionControlInput) -> ExecutionResult:
             try:
-                state_store = registry.require(STATE_STORE)
-                message_router = registry.require(MESSAGE_ROUTER)
+                state_store = registry.resolve(STATE_STORE)
+                message_router = registry.resolve(MESSAGE_ROUTER)
                 
                 # Map action to status
                 status_map = {
@@ -209,8 +209,8 @@ def create_execution_mutations(registry: UnifiedServiceRegistry) -> type:
             self, input: InteractiveResponseInput
         ) -> ExecutionResult:
             try:
-                message_router = registry.require(MESSAGE_ROUTER)
-                state_store = registry.require(STATE_STORE)
+                message_router = registry.resolve(MESSAGE_ROUTER)
+                state_store = registry.resolve(STATE_STORE)
                 
                 # Send interactive response
                 await message_router.broadcast_to_execution(

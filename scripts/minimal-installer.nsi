@@ -44,7 +44,7 @@ Section "DiPeO Core Files" SEC01
     SetOutPath "$INSTDIR"
     
     ; Copy launcher script (use the installed version)
-    File /oname=launch-dipeo.bat "launch-dipeo-installed.bat"
+    File /oname=launch-dipeo.bat "scripts\launch-dipeo-installed.bat"
     
     ; Copy icon
     CreateDirectory "$INSTDIR\icons"

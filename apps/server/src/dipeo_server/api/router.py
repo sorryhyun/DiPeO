@@ -10,7 +10,7 @@ from .graphql.schema import create_unified_graphql_router as create_graphql_rout
 def create_v2_graphql_router(context_getter=None, container=None):
     """Create v2 GraphQL router with interface-based schema."""
     from dipeo.application.graphql.v2 import create_v2_schema
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.application.registry import ServiceRegistry
 
     # Get service registry
     if container:
@@ -22,7 +22,7 @@ def create_v2_graphql_router(context_getter=None, container=None):
             container = get_container()
             registry = container.application.service_registry()
         except RuntimeError:
-            registry = UnifiedServiceRegistry()
+            registry = ServiceRegistry()
 
     # Create the v2 schema with service registry
     schema = create_v2_schema(service_registry=registry)

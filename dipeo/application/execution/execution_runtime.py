@@ -24,7 +24,7 @@ from dipeo.application.execution.states.state_transition_mixin import StateTrans
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
 
 if TYPE_CHECKING:
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+    from dipeo.application.registry import ServiceRegistry, ServiceKey
     from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
     from dipeo.container.container import Container
 
@@ -41,7 +41,7 @@ class ExecutionRuntime(StateTransitionMixin):
         self,
         diagram: "ExecutableDiagram",
         execution_state: ExecutionState,
-        service_registry: "UnifiedServiceRegistry",
+        service_registry: "ServiceRegistry",
         container: Optional["Container"] = None,
     ):
         self.diagram = diagram

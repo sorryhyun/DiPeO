@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.unified_service_registry import NOTION_SERVICE, API_KEY_SERVICE
+from dipeo.application.registry import NOTION_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import NotionNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.domain.validators import NotionValidator
@@ -62,9 +62,14 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        # Get services directly from the services dict
-        notion_service = self.notion_service or services.get(NOTION_SERVICE.name)
-        api_key_service = self.api_key_service or services.get(API_KEY_SERVICE.name)
+        # Get services (handle both dict and ServiceRegistry)
+        if isinstance(services, dict):
+            notion_service = self.notion_service or services.get(NOTION_SERVICE.name)
+            api_key_service = self.api_key_service or services.get(API_KEY_SERVICE.name)
+        else:
+            # It's a ServiceRegistry
+            notion_service = self.notion_service or services.get(NOTION_SERVICE)
+            api_key_service = self.api_key_service or services.get(API_KEY_SERVICE)
         
         if not notion_service:
             raise ValueError("Notion service not available")

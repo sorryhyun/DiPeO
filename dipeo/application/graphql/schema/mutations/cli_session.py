@@ -4,7 +4,7 @@ import strawberry
 from typing import Optional
 import logging
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.services.cli_session_service import CliSessionService
 from ...types.inputs import RegisterCliSessionInput, UnregisterCliSessionInput
 from ...types.results import CliSessionResult
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 CLI_SESSION_SERVICE = ServiceKey[CliSessionService]("cli_session_service")
 
 
-def create_cli_session_mutations(registry: UnifiedServiceRegistry) -> type:
+def create_cli_session_mutations(registry: ServiceRegistry) -> type:
     """Create CLI session mutation methods with injected service registry."""
     
     @strawberry.type
@@ -25,10 +25,10 @@ def create_cli_session_mutations(registry: UnifiedServiceRegistry) -> type:
             """Register a new CLI execution session."""
             try:
                 # Get or create CLI session service
-                cli_session_service = registry.get(CLI_SESSION_SERVICE.name)
+                cli_session_service = registry.get(CLI_SESSION_SERVICE)
                 if not cli_session_service:
                     cli_session_service = CliSessionService()
-                    registry.register(CLI_SESSION_SERVICE.name, cli_session_service)
+                    registry.register(CLI_SESSION_SERVICE, cli_session_service)
                 
                 # Register the session
                 session = await cli_session_service.start_cli_session(
@@ -54,7 +54,7 @@ def create_cli_session_mutations(registry: UnifiedServiceRegistry) -> type:
         async def unregister_cli_session(self, input: UnregisterCliSessionInput) -> CliSessionResult:
             """Unregister a CLI execution session."""
             try:
-                cli_session_service = registry.get(CLI_SESSION_SERVICE.name)
+                cli_session_service = registry.get(CLI_SESSION_SERVICE)
                 if not cli_session_service:
                     return CliSessionResult(
                         success=False,

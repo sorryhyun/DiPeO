@@ -1,7 +1,7 @@
 """Unified execution request objects for handler interface."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
 from dipeo.core.static.executable_diagram import ExecutableNode
 from dipeo.diagram_generated import NodeExecutionStatus
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.dynamic.execution_context import ExecutionContext
     from dipeo.container.container import Container
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.application.registry import ServiceRegistry
 
 # Type variable for node types
 T = TypeVar('T', bound=ExecutableNode)
@@ -28,7 +28,7 @@ class ExecutionRequest(Generic[T]):
     node: T
     context: "ExecutionContext"
     inputs: dict[str, Any] = field(default_factory=dict)
-    services: dict[str, Any] = field(default_factory=dict)
+    services: Union[dict[str, Any], "ServiceRegistry"] = field(default_factory=dict)
     
     # Execution metadata
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -40,7 +40,7 @@ class ExecutionRequest(Generic[T]):
     
     # Parent context for sub-diagrams
     parent_container: Optional["Container"] = None
-    parent_registry: Optional["UnifiedServiceRegistry"] = None
+    parent_registry: Optional["ServiceRegistry"] = None
     
     @property
     def node_id(self) -> str:
@@ -68,8 +68,17 @@ class ExecutionRequest(Generic[T]):
         return None
     
     def get_service(self, name: str) -> Any:
-        """Get a service by name."""
-        return self.services.get(name)
+        """Get a service by name.
+        
+        Handles both dict and ServiceRegistry cases.
+        """
+        if isinstance(self.services, dict):
+            return self.services.get(name)
+        else:
+            # It's a ServiceRegistry - need to use ServiceKey
+            from dipeo.application.registry import ServiceKey
+            key = ServiceKey(name)
+            return self.services.get(key)
     
     def get_input(self, name: str, default: Any = None) -> Any:
         """Get an input value by name."""
@@ -80,8 +89,17 @@ class ExecutionRequest(Generic[T]):
         self.metadata[key] = value
     
     def has_service(self, name: str) -> bool:
-        """Check if a service is available."""
-        return name in self.services
+        """Check if a service is available.
+        
+        Handles both dict and ServiceRegistry cases.
+        """
+        if isinstance(self.services, dict):
+            return name in self.services
+        else:
+            # It's a ServiceRegistry - need to use ServiceKey
+            from dipeo.application.registry import ServiceKey
+            key = ServiceKey(name)
+            return self.services.has(key)
     
     def has_input(self, name: str) -> bool:
         """Check if an input is available."""

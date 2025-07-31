@@ -10,7 +10,7 @@ from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 
 # Import schema from application layer
 from dipeo.application.graphql import create_schema
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from dipeo.application.registry import ServiceRegistry
 
 # The schema will be created with the service registry in create_unified_graphql_router
 unified_schema = None
@@ -32,7 +32,7 @@ def create_unified_graphql_router(context_getter=None, container=None):
         except RuntimeError:
             # Container not initialized yet, create a mock registry for now
             # This will be replaced when the router is actually used
-            registry = UnifiedServiceRegistry()
+            registry = ServiceRegistry()
 
     # Create the schema with the injected registry
     schema = create_schema(registry)
