@@ -21,11 +21,7 @@ if TYPE_CHECKING:
 
 
 class Person:
-    """LLM agent with memory of a shared global conversation.
-    
-    Maintains a filtered view of the global conversation managed by
-    ConversationManager for inter-person communication.
-    """
+    """LLM agent with filtered view of global conversation."""
     
     def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig, 
                  conversation_manager: Optional["ConversationManager"] = None,
@@ -77,30 +73,23 @@ class Person:
         return messages[-1] if messages else None
     
     def forget_all_messages(self) -> None:
-        """Apply extreme forgetting by setting memory limit to 0.
-        
-        Note: In the global conversation model, this doesn't delete messages
-        but makes the person unable to see any messages.
-        """
+        """Set memory limit to 0 - person can't see messages but they still exist."""
         self._memory_limiter = MemoryLimiter(0, preserve_system=False)
     
     def get_message_count(self) -> int:
         return len(self.get_messages())
     
     def set_memory_view(self, view: MemoryView) -> None:
-        """Change the default memory view for this person."""
         self.memory_view = view
         self._memory_filter = MemoryFilterFactory.create(view)
     
     def set_memory_limit(self, max_messages: int, preserve_system: bool = True) -> None:
-        """Set a memory limit for this person's view of the conversation."""
         if max_messages <= 0:
             self._memory_limiter = None
         else:
             self._memory_limiter = MemoryLimiter(max_messages, preserve_system)
     
     def get_memory_config(self) -> dict[str, Any]:
-        """Get current memory configuration."""
         return {
             "view": self.memory_view.value,
             "filter_description": self._memory_filter.describe(),
@@ -120,7 +109,6 @@ class Person:
     
     @property
     def conversation(self) -> Conversation:
-        """Get the global conversation."""
         conv = self._get_conversation()
         if not conv:
             raise RuntimeError("No conversation available")
@@ -133,11 +121,7 @@ class Person:
         from_person_id: PersonID | str = "system",
         **llm_options: Any
     ) -> ChatResult:
-        """Complete a prompt using this person's LLM.
-        
-        Note: Memory settings should be applied before calling this method,
-        typically by the handler at the appropriate time.
-        """
+        """Complete prompt with this person's LLM. Apply memory settings before calling."""
         # Create the incoming message
         incoming = Message(
             from_person_id=from_person_id,  # type: ignore[arg-type]
@@ -170,11 +154,7 @@ class Person:
         return result
     
     def apply_memory_settings(self, settings: MemorySettings) -> None:
-        """Apply unified memory settings - view and limit.
-        
-        This is the main method for configuring person memory.
-        It replaces the complex forgetting strategies with a simple view + limit approach.
-        """
+        """Apply memory settings - main method for person memory configuration."""
         view_mapping = {
             MemoryViewEnum.ALL_INVOLVED: MemoryView.ALL_INVOLVED,
             MemoryViewEnum.SENT_BY_ME: MemoryView.SENT_BY_ME,

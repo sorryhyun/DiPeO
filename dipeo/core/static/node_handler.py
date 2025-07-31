@@ -14,39 +14,29 @@ T = TypeVar('T', bound='ExecutableNode')
 
 
 class TypedNodeHandler(ABC, Generic[T]):
-    """Base implementation for type-safe node handlers.
-    
-    Each node type implements this abstract class to define how it should be executed
-    within a diagram. This provides the common execution pattern where typed nodes are
-    extracted from services and passed to execute_typed.
-    """
+    """Base for type-safe node handlers. Defines execution pattern for typed nodes."""
     
     @property
     @abstractmethod
     def node_class(self) -> type[T]:
-        """The typed node class this handler handles."""
         ...
     
     @property
     @abstractmethod
     def node_type(self) -> str:
-        """The node type string identifier."""
         ...
     
     @property
     @abstractmethod
     def schema(self) -> type[BaseModel]:
-        """The Pydantic schema for validation."""
         ...
     
     @property
     def requires_services(self) -> list[str]:
-        """List of services required by this handler."""
         return []
     
     @property
     def description(self) -> str:
-        """Description of this handler."""
         return f"Typed handler for {self.node_type} nodes"
     
     @abstractmethod

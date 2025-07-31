@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 
 class FlowStatus(Enum):
-    """Runtime flow status - independent of execution history."""
     WAITING = "waiting"
     READY = "ready"
     RUNNING = "running"
@@ -28,7 +27,6 @@ class FlowStatus(Enum):
 
 
 class CompletionStatus(Enum):
-    """Completion status for execution records."""
     SUCCESS = "success"
     FAILED = "failed"
     SKIPPED = "skipped"
@@ -37,7 +35,6 @@ class CompletionStatus(Enum):
 
 @dataclass
 class NodeExecutionRecord:
-    """Immutable record of a single node execution."""
     node_id: NodeID
     execution_number: int  # 1-based counting for clarity
     started_at: datetime
@@ -49,17 +46,14 @@ class NodeExecutionRecord:
     duration: float = 0.0  # seconds
     
     def is_complete(self) -> bool:
-        """Check if this execution is complete."""
         return self.ended_at is not None
     
     def was_successful(self) -> bool:
-        """Check if this execution was successful."""
         return self.status == CompletionStatus.SUCCESS
 
 
 @dataclass
 class NodeRuntimeState:
-    """Mutable runtime state for execution flow."""
     node_id: NodeID
     flow_status: FlowStatus
     is_active: bool = True
@@ -67,7 +61,6 @@ class NodeRuntimeState:
     last_check: datetime = field(default_factory=datetime.now)
     
     def can_execute(self) -> bool:
-        """Check if node can execute now."""
         return (
             self.flow_status == FlowStatus.READY and
             self.is_active and
@@ -76,7 +69,6 @@ class NodeRuntimeState:
 
 
 class ExecutionTracker:
-    """Separate tracking of execution history vs runtime state."""
     
     def __init__(self):
         self._execution_records: dict[NodeID, list[NodeExecutionRecord]] = {}
@@ -86,7 +78,6 @@ class ExecutionTracker:
         self._execution_order: list[NodeID] = []
     
     def start_execution(self, node_id: NodeID) -> int:
-        """Start a new execution and return execution number (1-based)."""
         current_count = self._execution_counts.get(node_id, 0)
         new_count = current_count + 1
         self._execution_counts[node_id] = new_count
@@ -119,7 +110,6 @@ class ExecutionTracker:
         error: str | None = None,
         token_usage: dict[str, int] | None = None
     ) -> None:
-        """Complete the current execution for a node."""
         records = self._execution_records.get(node_id, [])
         if not records:
             raise ValueError(f"No execution started for node {node_id}")
@@ -146,20 +136,16 @@ class ExecutionTracker:
             self._update_runtime_state(node_id, FlowStatus.WAITING)
     
     def get_execution_count(self, node_id: NodeID) -> int:
-        """Get total number of completed executions (0-based for conditions)."""
         return self._execution_counts.get(node_id, 0)
     
     def has_executed(self, node_id: NodeID) -> bool:
-        """Check if node has executed (regardless of success/failure)."""
         records = self._execution_records.get(node_id, [])
         return len(records) > 0
     
     def get_last_output(self, node_id: NodeID) -> NodeOutputProtocol | None:
-        """Get the last output regardless of current runtime state."""
         return self._last_outputs.get(node_id)
     
     def get_runtime_state(self, node_id: NodeID) -> NodeRuntimeState:
-        """Get current runtime state."""
         if node_id not in self._runtime_states:
             self._runtime_states[node_id] = NodeRuntimeState(
                 node_id=node_id,
@@ -168,11 +154,9 @@ class ExecutionTracker:
         return self._runtime_states[node_id]
     
     def update_runtime_state(self, node_id: NodeID, status: FlowStatus) -> None:
-        """Update runtime flow state without affecting history."""
         self._update_runtime_state(node_id, status)
     
     def reset_for_iteration(self, node_id: NodeID) -> None:
-        """Reset runtime state for next iteration without losing history."""
         runtime_state = self.get_runtime_state(node_id)
         runtime_state.flow_status = FlowStatus.READY
         runtime_state.dependencies_met = True
@@ -180,13 +164,11 @@ class ExecutionTracker:
         runtime_state.last_check = datetime.now()
     
     def _update_runtime_state(self, node_id: NodeID, status: FlowStatus) -> None:
-        """Internal method to update runtime state."""
         runtime_state = self.get_runtime_state(node_id)
         runtime_state.flow_status = status
         runtime_state.last_check = datetime.now()
     
     def get_execution_summary(self) -> dict[str, Any]:
-        """Get summary of all executions."""
         total_executions = sum(self._execution_counts.values())
         successful_executions = 0
         failed_executions = 0
@@ -219,11 +201,9 @@ class ExecutionTracker:
         }
     
     def get_node_execution_history(self, node_id: NodeID) -> list[NodeExecutionRecord]:
-        """Get all execution records for a node."""
         return self._execution_records.get(node_id, []).copy()
     
     def clear_history(self) -> None:
-        """Clear all execution history. Use with caution!"""
         self._execution_records.clear()
         self._runtime_states.clear()
         self._execution_counts.clear()

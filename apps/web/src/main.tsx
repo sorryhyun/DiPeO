@@ -8,10 +8,8 @@ import './index.css';
 import { queryClient } from '@/lib/utils/trpc';
 import { apolloClient } from './lib/graphql/client';
 
-// Import generated node registry to register all node types
 import '@/__generated__/nodeRegistry';
 
-// Enable Immer's MapSet plugin before any store initialization
 enableMapSet();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

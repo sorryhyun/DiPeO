@@ -7,17 +7,12 @@ from dipeo.models import ConversationMetadata, Message
 
 
 class ConversationContext(TypedDict):
-    """Context structure returned by conversation.get_context()."""
     messages: list[Message]
     metadata: ConversationMetadata | None
     context: dict[str, Any]
 
 
 class Conversation:
-    """Manages dialogue history and context.
-    
-    Maintains conversation state including messages and execution context.
-    """
     
     def __init__(self):
         self.messages: list[Message] = []

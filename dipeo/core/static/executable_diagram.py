@@ -7,7 +7,6 @@ from typing import Dict, Any, Optional, Protocol
 
 @dataclass(frozen=True)
 class BaseExecutableNode:
-    """Base class for all executable node types."""
     id: NodeID
     type: NodeType
     position: Vec2
@@ -39,10 +38,6 @@ class ExecutableNode(Protocol):
 
 @dataclass(frozen=True)
 class ExecutableEdge:
-    """Immutable edge with resolved connection and data flow.
-    
-    Has direct node ID references and data transformation rules.
-    """
     id: str
     source_node_id: NodeID
     target_node_id: NodeID

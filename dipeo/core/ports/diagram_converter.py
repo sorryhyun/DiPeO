@@ -5,20 +5,16 @@ from typing import Any
 
 
 class DiagramConverter(ABC):
-    """Abstract base class for diagram converters."""
     
     @abstractmethod
     def serialize(self, diagram: dict[str, Any]) -> str:
-        """Serialize diagram to string format."""
         pass
 
     @abstractmethod
     def deserialize(self, content: str) -> dict[str, Any]:
-        """Deserialize string content to diagram."""
         pass
 
     def validate(self, content: str) -> tuple[bool, list[str]]:
-        """Validate diagram content."""
         try:
             self.deserialize(content)
             return True, []
@@ -26,7 +22,6 @@ class DiagramConverter(ABC):
             return False, [str(e)]
 
     def detect_format_confidence(self, content: str) -> float:
-        """Detect confidence that content matches this format."""
         try:
             self.deserialize(content)
             return 1.0
@@ -35,16 +30,13 @@ class DiagramConverter(ABC):
 
 
 class FormatStrategy(ABC):
-    """Abstract base class for format conversion strategies."""
     
     @abstractmethod
     def parse(self, content: str) -> dict[str, Any]:
-        """Parse content into diagram data."""
         pass
 
     @abstractmethod
     def format(self, data: dict[str, Any]) -> str:
-        """Format diagram data into string."""
         pass
 
     @abstractmethod

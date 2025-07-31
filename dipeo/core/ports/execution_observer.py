@@ -6,7 +6,6 @@ from dipeo.models import NodeState
 
 
 class ExecutionObserver(Protocol):
-    """Observers for execution events."""
 
     async def on_execution_start(
         self, execution_id: str, diagram_id: str | None

@@ -5,7 +5,6 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class APIKeyPort(Protocol):
-    """Protocol for API key management operations."""
 
     def get_api_key(self, key_id: str) -> dict: 
         ...

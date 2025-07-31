@@ -8,7 +8,6 @@ from .memory_filters import MemoryView
 
 
 class MemoryProfile(Enum):
-    """Predefined memory configurations."""
     FULL = auto()
     FOCUSED = auto()
     MINIMAL = auto()
@@ -16,7 +15,6 @@ class MemoryProfile(Enum):
 
 
 class MemoryProfileFactory:
-    """Factory for creating memory settings from profiles."""
     
     _profiles = {
         MemoryProfile.FULL: MemorySettings(
@@ -47,7 +45,6 @@ class MemoryProfileFactory:
     
     @classmethod
     def custom(cls, view: MemoryViewEnum, max_messages: int | None = None) -> MemorySettings:
-        """Create custom memory settings."""
         return MemorySettings(
             view=view,
             max_messages=max_messages,

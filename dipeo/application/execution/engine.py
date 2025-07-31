@@ -17,7 +17,6 @@ log = logging.getLogger(__name__)
 
 
 class TypedExecutionEngine:
-    """Execution engine leveraging consolidated ExecutionRuntime."""
     
     def __init__(
         self, 

@@ -33,7 +33,7 @@ export interface DomainHandle {
   label: HandleLabel;
   direction: HandleDirection;
   data_type: DataType;
-  position?: string | null; // 'left' | 'right' | 'top' | 'bottom'
+  position?: string | null;
 }
 
 export interface DomainNode {

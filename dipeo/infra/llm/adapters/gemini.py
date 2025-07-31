@@ -26,10 +26,9 @@ class GeminiAdapter(BaseLLMAdapter):
     """Adapter for Google Gemini models via the genai API."""
 
     def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
-        # Gemini doesn't use base_url, but we accept it for consistency
         super().__init__(model_name, api_key, base_url)
         self.max_retries = 3
-        self.retry_delay = 1.0  # Initial delay in seconds
+        self.retry_delay = 1.0
 
     def _initialize_client(self) -> Any:
         self.client = genai.Client(api_key=self.api_key)

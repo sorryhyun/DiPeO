@@ -27,13 +27,12 @@ class ClaudeAdapter(BaseLLMAdapter):
     def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
         super().__init__(model_name, api_key, base_url)
         self.max_retries = 3
-        self.retry_delay = 1.0  # Initial delay in seconds
+        self.retry_delay = 1.0
 
     def _initialize_client(self) -> anthropic.Anthropic:
         return anthropic.Anthropic(api_key=self.api_key, base_url=self.base_url)
     
     def supports_tools(self) -> bool:
-        # All Claude 3 models support tools
         supported_models = ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 
                            'claude-3.5-sonnet', 'claude-3.5-haiku']
         return any(model in self.model_name for model in supported_models)

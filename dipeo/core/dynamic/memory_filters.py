@@ -7,7 +7,6 @@ from dipeo.models import Message, PersonID
 
 
 class MemoryView(Enum):
-    """Different views/filters for a person's memory of the global conversation."""
     
     ALL_INVOLVED = "all_involved"
     SENT_BY_ME = "sent_by_me"
@@ -18,19 +17,15 @@ class MemoryView(Enum):
 
 
 class MemoryFilter(Protocol):
-    """Protocol for memory filters."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
-        """Filter messages based on the person's perspective."""
         ...
     
     def describe(self) -> str:
-        """Return a human-readable description of this filter."""
         ...
 
 
 class AllInvolvedFilter:
-    """Filter for messages where person is sender or recipient."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [
@@ -43,7 +38,6 @@ class AllInvolvedFilter:
 
 
 class SentByMeFilter:
-    """Filter for messages sent by this person."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [msg for msg in messages if msg.from_person_id == person_id]
@@ -53,7 +47,6 @@ class SentByMeFilter:
 
 
 class SentToMeFilter:
-    """Filter for messages sent to this person."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [msg for msg in messages if msg.to_person_id == person_id]
@@ -63,7 +56,6 @@ class SentToMeFilter:
 
 
 class SystemAndMeFilter:
-    """Filter for system messages and this person's interactions."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return [
@@ -77,7 +69,6 @@ class SystemAndMeFilter:
 
 
 class ConversationPairsFilter:
-    """Filter that groups messages as request/response pairs."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         result = []
@@ -98,7 +89,6 @@ class ConversationPairsFilter:
 
 
 class AllMessagesFilter:
-    """Filter that shows all messages in the conversation (for judges/observers)."""
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
         return messages
@@ -108,7 +98,6 @@ class AllMessagesFilter:
 
 
 class MemoryFilterFactory:
-    """Factory for creating memory filters."""
     
     _filters = {
         MemoryView.ALL_INVOLVED: AllInvolvedFilter,
@@ -121,7 +110,6 @@ class MemoryFilterFactory:
     
     @classmethod
     def create(cls, view: MemoryView, **kwargs) -> MemoryFilter:
-        """Create a memory filter for the specified view."""
         filter_class = cls._filters.get(view)
         if not filter_class:
             raise ValueError(f"Unknown memory view: {view}")
@@ -130,14 +118,12 @@ class MemoryFilterFactory:
 
 
 class MemoryLimiter:
-    """Applies memory limits while preserving important messages."""
     
     def __init__(self, max_messages: int, preserve_system: bool = True):
         self.max_messages = max_messages
         self.preserve_system = preserve_system
     
     def limit(self, messages: list[Message]) -> list[Message]:
-        """Apply memory limit to messages, preserving system messages if configured."""
         if len(messages) <= self.max_messages:
             return messages
         

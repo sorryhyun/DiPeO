@@ -28,14 +28,12 @@ class DiagramConverterService(BaseService, DiagramConverter):
     """
     
     def __init__(self):
-        """Initialize converter with default strategies."""
         super().__init__()
         self.strategies: Dict[str, FormatStrategy] = {}
         self._initialized = False
         self.active_format: str | None = None
     
     async def initialize(self) -> None:
-        """Initialize service and register default strategies."""
         if self._initialized:
             return
             
@@ -43,44 +41,19 @@ class DiagramConverterService(BaseService, DiagramConverter):
         self._initialized = True
     
     def _register_default_strategies(self) -> None:
-        """Register the default format strategies."""
         self.register_strategy(NativeJsonStrategy())
         self.register_strategy(LightYamlStrategy())
         self.register_strategy(ReadableYamlStrategy())
     
     def register_strategy(self, strategy: FormatStrategy) -> None:
-        """Register a format strategy.
-        
-        Args:
-            strategy: Format strategy to register
-        """
         self.strategies[strategy.format_id] = strategy
     
     def set_format(self, format_id: str) -> None:
-        """Set the active format for conversion.
-        
-        Args:
-            format_id: Format identifier (native, light, readable)
-            
-        Raises:
-            ValueError: If format is unknown
-        """
         if format_id not in self.strategies:
             raise ValueError(f"Unknown format: {format_id}")
         self.active_format = format_id
     
     def get_strategy(self, format_id: str | None = None) -> FormatStrategy:
-        """Get strategy for the specified format.
-        
-        Args:
-            format_id: Format identifier, or None to use active format
-            
-        Returns:
-            Format strategy
-            
-        Raises:
-            ValueError: If no format specified or format unknown
-        """
         fmt = format_id or self.active_format
         if not fmt:
             raise ValueError("No format specified")
@@ -92,18 +65,6 @@ class DiagramConverterService(BaseService, DiagramConverter):
         return strategy
     
     def serialize(self, diagram: DomainDiagram, format_id: str | None = None) -> str:
-        """Convert domain diagram to format-specific string.
-        
-        Args:
-            diagram: Domain diagram to serialize
-            format_id: Target format, or None to use active format
-            
-        Returns:
-            Serialized diagram string
-            
-        Raises:
-            ValueError: If no format specified
-        """
         if not self._initialized:
             raise RuntimeError("DiagramConverterService not initialized")
             
@@ -115,18 +76,6 @@ class DiagramConverterService(BaseService, DiagramConverter):
         return strategy.serialize_from_domain(diagram)
     
     def deserialize(self, content: str, format_id: str | None = None) -> DomainDiagram:
-        """Convert format-specific string to domain diagram.
-        
-        Args:
-            content: Diagram content string
-            format_id: Source format, or None to auto-detect
-            
-        Returns:
-            Domain diagram object
-            
-        Raises:
-            ValueError: If format cannot be detected
-        """
         if not self._initialized:
             raise RuntimeError("DiagramConverterService not initialized")
             
@@ -143,15 +92,6 @@ class DiagramConverterService(BaseService, DiagramConverter):
     def validate(
         self, content: str, format_id: str | None = None
     ) -> tuple[bool, list[str]]:
-        """Validate content without full deserialization.
-        
-        Args:
-            content: Diagram content to validate
-            format_id: Expected format, or None to auto-detect
-            
-        Returns:
-            Tuple of (is_valid, error_messages)
-        """
         if not self._initialized:
             return False, ["DiagramConverterService not initialized"]
             
@@ -162,24 +102,14 @@ class DiagramConverterService(BaseService, DiagramConverter):
             return False, [str(e)]
     
     def detect_format(self, content: str) -> str | None:
-        """Automatically detect format from content.
-        
-        Args:
-            content: Diagram content
-            
-        Returns:
-            Detected format ID or None if no match
-        """
         if not self._initialized:
             logger.warning("Attempting format detection on uninitialized service")
             return None
             
-        # First try quick match for efficiency
         for format_id, strategy in self.strategies.items():
             if strategy.quick_match(content):
                 return format_id
         
-        # Fall back to full parsing if no quick match
         confidences: list[tuple[str, float]] = []
         
         for format_id, strategy in self.strategies.items():
@@ -191,7 +121,6 @@ class DiagramConverterService(BaseService, DiagramConverter):
                 logger.debug(f"Failed to parse as {format_id}: {e}")
                 confidences.append((format_id, 0.0))
         
-        # Sort by confidence
         confidences.sort(key=lambda x: x[1], reverse=True)
         
         if confidences and confidences[0][1] > 0.5:
@@ -205,39 +134,18 @@ class DiagramConverterService(BaseService, DiagramConverter):
         return None
     
     def list_supported_formats(self) -> list[str]:
-        """Get list of supported format IDs.
-        
-        Returns:
-            List of format identifiers
-        """
         return list(self.strategies.keys())
     
     def can_convert(self, from_format: str, to_format: str) -> bool:
-        """Check if conversion between formats is supported.
-        
-        Args:
-            from_format: Source format
-            to_format: Target format
-            
-        Returns:
-            True if conversion is supported
-        """
         return from_format in self.strategies and to_format in self.strategies
     
     def get_supported_formats(self) -> list[dict[str, str]]:
-        """Get list of supported formats with metadata.
-        
-        Returns:
-            List of format info dictionaries for backward compatibility
-        """
         formats = []
         for format_id, strategy in self.strategies.items():
             if hasattr(strategy, 'format_info'):
-                # Merge format_id with format_info
                 format_data = {"id": format_id, **strategy.format_info}
                 formats.append(format_data)
             else:
-                # Fallback for strategies without format_info
                 formats.append({
                     "id": format_id,
                     "name": format_id.title(),
@@ -249,5 +157,4 @@ class DiagramConverterService(BaseService, DiagramConverter):
         return formats
     
     def list_formats(self) -> list[dict[str, str]]:
-        """Alias for get_supported_formats for backward compatibility."""
         return self.get_supported_formats()

@@ -1,6 +1,3 @@
-/**
- * Condition node data interface
- */
 
 import { BaseNodeData } from '../diagram';
 

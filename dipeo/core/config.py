@@ -10,7 +10,6 @@ from dipeo.core.constants import BASE_DIR
 
 @dataclass
 class StorageConfig:
-    """Storage configuration."""
     type: str = "local"
     local_path: str = str(BASE_DIR / "files")
     s3_bucket: Optional[str] = None
@@ -19,7 +18,6 @@ class StorageConfig:
 
 @dataclass
 class LLMConfig:
-    """LLM service configuration."""
     provider: str = "openai"
     api_key: Optional[str] = None
     default_model: str = "gpt-4.1-nano"
@@ -30,8 +28,7 @@ class LLMConfig:
 class Config:
     """Main configuration for DiPeO containers.
     
-    This replaces the complex Configuration provider from dependency-injector
-    with a simple dataclass that can be easily constructed and tested.
+    Replaces complex dependency-injector configuration with simple dataclass.
     """
     
     base_dir: str = str(BASE_DIR)
@@ -41,7 +38,6 @@ class Config:
     enable_profiling: bool = False
     
     def __post_init__(self):
-        """Initialize sub-configurations with defaults if not provided."""
         if self.storage is None:
             self.storage = StorageConfig()
         if self.llm is None:
@@ -49,7 +45,6 @@ class Config:
     
     @classmethod
     def from_env(cls) -> "Config":
-        """Create configuration from environment variables."""
         config = cls()
         
         config.base_dir = os.environ.get("DIPEO_BASE_DIR", str(BASE_DIR))
@@ -70,7 +65,6 @@ class Config:
         return config
     
     def to_dict(self) -> dict:
-        """Convert configuration to dictionary."""
         return {
             "base_dir": self.base_dir,
             "storage": {

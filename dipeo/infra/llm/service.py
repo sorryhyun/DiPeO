@@ -186,19 +186,17 @@ class LLMInfraService(BaseService, LLMServicePort):
                         self.logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
                     return []
             elif service == "anthropic":
-                # Dynamically fetch models from Anthropic API
                 try:
                     import anthropic
                     raw_key = self._get_api_key(api_key_id)
                     client = anthropic.Anthropic(api_key=raw_key)
                     models_response = client.models.list(limit=50)
                     
-                    # Extract model IDs from the response
                     model_ids = []
                     for model in models_response.data:
                         model_ids.append(model.id)
                     
-                    model_ids.sort(reverse=True)  # Newer models first
+                    model_ids.sort(reverse=True)
                     return model_ids
                     
                 except Exception as e:
@@ -206,20 +204,17 @@ class LLMInfraService(BaseService, LLMServicePort):
                         self.logger.warning(f"Failed to fetch Anthropic models dynamically: {e}")
                     return []
             elif service == "google":
-                # Dynamically fetch models from Google Gemini API
                 try:
                     from google import genai
                     raw_key = self._get_api_key(api_key_id)
                     client = genai.Client(api_key=raw_key)
                     
-                    # Get models that support generateContent (chat models)
                     chat_models = []
                     for model in client.models.list():
                         if "generateContent" in model.supported_actions:
-                            # Extract model name (remove "models/" prefix if present)
                             model_name = model.name
                             if model_name.startswith("models/"):
-                                model_name = model_name[7:]  # Remove "models/" prefix
+                                model_name = model_name[7:]
                             chat_models.append(model_name)
                     
                     chat_models.sort(reverse=True)
@@ -242,8 +237,6 @@ class LLMInfraService(BaseService, LLMServicePort):
         This is typically handled by the adapters themselves,
         but this method provides a consistent interface.
         """
-        # The adapters already return ChatResult with TokenUsage
-        # This method is here for compatibility with the protocol
         if hasattr(usage, 'tokenUsage'):
             return usage.tokenUsage
         elif hasattr(usage, 'token_usage'):

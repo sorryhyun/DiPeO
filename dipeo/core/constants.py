@@ -59,7 +59,6 @@ MAX_NODE_EXECUTIONS = 1000
 
 
 def ensure_directories_exist() -> None:
-    """Ensure all required directories exist."""
     for dir_path in [
         FILES_DIR,
         UPLOAD_DIR,
@@ -72,7 +71,6 @@ def ensure_directories_exist() -> None:
 
 
 def normalize_service_name(service: str) -> str:
-    """Normalize service name to canonical form."""
     normalized = service.lower().strip()
 
     # Service aliases

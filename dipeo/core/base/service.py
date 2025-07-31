@@ -8,7 +8,6 @@ from .exceptions import ValidationError
 
 
 class BaseService(ABC):
-    """Base service class with common functionality for DiPeO services."""
 
     def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}

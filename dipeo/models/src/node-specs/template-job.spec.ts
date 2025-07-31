@@ -1,6 +1,3 @@
-/**
- * Template Job node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const templateJobSpec: NodeSpecification = {
       name: "template_path",
       type: "string",
       required: false,
-      description: "Template Path configuration",
+      description: "Path to template file",
       uiConfig: {
         inputType: "text",
         placeholder: "/path/to/file"
@@ -28,7 +25,7 @@ export const templateJobSpec: NodeSpecification = {
       name: "template_content",
       type: "string",
       required: false,
-      description: "Template Content configuration",
+      description: "Inline template content",
       uiConfig: {
         inputType: "text"
       }
@@ -37,7 +34,7 @@ export const templateJobSpec: NodeSpecification = {
       name: "output_path",
       type: "string",
       required: false,
-      description: "Output Path configuration",
+      description: "Output file path",
       uiConfig: {
         inputType: "text",
         placeholder: "/path/to/file"

@@ -5,11 +5,6 @@ from typing import Any, Protocol, runtime_checkable
 
 @runtime_checkable
 class NotionServicePort(Protocol):
-    """Port for Notion API operations.
-    
-    Interface for Notion integration with page operations,
-    block management, and database queries.
-    """
 
     async def retrieve_page(self, page_id: str, api_key: str) -> dict[str, Any]:
         ...
