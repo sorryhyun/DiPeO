@@ -282,18 +282,15 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   const hasFitView = useRef(false);
   const prevNodeCount = useRef(0);
   
-  // Fit view when nodes are loaded from URL
+  // Fit view when nodes are loaded
   useEffect(() => {
     if (rfInstance && nodes.length > 0 && prevNodeCount.current === 0 && !hasFitView.current) {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('diagram')) {
-        hasFitView.current = true;
+      hasFitView.current = true;
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            rfInstance.fitView({ padding: 0.3, duration: 0, maxZoom: 0.8 });
-          });
+          rfInstance.fitView({ padding: 0.3, duration: 0, maxZoom: 0.8 });
         });
-      }
+      });
     }
     prevNodeCount.current = nodes.length;
   }, [nodes.length, rfInstance]);

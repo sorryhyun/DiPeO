@@ -59,7 +59,11 @@ export const useFileOperations = () => {
             arrows: data.diagram.arrows || [],
             handles: data.diagram.handles || [],
             persons: data.diagram.persons || [],
-            metadata: data.diagram.metadata
+            metadata: {
+              ...data.diagram.metadata,
+              name: data.diagram.metadata?.name || result.diagramId, // Use diagramId as fallback
+              id: data.diagram.metadata?.id || result.diagramId
+            }
           });
           
           toast.success(
@@ -96,33 +100,6 @@ export const useFileOperations = () => {
     }
   }, [loadFile]);
 
-  /**
-   * Load from URL
-   */
-  const loadFromURL = useCallback(async (url: string) => {
-    setIsProcessing(true);
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch from URL: ${response.statusText}`);
-      }
-      
-      const content = await response.text();
-      
-      // Create a virtual file object for unified processing
-      const virtualFile = new File([content], url.split('/').pop() || 'loaded-file', {
-        type: 'text/plain'
-      });
-      
-      await loadFile(virtualFile);
-    } catch (error) {
-      console.error('[Load from URL]', error);
-      toast.error(`Load from URL: ${(error as Error).message}`);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [loadFile]);
 
   
   // UPLOAD OPERATIONS
@@ -310,7 +287,6 @@ export const useFileOperations = () => {
     // Load operations
     loadDiagram: loadFile,
     loadWithDialog,
-    loadFromURL,
     
     // Save operations
     saveDiagram,

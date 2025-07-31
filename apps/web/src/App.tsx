@@ -4,7 +4,6 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './shared/components/layout';
 import { GlobalKeyboardHandler } from './shared/components/GlobalKeyboardHandler';
 import { CanvasProvider, useCanvasState, useCanvasOperations } from './shared/contexts/CanvasContext';
-import { useDiagramLoader } from './features/diagram-editor/hooks/useDiagramLoader';
 import { useUIOperations } from './core/store/hooks';
 import { setupExecutionUISync } from './core/store/middleware/executionUISync';
 
@@ -17,7 +16,7 @@ const LazyInteractivePromptModal = React.lazy(() => import('./features/execution
 // Inner component that uses React Flow hooks
 function AppContent() {
   const { activeCanvas } = useCanvasState();
-  const { setReadOnly, executionOps } = useCanvasOperations();
+  const { executionOps } = useCanvasOperations();
   const { setActiveCanvas: _setActiveCanvas } = useUIOperations(); // Not used after refactor
   
   // Diagram loading is now handled by CLI sessions only

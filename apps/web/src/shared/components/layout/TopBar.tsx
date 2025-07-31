@@ -192,7 +192,11 @@ const TopBar = () => {
                       arrows: data.diagram.arrows || [],
                       handles: data.diagram.handles || [],
                       persons: data.diagram.persons || [],
-                      metadata: data.diagram.metadata
+                      metadata: {
+                        ...data.diagram.metadata,
+                        name: data.diagram.metadata?.name || diagramPath, // Use diagramPath as fallback
+                        id: data.diagram.metadata?.id || diagramPath
+                      }
                     });
                     
                     toast.success(`Loaded ${diagramPath}`);

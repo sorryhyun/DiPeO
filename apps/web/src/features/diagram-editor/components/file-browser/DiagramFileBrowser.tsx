@@ -40,7 +40,11 @@ export const DiagramFileBrowser: React.FC = () => {
             arrows: data.diagram.arrows || [],
             handles: data.diagram.handles || [],
             persons: data.diagram.persons || [],
-            metadata: data.diagram.metadata
+            metadata: {
+              ...data.diagram.metadata,
+              name: data.diagram.metadata?.name || file.path, // Use file path as fallback
+              id: data.diagram.metadata?.id || file.path
+            }
           });
           
           toast.success(`Loaded ${file.name}`);

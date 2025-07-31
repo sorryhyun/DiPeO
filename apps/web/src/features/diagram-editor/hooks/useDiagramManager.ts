@@ -38,7 +38,6 @@ export interface UseDiagramManagerReturn {
   newDiagram: () => void;
   saveDiagram: (filename?: string) => Promise<void>;
   loadDiagramFromFile: (file: File) => Promise<void>;
-  loadDiagramFromUrl: (url: string) => Promise<void>;
   exportDiagram: (format: DiagramFormat) => Promise<void>;
   importDiagram: () => Promise<void>;
   
@@ -160,20 +159,11 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     try {
       const defaultFilename = filename || 'diagram';
       
-      const urlParams = new URLSearchParams(window.location.search);
-      const existingDiagramId = urlParams.get('diagram');
-      
       const result = await fileOps.saveDiagram(defaultFilename, DiagramFormat.NATIVE);
       
       if (result) {
         setMetadata(prev => ({ ...prev, modifiedAt: new Date() }));
         setIsDirty(false);
-        
-        if (result.diagramId && !existingDiagramId) {
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.set('diagram', result.diagramId);
-          window.history.replaceState({}, '', newUrl.toString());
-        }
       }
     } catch (error) {
       console.error('Failed to save diagram:', error);
@@ -201,25 +191,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     }
   }, [confirmOnLoad, isDirty, fileOps]);
   
-  const loadDiagramFromUrl = useCallback(async (url: string) => {
-    if (confirmOnLoad && isDirty) {
-      if (!window.confirm('You have unsaved changes. Do you want to discard them?')) {
-        return;
-      }
-    }
-    
-    try {
-      await fileOps.loadFromURL(url);
-      setMetadata({
-        modifiedAt: new Date()
-      });
-      setIsDirty(false);
-      toast.success('Diagram loaded successfully');
-    } catch (error) {
-      console.error('Failed to load diagram:', error);
-      toast.error('Failed to load diagram from URL');
-    }
-  }, [confirmOnLoad, isDirty, fileOps]);
   
   const exportDiagramAs = useCallback(async (format: DiagramFormat) => {
     try {
@@ -297,18 +268,9 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const dataVersion = useUnifiedStore(state => state.dataVersion);
   const initialDataVersion = useRef(dataVersion);
   
-  const urlParams = new URLSearchParams(window.location.search);
-  const hasDiagramParam = urlParams.has('diagram');
-  
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      return;
-    }
-    
-    // Skip updates during initial diagram load
-    if (hasDiagramParam && dataVersion <= initialDataVersion.current + 2) {
-      initialDataVersion.current = dataVersion;
       return;
     }
     
@@ -321,7 +283,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
         debouncedSave('quicksave.json');
       }
     }
-  }, [dataVersion, hasDiagramParam, autoSave, execution.isRunning, debouncedSave]);
+  }, [dataVersion, autoSave, execution.isRunning, debouncedSave]);
   
   useEffect(() => {
     return () => {
@@ -341,7 +303,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     newDiagram,
     saveDiagram,
     loadDiagramFromFile,
-    loadDiagramFromUrl,
     exportDiagram: exportDiagramAs,
     importDiagram: importDiagramFile,
     
