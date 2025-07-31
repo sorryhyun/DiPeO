@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.execution.observers import StreamingObserver
+from dipeo.application.execution.observers import DirectStreamingObserver
 from dipeo.core import BaseService
 from dipeo.models import ExecutionStatus
 
@@ -78,13 +78,13 @@ class ExecuteDiagramUseCase(BaseService):
             # Find the streaming observer from the provided observers
             streaming_observer = None
             for obs in observers:
-                if isinstance(obs, StreamingObserver):
+                if isinstance(obs, DirectStreamingObserver):
                     streaming_observer = obs
                     break
             
             if not streaming_observer:
                 # If no streaming observer found, create one
-                streaming_observer = StreamingObserver(self.message_router)
+                streaming_observer = DirectStreamingObserver()
                 engine_observers = list(observers) + [streaming_observer]
         else:
             # Parent execution: create new observers
@@ -101,8 +101,8 @@ class ExecuteDiagramUseCase(BaseService):
                     # If not in server context, continue without registration
                     pass
             else:
-                # Use regular streaming observer with message router
-                streaming_observer = StreamingObserver(self.message_router)
+                # Use direct streaming observer for all executions
+                streaming_observer = DirectStreamingObserver()
             
             # Create engine with observers
             from dipeo.application.execution.observers import StateStoreObserver

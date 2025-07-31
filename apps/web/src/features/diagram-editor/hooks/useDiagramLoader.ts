@@ -78,7 +78,7 @@ export function useDiagramLoader() {
 
   // Check URL for diagram parameter
   useEffect(() => {
-    const checkUrl = () => {
+    const checkUrl = (isPopStateEvent = false) => {
       const params = new URLSearchParams(window.location.search);
       const diagramParam = params.get('diagram');
       const isMonitorMode = params.get('monitor') === 'true' || !!params.get('executionId');
@@ -96,6 +96,12 @@ export function useDiagramLoader() {
       }
       
       const { id, format } = parseDiagramParam(diagramParam);
+      
+      // If this is a popstate event and we already have a loaded diagram,
+      // and the diagram parameter hasn't changed, skip the reload
+      if (isPopStateEvent && loadedDiagramIdRef.current && id === loadedDiagramIdRef.current) {
+        return;
+      }
       
       // Only proceed if diagram ID is different from what we've loaded
       if (id !== loadedDiagramIdRef.current) {
@@ -128,7 +134,7 @@ export function useDiagramLoader() {
       // Set a new timeout to debounce rapid popstate events
       checkUrlTimeoutRef.current = setTimeout(() => {
         lastCheckTimeRef.current = Date.now();
-        checkUrl();
+        checkUrl(true); // Pass true to indicate this is a popstate event
       }, 100);
     };
     
@@ -160,7 +166,25 @@ export function useDiagramLoader() {
       // Custom error handling
       onError: (error) => {
         console.error('Failed to fetch diagram:', error);
-        toast.error(`Failed to load diagram: ${error.message}`);
+        
+        // Check if this is likely a server shutdown error
+        const isServerShutdown = error.networkError && (
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('NetworkError') ||
+          error.message.includes('fetch failed')
+        );
+        
+        // Check if we're in CLI monitor mode
+        const params = new URLSearchParams(window.location.search);
+        const isCliMonitorMode = params.get('monitor') === 'true' || !!params.get('executionId');
+        
+        // Suppress errors if server is shutting down in CLI mode
+        if (isServerShutdown && isCliMonitorMode) {
+          console.log('[DiagramLoader] Server appears to be shutting down, suppressing error');
+        } else {
+          toast.error(`Failed to load diagram: ${error.message}`);
+        }
+        
         // Mark as loaded to prevent retry
         loadedDiagramIdRef.current = diagramIdFromUrl;
       },
@@ -283,7 +307,8 @@ export function useDiagramLoader() {
           // Mark this diagram as loaded
           loadedDiagramIdRef.current = diagramIdFromUrl;
           
-          // Show success message only once per diagram
+          // Show success message only once per diagram load
+          // Only show if we haven't shown it for this specific diagram ID
           if (hasShownToastRef.current !== diagramIdFromUrl) {
             hasShownToastRef.current = diagramIdFromUrl;
             const diagramName = diagramWithCounts.metadata?.name || 'Unnamed diagram';

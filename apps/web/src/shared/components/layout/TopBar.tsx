@@ -12,13 +12,12 @@ import { DiagramFormat } from '@dipeo/domain-models';
 
 
 const TopBar = () => {
-  const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [isExitingMonitor, setIsExitingMonitor] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   
   // Use UI state for mode control
-  const { activeCanvas } = useUIState();
-  const { setReadOnly, setActiveCanvas } = useUIOperations();
+  const { activeCanvas, isMonitorMode } = useUIState();
+  const { setReadOnly, setActiveCanvas, setMonitorMode } = useUIOperations();
   const { stopExecution } = useExecutionOperations();
   
   // Get diagram format from store
@@ -56,18 +55,26 @@ const TopBar = () => {
   const { isSaving, handleSave } = useDiagramSave({ saveToFileSystem });
   
 
-  // Handle monitor mode
+  // Handle monitor mode from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isMonitor = params.get('monitor') === 'true';
-    setIsMonitorMode(isMonitor);
     
-    // Only set read-only mode for monitor mode, don't auto-switch to execution
     if (isMonitor) {
-      setReadOnly?.(true);
+      setMonitorMode(true);
+      // When entering monitor mode from URL, automatically switch to execution canvas
+      setActiveCanvas('execution');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
+  
+  // When monitor mode changes, adjust canvas if needed
+  useEffect(() => {
+    if (isMonitorMode && activeCanvas === 'main') {
+      // When monitor mode is turned on, automatically switch to execution canvas
+      setActiveCanvas('execution');
+    }
+  }, [isMonitorMode, activeCanvas, setActiveCanvas]);
   
   // Sync format from store - including when it's null (no diagram loaded)
   useEffect(() => {
@@ -246,44 +253,49 @@ const TopBar = () => {
             {activeCanvas === 'execution' ? 'Exit Execution Mode' : 'Execution Mode'}
           </Button>
           
-          {isMonitorMode ? (
-            <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-              </span>
-              <span className="text-sm font-medium">Monitor Mode Active</span>
+          <div className="flex items-center space-x-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <span className="text-sm font-medium text-gray-700">Monitor Mode</span>
               <button
                 onClick={() => {
-                  setIsExitingMonitor(true);
-                  // Don't clear diagram when exiting monitor mode
-                  setReadOnly?.(false);
-                  setIsMonitorMode(false);
-                  // Remove monitor param from URL
-                  const url = new URL(window.location.href);
-                  url.searchParams.delete('monitor');
-                  window.history.replaceState({}, '', url.toString());
-                  toast.success('Exited monitor mode');
-                  setTimeout(() => setIsExitingMonitor(false), 300);
+                  const newMonitorMode = !isMonitorMode;
+                  setMonitorMode(newMonitorMode);
+                  
+                  if (newMonitorMode) {
+                    // Add monitor param to URL
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('monitor', 'true');
+                    window.history.replaceState({}, '', url.toString());
+                    toast.info('Monitor mode enabled - automatically entering execution mode');
+                  } else {
+                    // Remove monitor param from URL
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('monitor');
+                    window.history.replaceState({}, '', url.toString());
+                    toast.success('Monitor mode disabled');
+                  }
                 }}
-                disabled={isExitingMonitor}
-                className={`ml-2 text-xs px-2 py-1 rounded transition-all ${
-                  isExitingMonitor 
-                    ? 'bg-red-600 text-white cursor-not-allowed opacity-75' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isMonitorMode ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
-                {isExitingMonitor ? 'Exiting...' : 'Exit'}
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isMonitorMode ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
               </button>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 px-3 py-1 bg-gray-100 text-gray-600 rounded-md">
-              <span className="relative flex h-3 w-3">
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span>
-              </span>
-              <span className="text-sm font-medium">Monitor Mode Off</span>
-            </div>
-          )}
+            </label>
+            {isMonitorMode && (
+              <div className="flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <span className="text-xs font-medium">Active</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

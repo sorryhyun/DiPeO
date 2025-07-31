@@ -149,8 +149,9 @@ class DiPeOCLI:
 
             # Open browser with execution ID if requested (only once)
             if not no_browser:
-                monitor_url = f"http://localhost:3000/?diagram={diagram_name}&executionId={execution_id}&monitor=true&no-auto-exit=true"
+                monitor_url = f"http://localhost:3000/?diagram={diagram_name}&executionId={execution_id}&monitor=true&cli=true&no-auto-exit=true"
                 print(f"🌐 Opening browser in monitor mode: {monitor_url}")
+                print(f"📡 Using direct streaming (SSE) for real-time updates")
                 try:
                     if not webbrowser.open(monitor_url):
                         print("⚠️  Could not open browser automatically. Please open manually:")

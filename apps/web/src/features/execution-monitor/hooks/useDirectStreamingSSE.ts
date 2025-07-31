@@ -31,6 +31,7 @@ export function useDirectStreamingSSE({
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttemptsRef = useRef(0);
+  const executionCompletedRef = useRef(false);
 
   const connect = useCallback(() => {
     if (!executionId || skip) return;
@@ -54,6 +55,12 @@ export function useDirectStreamingSSE({
           switch (data.type) {
             case EventType.EXECUTION_STATUS_CHANGED:
               if (onExecutionUpdate && data.data) {
+                // Check if execution has completed
+                if (data.data.status === ExecutionStatus.COMPLETED || 
+                    data.data.status === ExecutionStatus.FAILED ||
+                    data.data.status === ExecutionStatus.ABORTED) {
+                  executionCompletedRef.current = true;
+                }
                 onExecutionUpdate({
                   status: data.data.status,
                   error: data.data.error,
@@ -101,12 +108,23 @@ export function useDirectStreamingSSE({
       };
 
       eventSource.onerror = (event) => {
+        // Check if we're in CLI mode
+        const params = new URLSearchParams(window.location.search);
+        const isCliMode = params.get('monitor') === 'true' || !!params.get('executionId');
+        
+        // If execution has completed and we're in CLI mode, don't log errors or reconnect
+        if (executionCompletedRef.current && isCliMode) {
+          console.log('[SSE] Server shutting down after execution completion, not reconnecting');
+          setIsConnected(false);
+          return;
+        }
+        
         console.error('[SSE] Connection error:', event);
         setIsConnected(false);
         setError('SSE connection failed');
         
         // Attempt reconnection with exponential backoff
-        if (reconnectAttemptsRef.current < 5) {
+        if (reconnectAttemptsRef.current < 5 && !executionCompletedRef.current) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           reconnectAttemptsRef.current += 1;
           
