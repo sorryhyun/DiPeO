@@ -45,7 +45,7 @@ def generate_simple_registry(node_types: List[str], template_content: str) -> st
         elif node_type == 'typescript_ast_parser':
             config_name = "typescriptAstConfig"
         else:
-            config_name = f"{camel_case(node_type)}Config"
+            config_name = f"{BaseFilters.camel_case(node_type)}Config"
         lines.append(f"  registerNodeConfig({config_name});")
     
     lines.append("}")

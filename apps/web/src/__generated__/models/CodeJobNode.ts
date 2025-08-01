@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 export interface CodeJobNodeData {
-  language: enum;
+  language: 'python' | 'typescript' | 'bash' | 'shell';
   filePath: string;
   functionName?: string;
   timeout?: number;

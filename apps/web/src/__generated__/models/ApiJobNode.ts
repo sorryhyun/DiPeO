@@ -11,12 +11,12 @@ import { z } from 'zod';
 
 export interface ApiJobNodeData {
   url: string;
-  method: enum;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, any>;
   params?: Record<string, any>;
   body?: Record<string, any>;
   timeout?: number;
-  auth_type?: enum;
+  auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
   auth_config?: Record<string, any>;
 }
 

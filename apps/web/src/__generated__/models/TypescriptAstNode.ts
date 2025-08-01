@@ -13,10 +13,10 @@ export interface TypescriptAstNodeData {
   source: string;
   extractPatterns?: any[];
   includeJSDoc?: boolean;
-  parseMode?: enum;
+  parseMode?: 'module' | 'script';
   transformEnums?: boolean;
   flattenOutput?: boolean;
-  outputFormat?: enum;
+  outputFormat?: 'standard' | 'for_codegen' | 'for_analysis';
 }
 
 // Zod schema for validation

@@ -343,6 +343,17 @@ class TypeScriptToPythonFilters:
             inner_type = field_type[:-2]
             return f"{cls.typescript_type({'type': inner_type})}[]"
         
+        # Handle enum types without values
+        if field_type.lower() == 'enum':
+            # Check if field has validation.allowedValues
+            validation = field.get('validation', {})
+            allowed_values = validation.get('allowedValues', [])
+            if allowed_values:
+                # Generate union type from allowed values
+                return ' | '.join(f"'{v}'" for v in allowed_values)
+            else:
+                return 'string'  # Fallback if no values specified
+        
         return type_map.get(field_type.lower(), field_type)
     
     @classmethod

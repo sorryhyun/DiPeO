@@ -29,21 +29,13 @@ templates:
   # GraphQL Schema
   - id: gql_schema
     name: "GraphQL Schema Definition"
-    template: files/codegen/templates/backend/graphql_from_python.j2
-    output: apps/server/src/dipeo_server/api/graphql/schema/nodes/{{spec_data.nodeType}}.graphql
+    template: files/codegen/templates/models/graphql_schema_v2.j2
+    output: apps/server/src/dipeo_server/api/graphql/schema/schema.graphql
     engine: jinja2
     post_processor: sort_graphql_defs
     category: graphql
     
-  # React Components
-  - id: react_component
-    name: "React Node Component"
-    template: files/codegen/templates/frontend/react_component.j2
-    output: apps/web/src/features/diagram-editor/components/nodes/generated/{{spec_data.nodeType}}Node.tsx
-    engine: jinja2
-    formatter: prettier
-    category: frontend
-    
+  # Frontend Components
   - id: node_config
     name: "Node Configuration"
     template: files/codegen/templates/frontend/node_config.j2
@@ -59,16 +51,6 @@ templates:
     engine: jinja2
     formatter: prettier
     category: frontend
-    
-  # Handler Implementation
-  - id: handler_stub
-    name: "Python Handler Stub"
-    template: files/codegen/templates/backend/handler_stub.j2
-    output: dipeo/application/execution/handlers/generated/{{spec_data.nodeType}}_stub.py
-    engine: jinja2
-    formatter: black
-    category: backend
-    optional: true
     
   # Registration Files
   - id: node_registration
@@ -161,7 +143,7 @@ modes:
     
   nodes:
     description: "Generate node UI components and configurations"
-    templates: [react_component, node_config, field_config, gql_schema]
+    templates: [node_config, field_config, gql_schema]
     
   minimal:
     description: "Generate only essential files"

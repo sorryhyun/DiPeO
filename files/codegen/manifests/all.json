@@ -27,8 +27,7 @@
     }
   },
   "registry": {
-    "output": "apps/web/src/features/diagram-editor/config/nodeRegistry.ts",
-    "template": "frontend/node_registry.j2"
+    "output": "apps/web/src/__generated__/nodeRegistry.ts"
   },
   "options": {
     "parallel": true,

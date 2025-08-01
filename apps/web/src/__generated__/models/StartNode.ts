@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 export interface StartNodeData {
-  trigger_mode: enum;
+  trigger_mode: 'none' | 'manual' | 'hook';
   custom_data?: string;
   output_data_structure?: Record<string, any>;
   hook_event?: string;

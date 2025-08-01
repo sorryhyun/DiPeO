@@ -12,7 +12,7 @@ import { z } from 'zod';
 export interface DbNodeData {
   file?: string;
   collection?: string;
-  sub_type: enum;
+  sub_type: 'fixed_prompt' | 'file' | 'code' | 'api_tool';
   operation: string;
   query?: string;
   data?: Record<string, any>;

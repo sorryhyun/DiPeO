@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 export interface HookNodeData {
-  hook_type: enum;
+  hook_type: 'shell' | 'http' | 'python' | 'file';
   command?: string;
   url?: string;
   timeout?: number;
