@@ -1,6 +1,6 @@
 """GraphQL schema factory for DiPeO.
 
-This module creates the complete GraphQL schema using the UnifiedServiceRegistry
+This module creates the complete GraphQL schema using the ServiceRegistry
 for dependency injection, keeping the schema definition in the application layer
 while the server remains a thin HTTP adapter.
 """
@@ -41,7 +41,7 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
     """Create a complete GraphQL schema with injected service registry.
     
     Args:
-        registry: The unified service registry containing all application services
+        registry: The service registry containing all application services
         
     Returns:
         A Strawberry GraphQL schema ready to be served

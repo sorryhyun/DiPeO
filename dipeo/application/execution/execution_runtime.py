@@ -111,7 +111,7 @@ class ExecutionRuntime(StateTransitionMixin):
         return self._service_registry.get(service_key)
     
     @property
-    def service_registry(self) -> "UnifiedServiceRegistry":
+    def service_registry(self) -> "ServiceRegistry":
         return self._service_registry
     
     

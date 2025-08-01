@@ -1,6 +1,6 @@
 """GraphQL queries for DiPeO.
 
-These queries use the UnifiedServiceRegistry to access application services,
+These queries use the ServiceRegistry to access application services,
 keeping GraphQL concerns separate from business logic.
 """
 

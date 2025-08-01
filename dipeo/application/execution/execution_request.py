@@ -105,7 +105,7 @@ class ExecutionRequest(Generic[T]):
         """Check if an input is available."""
         return name in self.inputs
     
-    def create_sub_registry(self) -> Optional["UnifiedServiceRegistry"]:
+    def create_sub_registry(self) -> Optional["ServiceRegistry"]:
         """Create a hierarchical registry for sub-execution.
         
         This creates a child registry that inherits from the parent registry,

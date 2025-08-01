@@ -142,17 +142,15 @@ jobs:
           }
           Write-Host "Frontend built successfully!"
       
-      - name: Download and Install NSIS
+      - name: Install NSIS via Chocolatey
+        shell: powershell
         run: |
-          # Download NSIS
-          Invoke-WebRequest -Uri "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09-setup.exe/download" -OutFile nsis-setup.exe
-          
-          # Install NSIS silently
-          Start-Process -FilePath ".\nsis-setup.exe" -ArgumentList "/S" -Wait
-          
-          # Add NSIS to PATH for this session
-          $env:PATH = "${env:ProgramFiles(x86)}\NSIS;$env:PATH"
-      
+          choco install nsis --yes --no-progress
+          # Persist PATH for later steps just in case
+          $nsis = "${env:ProgramFiles(x86)}\NSIS"
+          if (!(Test-Path $nsis)) { $nsis = "${env:ProgramFiles}\NSIS" }
+          if (Test-Path "$nsis\makensis.exe") { "$nsis" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
+
       - name: Build Installer
         run: |
           # Find NSIS path
