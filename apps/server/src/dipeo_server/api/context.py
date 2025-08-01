@@ -3,17 +3,16 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.application.registry.keys import EXECUTION_SERVICE
 from fastapi import Request, WebSocket
 from strawberry.fastapi import BaseContext
 
-from dipeo.application.registry.keys import EXECUTION_SERVICE
-
 if TYPE_CHECKING:
+    from dipeo.application.bootstrap import Container
     from dipeo.application.execution.use_cases import (
         ExecuteDiagramUseCase,
     )
-    from dipeo.application.registry import ServiceRegistry, ServiceKey
-    from dipeo.application.bootstrap import Container
+    from dipeo.application.registry import ServiceKey, ServiceRegistry
 
 
 @dataclass
@@ -24,8 +23,8 @@ class RequestContext(BaseContext):
     For GraphQL specifically, it extends BaseContext for Strawberry compatibility.
     """
 
-    request: Optional[Request] = None
-    websocket: Optional[WebSocket] = None
+    request: Request | None = None
+    websocket: WebSocket | None = None
     container: Optional["Container"] = None
     user_data: dict[str, Any] = field(default_factory=dict)
 

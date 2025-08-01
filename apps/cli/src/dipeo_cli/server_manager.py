@@ -79,17 +79,17 @@ class ServerManager:
         self,
         diagram_data: dict[str, Any],
         input_variables: dict[str, Any] | None = None,
-        use_direct_streaming: bool = True,
+        use_monitoring_stream: bool = True,
         diagram_name: str | None = None,
         diagram_format: str | None = None,
     ) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
-        mutation ExecuteDiagram($diagramData: JSON, $variables: JSON, $useDirectStreaming: Boolean) {
+        mutation ExecuteDiagram($diagramData: JSON, $variables: JSON, $useMonitoringStream: Boolean) {
             execute_diagram(input: { 
                 diagram_data: $diagramData, 
                 variables: $variables,
-                use_direct_streaming: $useDirectStreaming
+                use_monitoring_stream: $useMonitoringStream
             }) {
                 success
                 execution_id
@@ -105,7 +105,7 @@ class ServerManager:
                 "variables": {
                     "diagramData": diagram_data,
                     "variables": input_variables,
-                    "useDirectStreaming": use_direct_streaming,
+                    "useMonitoringStream": use_monitoring_stream,
                 },
             },
         )

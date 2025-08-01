@@ -78,7 +78,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         diagram=diagram_data,
                         options=options,
                         execution_id=str(execution_id),
-                        use_direct_streaming=input.use_direct_streaming or False,
+                        use_monitoring_stream=input.use_monitoring_stream or False,
                     ):
                         # Process updates if needed
                         pass

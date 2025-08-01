@@ -73,10 +73,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         spec_name = spec_name[0].lower() + spec_name[1:]  # camelCase
         
         spec_found = any(c.get('name') == spec_name for c in constants)
-        if spec_found:
-            print(f"  ✓ Cached {node_type} ({spec_name})")
-        else:
-            print(f"  ⚠ Cached {node_type} (spec '{spec_name}' not found)")
+        # Spec validation done silently
     
     # Also save a consolidated cache file with all node specs
     consolidated_cache = cache_dir / 'all_node_specs_ast.json'
@@ -105,12 +102,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     with open(metadata_file, 'w') as f:
         json.dump(cache_metadata, f, indent=2)
     
-    print(f"\n=== Node Spec AST Cache Created ===")
-    print(f"Cache directory: {cache_dir}")
-    print(f"Parsed {total_specs} node spec files")
-    print(f"Total constants found: {total_constants}")
-    print(f"Batch processing time: {metadata.get('processingTimeMs', 0)}ms")
-    print(f"Consolidated cache: {consolidated_cache}")
+    print(f"Cached {total_specs} node specs - done!")
     
     return {
         'status': 'success',

@@ -34,7 +34,15 @@ install:
 codegen:
 	@echo "Running unified diagram-based code generation..."
 	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=25
-	make apply
+	@sleep 1
+	@echo "Applying staged changes to active directory..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "Error: No staged directory found. Run 'make codegen' first."; \
+		exit 1; \
+	fi
+	@echo "Copying staged files to active directory..."
+	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+	@echo "Staged changes applied successfully!"
 	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=15
 	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=15
 	make graphql-schema

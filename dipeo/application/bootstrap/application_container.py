@@ -18,6 +18,7 @@ from dipeo.application.registry.keys import (
     DIAGRAM_STORAGE_SERVICE,
     DIAGRAM_VALIDATOR,
     EXECUTION_SERVICE,
+    FILESYSTEM_ADAPTER,
     LLM_SERVICE,
     MESSAGE_ROUTER,
     NOTION_SERVICE,
@@ -61,10 +62,22 @@ class ApplicationContainer:
 
     def _setup_app_services(self):
         """Set up application-level services."""
-        from dipeo.domain.db.services import DBOperationsDomainService
+        from dipeo.infra.database.service import DBOperationsDomainService
+        from dipeo.domain.validators import DataValidator
+        
+        # Get file system from registry (should be registered by infrastructure container)
+        file_system = self.registry.resolve(FILESYSTEM_ADAPTER)
+        if not file_system:
+            # Fallback to creating a new one if not found
+            from dipeo.infrastructure.adapters.storage import FilesystemAdapter
+            file_system = FilesystemAdapter()
+        
         self.registry.register(
             DB_OPERATIONS_SERVICE,
-            DBOperationsDomainService()
+            DBOperationsDomainService(
+                file_system=file_system,
+                validation_service=DataValidator()
+            )
         )
 
         from dipeo.application.utils.evaluator import ConditionEvaluator

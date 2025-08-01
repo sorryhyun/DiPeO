@@ -149,7 +149,7 @@ class DiPeOCLI:
             result = self.server.execute_diagram(
                 diagram_data,
                 input_variables,
-                use_direct_streaming=True,
+                use_monitoring_stream=True,
                 diagram_name=diagram_name or Path(diagram_path).stem,
                 diagram_format=diagram_format,
             )

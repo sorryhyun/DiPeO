@@ -1,16 +1,15 @@
 """API Router configuration for DiPeO server."""
 
+from dipeo.application.graphql import create_schema
 from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
-
-from dipeo.application.graphql import create_schema
 
 from .context import get_request_context
 
 
 def create_graphql_router(context_getter=None, container=None):
-    """Create a GraphQL router with direct streaming support."""
+    """Create a GraphQL router with monitoring stream support."""
     from dipeo_server.app_context import get_container
 
     if not container:
@@ -41,7 +40,7 @@ def setup_routes(app: FastAPI):
     # v2_graphql_router = create_v2_graphql_router(context_getter=get_request_context)
     # app.include_router(v2_graphql_router, prefix="")
 
-    # SSE router for direct streaming
+    # SSE router for monitoring stream
     from .sse import router as sse_router
 
     app.include_router(sse_router)

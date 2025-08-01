@@ -1,29 +1,26 @@
-"""Server-Sent Events (SSE) endpoints for direct streaming."""
+"""Server-Sent Events (SSE) endpoints for monitoring stream."""
 
 import asyncio
+import json
 import logging
-from typing import Dict, Optional
 
+from dipeo.application.execution.observers import MonitoringStreamObserver
 from fastapi import APIRouter, Request, Response
-from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
-
-from dipeo.application.execution.observers import DirectStreamingObserver
-from dipeo_server.app_context import get_container
 
 logger = logging.getLogger(__name__)
 
-_streaming_observers: Dict[str, DirectStreamingObserver] = {}
+_streaming_observers: dict[str, MonitoringStreamObserver] = {}
 _observers_lock = asyncio.Lock()
 
 router = APIRouter(prefix="/sse")
 
 
-async def get_or_create_observer(execution_id: str) -> DirectStreamingObserver:
+async def get_or_create_observer(execution_id: str) -> MonitoringStreamObserver:
     """Get existing observer or create a new one."""
     async with _observers_lock:
         if execution_id not in _streaming_observers:
-            _streaming_observers[execution_id] = DirectStreamingObserver()
+            _streaming_observers[execution_id] = MonitoringStreamObserver()
         return _streaming_observers[execution_id]
 
 
@@ -56,7 +53,7 @@ async def stream_execution(
 
         except Exception as e:
             logger.error(f"Error in SSE stream for {execution_id}: {e}")
-            yield f"event: error\ndata: {{'error': '{str(e)}'}}\n\n"
+            yield {"data": json.dumps({"error": str(e)})}
         finally:
             pass  # Suppress verbose SSE connection logs
 
@@ -72,11 +69,11 @@ async def stream_execution(
 
 
 def register_observer_for_execution(
-    execution_id: str, observer: DirectStreamingObserver
+    execution_id: str, observer: MonitoringStreamObserver
 ):
     """Register an observer for a specific execution.
 
-    This is called by the execution use case when using direct streaming.
+    This is called by the execution use case when using monitoring stream.
     """
 
     async def _register():
@@ -90,4 +87,4 @@ def register_observer_for_execution(
         asyncio.run(_register())
 
 
-__all__ = ["router", "register_observer_for_execution"]
+__all__ = ["register_observer_for_execution", "router"]

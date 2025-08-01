@@ -12,6 +12,7 @@ interface LogEntry {
 export function useExecutionLogStream(executionIdParam: ReturnType<typeof executionId> | null) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const lastExecutionIdRef = useRef<string | null>(null);
 
   const clearLogs = useCallback(() => {
     setLogs([]);
@@ -25,8 +26,11 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
       eventSourceRef.current.close();
     }
 
-    // Clear logs when starting new execution
-    clearLogs();
+    // Only clear logs when starting a NEW execution (not when reconnecting to same execution)
+    if (lastExecutionIdRef.current && lastExecutionIdRef.current !== executionIdParam) {
+      clearLogs();
+    }
+    lastExecutionIdRef.current = executionIdParam;
 
     // Create new SSE connection
     const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/sse/executions/${executionIdParam}`;
@@ -68,6 +72,7 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
       if (eventSource.readyState === EventSource.CLOSED) {
         console.log('[ExecutionLogStream] SSE connection closed');
         eventSourceRef.current = null;
+        // Keep the logs even when connection closes
       }
     };
 

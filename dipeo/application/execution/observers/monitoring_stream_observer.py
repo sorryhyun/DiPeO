@@ -1,4 +1,4 @@
-"""Direct streaming observer for CLI executions using Server-Sent Events."""
+"""Monitoring stream observer for CLI executions using Server-Sent Events."""
 
 import asyncio
 import json
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class ExecutionLogHandler(logging.Handler):
     """Custom log handler that captures logs for a specific execution."""
     
-    def __init__(self, observer: 'DirectStreamingObserver', execution_id: str):
+    def __init__(self, observer: 'MonitoringStreamObserver', execution_id: str):
         super().__init__()
         self.observer = observer
         self.execution_id = execution_id
@@ -35,9 +35,21 @@ class ExecutionLogHandler(logging.Handler):
     def emit(self, record: logging.LogRecord):
         """Emit log record as an execution log event."""
         try:
+            # Filter out some noisy logs
+            msg = record.getMessage()
+            if any(skip in msg for skip in [
+                "SSE connection", 
+                "EventSourceResponse",
+                "StateRegistry",
+                "APIKeyService",
+                "[ExecutionLogStream]",
+                "POST /graphql"
+            ]):
+                return
+                
             log_entry = {
                 "level": record.levelname,
-                "message": record.getMessage(),
+                "message": msg,
                 "timestamp": datetime.fromtimestamp(record.created).isoformat(),
                 "logger": record.name,
                 "node_id": getattr(record, 'node_id', None),
@@ -52,20 +64,22 @@ class ExecutionLogHandler(logging.Handler):
                 )
             except RuntimeError:
                 # No running event loop, try to run in executor
-                asyncio.run_coroutine_threadsafe(
-                    self.observer._publish_log(self.execution_id, log_entry),
-                    self.observer._event_loop if hasattr(self.observer, '_event_loop') else asyncio.new_event_loop()
-                )
+                if self.observer._event_loop:
+                    asyncio.run_coroutine_threadsafe(
+                        self.observer._publish_log(self.execution_id, log_entry),
+                        self.observer._event_loop
+                    )
         except Exception:
             # Ignore errors in logging to prevent recursion
             pass
 
 
-class DirectStreamingObserver(ExecutionObserver):
-    """Observer that streams updates directly without message router.
+class MonitoringStreamObserver(ExecutionObserver):
+    """Observer that provides read-only monitoring stream for CLI executions.
     
     This observer is designed for CLI executions where the browser
-    connects directly to an SSE endpoint to receive real-time updates.
+    connects to an SSE endpoint to receive real-time updates without
+    the ability to control or interrupt the execution.
     """
     
     def __init__(self, propagate_to_sub: bool = True, scope_to_parent: bool = False, execution_runtime=None):
@@ -103,12 +117,12 @@ class DirectStreamingObserver(ExecutionObserver):
                     if event is None:  # Sentinel value to close stream
                         break
                     
-                    # Format as SSE
-                    yield f"data: {json.dumps(event)}\n\n"
+                    # Yield as SSE data event - EventSourceResponse expects specific format
+                    yield {"data": json.dumps(event)}
                     
                 except asyncio.TimeoutError:
-                    # Send heartbeat to keep connection alive
-                    yield ": heartbeat\n\n"
+                    # Continue waiting for next event
+                    continue
                     
         finally:
             async with self._lock:
@@ -157,12 +171,14 @@ class DirectStreamingObserver(ExecutionObserver):
         )
     
     async def on_execution_start(self, execution_id: str, diagram_id: str | None):
-        # Temporarily disable log handler to reduce verbosity
-        # async with self._lock:
-        #     handler = ExecutionLogHandler(self, execution_id)
-        #     self._log_handlers[execution_id] = handler
-        
-        # Execution started - log handler will capture relevant logs
+        # Enable log handler to capture execution logs
+        async with self._lock:
+            handler = ExecutionLogHandler(self, execution_id)
+            self._log_handlers[execution_id] = handler
+            # Add handler to relevant loggers
+            logging.getLogger('dipeo').addHandler(handler)
+            logging.getLogger('dipeo.application').addHandler(handler)
+            logging.getLogger('dipeo.infra').addHandler(handler)
         
         await self._publish(
             execution_id,
@@ -264,6 +280,19 @@ class DirectStreamingObserver(ExecutionObserver):
                 },
             },
         )
+        
+        # Clean up log handler
+        async with self._lock:
+            if execution_id in self._log_handlers:
+                handler = self._log_handlers[execution_id]
+                # Remove handler from loggers
+                logging.getLogger('dipeo').removeHandler(handler)
+                logging.getLogger('dipeo.application').removeHandler(handler)
+                logging.getLogger('dipeo.infra').removeHandler(handler)
+                del self._log_handlers[execution_id]
+        
+        # Add a small delay to ensure all events are sent before closing
+        await asyncio.sleep(0.5)
         # Close the stream after completion
         await self.close_execution(execution_id)
     
@@ -279,5 +308,16 @@ class DirectStreamingObserver(ExecutionObserver):
                 },
             },
         )
+        
+        # Clean up log handler
+        async with self._lock:
+            if execution_id in self._log_handlers:
+                handler = self._log_handlers[execution_id]
+                # Remove handler from loggers
+                logging.getLogger('dipeo').removeHandler(handler)
+                logging.getLogger('dipeo.application').removeHandler(handler)
+                logging.getLogger('dipeo.infra').removeHandler(handler)
+                del self._log_handlers[execution_id]
+        
         # Close the stream after error
         await self.close_execution(execution_id)

@@ -22,7 +22,7 @@ class APIKeyService(BaseService, APIKeyPort):
     
     async def initialize(self) -> None:
         self._store = await self._load_all()
-        print(f"[APIKeyService] Loaded {len(self._store)} keys")
+        # Loaded API keys successfully
         self._logger.info(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
     
     async def _load_all(self) -> dict[str, dict]:

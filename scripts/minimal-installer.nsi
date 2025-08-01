@@ -12,12 +12,12 @@ RequestExecutionLevel admin
 
 ; UI Configuration
 !define MUI_ABORTWARNING
-!define MUI_ICON "apps\desktop\src-tauri\icons\icon.ico"
-!define MUI_UNICON "apps\desktop\src-tauri\icons\icon.ico"
+!define MUI_ICON "scripts\icons\icon.ico"
+!define MUI_UNICON "scripts\icons\icon.ico"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "apps\desktop\src-tauri\LICENSE"
+!insertmacro MUI_PAGE_LICENSE "LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH

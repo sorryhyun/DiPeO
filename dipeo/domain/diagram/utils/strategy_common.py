@@ -75,8 +75,7 @@ class NodeFieldMapper:
                 
                 if profile_str in profile_to_settings:
                     props["memory_settings"] = profile_to_settings[profile_str]
-                    log.debug(f"Converted memory_profile '{profile_str}' to memory_settings")
-        
+
         return props
     
     @staticmethod

@@ -1,9 +1,9 @@
 """Application context and dependency injection configuration."""
 
-from pathlib import Path
 
 from dipeo.application.bootstrap import Container
-from dipeo.core.config import Config, StorageConfig, LLMConfig
+from dipeo.core.config import Config, LLMConfig, StorageConfig
+
 from dipeo_server.shared.constants import BASE_DIR
 
 _container: Container | None = None
@@ -25,7 +25,11 @@ def create_server_container() -> Container:
     )
 
     container = Container(config)
-    from dipeo.application.registry.keys import STATE_STORE, MESSAGE_ROUTER, CLI_SESSION_SERVICE
+    from dipeo.application.registry.keys import (
+        CLI_SESSION_SERVICE,
+        MESSAGE_ROUTER,
+        STATE_STORE,
+    )
 
     from dipeo_server.infra.state_registry import StateRegistry
 
@@ -34,7 +38,7 @@ def create_server_container() -> Container:
     from dipeo.infra import MessageRouter
 
     container.registry.register(MESSAGE_ROUTER, MessageRouter())
-    
+
     # Register CLI session service if not already registered
     from dipeo.application.services.cli_session_service import CliSessionService
     if not container.registry.has(CLI_SESSION_SERVICE):
@@ -55,7 +59,7 @@ def initialize_container() -> Container:
     global _container
 
     if _container is None:
-        print("Initializing server with simplified container system")
+        # Initializing server with simplified container system
         _container = create_server_container()
 
     return _container

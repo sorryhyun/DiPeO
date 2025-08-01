@@ -7,21 +7,21 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: 'Condition Type',
     required: true,
-    description: 'Condition Type configuration',
+    description: 'Type of condition to evaluate',
   },
   {
     name: 'expression',
     type: 'text',
     label: 'Expression',
     required: false,
-    description: 'Expression configuration',
+    description: 'Boolean expression to evaluate',
   },
   {
     name: 'node_indices',
     type: 'text',
     label: 'Node Indices',
     required: false,
-    description: 'Node Indices configuration',
+    description: 'Node indices for condition evaluation',
     validate: (value: unknown) => {
       return { isValid: true };
     },

@@ -1,5 +1,5 @@
 # Generated GraphQL Schema from Domain Models
-# Generated at: 2025-07-31T16:25:03.134720
+# Generated at: 2025-08-01T14:04:11.756619
 # DO NOT EDIT - This file is auto-generated from TypeScript domain models
 
 # ============================================================================
@@ -178,6 +178,7 @@ enum LLMService {
   OPENAI
   ANTHROPIC
   GOOGLE
+  GEMINI
   BEDROCK
   VERTEX
   DEEPSEEK

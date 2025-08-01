@@ -288,6 +288,8 @@ class LLMService(str, Enum):
     
     GOOGLE = "google"
     
+    GEMINI = "gemini"
+    
     BEDROCK = "bedrock"
     
     VERTEX = "vertex"

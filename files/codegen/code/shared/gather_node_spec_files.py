@@ -49,9 +49,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if missing_files:
         print(f"Warning: Missing spec files for node types: {missing_files}")
     
-    print(f"Found {len(sources)} TypeScript node spec files:")
-    for source in sources:
-        print(f"  - {source}")
+    print(f"Found {len(sources)} specs")
     
     return {
         'sources': sources,

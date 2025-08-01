@@ -106,7 +106,7 @@ def start():
     config.graceful_timeout = 30.0
 
     # Configure logging
-    config.accesslog = "-"  # Log to stdout
+    config.accesslog = None  # Disable access logs
     config.errorlog = "-"   # Log errors to stdout
 
     # Set up custom filter for hypercorn access logs

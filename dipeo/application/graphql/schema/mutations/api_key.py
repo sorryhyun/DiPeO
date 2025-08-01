@@ -5,6 +5,7 @@ import logging
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE
 from dipeo.core.ports import APIKeyPort
 from dipeo.diagram_generated import DomainApiKey
 from dipeo.diagram_generated.domain_models import ApiKeyID
@@ -13,10 +14,6 @@ from ...types.inputs import CreateApiKeyInput
 from ...types.results import ApiKeyResult, DeleteResult, TestApiKeyResult
 
 logger = logging.getLogger(__name__)
-
-# Service keys
-APIKEY_SERVICE = ServiceKey[APIKeyPort]("apikey_service")
-LLM_SERVICE = ServiceKey("llm_service")
 
 
 def create_api_key_mutations(registry: ServiceRegistry) -> type:
@@ -27,7 +24,7 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
         @strawberry.mutation
         async def create_api_key(self, input: CreateApiKeyInput) -> ApiKeyResult:
             try:
-                apikey_service = registry.resolve(APIKEY_SERVICE)
+                apikey_service = registry.resolve(API_KEY_SERVICE)
                 
                 # Create API key using the service
                 result = await apikey_service.create_api_key(
@@ -61,7 +58,7 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
         async def delete_api_key(self, id: strawberry.ID) -> DeleteResult:
             try:
                 api_key_id = str(id)
-                apikey_service = registry.resolve(APIKEY_SERVICE)
+                apikey_service = registry.resolve(API_KEY_SERVICE)
                 
                 # Delete API key
                 await apikey_service.delete_api_key(api_key_id)
@@ -83,7 +80,7 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
         async def test_api_key(self, id: strawberry.ID) -> TestApiKeyResult:
             try:
                 api_key_id = ApiKeyID(str(id))
-                apikey_service = registry.resolve(APIKEY_SERVICE)
+                apikey_service = registry.resolve(API_KEY_SERVICE)
                 llm_service = registry.get(LLM_SERVICE.name)
                 
                 if not llm_service:

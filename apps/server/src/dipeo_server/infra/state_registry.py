@@ -72,11 +72,9 @@ class StateRegistry:
             self._initialized = False
 
     async def _connect(self):
-        print(f"[StateRegistry] Attempting to connect to database at: {self.db_path}")
+        # Attempting to connect to database
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        print(
-            f"[StateRegistry] Database directory created/verified: {Path(self.db_path).parent}"
-        )
+        # Database directory created/verified
 
         loop = asyncio.get_event_loop()
 

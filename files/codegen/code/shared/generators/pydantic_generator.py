@@ -90,15 +90,12 @@ from __future__ import annotations
     
     # Collect all schema files
     schema_files = list(schemas_dir.glob('*.schema.json'))
-    print(f"Found {len(schema_files)} schema files to process")
-    
     models_generated = {}
     errors = []
     
     # Process files in parallel
     start_time = time.time()
     max_workers = min(8, len(schema_files))  # Limit concurrent processes
-    print(f"Processing with {max_workers} parallel workers...")
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks
@@ -110,14 +107,11 @@ from __future__ import annotations
             try:
                 model_name, output_path, success, error_msg = future.result()
                 if success:
-                    print(f"  ✓ Generated {model_name}_models.py")
                     models_generated[model_name] = output_path
                 else:
-                    print(f"  ✗ {error_msg}")
                     errors.append(error_msg)
             except Exception as e:
                 error_msg = f"Unexpected error processing {schema_file.name}: {str(e)}"
-                print(f"  ✗ {error_msg}")
                 errors.append(error_msg)
     
     # Create __init__.py to export all models
@@ -131,7 +125,7 @@ from __future__ import annotations
         f.write(init_content)
     
     elapsed_time = time.time() - start_time
-    print(f"\n✓ Generated {len(models_generated)} Pydantic model files in {elapsed_time:.2f} seconds")
+    print(f"Pydantic models: {len(models_generated)} files - done!")
     
     # Generate a combined validation module
     combined_file = output_dir / 'node_validators.py'

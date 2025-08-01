@@ -62,7 +62,7 @@ class ExecuteDiagramUseCase(BaseService):
         execution_id: str,
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
-        use_direct_streaming: bool = False,  # Use direct streaming instead of message router
+        use_monitoring_stream: bool = False,  # Use monitoring-only streaming for CLI executions
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
@@ -73,20 +73,20 @@ class ExecuteDiagramUseCase(BaseService):
             engine_observers = observers
             streaming_observer = None
             for obs in observers:
-                from dipeo.application.execution.observers import DirectStreamingObserver
-                if isinstance(obs, DirectStreamingObserver):
+                from dipeo.application.execution.observers import MonitoringStreamObserver
+                if isinstance(obs, MonitoringStreamObserver):
                     streaming_observer = obs
                     break
             
             if not streaming_observer:
-                from dipeo.application.execution.observers import DirectStreamingObserver
-                streaming_observer = DirectStreamingObserver()
+                from dipeo.application.execution.observers import MonitoringStreamObserver
+                streaming_observer = MonitoringStreamObserver()
                 engine_observers = list(observers) + [streaming_observer]
         else:
-            from dipeo.application.execution.observers import DirectStreamingObserver
+            from dipeo.application.execution.observers import MonitoringStreamObserver
             
-            if use_direct_streaming:
-                streaming_observer = DirectStreamingObserver()
+            if use_monitoring_stream:
+                streaming_observer = MonitoringStreamObserver()
                 
                 try:
                     from dipeo_server.api.sse import register_observer_for_execution
@@ -94,7 +94,7 @@ class ExecuteDiagramUseCase(BaseService):
                 except ImportError:
                     pass
             else:
-                streaming_observer = DirectStreamingObserver()
+                streaming_observer = MonitoringStreamObserver()
             from dipeo.application.execution.observers import StateStoreObserver
             
             engine_observers = []
@@ -110,7 +110,7 @@ class ExecuteDiagramUseCase(BaseService):
         )
 
         update_iterator = None
-        if not use_direct_streaming:
+        if not use_monitoring_stream:
             update_iterator = streaming_observer.subscribe(execution_id)
 
         async def run_execution():
@@ -146,7 +146,7 @@ class ExecuteDiagramUseCase(BaseService):
 
         asyncio.create_task(run_execution())
 
-        if use_direct_streaming:
+        if use_monitoring_stream:
             await asyncio.sleep(0.1)
             while True:
                 state = await self.state_store.get_state(execution_id)
@@ -163,10 +163,19 @@ class ExecuteDiagramUseCase(BaseService):
                 "status": state.status.value,
             }
         else:
-            async for update_str in update_iterator:
-                if update_str.startswith("data: "):
+            async for update_msg in update_iterator:
+                if isinstance(update_msg, dict) and "data" in update_msg:
                     try:
-                        update = json.loads(update_str[6:].strip())
+                        update = json.loads(update_msg["data"])
+                        yield update
+                        
+                        if update.get("type") in ["execution_complete", "execution_error"]:
+                            break
+                    except json.JSONDecodeError:
+                        continue
+                elif isinstance(update_msg, str) and update_msg.startswith("data: "):
+                    try:
+                        update = json.loads(update_msg[6:].strip())
                         yield update
                         
                         if update.get("type") in ["execution_complete", "execution_error"]:

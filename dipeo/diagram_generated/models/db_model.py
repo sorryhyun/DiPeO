@@ -9,9 +9,9 @@ from dipeo.diagram_generated.enums import DBBlockSubType
 
 class DbNodeData(BaseModel):
     """Data model for Database node."""
-    file: Optional[str] = Field(description="File configuration (can be a single file path or array of file paths)")
-    collection: Optional[str] = Field(description="Collection configuration")
-    sub_type: DBBlockSubType = Field(description="Sub Type configuration")
+    file: Optional[str] = Field(description="File path or array of file paths")
+    collection: Optional[str] = Field(description="Database collection name")
+    sub_type: DBBlockSubType = Field(description="Database operation type")
     operation: str = Field(description="Operation configuration")
     query: Optional[str] = Field(description="Query configuration")
     data: Optional[Dict[str, Any]] = Field(description="Data configuration")

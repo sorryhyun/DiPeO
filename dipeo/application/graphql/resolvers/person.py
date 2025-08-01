@@ -6,6 +6,7 @@ from typing import Optional, List
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry import INTEGRATED_DIAGRAM_SERVICE
+from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE, PERSON_MANAGER
 from dipeo.diagram_generated.domain_models import (
     PersonID, ApiKeyID,
     DomainPerson,
@@ -19,11 +20,6 @@ from dipeo.infra.llm import LLMInfraService
 from ..types.inputs import PersonLLMConfigInput
 
 logger = logging.getLogger(__name__)
-
-# Service keys
-PERSON_MANAGER = ServiceKey[PersonManager]("person_manager")
-APIKEY_SERVICE = ServiceKey[APIKeyPort]("apikey_service")
-LLM_SERVICE = ServiceKey[LLMInfraService]("llm_service")
 
 
 class PersonResolver:
@@ -127,7 +123,7 @@ class PersonResolver:
     async def get_api_key(self, id: ApiKeyID) -> Optional[DomainApiKey]:
         """Get a single API key by ID."""
         try:
-            apikey_service = self.registry.resolve(APIKEY_SERVICE)
+            apikey_service = self.registry.resolve(API_KEY_SERVICE)
             # Run blocking operation in thread pool to avoid blocking event loop
             api_keys = await asyncio.to_thread(
                 apikey_service.list_api_keys
@@ -153,7 +149,7 @@ class PersonResolver:
     async def list_api_keys(self, service: Optional[str] = None) -> List[DomainApiKey]:
         """List API keys, optionally filtered by service."""
         try:
-            apikey_service = self.registry.resolve(APIKEY_SERVICE)
+            apikey_service = self.registry.resolve(API_KEY_SERVICE)
             logger.debug(f"Got apikey_service: {apikey_service}")
             # Run blocking operation in thread pool to avoid blocking event loop
             api_keys = await asyncio.to_thread(

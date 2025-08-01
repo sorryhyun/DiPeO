@@ -258,7 +258,7 @@ export type ExecuteDiagramInput = {
   diagram_id?: InputMaybe<Scalars['ID']['input']>;
   max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
-  use_direct_streaming?: InputMaybe<Scalars['Boolean']['input']>;
+  use_monitoring_stream?: InputMaybe<Scalars['Boolean']['input']>;
   variables?: InputMaybe<Scalars['JSON']['input']>;
 };
 

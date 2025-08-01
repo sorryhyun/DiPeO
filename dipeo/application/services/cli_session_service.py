@@ -64,7 +64,6 @@ class CliSessionService:
                     if domain_diagram.metadata:
                         converted_data["metadata"] = domain_diagram.metadata.model_dump(by_alias=True)
                     
-                    logger.info(f"Converted diagram from {diagram_format} to frontend-compatible format")
                 except Exception as e:
                     logger.error(f"Failed to convert diagram format: {e}")
                     # Fall back to original data
@@ -80,7 +79,6 @@ class CliSessionService:
                 diagram_data=json.dumps(converted_data) if converted_data else None
             )
             
-            logger.info(f"Started CLI session for execution {execution_id}")
             return self._active_session
     
     async def end_cli_session(self, execution_id: str) -> bool:

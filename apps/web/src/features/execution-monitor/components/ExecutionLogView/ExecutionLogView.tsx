@@ -4,6 +4,7 @@ import { Button } from '@/shared/components/forms/buttons';
 import { useExecutionLogStream } from '../../hooks/useExecutionLogStream';
 import { useExecution } from '../../hooks';
 import { formatTimestamp } from '@/lib/utils/date';
+import { executionId } from '@/core/types';
 
 interface LogEntry {
   level: string;
@@ -45,7 +46,7 @@ const getLogLevelColor = (level: string): string => {
 
 export const ExecutionLogView: React.FC = () => {
   const { execution } = useExecution();
-  const { logs, clearLogs } = useExecutionLogStream(execution.executionId);
+  const { logs, clearLogs } = useExecutionLogStream(execution.executionId ? executionId(execution.executionId) : null);
   const [filter, setFilter] = useState<string>('');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const logsEndRef = useRef<HTMLDivElement>(null);

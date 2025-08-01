@@ -44,8 +44,8 @@ def extract_node_specs(inputs: dict) -> dict:
                                             'description': spec_value.get('description'),
                                             'fields': spec_value.get('fields', [])
                                         })
-                                        print(f"  Found spec: {node_type}")
-                print(f"Found {len(node_specs)} node specifications from consolidated cache")
+                                        pass  # Remove verbose logging
+                print(f"Found {len(node_specs)} specs")
                 return {'node_specs': node_specs}
         except Exception as e:
             print(f"Error reading consolidated cache: {e}")
@@ -59,7 +59,7 @@ def extract_node_specs(inputs: dict) -> dict:
         'node_spec_json_schema_validator_ast.json', 'node_spec_typescript_ast_ast.json', 'node_spec_sub_diagram_ast.json'
     ]
     
-    print(f"Looking for node spec cache files in: {cache_dir}")
+    # Looking for node spec cache files
     
     for filename in spec_files:
         file_path = cache_dir / filename
@@ -79,11 +79,11 @@ def extract_node_specs(inputs: dict) -> dict:
                                     'description': spec_value.get('description'),
                                     'fields': spec_value.get('fields', [])
                                 })
-                                print(f"  Found spec: {spec_value.get('nodeType')}")
+                                pass  # Remove verbose logging
             except Exception as e:
                 print(f"  Error reading {filename}: {e}")
     
-    print(f"Found {len(node_specs)} node specifications")
+    print(f"Found {len(node_specs)} specs")
     
     return {'node_specs': node_specs}
 
@@ -224,10 +224,7 @@ def generate_summary(inputs: dict) -> dict:
     mutations = inputs.get('mutations', [])
     strawberry_types = inputs.get('strawberry_types', [])
     
-    print(f"\n=== Strawberry GraphQL Types Generation Complete ===")
-    print(f"Generated {len(strawberry_types)} node types")
-    print(f"Generated {len(mutations)} mutations")
-    print(f"\nOutput written to: dipeo/application/graphql/types/nodes.py")
+    print(f"Strawberry types: {len(strawberry_types)} types, {len(mutations)} mutations - done!")
     
     return {
         'status': 'success',

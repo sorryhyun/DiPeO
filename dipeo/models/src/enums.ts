@@ -147,6 +147,7 @@ export enum LLMService {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
   GOOGLE = 'google',
+  GEMINI = 'gemini',
   BEDROCK = 'bedrock',
   VERTEX = 'vertex',
   DEEPSEEK = 'deepseek'
