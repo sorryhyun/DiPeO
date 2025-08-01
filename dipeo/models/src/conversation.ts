@@ -6,8 +6,8 @@ import { PersonID } from "./diagram.js";
  */
 export interface Message {
   id?: string;
-  from_person_id: PersonID | 'system';  // Who sent the message
-  to_person_id: PersonID;               // Who receives/stores this message
+  from_person_id: PersonID | 'system';
+  to_person_id: PersonID;
   content: string;
   timestamp?: string;
   token_count?: number;

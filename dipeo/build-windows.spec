@@ -47,7 +47,7 @@ base_hiddenimports = [
     'dipeo.diagram',
     'dipeo.application',
     'dipeo.infra',
-    'dipeo.container',
+    'dipeo.application.bootstrap',
     'dipeo.models',
     'dipeo.utils',
     
@@ -167,7 +167,7 @@ datas = [
     (str(DIPEO_DIR / 'diagram'), 'dipeo/diagram'),
     (str(DIPEO_DIR / 'application'), 'dipeo/application'),
     (str(DIPEO_DIR / 'infra'), 'dipeo/infra'),
-    (str(DIPEO_DIR / 'container'), 'dipeo/container'),
+    # Container moved to application.bootstrap
     (str(DIPEO_DIR / 'models'), 'dipeo/models'),
     (str(DIPEO_DIR / 'utils'), 'dipeo/utils'),
     
@@ -210,7 +210,7 @@ a = Analysis(
         str(DIPEO_DIR / 'diagram'),
         str(DIPEO_DIR / 'application'),
         str(DIPEO_DIR / 'infra'),
-        str(DIPEO_DIR / 'container'),
+        str(DIPEO_DIR / 'application' / 'bootstrap'),
     ],
     binaries=[],
     datas=datas,

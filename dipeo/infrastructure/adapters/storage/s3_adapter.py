@@ -15,13 +15,6 @@ class S3Adapter(BaseService, BlobStorePort):
     """AWS S3 implementation of BlobStorePort."""
     
     def __init__(self, bucket: str, client=None, region: str = "us-east-1"):
-        """Initialize S3 adapter.
-        
-        Args:
-            bucket: S3 bucket name
-            client: boto3 S3 client (optional, will create if not provided)
-            region: AWS region
-        """
         super().__init__()
         self.bucket = bucket
         self.region = region
@@ -29,7 +22,6 @@ class S3Adapter(BaseService, BlobStorePort):
         self._initialized = False
     
     async def initialize(self) -> None:
-        """Initialize the S3 client."""
         if self._initialized:
             return
             
@@ -40,7 +32,6 @@ class S3Adapter(BaseService, BlobStorePort):
             except ImportError:
                 raise StorageError("boto3 is required for S3 adapter. Install with: pip install boto3")
         
-        # Verify bucket exists
         try:
             self._client.head_bucket(Bucket=self.bucket)
         except Exception as e:
@@ -50,7 +41,6 @@ class S3Adapter(BaseService, BlobStorePort):
         logger.info(f"S3Adapter initialized with bucket: {self.bucket}")
     
     async def put(self, key: str, data: bytes | BinaryIO, metadata: dict[str, str] | None = None) -> str:
-        """Store object in S3 and return version ID."""
         if not self._initialized:
             await self.initialize()
             
@@ -65,14 +55,12 @@ class S3Adapter(BaseService, BlobStorePort):
                     **extra_args
                 )
             else:
-                # For file-like objects
                 self._client.upload_fileobj(
                     data, 
                     self.bucket, 
                     key,
                     ExtraArgs=extra_args
                 )
-                # Get version ID from head_object
                 response = self._client.head_object(Bucket=self.bucket, Key=key)
             
             version_id = response.get("VersionId", "")
@@ -83,7 +71,6 @@ class S3Adapter(BaseService, BlobStorePort):
             raise StorageError(f"Failed to store {key} in S3: {e}")
     
     async def get(self, key: str, version: str | None = None) -> BinaryIO:
-        """Retrieve object from S3."""
         if not self._initialized:
             await self.initialize()
             
@@ -94,7 +81,6 @@ class S3Adapter(BaseService, BlobStorePort):
                 
             response = self._client.get_object(**params)
             
-            # Wrap the streaming body in a proper file-like object
             return io.BytesIO(response["Body"].read())
             
         except self._client.exceptions.NoSuchKey:
@@ -103,7 +89,6 @@ class S3Adapter(BaseService, BlobStorePort):
             raise StorageError(f"Failed to retrieve {key} from S3: {e}")
     
     async def exists(self, key: str) -> bool:
-        """Check if object exists in S3."""
         if not self._initialized:
             await self.initialize()
             
@@ -117,7 +102,6 @@ class S3Adapter(BaseService, BlobStorePort):
             return False
     
     async def delete(self, key: str, version: str | None = None) -> None:
-        """Delete object from S3."""
         if not self._initialized:
             await self.initialize()
             
@@ -133,7 +117,6 @@ class S3Adapter(BaseService, BlobStorePort):
             raise StorageError(f"Failed to delete {key} from S3: {e}")
     
     async def list(self, prefix: str = "", limit: int = 1000) -> AsyncIterator[str]:
-        """List objects in S3 with prefix."""
         if not self._initialized:
             await self.initialize()
             
@@ -154,12 +137,10 @@ class S3Adapter(BaseService, BlobStorePort):
             raise StorageError(f"Failed to list objects with prefix {prefix}: {e}")
     
     def presign_url(self, key: str, operation: str = "GET", expires_in: int = 3600) -> str:
-        """Generate presigned URL for S3 object."""
         if not self._initialized:
             raise StorageError("S3Adapter not initialized")
             
         try:
-            # Map HTTP method to boto3 client method
             client_method_map = {
                 "GET": "get_object",
                 "PUT": "put_object",

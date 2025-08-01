@@ -11,13 +11,9 @@ from .messaging import MessageRouter
 from .persistence.keys import EnvironmentAPIKeyService
 
 __all__ = [
-    # LLM adapters
     "LLMInfraService",
     "create_adapter",
-    # API Key management
     "EnvironmentAPIKeyService",
-    # Messaging
     "MessageRouter",
-    # External services
     "NotionAPIService",
 ]

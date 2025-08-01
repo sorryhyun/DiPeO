@@ -2,161 +2,127 @@
  * useMonitorMode - Hook to handle monitor mode auto-execution
  * 
  * This hook detects when the app is in monitor mode and automatically
- * starts execution of the loaded diagram.
+ * monitors CLI-launched executions.
  */
 
 import { useEffect, useRef } from 'react';
+import { useQuery, gql } from '@apollo/client';
+import { toast } from 'sonner';
 import { useExecution } from './useExecution';
 import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { useShallow } from 'zustand/react/shallow';
-import { createCommonStoreSelector } from '@/core/store/selectorFactory';
-import { type DomainDiagram, diagramId as createDiagramId } from '@/core/types';
+import { useUIState, useUIOperations } from '@/core/store/hooks';
+
+const ACTIVE_CLI_SESSION_QUERY = gql`
+  query ActiveCliSession {
+    active_cli_session {
+      session_id
+      execution_id
+      diagram_name
+      diagram_format
+      started_at
+      is_active
+      diagram_data
+    }
+  }
+`;
 
 export interface UseMonitorModeOptions {
-  autoStart?: boolean;
-  debug?: boolean;
+  pollCliSessions?: boolean;
 }
 
 export function useMonitorMode(options: UseMonitorModeOptions = {}) {
-  const { autoStart = true, debug = false } = options;
+  const { pollCliSessions = true } = options;
   
   // Track if we've already started execution to prevent double-starts
   const hasStartedRef = useRef(false);
+  const lastSessionIdRef = useRef<string | null>(null);
   
   // Get execution hook
   const execution = useExecution({ showToasts: true });
   
-  // Get diagram loading state - but this won't load in execution mode without monitor mode anymore
-  const { hasLoaded, diagramId } = useDiagramLoader();
+  // Get diagram loading function
+  const { loadDiagramFromData } = useDiagramLoader();
   
-  // Get diagram data from store
-  const storeSelector = createCommonStoreSelector();
-  const { nodes, arrows, persons, handles } = useUnifiedStore(useShallow(storeSelector));
+  // Get UI operations and state
+  const { isMonitorMode: isMonitorModeFromStore } = useUIState();
+  const { setActiveCanvas } = useUIOperations();
   
-  // Check if we're in monitor mode
+  // Check if we're in monitor mode (from store)
   const isMonitorMode = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('monitor') === 'true' || !!params.get('executionId');
+    return isMonitorModeFromStore;
   };
   
-  // Get diagram name from URL
-  const getDiagramName = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('diagram');
-  };
+  // Poll for active CLI session when in monitor mode
+  const { data: cliSessionData, loading: cliSessionLoading, error: cliSessionError } = useQuery(ACTIVE_CLI_SESSION_QUERY, {
+    skip: !isMonitorMode() || !pollCliSessions,
+    pollInterval: 2000, // Poll every 2 seconds
+    fetchPolicy: 'network-only',
+  });
   
-  // Get execution ID from URL
-  const getExecutionId = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('executionId');
-  };
+  const activeSession = cliSessionData?.active_cli_session;
   
+  // CLI session monitoring handles all execution now
+  // No need for URL-based execution logic
+  
+  // Handle CLI session monitoring
   useEffect(() => {
-    // Only proceed if:
-    // 1. We're in monitor mode
-    // 2. Auto-start is enabled
-    // 3. We haven't already started execution
-    // 4. We're not currently running
-    if (!isMonitorMode() || !autoStart || hasStartedRef.current || execution.isRunning) {
-      return;
-    }
+    if (!isMonitorMode() || !pollCliSessions || cliSessionLoading || cliSessionError) return;
     
-    const executionId = getExecutionId();
-    const diagramName = getDiagramName();
-    
-    // Case 1: We have an executionId - connect to existing execution
-    if (executionId) {
-      console.log('Monitor mode: Connecting to existing execution:', executionId);
-      hasStartedRef.current = true;
-      
-      // The execution is already running on the backend
-      // Connect to it using the proper function
-      const totalNodes = nodes.size || 0;
-      execution.connectToExecution(executionId, totalNodes);
-      
-      return;
-    }
-    
-    // Case 2: No executionId - start a new execution (original logic)
-    if (!hasLoaded) {
-      return;
-    }
-    
-    if (!diagramName) {
-      console.warn('Monitor mode enabled but no diagram specified in URL');
-      return;
-    }
-    
-    // Check if we have diagram data
-    if (nodes.size === 0) {
-      console.warn('Monitor mode: No nodes found in diagram');
-      return;
-    }
-    
-    // Mark that we've started to prevent double-starts
-    hasStartedRef.current = true;
-    
-    // Prepare diagram data for execution
-    const nodesArray = Array.from(nodes.values());
-    const arrowsArray = Array.from(arrows.values());
-    const personsArray = Array.from(persons.values());
-    const handlesArray = Array.from(handles.values());
-    
-    const diagram: DomainDiagram = {
-      nodes: nodesArray,
-      arrows: arrowsArray,
-      persons: personsArray,
-      handles: handlesArray,
-      metadata: {
-        id: createDiagramId(diagramId || diagramName || 'temp-execution'),
-        name: diagramName || 'Untitled Diagram',
-        version: '1.0',
-        created: new Date().toISOString(),
-        modified: new Date().toISOString(),
-        description: null,
-        author: null,
-        tags: []
+    if (activeSession?.is_active) {
+      // New CLI session detected
+      if (activeSession.session_id !== lastSessionIdRef.current) {
+        lastSessionIdRef.current = activeSession.session_id;
+        
+        console.log('[Monitor] Detected active CLI session:', activeSession.execution_id);
+        toast.info(`Connected to CLI execution: ${activeSession.diagram_name}`);
+        
+        // Load diagram if data is provided
+        if (activeSession.diagram_data) {
+          try {
+            const diagramData = JSON.parse(activeSession.diagram_data);
+            loadDiagramFromData(diagramData);
+          } catch (e) {
+            console.error('[Monitor] Failed to parse diagram data:', e);
+          }
+        }
+        
+        // Switch to execution canvas and start monitoring
+        setActiveCanvas('execution');
+        
+        // Connect to the CLI execution directly (no URL params needed)
+        const nodeCount = activeSession.diagram_data ? 
+          JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
+          0;
+        
+        execution.connectToExecution(activeSession.execution_id, nodeCount);
+        hasStartedRef.current = true;
       }
-    };
-    
-    console.log('Monitor mode: Auto-starting execution for diagram:', diagramName);
-    
-    // Start execution with a delay to ensure UI and diagram are fully loaded
-    setTimeout(() => {
-      execution.execute(diagram, {
-        debug,
-        // Add any other execution options here
-      }).catch(error => {
-        console.error('Monitor mode: Failed to start execution:', error);
-        // Reset the flag so user can manually retry if needed
-        hasStartedRef.current = false;
-      });
-    }, 100);
-    
-  }, [hasLoaded, nodes.size, execution.isRunning, autoStart, debug, diagramId, execution]);
-  
-  // Reset hasStarted flag when URL changes
-  useEffect(() => {
-    const handleUrlChange = () => {
-      const params = new URLSearchParams(window.location.search);
-      const newDiagramName = params.get('diagram');
-      const currentDiagramName = getDiagramName();
+    } else if (lastSessionIdRef.current) {
+      // CLI session ended
+      console.log('[Monitor] CLI session ended');
+      lastSessionIdRef.current = null;
       
-      if (newDiagramName !== currentDiagramName) {
-        hasStartedRef.current = false;
-      }
-    };
-    
-    window.addEventListener('popstate', handleUrlChange);
-    return () => window.removeEventListener('popstate', handleUrlChange);
-  }, []);
+      // Clear diagram after a short delay
+      setTimeout(() => {
+        const store = useUnifiedStore.getState();
+        if (store.isMonitorMode) {
+          store.clearDiagram();
+          setActiveCanvas('main');
+          toast.info('CLI execution completed - diagram cleared');
+        }
+      }, 1000);
+    }
+  }, [cliSessionData, cliSessionLoading, cliSessionError, isMonitorMode, pollCliSessions, setActiveCanvas, loadDiagramFromData, execution]);
   
   return {
     isMonitorMode: isMonitorMode(),
-    diagramName: getDiagramName(),
+    diagramName: activeSession?.diagram_name || null,
     isExecuting: execution.isRunning,
     hasStarted: hasStartedRef.current,
-    execution
+    execution,
+    activeCliSession: activeSession,
+    isLoadingCliSession: cliSessionLoading,
+    cliSessionError
   };
 }

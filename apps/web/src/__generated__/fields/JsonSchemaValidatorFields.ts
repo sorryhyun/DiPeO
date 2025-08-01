@@ -22,7 +22,7 @@ export const jsonSchemaValidatorFields: UnifiedFieldDefinition[] = [
     type: 'code',
     label: 'Schema',
     required: false,
-    description: 'Schema configuration',
+    description: 'Inline JSON schema',
   },
   {
     name: 'schema_path',
@@ -30,7 +30,7 @@ export const jsonSchemaValidatorFields: UnifiedFieldDefinition[] = [
     label: 'Schema Path',
     required: false,
     placeholder: '/path/to/file',
-    description: 'Schema Path configuration',
+    description: 'Path to JSON schema file',
   },
   {
     name: 'strict_mode',

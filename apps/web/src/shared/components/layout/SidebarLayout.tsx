@@ -1,4 +1,3 @@
-// Generic sidebar layout component without domain knowledge
 import React from 'react';
 
 interface SidebarLayoutProps {

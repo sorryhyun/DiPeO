@@ -65,6 +65,7 @@ export interface UISlice {
   // Mode operations
   setReadOnly: (readOnly: boolean) => void;
   setCanvasMode: (mode: CanvasMode) => void;
+  setMonitorMode: (isMonitorMode: boolean) => void;
   
   // Clear operation
   clearUIState: () => void;
@@ -190,6 +191,14 @@ export const createUISlice: StateCreator<
   
   setCanvasMode: (mode) => set(state => {
     state.canvasMode = mode;
+  }),
+  
+  setMonitorMode: (isMonitorMode) => set(state => {
+    state.isMonitorMode = isMonitorMode;
+    // When entering monitor mode, automatically set read-only
+    if (isMonitorMode) {
+      state.readOnly = true;
+    }
   }),
   
   // Clear operation

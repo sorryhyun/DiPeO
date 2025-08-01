@@ -9,14 +9,14 @@ from dipeo.diagram_generated.enums import HttpMethod
 
 class ApiJobNodeData(BaseModel):
     """Data model for API Job node."""
-    url: str = Field(description="Url configuration")
-    method: HttpMethod = Field(description="Method configuration")
-    headers: Optional[Dict[str, Any]] = Field(description="Headers configuration")
-    params: Optional[Dict[str, Any]] = Field(description="Params configuration")
-    body: Optional[Dict[str, Any]] = Field(description="Body configuration")
-    timeout: Optional[float] = Field(description="Timeout configuration")
-    auth_type: Optional[str] = Field(description="Auth Type configuration")
-    auth_config: Optional[Dict[str, Any]] = Field(description="Auth Config configuration")
+    url: str = Field(description="API endpoint URL")
+    method: HttpMethod = Field(description="HTTP method")
+    headers: Optional[Dict[str, Any]] = Field(description="HTTP headers")
+    params: Optional[Dict[str, Any]] = Field(description="Query parameters")
+    body: Optional[Dict[str, Any]] = Field(description="Request body")
+    timeout: Optional[float] = Field(description="Request timeout in seconds")
+    auth_type: Optional[str] = Field(description="Authentication type")
+    auth_config: Optional[Dict[str, Any]] = Field(description="Authentication configuration")
 
     class Config:
         extra = "forbid"

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.unified_service_registry import EXECUTION_CONTEXT
+from dipeo.application.registry import EXECUTION_CONTEXT
 from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
@@ -55,20 +55,20 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        # Check if we have an interactive handler
-        exec_context = services.get(EXECUTION_CONTEXT.name)
+        if isinstance(services, dict):
+            exec_context = services.get(EXECUTION_CONTEXT.name)
+        else:
+            exec_context = services.get(EXECUTION_CONTEXT)
         if (
             exec_context
             and hasattr(exec_context, "interactive_handler")
             and exec_context.interactive_handler
         ):
-            # Prepare the message with inputs if available
             message = node.prompt
             if inputs:
                 input_str = str(inputs.get("default", inputs))
                 message = f"{message}\n\nContext: {input_str}"
 
-            # Call the interactive handler
             response = await exec_context.interactive_handler(
                 {
                     "type": "user_input_required",
@@ -83,7 +83,6 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
                 node_id=node.id,
                 metadata={"user_response": response}
             )
-        # If no interactive handler, return empty response
         return TextOutput(
             value="",
             node_id=node.id,

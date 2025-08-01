@@ -1,6 +1,3 @@
-/**
- * Person Job node specification
- */
 
 import { NodeType, MemoryView } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const personJobSpec: NodeSpecification = {
       name: "person",
       type: "string",
       required: false,
-      description: "Person configuration",
+      description: "AI person to use",
       uiConfig: {
         inputType: "personSelect"
       }
@@ -27,7 +24,7 @@ export const personJobSpec: NodeSpecification = {
       name: "first_only_prompt",
       type: "string",
       required: true,
-      description: "First Only Prompt configuration",
+      description: "Prompt used only on first execution",
       uiConfig: {
         inputType: "textarea",
         placeholder: "Enter prompt template...",
@@ -40,7 +37,7 @@ export const personJobSpec: NodeSpecification = {
       name: "default_prompt",
       type: "string",
       required: false,
-      description: "Default Prompt configuration",
+      description: "Default prompt template",
       uiConfig: {
         inputType: "textarea",
         placeholder: "Enter prompt template...",
@@ -54,7 +51,7 @@ export const personJobSpec: NodeSpecification = {
       type: "number",
       required: true,
       defaultValue: 1,
-      description: "Max Iteration configuration",
+      description: "Maximum execution iterations",
       uiConfig: {
         inputType: "number",
         min: 1
@@ -81,7 +78,7 @@ export const personJobSpec: NodeSpecification = {
       name: "memory_config",
       type: "object",
       required: false,
-      description: "Memory Config configuration (deprecated - use memory_profile or memory_settings)",
+      description: "Deprecated memory configuration",
       uiConfig: {
         inputType: "code",
         collapsible: true
@@ -91,7 +88,7 @@ export const personJobSpec: NodeSpecification = {
       name: "memory_settings",
       type: "object",
       required: false,
-      description: "Memory Settings configuration (only used when memory_profile is CUSTOM)",
+      description: "Custom memory settings",
       nestedFields: [
         {
           name: "view",
@@ -165,7 +162,7 @@ export const personJobSpec: NodeSpecification = {
   outputs: {
     result: {
       type: "any",
-      description: "Node execution result"
+      description: "AI response and results"
     }
   },
   
@@ -173,5 +170,7 @@ export const personJobSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "person"
 };

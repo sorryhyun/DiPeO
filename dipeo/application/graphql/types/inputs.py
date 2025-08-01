@@ -100,6 +100,7 @@ class ExecuteDiagramInput:
     debug_mode: Optional[bool] = None
     max_iterations: Optional[int] = None
     timeout_seconds: Optional[int] = None
+    use_monitoring_stream: Optional[bool] = None
 
 
 @strawberry.input
@@ -147,3 +148,16 @@ class InteractiveResponseInput:
     node_id: strawberry.ID
     response: str
     metadata: Optional[strawberry.scalars.JSON] = None
+
+
+@strawberry.input
+class RegisterCliSessionInput:
+    execution_id: str
+    diagram_name: str
+    diagram_format: str
+    diagram_data: Optional[strawberry.scalars.JSON] = None
+
+
+@strawberry.input
+class UnregisterCliSessionInput:
+    execution_id: str

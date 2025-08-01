@@ -7,19 +7,14 @@ from dipeo.core import ValidationError
 
 
 class DBOperationsDomainService:
-    """
-    Domain service that encapsulates business logic for database operations.
-    This service is independent of infrastructure concerns.
-    """
+    """Domain service independent of infrastructure concerns."""
 
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
     def __init__(self):
-        """Initialize without infrastructure dependencies."""
         pass
 
     def validate_operation(self, operation: str) -> None:
-        """Validate that the operation is allowed."""
         if operation not in self.ALLOWED_OPERATIONS:
             raise ValidationError(
                 f"Invalid operation: {operation}. Allowed operations: {self.ALLOWED_OPERATIONS}",
@@ -27,7 +22,6 @@ class DBOperationsDomainService:
             )
 
     def validate_operation_input(self, operation: str, value: Any) -> None:
-        """Validate input value for specific operations."""
         if operation in ["write", "append"] and value is None:
             raise ValidationError(
                 f"Operation '{operation}' requires a value",
@@ -35,11 +29,7 @@ class DBOperationsDomainService:
             )
 
     def construct_db_path(self, db_name: str) -> str:
-        """
-        Construct a safe database file path from a database name.
-        This is pure business logic without file system operations.
-        """
-        # Handle None or empty db_name
+        """Pure business logic to construct safe database path."""
         if not db_name:
             raise ValidationError(
                 "Database name cannot be None or empty",
@@ -57,7 +47,6 @@ class DBOperationsDomainService:
         return f"dbs/{safe_db_name}"
 
     def prepare_prompt_response(self, db_name: str) -> dict[str, Any]:
-        """Prepare response for prompt operation."""
         return {
             "value": db_name,
             "metadata": {
@@ -69,7 +58,6 @@ class DBOperationsDomainService:
     def prepare_read_response(
         self, data: Any, file_path: str, size: int
     ) -> dict[str, Any]:
-        """Prepare response for read operation."""
         return {
             "value": data,
             "metadata": {
@@ -82,7 +70,6 @@ class DBOperationsDomainService:
     def prepare_write_response(
         self, data: Any, file_path: str, size: int
     ) -> dict[str, Any]:
-        """Prepare response for write operation."""
         return {
             "value": data,
             "metadata": {
@@ -95,7 +82,6 @@ class DBOperationsDomainService:
     def prepare_append_response(
         self, data: Any, file_path: str, items_count: int
     ) -> dict[str, Any]:
-        """Prepare response for append operation."""
         return {
             "value": data,
             "metadata": {
@@ -108,24 +94,18 @@ class DBOperationsDomainService:
     def ensure_json_serializable(
         self, value: Any
     ) -> dict | list | str | int | float | bool | None:
-        """
-        Ensure a value is JSON serializable.
-        This is a business rule about what data types we accept.
-        """
+        """Enforces business rule about accepted data types."""
         if isinstance(value, (dict, list, str, int, float, bool, type(None))):
             return value
-        elif hasattr(value, "dict"):  # Pydantic models
+        elif hasattr(value, "dict"):
             return value.dict()
-        elif hasattr(value, "__dict__"):  # Regular objects
+        elif hasattr(value, "__dict__"):
             return value.__dict__
         else:
             return str(value)
 
     def prepare_data_for_append(self, existing_data: Any, new_value: Any) -> list:
-        """
-        Prepare data for append operation according to business rules.
-        If existing data is not a list, convert it to a list.
-        """
+        """Converts non-list data to list format for append operation."""
         if not isinstance(existing_data, list):
             if isinstance(existing_data, dict) and not existing_data:
                 existing_data = []
@@ -138,10 +118,6 @@ class DBOperationsDomainService:
         return existing_data
 
     def validate_json_data(self, content: str, file_path: str) -> Any:
-        """
-        Validate that content is valid JSON.
-        Raises ValidationError if invalid.
-        """
         try:
             return json.loads(content) if content else {}
         except json.JSONDecodeError as e:

@@ -7,13 +7,13 @@ export const endpointFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: 'File Name',
     required: false,
-    description: 'File Name configuration',
+    description: 'Output filename',
   },
   {
     name: 'save_to_file',
     type: 'checkbox',
     label: 'Save To File',
     required: true,
-    description: 'Save To File configuration',
+    description: 'Save results to file',
   },
 ];

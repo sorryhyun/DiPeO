@@ -10,33 +10,21 @@ from dipeo.diagram_generated.generated_nodes import (
 
 
 class DataTransformRules:
-    """Defines data transformation rules between different node types."""
     
     @staticmethod
     def get_data_transform(
         source: ExecutableNode, 
         target: ExecutableNode
     ) -> dict[str, Any]:
-        """Define data transformations based on node types.
-        
-        Returns transformation rules that describe how data should
-        be transformed when flowing from source to target node.
-        """
+        """Returns transformation rules for data flow between nodes."""
         transforms = {}
         
-        # Person node with tools: extract tool results
         if isinstance(source, PersonJobNode) and source.tools:
             transforms["extract_tool_results"] = True
         
-        # Condition node: mark branching behavior
         if isinstance(source, ConditionNode):
             transforms["branch_on"] = "condition_result"
         
-        # Future: Add more transformation rules as needed
-        # Examples:
-        # - API response parsing
-        # - Code execution output formatting
-        # - Data type conversions
         
         return transforms
     
@@ -45,8 +33,5 @@ class DataTransformRules:
         edge_transform: dict[str, Any],
         type_based_transform: dict[str, Any]
     ) -> dict[str, Any]:
-        """Merge edge-specific and type-based transformations.
-        
-        Edge-specific transforms take precedence over type-based ones.
-        """
+        """Edge-specific transforms take precedence."""
         return {**type_based_transform, **edge_transform}

@@ -19,6 +19,7 @@ export const notionConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: notionFields,
+  primaryDisplayField: 'action',
 };
 
 export default notionConfig;

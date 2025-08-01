@@ -27,13 +27,12 @@ class ClaudeAdapter(BaseLLMAdapter):
     def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
         super().__init__(model_name, api_key, base_url)
         self.max_retries = 3
-        self.retry_delay = 1.0  # Initial delay in seconds
+        self.retry_delay = 1.0
 
     def _initialize_client(self) -> anthropic.Anthropic:
         return anthropic.Anthropic(api_key=self.api_key, base_url=self.base_url)
     
     def supports_tools(self) -> bool:
-        # All Claude 3 models support tools
         supported_models = ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 
                            'claude-3.5-sonnet', 'claude-3.5-haiku']
         return any(model in self.model_name for model in supported_models)
@@ -557,3 +556,28 @@ class ClaudeAdapter(BaseLLMAdapter):
                     await asyncio.sleep(delay)
                     continue
                 raise
+    
+    async def get_available_models(self) -> list[str]:
+        """Get available Anthropic Claude models."""
+        try:
+            # Create async client for model listing
+            async_client = anthropic.AsyncAnthropic(api_key=self.api_key, base_url=self.base_url)
+            models_response = await async_client.models.list(limit=50)
+            
+            model_ids = []
+            for model in models_response.data:
+                model_ids.append(model.id)
+            
+            model_ids.sort(reverse=True)
+            return model_ids
+            
+        except Exception as e:
+            logger.warning(f"Failed to fetch Anthropic models dynamically: {e}")
+            # Return default models as fallback
+            return [
+                "claude-3.5-sonnet-20241022",
+                "claude-3.5-haiku-20241022",
+                "claude-3-opus-20240229",
+                "claude-3-sonnet-20240229",
+                "claude-3-haiku-20240307"
+            ]

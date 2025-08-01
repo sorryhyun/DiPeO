@@ -19,6 +19,7 @@ export const codeJobConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: codeJobFields,
+  primaryDisplayField: 'language',
 };
 
 export default codeJobConfig;

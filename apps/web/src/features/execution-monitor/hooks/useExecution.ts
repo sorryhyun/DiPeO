@@ -14,7 +14,7 @@ import {type DomainDiagram, diagramId, executionId } from '@/core/types';
 import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types/execution';
 import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/domain-models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
-import { useExecutionGraphQL } from './useExecutionGraphQL';
+import { useExecutionStreaming } from './useExecutionStreaming';
 import { useExecutionState } from './useExecutionState';
 import { useExecutionUpdates } from './useExecutionUpdates';
 import { formatTime, getNodeIcon, getNodeColor } from '../utils/executionHelpers';
@@ -104,8 +104,8 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     updateProgress,
   } = state;
   
-  // GraphQL operations
-  const graphql = useExecutionGraphQL({ 
+  // Streaming operations (GraphQL or SSE)
+  const streaming = useExecutionStreaming({ 
     executionId: executionIdRef.current,
     skip: !executionIdRef.current
   });
@@ -116,9 +116,9 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     executionActions,
     showToasts,
     onUpdate,
-    executionUpdates: graphql.executionUpdates,
-    nodeUpdates: graphql.nodeUpdates,
-    interactivePrompts: graphql.interactivePrompts,
+    executionUpdates: streaming.executionUpdates,
+    nodeUpdates: streaming.nodeUpdates,
+    interactivePrompts: streaming.interactivePrompts,
   });
 
   // Main Actions
@@ -146,7 +146,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         metadata: stripTypenames(diagram.metadata)
       } : null;
 
-      const result = await graphql.executeDiagram({
+      const result = await streaming.executeDiagram({
         variables: {
           input: {
             diagram_data: diagramData,
@@ -176,13 +176,13 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }
       throw error;
     }
-  }, [graphql, startExecution, executionActions, errorExecution, onUpdate, resetState, formatDuration, showToasts]);
+  }, [streaming, startExecution, executionActions, errorExecution, onUpdate, resetState, formatDuration, showToasts]);
 
   const controlExecution = useCallback(async (action: string, nodeIdStr?: string) => {
     if (!executionIdRef.current) return;
     
     try {
-      await graphql.controlExecution({
+      await streaming.controlExecution({
         variables: {
           input: {
             execution_id: executionIdRef.current,
@@ -196,7 +196,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         toast.error(`Failed to ${action}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
-  }, [graphql, showToasts]);
+  }, [streaming, showToasts]);
 
   const pauseNode = useCallback((nodeIdStr: string) => {
     void controlExecution('pause', nodeIdStr);
@@ -223,7 +223,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     if (!executionIdRef.current || !interactivePrompt) return;
     
     try {
-      await graphql.submitInteractiveResponse({
+      await streaming.submitInteractiveResponse({
         variables: {
           input: {
             executionId: executionIdRef.current,
@@ -238,7 +238,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         toast.error(`Failed to submit response: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
-  }, [graphql, interactivePrompt, showToasts, state]);
+  }, [streaming, interactivePrompt, showToasts, state]);
 
   // UI Helpers
   const formatTimeHelper = useCallback((startTime: Date | null, endTime: Date | null): string => {

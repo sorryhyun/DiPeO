@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 class ErrorResponse:
-    """Standardized error response structure."""
     
     def __init__(self, success: bool = False, error: str | None = None, **kwargs: Any):
         self.success = success

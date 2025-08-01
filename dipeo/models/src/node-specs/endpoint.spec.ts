@@ -1,6 +1,3 @@
-/**
- * Endpoint node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const endpointSpec: NodeSpecification = {
       name: "save_to_file",
       type: "boolean",
       required: true,
-      description: "Save To File configuration",
+      description: "Save results to file",
       uiConfig: {
         inputType: "checkbox"
       }
@@ -27,7 +24,7 @@ export const endpointSpec: NodeSpecification = {
       name: "file_name",
       type: "string",
       required: false,
-      description: "File Name configuration",
+      description: "Output filename",
       uiConfig: {
         inputType: "text"
       }
@@ -45,5 +42,7 @@ export const endpointSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "path"
 };

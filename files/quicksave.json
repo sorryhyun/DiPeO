@@ -1,0 +1,255 @@
+{
+  "nodes": [
+    {
+      "id": "node_0",
+      "type": "start",
+      "position": {
+        "x": 330,
+        "y": 200
+      },
+      "data": {
+        "label": "start",
+        "trigger_mode": "manual",
+        "custom_data": {},
+        "output_data_structure": {}
+      }
+    },
+    {
+      "id": "node_1",
+      "type": "person_job",
+      "position": {
+        "x": 632,
+        "y": 231
+      },
+      "data": {
+        "label": "printer",
+        "default_prompt": "say hi",
+        "max_iteration": 3,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        }
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "condition",
+      "position": {
+        "x": 620,
+        "y": 425
+      },
+      "data": {
+        "label": "condition",
+        "condition_type": "detect_max_iterations",
+        "flipped": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "endpoint",
+      "position": {
+        "x": 0,
+        "y": 437
+      },
+      "data": {
+        "label": "endpoint",
+        "file_format": "txt",
+        "save_to_file": true,
+        "file_name": "files/results/total.txt",
+        "flipped": [
+          true,
+          false
+        ]
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "person_job",
+      "position": {
+        "x": 311,
+        "y": 443
+      },
+      "data": {
+        "label": "ask",
+        "default_prompt": "How many times did you respond?",
+        "flipped": [
+          true,
+          false
+        ],
+        "max_iteration": 1,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        }
+      }
+    }
+  ],
+  "arrows": [
+    {
+      "id": "arrow_0",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": null
+    },
+    {
+      "id": "arrow_1",
+      "source": "node_1_default_output",
+      "target": "node_2_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": null
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_2_condfalse_output",
+      "target": "node_1_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": {
+        "branch": "false"
+      }
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_2_condtrue_output",
+      "target": "node_4_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": {
+        "branch": "true"
+      }
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_4_default_output",
+      "target": "node_3_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": null
+    }
+  ],
+  "persons": [
+    {
+      "id": "person_person_1",
+      "label": "person 1",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": null
+      },
+      "type": "person"
+    }
+  ],
+  "handles": [
+    {
+      "id": "node_0_default_output",
+      "node_id": "node_0",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_1_first_input",
+      "node_id": "node_1",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_1_default_input",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_1_default_output",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_2_default_input",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_2_condtrue_output",
+      "node_id": "node_2",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_2_condfalse_output",
+      "node_id": "node_2",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_3_default_input",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_input",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_output",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    }
+  ],
+  "metadata": {
+    "name": "diagrams/examples/simple_iter.light.yaml",
+    "description": null,
+    "author": null,
+    "tags": null,
+    "created": "2025-07-31T05:50:49.007Z",
+    "modified": "2025-07-31T05:50:49.007Z",
+    "version": "1.0.0",
+    "id": "diagrams/examples/simple_iter.light.yaml"
+  }
+}

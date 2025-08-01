@@ -67,5 +67,7 @@ export const personBatchJobSpec: NodeSpecification = {
     timeout: 600,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "batch_size"
 };

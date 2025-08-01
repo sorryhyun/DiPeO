@@ -6,11 +6,7 @@ T = TypeVar('T')
 
 
 class DynamicRegistry:
-    """Registry with dynamic attribute resolution.
-    
-    Eliminates manual property definitions for service access.
-    Usage: registry.service_name to access registered services.
-    """
+    """Registry with dynamic attribute access. Use registry.service_name to access services."""
     
     def __init__(self):
         self._items: dict[str, Any] = {}

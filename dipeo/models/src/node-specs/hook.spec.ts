@@ -1,6 +1,3 @@
-/**
- * Hook node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -132,5 +129,7 @@ export const hookSpec: NodeSpecification = {
         retry_count: 2
       }
     }
-  ]
+  ],
+  
+  primaryDisplayField: "hook_type"
 };

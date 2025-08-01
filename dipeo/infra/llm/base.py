@@ -21,6 +21,11 @@ class BaseLLMAdapter(ABC):
     @abstractmethod
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
         raise NotImplementedError
+    
+    @abstractmethod
+    async def get_available_models(self) -> list[str]:
+        """Get available models for this provider."""
+        raise NotImplementedError
 
     def chat(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
         if messages is None:

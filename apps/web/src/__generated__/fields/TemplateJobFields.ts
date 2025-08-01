@@ -23,14 +23,14 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
     label: 'Output Path',
     required: false,
     placeholder: '/path/to/file',
-    description: 'Output Path configuration',
+    description: 'Output file path',
   },
   {
     name: 'template_content',
     type: 'text',
     label: 'Template Content',
     required: false,
-    description: 'Template Content configuration',
+    description: 'Inline template content',
   },
   {
     name: 'template_path',
@@ -38,7 +38,7 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
     label: 'Template Path',
     required: false,
     placeholder: '/path/to/file',
-    description: 'Template Path configuration',
+    description: 'Path to template file',
   },
   {
     name: 'variables',

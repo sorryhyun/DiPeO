@@ -53,11 +53,6 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
         </div>
       );
 
-      // Reload the page to load the new diagram
-      if (newDiagramId) {
-        window.location.href = `/?diagram=${newDiagramId}`;
-      }
-
     } catch (error) {
       console.error('Upload error:', error);
       toast.error(error instanceof Error ? error.message : 'Upload failed');

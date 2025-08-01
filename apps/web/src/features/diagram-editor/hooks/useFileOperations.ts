@@ -11,9 +11,11 @@ import { createEntityMutation } from '@/lib/graphql/hooks';
 import { 
   ConvertDiagramFormatDocument,
   type ConvertDiagramFormatMutation,
-  type ConvertDiagramFormatMutationVariables
+  type ConvertDiagramFormatMutationVariables,
+  useGetDiagramLazyQuery
 } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
 
 // Create the mutation hook using factory pattern
 const useConvertDiagramMutation = createEntityMutation<ConvertDiagramFormatMutation, ConvertDiagramFormatMutationVariables>({
@@ -25,6 +27,8 @@ const useConvertDiagramMutation = createEntityMutation<ConvertDiagramFormatMutat
 export const useFileOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [convertDiagram] = useConvertDiagramMutation();
+  const [getDiagram] = useGetDiagramLazyQuery();
+  const { loadDiagramFromData } = useDiagramLoader();
 
   // LOAD OPERATIONS (from file to browser via server upload)
 
@@ -38,14 +42,37 @@ export const useFileOperations = () => {
         throw new Error(result.message || 'Failed to upload diagram to server');
       }
 
-      // Then load it in the browser by navigating to it
+      // Load the diagram content directly without URL changes
       if (result.diagramId) {
-        window.location.href = `/?diagram=${result.diagramId}`;
+        const { data, error } = await getDiagram({
+          variables: { id: result.diagramId }
+        });
+        
+        if (error) {
+          throw new Error(`Failed to load diagram: ${error.message}`);
+        }
+        
+        if (data?.diagram) {
+          // Load the diagram data directly
+          loadDiagramFromData({
+            nodes: data.diagram.nodes || [],
+            arrows: data.diagram.arrows || [],
+            handles: data.diagram.handles || [],
+            persons: data.diagram.persons || [],
+            metadata: {
+              ...data.diagram.metadata,
+              name: data.diagram.metadata?.name || result.diagramId, // Use diagramId as fallback
+              id: data.diagram.metadata?.id || result.diagramId
+            }
+          });
+          
+          toast.success(
+            `Loaded ${result.diagramName || 'diagram'} (${result.nodeCount} nodes)`
+          );
+        } else {
+          throw new Error('Diagram not found');
+        }
       }
-
-      toast.success(
-        `Saved and loaded ${result.diagramName || 'diagram'} (${result.nodeCount} nodes)`
-      );
     } catch (error) {
       console.error('[Load file]', error);
       toast.error(`Load failed: ${(error as Error).message}`);
@@ -53,7 +80,7 @@ export const useFileOperations = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [getDiagram, loadDiagramFromData]);
 
   /**
    * Load via file selection dialog
@@ -73,33 +100,6 @@ export const useFileOperations = () => {
     }
   }, [loadFile]);
 
-  /**
-   * Load from URL
-   */
-  const loadFromURL = useCallback(async (url: string) => {
-    setIsProcessing(true);
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch from URL: ${response.statusText}`);
-      }
-      
-      const content = await response.text();
-      
-      // Create a virtual file object for unified processing
-      const virtualFile = new File([content], url.split('/').pop() || 'loaded-file', {
-        type: 'text/plain'
-      });
-      
-      await loadFile(virtualFile);
-    } catch (error) {
-      console.error('[Load from URL]', error);
-      toast.error(`Load from URL: ${(error as Error).message}`);
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [loadFile]);
 
   
   // UPLOAD OPERATIONS
@@ -287,7 +287,6 @@ export const useFileOperations = () => {
     // Load operations
     loadDiagram: loadFile,
     loadWithDialog,
-    loadFromURL,
     
     // Save operations
     saveDiagram,

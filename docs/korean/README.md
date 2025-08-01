@@ -1,10 +1,22 @@
-I'll translate the DiPeO User Guide into Korean for you. Here's the complete translation:
-
 # DiPeO 사용자 가이드: 시각적 다이어그램으로 AI 워크플로우 구축하기
 
 DiPeO에 오신 것을 환영합니다! 이 가이드는 브라우저의 시각적 다이어그램 편집기를 사용하여 AI 기반 워크플로우를 만드는 방법을 안내합니다. 이미 DiPeO를 설치하셨다면, 바로 첫 번째 다이어그램 구축을 시작해보겠습니다.
 
-> **다른 문서를 찾고 계신가요?** 개발자 가이드, 기술 사양 등은 [문서 색인](index.md)을 확인하세요.
+
+> ### 기타 문서 목록
+> - [유저 가이드](korean_guide.md)
+>   - DiPeO 프로젝트 시작용 가이드
+> - [프로젝트 전반 구조]()
+>   - DiPeO의 전반적인 구조에 대해 다룹니다.
+> - [Dog-fooding 코드 생성 사례](codegen_dog_fooding.md)
+>   - DiPeO 프로젝트 다이어그램으로 코드 생성하는 사례 및 실제 적용된 내용에 대해 다룹니다.
+> - [메모리 시스템 디자인](memory_system_design.md)
+>   - DiPeO를 시작한 계기이기도 하면서, person과 person job을 분리한 이유, 또한 LLM 컨텍스트를 관리하는 체계에 대해 다룹니다.
+> - [다이어그램 포맷](how_to_write_diagram.md)
+>   - DiPeO에서 사용하는 다이어그램을 텍스트 파일로 export하거나 import하기 위한 양식 및 작성법에 대해 다룹니다.
+> - [코드 생성 가이드](code-generation-guide.md)
+>   - DiPeO에서 신규 기능 개발 시 필요한 코드 생성 절차에 대해 다룹니다.
+
 
 ## 목차
 1. [시작하기](#시작하기)
@@ -129,16 +141,16 @@ DiPeO에 오신 것을 환영합니다! 이 가이드는 브라우저의 시각�
 AI 워크플로우에서 가장 중요한 노드:
 
 ```yaml
-속성:
-- Person: 사용할 AI 에이전트
-- Default Prompt: 메인 지시 템플릿
-- First Only Prompt: 첫 번째 반복에만 사용되는 특별한 프롬프트
-- Max Iteration: 실행 가능한 최대 횟수
-- Memory Profile: 기억할 컨텍스트 양
-  - FULL: 모든 것을 기억
-  - FOCUSED: 최근 20개 교환
-  - MINIMAL: 최근 5개 메시지
-  - GOLDFISH: 마지막 2개 메시지만
+persons:
+    Person: 사용할 AI 에이전트 label
+    - Default Prompt: 메인 지시 템플릿
+    - First Only Prompt: 첫 번째 반복에만 사용되는 특별한 프롬프트
+    - Max Iteration: 실행 가능한 최대 횟수
+    - Memory Profile: 기억할 컨텍스트 양
+      - FULL: 모든 것을 기억
+      - FOCUSED: 최근 20개 교환
+      - MINIMAL: 최근 5개 메시지
+      - GOLDFISH: 마지막 2개 메시지만
 ```
 
 ### Code Job (코드 실행)

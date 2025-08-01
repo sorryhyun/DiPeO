@@ -1,6 +1,3 @@
-/**
- * Database node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const dbSpec: NodeSpecification = {
       name: "file",
       type: "string",
       required: false,
-      description: "File configuration (can be a single file path or array of file paths)",
+      description: "File path or array of file paths",
       uiConfig: {
         inputType: "text"
       }
@@ -27,7 +24,7 @@ export const dbSpec: NodeSpecification = {
       name: "collection",
       type: "string",
       required: false,
-      description: "Collection configuration",
+      description: "Database collection name",
       uiConfig: {
         inputType: "text"
       }
@@ -36,7 +33,7 @@ export const dbSpec: NodeSpecification = {
       name: "sub_type",
       type: "enum",
       required: true,
-      description: "Sub Type configuration",
+      description: "Database operation type",
       validation: {
         allowedValues: ["fixed_prompt", "file", "code", "api_tool"]
       },
@@ -106,5 +103,7 @@ export const dbSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "operation"
 };

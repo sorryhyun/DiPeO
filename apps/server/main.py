@@ -3,11 +3,15 @@ import os
 import warnings
 from contextlib import asynccontextmanager
 
+from dipeo.application.bootstrap import init_resources, shutdown_resources
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 
-# Load environment variables first
+from dipeo_server.api.middleware import setup_middleware
+from dipeo_server.api.router import setup_routes
+from dipeo_server.app_context import initialize_container
+
 load_dotenv()
 
 # Suppress non-critical warnings
@@ -16,13 +20,11 @@ warnings.filterwarnings("ignore", message="The config `workers` has no affect wh
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
 warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
-# Set up logging
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-# Reduce noisy debug logging
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -31,32 +33,20 @@ logging.getLogger("openai._base_client").setLevel(logging.WARNING)
 logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
 logging.getLogger("multipart").setLevel(logging.WARNING)
 logging.getLogger("python_multipart").setLevel(logging.WARNING)
+logging.getLogger("sse_starlette").setLevel(logging.WARNING)
+logging.getLogger("sse_starlette.sse").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
-
-# Use consolidated app context
-from dipeo_server.api.middleware import setup_middleware
-from dipeo_server.api.router import setup_routes
-from dipeo_server.application.app_context import (
-    initialize_container,
-)
-from dipeo_server.application.container import (
-    init_server_resources,
-    shutdown_server_resources,
-)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize container
     container = initialize_container()
-    await init_server_resources(container)
-    
-    # Setup routes after container is initialized
+    await init_resources(container)
     setup_routes(app)
-    
+
     yield
-    await shutdown_server_resources(container)
+    await shutdown_resources(container)
 
 
 app = FastAPI(
@@ -102,9 +92,9 @@ def start():
     from hypercorn.config import Config
 
     config = Config()
-    config.bind = [f"0.0.0.0:{int(os.environ.get('PORT', 8000))}"]
+    config.bind = [f"0.0.0.0:{int(os.environ.get('PORT', '8000'))}"]
 
-    config.workers = int(os.environ.get("WORKERS", 4))
+    config.workers = int(os.environ.get("WORKERS", "4"))
 
     redis_url = os.environ.get("REDIS_URL")
     if config.workers > 1 and not redis_url:
@@ -115,8 +105,19 @@ def start():
 
     config.graceful_timeout = 30.0
 
-    config.accesslog = "-"
-    config.errorlog = "-"
+    # Configure logging
+    config.accesslog = None  # Disable access logs
+    config.errorlog = "-"   # Log errors to stdout
+
+    # Set up custom filter for hypercorn access logs
+    class SSEFilter(logging.Filter):
+        def filter(self, record):
+            # Filter out SSE endpoint access logs
+            return "/sse/executions/" not in record.getMessage()
+
+    # Apply filter to hypercorn access logger
+    hypercorn_logger = logging.getLogger("hypercorn.access")
+    hypercorn_logger.addFilter(SSEFilter())
 
     config.keep_alive_timeout = 75.0
 

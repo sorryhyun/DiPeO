@@ -4,17 +4,7 @@ from typing import Any
 
 
 def is_conversation(value: Any) -> bool:
-    """Check if value is a conversation (list of messages with role and content).
-    
-    A conversation is defined as a list of dictionaries where each dictionary
-    contains both 'role' and 'content' keys.
-    
-    Args:
-        value: The value to check
-        
-    Returns:
-        True if value is a valid conversation format
-    """
+    """Check if value is a conversation - list of dicts with 'role' and 'content' keys."""
     return (isinstance(value, list) and 
             value and 
             all(isinstance(item, dict) and 
@@ -23,28 +13,12 @@ def is_conversation(value: Any) -> bool:
 
 
 def has_nested_conversation(inputs: dict[str, Any]) -> bool:
-    """Check if inputs contain a nested conversation in default key.
-    
-    Args:
-        inputs: Dictionary of inputs to check
-        
-    Returns:
-        True if inputs contain a nested conversation
-    """
     return (isinstance(inputs, dict) and 
             "default" in inputs and 
             is_conversation(inputs.get("default")))
 
 
 def contains_conversation(inputs: dict[str, Any]) -> bool:
-    """Check if any value in inputs is a conversation.
-    
-    Args:
-        inputs: Dictionary of inputs to check
-        
-    Returns:
-        True if any value is a conversation
-    """
     if not isinstance(inputs, dict):
         return False
         

@@ -19,6 +19,7 @@ export const dbConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: dbFields,
+  primaryDisplayField: 'operation',
 };
 
 export default dbConfig;

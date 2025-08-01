@@ -8,7 +8,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     label: 'Default Prompt',
     required: false,
     placeholder: 'Enter prompt template...',
-    description: 'Default Prompt configuration',
+    description: 'Default prompt template',
     rows: 10,
     column: 2,
     adjustable: true,
@@ -19,7 +19,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     label: 'First Only Prompt',
     required: true,
     placeholder: 'Enter prompt template...',
-    description: 'First Only Prompt configuration',
+    description: 'Prompt used only on first execution',
     rows: 10,
     column: 2,
     adjustable: true,
@@ -30,7 +30,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     label: 'Max Iteration',
     required: true,
     defaultValue: 1,
-    description: 'Max Iteration configuration',
+    description: 'Maximum execution iterations',
     min: 1,
   },
   {
@@ -38,7 +38,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'code',
     label: 'Memory Config',
     required: false,
-    description: 'Memory Config configuration (deprecated - use memory_profile or memory_settings)',
+    description: 'Deprecated memory configuration',
   },
   {
     name: 'memory_profile',
@@ -60,7 +60,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'group',
     label: 'Memory Settings',
     required: false,
-    description: 'Memory Settings configuration (only used when memory_profile is CUSTOM)',
+    description: 'Custom memory settings',
     nestedFields: [
       {
         name: 'view',
@@ -110,7 +110,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'personSelect',
     label: 'Person',
     required: false,
-    description: 'Person configuration',
+    description: 'AI person to use',
   },
   {
     name: 'tools',

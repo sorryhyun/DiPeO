@@ -1,6 +1,3 @@
-/**
- * API Job node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "url",
       type: "string",
       required: true,
-      description: "Url configuration",
+      description: "API endpoint URL",
       uiConfig: {
         inputType: "text",
         placeholder: "https://example.com"
@@ -28,7 +25,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "method",
       type: "enum",
       required: true,
-      description: "Method configuration",
+      description: "HTTP method",
       validation: {
         allowedValues: ["GET", "POST", "PUT", "DELETE", "PATCH"]
       },
@@ -47,7 +44,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "headers",
       type: "object",
       required: false,
-      description: "Headers configuration",
+      description: "HTTP headers",
       uiConfig: {
         inputType: "code",
         collapsible: true
@@ -57,7 +54,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "params",
       type: "object",
       required: false,
-      description: "Params configuration",
+      description: "Query parameters",
       uiConfig: {
         inputType: "code",
         collapsible: true
@@ -67,7 +64,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "body",
       type: "object",
       required: false,
-      description: "Body configuration",
+      description: "Request body",
       uiConfig: {
         inputType: "code",
         collapsible: true
@@ -77,7 +74,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "timeout",
       type: "number",
       required: false,
-      description: "Timeout configuration",
+      description: "Request timeout in seconds",
       uiConfig: {
         inputType: "number",
         min: 0,
@@ -88,7 +85,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "auth_type",
       type: "enum",
       required: false,
-      description: "Auth Type configuration",
+      description: "Authentication type",
       validation: {
         allowedValues: ["none", "bearer", "basic", "api_key"]
       },
@@ -106,7 +103,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "auth_config",
       type: "object",
       required: false,
-      description: "Auth Config configuration",
+      description: "Authentication configuration",
       uiConfig: {
         inputType: "code",
         collapsible: true
@@ -122,7 +119,7 @@ export const apiJobSpec: NodeSpecification = {
   outputs: {
     result: {
       type: "any",
-      description: "Node execution result"
+      description: "API response data"
     }
   },
   
@@ -130,5 +127,7 @@ export const apiJobSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "method"
 };

@@ -157,5 +157,7 @@ export const typescriptAstSpec: NodeSpecification = {
         includeJSDoc: true
       }
     }
-  ]
+  ],
+  
+  primaryDisplayField: "operation"
 };

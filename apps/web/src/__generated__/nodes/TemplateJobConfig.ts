@@ -19,6 +19,7 @@ export const templateJobConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: templateJobFields,
+  primaryDisplayField: 'template_name',
 };
 
 export default templateJobConfig;

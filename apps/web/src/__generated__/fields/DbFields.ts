@@ -7,7 +7,7 @@ export const dbFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: 'Collection',
     required: false,
-    description: 'Collection configuration',
+    description: 'Database collection name',
   },
   {
     name: 'data',
@@ -21,7 +21,7 @@ export const dbFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: 'File',
     required: false,
-    description: 'File configuration (can be a single file path or array of file paths)',
+    description: 'File path or array of file paths',
   },
   {
     name: 'operation',
@@ -50,7 +50,7 @@ export const dbFields: UnifiedFieldDefinition[] = [
     type: 'select',
     label: 'Sub Type',
     required: true,
-    description: 'Sub Type configuration',
+    description: 'Database operation type',
     options: [
       { value: 'fixed_prompt', label: 'Fixed Prompt' },
       { value: 'file', label: 'File' },

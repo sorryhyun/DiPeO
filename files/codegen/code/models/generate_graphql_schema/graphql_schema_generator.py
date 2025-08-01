@@ -38,7 +38,7 @@ def combine_node_data_ast(inputs):
         'json-schema-validator_data_ast.json', 'typescript-ast_data_ast.json', 'sub-diagram_data_ast.json'
     ]
     
-    print(f"Looking for cache files in: {cache_dir}")
+    # Look for cache files
     
     for filename in node_data_files:
         file_path = cache_dir / filename
@@ -49,13 +49,13 @@ def combine_node_data_ast(inputs):
                     all_interfaces.extend(data.get('interfaces', []))
                     all_types.extend(data.get('types', []))
                     all_enums.extend(data.get('enums', []))
-                    print(f"  Loaded {filename}: {len(data.get('interfaces', []))} interfaces")
+                    pass  # File loaded
             except Exception as e:
-                print(f"  Error reading {filename}: {e}")
+                pass  # Error handled
         else:
-            print(f"  File not found: {filename}")
+            pass  # File not found
     
-    print(f"Combined node data: {len(all_interfaces)} interfaces, {len(all_types)} types, {len(all_enums)} enums")
+    # Data combined successfully
     
     result = {
         'interfaces': all_interfaces,
@@ -252,16 +252,14 @@ def extract_graphql_types_core(diagram_ast: dict, execution_ast: dict, conversat
     ast_sources = [diagram_ast, execution_ast, conversation_ast]
     if node_data_ast:
         ast_sources.append(node_data_ast)
-        # Debug: print interfaces from node_data_ast
+        # Process node data interfaces
         node_interfaces = node_data_ast.get('interfaces', [])
-        print(f"Node data interfaces found: {[i.get('name') for i in node_interfaces]}")
     if enums_ast:
         ast_sources.append(enums_ast)
     if integration_ast:
         ast_sources.append(integration_ast)
-        # Debug: print interfaces from integration_ast
+        # Process integration interfaces
         integration_interfaces = integration_ast.get('interfaces', [])
-        print(f"Integration interfaces found: {[i.get('name') for i in integration_interfaces]}")
     
     for ast in ast_sources:
         all_interfaces.extend(ast.get('interfaces', []))
@@ -275,9 +273,7 @@ def extract_graphql_types_core(diagram_ast: dict, execution_ast: dict, conversat
     # Extract types from interfaces
     type_results = extract_types_from_interfaces(all_interfaces, enums, scalars)
     
-    print(f"Extracted:")
-    print(f"  - {len(scalars)} scalars")
-    print(f"  - {len(enums)} enums")
+    # Extraction complete
     print(f"  - {len(type_results['types'])} types")
     print(f"  - {len(type_results['input_types'])} input types")
     print(f"  - {len(type_results['node_types'])} node data types: {type_results['node_types']}")
@@ -370,9 +366,7 @@ def generate_summary(inputs):
     """Generate summary of GraphQL schema generation."""
     graphql_types = inputs.get('graphql_types', {})
     
-    print(f"\n=== GraphQL Schema Generation Complete ===")
-    print(f"Generated {len(graphql_types.get('scalars', []))} scalars")
-    print(f"Generated {len(graphql_types.get('enums', []))} enums") 
+    print(f"GraphQL schema: {len(graphql_types.get('scalars', []))} scalars, {len(graphql_types.get('enums', []))} enums - done!") 
     print(f"Generated {len(graphql_types.get('types', []))} types")
     print(f"Generated {len(graphql_types.get('input_types', []))} input types")
     print(f"\nOutput written to: dipeo/diagram_generated_staged/domain-schema.graphql")

@@ -45,7 +45,7 @@ def main():
     )
     run_parser.add_argument("--debug", action="store_true", help="Enable debug output")
     run_parser.add_argument(
-        "--no-browser", action="store_true", help="Skip browser opening"
+        "--browser", action="store_true", help="Open browser to monitor execution"
     )
     run_parser.add_argument("--quiet", action="store_true", help="Minimal output")
     run_parser.add_argument(
@@ -152,7 +152,7 @@ def main():
             success = cli.run(
                 args.diagram,
                 args.debug,
-                args.no_browser,
+                not args.browser,  # Invert the logic: default is no browser
                 args.timeout,
                 format_type,
                 input_variables,
@@ -172,12 +172,12 @@ def main():
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
+        cli.server.stop()
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    finally:
         cli.server.stop()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

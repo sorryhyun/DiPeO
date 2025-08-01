@@ -15,14 +15,11 @@ if TYPE_CHECKING:
 
 @runtime_checkable
 class StateStorePort(Protocol):
-    """Port for execution state persistence."""
 
     async def initialize(self) -> None:
-        """Initialize the state store."""
         ...
 
     async def cleanup(self) -> None:
-        """Clean up resources."""
         ...
 
     async def create_execution(
@@ -31,21 +28,17 @@ class StateStorePort(Protocol):
         diagram_id: "DiagramID | None" = None,
         variables: dict[str, Any] | None = None,
     ) -> "ExecutionState":
-        """Create a new execution state."""
         ...
 
     async def save_state(self, state: "ExecutionState") -> None:
-        """Save or update the complete execution state."""
         ...
 
     async def get_state(self, execution_id: str) -> "ExecutionState | None":
-        """Get execution state by ID."""
         ...
 
     async def update_status(
         self, execution_id: str, status: "ExecutionStatus", error: str | None = None
     ) -> None:
-        """Update execution status."""
         ...
 
     async def get_node_output(

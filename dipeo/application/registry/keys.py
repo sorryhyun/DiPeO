@@ -34,6 +34,9 @@ if TYPE_CHECKING:
     from dipeo.infrastructure.services.diagram import DiagramService, DiagramConverterService
     from dipeo.domain.db.services import DBOperationsDomainService
     from dipeo.models import ExecutableDiagram, ExecutionContext
+    from dipeo.application.services.cli_session_service import CLISessionService
+    from dipeo.application.services.diagram_service import IntegratedDiagramService
+    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from typing import Any, Dict
 
 
@@ -102,6 +105,11 @@ DIAGRAM_OPERATIONS_SERVICE = ServiceKey["DiagramOperationsService"]("diagram_ope
 DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatService"]("diagram_format")
 LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm")
 
+# Additional Services (newly added for migration)
+INTEGRATED_DIAGRAM_SERVICE = ServiceKey["IntegratedDiagramService"]("integrated_diagram_service")
+CLI_SESSION_SERVICE = ServiceKey["CLISessionService"]("cli_session_service")
+EXECUTION_RUNTIME = ServiceKey["ExecutionRuntime"]("execution_runtime")
+
 
 __all__ = [
     # Core Infrastructure
@@ -168,4 +176,9 @@ __all__ = [
     "DIAGRAM_OPERATIONS_SERVICE",
     "DIAGRAM_FORMAT_SERVICE",
     "LLM_DOMAIN_SERVICE",
+    
+    # Additional Services
+    "INTEGRATED_DIAGRAM_SERVICE",
+    "CLI_SESSION_SERVICE",
+    "EXECUTION_RUNTIME",
 ]

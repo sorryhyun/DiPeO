@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 
 class EndpointNodeData(BaseModel):
     """Data model for End Node node."""
-    save_to_file: bool = Field(description="Save To File configuration")
-    file_name: Optional[str] = Field(description="File Name configuration")
+    save_to_file: bool = Field(description="Save results to file")
+    file_name: Optional[str] = Field(description="Output filename")
 
     class Config:
         extra = "forbid"

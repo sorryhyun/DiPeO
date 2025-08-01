@@ -341,9 +341,15 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     
     // Actions
     updateField: <K extends keyof T>(field: K, value: T[K]) => {
+      // Update ref immediately for async field dependencies
+      formDataRef.current = { ...formDataRef.current, [field]: value };
       form.operations.updateField({ field: String(field), value });
     },
-    updateFormData: form.operations.updateFields,
+    updateFormData: (updates: Partial<T>) => {
+      // Update ref immediately for async field dependencies
+      formDataRef.current = { ...formDataRef.current, ...updates };
+      form.operations.updateFields(updates);
+    },
     save,
     reset: form.operations.reset,
     validateForm: form.operations.validateForm,

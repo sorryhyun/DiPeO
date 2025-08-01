@@ -69,6 +69,7 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   nodeType: NodeTypeKey;
   category?: string;  // Node category for grouping in UI
   defaults: Record<string, unknown>;
+  primaryDisplayField?: string;  // Field to show when node is not hovered
   
   // Panel configuration properties (optional overrides)
   panelLayout?: 'single' | 'twoColumn';

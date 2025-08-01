@@ -1,8 +1,16 @@
+
+
+
+
+
+
+
+
 """
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-07-30T20:41:42.415728
+Generated at: 2025-08-01T14:28:05.207550
 """
 
 import strawberry
@@ -143,6 +151,7 @@ class UserResponseDataType:
 
 
 
+
 # Create union type for all node data types
 NodeDataUnion = strawberry.union(
     "NodeDataUnion",
@@ -180,6 +189,7 @@ NodeDataUnion = strawberry.union(
 
     )
 )
+
 
 
 # Export all types

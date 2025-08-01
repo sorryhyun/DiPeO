@@ -164,19 +164,23 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           const selectedKey = apiKeysData.api_keys.find((k) => k.id === value);
           if (selectedKey) {
             updates['llm_config.service'] = selectedKey.service;
+          } else {
           }
         } catch (error) {
           console.error('Failed to update service:', error);
         }
       }
       
-      // Invalidate model options cache when API key changes
-      queryClient.invalidateQueries({ queryKey: ['field-options', 'llm_config.model'] });
+      // Update form data immediately
+      updateFormData(updates);
       
-      // Update all fields at once with a small delay to prevent race conditions
+      // Then invalidate model options cache after a small delay to ensure data is updated
       setTimeout(() => {
-        updateFormData(updates);
-      }, 50);
+        queryClient.invalidateQueries({ 
+          queryKey: ['field-options', entityType, entityId, 'llm_config.model'],
+          exact: false
+        });
+      }, 100);
       return;
     }
     

@@ -4,7 +4,6 @@ from enum import Enum
 
 
 class RetryStrategy(Enum):
-    """Supported retry strategies."""
     LINEAR = "linear"
     EXPONENTIAL = "exponential"
     FIBONACCI = "fibonacci"
@@ -13,7 +12,6 @@ class RetryStrategy(Enum):
 
 @dataclass(frozen=True)
 class RetryPolicy:
-    """Represents a retry policy with various strategies."""
     
     max_attempts: int
     initial_delay_ms: int
@@ -23,7 +21,6 @@ class RetryPolicy:
     jitter: bool = True
     
     def __post_init__(self) -> None:
-        """Validate the retry policy."""
         if self.max_attempts < 0:
             raise ValueError("max_attempts must be non-negative")
         if self.initial_delay_ms < 0:
@@ -34,14 +31,13 @@ class RetryPolicy:
             raise ValueError("backoff_factor must be positive")
     
     def calculate_delay(self, attempt: int) -> int:
-        """Calculate delay for a given attempt number (0-based)."""
+        """0-based attempt number. Applies jitter if enabled."""
         if attempt < 0:
             raise ValueError("Attempt number must be non-negative")
         
         if attempt == 0:
             return 0  # No delay for first attempt
         
-        # Calculate base delay based on strategy
         if self.strategy == RetryStrategy.CONSTANT:
             base_delay = self.initial_delay_ms
         elif self.strategy == RetryStrategy.LINEAR:
@@ -53,20 +49,17 @@ class RetryPolicy:
         else:
             base_delay = self.initial_delay_ms
         
-        # Apply max delay cap
         delay = min(int(base_delay), self.max_delay_ms)
         
-        # Apply jitter if enabled (±20% random variation)
         if self.jitter and delay > 0:
             import random
             jitter_range = int(delay * 0.2)
             delay = delay + random.randint(-jitter_range, jitter_range)
-            delay = max(0, delay)  # Ensure non-negative
+            delay = max(0, delay)
         
         return delay
     
     def _fibonacci(self, n: int) -> int:
-        """Calculate nth Fibonacci number."""
         if n <= 1:
             return n
         a, b = 0, 1
@@ -75,15 +68,13 @@ class RetryPolicy:
         return b
     
     def should_retry(self, attempt: int, is_retryable_error: bool = True) -> bool:
-        """Determine if a retry should be attempted."""
         return is_retryable_error and attempt < self.max_attempts
     
     @property
     def total_possible_delay_ms(self) -> int:
-        """Calculate maximum total delay across all retries."""
+        """Maximum total delay without jitter."""
         total = 0
         for attempt in range(1, self.max_attempts + 1):
-            # Calculate without jitter for predictable result
             if self.strategy == RetryStrategy.CONSTANT:
                 delay = self.initial_delay_ms
             elif self.strategy == RetryStrategy.LINEAR:
@@ -101,12 +92,10 @@ class RetryPolicy:
     
     @classmethod
     def no_retry(cls) -> 'RetryPolicy':
-        """Create a policy that doesn't retry."""
         return cls(max_attempts=0, initial_delay_ms=0, max_delay_ms=0)
     
     @classmethod
     def default(cls) -> 'RetryPolicy':
-        """Create a sensible default retry policy."""
         return cls(
             max_attempts=3,
             initial_delay_ms=1000,
@@ -117,7 +106,6 @@ class RetryPolicy:
         )
     
     def __str__(self) -> str:
-        """String representation."""
         return (
             f"RetryPolicy(attempts={self.max_attempts}, "
             f"strategy={self.strategy.value}, "

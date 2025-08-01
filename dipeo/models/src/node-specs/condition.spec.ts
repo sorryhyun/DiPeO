@@ -1,6 +1,3 @@
-/**
- * Condition node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const conditionSpec: NodeSpecification = {
       name: "condition_type",
       type: "string",
       required: true,
-      description: "Condition Type configuration",
+      description: "Type of condition to evaluate",
       uiConfig: {
         inputType: "text"
       }
@@ -27,7 +24,7 @@ export const conditionSpec: NodeSpecification = {
       name: "expression",
       type: "string",
       required: false,
-      description: "Expression configuration",
+      description: "Boolean expression to evaluate",
       uiConfig: {
         inputType: "text"
       }
@@ -36,7 +33,7 @@ export const conditionSpec: NodeSpecification = {
       name: "node_indices",
       type: "array",
       required: false,
-      description: "Node Indices configuration",
+      description: "Node indices for condition evaluation",
       validation: {
         itemType: "string"
       },
@@ -66,5 +63,7 @@ export const conditionSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "condition_type"
 };

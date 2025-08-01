@@ -1,7 +1,3 @@
-/**
- * Node data interfaces
- * Re-export all node data interfaces from this central location
- */
 
 export * from './start.data';
 export * from './condition.data';

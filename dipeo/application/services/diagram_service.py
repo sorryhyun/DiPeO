@@ -1,5 +1,3 @@
-# Application service for diagram operations with high-level business logic.
-
 import os
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -19,7 +17,6 @@ class DiagramService:
 
     def __init__(self, storage_service: "DiagramPort"):
         self._storage = storage_service
-        # Initialize domain services
         self._operations_service = DiagramOperationsService()
         self._validator = DiagramValidator()
         self._format_service = DiagramFormatService()
@@ -27,12 +24,9 @@ class DiagramService:
     async def clone_diagram(
         self, source_id: str, new_name: str, new_description: str | None = None
     ) -> dict[str, Any]:
-        """Clone a diagram using domain service for business logic."""
         try:
-            # Load source diagram
             source_diagram = await self._storage.load_diagram(source_id)
             
-            # Validate source diagram
             self._validator.validate_diagram(source_diagram)
             
             # Use domain service to clone
@@ -42,7 +36,6 @@ class DiagramService:
                 new_description=new_description
             )
             
-            # Persist cloned diagram
             saved_id = await self._storage.save_diagram(cloned_diagram)
 
             return {
@@ -120,7 +113,6 @@ class DiagramService:
                 try:
                     diagram = await self._storage.load_diagram(diagram_id)
 
-                    # Use domain service for safe filename generation
                     safe_filename = self._operations_service.generate_safe_filename(
                         diagram.metadata.name, ".json"
                     )
@@ -128,7 +120,6 @@ class DiagramService:
 
                     await self._storage.save_diagram_to_path(diagram, export_file)
 
-                    # Use domain service to calculate statistics
                     stats = self._operations_service.calculate_diagram_statistics(diagram)
                     
                     exported_info = {

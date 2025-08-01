@@ -32,7 +32,6 @@ class LLMInfraService(BaseService, LLMServicePort):
         self._adapter_pool_lock = asyncio.Lock()
         self._settings = get_settings()
         self._llm_domain_service = llm_domain_service or LLMDomainService()
-        # Provider mapping configuration
         self._provider_mapping = {
             "gpt": "openai",
             "o1": "openai",
@@ -62,12 +61,10 @@ class LLMInfraService(BaseService, LLMServicePort):
             )
 
     def _create_cache_key(self, provider: str, model: str, api_key_id: str) -> str:
-        """Create a secure cache key for adapter pooling."""
         key_string = f"{provider}:{model}:{api_key_id}"
         return hashlib.sha256(key_string.encode()).hexdigest()
 
     async def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
-        """Get or create an LLM adapter client with thread-safe caching."""
         provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
@@ -78,17 +75,12 @@ class LLMInfraService(BaseService, LLMServicePort):
         cache_key = self._create_cache_key(provider, model, api_key_id)
 
         async with self._adapter_pool_lock:
-            # Check if adapter exists and is not expired
             if cache_key in self._adapter_pool:
                 entry = self._adapter_pool[cache_key]
-                # Check TTL (1 hour)
                 if time.time() - entry["created_at"] <= 3600:
                     return entry["adapter"]
                 else:
-                    # Remove expired entry
                     del self._adapter_pool[cache_key]
-
-            # Create new adapter
             raw_key = self._get_api_key(api_key_id)
             adapter = create_adapter(provider, model, raw_key)
             
@@ -102,18 +94,15 @@ class LLMInfraService(BaseService, LLMServicePort):
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
-        """Call LLM with async retry logic."""
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(3),
             wait=wait_exponential(multiplier=1, min=1, max=10),
             retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         ):
             with attempt:
-                # Check if the adapter has an async chat method
                 if hasattr(client, 'chat_async'):
                     return await client.chat_async(messages=messages, **kwargs)
                 else:
-                    # Fall back to sync method wrapped in executor
                     return await asyncio.to_thread(client.chat, messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
@@ -124,8 +113,6 @@ class LLMInfraService(BaseService, LLMServicePort):
                 messages = []
             
             service = self._infer_service_from_model(model)
-            
-            # Validate model configuration using domain service
             is_valid, error_msg = self._llm_domain_service.validate_model_config(
                 provider=service,
                 model=model,
@@ -133,8 +120,6 @@ class LLMInfraService(BaseService, LLMServicePort):
             )
             if not is_valid:
                 raise LLMServiceError(service="llm", message=error_msg)
-            
-            # Validate prompt size if messages exist
             if messages:
                 prompt_text = " ".join(msg.get("content", "") for msg in messages)
                 is_valid, error_msg = self._llm_domain_service.validate_prompt_size(
@@ -156,7 +141,6 @@ class LLMInfraService(BaseService, LLMServicePort):
                     adapter, messages_list, **adapter_kwargs
                 )
             except Exception as inner_e:
-                # Log the actual error for debugging if logger is available
                 if hasattr(self, 'logger'):
                     self.logger.error(f"LLM call failed: {type(inner_e).__name__}: {inner_e!s}")
                 raise LLMServiceError(service="llm", message=f"LLM service {service} failed: {inner_e!s}")
@@ -165,15 +149,12 @@ class LLMInfraService(BaseService, LLMServicePort):
             raise LLMServiceError(service="llm", message=str(e))
 
     def _infer_service_from_model(self, model: str) -> str:
-        """Infer LLM service provider from model name using configuration."""
         model_lower = model.lower()
         
-        # Check each keyword in the provider mapping
         for keyword, provider in self._provider_mapping.items():
             if keyword in model_lower:
                 return provider
         
-        # Default to openai if no match found
         return "openai"
 
     async def get_available_models(self, api_key_id: str) -> list[str]:
@@ -181,81 +162,13 @@ class LLMInfraService(BaseService, LLMServicePort):
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             service = api_key_data["service"]
             
-            if service == "openai":
-                try:
-                    from openai import OpenAI
-                    raw_key = self._get_api_key(api_key_id)
-                    client = OpenAI(api_key=raw_key)
-                    models_response = client.models.list()
-                    
-                    chat_models = []
-                    for model in models_response.data:
-                        model_id = model.id
-                        if any(prefix in model_id for prefix in ["gpt-", "o1", "o3", "chatgpt"]):
-                            chat_models.append(model_id)
-                    
-                    if "gpt-4.1-nano" not in chat_models:
-                        chat_models.append("gpt-4.1-nano")
-                    
-                    # Sort models for consistent ordering
-                    chat_models.sort(reverse=True)  # Newer models first
-                    return chat_models
-                    
-                except Exception as e:
-                    # If API call fails, return empty list
-                    if hasattr(self, 'logger'):
-                        self.logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
-                    return []
-            elif service == "anthropic":
-                # Dynamically fetch models from Anthropic API
-                try:
-                    import anthropic
-                    raw_key = self._get_api_key(api_key_id)
-                    client = anthropic.Anthropic(api_key=raw_key)
-                    models_response = client.models.list(limit=50)
-                    
-                    # Extract model IDs from the response
-                    model_ids = []
-                    for model in models_response.data:
-                        model_ids.append(model.id)
-                    
-                    # Sort models for consistent ordering
-                    model_ids.sort(reverse=True)  # Newer models first
-                    return model_ids
-                    
-                except Exception as e:
-                    # If API call fails, return empty list
-                    if hasattr(self, 'logger'):
-                        self.logger.warning(f"Failed to fetch Anthropic models dynamically: {e}")
-                    return []
-            elif service == "google":
-                # Dynamically fetch models from Google Gemini API
-                try:
-                    from google import genai
-                    raw_key = self._get_api_key(api_key_id)
-                    client = genai.Client(api_key=raw_key)
-                    
-                    # Get models that support generateContent (chat models)
-                    chat_models = []
-                    for model in client.models.list():
-                        if "generateContent" in model.supported_actions:
-                            # Extract model name (remove "models/" prefix if present)
-                            model_name = model.name
-                            if model_name.startswith("models/"):
-                                model_name = model_name[7:]  # Remove "models/" prefix
-                            chat_models.append(model_name)
-                    
-                    # Sort models for consistent ordering
-                    chat_models.sort(reverse=True)  # Newer models first
-                    return chat_models
-                    
-                except Exception as e:
-                    # If API call fails, return empty list
-                    if hasattr(self, 'logger'):
-                        self.logger.warning(f"Failed to fetch Google models dynamically: {e}")
-                    return []
-            else:
-                return []
+            # Get an adapter for the service
+            # Use a dummy model name since we just need the adapter to list models
+            adapter = await self._get_client(service, "dummy", api_key_id)
+            
+            # Delegate to the adapter's get_available_models method
+            return await adapter.get_available_models()
+            
         except Exception as e:
             raise LLMServiceError(
                 service="llm", message=f"Failed to get available models: {e}"
@@ -267,8 +180,6 @@ class LLMInfraService(BaseService, LLMServicePort):
         This is typically handled by the adapters themselves,
         but this method provides a consistent interface.
         """
-        # The adapters already return ChatResult with TokenUsage
-        # This method is here for compatibility with the protocol
         if hasattr(usage, 'tokenUsage'):
             return usage.tokenUsage
         elif hasattr(usage, 'token_usage'):

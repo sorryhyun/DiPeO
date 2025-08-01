@@ -1,11 +1,11 @@
-"""Person mutations using UnifiedServiceRegistry."""
+"""Person mutations using ServiceRegistry."""
 
 import logging
 from uuid import uuid4
 
 import strawberry
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.core.dynamic import PersonManager
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import PersonLLMConfig, PersonID
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 PERSON_MANAGER = ServiceKey[PersonManager]("person_manager")
 
 
-def create_person_mutations(registry: UnifiedServiceRegistry) -> type:
+def create_person_mutations(registry: ServiceRegistry) -> type:
     """Create person mutation methods with injected service registry."""
     
     @strawberry.type
@@ -27,7 +27,7 @@ def create_person_mutations(registry: UnifiedServiceRegistry) -> type:
         @strawberry.mutation
         async def create_person(self, input: CreatePersonInput) -> PersonResult:
             try:
-                person_manager = registry.require(PERSON_MANAGER)
+                person_manager = registry.resolve(PERSON_MANAGER)
                 
                 # Create LLM config from input
                 llm_config = PersonLLMConfig(
@@ -70,7 +70,7 @@ def create_person_mutations(registry: UnifiedServiceRegistry) -> type:
         ) -> PersonResult:
             try:
                 person_id = PersonID(str(id))
-                person_manager = registry.require(PERSON_MANAGER)
+                person_manager = registry.resolve(PERSON_MANAGER)
                 
                 # Check if person exists in manager
                 person_exists = person_manager.person_exists(person_id)
@@ -157,7 +157,7 @@ def create_person_mutations(registry: UnifiedServiceRegistry) -> type:
         async def delete_person(self, id: strawberry.ID) -> DeleteResult:
             try:
                 person_id = PersonID(str(id))
-                person_manager = registry.require(PERSON_MANAGER)
+                person_manager = registry.resolve(PERSON_MANAGER)
                 
                 # Remove from manager
                 person_manager.remove_person(person_id)

@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { NodeExecutionStatus, ExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/domain-models';
 import { nodeId, executionId } from '@/core/types';
 import { useExecutionState } from './useExecutionState';
+import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 interface UseExecutionUpdatesProps {
   state: ReturnType<typeof useExecutionState>;
@@ -15,6 +16,7 @@ interface UseExecutionUpdatesProps {
 }
 
 const THROTTLE_DELAY = 50; // ms
+const TOAST_THROTTLE_DELAY = 2000; // ms - Prevent toast spam (increased from 1000ms)
 
 export function useExecutionUpdates({
   state,
@@ -41,6 +43,22 @@ export function useExecutionUpdates({
   // Refs for throttling
   const lastNodeStartRef = useRef<{ [nodeId: string]: number }>({});
   const lastNodeCompleteRef = useRef<{ [nodeId: string]: number }>({});
+  const lastToastRef = useRef<{ [key: string]: number }>({});
+
+  // Throttled toast function to prevent spam
+  const showThrottledToast = useCallback((key: string, type: 'success' | 'error' | 'info', message: string) => {
+    if (!showToasts) return;
+    
+    const now = Date.now();
+    const lastToast = lastToastRef.current[key] || 0;
+    
+    if (now - lastToast < TOAST_THROTTLE_DELAY) {
+      return;
+    }
+    
+    lastToastRef.current[key] = now;
+    toast[type](message);
+  }, [showToasts]);
 
   // Handle node start with manual throttling
   const handleNodeStart = useCallback((nodeIdStr: string, nodeType: string) => {
@@ -52,6 +70,8 @@ export function useExecutionUpdates({
     }
     
     lastNodeStartRef.current[nodeIdStr] = now;
+    
+    console.log('[ExecutionUpdates] Starting node:', nodeIdStr, 'type:', nodeType);
     
     setCurrentNode(nodeIdStr);
     
@@ -129,11 +149,12 @@ export function useExecutionUpdates({
       completeExecution();
       executionActions.stopExecution();
       
-      if (showToasts) {
-        const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
-        const statusMsg = executionUpdates.status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
-        toast.success(`Execution ${statusMsg}${tokensMsg}`);
-      }
+      const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
+      const statusMsg = executionUpdates.status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
+      showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
+      
+      // Auto-exit is now handled by useMonitorMode
+      // No need to check URL params here
       
       onUpdate?.({ 
         type: EventType.EXECUTION_STATUS_CHANGED, 
@@ -145,9 +166,7 @@ export function useExecutionUpdates({
       errorExecution(executionUpdates.error);
       executionActions.stopExecution();
       
-      if (showToasts) {
-        toast.error(`Execution failed: ${executionUpdates.error}`);
-      }
+      showThrottledToast('execution-error', 'error', `Execution failed: ${executionUpdates.error}`);
       
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR, 
@@ -155,13 +174,14 @@ export function useExecutionUpdates({
         error: executionUpdates.error, 
         timestamp: new Date().toISOString() 
       });
+      
+      // Auto-exit is now handled by useMonitorMode
+      // No need to check URL params here
     } else if (executionUpdates.status === ExecutionStatus.ABORTED) {
       errorExecution('Execution aborted');
       executionActions.stopExecution();
       
-      if (showToasts) {
-        toast.error('Execution aborted');
-      }
+      showThrottledToast('execution-aborted', 'error', 'Execution aborted');
       
       onUpdate?.({ 
         type: EventType.EXECUTION_STATUS_CHANGED, 
@@ -169,11 +189,13 @@ export function useExecutionUpdates({
         timestamp: new Date().toISOString() 
       });
     }
-  }, [executionUpdates, completeExecution, errorExecution, executionActions, showToasts, onUpdate, executionIdRef]);
+  }, [executionUpdates, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef]);
 
   // Process node subscription updates
   useEffect(() => {
     if (!nodeUpdates) return;
+    
+    console.log('[ExecutionUpdates] Processing node update:', nodeUpdates);
     
     const status = nodeUpdates.status || '';
 
@@ -192,9 +214,7 @@ export function useExecutionUpdates({
           completeExecution();
           executionActions.stopExecution();
           
-          if (showToasts) {
-            toast.success('Execution completed (max iterations reached)');
-          }
+          showThrottledToast('execution-maxiter', 'success', 'Execution completed (max iterations reached)');
           
           onUpdate?.({ 
             type: EventType.EXECUTION_STATUS_CHANGED, 
@@ -216,9 +236,7 @@ export function useExecutionUpdates({
         error: nodeUpdates.error ?? undefined
       });
       
-      if (showToasts) {
-        toast.error(`Node ${nodeUpdates.node_id.slice(0, 8)}... failed: ${nodeUpdates.error}`);
-      }
+      showThrottledToast(`node-error-${nodeUpdates.node_id}`, 'error', `Node ${nodeUpdates.node_id.slice(0, 8)}... failed: ${nodeUpdates.error}`);
       
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR,
@@ -277,7 +295,7 @@ export function useExecutionUpdates({
         timestamp: new Date().toISOString() 
       });
     }
-  }, [nodeUpdates, handleNodeStart, handleNodeComplete, updateNodeState, incrementCompletedNodes, addSkippedNode, executionActions, showToasts, onUpdate, executionIdRef, state, completeExecution]);
+  }, [nodeUpdates, handleNodeStart, handleNodeComplete, updateNodeState, incrementCompletedNodes, addSkippedNode, executionActions, showThrottledToast, onUpdate, executionIdRef, state, completeExecution]);
 
   // Process interactive prompt updates
   useEffect(() => {

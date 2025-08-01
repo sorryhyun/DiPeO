@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   User, MessageSquare,
-  Search, Filter, Download, DollarSign, List
+  Search, Filter, Download, DollarSign, List, FileText
 } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
 import { Input, Select } from '@/shared/components/forms';
@@ -11,7 +11,7 @@ import { useConversationData } from '../../hooks';
 import { useUIState } from '@/core/store/hooks/state';
 import { usePersonsData } from '@/features/person-management/hooks';
 import { MessageList } from '../MessageList';
-import { ExecutionOrderView } from '@/features/execution-monitor/components';
+import { ExecutionOrderView, ExecutionLogView } from '@/features/execution-monitor/components';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import { ConversationFilters, UIConversationMessage } from '@/core/types/conversation';
 import { PersonID, executionId, personId } from '@/core/types';
@@ -19,7 +19,7 @@ import { debounce, throttle } from '@/lib/utils/math';
 import { stringify } from 'yaml';
 
 const ConversationDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'conversation' | 'execution-order'>('conversation');
+  const [activeTab, setActiveTab] = useState<'conversation' | 'execution-order' | 'execution-log'>('execution-log');
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
   const [filters, setFilters] = useState<ConversationFilters>({
     searchTerm: '',
@@ -382,6 +382,17 @@ const ConversationDashboard: React.FC = () => {
         <List className="h-4 w-4" />
         <span>Execution Order</span>
       </button>
+      <button
+        className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          activeTab === 'execution-log'
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`}
+        onClick={() => setActiveTab('execution-log')}
+      >
+        <FileText className="h-4 w-4" />
+        <span>Execution Log</span>
+      </button>
     </div>
   );
 
@@ -413,8 +424,10 @@ const ConversationDashboard: React.FC = () => {
               )}
             </div>
           </>
-        ) : (
+        ) : activeTab === 'execution-order' ? (
           <ExecutionOrderView />
+        ) : (
+          <ExecutionLogView />
         )}
       </div>
     );

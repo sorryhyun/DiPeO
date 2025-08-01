@@ -1,4 +1,4 @@
-# Protocol definition for diagram I/O operations.
+"""Protocol definition for diagram I/O operations."""
 
 import logging
 from typing import Any
@@ -15,38 +15,29 @@ from dipeo.models import DiagramFormat, DomainDiagram
 
 @runtime_checkable
 class DiagramPort(Protocol):
-    """Protocol for diagram operations.
-    
-    Note: All I/O operations are async to support non-blocking execution.
-    Format detection and in-memory operations remain synchronous.
-    """
+    """Protocol for diagram operations. I/O operations are async."""
 
-    def detect_format(self, content: str) -> DiagramFormat: 
-        """Detect the format of diagram content."""
+    def detect_format(self, content: str) -> DiagramFormat:
         ...
         
     def load_diagram(
             self,
             content: str,
             format: DiagramFormat | None = None,
-    ) -> DomainDiagram: 
-        """Load a diagram from string content."""
+    ) -> DomainDiagram:
         ...
 
     async def load_from_file(
             self,
             file_path: str,
             format: DiagramFormat | None = None,
-    ) -> DomainDiagram: 
-        """Load a diagram from a file."""
+    ) -> DomainDiagram:
         ...
         
-    async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]: 
-        """List all available diagrams."""
+    async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
         ...
         
-    async def save_diagram(self, path: str, diagram: dict[str, Any]) -> None: 
-        """Save a diagram to a file."""
+    async def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
         ...
         
     async def create_diagram(

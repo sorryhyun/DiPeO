@@ -1,6 +1,3 @@
-/**
- * Code Job node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "language",
       type: "enum",
       required: true,
-      description: "Language configuration",
+      description: "Programming language",
       validation: {
         allowedValues: ["python", "typescript", "bash", "shell"]
       },
@@ -36,7 +33,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "filePath",
       type: "string",
       required: true,
-      description: "Filepath configuration",
+      description: "Path to code file",
       uiConfig: {
         inputType: "text",
         placeholder: "/path/to/file"
@@ -46,7 +43,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "functionName",
       type: "string",
       required: false,
-      description: "Functionname configuration",
+      description: "Function to execute",
       uiConfig: {
         inputType: "text"
       }
@@ -55,7 +52,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "timeout",
       type: "number",
       required: false,
-      description: "Timeout configuration",
+      description: "Execution timeout in seconds",
       uiConfig: {
         inputType: "number",
         min: 0,
@@ -72,7 +69,7 @@ export const codeJobSpec: NodeSpecification = {
   outputs: {
     result: {
       type: "any",
-      description: "Node execution result"
+      description: "Code execution result"
     }
   },
   
@@ -80,5 +77,7 @@ export const codeJobSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "language"
 };

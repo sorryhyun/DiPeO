@@ -1,13 +1,20 @@
-# Use case for executing a complete diagram.
 
 import asyncio
+import json
 from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.execution.observers import StreamingObserver
 from dipeo.core import BaseService
 from dipeo.models import ExecutionStatus
+from dipeo.application.registry import (
+    STATE_STORE,
+    MESSAGE_ROUTER,
+    DIAGRAM_STORAGE_SERVICE,
+    API_KEY_SERVICE,
+    CONVERSATION_SERVICE,
+    CONVERSATION_MANAGER,
+)
 
 if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
@@ -16,15 +23,15 @@ if TYPE_CHECKING:
     from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
     from dipeo.models import DomainDiagram
 
-    from ...unified_service_registry import UnifiedServiceRegistry
+    from ...registry import ServiceRegistry
     from ..execution_runtime import ExecutionRuntime
-    from dipeo.container.container import Container
+    from dipeo.application.bootstrap import Container
 
 class ExecuteDiagramUseCase(BaseService):
 
     def __init__(
         self,
-        service_registry: "UnifiedServiceRegistry",
+        service_registry: "ServiceRegistry",
         state_store: Optional["StateStorePort"] = None,
         message_router: Optional["MessageRouterPort"] = None,
         diagram_storage_service: Optional["DiagramStorageAdapter"] = None,
@@ -34,12 +41,10 @@ class ExecuteDiagramUseCase(BaseService):
         self.service_registry = service_registry
         self.container = container
         
-        # Get services from registry if not provided directly (for backward compatibility)
-        self.state_store = state_store or service_registry.get("state_store")
-        self.message_router = message_router or service_registry.get("message_router")
-        self.diagram_storage_service = diagram_storage_service or service_registry.get("diagram_storage_service")
+        self.state_store = state_store or service_registry.resolve(STATE_STORE)
+        self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
+        self.diagram_storage_service = diagram_storage_service or service_registry.resolve(DIAGRAM_STORAGE_SERVICE)
         
-        # Validate required services
         if not self.state_store:
             raise ValueError("state_store is required but not found in service registry")
         if not self.message_router:
@@ -48,7 +53,6 @@ class ExecuteDiagramUseCase(BaseService):
             raise ValueError("diagram_storage_service is required but not found in service registry")
 
     async def initialize(self):
-        """Initialize the service."""
         pass
 
     async def execute_diagram(  # type: ignore[override]
@@ -58,69 +62,65 @@ class ExecuteDiagramUseCase(BaseService):
         execution_id: str,
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
+        use_monitoring_stream: bool = False,  # Use monitoring-only streaming for CLI executions
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
-        # Step 1: Compile to typed diagram
         typed_diagram = await self._compile_typed_diagram(diagram)
-        
-        # Step 2: Initialize execution state in persistence
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
-        
-        # Step 3: Create typed execution
         typed_execution = await self._create_typed_execution(typed_diagram, options, execution_id)
-
-        # Handle observers - use provided ones or create new ones
         if observers is not None:
-            # Sub-diagram execution: use parent's observers
             engine_observers = observers
-            # Find the streaming observer from the provided observers
             streaming_observer = None
             for obs in observers:
-                if isinstance(obs, StreamingObserver):
+                from dipeo.application.execution.observers import MonitoringStreamObserver
+                if isinstance(obs, MonitoringStreamObserver):
                     streaming_observer = obs
                     break
             
             if not streaming_observer:
-                # If no streaming observer found, create one
-                streaming_observer = StreamingObserver(self.message_router)
+                from dipeo.application.execution.observers import MonitoringStreamObserver
+                streaming_observer = MonitoringStreamObserver()
                 engine_observers = list(observers) + [streaming_observer]
         else:
-            # Parent execution: create new observers
-            streaming_observer = StreamingObserver(self.message_router)
+            from dipeo.application.execution.observers import MonitoringStreamObserver
             
-            # Create engine with observers
+            if use_monitoring_stream:
+                streaming_observer = MonitoringStreamObserver()
+                
+                try:
+                    from dipeo_server.api.sse import register_observer_for_execution
+                    register_observer_for_execution(execution_id, streaming_observer)
+                except ImportError:
+                    pass
+            else:
+                streaming_observer = MonitoringStreamObserver()
             from dipeo.application.execution.observers import StateStoreObserver
             
             engine_observers = []
             
-            # Add state store observer
             if self.state_store:
                 engine_observers.append(StateStoreObserver(self.state_store))
                 
-            # Add streaming observer
             engine_observers.append(streaming_observer)
-        
-        # Create the TypedExecutionEngine with the appropriate observers
         from dipeo.application.execution.engine import TypedExecutionEngine
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             observers=engine_observers,
         )
 
-        # Subscribe to streaming updates
-        update_queue = await streaming_observer.subscribe(execution_id)
+        update_iterator = None
+        if not use_monitoring_stream:
+            update_iterator = streaming_observer.subscribe(execution_id)
 
-        # Start execution in background
         async def run_execution():
             try:
-                # Update state to running
-                state = await self.state_store.get_state(execution_id)
-                if state:
-                    state.status = ExecutionStatus.RUNNING
-                    state.started_at = datetime.now(UTC).isoformat()
-                    state.is_active = True
-                    await self.state_store.save_state(state)
+                exec_state = await self.state_store.get_state(execution_id)
+                if exec_state:
+                    exec_state.status = ExecutionStatus.RUNNING
+                    exec_state.started_at = datetime.now(UTC).isoformat()
+                    exec_state.is_active = True
+                    await self.state_store.save_state(exec_state)
                 
                 async for _ in engine.execute(
                     typed_execution,
@@ -128,9 +128,8 @@ class ExecuteDiagramUseCase(BaseService):
                     options,
                     interactive_handler,
                 ):
-                    pass  # Engine uses observers for updates
+                    pass
 
-                # Finalize execution state as completed
                 await self._finalize_execution_state(execution_id, ExecutionStatus.COMPLETED)
                 
             except Exception as e:
@@ -139,58 +138,71 @@ class ExecuteDiagramUseCase(BaseService):
                 logger = logging.getLogger(__name__)
                 logger.error(f"Engine execution failed: {e}", exc_info=True)
                 
-                # Finalize execution state as failed
                 await self._finalize_execution_state(
                     execution_id, 
                     ExecutionStatus.FAILED,
                     error=str(e)
                 )
-                
-                await update_queue.put(
-                    {
-                        "type": "execution_error",
-                        "error": str(e),
-                    }
-                )
 
-        # Launch execution
         asyncio.create_task(run_execution())
 
-        # Stream updates
-        while True:
-            update = await update_queue.get()
-            yield update
-
-            if update.get("type") in ["execution_complete", "execution_error"]:
-                break
+        if use_monitoring_stream:
+            await asyncio.sleep(0.1)
+            while True:
+                state = await self.state_store.get_state(execution_id)
+                if state and state.status in [
+                    ExecutionStatus.COMPLETED,
+                    ExecutionStatus.FAILED,
+                    ExecutionStatus.ABORTED,
+                ]:
+                    break
+                await asyncio.sleep(1)
+            yield {
+                "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
+                "execution_id": execution_id,
+                "status": state.status.value,
+            }
+        else:
+            async for update_msg in update_iterator:
+                if isinstance(update_msg, dict) and "data" in update_msg:
+                    try:
+                        update = json.loads(update_msg["data"])
+                        yield update
+                        
+                        if update.get("type") in ["execution_complete", "execution_error"]:
+                            break
+                    except json.JSONDecodeError:
+                        continue
+                elif isinstance(update_msg, str) and update_msg.startswith("data: "):
+                    try:
+                        update = json.loads(update_msg[6:].strip())
+                        yield update
+                        
+                        if update.get("type") in ["execution_complete", "execution_error"]:
+                            break
+                    except json.JSONDecodeError:
+                        continue
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""
-        # Handle different diagram representations
         from dipeo.models import DomainDiagram
         from dipeo.domain.diagram.utils import dict_to_domain_diagram
         from dipeo.infrastructure.services.diagram import DiagramConverterService
         
-        # Check if this is a format-specific diagram (light, readable) that needs conversion
         if isinstance(diagram, dict):
-            # Check for format markers
             version = diagram.get("version")
             format_type = diagram.get("format")
             
-            # If it's a light or readable format, deserialize it first
             if version in ["light", "readable"] or format_type in ["light", "readable"]:
                 converter = DiagramConverterService()
                 await converter.initialize()
                 
-                # Serialize the dict to YAML for deserialization
                 import yaml
                 yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
                 
-                # Deserialize using the appropriate strategy
                 format_id = version or format_type
                 domain_diagram = converter.deserialize(yaml_content, format_id)
             else:
-                # Standard domain format, convert directly
                 domain_diagram = dict_to_domain_diagram(diagram)
         elif isinstance(diagram, DomainDiagram):
             domain_diagram = diagram
@@ -200,32 +212,24 @@ class ExecuteDiagramUseCase(BaseService):
         # TODO: Add updated validation logic if needed
         # Validation has been temporarily removed while updating the flow validation system
         
-        # Apply diagram compilation pipeline with static types
         from ...resolution import StaticDiagramCompiler
         compiler = StaticDiagramCompiler()
         
-        # Get API keys if available
         api_keys = None
-        if hasattr(self.service_registry, 'get'):
-            api_key_service = self.service_registry.get('api_key_service')
+        if hasattr(self.service_registry, 'resolve'):
+            api_key_service = self.service_registry.resolve(API_KEY_SERVICE)
             if api_key_service:
-                # Extract API keys needed by the diagram
                 api_keys = self._extract_api_keys_for_typed_diagram(domain_diagram, api_key_service)
         
-        # Compile to typed diagram
         executable_diagram = compiler.compile(domain_diagram)
-        # Add API keys to metadata
         if api_keys:
             executable_diagram.metadata["api_keys"] = api_keys
         
-        # Store original domain diagram metadata if needed
         if domain_diagram.metadata:
             executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
         
-        # Copy persons data from domain diagram to executable diagram metadata
         if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
             persons_dict = {}
-            # Handle both dict and list formats
             persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
             for person in persons_list:
                 person_id = str(person.id)
@@ -240,7 +244,6 @@ class ExecuteDiagramUseCase(BaseService):
                 }
             executable_diagram.metadata['persons'] = persons_dict
         
-        # Register person configs from executable diagram
         await self._register_typed_person_configs(executable_diagram)
         
         return executable_diagram
@@ -290,12 +293,12 @@ class ExecuteDiagramUseCase(BaseService):
         log = logging.getLogger(__name__)
 
         conversation_service = None
-        if hasattr(self.service_registry, 'get'):
+        if hasattr(self.service_registry, 'resolve'):
             # Try the standardized name first
-            conversation_service = self.service_registry.get('conversation_service')
+            conversation_service = self.service_registry.resolve(CONVERSATION_SERVICE)
             if not conversation_service:
-                # Fall back to legacy name for backward compatibility
-                conversation_service = self.service_registry.get('conversation')
+                # Fall back to conversation manager for backward compatibility
+                conversation_service = self.service_registry.resolve(CONVERSATION_MANAGER)
         
         if conversation_service:
             # Extract person configs from typed nodes
@@ -423,13 +426,21 @@ class ExecuteDiagramUseCase(BaseService):
         }
         
         # Extract API key references from persons
-        if hasattr(diagram, 'persons'):
-            for person in diagram.persons:
+        if hasattr(diagram, 'persons') and diagram.persons:
+            # Handle both dict and list formats
+            persons_list = list(diagram.persons.values()) if isinstance(diagram.persons, dict) else diagram.persons
+            for person in persons_list:
                 api_key_id = None
                 if hasattr(person, 'api_key_id'):
                     api_key_id = person.api_key_id
                 elif hasattr(person, 'apiKeyId'):
                     api_key_id = person.apiKeyId
+                elif hasattr(person, 'llm_config'):
+                    # Handle nested llm_config structure
+                    if hasattr(person.llm_config, 'api_key_id'):
+                        api_key_id = person.llm_config.api_key_id
+                    elif hasattr(person.llm_config, 'apiKeyId'):
+                        api_key_id = person.llm_config.apiKeyId
                     
                 if api_key_id and api_key_id in all_keys:
                     api_keys[api_key_id] = all_keys[api_key_id]

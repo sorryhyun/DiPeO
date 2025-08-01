@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.unified_service_registry import API_SERVICE
+from dipeo.application.registry import API_SERVICE
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
@@ -51,7 +51,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         inputs = request.inputs
         services = request.services
         # Use injected service or get from services
-        api_service = self.api_service or services.get(API_SERVICE.name)
+        api_service = self.api_service or request.get_service(API_SERVICE.name)
             
         if not api_service:
             return ErrorOutput(

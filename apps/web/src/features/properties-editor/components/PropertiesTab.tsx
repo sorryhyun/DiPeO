@@ -2,15 +2,9 @@ import React, { Suspense, useMemo } from 'react';
 import { useCanvasState } from '@/shared/contexts/CanvasContext';
 import { LoadingFallback } from '@/shared/components/feedback';
 
-// Lazy load the property panel
 const PropertyPanel = React.lazy(() => import('./PropertyPanel').then(module => ({ default: module.PropertyPanel })));
 
-/**
- * PropertiesTab - Refactored to use unified canvas hooks
- * Demonstrates the simplified data access pattern
- */
 export const PropertiesTab: React.FC = () => {
-  // Use the unified canvas state hook - much simpler!
   const canvasState = useCanvasState();
   const { 
     selectedNodeId, 
@@ -21,12 +15,10 @@ export const PropertiesTab: React.FC = () => {
     personsWithUsage 
   } = canvasState;
   
-  // Get the selected entity
   const selectedPerson = selectedPersonId ? canvasState.persons.get(selectedPersonId) : null;
   const selectedNode = selectedNodeId ? nodes.get(selectedNodeId) : null;
   const selectedArrow = selectedArrowId ? arrows.get(selectedArrowId) : null;
   
-  // Memoize entity data separately to ensure stability
   const entityData = useMemo(() => {
     if (selectedPerson) {
       return { ...selectedPerson, type: 'person' as const };
@@ -38,11 +30,9 @@ export const PropertiesTab: React.FC = () => {
     }
     
     if (selectedArrow) {
-      // Parse handle ID to get source node ID
       const [sourceNodeId, ...sourceHandleParts] = selectedArrow.source.split(':');
       const sourceHandleName = sourceHandleParts.join(':');
       
-      // Find source node to determine if this is a special arrow
       const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as any) : undefined;
       const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
       
@@ -64,7 +54,6 @@ export const PropertiesTab: React.FC = () => {
     return null;
   }, [selectedPerson, selectedNode, selectedArrow, nodes]);
   
-  // Determine selected entity with stable references
   const selectedEntity = useMemo(() => {
     if (!entityData) return null;
     
@@ -98,7 +87,6 @@ export const PropertiesTab: React.FC = () => {
     return null;
   }, [selectedPersonId, selectedNodeId, selectedArrowId, entityData, selectedPerson, selectedNode]);
   
-  // Simplified rendering logic
   const showWrapperHeader = !selectedEntity;
   const title = selectedEntity?.title || 'Properties';
   

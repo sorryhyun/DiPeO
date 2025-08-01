@@ -31,7 +31,6 @@ import nodeTypes from "./nodes/nodeTypes";
 import { DomainArrow, arrowId, nodeId, PersonID } from '@/core/types';
 import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
 
-// Lazy‑loaded tabs
 const PropertiesTab = React.lazy(
   () => import("@/features/properties-editor/components/PropertiesTab")
 );
@@ -39,13 +38,11 @@ const ConversationTab = React.lazy(
   () => import("@/features/conversation/components/ConversationTab")
 );
 
-// Edge type map
 const edgeTypes: EdgeTypes = {
   customArrow: CustomArrowBase,
 };
 
 interface DiagramCanvasProps {
-  /** When true, the property panel is hidden & execution‑mode colours are used */
   executionMode?: boolean;
 }
 
@@ -56,11 +53,6 @@ const roundPosition = (position: { x: number; y: number }) => {
   };
 };
 
-/**
- * Single source of truth for *all* ReactFlow props we pass around.
- * Keeping them in one object avoids prop‑list drift between the two
- * ReactFlow instances that used to live in this file.
- */
 interface CommonFlowPropsParams {
   nodes: ReactFlowNode[];
   arrows: DomainArrow[];
@@ -107,11 +99,10 @@ function useCommonFlowProps({
   isExecuting,
 }: CommonFlowPropsParams) {
   return useMemo(() => {
-    // Convert handle-based arrows to ReactFlow edges
     const edges = arrows.map(arrow => DiagramAdapter.arrowToReactFlow(arrow)) as Edge[];
     
     const baseProps = {
-      fitView: false, // We'll handle fitView manually
+      fitView: false,
       nodes,
       edges,
       connectionLineStyle: { stroke: "#3b82f6", strokeWidth: 2 },
@@ -129,17 +120,15 @@ function useCommonFlowProps({
       },
       onDragOver: onDragOver ?? undefined,
       onDrop,
-      // Control interactivity based on read-only state
       nodesDraggable: !readOnly && !isExecuting,
       nodesConnectable: !readOnly && !isExecuting,
       nodesFocusable: true,
       elementsSelectable: true,
-      panOnDrag: true, // Use left mouse button with space/cmd key for panning
+      panOnDrag: true,
       panOnScroll: false,
       zoomOnScroll: true,
       zoomOnPinch: true,
       zoomOnDoubleClick: true,
-      // Remove drag threshold for immediate interaction
       nodeDragThreshold: 0,
       selectNodesOnDrag: false,
     } as const;
@@ -147,13 +136,10 @@ function useCommonFlowProps({
     return {
       ...baseProps,
       onNodeClick: (event: React.MouseEvent, n: ReactFlowNode) => {
-        // Enable left-click selection for all nodes
         selectNode(n.id);
-        // Clear highlight on any left-click
         highlightPerson(null);
       },
       onEdgeClick: (event: React.MouseEvent, e: Edge) => {
-        // Enable left-click selection for edges/arrows
         selectArrow(e.id);
       },
       onNodeDragStart,
@@ -163,16 +149,12 @@ function useCommonFlowProps({
         node: ReactFlowNode
       ) => {
         event.preventDefault();
-        // Select node and show properties on right-click
         selectNode(node.id);
-        // Ensure properties tab is shown
         setDashboardTab('properties');
         
-        // If it's a person_job node, highlight which person it's assigned to
         if (node.type === 'person_job' && node.data.person) {
           highlightPerson(node.data.person as PersonID);
         } else {
-          // Clear highlight for other node types
           highlightPerson(null);
         }
       },
@@ -181,9 +163,7 @@ function useCommonFlowProps({
         edge: Edge
       ) => {
         event.preventDefault();
-        // Select arrow and show properties on right-click
         selectArrow(edge.id);
-        // Ensure properties tab is shown
         setDashboardTab('properties');
       },
       onPaneContextMenu: (evt: React.MouseEvent | MouseEvent) => {
@@ -191,7 +171,6 @@ function useCommonFlowProps({
           evt.preventDefault();
         }
         clearSelection();
-        // Clear person highlight when clicking on empty canvas
         highlightPerson(null);
       },
       className: executionMode ? "bg-neutral-900" : "diagram-canvas",
@@ -221,14 +200,11 @@ function useCommonFlowProps({
 }
 
 const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) => {
-   // Stores & Hooks
   const state = useCanvasState();
   const operations = useCanvasOperations();
   
-  // Extract from canvas hook
   const { nodes, arrows, onNodesChange, onArrowsChange, onConnect } = operations.canvasHandlers;
   
-  // Extract from interactions hook
   const {
     onDragOver,
     onNodeDrop,
@@ -242,7 +218,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onNodeDragStopCanvas,
   } = operations.interactions;
   
-  // Extract from operation hooks
   const { addNode: _addNode, deleteNode: _deleteNode } = operations.nodeOps;
   const { deleteArrow: _deleteArrow } = operations.arrowOps;
   const { addPerson } = operations.personOps;
@@ -260,49 +235,37 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     clearSelection,
   } = operations;
   
-  // Get store methods directly (not inside useMemo) to avoid cross-slice issues
   const highlightPerson = useUnifiedStore(state => state.highlightPerson);
   const setDashboardTab = useUnifiedStore(state => state.setDashboardTab);
 
-   // React Flow instance helpers
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   
-  // Get viewport operations from store
   const setViewport = useUnifiedStore(state => state.setViewport);
   
   const handleInit = (inst: ReactFlowInstance) => {
     setRfInstance(inst);
-    // Sync initial viewport
     const viewport = inst.getViewport();
     setViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
   };
   
-  // Track if we've fit the view and the previous node count
   const hasFitView = useRef(false);
   const prevNodeCount = useRef(0);
   
-  // Fit view when nodes are loaded from URL
   useEffect(() => {
     if (rfInstance && nodes.length > 0 && prevNodeCount.current === 0 && !hasFitView.current) {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('diagram')) {
-        hasFitView.current = true;
+      hasFitView.current = true;
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            rfInstance.fitView({ padding: 0.3, duration: 0, maxZoom: 0.8 });
-          });
+          rfInstance.fitView({ padding: 0.3, duration: 0, maxZoom: 0.8 });
         });
-      }
+      });
     }
     prevNodeCount.current = nodes.length;
   }, [nodes.length, rfInstance]);
   
-  // Handle viewport changes - commented out to prevent infinite loops
   // TODO: Implement proper viewport synchronization without causing re-render loops
   const handleViewportChange = useCallback((_viewport: { x: number; y: number; zoom: number }) => {
-    // Temporarily disabled to prevent infinite loops
-    // The viewport state is not critical for functionality
   }, []);
 
   const projectPosition = useCallback(
@@ -322,9 +285,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   );
 
 
-  /** --------------------------------------------------
-   * Memoised ReactFlow props shared by both modes
-   * --------------------------------------------------*/
   const flowProps = useCommonFlowProps({
     nodes,
     arrows,
@@ -348,9 +308,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     isExecuting,
   });
 
-  /** --------------------------------------------------
-   * Context‑menu helpers
-   * --------------------------------------------------*/
   const handleAddPerson = () => addPerson(
     "New Person",
     "openai",
@@ -358,14 +315,11 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
   );
   const showContextMenu = isContextMenuOpen && contextMenu?.position;
 
-  //* JSX
   return (
     <div className="h-full flex flex-col">
       {executionMode ? (
-        // Execution mode: Split view with diagram and conversation
         <PanelGroup direction="vertical">
           <Panel defaultSize={70} minSize={20}>
-            {/* Diagram view in execution mode */}
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
               <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
@@ -380,7 +334,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
           <Panel defaultSize={30} minSize={25}>
-            {/* Conversation view */}
             <div className="h-full bg-white">
               <Suspense
                 fallback={
@@ -395,7 +348,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           </Panel>
         </PanelGroup>
       ) : (
-        // Non-execution mode: Show diagram canvas with properties panel
         <PanelGroup direction="vertical">
           <Panel defaultSize={65} minSize={30}>
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
@@ -412,7 +364,6 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
           </Panel>
           <PanelResizeHandle className="h-1 bg-gray-200 hover:bg-gray-300 cursor-row-resize" />
           <Panel defaultSize={35} minSize={20}>
-            {/* Properties panel only shown in non-execution mode */}
             <div className="h-full bg-white flex flex-col">
               <div className="flex border-b bg-gray-50">
                 <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border-b-2 border-blue-500 text-blue-600">

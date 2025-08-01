@@ -9,10 +9,10 @@ from dipeo.diagram_generated.enums import SupportedLanguage
 
 class CodeJobNodeData(BaseModel):
     """Data model for Code Job node."""
-    language: SupportedLanguage = Field(description="Language configuration")
-    filePath: str = Field(description="Filepath configuration")
-    functionName: Optional[str] = Field(description="Functionname configuration")
-    timeout: Optional[float] = Field(description="Timeout configuration")
+    language: SupportedLanguage = Field(description="Programming language")
+    filePath: str = Field(description="Path to code file")
+    functionName: Optional[str] = Field(description="Function to execute")
+    timeout: Optional[float] = Field(description="Execution timeout in seconds")
 
     class Config:
         extra = "forbid"

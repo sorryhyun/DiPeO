@@ -1,6 +1,3 @@
-/**
- * User Response node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const userResponseSpec: NodeSpecification = {
       name: "prompt",
       type: "string",
       required: true,
-      description: "Prompt configuration",
+      description: "Question to ask the user",
       uiConfig: {
         inputType: "textarea",
         placeholder: "Enter prompt template..."
@@ -28,7 +25,7 @@ export const userResponseSpec: NodeSpecification = {
       name: "timeout",
       type: "number",
       required: true,
-      description: "Timeout configuration",
+      description: "Response timeout in seconds",
       uiConfig: {
         inputType: "number",
         min: 0,
@@ -53,5 +50,7 @@ export const userResponseSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
-  }
+  },
+  
+  primaryDisplayField: "response_type"
 };
