@@ -8,7 +8,7 @@ def generate_field_configs_summary(node_configs: list) -> dict:
     print(f"\n=== Field Configurations Generation Complete ===")
     print(f"Generated field configs for {len(node_configs)} node types")
     print(f"Output written to:")
-    print(f"  - apps/web/src/__generated__/nodes/fields.ts")
+    print(f"  - apps/web/src/__generated__/fields.ts")
     print(f"  - dipeo/diagram_generated_staged/field-configs.json")
     print(f"Timestamp: {datetime.now().isoformat()}")
     

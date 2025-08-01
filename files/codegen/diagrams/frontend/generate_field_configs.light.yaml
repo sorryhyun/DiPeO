@@ -86,7 +86,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/web/src/__generated__/nodes/fields.ts
+      source_details: apps/web/src/__generated__/fields.ts
 
   # Also write JSON output
   - label: Write Field Configs JSON

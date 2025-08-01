@@ -41,11 +41,8 @@ from .type_defs import (
     Result,
 )
 from .utils import (
-    # Dynamic registry utilities
-    DynamicRegistry,
     # Error handling utilities
     ErrorResponse,
-    TypedDynamicRegistry,
     contains_conversation,
     format_error_response,
     handle_api_errors,
@@ -105,9 +102,6 @@ __all__ = [
     "retry_with_backoff",
     "safe_parse",
     "format_error_response",
-    # Dynamic registry utilities
-    "DynamicRegistry",
-    "TypedDynamicRegistry",
     # Conversation detection utilities
     "is_conversation",
     "has_nested_conversation",

@@ -131,7 +131,7 @@ nodes:
                 'python_models': 'dipeo/diagram_generated_staged/domain_models.py',
                 'enums': 'dipeo/diagram_generated_staged/enums.py',
                 'conversions': 'dipeo/diagram_generated_staged/conversions.py',
-                'field_configs': 'apps/web/src/__generated__/nodes/fields.ts',
+                'field_configs': 'apps/web/src/__generated__/fields.ts',
                 'zod_schemas': 'apps/web/src/__generated__/schemas.ts',
                 'graphql_schema': 'dipeo/diagram_generated_staged/domain-schema.graphql',
                 'static_nodes': 'dipeo/diagram_generated_staged/generated_nodes.py'

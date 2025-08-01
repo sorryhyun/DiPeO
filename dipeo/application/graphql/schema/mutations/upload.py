@@ -46,7 +46,7 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
         ) -> FileUploadResult:
             """Upload a file to the system."""
             try:
-                filesystem = registry.get(FILESYSTEM_ADAPTER.name)
+                filesystem = registry.get(FILESYSTEM_ADAPTER)
                 if not filesystem:
                     return FileUploadResult(
                         success=False,

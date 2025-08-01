@@ -81,7 +81,7 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
             try:
                 api_key_id = ApiKeyID(str(id))
                 apikey_service = registry.resolve(API_KEY_SERVICE)
-                llm_service = registry.get(LLM_SERVICE.name)
+                llm_service = registry.get(LLM_SERVICE)
                 
                 if not llm_service:
                     return TestApiKeyResult(

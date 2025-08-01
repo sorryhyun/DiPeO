@@ -265,7 +265,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
         
         @strawberry.field
         async def prompt_files(self) -> List[JSONScalar]:
-            filesystem = registry.get(FILESYSTEM_ADAPTER.name)
+            filesystem = registry.get(FILESYSTEM_ADAPTER)
             if not filesystem:
                 return []
             
@@ -294,7 +294,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
         
         @strawberry.field
         async def prompt_file(self, filename: str) -> JSONScalar:
-            filesystem = registry.get(FILESYSTEM_ADAPTER.name)
+            filesystem = registry.get(FILESYSTEM_ADAPTER)
             if not filesystem:
                 return {
                     "success": False,

@@ -104,11 +104,12 @@ class ExecutionRuntime(StateTransitionMixin):
     
     
     def get_service(self, service_key: Union[str, "ServiceKey"]) -> Any:
-        from dipeo.application.unified_service_registry import ServiceKey
+        from dipeo.application.registry import ServiceKey
         
         if isinstance(service_key, ServiceKey):
-            return self._service_registry.get(service_key.name)
-        return self._service_registry.get(service_key)
+            return self._service_registry.get(service_key)
+        # For backward compatibility, wrap string in a ServiceKey
+        return self._service_registry.get(ServiceKey(service_key))
     
     @property
     def service_registry(self) -> "ServiceRegistry":
