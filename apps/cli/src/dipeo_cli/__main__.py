@@ -33,7 +33,7 @@ def main():
     )
     run_parser.add_argument("--debug", action="store_true", help="Enable debug output")
     run_parser.add_argument(
-        "--no-browser", action="store_true", help="Skip browser opening"
+        "--browser", action="store_true", help="Open browser to monitor execution"
     )
     run_parser.add_argument("--quiet", action="store_true", help="Minimal output")
     run_parser.add_argument(
@@ -140,7 +140,7 @@ def main():
             success = cli.run(
                 args.diagram,
                 args.debug,
-                args.no_browser,
+                not args.browser,  # Invert the logic: default is no browser
                 args.timeout,
                 format_type,
                 input_variables,

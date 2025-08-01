@@ -44,8 +44,6 @@ async def stream_execution(
     This endpoint allows browsers to directly connect and receive
     real-time execution updates without going through WebSocket/message router.
     """
-    logger.info(f"SSE connection established for execution {execution_id}")
-
     observer = await get_or_create_observer(execution_id)
 
     async def event_generator():
@@ -60,13 +58,15 @@ async def stream_execution(
             logger.error(f"Error in SSE stream for {execution_id}: {e}")
             yield f"event: error\ndata: {{'error': '{str(e)}'}}\n\n"
         finally:
-            logger.info(f"SSE connection closed for execution {execution_id}")
+            pass  # Suppress verbose SSE connection logs
 
     return EventSourceResponse(
         event_generator(),
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
         },
     )
 

@@ -33,28 +33,28 @@ install:
 # Diagram-based code generation (NEW DEFAULT)
 codegen:
 	@echo "Running unified diagram-based code generation..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --no-browser --timeout=25
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=25
 	make apply
-	dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=15
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --no-browser --timeout=15
+	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=15
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=15
 	make graphql-schema
 	@echo "All code generation completed using DiPeO diagrams!"
 
 # Diagram-based code generation for node UI
 codegen-models:
 	@echo "Running diagram-based model generation for all nodes..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --no-browser --timeout=30
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=30
 	@echo "Diagram-based code generation completed!"
 
 # Generate all nodes using diagram approach
 codegen-backend:
 	@echo "Generating UI for all node types using diagram..."
-	dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=30
+	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=30
 	@echo "All nodes generated via diagram!"
 
 codegen-frontend:
 	@echo "Generating UI for all node types using diagram..."
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --no-browser --timeout=30
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=30
 	@echo "All nodes generated via diagram!"
 
 

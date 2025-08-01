@@ -27,6 +27,14 @@ function useNodeStatus(nodeIdStr: string) {
   const operations = useCanvasOperations();
   const hookNodeState = operations.executionOps.getNodeExecutionState(nodeId(nodeIdStr));
   
+  // Debug logging
+  if (nodeExecutionState || hookNodeState) {
+    console.log('[BaseNode] Node status for', nodeIdStr, {
+      nodeExecutionState,
+      hookNodeState
+    });
+  }
+  
   return useMemo(() => ({
     isRunning: nodeExecutionState?.status === NodeExecutionStatus.RUNNING || hookNodeState?.status === 'running',
     isSkipped: nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || hookNodeState?.status === 'skipped',

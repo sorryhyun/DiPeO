@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from datetime import datetime
 from typing import AsyncIterator, Dict, Any, Optional, Set
 from collections import defaultdict
@@ -19,6 +20,46 @@ try:
 except ImportError:
     from dipeo.application.execution.observers import ObserverMetadata
 
+logger = logging.getLogger(__name__)
+
+
+class ExecutionLogHandler(logging.Handler):
+    """Custom log handler that captures logs for a specific execution."""
+    
+    def __init__(self, observer: 'DirectStreamingObserver', execution_id: str):
+        super().__init__()
+        self.observer = observer
+        self.execution_id = execution_id
+        self.setLevel(logging.DEBUG)
+    
+    def emit(self, record: logging.LogRecord):
+        """Emit log record as an execution log event."""
+        try:
+            log_entry = {
+                "level": record.levelname,
+                "message": record.getMessage(),
+                "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+                "logger": record.name,
+                "node_id": getattr(record, 'node_id', None),
+            }
+            
+            # Try to get the running event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # Schedule the coroutine to run on the event loop
+                loop.create_task(
+                    self.observer._publish_log(self.execution_id, log_entry)
+                )
+            except RuntimeError:
+                # No running event loop, try to run in executor
+                asyncio.run_coroutine_threadsafe(
+                    self.observer._publish_log(self.execution_id, log_entry),
+                    self.observer._event_loop if hasattr(self.observer, '_event_loop') else asyncio.new_event_loop()
+                )
+        except Exception:
+            # Ignore errors in logging to prevent recursion
+            pass
+
 
 class DirectStreamingObserver(ExecutionObserver):
     """Observer that streams updates directly without message router.
@@ -32,6 +73,13 @@ class DirectStreamingObserver(ExecutionObserver):
         # Store event queues for each execution
         self._event_queues: Dict[str, Set[asyncio.Queue]] = defaultdict(set)
         self._lock = asyncio.Lock()
+        self._log_handlers: Dict[str, ExecutionLogHandler] = {}
+        
+        # Store event loop reference for log handler
+        try:
+            self._event_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self._event_loop = None
         
         # Configure metadata for sub-diagram propagation
         self.metadata = ObserverMetadata(
@@ -97,7 +145,25 @@ class DirectStreamingObserver(ExecutionObserver):
             except:
                 pass
     
+    async def _publish_log(self, execution_id: str, log_entry: dict):
+        """Publish log entry to all subscribers."""
+        await self._publish(
+            execution_id,
+            {
+                "type": "EXECUTION_LOG",
+                "execution_id": execution_id,
+                "data": log_entry,
+            },
+        )
+    
     async def on_execution_start(self, execution_id: str, diagram_id: str | None):
+        # Temporarily disable log handler to reduce verbosity
+        # async with self._lock:
+        #     handler = ExecutionLogHandler(self, execution_id)
+        #     self._log_handlers[execution_id] = handler
+        
+        # Execution started - log handler will capture relevant logs
+        
         await self._publish(
             execution_id,
             {

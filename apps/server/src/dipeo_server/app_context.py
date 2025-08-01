@@ -25,7 +25,7 @@ def create_server_container() -> Container:
     )
 
     container = Container(config)
-    from dipeo.application.registry.keys import STATE_STORE, MESSAGE_ROUTER
+    from dipeo.application.registry.keys import STATE_STORE, MESSAGE_ROUTER, CLI_SESSION_SERVICE
 
     from dipeo_server.infra.state_registry import StateRegistry
 
@@ -34,6 +34,11 @@ def create_server_container() -> Container:
     from dipeo.infra import MessageRouter
 
     container.registry.register(MESSAGE_ROUTER, MessageRouter())
+    
+    # Register CLI session service if not already registered
+    from dipeo.application.services.cli_session_service import CliSessionService
+    if not container.registry.has(CLI_SESSION_SERVICE):
+        container.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
     return container
 

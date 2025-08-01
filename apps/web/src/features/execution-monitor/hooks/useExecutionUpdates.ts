@@ -71,6 +71,8 @@ export function useExecutionUpdates({
     
     lastNodeStartRef.current[nodeIdStr] = now;
     
+    console.log('[ExecutionUpdates] Starting node:', nodeIdStr, 'type:', nodeType);
+    
     setCurrentNode(nodeIdStr);
     
     updateNodeState(nodeIdStr, {
@@ -192,6 +194,8 @@ export function useExecutionUpdates({
   // Process node subscription updates
   useEffect(() => {
     if (!nodeUpdates) return;
+    
+    console.log('[ExecutionUpdates] Processing node update:', nodeUpdates);
     
     const status = nodeUpdates.status || '';
 

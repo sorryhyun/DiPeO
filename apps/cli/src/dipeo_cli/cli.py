@@ -167,7 +167,8 @@ class DiPeOCLI:
                 print(f"🌐 Opening browser in monitor mode: {monitor_url}")
                 print(f"📡 Browser will automatically detect CLI execution")
                 try:
-                    if not webbrowser.open(monitor_url):
+                    # Open in same browser window (new=0)
+                    if not webbrowser.open(monitor_url, new=0):
                         print(
                             "⚠️  Could not open browser automatically. Please open manually:"
                         )
@@ -342,4 +343,4 @@ class DiPeOCLI:
         if diagram_name:
             url += f"?diagram={diagram_name}"
         print(f"🌐 Opening browser: {url}")
-        webbrowser.open(url)
+        webbrowser.open(url, new=0)

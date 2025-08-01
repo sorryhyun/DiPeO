@@ -8,6 +8,7 @@ from dipeo.application.registry.keys import (
     ARTIFACT_STORE,
     AST_PARSER,
     BLOB_STORE,
+    CLI_SESSION_SERVICE,
     COMPILATION_SERVICE,
     CONDITION_EVALUATION_SERVICE,
     CONVERSATION_MANAGER,
@@ -83,6 +84,9 @@ class ApplicationContainer:
         self.registry.register(CONVERSATION_MANAGER, conversation_manager)
         from dipeo.application.registry.keys import CONVERSATION_SERVICE
         self.registry.register(CONVERSATION_SERVICE, conversation_manager)
+        
+        from dipeo.application.services.cli_session_service import CliSessionService
+        self.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
         from dipeo.infrastructure.services.diagram import DiagramService
         from dipeo.application.registry.keys import INTEGRATED_DIAGRAM_SERVICE

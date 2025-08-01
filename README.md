@@ -1,5 +1,5 @@
 # DiPeO, Diagrammed People (agents) & Organizations (agent system)
-![image info](/docs/image.png)
+![image info](/docs/actual_screenshot.png)
 
 DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI‑powered agent workflows through an intuitive visual programming environment. The repository is composed of a feature-based React **frontend** (apps/web/), a domain-driven FastAPI **backend** (apps/server/), and a CLI **tool** (apps/cli/) that work together to deliver real‑time, multi‑LLM automation at scale.
 
@@ -9,13 +9,12 @@ DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI
 2. diagram의 yaml 형태 표현 및 실행 tool 제공
 3. 다이어그램 엔드포인트를 활용한 A2A canvas 제공 (구현 예정)
 
-## Quickstart
+For motivations, guide, details in Korean, read [Korean docs](docs/korean/index.md)
 
-For Korean guide for quickstart, read [Korean docs](docs/korean/index.md)
-
-## dev settings:
+## Dev settings:
 
 ```bash
+# clone github project first
 make install
 make codegen
 make dev-all
@@ -37,14 +36,15 @@ make dev-web                      # Start frontend server
 ### `./dipeo` - Run Diagrams
 ```bash
 # run diagram with automatically running server
-dipeo run examples/simple_iter --debug --light --no-browser --timeout=10
+dipeo run diagrams/examples/simple_iter --debug --light --timeout=10
 # or, feed actual directory
-dipeo run files/diagrams/native_examples/quicksave.native.json --debug
+dipeo run files/diagrams/examples/simple_iter.light.yaml --light --debug
 ```
 
 ### Documentation
 - [Full Documentation Index](docs/index.md) - Complete list of guides and technical documentation
 - [User Guide](docs/README.md) - Getting started with DiPeO diagram editor
+
 
 ## Requirements
 - Node.js 22+ with pnpm 10+
@@ -52,10 +52,7 @@ dipeo run files/diagrams/native_examples/quicksave.native.json --debug
 - tmux (optional, for better parallel execution)
 
 
-## Next Release will be
+## 0.3.0 Release will include:
 - hook node for general event hooks. i.e. youtube subtitle generator
-- gemini supports
-
-## Near-future objectives
 - Gemini, Claude support
 - Custom LLM support
