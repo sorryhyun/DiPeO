@@ -1,5 +1,5 @@
 import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
-import { DomainNode, DomainArrow, DomainPerson, DomainHandle } from '@/core/types';
+import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/core/types';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
@@ -47,14 +47,14 @@ function cleanNodeData(node: DomainNode): DomainNode {
   }
   
   switch (nodeProps.type) {
-    case 'start':
+    case NodeType.START:
       nodeData.custom_data = nodeData.custom_data || {};
       nodeData.output_data_structure = nodeData.output_data_structure || {};
       break;
-    case 'condition':
+    case NodeType.CONDITION:
       nodeData.condition_type = nodeData.condition_type || 'simple';
       break;
-    case 'person_job':
+    case NodeType.PERSON_JOB:
       nodeData.first_only_prompt = nodeData.first_only_prompt || '';
       nodeData.max_iteration = typeof nodeData.max_iteration === 'number' 
         ? nodeData.max_iteration 
@@ -63,7 +63,7 @@ function cleanNodeData(node: DomainNode): DomainNode {
         nodeData.tools = nodeData.tools ? ConversionService.stringToToolsArray(nodeData.tools) : null;
       }
       break;
-    case 'person_batch_job':
+    case NodeType.PERSON_BATCH_JOB:
       nodeData.first_only_prompt = nodeData.first_only_prompt || '';
       nodeData.max_iteration = typeof nodeData.max_iteration === 'number' 
         ? nodeData.max_iteration 
@@ -72,18 +72,18 @@ function cleanNodeData(node: DomainNode): DomainNode {
         nodeData.tools = nodeData.tools ? ConversionService.stringToToolsArray(nodeData.tools) : null;
       }
       break;
-    case 'endpoint':
+    case NodeType.ENDPOINT:
       nodeData.save_to_file = nodeData.save_to_file ?? false;
       break;
-    case 'db':
+    case NodeType.DB:
       nodeData.sub_type = nodeData.sub_type || 'fixed_prompt';
       nodeData.operation = nodeData.operation || 'read';
       break;
-    case 'user_response':
+    case NodeType.USER_RESPONSE:
       nodeData.prompt = nodeData.prompt || '';
       nodeData.timeout = nodeData.timeout || 60;
       break;
-    case 'notion':
+    case NodeType.NOTION:
       nodeData.operation = nodeData.operation || 'get_page';
       break;
   }

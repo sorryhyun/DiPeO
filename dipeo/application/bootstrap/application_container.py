@@ -102,9 +102,9 @@ class ApplicationContainer:
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
         from dipeo.infrastructure.services.diagram import DiagramService
-        from dipeo.application.registry.keys import INTEGRATED_DIAGRAM_SERVICE
+        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
         self.registry.register(
-            INTEGRATED_DIAGRAM_SERVICE,
+            DIAGRAM_SERVICE_NEW,
             lambda: DiagramService(
                 storage=self.registry.resolve(DIAGRAM_STORAGE),
                 converter=None  # Will create default converter

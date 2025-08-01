@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Dict, Any
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
 from dipeo.application.execution import ExecuteDiagramUseCase
 from dipeo.core.ports import StateStorePort, MessageRouterPort
 from dipeo.diagram_generated.enums import ExecutionStatus, EventType
@@ -22,7 +23,6 @@ logger = logging.getLogger(__name__)
 # Service keys
 STATE_STORE = ServiceKey[StateStorePort]("state_store")
 MESSAGE_ROUTER = ServiceKey[MessageRouterPort]("message_router")
-INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
 def create_execution_mutations(registry: ServiceRegistry) -> type:
@@ -36,7 +36,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 # Get required services
                 state_store = registry.resolve(STATE_STORE)
                 message_router = registry.resolve(MESSAGE_ROUTER)
-                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
                 
                 # Get diagram data
                 diagram_data = None

@@ -17,6 +17,9 @@ export {
   HttpMethod,
   HookType,
   HookTriggerMode,
+  // Memory enums
+  MemoryView,
+  MemoryProfile,
   // Integration enums
   LLMService,
   APIServiceType,

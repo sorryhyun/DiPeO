@@ -10,7 +10,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-01T14:28:05.285287
+Generated at: 2025-08-01T19:55:33.346971
 """
 
 import strawberry
@@ -58,10 +58,8 @@ from dipeo.application.graphql.types.domain_types import DomainNodeType
 from dipeo.application.graphql.types.inputs import Vec2Input
 
 # Import services and keys
-from dipeo.application.registry import ServiceRegistry, ServiceKey
-
-# Service keys
-INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
 
 
 # Generate input types for each node
@@ -360,8 +358,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -390,8 +388,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -428,8 +426,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -458,8 +456,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -496,8 +494,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -526,8 +524,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -564,8 +562,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -594,8 +592,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -632,8 +630,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -662,8 +660,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -700,8 +698,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -730,8 +728,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -768,8 +766,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -798,8 +796,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -836,8 +834,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -866,8 +864,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -904,8 +902,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -934,8 +932,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -972,8 +970,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1002,8 +1000,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1040,8 +1038,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1070,8 +1068,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1108,8 +1106,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1138,8 +1136,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1176,8 +1174,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1206,8 +1204,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1244,8 +1242,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1274,8 +1272,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1312,8 +1310,8 @@ class NodeMutations:
             "data": input.data
         }
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1342,8 +1340,8 @@ class NodeMutations:
         registry: ServiceRegistry = info.context["registry"]
         
         
-        # Get integrated diagram service
-        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
         
         # Update the node
         domain_node = await integrated_service.update_node(

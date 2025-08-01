@@ -4,15 +4,13 @@ import logging
 
 import strawberry
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
 
 from ...types.inputs import CreateNodeInput, UpdateNodeInput
 from ...types.results import NodeResult, DeleteResult
 
 logger = logging.getLogger(__name__)
-
-# Service keys
-INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
 def create_node_mutations(registry: ServiceRegistry) -> type:
@@ -34,7 +32,7 @@ def create_node_mutations(registry: ServiceRegistry) -> type:
             Consider using type-specific mutations for better type safety.
             """
             try:
-                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
                 
                 # Get diagram
                 diagram_data = await integrated_service.get_diagram(diagram_id)

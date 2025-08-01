@@ -10,9 +10,9 @@ from typing import List, Optional
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry import (
+from dipeo.application.registry.keys import (
     FILESYSTEM_ADAPTER,
-    INTEGRATED_DIAGRAM_SERVICE,
+    DIAGRAM_SERVICE_NEW,
     STATE_STORE,
     CONVERSATION_SERVICE,
     CLI_SESSION_SERVICE,
@@ -129,8 +129,8 @@ def create_query_type(registry: ServiceRegistry) -> type:
         
         @strawberry.field
         async def execution_capabilities(self) -> JSONScalar:
-            # Get integrated service from registry
-            integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+            # Get diagram service from registry
+            integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
             persons_list = []
             
             if integrated_service:

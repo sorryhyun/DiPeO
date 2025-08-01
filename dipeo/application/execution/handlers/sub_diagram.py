@@ -13,10 +13,10 @@ from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagram
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
-from dipeo.application.registry import (
+from dipeo.application.registry.keys import (
     STATE_STORE,
     MESSAGE_ROUTER,
-    INTEGRATED_DIAGRAM_SERVICE,
+    DIAGRAM_SERVICE_NEW,
     DIAGRAM_STORAGE_SERVICE,
 )
 
@@ -109,7 +109,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Get required services
             state_store = request.services.resolve(STATE_STORE)
             message_router = request.services.resolve(MESSAGE_ROUTER)
-            diagram_service = request.services.resolve(INTEGRATED_DIAGRAM_SERVICE)
+            diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
             
             if not all([state_store, message_router]):
                 raise ValueError("Required services not available")

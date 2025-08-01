@@ -22,11 +22,11 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, HandleID, NodeID, DomainDiagram, arrowId, nodeId, diagramArraysToMaps } from '@/core/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType, MemoryView } from '@/core/types';
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
-import { HandleDirection, HandleLabel, createHandleId, parseHandleId } from '@dipeo/domain-models';
+import { HandleDirection, HandleLabel } from '@dipeo/domain-models';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 import { ConversionService } from '@/core/services/ConversionService';
 
@@ -165,23 +165,23 @@ export class DiagramAdapter {
     const nodeData = { ...(node.data || {}) };
     
     // Convert tools array to comma-separated string for person_job nodes
-    if (node.type === 'person_job' && Array.isArray(nodeData.tools)) {
+    if (node.type === NodeType.PERSON_JOB && Array.isArray(nodeData.tools)) {
       nodeData.tools = ConversionService.toolsArrayToString(nodeData.tools);
     }
 
     // Convert memory_settings to memory_profile for person_job nodes if memory_profile is missing
     // This handles nodes loaded from the backend that only have memory_settings
-    if (node.type === 'person_job' && nodeData.memory_settings && !nodeData.memory_profile) {
+    if (node.type === NodeType.PERSON_JOB && nodeData.memory_settings && !nodeData.memory_profile) {
       const memorySettings = nodeData.memory_settings as any;
       
       // Determine memory profile based on memory settings
-      if (memorySettings.view === 'all_messages' && !memorySettings.max_messages) {
+      if (memorySettings.view === MemoryView.ALL_MESSAGES && !memorySettings.max_messages) {
         nodeData.memory_profile = 'FULL';
-      } else if (memorySettings.view === 'conversation_pairs' && memorySettings.max_messages === 20) {
+      } else if (memorySettings.view === MemoryView.CONVERSATION_PAIRS && memorySettings.max_messages === 20) {
         nodeData.memory_profile = 'FOCUSED';
-      } else if (memorySettings.view === 'system_and_me' && memorySettings.max_messages === 5) {
+      } else if (memorySettings.view === MemoryView.SYSTEM_AND_ME && memorySettings.max_messages === 5) {
         nodeData.memory_profile = 'MINIMAL';
-      } else if (memorySettings.view === 'conversation_pairs' && memorySettings.max_messages === 1 && !memorySettings.preserve_system) {
+      } else if (memorySettings.view === MemoryView.CONVERSATION_PAIRS && memorySettings.max_messages === 1 && !memorySettings.preserve_system) {
         nodeData.memory_profile = 'GOLDFISH';
       } else {
         nodeData.memory_profile = 'CUSTOM';

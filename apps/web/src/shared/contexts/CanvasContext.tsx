@@ -10,7 +10,7 @@ import { useCanvas as useCanvasBase, useCanvasInteractions } from '@/features/di
 import { useNodeOperations, useArrowOperations, usePersonOperations, useDiagramData, usePersonsData, useExecutionProgressComputed, useRunningNodesComputed, useCompletedNodesComputed, useFailedNodesComputed } from '@/core/store/hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
 import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/domain-models';
-import { nodeId } from '@/core/types';
+import { nodeId, NodeType } from '@/core/types';
 
 /**
  * Canvas state including UI, diagram data, and execution state
@@ -184,7 +184,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     // Count person usage in nodes
     nodesMap.forEach((node: any) => {
       const personId = node.data?.person || node.data?.personId;
-      if (personId && (node.type === 'person_job' || node.type === 'person_batch_job')) {
+      if (personId && (node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB)) {
         usageMap.set(personId as PersonID, (usageMap.get(personId as PersonID) || 0) + 1);
       }
     });

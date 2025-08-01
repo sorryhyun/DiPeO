@@ -28,7 +28,7 @@ import { useCanvasState, useCanvasOperations } from "@/shared/contexts/CanvasCon
 import { useUnifiedStore } from "@/core/store/unifiedStore";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
-import { DomainArrow, arrowId, nodeId, PersonID } from '@/core/types';
+import { DomainArrow, arrowId, nodeId, PersonID, NodeType } from '@/core/types';
 import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
 
 const PropertiesTab = React.lazy(
@@ -152,7 +152,7 @@ function useCommonFlowProps({
         selectNode(node.id);
         setDashboardTab('properties');
         
-        if (node.type === 'person_job' && node.data.person) {
+        if (node.type === NodeType.PERSON_JOB && node.data.person) {
           highlightPerson(node.data.person as PersonID);
         } else {
           highlightPerson(null);
