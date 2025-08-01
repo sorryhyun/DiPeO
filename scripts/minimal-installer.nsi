@@ -12,12 +12,12 @@ RequestExecutionLevel admin
 
 ; UI Configuration
 !define MUI_ABORTWARNING
-!define MUI_ICON "scripts\icons\icon.ico"
-!define MUI_UNICON "scripts\icons\icon.ico"
+!define MUI_ICON "icons\icon.ico"
+!define MUI_UNICON "icons\icon.ico"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "LICENSE"
+!insertmacro MUI_PAGE_LICENSE "..\LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -35,20 +35,20 @@ Section "DiPeO Core Files" SEC01
     SetOutPath "$INSTDIR"
     
     ; Copy executables
-    File "apps\server\dist\dipeo-server.exe"
-    File "apps\web\dist\dipeo-frontend.exe"
+    File "..\apps\server\dist\dipeo-server.exe"
+    File "..\apps\web\dist\dipeo-frontend.exe"
     
     ; Copy frontend build files
     SetOutPath "$INSTDIR\web-dist"
-    File /r "apps\web\dist\*.*"
+    File /r "..\apps\web\dist\*.*"
     SetOutPath "$INSTDIR"
     
     ; Copy launcher script (use the installed version)
-    File /oname=launch-dipeo.bat "scripts\launch-dipeo-installed.bat"
+    File /oname=launch-dipeo.bat "launch-dipeo-installed.bat"
     
     ; Copy icon
     CreateDirectory "$INSTDIR\icons"
-    File /oname=icons\icon.ico "apps\desktop\src-tauri\icons\icon.ico"
+    File /oname=icons\icon.ico "icons\icon.ico"
     
     ; Create required directories
     CreateDirectory "$INSTDIR\files"

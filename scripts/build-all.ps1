@@ -66,7 +66,7 @@ if (-not (Test-Path $nsisPath)) {
 }
 
 # Build installer
-& $nsisPath minimal-installer.nsi
+& $nsisPath scripts/minimal-installer.nsi
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Installer built successfully!" -ForegroundColor Green
