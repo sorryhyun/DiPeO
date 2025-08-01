@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, TypeVar
 
 from pydantic import BaseModel
 
-from ..unified_service_registry import UnifiedServiceRegistry
+from ..registry import ServiceRegistry, ServiceKey
 from .handler_base import TypedNodeHandler
 
 if TYPE_CHECKING:
@@ -21,9 +21,9 @@ class HandlerRegistry:
 
     def __init__(self):
         self._handler_classes: dict[str, type[TypedNodeHandler]] = {}
-        self._service_registry: UnifiedServiceRegistry | None = None
+        self._service_registry: ServiceRegistry | None = None
 
-    def set_service_registry(self, service_registry: UnifiedServiceRegistry) -> None:
+    def set_service_registry(self, service_registry: ServiceRegistry) -> None:
         # Set the service registry for dependency injection.
         self._service_registry = service_registry
 
@@ -74,7 +74,8 @@ class HandlerRegistry:
                 service_name = 'conversation_service'
 
             # Try to get the service
-            service = self._service_registry.get(service_name)
+            key = ServiceKey(service_name)
+            service = self._service_registry.get(key)
             
             if service is not None:
                 kwargs[param_name] = service
@@ -82,7 +83,8 @@ class HandlerRegistry:
                 # If service not found, try alternative name
                 if service_name.endswith('_service'):
                     alt_name = service_name[:-8]
-                    service = self._service_registry.get(alt_name)
+                    alt_key = ServiceKey(alt_name)
+                    service = self._service_registry.get(alt_key)
                     if service is not None:
                         kwargs[param_name] = service
                         continue
@@ -112,7 +114,7 @@ def get_global_registry() -> HandlerRegistry:
 class HandlerFactory:
     # Factory class for creating handlers with dependency injection.
 
-    def __init__(self, service_registry: UnifiedServiceRegistry):
+    def __init__(self, service_registry: ServiceRegistry):
         self.service_registry = service_registry
         # Set the service registry on the global registry
         _global_registry.set_service_registry(service_registry)
@@ -126,6 +128,6 @@ class HandlerFactory:
 
 def create_handler_factory_provider():
     # Provider function for DI container.
-    def factory(service_registry: UnifiedServiceRegistry) -> HandlerFactory:
+    def factory(service_registry: ServiceRegistry) -> HandlerFactory:
         return HandlerFactory(service_registry)
     return factory

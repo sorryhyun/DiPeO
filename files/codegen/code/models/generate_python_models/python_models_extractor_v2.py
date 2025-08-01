@@ -42,7 +42,7 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
                 ast_data = parse_ast_data(content)
                 if ast_data:
                     parsed_asts.append(ast_data)
-                    print(f"  Processing {file_path}: {len(ast_data.get('interfaces', []))} interfaces")
+                    pass  # Remove verbose logging
             
             # Merge all definitions from parsed ASTs
             all_interfaces = []
@@ -72,11 +72,7 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
                     all_enums.extend(ast.get('enums', []))
                     all_consts.extend(ast.get('consts', []) or ast.get('constants', []))
         
-        print(f"Combined AST data:")
-        print(f"  - {len(all_interfaces)} interfaces")
-        print(f"  - {len(all_types)} type aliases")
-        print(f"  - {len(all_enums)} enums")
-        print(f"  - {len(all_consts)} constants")
+        print(f"AST data: {len(all_interfaces)} interfaces, {len(all_types)} types")
         
         # Extract branded types (simple check for __brand)
         branded_types = []
@@ -85,10 +81,7 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
             if '& {' in alias_type and '__brand' in alias_type:
                 branded_types.append(type_alias.get('name', ''))
         
-        # Debug output to understand the data
-        print(f"\nExtractor V2 returning data:")
-        print(f"  - interfaces: {len(all_interfaces)} items")
-        print(f"  - First interface: {all_interfaces[0]['name'] if all_interfaces else 'None'}")
+        # Data prepared for template processing
         
         # Return raw data for template processing
         return {

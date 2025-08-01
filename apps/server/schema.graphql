@@ -211,7 +211,7 @@ input ExecuteDiagramInput {
   debug_mode: Boolean = null
   max_iterations: Int = null
   timeout_seconds: Int = null
-  use_direct_streaming: Boolean = null
+  use_monitoring_stream: Boolean = null
 }
 
 input ExecutionControlInput {
@@ -318,6 +318,7 @@ enum LLMService {
   OPENAI
   ANTHROPIC
   GOOGLE
+  GEMINI
   BEDROCK
   VERTEX
   DEEPSEEK

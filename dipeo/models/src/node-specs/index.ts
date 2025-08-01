@@ -1,7 +1,3 @@
-/**
- * Node specifications registry
- * Export all node specifications from this central location
- */
 
 import { NodeSpecificationRegistry } from './node-specifications';
 import { personJobSpec } from './person-job.spec.js';
@@ -20,7 +16,6 @@ import { notionSpec } from './notion.spec.js';
 import { personBatchJobSpec } from './person-batch-job.spec.js';
 import { hookSpec } from './hook.spec.js';
 
-// Export individual specifications
 export { 
   personJobSpec,
   apiJobSpec,
@@ -39,7 +34,6 @@ export {
   hookSpec
 };
 
-// Export complete registry
 export const nodeSpecificationRegistry: NodeSpecificationRegistry = {
   person_job: personJobSpec,
   api_job: apiJobSpec,

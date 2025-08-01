@@ -44,32 +44,10 @@ jobs:
           python-version: '3.13'
           cache: 'pip'
       
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
-      
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: './apps/desktop/src-tauri -> target'
-      
       - name: Install Windows dependencies
         run: |
           # Install Visual Studio Build Tools components if needed
           # This is usually pre-installed on GitHub Actions Windows runners
-      
-      - name: Generate icons
-        working-directory: apps/desktop
-        run: |
-          # Create a simple icon if not exists (for CI purposes)
-          if (!(Test-Path "src-tauri/icons/icon.png")) {
-            # Create icons directory
-            New-Item -ItemType Directory -Force -Path "src-tauri/icons"
-            
-            # Download a placeholder icon or generate one
-            # For now, we'll skip this step and assume icons are committed
-          }
       
       - name: Setup Python Environment
         run: |
@@ -110,7 +88,7 @@ jobs:
           Write-Host "Running unified diagram-based code generation..."
           
           # Generate models
-          dipeo run codegen/diagrams/models/generate_all_models --light --debug --no-browser --timeout=30
+          dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=30
           
           # Apply staged changes (copy files)
           if (Test-Path "dipeo/diagram_generated_staged") {
@@ -120,10 +98,10 @@ jobs:
           }
           
           # Generate backend
-          dipeo run codegen/diagrams/backend/generate_backend --light --debug --no-browser --timeout=30
+          dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=30
           
           # Generate frontend
-          dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --no-browser --timeout=30
+          dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=30
           
           # Export GraphQL schema
           Write-Host "Exporting GraphQL schema from application layer..."
@@ -164,17 +142,15 @@ jobs:
           }
           Write-Host "Frontend built successfully!"
       
-      - name: Download and Install NSIS
+      - name: Install NSIS via Chocolatey
+        shell: powershell
         run: |
-          # Download NSIS
-          Invoke-WebRequest -Uri "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09-setup.exe/download" -OutFile nsis-setup.exe
-          
-          # Install NSIS silently
-          Start-Process -FilePath ".\nsis-setup.exe" -ArgumentList "/S" -Wait
-          
-          # Add NSIS to PATH for this session
-          $env:PATH = "${env:ProgramFiles(x86)}\NSIS;$env:PATH"
-      
+          choco install nsis --yes --no-progress
+          # Persist PATH for later steps just in case
+          $nsis = "${env:ProgramFiles(x86)}\NSIS"
+          if (!(Test-Path $nsis)) { $nsis = "${env:ProgramFiles}\NSIS" }
+          if (Test-Path "$nsis\makensis.exe") { "$nsis" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
+
       - name: Build Installer
         run: |
           # Find NSIS path
@@ -189,7 +165,7 @@ jobs:
           }
           
           # Build the installer
-          & $nsisPath minimal-installer.nsi
+          & $nsisPath scripts/minimal-installer.nsi
           
           # Verify installer was created
           if (!(Test-Path "DiPeO-Setup-Minimal.exe")) {

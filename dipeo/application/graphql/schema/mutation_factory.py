@@ -2,7 +2,7 @@
 
 import strawberry
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from dipeo.application.registry import ServiceRegistry
 
 from .mutations import (
     create_diagram_mutations,
@@ -15,7 +15,7 @@ from .mutations import (
 )
 
 
-def create_mutation_type(registry: UnifiedServiceRegistry) -> type:
+def create_mutation_type(registry: ServiceRegistry) -> type:
     """Create a combined Mutation type with all mutation categories."""
     
     # Create individual mutation classes

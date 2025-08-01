@@ -114,20 +114,21 @@ class DiPeOCLI:
             try:
                 # Try to make path relative to FILES_DIR
                 from dipeo.core.constants import FILES_DIR
+
                 relative_path = path.relative_to(FILES_DIR)
                 # Remove format suffix from the relative path
                 path_str = str(relative_path)
-                for suffix in ['.native.json', '.light.yaml', '.readable.yaml']:
+                for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
                     if path_str.endswith(suffix):
-                        path_str = path_str[:-len(suffix)]
+                        path_str = path_str[: -len(suffix)]
                         break
                 diagram_name = path_str
             except ValueError:
                 # If not under FILES_DIR, use the original logic
                 name = path.name
-                for suffix in ['.native.json', '.light.yaml', '.readable.yaml']:
+                for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
                     if name.endswith(suffix):
-                        name = name[:-len(suffix)]
+                        name = name[: -len(suffix)]
                         break
                 diagram_name = name
         else:
@@ -139,18 +140,18 @@ class DiPeOCLI:
             diagram_format = "light"
         elif diagram_path.endswith(".readable.yaml"):
             diagram_format = "readable"
-        
+
         # Execute diagram
         print("🔄 Executing diagram...")
         if input_variables:
             print(f"📥 With input variables: {json.dumps(input_variables, indent=2)}")
         try:
             result = self.server.execute_diagram(
-                diagram_data, 
+                diagram_data,
                 input_variables,
-                use_direct_streaming=True,
+                use_monitoring_stream=True,
                 diagram_name=diagram_name or Path(diagram_path).stem,
-                diagram_format=diagram_format
+                diagram_format=diagram_format,
             )
 
             if not result["success"]:
@@ -166,8 +167,11 @@ class DiPeOCLI:
                 print(f"🌐 Opening browser in monitor mode: {monitor_url}")
                 print(f"📡 Browser will automatically detect CLI execution")
                 try:
-                    if not webbrowser.open(monitor_url):
-                        print("⚠️  Could not open browser automatically. Please open manually:")
+                    # Open in same browser window (new=0)
+                    if not webbrowser.open(monitor_url, new=0):
+                        print(
+                            "⚠️  Could not open browser automatically. Please open manually:"
+                        )
                         print(f"   {monitor_url}")
                 except Exception as e:
                     print(f"⚠️  Error opening browser: {e}")
@@ -220,7 +224,7 @@ class DiPeOCLI:
                 # Unregister CLI session before stopping server
                 if execution_id:
                     self.server.unregister_cli_session(execution_id)
-                
+
                 # Always stop server after execution completes
                 print("🛑 Stopping server...")
                 self.server.stop()
@@ -339,4 +343,4 @@ class DiPeOCLI:
         if diagram_name:
             url += f"?diagram={diagram_name}"
         print(f"🌐 Opening browser: {url}")
-        webbrowser.open(url)
+        webbrowser.open(url, new=0)

@@ -1,4 +1,3 @@
-// Application root component
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './shared/components/layout';
@@ -7,46 +6,36 @@ import { CanvasProvider, useCanvasState, useCanvasOperations } from './shared/co
 import { useUIOperations } from './core/store/hooks';
 import { setupExecutionUISync } from './core/store/middleware/executionUISync';
 
-// Lazy load heavy components
 const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/DiagramCanvas'));
 const LazyExecutionView = React.lazy(() => import('./features/execution-monitor/components/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
 const LazyInteractivePromptModal = React.lazy(() => import('./features/execution-monitor/components/InteractivePromptModal'));
 
-// Inner component that uses React Flow hooks
 function AppContent() {
   const { activeCanvas } = useCanvasState();
   const { executionOps } = useCanvasOperations();
-  const { setActiveCanvas: _setActiveCanvas } = useUIOperations(); // Not used after refactor
+  const { setActiveCanvas: _setActiveCanvas } = useUIOperations();
   
-  // Diagram loading is now handled by CLI sessions only
   
-  // Set up execution UI synchronization
   useEffect(() => {
     const unsubscribe = setupExecutionUISync();
     return unsubscribe;
   }, []);
   
-  // Document title is set based on store state, not URL
   useEffect(() => {
     document.title = 'DiPeO';
   }, []);
 
-  // Don't create another connection - use the existing execution instance
   
   return (
     <div className="h-screen flex flex-col">
-        {/* Top Bar */}
         <TopBar />
 
-        {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Sidebar */}
           <div className="w-80 border-r border-border flex-shrink-0 bg-background-secondary">
             <Sidebar position="left" />
           </div>
 
-          {/* Right Content - Canvas switching based on activeCanvas */}
           <div className="flex-1 flex flex-col">
             {activeCanvas === 'main' ? (
               <Suspense fallback={
@@ -81,7 +70,6 @@ function AppContent() {
         </Suspense>
         
         
-        {/* Interactive Prompt Modal */}
         {executionOps?.interactivePrompt && (
           <Suspense fallback={null}>
             <LazyInteractivePromptModal
@@ -99,7 +87,6 @@ function AppContent() {
   );
 }
 
-// Main App component that provides ReactFlowProvider
 function App() {
   return (
     <ReactFlowProvider>

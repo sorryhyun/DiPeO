@@ -1,11 +1,11 @@
-"""Diagram mutations using UnifiedServiceRegistry."""
+"""Diagram mutations using ServiceRegistry."""
 
 import logging
 from datetime import datetime
 
 import strawberry
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.domain.diagram.utils import domain_diagram_to_dict
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
-def create_diagram_mutations(registry: UnifiedServiceRegistry) -> type:
+def create_diagram_mutations(registry: ServiceRegistry) -> type:
     """Create diagram mutation methods with injected service registry."""
     
     @strawberry.type
@@ -27,7 +27,7 @@ def create_diagram_mutations(registry: UnifiedServiceRegistry) -> type:
         @strawberry.mutation
         async def create_diagram(self, input: CreateDiagramInput) -> DiagramResult:
             try:
-                integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
                 
                 # Create metadata from input
                 metadata = DiagramMetadata(
@@ -74,7 +74,7 @@ def create_diagram_mutations(registry: UnifiedServiceRegistry) -> type:
         async def delete_diagram(self, id: strawberry.ID) -> DeleteResult:
             try:
                 diagram_id = DiagramID(str(id))
-                integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
                 
                 # Get diagram to verify it exists
                 diagram_data = await integrated_service.get_diagram(diagram_id)

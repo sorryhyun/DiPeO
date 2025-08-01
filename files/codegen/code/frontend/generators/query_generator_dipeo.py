@@ -356,6 +356,11 @@ class DiPeOQueryGenerator:
   }
 }""")
         
+        # ExecutionOrder query
+        queries.append("""query ExecutionOrder($executionId: ID!) {
+  execution_order(execution_id: $executionId)
+}""")
+        
         self.write_query_file('executions', queries)
     
     def write_query_file(self, entity: str, queries: List[str]):

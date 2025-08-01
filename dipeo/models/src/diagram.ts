@@ -10,24 +10,16 @@ import {
   ContentType
 } from './enums.js';
 
-// Re-export integration types for backward compatibility
 export { LLMService, APIServiceType, NotionOperation };
 export type { ToolConfig };
-
-// Re-export node data interfaces
 export * from './node-data';
-
-// Re-export all enums
 export * from './enums.js';
-
-// Basic types
 export interface Vec2 {
   x: number;
   y: number;
 }
 
 
-// Branded types for IDs
 export type NodeID = string & { readonly __brand: 'NodeID' };
 export type ArrowID = string & { readonly __brand: 'ArrowID' };
 export type HandleID = string & { readonly __brand: 'HandleID' };
@@ -35,14 +27,13 @@ export type PersonID = string & { readonly __brand: 'PersonID' };
 export type ApiKeyID = string & { readonly __brand: 'ApiKeyID' };
 export type DiagramID = string & { readonly __brand: 'DiagramID' };
 
-// Domain models
 export interface DomainHandle {
   id: HandleID;
   node_id: NodeID;
   label: HandleLabel;
   direction: HandleDirection;
   data_type: DataType;
-  position?: string | null; // 'left' | 'right' | 'top' | 'bottom'
+  position?: string | null;
 }
 
 export interface DomainNode {
@@ -54,8 +45,8 @@ export interface DomainNode {
 
 export interface DomainArrow {
   id: ArrowID;
-  source: HandleID; // "nodeId_handleName_direction" format
-  target: HandleID; // "nodeId_handleName_direction" format
+  source: HandleID;
+  target: HandleID;
   content_type?: ContentType | null;
   label?: string | null;
   data?: Record<string, any> | null;
@@ -85,7 +76,7 @@ export interface DomainApiKey {
   id: ApiKeyID;
   label: string;
   service: APIServiceType;
-  key?: string; // Excluded from serialization by default
+  key?: string;
 }
 
 export interface DiagramMetadata {
@@ -93,14 +84,13 @@ export interface DiagramMetadata {
   name?: string | null;
   description?: string | null;
   version: string;
-  created: string; // ISO datetime string
-  modified: string; // ISO datetime string
+  created: string;
+  modified: string;
   author?: string | null;
   tags?: string[] | null;
-  format?: string | null; // 'native' | 'light' | 'readable'
+  format?: string | null;
 }
 
-// Main diagram type used in GraphQL API (array format)
 export interface DomainDiagram {
   nodes: DomainNode[];
   handles: DomainHandle[];
@@ -110,7 +100,6 @@ export interface DomainDiagram {
 }
 
 
-// Node data schemas - can be extended per node type
 export interface BaseNodeData {
   label: string;
   flipped?: boolean;

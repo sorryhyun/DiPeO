@@ -61,7 +61,6 @@ class MessageRouter:
             logger.warning(f"No handler for connection {connection_id}")
             return False
             
-        # Check backpressure with thread-safe operations
         with self._queue_lock:
             queue_size = self._message_queue_size.get(connection_id, 0)
             if queue_size > self.max_queue_size:
@@ -73,7 +72,6 @@ class MessageRouter:
         try:
             await handler(message)
             
-            # Update health metrics
             latency = time.time() - start_time
             health = self.connection_health.get(connection_id)
             if health:
@@ -86,7 +84,6 @@ class MessageRouter:
         except Exception as e:
             logger.error(f"Error delivering message to {connection_id}: {e}")
             
-            # Update failure metrics
             health = self.connection_health.get(connection_id)
             if health:
                 health.failed_attempts += 1
@@ -102,33 +99,25 @@ class MessageRouter:
     async def broadcast_to_execution(self, execution_id: str, message: dict):
         start_time = time.time()
         
-        # First, check if we need to publish to streaming_manager (for GraphQL subscriptions)
-        # This is imported at runtime to avoid circular imports
         try:
             from dipeo_server.api.graphql.subscriptions import publish_execution_update
 
             await publish_execution_update(execution_id, message)
         except ImportError:
-            # We're not in server context, just continue with WebSocket broadcasting
             pass
         except Exception as e:
             logger.error(f"Failed to publish to streaming manager: {e}")
 
-        # Then broadcast to WebSocket connections
         connection_ids = self.execution_subscriptions.get(execution_id, set())
 
         if not connection_ids:
-            # Silently return - no need to log this every time
             return
 
-        # Use TaskGroup for better structured concurrency and error handling
         successful_broadcasts = 0
         failed_broadcasts = 0
         
-        # Check Python version for TaskGroup support
         import sys
         if sys.version_info >= (3, 11):
-            # Use TaskGroup for Python 3.11+
             try:
                 async def track_broadcast(connection_id: str, msg: dict):
                     broadcast_result = await self._broadcast_with_metrics(connection_id, msg)
@@ -140,7 +129,6 @@ class MessageRouter:
                         task = tg.create_task(track_broadcast(conn_id, message))
                         results.append(task)
                 
-                # Count successes after all tasks complete
                 for task in results:
                     try:
                         conn_id, success = task.result()
@@ -153,11 +141,9 @@ class MessageRouter:
                         failed_broadcasts += 1
                         
             except Exception as e:
-                # Handle any TaskGroup errors
                 logger.error(f"TaskGroup error during broadcast: {e}")
                 failed_broadcasts = len(connection_ids)
         else:
-            # Fallback for Python < 3.11
             tasks = []
             for conn_id in list(connection_ids):
                 tasks.append(self._broadcast_with_metrics(conn_id, message))
@@ -171,9 +157,8 @@ class MessageRouter:
                     elif result:
                         successful_broadcasts += 1
         
-        # Log performance metrics
         broadcast_time = time.time() - start_time
-        if broadcast_time > 0.1:  # Log slow broadcasts
+        if broadcast_time > 0.1:
             logger.warning(
                 f"Slow broadcast to execution {execution_id}: "
                 f"{broadcast_time:.2f}s for {len(connection_ids)} connections "
@@ -206,7 +191,7 @@ class MessageRouter:
         now = time.time()
         unhealthy_connections = [
             conn_id for conn_id, health in self.connection_health.items()
-            if now - health.last_successful_send > 60  # No successful send in 60s
+            if now - health.last_successful_send > 60
         ]
         
         avg_queue_size = (

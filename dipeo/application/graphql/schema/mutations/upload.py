@@ -1,4 +1,4 @@
-"""Upload mutations using UnifiedServiceRegistry."""
+"""Upload mutations using ServiceRegistry."""
 
 import logging
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 import strawberry
 from strawberry.file_uploads import Upload
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry import FILESYSTEM_ADAPTER
 from dipeo.application.graphql.enums import DiagramFormat
 from dipeo.core.constants import FILES_DIR
@@ -38,7 +38,7 @@ class DiagramConvertResult:
     error: Optional[str] = None
 
 
-def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
+def create_upload_mutations(registry: ServiceRegistry) -> type:
     """Create upload mutation methods with injected service registry."""
     
     @strawberry.type
@@ -120,7 +120,7 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
         ) -> DiagramResult:
             """Upload and import a diagram file."""
             try:
-                integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
                 
                 # Read file content
                 content = await file.read()
@@ -156,7 +156,7 @@ def create_upload_mutations(registry: UnifiedServiceRegistry) -> type:
         ) -> DiagramValidationResult:
             """Validate diagram content without saving."""
             try:
-                integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
                 
                 # Convert GraphQL enum to Python enum
                 format_python = format.to_python_enum()

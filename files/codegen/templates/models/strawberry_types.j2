@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: {{ generated_at | default('N/A') }}
+Generated at: {{ strawberry_types.generated_at | default('N/A') }}
 """
 
 import strawberry
@@ -10,9 +10,9 @@ from typing import Optional, List, Dict, Any
 from strawberry.types import Info
 
 # Import Pydantic models
-{% if strawberry_types %}
+{% if strawberry_types and strawberry_types.strawberry_types %}
 from dipeo.diagram_generated.models import (
-{% for type_info in strawberry_types %}
+{% for type_info in strawberry_types.strawberry_types %}
     {{ type_info.pydantic_model }}NodeData,
 {% endfor %}
 )
@@ -25,20 +25,20 @@ from dipeo.application.graphql.types.scalars import JSONScalar
 
 
 # Generate Strawberry types for node data
-{% for type_info in strawberry_types %}
+{% for type_info in strawberry_types.strawberry_types %}
 @strawberry.experimental.pydantic.type({{ type_info.pydantic_model }}NodeData, all_fields=True)
 class {{ type_info.class_name }}DataType:
     """{{ type_info.description }} - Data fields only"""
     pass
 
 {% endfor %}
-{% if strawberry_types %}
+{% if strawberry_types and strawberry_types.strawberry_types %}
 
 # Create union type for all node data types
 NodeDataUnion = strawberry.union(
     "NodeDataUnion",
     (
-{% for type_info in strawberry_types %}
+{% for type_info in strawberry_types.strawberry_types %}
         {{ type_info.class_name }}DataType,
 {% endfor %}
     )
@@ -58,7 +58,7 @@ NodeDataUnion = PlaceholderNodeData
 # Export all types
 __all__ = [
     'NodeDataUnion',
-{% for type_info in strawberry_types %}
+{% for type_info in strawberry_types.strawberry_types %}
     '{{ type_info.class_name }}DataType',
 {% endfor %}
 ]

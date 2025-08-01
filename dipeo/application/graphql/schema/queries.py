@@ -1,6 +1,6 @@
 """GraphQL queries for DiPeO.
 
-These queries use the UnifiedServiceRegistry to access application services,
+These queries use the ServiceRegistry to access application services,
 keeping GraphQL concerns separate from business logic.
 """
 
@@ -9,8 +9,14 @@ from typing import List, Optional
 
 import strawberry
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
-from dipeo.application.registry import FILESYSTEM_ADAPTER
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry import (
+    FILESYSTEM_ADAPTER,
+    INTEGRATED_DIAGRAM_SERVICE,
+    STATE_STORE,
+    CONVERSATION_SERVICE,
+    CLI_SESSION_SERVICE,
+)
 from dipeo.core.constants import FILES_DIR
 from dipeo.models import LLMService, NodeType
 from strawberry.scalars import JSON as JSONScalar
@@ -46,7 +52,7 @@ from ..types.cli_session import CliSession
 DIAGRAM_VERSION = "1.0.0"
 
 
-def create_query_type(registry: UnifiedServiceRegistry) -> type:
+def create_query_type(registry: ServiceRegistry) -> type:
     """Create a Query type with injected service registry."""
     
     # Create resolvers with registry
@@ -124,7 +130,7 @@ def create_query_type(registry: UnifiedServiceRegistry) -> type:
         @strawberry.field
         async def execution_capabilities(self) -> JSONScalar:
             # Get integrated service from registry
-            integrated_service = registry.get("integrated_diagram_service")
+            integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
             persons_list = []
             
             if integrated_service:
@@ -162,7 +168,7 @@ def create_query_type(registry: UnifiedServiceRegistry) -> type:
             checks = {"database": False, "redis": False, "file_system": False}
             
             try:
-                state_store = registry.get("state_store")
+                state_store = registry.resolve(STATE_STORE)
                 if state_store:
                     await state_store.list_executions(limit=1)
                     checks["database"] = True
@@ -197,7 +203,7 @@ def create_query_type(registry: UnifiedServiceRegistry) -> type:
             offset: int = 0,
             since: Optional[datetime] = None,
         ) -> JSONScalar:
-            conversation_service = registry.get("conversation_service")
+            conversation_service = registry.resolve(CONVERSATION_SERVICE)
             
             all_conversations = []
             
@@ -333,7 +339,7 @@ def create_query_type(registry: UnifiedServiceRegistry) -> type:
         @strawberry.field
         async def active_cli_session(self) -> Optional[CliSession]:
             """Get the current active CLI execution session."""
-            cli_session_service = registry.get("cli_session_service")
+            cli_session_service = registry.resolve(CLI_SESSION_SERVICE)
             if not cli_session_service:
                 return None
             

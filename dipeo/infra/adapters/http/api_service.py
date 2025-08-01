@@ -30,7 +30,6 @@ class APIService:
         return self._session
 
     async def close(self) -> None:
-        """Close HTTP session and cleanup resources."""
         if self._session and not self._session.closed:
             await self._session.close()
 
@@ -63,7 +62,6 @@ class APIService:
         """
         session = await self._ensure_session()
         
-        # Build request configuration using domain service
         config = self.business_logic.build_request_config(
             method=method,
             url=url,
@@ -73,7 +71,6 @@ class APIService:
             auth=auth
         )
         
-        # Extract auth if present
         auth_obj = None
         if "auth" in config:
             auth_obj = aiohttp.BasicAuth(config["auth"][0], config["auth"][1])
@@ -87,11 +84,9 @@ class APIService:
                 timeout=aiohttp.ClientTimeout(total=config["timeout"]),
                 auth=auth_obj
             ) as response:
-                # Read response
                 try:
                     response_data = await response.json()
                 except Exception:
-                    # If JSON parsing fails, return text
                     response_data = {"text": await response.text()}
                     
                 response_headers = dict(response.headers)
@@ -139,7 +134,6 @@ class APIService:
         """
         for attempt in range(max_retries):
             try:
-                # Execute request
                 status, response_data, response_headers = await self.execute_request(
                     method=method,
                     url=url,
@@ -149,7 +143,6 @@ class APIService:
                     auth=auth
                 )
                 
-                # Validate response using domain service
                 try:
                     self.business_logic.validate_api_response(
                         status_code=status,
@@ -158,11 +151,9 @@ class APIService:
                     )
                     return response_data
                 except ServiceError:
-                    # Response validation failed, check if should retry
                     if not self.business_logic.should_retry(status, attempt, max_retries):
                         raise
                     
-                # Calculate retry delay
                 rate_limit_info = self.business_logic.extract_rate_limit_info(response_headers)
                 delay = self.business_logic.calculate_retry_delay(
                     attempt=attempt,
@@ -177,10 +168,8 @@ class APIService:
                 await asyncio.sleep(delay)
                 
             except ServiceError:
-                # Re-raise service errors
                 raise
             except Exception as e:
-                # Handle other errors
                 if attempt < max_retries - 1:
                     delay = self.business_logic.calculate_retry_delay(attempt, retry_delay)
                     log.warning(
@@ -217,19 +206,16 @@ class APIService:
         context = initial_context or {}
         
         for step in workflow.get("steps", []):
-            # Validate step using domain service
             self.business_logic.validate_workflow_step(step)
             
             step_name = step["name"]
             
             try:
-                # Substitute variables in step config
                 url = self.business_logic.substitute_variables(step["url"], context)
                 step_data = None
                 if step.get("data"):
                     step_data = self.business_logic.substitute_variables(step["data"], context)
                     
-                # Execute request
                 result = await self.execute_with_retry(
                     url=url,
                     method=step.get("method", "GET"),
@@ -240,14 +226,12 @@ class APIService:
                     auth=step.get("auth")
                 )
                 
-                # Check success condition if provided
                 if success_condition := step.get("success_condition"):
                     if not self.business_logic.evaluate_condition(success_condition, result):
                         raise ServiceError(
                             f"Step '{step_name}' failed success condition: {success_condition}"
                         )
                         
-                # Update results and context
                 results = self.business_logic.merge_workflow_results(
                     results, step_name, result
                 )
@@ -287,7 +271,6 @@ class APIService:
         if not self.file_service:
             raise ServiceError("File service required for saving responses")
             
-        # Format response using domain service
         formatted_content = self.business_logic.format_api_response(
             response_data=response_data,
             format=format,
@@ -298,14 +281,11 @@ class APIService:
             } if include_metadata else None
         )
         
-        # Save using file service
         await self.file_service.write(file_path, formatted_content)
 
     async def __aenter__(self):
-        """Async context manager entry."""
         await self._ensure_session()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
         await self.close()

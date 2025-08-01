@@ -71,7 +71,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 450}
     props:
-      diagram_name: codegen/diagrams/models/generate_strawberry_types
+      diagram_name: codegen/diagrams/models/generate_strawberry_types_v2
       diagram_format: light
       passInputData: false
 
@@ -80,7 +80,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 500}
     props:
-      diagram_name: codegen/diagrams/models/generate_strawberry_mutations
+      diagram_name: codegen/diagrams/models/generate_strawberry_mutations_v2
       diagram_format: light
       passInputData: false
 
@@ -122,24 +122,7 @@ nodes:
         static_nodes = inputs.get('static_nodes', {})
         build_result = inputs.get('build_result', {})
         
-        print(f"\n{'='*60}")
-        print("DOMAIN MODEL GENERATION COMPLETE")
-        print(f"{'='*60}")
-        print(f"Timestamp: {datetime.now().isoformat()}")
-        print(f"\nGenerated artifacts:")
-        print(f"  ✓ Python domain models (dipeo/diagram_generated_staged/domain_models.py)")
-        print(f"  ✓ Python enums (dipeo/diagram_generated_staged/enums.py)")
-        print(f"  ✓ Type conversions (dipeo/diagram_generated_staged/conversions.py)")
-        print(f"  ✓ Field configurations (apps/web/src/__generated__/nodes/fields.ts)")
-        print(f"  ✓ GraphQL schema (dipeo/diagram_generated_staged/domain-schema.graphql)")
-        print(f"  ✓ Static node classes (dipeo/diagram_generated_staged/generated_nodes.py)")
-        print(f"  ✓ Strawberry GraphQL types (dipeo/diagram_generated_staged/graphql/strawberry_nodes.py)")
-        print(f"  ✓ Strawberry mutations (dipeo/diagram_generated_staged/graphql/node_mutations.py)")
-        print(f"  ✓ JSON schemas (dipeo/diagram_generated/schemas/nodes/)")
-        print(f"  ✓ Pydantic validation models (dipeo/diagram_generated/validation/nodes/)")
-        print(f"  ✓ TypeScript build completed")
-        print(f"\nAll domain model generation tasks completed successfully!")
-        print(f"{'='*60}\n")
+        print(f"Model generation complete - 10 artifact types generated - done!")
         
         result = {
             'status': 'success',

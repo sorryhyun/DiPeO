@@ -13,7 +13,6 @@ interface ModalProps {
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => {
   useEffect(() => {
     if (isOpen) {
-      // Prevent scrolling when modal is open
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = 'unset';

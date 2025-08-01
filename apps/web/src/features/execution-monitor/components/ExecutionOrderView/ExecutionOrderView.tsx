@@ -4,7 +4,7 @@ import { useExecution } from '../../hooks';
 import { NodeExecutionStatus } from '../../types/execution';
 import { ExecutionID, executionId } from '@/core/types';
 import { Button } from '@/shared/components/forms/buttons';
-import { useExecutionOrderQuery } from '@/__generated__/graphql';
+import { useExecutionOrderQuery, ExecutionOrderQuery } from '@/__generated__/graphql';
 import { ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
 
 interface ExecutionStep {
@@ -54,7 +54,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     variables: { executionId: currentExecutionId! },
     skip: !currentExecutionId,
     pollInterval,
-    onCompleted: (data) => {
+    onCompleted: (data: ExecutionOrderQuery) => {
       if (data?.execution_order) {
         // Handle case where data might be a string (JSONScalar)
         const parsedData = typeof data.execution_order === 'string' 

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
-        self._validator = None  # Lazy load jsonschema
+        self._validator = None
         self.filesystem_adapter = filesystem_adapter
     
     @property
@@ -46,32 +46,25 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         return "Validates JSON data against a JSON Schema specification"
     
     def validate(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> Optional[str]:
-        """Validate the JSON schema validator configuration."""
         node = request.node
-        
-        # Must have either schema_path or schema
         if not node.schema_path and not node.schema:
             return "Either schema_path or schema must be provided"
         
-        # If schema_path is provided, validate it exists
         if node.schema_path:
             schema_path = Path(node.schema_path)
             if not schema_path.is_absolute():
                 base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
                 schema_path = Path(base_dir) / node.schema_path
             
-            # Note: We can't use filesystem_adapter here as it's not available in validate()
-            # The actual file existence check will happen in execute_request()
+            # Actual file existence check will happen in execute_request()
         
         return None
     
     async def execute_request(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> NodeOutputProtocol:
-        """Execute the JSON schema validation."""
         node = request.node
         inputs = request.inputs
         services = request.services
         
-        # Get filesystem adapter from services or use injected one
         filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
         if not filesystem_adapter:
             return ErrorOutput(
@@ -80,18 +73,15 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                 error_type="ServiceError"
             )
         
-        # Store execution metadata
         request.add_metadata("strict_mode", node.strict_mode or False)
         request.add_metadata("error_on_extra", node.error_on_extra or False)
         if node.schema_path:
             request.add_metadata("schema_path", node.schema_path)
         
         try:
-            # Get schema
             if node.schema:
                 schema = node.schema
             else:
-                # Load from file
                 schema_path = Path(node.schema_path)
                 if not schema_path.is_absolute():
                     base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
@@ -224,25 +214,18 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
             )
     
     async def _validate_data(self, data: Any, schema: dict, strict_mode: bool = False, error_on_extra: bool = False) -> dict[str, Any]:
-        """Validate data against schema using jsonschema library."""
         try:
             import jsonschema
             from jsonschema import validators, Draft7Validator
             
             errors = []
             
-            # Configure validator based on options
             if error_on_extra:
-                # Add additionalProperties: false to all objects in schema if not specified
                 schema = self._add_no_additional_properties(schema.copy())
-            
-            # Create validator
             validator_class = validators.validator_for(schema)
             validator = validator_class(schema)
             
-            # Validate
             if strict_mode:
-                # In strict mode, collect all errors
                 errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
                 if errors:
                     return {
@@ -251,7 +234,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                                   for error in errors]
                     }
             else:
-                # In normal mode, just check if valid
                 try:
                     validator.validate(data)
                 except jsonschema.ValidationError as e:
@@ -267,12 +249,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
             raise ImportError("jsonschema is not installed. Install it with: pip install jsonschema")
     
     def _add_no_additional_properties(self, schema: dict) -> dict:
-        """Recursively add additionalProperties: false to all objects in schema."""
         if isinstance(schema, dict):
             if schema.get("type") == "object" and "additionalProperties" not in schema:
                 schema["additionalProperties"] = False
             
-            # Recurse into nested schemas
             for key, value in schema.items():
                 if key in ["properties", "patternProperties", "definitions"]:
                     if isinstance(value, dict):
@@ -291,8 +271,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         request: ExecutionRequest[JsonSchemaValidatorNode],
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
-        """Post-execution hook to log validation details."""
-        # Log execution details if in debug mode
         if request.metadata.get("debug"):
             success = output.metadata.get("success", False)
             strict_mode = request.metadata.get("strict_mode", False)

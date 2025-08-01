@@ -58,7 +58,9 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
     options: async (formData: unknown) => {
       const data = formData as Record<string, unknown>;
       const apiKeyId = data['llm_config.api_key_id'] as string;
-      if (!apiKeyId) {
+      
+      // Ensure API key is not empty string
+      if (!apiKeyId || apiKeyId === '') {
         return [];
       }
       try {

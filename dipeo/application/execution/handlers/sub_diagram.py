@@ -13,9 +13,15 @@ from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagram
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
+from dipeo.application.registry import (
+    STATE_STORE,
+    MESSAGE_ROUTER,
+    INTEGRATED_DIAGRAM_SERVICE,
+    DIAGRAM_STORAGE_SERVICE,
+)
 
 if TYPE_CHECKING:
-    from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+    from dipeo.application.registry import ServiceRegistry
     from dipeo.infrastructure.services.diagram import DiagramConverterService
 
 log = logging.getLogger(__name__)
@@ -101,9 +107,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
 
         try:
             # Get required services
-            state_store = request.services.get("state_store")
-            message_router = request.services.get("message_router")
-            diagram_service = request.services.get("diagram_service")
+            state_store = request.services.resolve(STATE_STORE)
+            message_router = request.services.resolve(MESSAGE_ROUTER)
+            diagram_service = request.services.resolve(INTEGRATED_DIAGRAM_SERVICE)
             
             if not all([state_store, message_router]):
                 raise ValueError("Required services not available")
@@ -126,7 +132,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             sub_execution_id = self._create_sub_execution_id(request.execution_id)
             
             # Execute the sub-diagram using the execute_diagram use case
-            from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+            from dipeo.application.registry import ServiceRegistry, ServiceKey
             
             # Get service registry from request or runtime
             service_registry = request.parent_registry
@@ -135,9 +141,10 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # For tests, create minimal registry if needed
             if not service_registry:
-                service_registry = UnifiedServiceRegistry()
+                service_registry = ServiceRegistry()
                 for service_name, service in request.services.items():
-                    service_registry.register(service_name, service)
+                    key = ServiceKey(service_name)
+                    service_registry.register(key, service)
             
             # Get container from request or runtime
             container = request.parent_container
@@ -149,7 +156,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 service_registry=service_registry,
                 state_store=state_store,
                 message_router=message_router,
-                diagram_storage_service=request.services.get("diagram_storage_service"),
+                diagram_storage_service=request.services.resolve(DIAGRAM_STORAGE_SERVICE),
                 container=container
             )
             

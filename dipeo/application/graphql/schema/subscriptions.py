@@ -8,7 +8,7 @@ from typing import AsyncGenerator, Optional, Any
 
 import strawberry
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.core.ports import MessageRouterPort, StateStorePort
 from strawberry.scalars import JSON as JSONScalar
 from dipeo.diagram_generated.domain_models import ExecutionID
@@ -45,7 +45,7 @@ class ExecutionUpdate:
     timestamp: str
 
 
-def create_subscription_type(registry: UnifiedServiceRegistry) -> type:
+def create_subscription_type(registry: ServiceRegistry) -> type:
     """Create a Subscription type with injected service registry."""
     
     @strawberry.type

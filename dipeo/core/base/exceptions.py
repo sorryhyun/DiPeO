@@ -4,7 +4,6 @@ from typing import Any
 
 
 class DiPeOError(Exception):
-    """Base exception class for all DiPeO errors."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(message)
@@ -35,7 +34,6 @@ class ExecutionError(DiPeOError):
 
 
 class NodeExecutionError(ExecutionError):
-    """Raised when a specific node fails to execute."""
 
     error_code = "NODE_EXECUTION_ERROR"
 
@@ -52,7 +50,6 @@ class NodeExecutionError(ExecutionError):
 
 
 class DependencyError(ExecutionError):
-    """Raised when node dependencies aren't met."""
 
     error_code = "DEPENDENCY_ERROR"
 
@@ -71,7 +68,6 @@ class DependencyError(ExecutionError):
 
 
 class MaxIterationsError(ExecutionError):
-    """Raised when max iterations are exceeded."""
 
     error_code = "MAX_ITERATIONS_ERROR"
 
@@ -89,7 +85,6 @@ class MaxIterationsError(ExecutionError):
 
 
 class TimeoutError(ExecutionError):
-    """Raised when execution times out."""
 
     error_code = "TIMEOUT_ERROR"
 
@@ -106,13 +101,11 @@ class TimeoutError(ExecutionError):
 
 
 class APIKeyError(ServiceError):
-    """Raised when API key operations fail."""
 
     error_code = "API_KEY_ERROR"
 
 
 class APIKeyNotFoundError(APIKeyError):
-    """Raised when an API key is not found."""
 
     error_code = "API_KEY_NOT_FOUND"
 
@@ -122,7 +115,6 @@ class APIKeyNotFoundError(APIKeyError):
 
 
 class LLMServiceError(ServiceError):
-    """Raised when LLM service calls fail."""
 
     error_code = "LLM_SERVICE_ERROR"
 
@@ -143,7 +135,6 @@ class LLMServiceError(ServiceError):
 
 
 class FileOperationError(DiPeOError):
-    """Raised when file operations fail."""
 
     error_code = "FILE_OPERATION_ERROR"
 
@@ -160,7 +151,6 @@ class FileOperationError(DiPeOError):
 
 
 class StorageError(ServiceError):
-    """Raised when storage operations fail."""
 
     error_code = "STORAGE_ERROR"
 
@@ -179,13 +169,11 @@ class StorageError(ServiceError):
 
 
 class DiagramError(ValidationError):
-    """Base class for diagram-related errors."""
 
     error_code = "DIAGRAM_ERROR"
 
 
 class DiagramNotFoundError(DiagramError):
-    """Raised when a diagram is not found."""
 
     error_code = "DIAGRAM_NOT_FOUND"
 
@@ -195,7 +183,6 @@ class DiagramNotFoundError(DiagramError):
 
 
 class InvalidDiagramError(DiagramError):
-    """Raised when a diagram is invalid."""
 
     error_code = "INVALID_DIAGRAM"
 
@@ -236,12 +223,4 @@ ERROR_CODE_MAP = {
 
 
 def get_exception_by_code(error_code: str) -> type[DiPeOError]:
-    """Get exception class by error code.
-
-    Args:
-        error_code: The error code to look up
-
-    Returns:
-        Exception class, defaults to DiPeOError if not found
-    """
     return ERROR_CODE_MAP.get(error_code, DiPeOError)

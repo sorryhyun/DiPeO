@@ -258,7 +258,7 @@ export type ExecuteDiagramInput = {
   diagram_id?: InputMaybe<Scalars['ID']['input']>;
   max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
-  use_direct_streaming?: InputMaybe<Scalars['Boolean']['input']>;
+  use_monitoring_stream?: InputMaybe<Scalars['Boolean']['input']>;
   variables?: InputMaybe<Scalars['JSON']['input']>;
 };
 
@@ -835,6 +835,13 @@ export type SendInteractiveResponseMutationVariables = Exact<{
 
 
 export type SendInteractiveResponseMutation = { __typename?: 'Mutation', send_interactive_response: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, node_states: any } | null } };
+
+export type ExecutionOrderQueryVariables = Exact<{
+  executionId: Scalars['ID']['input'];
+}>;
+
+
+export type ExecutionOrderQuery = { __typename?: 'Query', execution_order: any };
 
 export type UploadFileMutationVariables = Exact<{
   file: Scalars['Upload']['input'];
@@ -1758,6 +1765,44 @@ export function useSendInteractiveResponseMutation(baseOptions?: Apollo.Mutation
 export type SendInteractiveResponseMutationHookResult = ReturnType<typeof useSendInteractiveResponseMutation>;
 export type SendInteractiveResponseMutationResult = Apollo.MutationResult<SendInteractiveResponseMutation>;
 export type SendInteractiveResponseMutationOptions = Apollo.BaseMutationOptions<SendInteractiveResponseMutation, SendInteractiveResponseMutationVariables>;
+export const ExecutionOrderDocument = gql`
+    query ExecutionOrder($executionId: ID!) {
+  execution_order(execution_id: $executionId)
+}
+    `;
+
+/**
+ * __useExecutionOrderQuery__
+ *
+ * To run a query within a React component, call `useExecutionOrderQuery` and pass it any options that fit your needs.
+ * When your component renders, `useExecutionOrderQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useExecutionOrderQuery({
+ *   variables: {
+ *      executionId: // value for 'executionId'
+ *   },
+ * });
+ */
+export function useExecutionOrderQuery(baseOptions: Apollo.QueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables> & ({ variables: ExecutionOrderQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
+      }
+export function useExecutionOrderLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
+        }
+export function useExecutionOrderSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ExecutionOrderQuery, ExecutionOrderQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ExecutionOrderQuery, ExecutionOrderQueryVariables>(ExecutionOrderDocument, options);
+        }
+export type ExecutionOrderQueryHookResult = ReturnType<typeof useExecutionOrderQuery>;
+export type ExecutionOrderLazyQueryHookResult = ReturnType<typeof useExecutionOrderLazyQuery>;
+export type ExecutionOrderSuspenseQueryHookResult = ReturnType<typeof useExecutionOrderSuspenseQuery>;
+export type ExecutionOrderQueryResult = Apollo.QueryResult<ExecutionOrderQuery, ExecutionOrderQueryVariables>;
 export const UploadFileDocument = gql`
     mutation UploadFile($file: Upload!, $path: String) {
   upload_file(file: $file, path: $path) {

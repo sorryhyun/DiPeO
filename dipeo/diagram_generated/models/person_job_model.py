@@ -10,13 +10,13 @@ from dipeo.diagram_generated.domain_models import PersonID, MemorySettings, Tool
 
 class PersonJobNodeData(BaseModel):
     """Data model for Person Job node."""
-    person: Optional[str] = Field(description="Person configuration")
-    first_only_prompt: str = Field(description="First Only Prompt configuration")
-    default_prompt: Optional[str] = Field(description="Default Prompt configuration")
-    max_iteration: float = Field(description="Max Iteration configuration")
+    person: Optional[str] = Field(description="AI person to use")
+    first_only_prompt: str = Field(description="Prompt used only on first execution")
+    default_prompt: Optional[str] = Field(description="Default prompt template")
+    max_iteration: float = Field(description="Maximum execution iterations")
     memory_profile: Optional[str] = Field(description="Memory profile for conversation context")
-    memory_config: Optional[Dict[str, Any]] = Field(description="Memory Config configuration (deprecated - use memory_profile or memory_settings)")
-    memory_settings: Optional[Dict[str, Any]] = Field(description="Memory Settings configuration (only used when memory_profile is CUSTOM)")
+    memory_config: Optional[Dict[str, Any]] = Field(description="Deprecated memory configuration")
+    memory_settings: Optional[Dict[str, Any]] = Field(description="Custom memory settings")
     tools: Optional[str] = Field(description="Tools available to the AI agent")
 
     class Config:

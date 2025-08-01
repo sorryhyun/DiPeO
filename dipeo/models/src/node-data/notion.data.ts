@@ -1,6 +1,3 @@
-/**
- * Notion node data interface
- */
 
 import { BaseNodeData } from '../diagram';
 import { NotionOperation } from '../integration';

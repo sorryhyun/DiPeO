@@ -1,6 +1,3 @@
-/**
- * API job node data interface
- */
 
 import { BaseNodeData } from '../diagram';
 import { HttpMethod } from '../enums';
@@ -11,7 +8,7 @@ export interface ApiJobNodeData extends BaseNodeData {
   headers?: Record<string, string>;
   params?: Record<string, any>;
   body?: any;
-  timeout?: number;  // in seconds
+  timeout?: number;
   auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
   auth_config?: Record<string, string>;
 }

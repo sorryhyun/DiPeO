@@ -7,7 +7,6 @@
 import { LLMService, APIServiceType, NotionOperation, ToolType } from './enums.js';
 import { TokenUsage } from './execution.js';
 
-// Re-export imported enums for backward compatibility
 export { LLMService, APIServiceType, NotionOperation, ToolType };
 
 export interface ToolConfig {
@@ -16,7 +15,6 @@ export interface ToolConfig {
   config?: Record<string, any>;
 }
 
-// Tool Output Types
 export interface WebSearchResult {
   url: string;
   title: string;
@@ -25,8 +23,8 @@ export interface WebSearchResult {
 }
 
 export interface ImageGenerationResult {
-  image_data: string; // Base64 encoded image
-  format: string; // e.g., 'png', 'jpeg'
+  image_data: string;
+  format: string;
   width?: number;
   height?: number;
 }
@@ -37,7 +35,6 @@ export interface ToolOutput {
   raw_response?: any;
 }
 
-// LLM Chat Result
 export interface ChatResult {
   text: string;
   token_usage?: TokenUsage | null;
@@ -45,15 +42,12 @@ export interface ChatResult {
   tool_outputs?: ToolOutput[] | null;
 }
 
-// LLM Request Options
 export interface LLMRequestOptions {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
   n?: number;
   tools?: ToolConfig[];
-  response_format?: any; // For structured outputs
+  response_format?: any;
 }
 
-// Future: Add more integration-related types here
-// e.g., SlackOperation, GitHubOperation, etc.

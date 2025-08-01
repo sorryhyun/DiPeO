@@ -5,11 +5,6 @@ from typing import Any, Protocol, runtime_checkable
 
 @runtime_checkable
 class FileServicePort(Protocol):
-    """Port for file operations.
-    
-    Interface for file storage implementations supporting
-    JSON, YAML, CSV, TXT, and other file types.
-    """
 
     def read(
         self,

@@ -16,7 +16,6 @@ class EnvironmentAPIKeyService(BaseService, APIKeyPort):
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 
-    # Mapping of service names to environment variable names
     ENV_VAR_MAPPING = {
         "openai": "OPENAI_API_KEY",
         "chatgpt": "OPENAI_API_KEY",
@@ -41,7 +40,6 @@ class EnvironmentAPIKeyService(BaseService, APIKeyPort):
         for service, env_var in self.ENV_VAR_MAPPING.items():
             api_key = os.getenv(env_var)
             if api_key:
-                # Create a synthetic key ID based on service name
                 key_id = f"env_{service}"
                 self._cached_keys[key_id] = {
                     "id": key_id,
@@ -62,16 +60,13 @@ class EnvironmentAPIKeyService(BaseService, APIKeyPort):
             return "google"
         if "groq" in model_lower or "llama" in model_lower or "mixtral" in model_lower:
             return "groq"
-        # Default to OpenAI for unknown models
         return "openai"
 
     def get_api_key(self, key_id: str) -> dict:
         """Get API key details by ID, service name, or model name."""
-        # First check if it's a direct key ID
         if key_id in self._cached_keys:
             return self._cached_keys[key_id]
 
-        # Check if it looks like a model name (contains common model patterns)
         if any(
             pattern in key_id.lower()
             for pattern in [
@@ -85,11 +80,9 @@ class EnvironmentAPIKeyService(BaseService, APIKeyPort):
                 "o3",
             ]
         ):
-            # It's likely a model name, determine the provider
             provider = self._get_provider_from_model(key_id)
             normalized_service = normalize_service_name(provider)
         else:
-            # Try to find by service name
             normalized_service = normalize_service_name(key_id)
 
         env_key_id = f"env_{normalized_service}"
@@ -97,7 +90,6 @@ class EnvironmentAPIKeyService(BaseService, APIKeyPort):
         if env_key_id in self._cached_keys:
             return self._cached_keys[env_key_id]
 
-        # If not found, check if we can load it from environment
         env_var = self.ENV_VAR_MAPPING.get(normalized_service)
         if env_var:
             api_key = os.getenv(env_var)

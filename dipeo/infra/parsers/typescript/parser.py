@@ -22,7 +22,7 @@ class TypeScriptParser(ASTParserPort):
         """
         self.project_root = project_root or Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
         self.parser_script = self.project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
-        self._cache: Dict[str, Dict[str, Any]] = {}  # In-memory cache for parsed AST data
+        self._cache: Dict[str, Dict[str, Any]] = {}
     
     async def parse(
         self,
@@ -54,12 +54,10 @@ class TypeScriptParser(ASTParserPort):
         if not source:
             raise ServiceError('No TypeScript source code provided')
         
-        # Create cache key based on source content and options
         cache_key = hashlib.md5(
             f"{source}:{','.join(sorted(extract_patterns))}:{include_jsdoc}:{parse_mode}".encode()
         ).hexdigest()
         
-        # Check cache
         if cache_key in self._cache:
             print(f"[TypeScript Parser] Cache hit for content hash {cache_key[:8]}")
             return self._cache[cache_key]
@@ -68,7 +66,6 @@ class TypeScriptParser(ASTParserPort):
         if not self.parser_script.exists():
             raise ServiceError(f'TypeScript parser script not found at {self.parser_script}')
         
-        # Build command arguments
         cmd = ['pnpm', 'tsx', str(self.parser_script)]
         
         if extract_patterns:
@@ -80,7 +77,6 @@ class TypeScriptParser(ASTParserPort):
         cmd.append(f'--mode={parse_mode}')
         
         try:
-            # Create a temporary file with the TypeScript source code
             with tempfile.NamedTemporaryFile(mode='w', suffix='.ts', delete=False) as tmp_file:
                 tmp_file.write(source)
                 tmp_file_path = tmp_file.name
@@ -97,7 +93,6 @@ class TypeScriptParser(ASTParserPort):
                 timeout=30
             )
             
-            # Clean up the temporary file
             os.unlink(tmp_file_path)
             
             if result.returncode != 0:
@@ -106,14 +101,12 @@ class TypeScriptParser(ASTParserPort):
                 print(f"[TypeScript Parser] stdout: {result.stdout[:200]}...")
                 raise ServiceError(f'Parser failed: {result.stderr}')
             
-            # Parse the JSON output
             parsed_result = json.loads(result.stdout)
 
             # Check for parser errors
             if parsed_result.get('error'):
                 raise ServiceError(f'Parser error: {parsed_result["error"]}')
             
-            # Extract AST data
             ast_data = {}
             for pattern in extract_patterns:
                 if pattern == 'interface':
@@ -138,7 +131,6 @@ class TypeScriptParser(ASTParserPort):
                 }
             }
             
-            # Cache the result
             self._cache[cache_key] = result
             print(f"[TypeScript Parser] Cached result for content hash {cache_key[:8]}")
             
@@ -231,7 +223,6 @@ class TypeScriptParser(ASTParserPort):
         if not sources:
             return {}
         
-        # Check cache for all sources
         cached_results = {}
         uncached_sources = {}
         
@@ -246,7 +237,6 @@ class TypeScriptParser(ASTParserPort):
             else:
                 uncached_sources[key] = source
         
-        # If all results are cached, return immediately
         if not uncached_sources:
             return cached_results
         

@@ -1,6 +1,3 @@
-I'll translate the document to Korean for you.
-
----
 
 # DiPeO의 코드 생성 시스템 도그푸딩
 
@@ -74,16 +71,16 @@ I'll translate the document to Korean for you.
 
 DiPeO 다이어그램은 다음과 같이 표현될 수 있습니다:
 
-1. **도메인 JSON:** 정식, 영구적, 전체 구조/레이아웃 데이터
-2. **라이트 YAML:** 가독성을 위해 단순화, 위치 반올림, ID 제거
-3. **읽기 가능한 YAML:** 워크플로우 이해에 최적화; 흐름을 라인으로, 정의 분리
+1. **domain JSON:** 정식, 영구적, 전체 구조/레이아웃 데이터
+2. **light YAML:** 가독성을 위해 단순화, 위치 반올림, ID 제거
+3. **readable YAML:** 워크플로우 이해에 최적화; 흐름을 라인으로, 정의 분리
 
 **노드 유형:**
 
 * `start`: 진입점, 트리거 모드 포함
 * `person_job`: 사람을 위한 LLM 기반 작업; 프롬프트, 반복, 메모리 프로필 지원 (FULL, FOCUSED, MINIMAL, GOLDFISH)
 * `condition`: 분기 로직, 모든 작업이나 사용자 정의 표현식에서 트리거 가능
-* `code_job`: 코드 실행 (Python, TypeScript, Bash, Shell) 인라인 또는 파일에서 (인라인 코드는 result 변수로 출력해야 함; `print()` 미지원)
+* `code_job`: 코드 실행 (Python, TypeScript, Bash, Shell) 인라인 또는 파일에서
 * `endpoint`: 결과를 파일로 저장 (텍스트, JSON, YAML)
 * `db`: 파일이나 데이터베이스에서 읽기
 * `api_job`: HTTP 요청 수행

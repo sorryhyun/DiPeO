@@ -1,6 +1,3 @@
-/**
- * DB node data interface
- */
 
 import { BaseNodeData } from '../diagram';
 import { DBBlockSubType } from '../enums';

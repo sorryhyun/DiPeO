@@ -72,3 +72,7 @@ mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
     error
   }
 }
+
+query ExecutionOrder($executionId: ID!) {
+  execution_order(execution_id: $executionId)
+}

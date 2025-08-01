@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from dipeo.application.graphql import create_schema
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+from dipeo.application.registry import ServiceRegistry
 
 
 def export_schema(output_path: str = None) -> str:
@@ -21,7 +21,7 @@ def export_schema(output_path: str = None) -> str:
         The GraphQL schema as a string
     """
     # Create mock registry for schema export
-    registry = UnifiedServiceRegistry()
+    registry = ServiceRegistry()
     
     # Create and export schema
     schema = create_schema(registry)

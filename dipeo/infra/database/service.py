@@ -1,5 +1,4 @@
-# Infrastructure service for database operations.
-# This is a backward compatibility wrapper.
+"""Backward compatibility wrapper for database operations."""
 
 from typing import Any
 
@@ -21,25 +20,20 @@ class DBOperationsDomainService:
     def __init__(
         self, file_system: FileSystemPort, validation_service: DataValidator
     ):
-        # Create domain service and adapter
         self.domain_service = DomainDBService()
         self.adapter = DBOperationsAdapter(
             file_system=file_system,
             domain_service=self.domain_service,
             validation_service=validation_service
         )
-        # Keep references for backward compatibility
         self.file_system = file_system
         self.validation_service = validation_service
 
     async def execute_operation(
         self, db_name: str, operation: str, value: Any = None
     ) -> dict[str, Any]:
-        """Execute a database operation."""
         return await self.adapter.execute_operation(db_name, operation, value)
 
-    # The following methods are kept for backward compatibility
-    # but they now just delegate to the adapter
     async def _get_db_file_path(self, db_name: str) -> str:
         return await self.adapter._get_db_file_path(db_name)
 

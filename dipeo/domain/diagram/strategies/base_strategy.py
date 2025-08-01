@@ -23,22 +23,15 @@ log = logging.getLogger(__name__)
 
 
 class BaseConversionStrategy(FormatStrategy, ABC):
-    """Base class for diagram conversion strategies with common logic.
-    
-    This base class implements the Template Method pattern, providing common
-    logic for node and arrow extraction while allowing subclasses to customize
-    specific parts of the conversion process.
-    """
+    """Template Method pattern for diagram conversion with customizable node/arrow extraction."""
 
     def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extract nodes from data with common processing logic."""
         raw_nodes = self._get_raw_nodes(data)
         nodes = []
         
         for idx, node_data in enumerate(raw_nodes):
             node = self._process_node(node_data, idx)
             if node:
-                # Don't call ensure_position here - let _build_nodes_dict handle it
                 nodes.append(node)
         
         return nodes
@@ -52,22 +45,16 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         pass
     
     def _extract_node_props(self, node_data: dict[str, Any]) -> dict[str, Any]:
-        """Extract and process node properties with common transformations."""
-        # Get base properties - default implementation, override in subclasses
         props = self._get_node_base_props(node_data)
         
-        # Process dotted keys
         props = process_dotted_keys(props)
         
-        # Map fields based on node type
         node_type = node_data.get("type", "job")
         props = NodeFieldMapper.map_import_fields(node_type, props)
         
         return props
     
     def _get_node_base_props(self, node_data: dict[str, Any]) -> dict[str, Any]:
-        """Get base properties from node data - default implementation."""
-        # Default: exclude standard fields and return the rest
         exclude_fields = {"id", "type", "position", "label"}
         return {k: v for k, v in node_data.items() if k not in exclude_fields}
     
@@ -75,23 +62,14 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     def extract_arrows(
         self, data: dict[str, Any], nodes: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
-        """Extract arrows with common processing logic.
-
-        Default implementation uses extract_common_arrows for dict-based formats.
-        Override for label-based formats.
-        """
+        """Default implementation for dict-based formats. Override for label-based formats."""
         return extract_common_arrows(data.get("arrows", []))
     
 
     def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
-        """Build export data with common structure.
-
-        Subclasses can override this method entirely for custom formats,
-        or override specific _export_* methods to customize parts.
-        """
+        """Override entire method for custom formats, or specific _export_* methods."""
         result = {}
         
-        # Add each component if it has content
         nodes = self._export_nodes(diagram)
         if nodes:
             result["nodes"] = nodes
@@ -115,13 +93,10 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         return result
     
     def _export_nodes(self, diagram: DomainDiagram) -> Any:
-        """Export nodes in format-specific structure."""
-        # Default implementation for dict-based formats
         nodes = {}
         for n in diagram.nodes:
             node_type = str(n.type).split(".")[-1]
             
-            # Map fields for export
             data = NodeFieldMapper.map_export_fields(node_type, n.data.copy())
             
             nodes[n.id] = {
@@ -132,15 +107,12 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         return nodes
     
     def _export_arrows(self, diagram: DomainDiagram) -> Any:
-        """Export arrows in format-specific structure."""
-        # Default implementation for dict-based formats
         return {
             a.id: self._format_arrow(a)
             for a in diagram.arrows
         }
     
     def _format_arrow(self, arrow: Any) -> dict[str, Any]:
-        """Format a single arrow for export."""
         return ArrowDataProcessor.build_arrow_dict(
             arrow.id,
             arrow.source,
@@ -151,77 +123,58 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         )
     
     def _export_handles(self, diagram: DomainDiagram) -> Any:
-        """Export handles in format-specific structure."""
         return {h.id: h.model_dump(by_alias=True) for h in diagram.handles}
     
     def _export_persons(self, diagram: DomainDiagram) -> Any:
-        """Export persons in format-specific structure."""
         return {p.id: p.model_dump(by_alias=True) for p in diagram.persons}
     
     def _export_metadata(self, diagram: DomainDiagram) -> Any:
-        """Export metadata in format-specific structure."""
         return diagram.metadata.model_dump(by_alias=True) if diagram.metadata else None
     
-    # ---- Utility Methods -------------------------------------------------- #
     
     def _create_node_id(self, index: int, prefix: str = "node") -> str:
-        """Create a node ID based on index."""
         return f"{prefix}_{index}"
     
     def _parse_position(self, position_data: Any) -> dict[str, float]:
-        """Parse position data into standard format."""
         if isinstance(position_data, dict):
             return position_data
         return {}
     
     def _filter_node_properties(self, props: dict[str, Any], node_type: str) -> dict[str, Any]:
-        """Filter node properties for export. Override to customize."""
         return {
             k: v
             for k, v in props.items()
             if v not in (None, "", {}, [])
         }
     
-    # ---- Default Implementations ------------------------------------------ #
     
     def detect_confidence(self, data: dict[str, Any]) -> float:
-        """Default confidence detection - can be overridden."""
         return 0.5
     
     def quick_match(self, content: str) -> bool:
-        """Default quick match - should be overridden for better performance."""
+        """Should be overridden for better performance."""
         try:
             self.parse(content)
             return True
         except Exception:
             return False
     
-    # ---- New Domain Conversion Methods ------------------------------------ #
     
     def deserialize_to_domain(self, content: str) -> DomainDiagram:
-        """Default implementation that uses existing methods.
-        
-        Subclasses should override this for format-specific logic.
-        """
-        # Parse content to dict
+        """Subclasses should override for format-specific logic."""
         data = self.parse(content)
         
-        # Remove any __typename fields that might be present from GraphQL
         data = self._clean_graphql_fields(data)
         
-        # Extract and process nodes
         nodes_list = self.extract_nodes(data)
         nodes_dict = self._build_nodes_dict(nodes_list)
         
-        # Extract and process arrows  
         arrows_list = self.extract_arrows(data, nodes_list)
         arrows_dict = self._build_arrows_dict(arrows_list)
         
-        # Extract other components
         handles_dict = self._extract_handles_dict(data)
         persons_dict = self._extract_persons_dict(data)
         
-        # Build diagram dict
         diagram_dict = {
             "nodes": nodes_dict,
             "arrows": arrows_dict,
@@ -230,21 +183,17 @@ class BaseConversionStrategy(FormatStrategy, ABC):
             "metadata": data.get("metadata"),
         }
         
-        # Apply format-specific transformations
         diagram_dict = self._apply_format_transformations(diagram_dict, data)
         
-        # Convert to domain model
         return dict_to_domain_diagram(diagram_dict)
     
     def serialize_from_domain(self, diagram: DomainDiagram) -> str:
-        """Default implementation that uses existing methods."""
         data = self.build_export_data(diagram)
         return self.format(data)
     
-    # ---- Helper Methods for Domain Conversion ---------------------------- #
     
     def _build_nodes_dict(self, nodes_list: list[dict[str, Any]]) -> dict[str, Any]:
-        """Build nodes dictionary from list. Override for custom node creation."""
+        """Override for custom node creation."""
         from dipeo.diagram_generated.conversions import node_kind_to_domain_type
         from dipeo.domain.diagram.utils.shared_components import PositionCalculator
         
@@ -258,19 +207,16 @@ class BaseConversionStrategy(FormatStrategy, ABC):
             node_id = node_data["id"]
             node_type_str = node_data.get("type", "person_job")
             
-            # Convert node type string to domain enum
             try:
                 node_type = node_kind_to_domain_type(node_type_str)
             except ValueError:
                 log.warning(f"Unknown node type '{node_type_str}', defaulting to 'person_job'")
                 node_type = node_kind_to_domain_type("person_job")
             
-            # Ensure position exists
             position = node_data.get("position")
             if not position:
                 position = position_calculator.calculate_grid_position(index)
             
-            # Build node dict with required fields
             exclude_fields = {"id", "type", "position", "handles", "arrows"}
             properties = {k: v for k, v in node_data.items() if k not in exclude_fields}
             
@@ -284,14 +230,13 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         return nodes_dict
     
     def _build_arrows_dict(self, arrows_list: list[dict[str, Any]]) -> dict[str, Any]:
-        """Build arrows dictionary from list. Override for custom arrow creation."""
+        """Override for custom arrow creation."""
         from dipeo.models import ContentType
         
         arrows_dict = {}
         for i, arrow_data in enumerate(arrows_list):
             arrow_id = arrow_data.get("id", f"arrow_{i}")
             
-            # Ensure we have proper arrow structure
             arrow_dict = ArrowDataProcessor.build_arrow_dict(
                 arrow_id,
                 arrow_data.get("source", ""),
@@ -306,7 +251,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         return arrows_dict
     
     def _extract_handles_dict(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Extract handles as dictionary. Override for format-specific logic."""
+        """Override for format-specific logic."""
         handles_data = data.get("handles", {})
         if isinstance(handles_data, dict):
             return handles_data
@@ -318,7 +263,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         return {}
     
     def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Extract persons as dictionary. Override for format-specific logic."""
+        """Override for format-specific logic."""
         persons_data = data.get("persons", {})
         if isinstance(persons_data, dict):
             return persons_data
@@ -329,16 +274,15 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     def _apply_format_transformations(
         self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
     ) -> dict[str, Any]:
-        """Apply format-specific transformations. Override in subclasses."""
+        """Override in subclasses."""
         return diagram_dict
     
     def _clean_graphql_fields(self, data: Any) -> Any:
-        """Recursively remove GraphQL-specific fields like __typename."""
         if isinstance(data, dict):
             return {
                 k: self._clean_graphql_fields(v) 
                 for k, v in data.items() 
-                if not k.startswith('__')  # Remove all fields starting with __
+                if not k.startswith('__')
             }
         elif isinstance(data, list):
             return [self._clean_graphql_fields(item) for item in data]

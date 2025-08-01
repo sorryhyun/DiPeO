@@ -1,10 +1,10 @@
-"""Node mutations using UnifiedServiceRegistry."""
+"""Node mutations using ServiceRegistry."""
 
 import logging
 
 import strawberry
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 
 from ...types.inputs import CreateNodeInput, UpdateNodeInput
 from ...types.results import NodeResult, DeleteResult
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
-def create_node_mutations(registry: UnifiedServiceRegistry) -> type:
+def create_node_mutations(registry: ServiceRegistry) -> type:
     """Create node mutation methods with injected service registry.
     
     Note: This is a simplified implementation. In a full implementation,
@@ -34,7 +34,7 @@ def create_node_mutations(registry: UnifiedServiceRegistry) -> type:
             Consider using type-specific mutations for better type safety.
             """
             try:
-                integrated_service = registry.require(INTEGRATED_DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
                 
                 # Get diagram
                 diagram_data = await integrated_service.get_diagram(diagram_id)

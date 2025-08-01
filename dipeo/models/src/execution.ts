@@ -8,49 +8,42 @@ import type { NodeID, DiagramID } from './diagram.js';
 import type { Message } from './conversation.js';
 import { ExecutionStatus, NodeExecutionStatus, EventType } from './enums.js';
 
-// Type aliases
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
-// Re-export imported enums for backward compatibility
 export { ExecutionStatus, NodeExecutionStatus, EventType };
 
-// Core models
 export interface TokenUsage {
   input: number;
   output: number;
   cached?: number | null;
-  total?: number; // Computed field
+  total?: number;
 }
 
-// Simplified node state tracking
 export interface NodeState {
   status: NodeExecutionStatus;
   started_at?: string | null;
   ended_at?: string | null;
   error?: string | null;
   token_usage?: TokenUsage | null;
-  output?: Record<string, any> | null;  // Stores serialized protocol output
+  output?: Record<string, any> | null;
 }
 
 
-// Simplified execution state
 export interface ExecutionState {
   id: ExecutionID;
   status: ExecutionStatus;
   diagram_id?: DiagramID | null;
   started_at: string;
   ended_at?: string | null;
-  // Simplified node tracking
   node_states: Record<string, NodeState>;
-  node_outputs: Record<string, Record<string, any>>;  // Serialized protocol outputs
+  node_outputs: Record<string, Record<string, any>>;
   token_usage: TokenUsage;
   error?: string | null;
   variables?: Record<string, any>;
-  duration_seconds?: number | null; // Computed field
-  is_active?: boolean; // Computed field
-  // Execution tracking for loops and iterations
-  exec_counts: Record<string, number>; // Number of times each node has been executed
-  executed_nodes: string[]; // List of node IDs that have been executed
+  duration_seconds?: number | null;
+  is_active?: boolean;
+  exec_counts: Record<string, number>;
+  executed_nodes: string[];
 }
 
 
@@ -75,10 +68,8 @@ export interface InteractiveResponse {
   timestamp: string;
 }
 
-// Use shared conversation types from person domain
 export type PersonMemoryMessage = Message;
 
-// Update events for real-time communication
 export interface ExecutionUpdate {
   type: EventType;
   execution_id: ExecutionID;
@@ -94,17 +85,15 @@ export interface ExecutionUpdate {
 }
 
 
-// Node handler definition
 export interface NodeDefinition {
   type: string;
-  node_schema: any; // Type reference to schema class (renamed from 'schema' to avoid Pydantic conflict)
-  handler: any; // Handler function reference
+  node_schema: any;
+  handler: any;
   requires_services?: string[];
   description?: string;
 }
 
 
-// Utility functions
 export function createTokenUsage(input: number, output: number, cached?: number): TokenUsage {
   return {
     input,
@@ -149,4 +138,3 @@ export function isNodeExecutionActive(status: NodeExecutionStatus): boolean {
   ].includes(status);
 }
 
-// Type guards

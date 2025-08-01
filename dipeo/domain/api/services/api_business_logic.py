@@ -13,7 +13,6 @@ log = logging.getLogger(__name__)
 
 
 class APIBusinessLogic:
-    """Pure business logic for API operations."""
     
     def __init__(self):
         self._template_processor = TemplateProcessor()
@@ -24,7 +23,6 @@ class APIBusinessLogic:
         response_data: Any,
         expected_status_codes: list[int] | None = None
     ) -> None:
-        """Validate an API response against expected status codes."""
         if expected_status_codes is None:
             expected_status_codes = list(range(200, 300))
             
@@ -41,7 +39,6 @@ class APIBusinessLogic:
         retry_policy: RetryPolicy,
         retryable_status_codes: list[int] | None = None
     ) -> bool:
-        """Determine if request should be retried based on policy."""
         if retryable_status_codes is None:
             retryable_status_codes = [429, 500, 502, 503, 504]
         
@@ -54,7 +51,6 @@ class APIBusinessLogic:
         retry_policy: RetryPolicy,
         retry_after: float | None = None
     ) -> float:
-        """Calculate retry delay using retry policy."""
         if retry_after is not None:
             # Use server-provided retry-after if available
             return min(retry_after * 1000, retry_policy.max_delay_ms) / 1000
@@ -69,7 +65,7 @@ class APIBusinessLogic:
         max_retries: int,
         retryable_status_codes: list[int] | None = None
     ) -> bool:
-        """Legacy method - determine if request should be retried."""
+        """Legacy method for backward compatibility."""
         if attempt >= max_retries - 1:
             return False
             
@@ -85,7 +81,7 @@ class APIBusinessLogic:
         max_delay: float = 60.0,
         retry_after: float | None = None
     ) -> float:
-        """Legacy method - calculate exponential backoff delay."""
+        """Legacy method for backward compatibility."""
         if retry_after is not None:
             return min(retry_after, max_delay)
             
@@ -93,7 +89,6 @@ class APIBusinessLogic:
         return min(delay, max_delay)
 
     def substitute_variables(self, data: Any, context: dict[str, Any]) -> Any:
-        """Substitute template variables in data."""
         if isinstance(data, str):
             # Use TemplateProcessor for single brace variable substitution
             return self._template_processor.process_single_brace(data, context)
@@ -107,7 +102,7 @@ class APIBusinessLogic:
         return data
 
     def evaluate_condition(self, condition: str, data: dict[str, Any]) -> bool:
-        """Evaluate a simple condition against data."""
+        """Only supports '==' comparisons with dot notation for field access."""
         try:
             if "==" in condition:
                 parts = condition.split("==", 1)
@@ -131,14 +126,11 @@ class APIBusinessLogic:
             return False
 
     def validate_workflow_step(self, step: dict[str, Any]) -> None:
-        """Validate a workflow step configuration."""
         required_fields = ["name", "url", "method"]
         for field in required_fields:
             if field not in step:
                 raise ValidationError(f"Workflow step missing required field: {field}")
 
-        
-        # Validate HTTP method
         try:
             HttpMethod(step["method"].upper())
         except ValueError:
@@ -151,7 +143,6 @@ class APIBusinessLogic:
         step_result: Any,
         include_errors: bool = True
     ) -> dict[str, Any]:
-        """Merge step results into workflow results."""
         if isinstance(step_result, Exception) and include_errors:
             results[step_name] = {"error": str(step_result), "status": "failed"}
         else:
@@ -166,7 +157,6 @@ class APIBusinessLogic:
         include_metadata: bool = False,
         metadata: dict[str, Any] | None = None
     ) -> str:
-        """Format API response data."""
         if include_metadata and metadata:
             response_data = {
                 "data": response_data,
@@ -186,7 +176,6 @@ class APIBusinessLogic:
             return str(response_data)
 
     def extract_rate_limit_info(self, headers: dict[str, str]) -> dict[str, Any]:
-        """Extract rate limit information from response headers."""
         rate_limit_info = {}
         
         rate_limit_headers = {
@@ -215,10 +204,7 @@ class APIBusinessLogic:
         timeout: float = 30.0,
         auth: dict[str, str] | None = None
     ) -> dict[str, Any]:
-        """Build request configuration."""
-        # Validate method
         http_method = HttpMethod(method.upper())
-
         
         config = {
             "method": http_method.value,
@@ -246,7 +232,6 @@ class APIBusinessLogic:
         initial_delay_ms: int = 1000,
         max_delay_ms: int = 60000
     ) -> RetryPolicy:
-        """Create a default retry policy for API calls."""
         return RetryPolicy(
             max_attempts=max_attempts,
             initial_delay_ms=initial_delay_ms,

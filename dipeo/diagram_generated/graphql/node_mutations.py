@@ -1,8 +1,16 @@
+
+
+
+
+
+
+
+
 """
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-07-31T15:01:05.020149
+Generated at: 2025-08-01T14:28:05.285287
 """
 
 import strawberry
@@ -49,8 +57,11 @@ from .strawberry_nodes import (
 from dipeo.application.graphql.types.domain_types import DomainNodeType
 from dipeo.application.graphql.types.inputs import Vec2Input
 
-# Import services
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry
+# Import services and keys
+from dipeo.application.registry import ServiceRegistry, ServiceKey
+
+# Service keys
+INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
 # Generate input types for each node
@@ -339,7 +350,7 @@ class NodeMutations:
         input: CreateApiJobInput
     ) -> ApiJobDataType:
         """Create a Api Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -349,8 +360,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -373,13 +387,17 @@ class NodeMutations:
         id: str, input: UpdateApiJobInput
     ) -> ApiJobDataType:
         """Update a Api Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -400,7 +418,7 @@ class NodeMutations:
         input: CreateCodeJobInput
     ) -> CodeJobDataType:
         """Create a Code Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -410,8 +428,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -434,13 +455,17 @@ class NodeMutations:
         id: str, input: UpdateCodeJobInput
     ) -> CodeJobDataType:
         """Update a Code Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -461,7 +486,7 @@ class NodeMutations:
         input: CreateConditionInput
     ) -> ConditionDataType:
         """Create a Condition node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -471,8 +496,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -495,13 +523,17 @@ class NodeMutations:
         id: str, input: UpdateConditionInput
     ) -> ConditionDataType:
         """Update a Condition node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -522,7 +554,7 @@ class NodeMutations:
         input: CreateDbInput
     ) -> DbDataType:
         """Create a Db node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -532,8 +564,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -556,13 +591,17 @@ class NodeMutations:
         id: str, input: UpdateDbInput
     ) -> DbDataType:
         """Update a Db node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -583,7 +622,7 @@ class NodeMutations:
         input: CreateEndpointInput
     ) -> EndpointDataType:
         """Create a Endpoint node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -593,8 +632,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -617,13 +659,17 @@ class NodeMutations:
         id: str, input: UpdateEndpointInput
     ) -> EndpointDataType:
         """Update a Endpoint node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -644,7 +690,7 @@ class NodeMutations:
         input: CreateHookInput
     ) -> HookDataType:
         """Create a Hook node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -654,8 +700,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -678,13 +727,17 @@ class NodeMutations:
         id: str, input: UpdateHookInput
     ) -> HookDataType:
         """Update a Hook node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -705,7 +758,7 @@ class NodeMutations:
         input: CreateJsonSchemaValidatorInput
     ) -> JsonSchemaValidatorDataType:
         """Create a Json Schema Validator node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -715,8 +768,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -739,13 +795,17 @@ class NodeMutations:
         id: str, input: UpdateJsonSchemaValidatorInput
     ) -> JsonSchemaValidatorDataType:
         """Update a Json Schema Validator node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -766,7 +826,7 @@ class NodeMutations:
         input: CreateNotionInput
     ) -> NotionDataType:
         """Create a Notion node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -776,8 +836,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -800,13 +863,17 @@ class NodeMutations:
         id: str, input: UpdateNotionInput
     ) -> NotionDataType:
         """Update a Notion node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -827,7 +894,7 @@ class NodeMutations:
         input: CreatePersonBatchJobInput
     ) -> PersonBatchJobDataType:
         """Create a Person Batch Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -837,8 +904,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -861,13 +931,17 @@ class NodeMutations:
         id: str, input: UpdatePersonBatchJobInput
     ) -> PersonBatchJobDataType:
         """Update a Person Batch Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -888,7 +962,7 @@ class NodeMutations:
         input: CreatePersonJobInput
     ) -> PersonJobDataType:
         """Create a Person Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -898,8 +972,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -922,13 +999,17 @@ class NodeMutations:
         id: str, input: UpdatePersonJobInput
     ) -> PersonJobDataType:
         """Update a Person Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -949,7 +1030,7 @@ class NodeMutations:
         input: CreateStartInput
     ) -> StartDataType:
         """Create a Start node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -959,8 +1040,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -983,13 +1067,17 @@ class NodeMutations:
         id: str, input: UpdateStartInput
     ) -> StartDataType:
         """Update a Start node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -1010,7 +1098,7 @@ class NodeMutations:
         input: CreateSubDiagramInput
     ) -> SubDiagramDataType:
         """Create a Sub Diagram node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -1020,8 +1108,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -1044,13 +1135,17 @@ class NodeMutations:
         id: str, input: UpdateSubDiagramInput
     ) -> SubDiagramDataType:
         """Update a Sub Diagram node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -1071,7 +1166,7 @@ class NodeMutations:
         input: CreateTemplateJobInput
     ) -> TemplateJobDataType:
         """Create a Template Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -1081,8 +1176,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -1105,13 +1203,17 @@ class NodeMutations:
         id: str, input: UpdateTemplateJobInput
     ) -> TemplateJobDataType:
         """Update a Template Job node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -1132,7 +1234,7 @@ class NodeMutations:
         input: CreateTypescriptAstInput
     ) -> TypescriptAstDataType:
         """Create a Typescript Ast node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -1142,8 +1244,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -1166,13 +1271,17 @@ class NodeMutations:
         id: str, input: UpdateTypescriptAstInput
     ) -> TypescriptAstDataType:
         """Update a Typescript Ast node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         
@@ -1193,7 +1302,7 @@ class NodeMutations:
         input: CreateUserResponseInput
     ) -> UserResponseDataType:
         """Create a User Response node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
         
         # Prepare node data
@@ -1203,8 +1312,11 @@ class NodeMutations:
             "data": input.data
         }
         
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
+        
         # Create the node
-        domain_node = await registry.diagram_service.create_node(
+        domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
@@ -1227,13 +1339,17 @@ class NodeMutations:
         id: str, input: UpdateUserResponseInput
     ) -> UserResponseDataType:
         """Update a User Response node"""
-        registry: UnifiedServiceRegistry = info.context["registry"]
+        registry: ServiceRegistry = info.context["registry"]
         
+        
+        # Get integrated diagram service
+        integrated_service = registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
         
         # Update the node
-        domain_node = await registry.node_service.update(
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
             node_id=id,
-            updates={"data": input.data}
+            data=input.data
         )
         
         

@@ -100,16 +100,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     with open(metadata_file, 'w') as f:
         json.dump(cache_metadata, f, indent=2)
     
-    print(f"\n=== TypeScript AST Cache Created ===")
-    print(f"Cache directory: {cache_dir}")
-    print(f"Parsed {len(parsed_results)} TypeScript files")
-    print(f"Total definitions found:")
-    print(f"  - {total_interfaces} interfaces")
-    print(f"  - {total_types} type aliases")
-    print(f"  - {total_enums} enums")
-    print(f"  - {total_consts} constants")
-    print(f"Batch processing time: {metadata.get('processingTimeMs', 0)}ms")
-    print(f"Timestamp: {datetime.now().isoformat()}")
+    print(f"Parsed {len(parsed_results)} files - {total_interfaces} interfaces, {total_types} types, {total_enums} enums, {total_consts} constants - done!")
     
     return {
         'status': 'success',

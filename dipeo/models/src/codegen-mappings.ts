@@ -2,8 +2,6 @@
  * Codegen mappings and configurations
  * Used by the code generation system to map between TypeScript and target languages
  */
-
-// Node type to interface name mapping
 export const NODE_INTERFACE_MAP: Record<string, string> = {
   'start': 'StartNodeData',
   'person_job': 'PersonJobNodeData',
@@ -22,7 +20,6 @@ export const NODE_INTERFACE_MAP: Record<string, string> = {
   'sub_diagram': 'SubDiagramNodeData'
 };
 
-// TypeScript to Python type mappings
 export const TS_TO_PY_TYPE: Record<string, string> = {
   'string': 'str',
   'number': 'int',
@@ -51,7 +48,6 @@ export const TS_TO_PY_TYPE: Record<string, string> = {
   'ToolSelection': 'ToolSelection'
 };
 
-// Type to UI field type mapping
 export const TYPE_TO_FIELD: Record<string, string> = {
   'string': 'text',
   'number': 'number',
@@ -70,7 +66,6 @@ export const TYPE_TO_FIELD: Record<string, string> = {
   'ToolSelection': 'select'
 };
 
-// Type to Zod schema mapping
 export const TYPE_TO_ZOD: Record<string, string> = {
   'string': 'z.string()',
   'number': 'z.number()',
@@ -94,7 +89,6 @@ export const TYPE_TO_ZOD: Record<string, string> = {
   'ToolSelection': 'z.nativeEnum(ToolSelection)'
 };
 
-// Branded types that shouldn't be generated as schemas
 export const BRANDED_TYPES = [
   'PersonID', 'NodeID', 'HandleID', 'ArrowID', 'NodeType',
   'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 
@@ -103,10 +97,8 @@ export const BRANDED_TYPES = [
   'MemoryProfile', 'ToolSelection'
 ];
 
-// Base fields to skip in generation
 export const BASE_FIELDS = ['label', 'flipped'];
 
-// Field special handling configurations for Python generation
 export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
   'person_job': {
     'person': { py_name: 'person_id' },
@@ -168,7 +160,6 @@ export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
   }
 };
 
-// Export all mappings as a single object for easy access
 export const CODEGEN_MAPPINGS = {
   NODE_INTERFACE_MAP,
   TS_TO_PY_TYPE,

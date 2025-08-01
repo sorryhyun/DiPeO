@@ -1,5 +1,3 @@
-# openai_adapter.py
-
 import asyncio
 import logging
 import time
@@ -28,13 +26,12 @@ class ChatGPTAdapter(BaseLLMAdapter):
     def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
         super().__init__(model_name, api_key, base_url)
         self.max_retries = 3
-        self.retry_delay = 1.0  # Initial delay in seconds
+        self.retry_delay = 1.0
 
     def _initialize_client(self) -> OpenAI:
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
     
     def supports_tools(self) -> bool:
-        # Models that support tools including websearch via responses API
         supported_models = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini']
         return any(model in self.model_name for model in supported_models)
     
@@ -46,7 +43,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         tools = kwargs.pop('tools', [])
         system_prompt_kwarg = kwargs.pop('system_prompt', None)
 
-        # Guard against None or empty messages
         if not messages:
             logger.warning("No messages provided to OpenAI API call")
             return [], [], {}
@@ -57,10 +53,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if system_prompt_kwarg:
             system_prompt = system_prompt_kwarg
         
-        # Build input messages with response API format
         input_messages = []
         if system_prompt:
-            # Response API uses developer instead of system
             input_messages.append({"role": "developer", "content": system_prompt})
         
         # Add other messages
@@ -69,7 +63,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
 
         logger.debug(f"Input messages: {input_messages}")
         
-        # Convert tools to API format
         api_tools = []
         if tools:
             for tool in tools:
@@ -89,11 +82,9 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def _process_api_response(self, response: Any) -> tuple[str, list[ToolOutput] | None, dict]:
         """Process API response to extract text, tool outputs, and token usage."""
-        # Extract text output
         text = getattr(response, 'output_text', '')
         logger.debug(f"Output text: {text}")
         
-        # Process tool outputs
         tool_outputs = []
         if hasattr(response, 'output') and response.output:
             for output in response.output:
@@ -108,14 +99,14 @@ class ChatGPTAdapter(BaseLLMAdapter):
                             score=result.get('score')
                         ))
                     tool_outputs.append(ToolOutput(
-                        type=ToolType.web_search,
+                        type=ToolType.WEB_SEARCH,
                         result=search_results,
                         raw_response=output.result
                     ))
                 elif output.type == 'image_generation_call' and hasattr(output, 'result'):
                     # Handle image generation result
                     tool_outputs.append(ToolOutput(
-                        type=ToolType.image_generation,
+                        type=ToolType.IMAGE_GENERATION,
                         result=ImageGenerationResult(
                             image_data=output.result,  # Base64 encoded
                             format='png',
@@ -160,7 +151,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def _make_api_call_with_retry(self, input_messages: list, api_tools: list, api_params: dict) -> Any:
         """Make API call with exponential backoff retry logic (sync version)."""
-        # Run the async version in a new event loop for sync context
         return asyncio.run(self._make_api_call_with_retry_async(
             input_messages=input_messages,
             api_tools=api_tools,
@@ -179,7 +169,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def _create_empty_response(self, message: str) -> Any:
         """Create an empty response object for error cases."""
-        # Create a mock response object that mimics the OpenAI response structure
         class MockResponse:
             def __init__(self, text):
                 self.output_text = text
@@ -300,8 +289,35 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     async def stream_chat(self, messages: list[dict[str, str]], **kwargs) -> AsyncIterator[str]:
         """Stream chat responses token by token."""
-        # Note: OpenAI Response API doesn't support streaming in the same way
-        # This is a simplified implementation that yields the full response
         result = await self.chat_async(messages, **kwargs)
         if result.text:
             yield result.text
+    
+    async def get_available_models(self) -> list[str]:
+        """Get available OpenAI models."""
+        try:
+            models_response = await asyncio.to_thread(self.client.models.list)
+            
+            chat_models = []
+            for model in models_response.data:
+                model_id = model.id
+                if any(prefix in model_id for prefix in ["gpt-", "o1", "o3", "chatgpt"]):
+                    chat_models.append(model_id)
+            
+            # Ensure gpt-4.1-nano is included
+            if "gpt-4.1-nano" not in chat_models:
+                chat_models.append("gpt-4.1-nano")
+            
+            chat_models.sort(reverse=True)
+            return chat_models
+            
+        except Exception as e:
+            logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
+            # Return default models as fallback
+            return [
+                "gpt-4.1-nano",
+                "gpt-4o-mini",
+                "gpt-4o",
+                "gpt-4-turbo",
+                "gpt-3.5-turbo"
+            ]

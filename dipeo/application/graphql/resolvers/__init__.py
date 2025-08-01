@@ -1,6 +1,6 @@
 """GraphQL resolvers for DiPeO.
 
-Resolvers use the UnifiedServiceRegistry to access application services,
+Resolvers use the ServiceRegistry to access application services,
 keeping the GraphQL layer focused on API concerns while delegating
 business logic to the appropriate services.
 """

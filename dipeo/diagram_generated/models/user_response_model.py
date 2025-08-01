@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 
 class UserResponseNodeData(BaseModel):
     """Data model for User Response node."""
-    prompt: str = Field(description="Prompt configuration")
-    timeout: float = Field(description="Timeout configuration")
+    prompt: str = Field(description="Question to ask the user")
+    timeout: float = Field(description="Response timeout in seconds")
 
     class Config:
         extra = "forbid"

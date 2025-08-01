@@ -1,6 +1,3 @@
-/**
- * Start node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';

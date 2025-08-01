@@ -25,7 +25,6 @@ export interface UseDiagramManagerOptions {
 }
 
 export interface UseDiagramManagerReturn {
-  // State
   isEmpty: boolean;
   isDirty: boolean;
   canExecute: boolean;
@@ -34,32 +33,26 @@ export interface UseDiagramManagerReturn {
   personCount: number;
   metadata: DiagramMetadata;
   
-  // Operations
   newDiagram: () => void;
   saveDiagram: (filename?: string) => Promise<void>;
   loadDiagramFromFile: (file: File) => Promise<void>;
   exportDiagram: (format: DiagramFormat) => Promise<void>;
   importDiagram: () => Promise<void>;
   
-  // Execution
   executeDiagram: (options?: ExecutionOptions) => Promise<void>;
   stopExecution: () => void;
   isExecuting: boolean;
   executionProgress: number;
   
-  // Validation
   validateDiagram: () => { isValid: boolean; errors: string[] };
   
-  // Metadata operations
   updateMetadata: (updates: Partial<DiagramMetadata>) => void;
   
-  // History
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
   
-  // Utils
   getDiagramStats: () => {
     totalNodes: number;
     nodesByType: Record<string, number>;
@@ -67,7 +60,6 @@ export interface UseDiagramManagerReturn {
     unconnectedNodes: number;
   };
   
-  // Internal - for composition with other hooks
   _execution?: ReturnType<typeof useExecution>;
 }
 
@@ -76,7 +68,7 @@ export interface UseDiagramManagerReturn {
 export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDiagramManagerReturn {
   const {
     autoSave = false,
-    autoSaveInterval = 30000, // 30 seconds
+    autoSaveInterval = 30000,
     confirmOnNew = true,
     confirmOnLoad = true
   } = options;
@@ -194,8 +186,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   
   const exportDiagramAs = useCallback(async (format: DiagramFormat) => {
     try {
-      // Use unified export method with format
-      // Export to server with format-specific extension
       await fileOps.downloadAs(format);
     } catch (error) {
       console.error('Failed to export diagram:', error);
@@ -274,7 +264,6 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       return;
     }
     
-    // Update the data version reference to prevent infinite loops
     if (dataVersion !== initialDataVersion.current) {
       initialDataVersion.current = dataVersion;
       setIsDirty(true);
@@ -311,22 +300,17 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     isExecuting: execution.isRunning,
     executionProgress: execution.progress,
     
-    // Validation
-    validateDiagram,
+      validateDiagram,
     
-    // Metadata operations
-    updateMetadata,
+      updateMetadata,
     
-    // History
-    undo: storeOps.undo,
+      undo: storeOps.undo,
     redo: storeOps.redo,
     canUndo: storeOps.canUndo,
     canRedo: storeOps.canRedo,
     
-    // Utils
-    getDiagramStats,
+      getDiagramStats,
     
-    // Raw hook access for internal use
     _execution: execution
   };
 }

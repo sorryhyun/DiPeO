@@ -1,6 +1,3 @@
-/**
- * JSON Schema Validator node specification
- */
 
 import { NodeType } from '../diagram.js';
 import { NodeSpecification } from './node-specifications';
@@ -18,7 +15,7 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
       name: "schema_path",
       type: "string",
       required: false,
-      description: "Schema Path configuration",
+      description: "Path to JSON schema file",
       uiConfig: {
         inputType: "text",
         placeholder: "/path/to/file"
@@ -28,7 +25,7 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
       name: "schema",
       type: "object",
       required: false,
-      description: "Schema configuration",
+      description: "Inline JSON schema",
       uiConfig: {
         inputType: "code",
         collapsible: true

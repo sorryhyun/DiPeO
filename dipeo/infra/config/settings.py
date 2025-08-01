@@ -17,7 +17,6 @@ class Settings:
         self.environment = self._get_environment()
         self.base_dir = self._get_base_dir()
 
-        # File storage paths
         self.files_dir = self.base_dir / "files"
         self.uploads_dir = self.files_dir / "uploads"
         self.results_dir = self.files_dir / "results"
@@ -26,30 +25,25 @@ class Settings:
         self.prompts_dir = self.files_dir / "prompts"
         self.apikeys_file = self.files_dir / "apikeys.json"
 
-        # Database paths
         self.data_dir = self.base_dir / ".data"
         self.state_db_path = self.data_dir / "dipeo_state.db"
         self.events_db_path = self.data_dir / "dipeo_events.db"
 
-        # Server settings
         self.server_host = os.getenv("DIPEO_HOST", "0.0.0.0")
         self.server_port = int(os.getenv("DIPEO_PORT", "8000"))
         self.workers = int(os.getenv("DIPEO_WORKERS", "4"))
         self.log_level = os.getenv("DIPEO_LOG_LEVEL", "INFO")
 
-        # LLM settings
         self.default_llm_model = os.getenv("DIPEO_DEFAULT_LLM_MODEL", "gpt-4.1-nano")
         self.llm_timeout = int(os.getenv("DIPEO_LLM_TIMEOUT", "300"))
         self.llm_max_retries = int(os.getenv("DIPEO_LLM_MAX_RETRIES", "3"))
         self.llm_retry_min_wait = float(os.getenv("DIPEO_LLM_RETRY_MIN_WAIT", "4.0"))
         self.llm_retry_max_wait = float(os.getenv("DIPEO_LLM_RETRY_MAX_WAIT", "10.0"))
 
-        # API settings
         self.api_max_retries = int(os.getenv("DIPEO_API_MAX_RETRIES", "3"))
         self.api_retry_delay = float(os.getenv("DIPEO_API_RETRY_DELAY", "1.0"))
         self.api_timeout = int(os.getenv("DIPEO_API_TIMEOUT", "30"))
 
-        # Execution settings
         self.execution_timeout = int(os.getenv("DIPEO_EXECUTION_TIMEOUT", "3600"))
         self.node_timeout = int(os.getenv("DIPEO_NODE_TIMEOUT", "300"))
         self.parallel_execution = (
@@ -58,7 +52,6 @@ class Settings:
         self.node_ready_poll_interval = float(os.getenv("DIPEO_NODE_READY_POLL_INTERVAL", "0.01"))
         self.node_ready_max_polls = int(os.getenv("DIPEO_NODE_READY_MAX_POLLS", "100"))
 
-        # Security settings
         self.cors_origins = self._parse_list(os.getenv("DIPEO_CORS_ORIGINS", "*"))
         self.allowed_file_extensions = self._parse_list(
             os.getenv(
@@ -68,15 +61,13 @@ class Settings:
         )
         self.max_upload_size = int(
             os.getenv("DIPEO_MAX_UPLOAD_SIZE", str(10 * 1024 * 1024))
-        )  # 10MB default
+        )
 
-        # Feature flags
         self.enable_monitoring = (
             os.getenv("DIPEO_ENABLE_MONITORING", "false").lower() == "true"
         )
         self.enable_debug_mode = os.getenv("DIPEO_DEBUG", "false").lower() == "true"
         
-        # Conversation settings
         self.auto_prepend_conversation = (
             os.getenv("DIPEO_AUTO_PREPEND_CONVERSATION", "true").lower() == "true"
         )
@@ -84,7 +75,6 @@ class Settings:
             os.getenv("DIPEO_CONVERSATION_CONTEXT_LIMIT", "10")
         )
 
-        # Validate configuration
         self._validate()
 
     def _get_environment(self) -> Environment:
@@ -95,21 +85,16 @@ class Settings:
             return Environment.DEVELOPMENT
 
     def _get_base_dir(self) -> Path:
-        # Try environment variable first
         if base_dir := os.getenv("DIPEO_BASE_DIR"):
             return Path(base_dir)
 
-        # Try to find project root by looking for root pyproject.toml
-        # This ensures we find the actual project root, not any sub-project
+        # Find project root by locating pyproject.toml with dipeo directory
         current = Path.cwd()
         while current != current.parent:
-            # Check for root-level indicators
             if (current / "pyproject.toml").exists() and (current / "dipeo").exists():
-                # This is the project root (has both pyproject.toml and dipeo directory)
                 return current
             current = current.parent
 
-        # Default to current directory
         return Path.cwd()
 
     def _parse_list(self, value: str) -> list[str]:
@@ -118,7 +103,6 @@ class Settings:
         return [item.strip() for item in value.split(",") if item.strip()]
 
     def _validate(self):
-        # Ensure directories exist
         for dir_path in [
             self.files_dir,
             self.uploads_dir,
@@ -130,15 +114,11 @@ class Settings:
         ]:
             dir_path.mkdir(parents=True, exist_ok=True)
 
-        # Validate port range
         if not 1 <= self.server_port <= 65535:
             raise ValueError(f"Invalid port number: {self.server_port}")
 
-        # Validate workers
         if self.workers < 1:
             raise ValueError(f"Workers must be at least 1, got {self.workers}")
-
-        # Validate timeouts
         for timeout_name, timeout_value in [
             ("llm_timeout", self.llm_timeout),
             ("api_timeout", self.api_timeout),
@@ -150,7 +130,6 @@ class Settings:
                     f"{timeout_name} must be positive, got {timeout_value}"
                 )
 
-        # Validate file size
         if self.max_upload_size <= 0:
             raise ValueError(
                 f"max_upload_size must be positive, got {self.max_upload_size}"

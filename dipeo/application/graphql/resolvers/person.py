@@ -1,10 +1,12 @@
-"""Person and API key resolver using UnifiedServiceRegistry."""
+"""Person and API key resolver using ServiceRegistry."""
 
 import asyncio
 import logging
 from typing import Optional, List
 
-from dipeo.application.unified_service_registry import UnifiedServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import INTEGRATED_DIAGRAM_SERVICE
+from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE, PERSON_MANAGER
 from dipeo.diagram_generated.domain_models import (
     PersonID, ApiKeyID,
     DomainPerson,
@@ -19,23 +21,18 @@ from ..types.inputs import PersonLLMConfigInput
 
 logger = logging.getLogger(__name__)
 
-# Service keys
-PERSON_MANAGER = ServiceKey[PersonManager]("person_manager")
-APIKEY_SERVICE = ServiceKey[APIKeyPort]("apikey_service")
-LLM_SERVICE = ServiceKey[LLMInfraService]("llm_service")
-
 
 class PersonResolver:
     """Resolver for person and API key related queries using service registry."""
     
-    def __init__(self, registry: UnifiedServiceRegistry):
+    def __init__(self, registry: ServiceRegistry):
         self.registry = registry
     
     async def get_person(self, id: PersonID) -> Optional[DomainPerson]:
         """Get a single person by ID."""
         try:
             # Get integrated diagram service to find person in diagrams
-            integrated_service = self.registry.get("integrated_diagram_service")
+            integrated_service = self.registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
             if not integrated_service:
                 logger.warning("Integrated diagram service not available")
                 return None
@@ -80,7 +77,7 @@ class PersonResolver:
         """List all persons."""
         try:
             # Get integrated diagram service to find persons in diagrams
-            integrated_service = self.registry.get("integrated_diagram_service")
+            integrated_service = self.registry.resolve(INTEGRATED_DIAGRAM_SERVICE)
             if not integrated_service:
                 logger.warning("Integrated diagram service not available")
                 return []
@@ -126,7 +123,7 @@ class PersonResolver:
     async def get_api_key(self, id: ApiKeyID) -> Optional[DomainApiKey]:
         """Get a single API key by ID."""
         try:
-            apikey_service = self.registry.require(APIKEY_SERVICE)
+            apikey_service = self.registry.resolve(API_KEY_SERVICE)
             # Run blocking operation in thread pool to avoid blocking event loop
             api_keys = await asyncio.to_thread(
                 apikey_service.list_api_keys
@@ -152,7 +149,7 @@ class PersonResolver:
     async def list_api_keys(self, service: Optional[str] = None) -> List[DomainApiKey]:
         """List API keys, optionally filtered by service."""
         try:
-            apikey_service = self.registry.require(APIKEY_SERVICE)
+            apikey_service = self.registry.resolve(API_KEY_SERVICE)
             logger.debug(f"Got apikey_service: {apikey_service}")
             # Run blocking operation in thread pool to avoid blocking event loop
             api_keys = await asyncio.to_thread(
@@ -190,7 +187,7 @@ class PersonResolver:
                 return []
             
             # Get available models from LLM service
-            llm_service = self.registry.require(LLM_SERVICE)
+            llm_service = self.registry.resolve(LLM_SERVICE)
             models = await llm_service.get_available_models(api_key_id)
             
             return models
