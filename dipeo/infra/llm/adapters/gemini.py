@@ -31,8 +31,7 @@ class GeminiAdapter(BaseLLMAdapter):
         self.retry_delay = 1.0
 
     def _initialize_client(self) -> Any:
-        self.client = genai.Client(api_key=self.api_key)
-        return None
+        return genai.Client(api_key=self.api_key)
     
     def supports_tools(self) -> bool:
         supported_models = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash', 
@@ -745,3 +744,27 @@ class GeminiAdapter(BaseLLMAdapter):
         
         # If we've exhausted all retries, raise the last exception
         raise last_exception
+    async def get_available_models(self) -> list[str]:
+        """Get available Google Gemini models."""
+        try:
+            chat_models = []
+            for model in self.client.models.list():
+                if "generateContent" in model.supported_actions:
+                    model_name = model.name
+                    if model_name.startswith("models/"):
+                        model_name = model_name[7:]
+                    chat_models.append(model_name)
+            
+            chat_models.sort(reverse=True)
+            return chat_models
+            
+        except Exception as e:
+            logger.warning(f"Failed to fetch Google models dynamically: {e}")
+            # Return default models as fallback
+            return [
+                "gemini-2.0-flash-exp",
+                "gemini-1.5-pro-latest",
+                "gemini-1.5-flash-latest",
+                "gemini-1.5-flash-8b-latest",
+                "gemini-1.0-pro-latest"
+            ]

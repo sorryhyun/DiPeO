@@ -1,6 +1,6 @@
 """
-Strawberry GraphQL types generator for DiPeO.
-Generates Strawberry types from node specifications using Pydantic models.
+Strawberry GraphQL types generator for DiPeO V2.
+Simplified for use with template_job node.
 """
 
 import json
@@ -8,7 +8,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Set, Any
-from jinja2 import Template, StrictUndefined
 
 
 def extract_node_specs(inputs: dict) -> dict:
@@ -44,7 +43,6 @@ def extract_node_specs(inputs: dict) -> dict:
                                             'description': spec_value.get('description'),
                                             'fields': spec_value.get('fields', [])
                                         })
-                                        pass  # Remove verbose logging
                 print(f"Found {len(node_specs)} specs")
                 return {'node_specs': node_specs}
         except Exception as e:
@@ -58,8 +56,6 @@ def extract_node_specs(inputs: dict) -> dict:
         'node_spec_person_batch_job_ast.json', 'node_spec_hook_ast.json', 'node_spec_template_job_ast.json',
         'node_spec_json_schema_validator_ast.json', 'node_spec_typescript_ast_ast.json', 'node_spec_sub_diagram_ast.json'
     ]
-    
-    # Looking for node spec cache files
     
     for filename in spec_files:
         file_path = cache_dir / filename
@@ -79,7 +75,6 @@ def extract_node_specs(inputs: dict) -> dict:
                                     'description': spec_value.get('description'),
                                     'fields': spec_value.get('fields', [])
                                 })
-                                pass  # Remove verbose logging
             except Exception as e:
                 print(f"  Error reading {filename}: {e}")
     
@@ -118,6 +113,7 @@ def generate_strawberry_types(inputs: dict) -> dict:
             'category': spec.get('category', '')
         })
     
+    # Return data that will be available in the template
     result = {
         'strawberry_types': strawberry_types,
         'generated_at': datetime.now().isoformat()
@@ -157,6 +153,7 @@ def generate_node_mutations(inputs: dict) -> dict:
             'operation': 'update'
         })
     
+    # Return data that will be available in the template
     result = {
         'mutations': mutations,
         'strawberry_types': strawberry_types,
@@ -164,73 +161,3 @@ def generate_node_mutations(inputs: dict) -> dict:
     }
     
     return result
-
-
-def prepare_template_data(inputs: dict) -> dict:
-    """Prepare template data from node generation output."""
-    # This function can handle both strawberry types and mutations data
-    
-    # Try to get mutations data first (for mutations generation)
-    mutations_data = inputs.get('mutations', {})
-    if mutations_data and isinstance(mutations_data, dict):
-        return mutations_data
-    
-    # Otherwise try strawberry types (for types generation)
-    strawberry_types_data = inputs.get('strawberry_types', {})
-    if strawberry_types_data and isinstance(strawberry_types_data, dict):
-        return strawberry_types_data
-    
-    # Default fallback
-    return {
-        'strawberry_types': [],
-        'generated_at': datetime.now().isoformat()
-    }
-
-
-def render_strawberry_schema(inputs: dict) -> dict:
-    """Render the Strawberry GraphQL schema."""
-    template_content = inputs.get('template_content', '')
-    
-    # Get prepared data from the 'default' connection (following GraphQL generator pattern)
-    template_data = inputs.get('default', {})
-    
-    # Ensure we have all required keys
-    if not isinstance(template_data, dict):
-        template_data = {
-            'strawberry_types': [],
-            'generated_at': datetime.now().isoformat()
-        }
-    
-    if 'strawberry_types' not in template_data:
-        template_data['strawberry_types'] = []
-    if 'generated_at' not in template_data:
-        template_data['generated_at'] = datetime.now().isoformat()
-    
-    # Create the template
-    jinja_template = Template(template_content, undefined=StrictUndefined)
-    
-    try:
-        rendered = jinja_template.render(**template_data)
-        return {'generated_code': rendered}
-    except Exception as e:
-        import traceback
-        error_msg = f"Template rendering error: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
-        return {'generated_code': error_msg}
-
-
-def generate_summary(inputs: dict) -> dict:
-    """Generate summary of Strawberry types generation."""
-    mutations = inputs.get('mutations', [])
-    strawberry_types = inputs.get('strawberry_types', [])
-    
-    print(f"Strawberry types: {len(strawberry_types)} types, {len(mutations)} mutations - done!")
-    
-    return {
-        'status': 'success',
-        'message': 'Strawberry types generated successfully',
-        'details': {
-            'types_count': len(strawberry_types),
-            'mutations_count': len(mutations)
-        }
-    }

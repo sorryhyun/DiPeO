@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: {{ generated_at | default('N/A') }}
+Generated at: {{ mutations.generated_at | default('N/A') }}
 """
 
 import strawberry
@@ -12,7 +12,7 @@ from strawberry.types import Info
 # Import data types and unions
 from .strawberry_nodes import (
     NodeDataUnion,
-{% for type_info in strawberry_types %}
+{% for type_info in mutations.strawberry_types %}
     {{ type_info.class_name }}DataType,
 {% endfor %}
 )
@@ -29,7 +29,7 @@ INTEGRATED_DIAGRAM_SERVICE = ServiceKey("integrated_diagram_service")
 
 
 # Generate input types for each node
-{% for type_info in strawberry_types %}
+{% for type_info in mutations.strawberry_types %}
 @strawberry.input
 class Create{{ type_info.class_name }}Input:
     """Input for creating a {{ type_info.display_name }} node"""
@@ -54,7 +54,7 @@ class Update{{ type_info.class_name }}Input:
 class NodeMutations:
     """Type-safe mutations for node operations"""
     
-{% for mutation in mutations %}
+{% for mutation in mutations.mutations %}
     @strawberry.mutation
     async def {{ mutation.name }}(
         self,
@@ -107,7 +107,7 @@ class NodeMutations:
 # Export mutations
 __all__ = [
     'NodeMutations',
-{% for type_info in strawberry_types %}
+{% for type_info in mutations.strawberry_types %}
     'Create{{ type_info.class_name }}Input',
     'Update{{ type_info.class_name }}Input',
 {% endfor %}

@@ -162,70 +162,13 @@ class LLMInfraService(BaseService, LLMServicePort):
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             service = api_key_data["service"]
             
-            if service == "openai":
-                try:
-                    from openai import OpenAI
-                    raw_key = self._get_api_key(api_key_id)
-                    client = OpenAI(api_key=raw_key)
-                    models_response = client.models.list()
-                    
-                    chat_models = []
-                    for model in models_response.data:
-                        model_id = model.id
-                        if any(prefix in model_id for prefix in ["gpt-", "o1", "o3", "chatgpt"]):
-                            chat_models.append(model_id)
-                    
-                    if "gpt-4.1-nano" not in chat_models:
-                        chat_models.append("gpt-4.1-nano")
-                    
-                    chat_models.sort(reverse=True)
-                    return chat_models
-                    
-                except Exception as e:
-                    if hasattr(self, 'logger'):
-                        self.logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
-                    return []
-            elif service == "anthropic":
-                try:
-                    import anthropic
-                    raw_key = self._get_api_key(api_key_id)
-                    client = anthropic.Anthropic(api_key=raw_key)
-                    models_response = client.models.list(limit=50)
-                    
-                    model_ids = []
-                    for model in models_response.data:
-                        model_ids.append(model.id)
-                    
-                    model_ids.sort(reverse=True)
-                    return model_ids
-                    
-                except Exception as e:
-                    if hasattr(self, 'logger'):
-                        self.logger.warning(f"Failed to fetch Anthropic models dynamically: {e}")
-                    return []
-            elif service == "google":
-                try:
-                    from google import genai
-                    raw_key = self._get_api_key(api_key_id)
-                    client = genai.Client(api_key=raw_key)
-                    
-                    chat_models = []
-                    for model in client.models.list():
-                        if "generateContent" in model.supported_actions:
-                            model_name = model.name
-                            if model_name.startswith("models/"):
-                                model_name = model_name[7:]
-                            chat_models.append(model_name)
-                    
-                    chat_models.sort(reverse=True)
-                    return chat_models
-                    
-                except Exception as e:
-                    if hasattr(self, 'logger'):
-                        self.logger.warning(f"Failed to fetch Google models dynamically: {e}")
-                    return []
-            else:
-                return []
+            # Get an adapter for the service
+            # Use a dummy model name since we just need the adapter to list models
+            adapter = await self._get_client(service, "dummy", api_key_id)
+            
+            # Delegate to the adapter's get_available_models method
+            return await adapter.get_available_models()
+            
         except Exception as e:
             raise LLMServiceError(
                 service="llm", message=f"Failed to get available models: {e}"

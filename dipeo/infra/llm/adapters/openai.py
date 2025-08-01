@@ -292,3 +292,32 @@ class ChatGPTAdapter(BaseLLMAdapter):
         result = await self.chat_async(messages, **kwargs)
         if result.text:
             yield result.text
+    
+    async def get_available_models(self) -> list[str]:
+        """Get available OpenAI models."""
+        try:
+            models_response = await asyncio.to_thread(self.client.models.list)
+            
+            chat_models = []
+            for model in models_response.data:
+                model_id = model.id
+                if any(prefix in model_id for prefix in ["gpt-", "o1", "o3", "chatgpt"]):
+                    chat_models.append(model_id)
+            
+            # Ensure gpt-4.1-nano is included
+            if "gpt-4.1-nano" not in chat_models:
+                chat_models.append("gpt-4.1-nano")
+            
+            chat_models.sort(reverse=True)
+            return chat_models
+            
+        except Exception as e:
+            logger.warning(f"Failed to fetch OpenAI models dynamically: {e}")
+            # Return default models as fallback
+            return [
+                "gpt-4.1-nano",
+                "gpt-4o-mini",
+                "gpt-4o",
+                "gpt-4-turbo",
+                "gpt-3.5-turbo"
+            ]

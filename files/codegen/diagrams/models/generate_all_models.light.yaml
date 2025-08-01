@@ -71,7 +71,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 450}
     props:
-      diagram_name: codegen/diagrams/models/generate_strawberry_types
+      diagram_name: codegen/diagrams/models/generate_strawberry_types_v2
       diagram_format: light
       passInputData: false
 
@@ -80,7 +80,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 500}
     props:
-      diagram_name: codegen/diagrams/models/generate_strawberry_mutations
+      diagram_name: codegen/diagrams/models/generate_strawberry_mutations_v2
       diagram_format: light
       passInputData: false
 
