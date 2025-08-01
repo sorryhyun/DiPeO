@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for person_batch_job
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { personBatchJobFields } from '../fields/PersonBatchJobFields';
@@ -13,7 +21,7 @@ export const personBatchJobConfig: UnifiedNodeConfig = {
       { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

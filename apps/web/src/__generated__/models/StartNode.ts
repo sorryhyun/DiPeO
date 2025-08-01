@@ -1,8 +1,16 @@
+
+
+
+
+
+
+
+
 // Auto-generated TypeScript model for start node
 import { z } from 'zod';
 
 export interface StartNodeData {
-  trigger_mode: string;
+  trigger_mode: enum;
   custom_data?: string;
   output_data_structure?: Record<string, any>;
   hook_event?: string;

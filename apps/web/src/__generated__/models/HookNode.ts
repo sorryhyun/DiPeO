@@ -1,8 +1,16 @@
+
+
+
+
+
+
+
+
 // Auto-generated TypeScript model for hook node
 import { z } from 'zod';
 
 export interface HookNodeData {
-  hook_type: string;
+  hook_type: enum;
   command?: string;
   url?: string;
   timeout?: number;

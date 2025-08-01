@@ -1,0 +1,128 @@
+# Frontend Single Node Generation - Simplified Version
+# Follows the successful pattern from generate_zod_schemas_v2
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+
+  # Extract node type from input
+  - label: Parse Input
+    type: code_job
+    position: {x: 200, y: 200}
+    props:
+      language: python
+      code: |
+        # Handle both direct and nested input
+        if "node_spec_path" in default:
+            node_type = default["node_spec_path"]
+        elif "default" in default and isinstance(default["default"], dict):
+            node_type = default["default"]["node_spec_path"]
+        else:
+            raise ValueError(f"node_spec_path not found in input: {default}")
+        
+        # Clean up node type and return just the string
+        result = node_type.replace('-', '_')
+
+  # Load cached AST data
+  - label: Load AST
+    type: db
+    position: {x: 400, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: ".temp/node_spec_{node_type}_ast.json"  # Direct template interpolation
+      serialize_json: true
+  
+  # Prepare inputs for extractor
+  - label: Prepare Extractor Inputs
+    type: code_job
+    position: {x: 550, y: 200}
+    props:
+      language: python
+      code: |
+        # Combine AST data and node type into proper format
+        result = {
+            'ast_data': inputs['ast_data'],
+            'node_type': inputs['node_type']  # Now it's already a string
+        }
+  
+  # Extract all frontend data in one step
+  - label: Extract Frontend Data
+    type: code_job
+    position: {x: 700, y: 200}
+    props:
+      language: python
+      filePath: files/codegen/code/frontend/extractors/frontend_node_extractor.py
+      functionName: main
+
+  # Generate all three files using template_job
+  - label: Generate TypeScript Model
+    type: template_job
+    position: {x: 800, y: 100}
+    props:
+      engine: jinja2
+      template_path: files/codegen/templates/frontend/typescript_model.j2
+      output_path: apps/web/src/__generated__/models/{node_naming.node_name}Node.ts
+
+  - label: Generate Node Config
+    type: template_job
+    position: {x: 800, y: 200}
+    props:
+      engine: jinja2
+      template_path: files/codegen/templates/frontend/node_config.j2
+      output_path: apps/web/src/__generated__/nodes/{node_naming.node_name}Config.ts
+
+  - label: Generate Field Config
+    type: template_job
+    position: {x: 800, y: 300}
+    props:
+      engine: jinja2
+      template_path: files/codegen/templates/frontend/field_config.j2
+      output_path: apps/web/src/__generated__/fields/{node_naming.node_name}Fields.ts
+
+  - label: End
+    type: endpoint
+    position: {x: 1000, y: 200}
+    props:
+      save_to_file: false
+
+connections:
+  # Parse input
+  - from: Start
+    to: Parse Input
+    
+  # Pass node_type for template interpolation
+  - from: Parse Input
+    to: Load AST
+    label: node_type
+    
+  # Prepare inputs
+  - from: Load AST
+    to: Prepare Extractor Inputs
+    label: ast_data
+  - from: Parse Input
+    to: Prepare Extractor Inputs
+    label: node_type
+  
+  # Extract all data
+  - from: Prepare Extractor Inputs
+    to: Extract Frontend Data
+  
+  # Pass extracted data directly to template jobs (no label = auto unwrap)
+  - from: Extract Frontend Data
+    to: Generate TypeScript Model
+  - from: Extract Frontend Data
+    to: Generate Node Config
+  - from: Extract Frontend Data
+    to: Generate Field Config
+    
+  # All complete
+  - from: Generate TypeScript Model
+    to: End
+  - from: Generate Node Config
+    to: End
+  - from: Generate Field Config
+    to: End

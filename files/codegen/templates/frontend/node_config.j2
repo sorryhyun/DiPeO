@@ -9,17 +9,17 @@ export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
   nodeType: '{{ nodeType }}',
   category: '{{ category | default('utility') }}',
   handles: {
-{%- if handles.inputs %}
+{%- if handles and handles.inputs %}
     input: [
 {%- for input in handles.inputs %}
-      { label: '{{ input.label }}', displayLabel: '{{ input.displayLabel }}', position: '{{ input.position }}' },
+      { label: '{{ input.label | default('') }}', displayLabel: '{{ input.displayLabel | default('') }}', position: '{{ input.position | default('left') }}' },
 {%- endfor %}
     ],
 {%- endif %}
-{%- if handles.outputs %}
+{%- if handles and handles.outputs %}
     output: [
 {%- for output in handles.outputs %}
-      { label: '{{ output.label }}', displayLabel: '{{ output.displayLabel }}', position: '{{ output.position }}' },
+      { label: '{{ output.label | default('') }}', displayLabel: '{{ output.displayLabel | default('') }}', position: '{{ output.position | default('right') }}' },
 {%- endfor %}
     ],
 {%- endif %}

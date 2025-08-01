@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for json_schema_validator
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { jsonSchemaValidatorFields } from '../fields/JsonSchemaValidatorFields';
@@ -13,7 +21,7 @@ export const jsonSchemaValidatorConfig: UnifiedNodeConfig = {
       { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

@@ -1,8 +1,16 @@
+
+
+
+
+
+
+
+
 // Auto-generated TypeScript model for code_job node
 import { z } from 'zod';
 
 export interface CodeJobNodeData {
-  language: string;
+  language: enum;
   filePath: string;
   functionName?: string;
   timeout?: number;

@@ -304,6 +304,161 @@ class TypeScriptToPythonFilters:
         cls._type_cache.clear()
     
     @classmethod
+    def typescript_type(cls, field: Dict[str, Any]) -> str:
+        """Get TypeScript type from field definition."""
+        field_type = field.get('type', 'string')
+        
+        # Special handling for enum fields with values
+        if field_type == 'enum' and 'values' in field:
+            values = field.get('values', [])
+            if values:
+                # Generate union type from enum values
+                return ' | '.join(f"'{v}'" for v in values)
+            else:
+                return 'string'  # Fallback if no values specified
+        
+        # Map to TypeScript type
+        type_map = {
+            'string': 'string',
+            'str': 'string',
+            'text': 'string',
+            'number': 'number',
+            'int': 'number',
+            'integer': 'number',
+            'float': 'number',
+            'bool': 'boolean',
+            'boolean': 'boolean',
+            'dict': 'Record<string, any>',
+            'object': 'Record<string, any>',
+            'list': 'any[]',
+            'array': 'any[]',
+            'any': 'any',
+            'null': 'null',
+            'undefined': 'undefined',
+            'void': 'void'
+        }
+        
+        # Handle array types
+        if field_type.endswith('[]'):
+            inner_type = field_type[:-2]
+            return f"{cls.typescript_type({'type': inner_type})}[]"
+        
+        return type_map.get(field_type.lower(), field_type)
+    
+    @classmethod
+    def ui_field_type(cls, field: Dict[str, Any]) -> str:
+        """Get UI field type from field definition."""
+        ui_config = field.get('uiConfig', {})
+        if 'inputType' in ui_config:
+            return ui_config['inputType']
+        
+        # Map field type to UI type
+        field_type = field.get('type', 'string')
+        type_ui_map = {
+            'string': 'text',
+            'str': 'text',
+            'text': 'textarea',
+            'number': 'number',
+            'int': 'number',
+            'integer': 'number',
+            'float': 'number',
+            'bool': 'checkbox',
+            'boolean': 'checkbox',
+            'array': 'code',
+            'list': 'code',
+            'object': 'code',
+            'dict': 'code',
+            'enum': 'select',
+            'select': 'select',
+            'date': 'date',
+            'datetime': 'datetime',
+            'time': 'time',
+            'file': 'file',
+            'password': 'password',
+            'email': 'email',
+            'url': 'url',
+            'color': 'color'
+        }
+        
+        return type_ui_map.get(field_type, 'text')
+    
+    @classmethod
+    def zod_schema(cls, field: Dict[str, Any]) -> str:
+        """Generate Zod schema for field validation."""
+        field_type = field.get('type', 'string')
+        required = field.get('required', False)
+        
+        # Special handling for enum fields
+        if field_type == 'enum' and 'values' in field:
+            values = field.get('values', [])
+            if values:
+                # Generate z.enum() for enum fields
+                enum_values = ', '.join(f'"{v}"' for v in values)
+                base_schema = f'z.enum([{enum_values}])'
+            else:
+                base_schema = 'z.string()'
+        else:
+            # Base schemas for other types
+            schema_map = {
+                'string': 'z.string()',
+                'str': 'z.string()',
+                'text': 'z.string()',
+                'number': 'z.number()',
+                'int': 'z.number()',
+                'integer': 'z.number()',
+                'float': 'z.number()',
+                'bool': 'z.boolean()',
+                'boolean': 'z.boolean()',
+                'array': 'z.array(z.any())',
+                'list': 'z.array(z.any())',
+                'object': 'z.record(z.any())',
+                'dict': 'z.record(z.any())',
+                'any': 'z.any()',
+                'null': 'z.null()',
+                'undefined': 'z.undefined()'
+            }
+            
+            base_schema = schema_map.get(field_type, 'z.any()')
+        
+        # Add validation
+        validations = []
+        if field.get('validation'):
+            val = field['validation']
+            if 'min' in val:
+                validations.append(f'.min({val["min"]})')
+            if 'max' in val:
+                validations.append(f'.max({val["max"]})')
+            if 'pattern' in val:
+                # Escape forward slashes in the pattern for JavaScript regex literal
+                escaped_pattern = val["pattern"].replace('/', '\\/')
+                validations.append(f'.regex(/{escaped_pattern}/)')
+        
+        schema = base_schema + ''.join(validations)
+        
+        # Handle optional
+        if not required:
+            schema += '.optional()'
+        
+        return schema
+    
+    @classmethod
+    def escape_js(cls, value: str) -> str:
+        """Escape string for use in JavaScript."""
+        if not isinstance(value, str):
+            value = str(value)
+        return value.replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
+    
+    @classmethod
+    def humanize(cls, value: str) -> str:
+        """Convert snake_case or camelCase to human readable format."""
+        import re
+        # First convert camelCase to snake_case
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', value)
+        s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        # Then convert to title case
+        return ' '.join(word.title() for word in s2.split('_'))
+    
+    @classmethod
     def get_all_filters(cls) -> dict:
         """Get all filter methods as a dictionary."""
         return {
@@ -315,6 +470,12 @@ class TypeScriptToPythonFilters:
             'py_default_value': cls.get_default_value,
             'get_py_imports': cls.get_python_imports,
             'strip_comments': cls.strip_inline_comments,
+            # Codegen-specific filters
+            'typescript_type': cls.typescript_type,
+            'ui_field_type': cls.ui_field_type,
+            'zod_schema': cls.zod_schema,
+            'escape_js': cls.escape_js,
+            'humanize': cls.humanize,
             # Aliases
             'to_py': cls.ts_to_python_type,
         }

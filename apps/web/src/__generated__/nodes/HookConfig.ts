@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for hook
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { hookFields } from '../fields/HookFields';
@@ -18,6 +26,9 @@ export const hookConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    hook_type: 'shell',
+    timeout: 60,
+    retry_count: 0,
   },
   customFields: hookFields,
   primaryDisplayField: 'hook_type',

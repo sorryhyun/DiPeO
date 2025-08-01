@@ -1,17 +1,21 @@
+
+
+
+
+
+
+
+
 // Generated field configuration for person_job
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const personJobFields: UnifiedFieldDefinition[] = [
   {
-    name: 'default_prompt',
-    type: 'textarea',
-    label: 'Default Prompt',
+    name: 'person',
+    type: 'personSelect',
+    label: 'Person',
     required: false,
-    placeholder: 'Enter prompt template...',
-    description: 'Default prompt template',
-    rows: 10,
-    column: 2,
-    adjustable: true,
+    description: 'AI person to use',
   },
   {
     name: 'first_only_prompt',
@@ -25,6 +29,17 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     adjustable: true,
   },
   {
+    name: 'default_prompt',
+    type: 'textarea',
+    label: 'Default Prompt',
+    required: false,
+    placeholder: 'Enter prompt template...',
+    description: 'Default prompt template',
+    rows: 10,
+    column: 2,
+    adjustable: true,
+  },
+  {
     name: 'max_iteration',
     type: 'number',
     label: 'Max Iteration',
@@ -32,13 +47,6 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     defaultValue: 1,
     description: 'Maximum execution iterations',
     min: 1,
-  },
-  {
-    name: 'memory_config',
-    type: 'code',
-    label: 'Memory Config',
-    required: false,
-    description: 'Deprecated memory configuration',
   },
   {
     name: 'memory_profile',
@@ -54,6 +62,13 @@ export const personJobFields: UnifiedFieldDefinition[] = [
       { value: 'GOLDFISH', label: 'Goldfish 🐠 - Last 1-2 exchanges only' },
       { value: 'CUSTOM', label: 'Custom ⚙️ - Use memory_settings below' },
     ],
+  },
+  {
+    name: 'memory_config',
+    type: 'code',
+    label: 'Memory Config',
+    required: false,
+    description: 'Deprecated memory configuration',
   },
   {
     name: 'memory_settings',
@@ -104,13 +119,6 @@ export const personJobFields: UnifiedFieldDefinition[] = [
         },
       },
     ],
-  },
-  {
-    name: 'person',
-    type: 'personSelect',
-    label: 'Person',
-    required: false,
-    description: 'AI person to use',
   },
   {
     name: 'tools',

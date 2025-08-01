@@ -1,15 +1,15 @@
+
+
+
+
+
+
+
+
 // Generated field configuration for person_batch_job
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const personBatchJobFields: UnifiedFieldDefinition[] = [
-  {
-    name: 'batch_key',
-    type: 'text',
-    label: 'Batch Key',
-    required: true,
-    placeholder: 'Key containing the array to iterate over',
-    description: 'Key containing the array to iterate over',
-  },
   {
     name: 'person',
     type: 'text',
@@ -17,6 +17,14 @@ export const personBatchJobFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: 'Select a person',
     description: 'Person configuration for AI model',
+  },
+  {
+    name: 'batch_key',
+    type: 'text',
+    label: 'Batch Key',
+    required: true,
+    placeholder: 'Key containing the array to iterate over',
+    description: 'Key containing the array to iterate over',
   },
   {
     name: 'prompt',

@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for typescript_ast
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { typescriptAstFields } from '../fields/TypescriptAstFields';
@@ -18,6 +26,12 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    extractPatterns: ["interface", "type", "enum"],
+    includeJSDoc: false,
+    parseMode: 'module',
+    transformEnums: false,
+    flattenOutput: false,
+    outputFormat: 'standard',
   },
   customFields: typescriptAstFields,
   primaryDisplayField: 'operation',

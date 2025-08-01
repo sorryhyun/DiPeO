@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for user_response
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { userResponseFields } from '../fields/UserResponseFields';
@@ -13,7 +21,7 @@ export const userResponseConfig: UnifiedNodeConfig = {
       { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

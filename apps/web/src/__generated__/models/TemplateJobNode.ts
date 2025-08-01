@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated TypeScript model for template_job node
 import { z } from 'zod';
 
@@ -6,7 +14,7 @@ export interface TemplateJobNodeData {
   template_content?: string;
   output_path?: string;
   variables?: Record<string, any>;
-  engine?: string;
+  engine?: enum;
 }
 
 // Zod schema for validation

@@ -1,14 +1,15 @@
+
+
+
+
+
+
+
+
 // Generated field configuration for sub_diagram
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const subDiagramFields: UnifiedFieldDefinition[] = [
-  {
-    name: 'diagram_data',
-    type: 'code',
-    label: 'Diagram Data',
-    required: false,
-    description: 'Inline diagram data (alternative to diagram_name)',
-  },
   {
     name: 'diagram_name',
     type: 'select',
@@ -18,12 +19,11 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     description: 'Name of the diagram to execute (e.g., \'workflow/process\')',
   },
   {
-    name: 'ignoreIfSub',
-    type: 'checkbox',
-    label: 'Ignore If Sub',
+    name: 'diagram_data',
+    type: 'code',
+    label: 'Diagram Data',
     required: false,
-    defaultValue: false,
-    description: 'Skip execution if this diagram is being run as a sub-diagram',
+    description: 'Inline diagram data (alternative to diagram_name)',
   },
   {
     name: 'input_mapping',
@@ -32,14 +32,6 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '{ \"targetVar\": \"sourceInput\" }',
     description: 'Map node inputs to sub-diagram variables',
-  },
-  {
-    name: 'isolate_conversation',
-    type: 'checkbox',
-    label: 'Isolate Conversation',
-    required: false,
-    defaultValue: false,
-    description: 'Create isolated conversation context for sub-diagram',
   },
   {
     name: 'output_mapping',
@@ -74,5 +66,21 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     required: false,
     defaultValue: true,
     description: 'Whether to wait for sub-diagram completion',
+  },
+  {
+    name: 'isolate_conversation',
+    type: 'checkbox',
+    label: 'Isolate Conversation',
+    required: false,
+    defaultValue: false,
+    description: 'Create isolated conversation context for sub-diagram',
+  },
+  {
+    name: 'ignoreIfSub',
+    type: 'checkbox',
+    label: 'Ignore If Sub',
+    required: false,
+    defaultValue: false,
+    description: 'Skip execution if this diagram is being run as a sub-diagram',
   },
 ];

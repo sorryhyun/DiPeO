@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for sub_diagram
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { subDiagramFields } from '../fields/SubDiagramFields';
@@ -13,10 +21,13 @@ export const subDiagramConfig: UnifiedNodeConfig = {
       { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
+    wait_for_completion: true,
+    isolate_conversation: false,
+    ignoreIfSub: false,
   },
   customFields: subDiagramFields,
   primaryDisplayField: 'diagram_path',

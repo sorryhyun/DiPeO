@@ -1,22 +1,15 @@
+
+
+
+
+
+
+
+
 // Generated field configuration for code_job
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const codeJobFields: UnifiedFieldDefinition[] = [
-  {
-    name: 'filePath',
-    type: 'text',
-    label: 'File Path',
-    required: true,
-    placeholder: '/path/to/file',
-    description: 'Path to code file',
-  },
-  {
-    name: 'functionName',
-    type: 'text',
-    label: 'Function Name',
-    required: false,
-    description: 'Function to execute',
-  },
   {
     name: 'language',
     type: 'select',
@@ -32,6 +25,21 @@ export const codeJobFields: UnifiedFieldDefinition[] = [
     validate: (value: unknown) => {
       return { isValid: true };
     },
+  },
+  {
+    name: 'filePath',
+    type: 'text',
+    label: 'File Path',
+    required: true,
+    placeholder: '/path/to/file',
+    description: 'Path to code file',
+  },
+  {
+    name: 'functionName',
+    type: 'text',
+    label: 'Function Name',
+    required: false,
+    description: 'Function to execute',
   },
   {
     name: 'timeout',

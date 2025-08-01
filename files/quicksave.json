@@ -4,92 +4,109 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
+        "x": 50,
         "y": 200
       },
       "data": {
         "label": "start",
-        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {}
       }
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "code_job",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 200,
+        "y": 200
       },
       "data": {
-        "label": "printer",
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person_person_1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        }
+        "label": "parse input",
+        "code": "# Handle both direct and nested input\nif \"node_spec_path\" in default:\n    node_type = default[\"node_spec_path\"]\nelif \"default\" in default and isinstance(default[\"default\"], dict):\n    node_type = default[\"default\"][\"node_spec_path\"]\nelse:\n    raise ValueError(f\"node_spec_path not found in input: {default}\")\n\n# Clean up node type\nnode_type = node_type.replace('-', '_')\n\nresult = {\n    'node_type': node_type,\n    'cache_file': f'.temp/node_spec_{node_type}_ast.json'\n}\n",
+        "language": "python"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "db",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 400,
+        "y": 200
       },
       "data": {
-        "label": "condition",
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
-        ]
+        "label": "load ast",
+        "operation": "read",
+        "serialize_json": true,
+        "sub_type": "file",
+        "file": "{input_data.cache_file}"
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "code_job",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 600,
+        "y": 200
       },
       "data": {
-        "label": "endpoint",
-        "file_format": "txt",
-        "save_to_file": true,
-        "file_name": "files/results/total.txt",
-        "flipped": [
-          true,
-          false
-        ]
+        "label": "extract frontend data",
+        "filePath": "files/codegen/code/frontend/extractors/frontend_node_extractor.py",
+        "functionName": "main",
+        "language": "python"
       }
     },
     {
       "id": "node_4",
-      "type": "person_job",
+      "type": "template_job",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 800,
+        "y": 100
       },
       "data": {
-        "label": "ask",
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
-        ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person_person_1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        }
+        "label": "generate typescript model",
+        "engine": "jinja2",
+        "output_path": "apps/web/src/__generated__/models/{node_naming.node_name}Node.ts",
+        "template_path": "files/codegen/templates/frontend/typescript_model.j2"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "template_job",
+      "position": {
+        "x": 800,
+        "y": 200
+      },
+      "data": {
+        "label": "generate node config",
+        "engine": "jinja2",
+        "output_path": "apps/web/src/__generated__/nodes/{node_naming.node_name}Config.ts",
+        "template_path": "files/codegen/templates/frontend/node_config.j2"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "template_job",
+      "position": {
+        "x": 800,
+        "y": 300
+      },
+      "data": {
+        "label": "generate field config",
+        "engine": "jinja2",
+        "output_path": "apps/web/src/__generated__/fields/{node_naming.node_name}Fields.ts",
+        "template_path": "files/codegen/templates/frontend/field_config.j2"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "endpoint",
+      "position": {
+        "x": 1000,
+        "y": 200
+      },
+      "data": {
+        "label": "end",
+        "save_to_file": false
       }
     }
   ],
@@ -98,60 +115,84 @@
       "id": "arrow_0",
       "source": "node_0_default_output",
       "target": "node_1_default_input",
-      "content_type": "raw_text",
       "label": null,
-      "data": null
+      "data": null,
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "content_type": "conversation_state",
-      "label": null,
-      "data": null
+      "label": "input_data",
+      "data": null,
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
-      "content_type": "conversation_state",
-      "label": null,
-      "data": {
-        "branch": "false"
-      }
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "label": "ast_data",
+      "data": null,
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_3",
-      "source": "node_2_condtrue_output",
-      "target": "node_4_default_input",
-      "content_type": "conversation_state",
-      "label": null,
-      "data": {
-        "branch": "true"
-      }
+      "source": "node_1_default_output",
+      "target": "node_3_default_input",
+      "label": "node_type",
+      "data": null,
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_4",
-      "source": "node_4_default_output",
-      "target": "node_3_default_input",
-      "content_type": "raw_text",
+      "source": "node_3_default_output",
+      "target": "node_4_default_input",
       "label": null,
-      "data": null
-    }
-  ],
-  "persons": [
+      "data": null,
+      "content_type": "raw_text"
+    },
     {
-      "id": "person_person_1",
-      "label": "person 1",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-4.1-nano",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": null
-      },
-      "type": "person"
+      "id": "arrow_5",
+      "source": "node_3_default_output",
+      "target": "node_5_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_3_default_output",
+      "target": "node_6_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_4_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_5_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
     }
   ],
+  "persons": [],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -160,14 +201,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -194,19 +227,11 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -218,12 +243,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_input",
@@ -240,16 +265,168 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_0__output",
+      "node_id": "node_0",
+      "label": "",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_1__input",
+      "node_id": "node_1",
+      "label": "",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_1__output",
+      "node_id": "node_1",
+      "label": "",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_2__input",
+      "node_id": "node_2",
+      "label": "",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_2__output",
+      "node_id": "node_2",
+      "label": "",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_3__input",
+      "node_id": "node_3",
+      "label": "",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_3__output",
+      "node_id": "node_3",
+      "label": "",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_4__input",
+      "node_id": "node_4",
+      "label": "",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4__output",
+      "node_id": "node_4",
+      "label": "",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_5__input",
+      "node_id": "node_5",
+      "label": "",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5__output",
+      "node_id": "node_5",
+      "label": "",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6__input",
+      "node_id": "node_6",
+      "label": "",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6__output",
+      "node_id": "node_6",
+      "label": "",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7__input",
+      "node_id": "node_7",
+      "label": "",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
-    "name": "diagrams/examples/simple_iter.light.yaml",
+    "name": "Untitled",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-07-31T05:50:49.007Z",
-    "modified": "2025-07-31T05:50:49.007Z",
+    "created": "2025-08-01T12:48:29.996Z",
+    "modified": "2025-08-01T12:48:29.996Z",
     "version": "1.0.0",
-    "id": "diagrams/examples/simple_iter.light.yaml"
+    "id": null
   }
 }

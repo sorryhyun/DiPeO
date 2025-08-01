@@ -1,10 +1,18 @@
+
+
+
+
+
+
+
+
 // Auto-generated TypeScript model for db node
 import { z } from 'zod';
 
 export interface DbNodeData {
   file?: string;
   collection?: string;
-  sub_type: string;
+  sub_type: enum;
   operation: string;
   query?: string;
   data?: Record<string, any>;

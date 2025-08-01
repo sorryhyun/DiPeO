@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for template_job
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { templateJobFields } from '../fields/TemplateJobFields';
@@ -13,7 +21,7 @@ export const templateJobConfig: UnifiedNodeConfig = {
       { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

@@ -13,6 +13,7 @@ from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.services.template.template_integration import get_enhanced_template_service
+from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
@@ -98,16 +99,27 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             # Add inputs from connected nodes
             if inputs:
-                template_vars.update(inputs)
+                # Check if we have a single 'default' key with dict value
+                if len(inputs) == 1 and 'default' in inputs and isinstance(inputs['default'], dict):
+                    # Unwrap the default for better template ergonomics
+                    template_vars.update(inputs['default'])
+                    # Debug logging for transparency
+                    # print(f"[DEBUG] Unwrapped 'default' input containing keys: {list(inputs['default'].keys())}")
+                else:
+                    template_vars.update(inputs)
 
             # Get template content
             # print(f"[DEBUG] Getting template content...")
             if node.template_content:
                 template_content = node.template_content
             else:
-                # Process template_path through template service to handle variables
+                # First process single bracket {} interpolation for diagram variables
+                template_processor = TemplateProcessor()
+                processed_path = template_processor.process_single_brace(node.template_path, template_vars)
+                
+                # Then process Jinja2 {{ }} syntax if present
                 template_service = self._get_template_service()
-                processed_template_path = template_service.render_string(node.template_path, **template_vars).strip()
+                processed_template_path = template_service.render_string(processed_path, **template_vars).strip()
                 # print(f"[DEBUG] Processed template_path: {processed_template_path}")
                 
                 # Load from file - just use the path as-is since filesystem adapter handles base path
@@ -161,9 +173,13 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
-                # Process output_path through template service to handle variables
+                # First process single bracket {} interpolation for diagram variables
+                template_processor = TemplateProcessor()
+                processed_path = template_processor.process_single_brace(node.output_path, template_vars)
+                
+                # Then process Jinja2 {{ }} syntax if present
                 template_service = self._get_template_service()
-                processed_output_path = template_service.render_string(node.output_path, **template_vars).strip()
+                processed_output_path = template_service.render_string(processed_path, **template_vars).strip()
                 
                 output_path = Path(processed_output_path)
                 

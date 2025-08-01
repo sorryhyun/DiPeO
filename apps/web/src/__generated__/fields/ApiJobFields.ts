@@ -1,43 +1,22 @@
+
+
+
+
+
+
+
+
 // Generated field configuration for api_job
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const apiJobFields: UnifiedFieldDefinition[] = [
   {
-    name: 'auth_config',
-    type: 'code',
-    label: 'Auth Config',
-    required: false,
-    description: 'Authentication configuration',
-  },
-  {
-    name: 'auth_type',
-    type: 'select',
-    label: 'Auth Type',
-    required: false,
-    description: 'Authentication type',
-    options: [
-      { value: 'none', label: 'None' },
-      { value: 'bearer', label: 'Bearer Token' },
-      { value: 'basic', label: 'Basic Auth' },
-      { value: 'api_key', label: 'API Key' },
-    ],
-    validate: (value: unknown) => {
-      return { isValid: true };
-    },
-  },
-  {
-    name: 'body',
-    type: 'code',
-    label: 'Body',
-    required: false,
-    description: 'Request body',
-  },
-  {
-    name: 'headers',
-    type: 'code',
-    label: 'Headers',
-    required: false,
-    description: 'HTTP headers',
+    name: 'url',
+    type: 'text',
+    label: 'Url',
+    required: true,
+    placeholder: 'https://example.com',
+    description: 'API endpoint URL',
   },
   {
     name: 'method',
@@ -57,11 +36,25 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
     },
   },
   {
+    name: 'headers',
+    type: 'code',
+    label: 'Headers',
+    required: false,
+    description: 'HTTP headers',
+  },
+  {
     name: 'params',
     type: 'code',
     label: 'Params',
     required: false,
     description: 'Query parameters',
+  },
+  {
+    name: 'body',
+    type: 'code',
+    label: 'Body',
+    required: false,
+    description: 'Request body',
   },
   {
     name: 'timeout',
@@ -73,11 +66,26 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
     max: 3600,
   },
   {
-    name: 'url',
-    type: 'text',
-    label: 'Url',
-    required: true,
-    placeholder: 'https://example.com',
-    description: 'API endpoint URL',
+    name: 'auth_type',
+    type: 'select',
+    label: 'Auth Type',
+    required: false,
+    description: 'Authentication type',
+    options: [
+      { value: 'none', label: 'None' },
+      { value: 'bearer', label: 'Bearer Token' },
+      { value: 'basic', label: 'Basic Auth' },
+      { value: 'api_key', label: 'API Key' },
+    ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
+  },
+  {
+    name: 'auth_config',
+    type: 'code',
+    label: 'Auth Config',
+    required: false,
+    description: 'Authentication configuration',
   },
 ];

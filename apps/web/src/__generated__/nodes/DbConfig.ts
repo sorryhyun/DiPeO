@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for db
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { dbFields } from '../fields/DbFields';
@@ -13,10 +21,11 @@ export const dbConfig: UnifiedNodeConfig = {
       { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
+    serialize_json: false,
   },
   customFields: dbFields,
   primaryDisplayField: 'operation',

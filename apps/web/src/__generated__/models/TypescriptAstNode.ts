@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated TypeScript model for typescript_ast node
 import { z } from 'zod';
 
@@ -5,10 +13,10 @@ export interface TypescriptAstNodeData {
   source: string;
   extractPatterns?: any[];
   includeJSDoc?: boolean;
-  parseMode?: string;
+  parseMode?: enum;
   transformEnums?: boolean;
   flattenOutput?: boolean;
-  outputFormat?: string;
+  outputFormat?: enum;
 }
 
 // Zod schema for validation

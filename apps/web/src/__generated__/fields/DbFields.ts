@@ -1,21 +1,15 @@
+
+
+
+
+
+
+
+
 // Generated field configuration for db
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const dbFields: UnifiedFieldDefinition[] = [
-  {
-    name: 'collection',
-    type: 'text',
-    label: 'Collection',
-    required: false,
-    description: 'Database collection name',
-  },
-  {
-    name: 'data',
-    type: 'code',
-    label: 'Data',
-    required: false,
-    description: 'Data configuration',
-  },
   {
     name: 'file',
     type: 'text',
@@ -24,26 +18,11 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: 'File path or array of file paths',
   },
   {
-    name: 'operation',
+    name: 'collection',
     type: 'text',
-    label: 'Operation',
-    required: true,
-    description: 'Operation configuration',
-  },
-  {
-    name: 'query',
-    type: 'text',
-    label: 'Query',
+    label: 'Collection',
     required: false,
-    description: 'Query configuration',
-  },
-  {
-    name: 'serialize_json',
-    type: 'checkbox',
-    label: 'Serialize Json',
-    required: false,
-    defaultValue: false,
-    description: 'Serialize structured data to JSON string (for backward compatibility)',
+    description: 'Database collection name',
   },
   {
     name: 'sub_type',
@@ -60,5 +39,34 @@ export const dbFields: UnifiedFieldDefinition[] = [
     validate: (value: unknown) => {
       return { isValid: true };
     },
+  },
+  {
+    name: 'operation',
+    type: 'text',
+    label: 'Operation',
+    required: true,
+    description: 'Operation configuration',
+  },
+  {
+    name: 'query',
+    type: 'text',
+    label: 'Query',
+    required: false,
+    description: 'Query configuration',
+  },
+  {
+    name: 'data',
+    type: 'code',
+    label: 'Data',
+    required: false,
+    description: 'Data configuration',
+  },
+  {
+    name: 'serialize_json',
+    type: 'checkbox',
+    label: 'Serialize Json',
+    required: false,
+    defaultValue: false,
+    description: 'Serialize structured data to JSON string (for backward compatibility)',
   },
 ];

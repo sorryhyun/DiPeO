@@ -144,6 +144,7 @@ def main(inputs: dict) -> dict:
     """Main entry point for Zod schemas extraction"""
     import json
     from pathlib import Path
+    from datetime import datetime
     
     # Check if we have the new format (single input with multiple files)
     if 'ast_files' in inputs and isinstance(inputs['ast_files'], dict):
@@ -210,4 +211,6 @@ def main(inputs: dict) -> dict:
         }
     
     mappings = inputs.get('mappings', {})
-    return extract_zod_schemas(node_data_ast, mappings)
+    result = extract_zod_schemas(node_data_ast, mappings)
+    result['now'] = datetime.now().isoformat()
+    return result

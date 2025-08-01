@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for start
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { startFields } from '../fields/StartFields';
@@ -10,10 +18,11 @@ export const startConfig: UnifiedNodeConfig = {
   category: 'control',
   handles: {
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
+    trigger_mode: 'none',
   },
   customFields: startFields,
 };

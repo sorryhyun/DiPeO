@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for endpoint
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { endpointFields } from '../fields/EndpointFields';

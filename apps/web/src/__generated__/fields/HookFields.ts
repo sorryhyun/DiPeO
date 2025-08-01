@@ -1,15 +1,15 @@
+
+
+
+
+
+
+
+
 // Generated field configuration for hook
 import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 
 export const hookFields: UnifiedFieldDefinition[] = [
-  {
-    name: 'command',
-    type: 'text',
-    label: 'Command',
-    required: false,
-    placeholder: 'Command to execute',
-    description: 'Shell command to run (for shell hooks)',
-  },
   {
     name: 'hook_type',
     type: 'select',
@@ -28,20 +28,23 @@ export const hookFields: UnifiedFieldDefinition[] = [
     },
   },
   {
-    name: 'retry_count',
-    type: 'number',
-    label: 'Retry Count',
+    name: 'command',
+    type: 'text',
+    label: 'Command',
     required: false,
-    defaultValue: 0,
-    description: 'Number of retries on failure',
-    min: 0,
-    max: 5,
+    placeholder: 'Command to execute',
+    description: 'Shell command to run (for shell hooks)',
+  },
+  {
+    name: 'url',
+    type: 'text',
+    label: 'Url',
+    required: false,
+    placeholder: 'https://api.example.com/webhook',
+    description: 'Webhook URL (for HTTP hooks)',
     validate: (value: unknown) => {
-      if (typeof value === 'number' && value < 0) {
-        return { isValid: false, error: 'Value must be at least 0' };
-      }
-      if (typeof value === 'number' && value > 5) {
-        return { isValid: false, error: 'Value must be at most 5' };
+      if (typeof value === 'string' && !new RegExp('^https?://').test(value)) {
+        return { isValid: false, error: 'Invalid format' };
       }
       return { isValid: true };
     },
@@ -66,15 +69,20 @@ export const hookFields: UnifiedFieldDefinition[] = [
     },
   },
   {
-    name: 'url',
-    type: 'text',
-    label: 'Url',
+    name: 'retry_count',
+    type: 'number',
+    label: 'Retry Count',
     required: false,
-    placeholder: 'https://api.example.com/webhook',
-    description: 'Webhook URL (for HTTP hooks)',
+    defaultValue: 0,
+    description: 'Number of retries on failure',
+    min: 0,
+    max: 5,
     validate: (value: unknown) => {
-      if (typeof value === 'string' && !new RegExp('^https?://').test(value)) {
-        return { isValid: false, error: 'Invalid format' };
+      if (typeof value === 'number' && value < 0) {
+        return { isValid: false, error: 'Value must be at least 0' };
+      }
+      if (typeof value === 'number' && value > 5) {
+        return { isValid: false, error: 'Value must be at most 5' };
       }
       return { isValid: true };
     },

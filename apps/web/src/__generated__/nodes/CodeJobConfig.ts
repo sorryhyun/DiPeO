@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // Auto-generated node configuration for code_job
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
 import { codeJobFields } from '../fields/CodeJobFields';
@@ -13,7 +21,7 @@ export const codeJobConfig: UnifiedNodeConfig = {
       { label: 'default', displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: 'Default', position: 'right' },
+      { label: 'default', displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
