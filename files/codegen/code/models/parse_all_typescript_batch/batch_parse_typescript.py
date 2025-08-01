@@ -44,32 +44,55 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     project_root = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
     parser_script = project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
     
-    cmd = [
-        'pnpm', 'tsx', str(parser_script),
-        f'--batch-input={tmp_file_path}',
-        '--patterns=interface,type,enum,const',
-        '--include-jsdoc',
-        '--mode=module'
-    ]
-    
     print(f"Executing batch TypeScript parsing for {len(sources)} files...")
     
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=str(project_root),
-            timeout=60
-        )
+        # On Windows, use pnpm.CMD to avoid bash PATH issues
+        import platform
+        if platform.system() == 'Windows':
+            # Use pnpm.CMD which is the Windows command wrapper
+            cmd = ['pnpm.CMD', 'tsx', str(parser_script), f'--batch-input={tmp_file_path}', '--patterns=interface,type,enum,const', '--include-jsdoc', '--mode=module']
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=str(project_root),
+                timeout=60
+            )
+        else:
+            # On Unix-like systems, use normal command
+            cmd = [
+                'pnpm', 'tsx', str(parser_script),
+                f'--batch-input={tmp_file_path}',
+                '--patterns=interface,type,enum,const',
+                '--include-jsdoc',
+                '--mode=module'
+            ]
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=str(project_root),
+                timeout=60
+            )
         
         # Clean up temp file
         os.unlink(tmp_file_path)
         
         if result.returncode != 0:
+            print(f"Parser failed with return code: {result.returncode}")
+            print(f"stderr: {result.stderr}")
+            print(f"stdout: {result.stdout}")
             raise RuntimeError(f"Parser failed: {result.stderr}")
         
+        # Debug output
+        print(f"Parser stdout length: {len(result.stdout)} chars")
+        print(f"First 500 chars: {result.stdout[:500]}")
+        
         # Parse the batch result
+        if not result.stdout.strip():
+            raise RuntimeError("Parser returned empty output")
+        
         batch_result = json.loads(result.stdout)
         
         # Map results to simplified keys

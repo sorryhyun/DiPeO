@@ -382,22 +382,71 @@ run();
                 else:
                     env[f"INPUT_{key}"] = str(value)
         
-        # Make sure the script is executable
-        if not os.access(file_path, os.X_OK):
-            # Try to make it executable
-            os.chmod(file_path, os.stat(file_path).st_mode | 0o111)
-        
-        # Run the bash script
-        proc = await asyncio.create_subprocess_exec(
-            str(file_path),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=env,
-            cwd=str(file_path.parent)  # Set working directory to script's directory
-        )
+        # On Windows, we need to use bash.exe or sh.exe to run shell scripts
+        if sys.platform == "win32":
+            # Try to find bash.exe (from Git for Windows, WSL, or other sources)
+            bash_cmd = None
+            possible_bash_paths = [
+                "bash.exe",  # In PATH
+                "sh.exe",    # Alternative
+                r"C:\Program Files\Git\bin\bash.exe",  # Git for Windows
+                r"C:\Program Files (x86)\Git\bin\bash.exe",
+                r"C:\Windows\System32\bash.exe",  # WSL
+            ]
+            
+            for bash_path in possible_bash_paths:
+                try:
+                    # Check if bash exists by running a simple command
+                    test_proc = await asyncio.create_subprocess_exec(
+                        bash_path, "-c", "echo test",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, _ = await test_proc.communicate()
+                    if test_proc.returncode == 0 and stdout.strip() == b"test":
+                        bash_cmd = bash_path
+                        break
+                except:
+                    continue
+            
+            if not bash_cmd:
+                raise Exception("Bash interpreter not found. Please install Git for Windows or WSL.")
+            
+            # Read the script content and pass it via stdin to avoid path issues
+            with open(file_path, 'r') as f:
+                script_content = f.read()
+            
+            # Run the script through bash by passing content via stdin
+            proc = await asyncio.create_subprocess_exec(
+                bash_cmd, "-s",  # -s flag reads from stdin
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+                cwd=str(file_path.parent)
+            )
+        else:
+            # On Unix-like systems, make the script executable and run directly
+            if not os.access(file_path, os.X_OK):
+                os.chmod(file_path, os.stat(file_path).st_mode | 0o111)
+            
+            proc = await asyncio.create_subprocess_exec(
+                str(file_path),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+                cwd=str(file_path.parent)
+            )
         
         try:
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            if sys.platform == "win32" and 'script_content' in locals():
+                # Send script content via stdin on Windows
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(input=script_content.encode()),
+                    timeout=timeout
+                )
+            else:
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         except TimeoutError:
             proc.kill()
             await proc.wait()
@@ -500,8 +549,9 @@ run();
             temp_file_path = temp_file.name
         
         try:
-            # Make it executable
-            os.chmod(temp_file_path, os.stat(temp_file_path).st_mode | 0o111)
+            # On Unix-like systems, make it executable
+            if sys.platform != "win32":
+                os.chmod(temp_file_path, os.stat(temp_file_path).st_mode | 0o111)
             
             # Execute using the existing file-based method
             result = await self._execute_bash(Path(temp_file_path), inputs, timeout)

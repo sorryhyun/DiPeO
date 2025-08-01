@@ -66,32 +66,53 @@ class TypeScriptParser(ASTParserPort):
         if not self.parser_script.exists():
             raise ServiceError(f'TypeScript parser script not found at {self.parser_script}')
         
-        cmd = ['pnpm', 'tsx', str(self.parser_script)]
-        
-        if extract_patterns:
-            cmd.append(f'--patterns={",".join(extract_patterns)}')
-        
-        if include_jsdoc:
-            cmd.append('--include-jsdoc')
-        
-        cmd.append(f'--mode={parse_mode}')
-        
         try:
             with tempfile.NamedTemporaryFile(mode='w', suffix='.ts', delete=False) as tmp_file:
                 tmp_file.write(source)
                 tmp_file_path = tmp_file.name
             
-            # Add the file path to the command
-            cmd.append(tmp_file_path)
-            
-            # Run the TypeScript parser
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                cwd=str(self.project_root),
-                timeout=30
-            )
+            # On Windows, use pnpm.CMD to avoid bash PATH issues
+            import platform
+            if platform.system() == 'Windows':
+                # Use pnpm.CMD which is the Windows command wrapper
+                cmd = ['pnpm.CMD', 'tsx', str(self.parser_script)]
+                
+                if extract_patterns:
+                    cmd.append(f'--patterns={",".join(extract_patterns)}')
+                
+                if include_jsdoc:
+                    cmd.append('--include-jsdoc')
+                
+                cmd.append(f'--mode={parse_mode}')
+                cmd.append(tmp_file_path)
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.project_root),
+                    timeout=30
+                )
+            else:
+                # On Unix-like systems, use normal command
+                cmd = ['pnpm', 'tsx', str(self.parser_script)]
+                
+                if extract_patterns:
+                    cmd.append(f'--patterns={",".join(extract_patterns)}')
+                
+                if include_jsdoc:
+                    cmd.append('--include-jsdoc')
+                
+                cmd.append(f'--mode={parse_mode}')
+                cmd.append(tmp_file_path)
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.project_root),
+                    timeout=30
+                )
             
             os.unlink(tmp_file_path)
             
@@ -246,32 +267,54 @@ class TypeScriptParser(ASTParserPort):
         if not self.parser_script.exists():
             raise ServiceError(f'TypeScript parser script not found at {self.parser_script}')
         
-        # Build command arguments
-        cmd = ['pnpm', 'tsx', str(self.parser_script), '--batch']
-        
-        if extract_patterns:
-            cmd.append(f'--patterns={",".join(extract_patterns)}')
-        
-        if include_jsdoc:
-            cmd.append('--include-jsdoc')
-        
-        cmd.append(f'--mode={parse_mode}')
-        
         try:
             # Prepare batch input
             batch_input = json.dumps({
                 'sources': uncached_sources
             })
             
-            # Run the TypeScript parser with batch input
-            result = subprocess.run(
-                cmd,
-                input=batch_input,
-                capture_output=True,
-                text=True,
-                cwd=str(self.project_root),
-                timeout=60  # Increased timeout for batch processing
-            )
+            # On Windows, use pnpm.CMD to avoid bash PATH issues
+            import platform
+            if platform.system() == 'Windows':
+                # Use pnpm.CMD which is the Windows command wrapper
+                cmd = ['pnpm.CMD', 'tsx', str(self.parser_script), '--batch']
+                
+                if extract_patterns:
+                    cmd.append(f'--patterns={",".join(extract_patterns)}')
+                
+                if include_jsdoc:
+                    cmd.append('--include-jsdoc')
+                
+                cmd.append(f'--mode={parse_mode}')
+                
+                result = subprocess.run(
+                    cmd,
+                    input=batch_input,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.project_root),
+                    timeout=60  # Increased timeout for batch processing
+                )
+            else:
+                # On Unix-like systems, use normal command
+                cmd = ['pnpm', 'tsx', str(self.parser_script), '--batch']
+                
+                if extract_patterns:
+                    cmd.append(f'--patterns={",".join(extract_patterns)}')
+                
+                if include_jsdoc:
+                    cmd.append('--include-jsdoc')
+                
+                cmd.append(f'--mode={parse_mode}')
+                
+                result = subprocess.run(
+                    cmd,
+                    input=batch_input,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.project_root),
+                    timeout=60  # Increased timeout for batch processing
+                )
             
             if result.returncode != 0:
                 print(f"[TypeScript Parser] Batch parser failed with return code {result.returncode}")
