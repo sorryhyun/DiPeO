@@ -8,11 +8,13 @@ This package organizes template filters by category, making it easy to:
 
 from .base_filters import BaseFilters
 from .typescript_filters import TypeScriptToPythonFilters
+from .backend_filters import BackendFilters
 from .registry import FilterRegistry, FilterInfo, create_filter_registry, filter_registry
 
 __all__ = [
     'BaseFilters',
     'TypeScriptToPythonFilters',
+    'BackendFilters',
     'FilterRegistry',
     'FilterInfo',
     'create_filter_registry',

@@ -7,6 +7,9 @@ from .nodes_queries import NodesQueryGenerator
 from .system_queries import SystemQueryGenerator
 from .prompts_queries import PromptsQueryGenerator
 from .conversations_queries import ConversationsQueryGenerator
+from .diagrams_queries import DiagramsQueryGenerator
+from .persons_queries import PersonsQueryGenerator
+from .executions_queries import ExecutionsQueryGenerator
 
 __all__ = [
     'ApiKeysQueryGenerator',
@@ -15,5 +18,8 @@ __all__ = [
     'NodesQueryGenerator',
     'SystemQueryGenerator',
     'PromptsQueryGenerator',
-    'ConversationsQueryGenerator'
+    'ConversationsQueryGenerator',
+    'DiagramsQueryGenerator',
+    'PersonsQueryGenerator',
+    'ExecutionsQueryGenerator'
 ]

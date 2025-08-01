@@ -264,4 +264,4 @@ def create_template_service(filter_sources: Optional[List[str]] = None) -> Templ
 
 
 def create_enhanced_template_service() -> TemplateService:
-    return create_template_service(['base', 'typescript'])
+    return create_template_service(['base', 'typescript', 'backend'])

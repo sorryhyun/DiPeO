@@ -116,4 +116,10 @@ def create_filter_registry() -> FilterRegistry:
     except ImportError:
         pass
         
+    try:
+        from .backend_filters import BackendFilters
+        registry.register_filter_collection('backend', BackendFilters.get_all_filters())
+    except ImportError:
+        pass
+        
     return registry

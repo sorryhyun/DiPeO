@@ -1,3 +1,4 @@
+# Execution Queries
 query GetExecution($id: ID!) {
   execution(id: $id) {
     id
@@ -31,6 +32,11 @@ query ListExecutions($filter: ExecutionFilterInput, $limit: Int, $offset: Int) {
   }
 }
 
+query ExecutionOrder($executionId: ID!) {
+  execution_order(execution_id: $executionId)
+}
+
+# Execution Subscriptions
 subscription ExecutionUpdates($executionId: ID!) {
   execution_updates(execution_id: $executionId) {
     execution_id
@@ -48,6 +54,7 @@ subscription InteractivePrompts($executionId: ID!) {
   interactive_prompts(execution_id: $executionId)
 }
 
+# Execution Mutations
 mutation ControlExecution($input: ExecutionControlInput!) {
   control_execution(input: $input) {
     success
@@ -71,8 +78,4 @@ mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
     message
     error
   }
-}
-
-query ExecutionOrder($executionId: ID!) {
-  execution_order(execution_id: $executionId)
 }

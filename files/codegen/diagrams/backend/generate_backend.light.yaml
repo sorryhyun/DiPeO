@@ -57,7 +57,7 @@ nodes:
     type: sub_diagram
     position: {x: 700, y: 200}
     props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single_ts
+      diagram_name: codegen/diagrams/backend/generate_backend_single
       diagram_format: light
       batch: true  # Enable batch mode
       batch_input_key: items  # Use 'items' key from input
