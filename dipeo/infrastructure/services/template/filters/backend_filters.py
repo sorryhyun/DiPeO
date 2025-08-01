@@ -386,9 +386,13 @@ class BackendFilters:
             return 'float'
         elif field_type == 'boolean':
             return 'bool'
-        elif field_type == 'enum' and 'values' in field:
+        elif field_type == 'enum':
             # Generate Literal type from enum values
+            # Check both 'values' and 'validation.allowedValues' for enum values
             values = field.get('values', [])
+            if not values and field.get('validation'):
+                values = field.get('validation', {}).get('allowedValues', [])
+            
             if values:
                 quoted_values = ', '.join(f'"{v}"' for v in values)
                 return f'Literal[{quoted_values}]'

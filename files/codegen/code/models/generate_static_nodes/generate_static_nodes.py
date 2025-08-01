@@ -214,8 +214,26 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
             'fields': fields
         })
     
+    # Collect all enum types used in the node classes
+    used_enums = set(['NodeType'])  # Always include NodeType
+    enum_types = {
+        'HookTriggerMode', 'SupportedLanguage', 'HttpMethod',
+        'DBBlockSubType', 'NotionOperation', 'HookType', 'DiagramFormat',
+        'MemoryProfile', 'ToolSelection'
+    }
+    
+    # Scan all fields to find enum types
+    for node_class in node_classes:
+        for field in node_class['fields']:
+            py_type = field.get('py_type', '')
+            # Check if the type contains any known enum
+            for enum_type in enum_types:
+                if enum_type in py_type:
+                    used_enums.add(enum_type)
+    
     return {
         'node_classes': node_classes,
+        'used_enums': sorted(used_enums),  # Sort for consistent output
         'now': datetime.now().isoformat()
     }
 

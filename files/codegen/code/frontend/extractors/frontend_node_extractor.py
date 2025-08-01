@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Any
 from files.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast
-from files.codegen.code.shared.filters import snake_case, pascal_case, camel_case
+from dipeo.infrastructure.services.template.filters.base_filters import BaseFilters
 
 
 def extract_frontend_node_data(ast_data: dict, node_type: str) -> dict:
@@ -38,15 +38,15 @@ def extract_frontend_node_data(ast_data: dict, node_type: str) -> dict:
         
         # Node type variations
         'nodeType': actual_node_type,
-        'nodeTypePascal': pascal_case(actual_node_type),
-        'nodeTypeCamel': camel_case(actual_node_type),
-        'nodeTypeSnake': snake_case(actual_node_type),
+        'nodeTypePascal': BaseFilters.pascal_case(actual_node_type),
+        'nodeTypeCamel': BaseFilters.camel_case(actual_node_type),
+        'nodeTypeSnake': BaseFilters.snake_case(actual_node_type),
         
         # File naming
-        'node_name': pascal_case(actual_node_type),
+        'node_name': BaseFilters.pascal_case(actual_node_type),
         'node_naming': {
             'node_type': actual_node_type,
-            'node_name': pascal_case(actual_node_type)
+            'node_name': BaseFilters.pascal_case(actual_node_type)
         }
     }
     

@@ -1,6 +1,6 @@
 """Simple generator for frontend node registry imports."""
 from typing import Dict, Any, List
-from files.codegen.code.shared.filters import pascal_case, camel_case
+from dipeo.infrastructure.services.template.filters.base_filters import BaseFilters
 
 def generate_simple_registry(node_types: List[str], template_content: str) -> str:
     """
@@ -30,8 +30,8 @@ def generate_simple_registry(node_types: List[str], template_content: str) -> st
             config_name = "typescriptAstConfig"
             file_name = "TypescriptAstConfig"
         else:
-            config_name = f"{camel_case(node_type)}Config"
-            file_name = f"{pascal_case(node_type)}Config"
+            config_name = f"{BaseFilters.camel_case(node_type)}Config"
+            file_name = f"{BaseFilters.pascal_case(node_type)}Config"
         lines.append(f"import {{ {config_name} }} from '@/__generated__/nodes/{file_name}';")
     
     lines.append("")

@@ -122,4 +122,10 @@ def create_filter_registry() -> FilterRegistry:
     except ImportError:
         pass
         
+    try:
+        from .graphql_filters import TypeScriptToGraphQLFilters
+        registry.register_filter_collection('graphql', TypeScriptToGraphQLFilters.get_all_filters())
+    except ImportError:
+        pass
+        
     return registry

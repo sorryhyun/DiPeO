@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 # Auto-generated Pydantic model for person_job node
 
 from typing import Optional, Dict, Any, List
@@ -13,11 +21,11 @@ class PersonJobNodeData(BaseModel):
     person: Optional[str] = Field(description="AI person to use")
     first_only_prompt: str = Field(description="Prompt used only on first execution")
     default_prompt: Optional[str] = Field(description="Default prompt template")
-    max_iteration: float = Field(description="Maximum execution iterations")
+    max_iteration: int = Field(description="Maximum execution iterations")
     memory_profile: Optional[str] = Field(description="Memory profile for conversation context")
     memory_config: Optional[Dict[str, Any]] = Field(description="Deprecated memory configuration")
-    memory_settings: Optional[Dict[str, Any]] = Field(description="Custom memory settings")
-    tools: Optional[str] = Field(description="Tools available to the AI agent")
+    memory_settings: Optional[MemorySettings] = Field(description="Custom memory settings")
+    tools: Optional[List[ToolConfig]] = Field(description="Tools available to the AI agent")
 
     class Config:
         extra = "forbid"

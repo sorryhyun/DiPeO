@@ -105,23 +105,27 @@ nodes:
       filePath: files/codegen/code/models/generate_static_nodes/generate_static_nodes.py
       functionName: generate_static_nodes
 
-  # Generate Python code
+  # Generate Python code using template
   - label: Generate Python Code
-    type: code_job
+    type: template_job
     position: {x: 1200, y: 300}
     props:
-      language: python
-      filePath: files/codegen/code/models/generate_static_nodes/static_nodes_generator.py
-      functionName: main
-
-  # Write Python file
-  - label: Write Static Nodes File
-    type: db
-    position: {x: 1400, y: 300}
-    props:
-      operation: write
-      sub_type: file
-      source_details: dipeo/diagram_generated_staged/generated_nodes.py
+      engine: jinja2
+      template_path: files/codegen/templates/models/static_nodes_all.j2
+      output_path: dipeo/diagram_generated_staged/generated_nodes.py
+      # Template will automatically receive inputs from connections
+      variables:
+        # Define enum fields mapping
+        enum_fields:
+          method: HttpMethod
+          language: SupportedLanguage
+          sub_type: DBBlockSubType
+          hook_type: HookType
+          operation: NotionOperation
+          trigger_mode: HookTriggerMode
+          diagram_format: DiagramFormat
+          memory_profile: MemoryProfile
+          tools: ToolSelection
 
   # Generate success summary
   - label: Generate Summary
@@ -194,16 +198,11 @@ connections:
     to: Generate Python Code
     label: static_nodes_data
   
-  # Write file
-  - from: Generate Python Code
-    to: Write Static Nodes File
-    label: generated_code
-  
-  # Summary
+  # Summary and End
   - from: Generate Static Nodes
     to: Generate Summary
     label: static_nodes_data
-  - from: Write Static Nodes File
+  - from: Generate Python Code
     to: End
   - from: Generate Summary
     to: End

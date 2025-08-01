@@ -5,7 +5,7 @@ Generates Python enum definitions from TypeScript AST data.
 
 import json
 from typing import Dict, Any, List
-from files.codegen.code.shared.template_env import create_template_env
+from dipeo.infrastructure.services.template import create_enhanced_template_service
 
 
 # ============================================================================
@@ -23,11 +23,10 @@ def generate_enums_code(template_content: str, enums_data: List[dict]) -> str:
     Returns:
         Generated Python enum code
     """
-    env = create_template_env()
+    template_service = create_enhanced_template_service()
     
     # Render template with dynamic enum data
-    template = env.from_string(template_content)
-    return template.render(enums=enums_data)
+    return template_service.render_string(template_content, enums=enums_data)
 
 
 # ============================================================================

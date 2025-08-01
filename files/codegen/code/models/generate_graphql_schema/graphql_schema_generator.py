@@ -389,6 +389,22 @@ def generate_summary(inputs):
 main = extract_graphql_types
 
 
+def prepare_graphql_data_for_template(inputs: dict) -> dict:
+    """Prepare GraphQL data for template_job rendering.
+    
+    This function extracts GraphQL types and prepares them in the format
+    expected by the GraphQL schema Jinja2 template.
+    """
+    # First extract all GraphQL types using the existing function
+    graphql_types = extract_graphql_types_from_multi_read(inputs)
+    
+    # Add current timestamp for the template
+    graphql_types['now'] = datetime.now().isoformat()
+    
+    # Return the data ready for template rendering
+    return graphql_types
+
+
 def extract_graphql_types_from_multi_read(inputs: dict) -> dict:
     """Extract GraphQL types from multiple file read with serialize_json=true"""
     import json

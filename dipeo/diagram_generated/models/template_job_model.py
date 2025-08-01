@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 # Auto-generated Pydantic model for template_job node
 
 from typing import Optional, Dict, Any, List, Literal
@@ -12,7 +20,7 @@ class TemplateJobNodeData(BaseModel):
     template_content: Optional[str] = Field(description="Inline template content")
     output_path: Optional[str] = Field(description="Output file path")
     variables: Optional[Dict[str, Any]] = Field(description="Variables configuration")
-    engine: Optional[str] = Field(description="Engine configuration")
+    engine: Optional[Literal["internal", "jinja2", "handlebars"]] = Field(description="Engine configuration")
 
     class Config:
         extra = "forbid"

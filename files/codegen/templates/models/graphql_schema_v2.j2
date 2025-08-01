@@ -1,0 +1,73 @@
+# Generated GraphQL Schema from Domain Models
+# Generated at: {{ now }}
+# {{ generated_warning }}
+
+# ============================================================================
+# Scalars
+# ============================================================================
+{%- for scalar in scalars %}
+
+"""{{ scalar.description or 'Unique identifier for ' + scalar.name.replace('ID', '').lower() }}"""
+scalar {{ scalar.name }}
+{%- endfor %}
+
+# ============================================================================
+# Enums
+# ============================================================================
+{%- for enum in enums %}
+
+enum {{ enum.name }} {
+{%- for value in enum['values'] %}
+  {{ value }}
+{%- endfor %}
+}
+{%- endfor %}
+
+# ============================================================================
+# Types
+# ============================================================================
+{%- for type_def in types %}
+{%- if type_def.description %}
+
+"""{{ type_def.description }}"""
+{%- endif %}
+type {{ type_def.name }} {
+{%- for field in type_def.fields %}
+  {%- if field.description %}
+  """{{ field.description }}"""
+  {%- endif %}
+  {{ field.name }}: {{ field | graphql_field_type }}
+{%- endfor %}
+}
+{%- endfor %}
+
+# ============================================================================
+# Input Types
+# ============================================================================
+{%- for input_type in input_types %}
+{%- if input_type.description %}
+
+"""{{ input_type.description }}"""
+{%- endif %}
+input {{ input_type.name }} {
+{%- for field in input_type.fields %}
+  {%- if field.description %}
+  """{{ field.description }}"""
+  {%- endif %}
+  {{ field.name }}: {{ field | graphql_field_type }}{{ ' = ' + field.default if field.default else '' }}
+{%- endfor %}
+}
+{%- endfor %}
+
+# ============================================================================
+# Node Data Union (for generic node data field)
+# ============================================================================
+{%- if node_types %}
+
+"""
+Union type for all possible node data configurations.
+In practice, DiPeO uses JSONScalar for the data field, but this union
+documents all possible node data types.
+"""
+union NodeData = {{ node_types | join(' | ') }}
+{%- endif %}
