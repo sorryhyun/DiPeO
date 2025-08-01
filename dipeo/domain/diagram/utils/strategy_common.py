@@ -11,6 +11,7 @@ from dipeo.diagram_generated import (
     NodeID,
     DataType,
     ContentType,
+    NodeType,
 )
 from dipeo.diagram_generated.handle_utils import create_handle_id
 from dipeo.models import MemoryView
@@ -24,27 +25,27 @@ class NodeFieldMapper:
     @staticmethod
     def map_import_fields(node_type: str, props: dict[str, Any]) -> dict[str, Any]:
         """Map fields during import based on node type."""
-        if node_type == "start":
+        if node_type == NodeType.START.value:
             props.setdefault("custom_data", {})
             props.setdefault("output_data_structure", {})
-        elif node_type == "endpoint":
+        elif node_type == NodeType.ENDPOINT.value:
             if "file_path" in props and "file_name" not in props:
                 props["file_name"] = props.pop("file_path")
         elif node_type == "job":
             if "code" in props:
-                node_type = "code_job"
+                node_type = NodeType.CODE_JOB.value
                 if "code_type" in props:
                     props["language"] = props.pop("code_type")
-        elif node_type == "code_job":
+        elif node_type == NodeType.CODE_JOB.value:
             # Map old field names to new ones
             if "code_type" in props and "language" not in props:
                 props["language"] = props.pop("code_type")
             # Keep both code and filePath as separate fields
             # Don't map code to filePath - they are different fields
-        elif node_type == "db":
+        elif node_type == NodeType.DB.value:
             if "source_details" in props and "file" not in props:
                 props["file"] = props.pop("source_details")
-        elif node_type == "person_job":
+        elif node_type == NodeType.PERSON_JOB.value:
             if "memory_config" in props:
                 props.pop("memory_config")
             
@@ -81,17 +82,17 @@ class NodeFieldMapper:
     @staticmethod
     def map_export_fields(node_type: str, props: dict[str, Any]) -> dict[str, Any]:
         """Map fields during export based on node type."""
-        if node_type == "endpoint" and "file_name" in props:
+        if node_type == NodeType.ENDPOINT.value and "file_name" in props:
             props["file_path"] = props.pop("file_name")
-        elif node_type == "code_job":
+        elif node_type == NodeType.CODE_JOB.value:
             # Map field names for light format compatibility if needed
             if "language" in props and "code_type" not in props:
                 props["code_type"] = props["language"]
             # Keep both code and filePath as they are - don't map between them
             # Keep functionName as is - it's a new field
-        elif node_type == "db" and "file" in props:
+        elif node_type == NodeType.DB.value and "file" in props:
             props["source_details"] = props.pop("file")
-        elif node_type == "person_job":
+        elif node_type == NodeType.PERSON_JOB.value:
             if "memory_config" in props:
                 props.pop("memory_config")
             if "memory_profile" in props and "memory_settings" in props:

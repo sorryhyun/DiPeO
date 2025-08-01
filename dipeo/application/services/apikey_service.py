@@ -136,8 +136,9 @@ import uuid
 
 from dipeo.core import ValidationError
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.diagram_generated import APIServiceType
 
-VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
+VALID_SERVICES = VALID_LLM_SERVICES | {APIServiceType.NOTION.value}
 
 
 def validate_service_name(service: str) -> str:
@@ -155,9 +156,9 @@ def validate_api_key_format(key: str, service: str) -> None:
     if not key or not key.strip():
         raise ValidationError("API key cannot be empty")
 
-    if service == "openai" and not key.startswith("sk-"):
+    if service == APIServiceType.OPENAI.value and not key.startswith("sk-"):
         raise ValidationError("OpenAI API keys must start with 'sk-'")
-    if service == "anthropic" and not key.startswith("sk-ant-"):
+    if service == APIServiceType.ANTHROPIC.value and not key.startswith("sk-ant-"):
         raise ValidationError("Anthropic API keys must start with 'sk-ant-'")
 
 

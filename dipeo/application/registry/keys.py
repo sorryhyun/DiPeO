@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from dipeo.domain.db.services import DBOperationsDomainService
     from dipeo.models import ExecutableDiagram, ExecutionContext
     from dipeo.application.services.cli_session_service import CLISessionService
-    from dipeo.application.services.diagram_service import IntegratedDiagramService
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from typing import Any, Dict
 
@@ -106,7 +105,7 @@ DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatService"]("diagram_format")
 LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm")
 
 # Additional Services (newly added for migration)
-INTEGRATED_DIAGRAM_SERVICE = ServiceKey["IntegratedDiagramService"]("integrated_diagram_service")
+INTEGRATED_DIAGRAM_SERVICE = ServiceKey["DiagramService"]("integrated_diagram_service")
 CLI_SESSION_SERVICE = ServiceKey["CLISessionService"]("cli_session_service")
 EXECUTION_RUNTIME = ServiceKey["ExecutionRuntime"]("execution_runtime")
 

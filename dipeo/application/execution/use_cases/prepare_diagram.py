@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
-from dipeo.application.services.diagram_service import DiagramService as DiagramStorageDomainService
 from dipeo.core import BaseService, ValidationError
+from dipeo.core.ports.diagram_port import DiagramPort as DiagramStorageDomainService
 from dipeo.core.static import ExecutableDiagram
 from dipeo.domain.diagram.utils import (
     dict_to_domain_diagram,

@@ -55,8 +55,8 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
             self, execution_id: strawberry.ID
         ) -> AsyncGenerator[ExecutionUpdate, None]:
             """Subscribe to real-time updates for an execution."""
-            message_router = registry.get(MESSAGE_ROUTER.name)
-            state_store = registry.get(STATE_STORE.name)
+            message_router = registry.get(MESSAGE_ROUTER)
+            state_store = registry.get(STATE_STORE)
             
             if not message_router:
                 logger.error("Message router not available for subscriptions")
@@ -127,7 +127,7 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
             self, execution_id: strawberry.ID, node_id: Optional[str] = None
         ) -> AsyncGenerator[JSONScalar, None]:
             """Subscribe to node-specific updates within an execution."""
-            message_router = registry.get(MESSAGE_ROUTER.name)
+            message_router = registry.get(MESSAGE_ROUTER)
             
             if not message_router:
                 logger.error("Message router not available for subscriptions")
@@ -184,7 +184,7 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
             self, execution_id: strawberry.ID
         ) -> AsyncGenerator[JSONScalar, None]:
             """Subscribe to interactive prompt requests."""
-            message_router = registry.get(MESSAGE_ROUTER.name)
+            message_router = registry.get(MESSAGE_ROUTER)
             
             if not message_router:
                 logger.error("Message router not available for subscriptions")

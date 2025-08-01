@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from dipeo.diagram_generated import LLMService
 from ..value_objects import ModelConfig, RetryStrategy, RetryType, TokenLimits
 
 
@@ -42,17 +43,17 @@ class LLMDomainService:
     
     # Provider-specific validation rules
     _PROVIDER_RULES = {
-        "openai": {
+        LLMService.OPENAI.value: {
             "allowed_params": ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty", "stop", "tools"],
             "temperature_range": (0, 2),
             "requires_api_key": True,
         },
-        "anthropic": {
+        LLMService.ANTHROPIC.value: {
             "allowed_params": ["temperature", "max_tokens", "top_p", "top_k", "stop_sequences"],
             "temperature_range": (0, 1),
             "requires_api_key": True,
         },
-        "google": {
+        LLMService.GOOGLE.value: {
             "allowed_params": ["temperature", "max_tokens", "top_p", "top_k", "stop_sequences"],
             "temperature_range": (0, 1),
             "requires_api_key": True,
@@ -106,13 +107,13 @@ class LLMDomainService:
             return self._TOKEN_LIMITS[model]
         
         # Try provider-specific defaults
-        if provider.lower() == "openai" and model.startswith("gpt-"):
+        if provider.lower() == LLMService.OPENAI.value and model.startswith("gpt-"):
             # Default for unknown GPT models
             return TokenLimits(context_window=8192, max_output_tokens=4096)
-        elif provider.lower() == "anthropic" and model.startswith("claude-"):
+        elif provider.lower() == LLMService.ANTHROPIC.value and model.startswith("claude-"):
             # Default for unknown Claude models
             return TokenLimits(context_window=100000, max_output_tokens=4096)
-        elif provider.lower() == "google" and model.startswith("gemini-"):
+        elif provider.lower() == LLMService.GOOGLE.value and model.startswith("gemini-"):
             # Default for unknown Gemini models
             return TokenLimits(context_window=32760, max_output_tokens=8192)
         
@@ -177,9 +178,9 @@ class LLMDomainService:
         """
         # Rough estimation: ~4 characters per token for English
         # Different providers may count differently
-        if provider.lower() == "openai" or provider.lower() == "anthropic":
+        if provider.lower() == LLMService.OPENAI.value or provider.lower() == LLMService.ANTHROPIC.value:
             return len(text) // 4
-        elif provider.lower() == "google":
+        elif provider.lower() == LLMService.GOOGLE.value:
             return len(text) // 3  # Google tends to count more tokens
         else:
             return len(text) // 4  # Default estimation
