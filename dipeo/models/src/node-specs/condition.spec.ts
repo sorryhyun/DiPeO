@@ -1,5 +1,6 @@
 
 import { NodeType } from '../diagram.js';
+import { ConditionType } from '../enums.js';
 import { NodeSpecification } from './node-specifications';
 
 export const conditionSpec: NodeSpecification = {
@@ -13,11 +14,20 @@ export const conditionSpec: NodeSpecification = {
   fields: [
     {
       name: "condition_type",
-      type: "string",
-      required: true,
+      type: "enum",
+      required: false,
+      defaultValue: "custom",
       description: "Type of condition to evaluate",
+      validation: {
+        allowedValues: ["detect_max_iterations", "check_nodes_executed", "custom"]
+      },
       uiConfig: {
-        inputType: "text"
+        inputType: "select",
+        options: [
+          { value: "detect_max_iterations", label: "Detect Max Iterations" },
+          { value: "check_nodes_executed", label: "Check Nodes Executed" },
+          { value: "custom", label: "Custom Expression" }
+        ]
       }
     },
     {
@@ -25,20 +35,31 @@ export const conditionSpec: NodeSpecification = {
       type: "string",
       required: false,
       description: "Boolean expression to evaluate",
+      conditional: {
+        field: "condition_type",
+        values: ["custom"]
+      },
       uiConfig: {
-        inputType: "text"
+        inputType: "textarea",
+        placeholder: "e.g., inputs.value > 10",
+        rows: 3
       }
     },
     {
       name: "node_indices",
       type: "array",
       required: false,
-      description: "Node indices for condition evaluation",
+      description: "Node indices for detect_max_iteration condition",
+      conditional: {
+        field: "condition_type",
+        values: ["detect_max_iterations", "check_nodes_executed"]
+      },
       validation: {
         itemType: "string"
       },
       uiConfig: {
-        inputType: "text"
+        inputType: "nodeSelect",
+        placeholder: "Select nodes to monitor"
       }
     }
   ],

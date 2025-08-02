@@ -175,6 +175,10 @@ connections:
   - from: Start
     to: Parse Input
     
+  # Load codegen mappings early (independent of node type)
+  - from: Start
+    to: Load Codegen Mappings
+    
   # Extract node type
   - from: Parse Input
     to: Extract Node Type

@@ -32,11 +32,22 @@ export const codeJobSpec: NodeSpecification = {
     {
       name: "filePath",
       type: "string",
-      required: true,
+      required: false,
       description: "Path to code file",
       uiConfig: {
         inputType: "text",
         placeholder: "/path/to/file"
+      }
+    },
+    {
+      name: "code",
+      type: "string",
+      required: false,
+      description: "Inline code to execute (alternative to filePath)",
+      uiConfig: {
+        inputType: "code",
+        rows: 10,
+        adjustable: true
       }
     },
     {

@@ -8,25 +8,26 @@
 
 // Auto-generated node configuration for hook
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { hookFields } from '../fields/HookFields';
 
 export const hookConfig: UnifiedNodeConfig = {
   label: 'Hook',
   icon: '🪝',
   color: '#9333ea',
-  nodeType: 'hook',
+  nodeType: NodeType.HOOK,
   category: 'control',
   handles: {
     input: [
-      { label: 'default', displayLabel: '', position: 'left' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'success', displayLabel: 'Success', position: 'right' },
-      { label: 'error', displayLabel: 'Error', position: 'right' },
+      { label: HandleLabel.SUCCESS, displayLabel: 'Success', position: 'right' },
+      { label: HandleLabel.ERROR, displayLabel: 'Error', position: 'right' },
     ],
   },
   defaults: {
-    hook_type: 'shell',
+    hook_type: HookType.SHELL,
     timeout: 60,
     retry_count: 0,
   },

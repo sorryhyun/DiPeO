@@ -8,20 +8,21 @@
 
 // Auto-generated node configuration for template_job
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { templateJobFields } from '../fields/TemplateJobFields';
 
 export const templateJobConfig: UnifiedNodeConfig = {
   label: 'Template Job',
   icon: '📝',
   color: '#3F51B5',
-  nodeType: 'template_job',
+  nodeType: NodeType.TEMPLATE_JOB,
   category: 'compute',
   handles: {
     input: [
-      { label: 'default', displayLabel: '', position: 'left' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: '', position: 'right' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

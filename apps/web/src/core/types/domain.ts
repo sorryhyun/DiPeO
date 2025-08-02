@@ -55,7 +55,8 @@ export type {
   MemorySettings,
   PersonLLMConfig,
   // Tool config
-  ToolConfig
+  ToolConfig,
+  ToolSelection
 } from '@dipeo/domain-models';
 
 // Node Data Types

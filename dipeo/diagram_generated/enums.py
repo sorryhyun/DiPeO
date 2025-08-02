@@ -66,9 +66,9 @@ class HandleLabel(str, Enum):
     
     FIRST = "first"
     
-    CONDITION_TRUE = "condtrue"
+    CONDTRUE = "condtrue"
     
-    CONDITION_FALSE = "condfalse"
+    CONDFALSE = "condfalse"
     
     SUCCESS = "success"
     
@@ -368,6 +368,41 @@ class ToolSelection(str, Enum):
     
 
 
+class ConditionType(str, Enum):
+    """ConditionType enum values"""
+    
+    DETECT_MAX_ITERATIONS = "detect_max_iterations"
+    
+    CHECK_NODES_EXECUTED = "check_nodes_executed"
+    
+    CUSTOM = "custom"
+    
+
+
+class TemplateEngine(str, Enum):
+    """TemplateEngine enum values"""
+    
+    INTERNAL = "internal"
+    
+    JINJA2 = "jinja2"
+    
+    HANDLEBARS = "handlebars"
+    
+
+
+class AuthType(str, Enum):
+    """AuthType enum values"""
+    
+    NONE = "none"
+    
+    BEARER = "bearer"
+    
+    BASIC = "basic"
+    
+    API_KEY = "api_key"
+    
+
+
 
 # Export all enums
 __all__ = [
@@ -413,5 +448,11 @@ __all__ = [
     "ToolType",
     
     "ToolSelection",
+    
+    "ConditionType",
+    
+    "TemplateEngine",
+    
+    "AuthType",
     
 ]

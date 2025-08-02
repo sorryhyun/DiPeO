@@ -24,7 +24,8 @@ export const userResponseSpec: NodeSpecification = {
     {
       name: "timeout",
       type: "number",
-      required: true,
+      required: false,
+      defaultValue: 300,
       description: "Response timeout in seconds",
       uiConfig: {
         inputType: "number",
@@ -52,5 +53,5 @@ export const userResponseSpec: NodeSpecification = {
     maxRetries: 3
   },
   
-  primaryDisplayField: "response_type"
+  primaryDisplayField: "prompt"
 };

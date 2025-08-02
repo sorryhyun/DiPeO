@@ -193,9 +193,13 @@ connections:
     to: Generate Summary
     label: validation_models
   
-  # Generate final summary
+  # Build TypeScript after summary
+  - from: Generate Summary
+    to: Build TypeScript Models
+  
+  # Connect build result to End
   - from: Build TypeScript Models
-    to: Generate Summary
+    to: End
     label: build_result
   - from: Generate Summary
     to: End

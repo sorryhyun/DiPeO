@@ -8,21 +8,22 @@
 
 // Auto-generated node configuration for condition
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { conditionFields } from '../fields/ConditionFields';
 
 export const conditionConfig: UnifiedNodeConfig = {
   label: 'Condition',
   icon: '🔀',
   color: '#FF9800',
-  nodeType: 'condition',
+  nodeType: NodeType.CONDITION,
   category: 'control',
   handles: {
     input: [
-      { label: 'default', displayLabel: '', position: 'left' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'condtrue', displayLabel: 'Condtrue', position: 'right' },
-      { label: 'condfalse', displayLabel: 'Condfalse', position: 'right' },
+      { label: HandleLabel.CONDTRUE, displayLabel: 'Condtrue', position: 'right' },
+      { label: HandleLabel.CONDFALSE, displayLabel: 'Condfalse', position: 'right' },
     ],
   },
   defaults: {

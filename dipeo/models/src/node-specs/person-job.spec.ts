@@ -1,5 +1,6 @@
 
 import { NodeType, MemoryView } from '../diagram.js';
+import { MemoryProfile } from '../enums.js';
 import { NodeSpecification } from './node-specifications';
 
 export const personJobSpec: NodeSpecification = {
@@ -59,10 +60,13 @@ export const personJobSpec: NodeSpecification = {
     },
     {
       name: "memory_profile",
-      type: "string",
+      type: "enum",
       required: false,
       description: "Memory profile for conversation context",
       defaultValue: "FOCUSED",
+      validation: {
+        allowedValues: Object.values(MemoryProfile)
+      },
       uiConfig: {
         inputType: "select",
         options: [
@@ -75,39 +79,46 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
-      name: "memory_config",
-      type: "object",
+      name: "tools",
+      type: "string",
       required: false,
-      description: "Deprecated memory configuration",
+      description: "Tools available to the AI agent",
+      defaultValue: "none",
       uiConfig: {
-        inputType: "code",
-        collapsible: true
+        column: 1,
+        inputType: "select",
+        options: [
+          { value: "none", label: "None - No tools" },
+          { value: "image", label: "Image - Image generation capabilities" },
+          { value: "websearch", label: "Web Search - Search the internet" }
+        ]
       }
     },
     {
       name: "memory_settings",
       type: "object",
       required: false,
-      description: "Custom memory settings",
+      description: "Custom memory settings (when memory_profile is CUSTOM)",
+      conditional: {
+        field: "memory_profile",
+        values: ["CUSTOM"]
+      },
       nestedFields: [
         {
           name: "view",
           type: "enum",
-          required: false,
-          description: "Memory view mode",
-          defaultValue: MemoryView.ALL_INVOLVED,
+          required: true,
+          description: "Memory view type",
           validation: {
-            allowedValues: Object.values(MemoryView)
+            allowedValues: ["FULL_CONVERSATION", "RELATED_CONVERSATION_PAIRS", "DIRECT_MESSAGES", "SYSTEM_AND_DIRECT"]
           },
           uiConfig: {
             inputType: "select",
             options: [
-              { value: MemoryView.ALL_INVOLVED, label: "All Involved - Messages where person is sender or recipient" },
-              { value: MemoryView.SENT_BY_ME, label: "Sent By Me - Messages I sent" },
-              { value: MemoryView.SENT_TO_ME, label: "Sent To Me - Messages sent to me" },
-              { value: MemoryView.SYSTEM_AND_ME, label: "System and Me - System messages and my interactions" },
-              { value: MemoryView.CONVERSATION_PAIRS, label: "Conversation Pairs - Request/response pairs" },
-              { value: MemoryView.ALL_MESSAGES, label: "All Messages - All messages in conversation" }
+              { value: "FULL_CONVERSATION", label: "Full Conversation" },
+              { value: "RELATED_CONVERSATION_PAIRS", label: "Related Conversation Pairs" },
+              { value: "DIRECT_MESSAGES", label: "Direct Messages" },
+              { value: "SYSTEM_AND_DIRECT", label: "System and Direct" }
             ]
           }
         },
@@ -115,18 +126,19 @@ export const personJobSpec: NodeSpecification = {
           name: "max_messages",
           type: "number",
           required: false,
-          description: "Maximum number of messages to include",
+          description: "Maximum number of messages to retain",
           uiConfig: {
             inputType: "number",
-            min: 1
+            min: 1,
+            max: 100
           }
         },
         {
           name: "preserve_system",
           type: "boolean",
           required: false,
-          defaultValue: false,
-          description: "Preserve system messages",
+          description: "Always preserve system messages",
+          defaultValue: true,
           uiConfig: {
             inputType: "checkbox"
           }
@@ -135,21 +147,6 @@ export const personJobSpec: NodeSpecification = {
       uiConfig: {
         inputType: "group",
         collapsible: true
-      }
-    },
-    {
-      name: "tools",
-      type: "string",
-      required: false,
-      description: "Tools available to the AI agent",
-      defaultValue: "none",
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "none", label: "None - No tools" },
-          { value: "image", label: "Image - Image generation capabilities" },
-          { value: "websearch", label: "Web Search - Search the internet" }
-        ]
       }
     }
   ],

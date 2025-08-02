@@ -13,19 +13,6 @@
       ],
       "type": "string"
     },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
-      ],
-      "type": "object"
-    },
     "PersonBatchJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -101,6 +88,19 @@
       },
       "required": [
         "view"
+      ],
+      "type": "object"
+    },
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
       ],
       "type": "object"
     }

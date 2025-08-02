@@ -100,11 +100,11 @@ class HandleGenerator:
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.CONDITION_TRUE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+                _make_handle(node_id, HandleLabel.CONDTRUE, HandleDirection.OUTPUT, DataType.BOOLEAN),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.CONDITION_FALSE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+                _make_handle(node_id, HandleLabel.CONDFALSE, HandleDirection.OUTPUT, DataType.BOOLEAN),
             )
             return
             

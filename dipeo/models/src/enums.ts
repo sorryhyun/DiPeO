@@ -29,8 +29,8 @@ export enum HandleDirection {
 export enum HandleLabel {
   DEFAULT = 'default',
   FIRST = 'first',
-  CONDITION_TRUE = 'condtrue',
-  CONDITION_FALSE = 'condfalse',
+  CONDTRUE = 'condtrue',
+  CONDFALSE = 'condfalse',
   SUCCESS = 'success',
   ERROR = 'error',
   RESULTS = 'results'
@@ -188,4 +188,23 @@ export enum ToolSelection {
   NONE = 'none',
   IMAGE = 'image', 
   WEBSEARCH = 'websearch'
+}
+
+export enum ConditionType {
+  DETECT_MAX_ITERATIONS = 'detect_max_iterations',
+  CHECK_NODES_EXECUTED = 'check_nodes_executed',
+  CUSTOM = 'custom'
+}
+
+export enum TemplateEngine {
+  INTERNAL = 'internal',
+  JINJA2 = 'jinja2',
+  HANDLEBARS = 'handlebars'
+}
+
+export enum AuthType {
+  NONE = 'none',
+  BEARER = 'bearer',
+  BASIC = 'basic',
+  API_KEY = 'api_key'
 }

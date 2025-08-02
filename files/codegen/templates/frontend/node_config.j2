@@ -1,32 +1,45 @@
 // Auto-generated node configuration for {{ nodeType }}
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeTypePascal }}Fields';
 
 export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
   label: '{{ displayName }}',
   icon: '{{ icon }}',
   color: '{{ color | default('#6366f1') }}',
-  nodeType: '{{ nodeType }}',
+  nodeType: NodeType.{{ nodeType | replace('-', '_') | upper }},
   category: '{{ category | default('utility') }}',
   handles: {
 {%- if handles and handles.inputs %}
     input: [
 {%- for input in handles.inputs %}
-      { label: '{{ input.label | default('') }}', displayLabel: '{{ input.displayLabel | default('') }}', position: '{{ input.position | default('left') }}' },
+      { label: HandleLabel.{{ input.label | default('default') | upper }}, displayLabel: '{{ input.displayLabel | default('') }}', position: '{{ input.position | default('left') }}' },
 {%- endfor %}
     ],
 {%- endif %}
 {%- if handles and handles.outputs %}
     output: [
 {%- for output in handles.outputs %}
-      { label: '{{ output.label | default('') }}', displayLabel: '{{ output.displayLabel | default('') }}', position: '{{ output.position | default('right') }}' },
+      { label: HandleLabel.{{ output.label | default('default') | upper }}, displayLabel: '{{ output.displayLabel | default('') }}', position: '{{ output.position | default('right') }}' },
 {%- endfor %}
     ],
 {%- endif %}
   },
   defaults: {
 {%- for field in fields if field.default is defined %}
-{%- if field.default is string %}
+{%- if field.name == 'memory_profile' %}
+    {{ field.name }}: MemoryProfile.{{ field.default }},
+{%- elif field.name == 'tools' %}
+    {{ field.name }}: ToolSelection.{{ field.default | upper }},
+{%- elif field.name == 'hook_type' %}
+    {{ field.name }}: HookType.{{ field.default | upper }},
+{%- elif field.name == 'http_method' %}
+    {{ field.name }}: HttpMethod.{{ field.default | upper }},
+{%- elif field.name == 'language' %}
+    {{ field.name }}: SupportedLanguage.{{ field.default | upper }},
+{%- elif field.name == 'trigger_mode' %}
+    {{ field.name }}: HookTriggerMode.{{ field.default | upper }},
+{%- elif field.default is string %}
     {{ field.name }}: '{{ field.default }}',
 {%- elif field.default is boolean %}
     {{ field.name }}: {{ field.default | lower }},

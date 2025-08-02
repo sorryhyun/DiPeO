@@ -8,20 +8,21 @@
 
 // Auto-generated node configuration for db
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { dbFields } from '../fields/DbFields';
 
 export const dbConfig: UnifiedNodeConfig = {
   label: 'Database',
   icon: '🗄️',
   color: '#795548',
-  nodeType: 'db',
+  nodeType: NodeType.DB,
   category: 'data',
   handles: {
     input: [
-      { label: 'default', displayLabel: '', position: 'left' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: '', position: 'right' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

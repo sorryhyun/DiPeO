@@ -8,21 +8,22 @@
 
 // Auto-generated node configuration for typescript_ast
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { typescriptAstFields } from '../fields/TypescriptAstFields';
 
 export const typescriptAstConfig: UnifiedNodeConfig = {
   label: 'TypeScript AST Parser',
   icon: '🔍',
   color: '#3178c6',
-  nodeType: 'typescript_ast',
+  nodeType: NodeType.TYPESCRIPT_AST,
   category: 'utility',
   handles: {
     input: [
-      { label: 'default', displayLabel: '', position: 'left' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'results', displayLabel: 'Results', position: 'right' },
-      { label: 'error', displayLabel: 'Error', position: 'right' },
+      { label: HandleLabel.RESULTS, displayLabel: 'Results', position: 'right' },
+      { label: HandleLabel.ERROR, displayLabel: 'Error', position: 'right' },
     ],
   },
   defaults: {
