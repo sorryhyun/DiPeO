@@ -13,8 +13,8 @@ from dipeo.application.registry import (
     CONVERSATION_MANAGER,
     PROMPT_BUILDER
 )
-from dipeo.core.dynamic import Person
-from dipeo.core.dynamic.memory_profiles import MemoryProfile, MemoryProfileFactory
+from dipeo.domain.conversation import Person
+from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, ErrorOutput
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData, MemorySettings
@@ -22,7 +22,7 @@ from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 

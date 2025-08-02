@@ -19,12 +19,11 @@ from dipeo.application.registry import (
 if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.core.ports.state_store import StateStorePort
-    from dipeo.core.execution.executable_diagram import ExecutableDiagram
+    from dipeo.core.compilation.executable_diagram import ExecutableDiagram
     from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
     from dipeo.models import DomainDiagram
 
     from ...registry import ServiceRegistry
-    from ..execution_runtime import ExecutionRuntime
     from dipeo.application.bootstrap import Container
 
 class ExecuteDiagramUseCase(BaseService):
@@ -68,7 +67,6 @@ class ExecuteDiagramUseCase(BaseService):
 
         typed_diagram = await self._compile_typed_diagram(diagram)
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
-        typed_execution = await self._create_typed_execution(typed_diagram, options, execution_id)
         if observers is not None:
             engine_observers = observers
             streaming_observer = None
@@ -103,9 +101,13 @@ class ExecuteDiagramUseCase(BaseService):
                 engine_observers.append(StateStoreObserver(self.state_store))
                 
             engine_observers.append(streaming_observer)
-        from dipeo.application.execution.engine import TypedExecutionEngine
+        from dipeo.application.execution.typed_engine import TypedExecutionEngine
+        from dipeo.application.execution.resolvers import StandardRuntimeResolver
+        
+        runtime_resolver = StandardRuntimeResolver()
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
+            runtime_resolver=runtime_resolver,
             observers=engine_observers,
         )
 
@@ -123,10 +125,11 @@ class ExecuteDiagramUseCase(BaseService):
                     await self.state_store.save_state(exec_state)
                 
                 async for _ in engine.execute(
-                    typed_execution,
-                    execution_id,
-                    options,
-                    interactive_handler,
+                    diagram=typed_diagram,
+                    execution_state=exec_state,
+                    options=options,
+                    container=self.container,
+                    interactive_handler=interactive_handler,
                 ):
                     pass
 
@@ -212,8 +215,8 @@ class ExecuteDiagramUseCase(BaseService):
         # TODO: Add updated validation logic if needed
         # Validation has been temporarily removed while updating the flow validation system
         
-        from ...resolution.interface_based_compiler import InterfaceBasedDiagramCompiler
-        compiler = InterfaceBasedDiagramCompiler()
+        from ...compilation import StandardCompiler
+        compiler = StandardCompiler()
         
         api_keys = None
         if hasattr(self.service_registry, 'resolve'):
@@ -248,41 +251,6 @@ class ExecuteDiagramUseCase(BaseService):
         
         return executable_diagram
     
-    async def _create_typed_execution(
-        self, 
-        typed_diagram: "ExecutableDiagram", 
-        options: dict[str, Any],
-        execution_id: str
-    ) -> "ExecutionRuntime":
-        """Create typed execution with single source of truth."""
-        from ..execution_runtime import ExecutionRuntime
-        
-        # Service registry validation
-        if not hasattr(self.service_registry, 'get'):
-            raise ValueError("Service registry must support 'get' method")
-        
-        # Get current execution state from store
-        execution_state = await self.state_store.get_state(execution_id)
-        if not execution_state:
-            # Should have been initialized by _initialize_typed_execution_state
-            raise ValueError(f"Execution state not found for {execution_id}")
-        
-        # Create execution runtime - consolidated execution management
-        typed_execution = ExecutionRuntime(
-            diagram=typed_diagram,
-            execution_state=execution_state,
-            service_registry=self.service_registry,
-            container=self.container
-        )
-        
-        # Propagate metadata from options to the execution runtime
-        if options.get('metadata'):
-            typed_execution.metadata.update(options['metadata'])
-        
-        # Store stateful_execution reference in execution_state for later access
-        execution_state._stateful_execution = typed_execution
-        
-        return typed_execution
     
     async def _register_typed_person_configs(self, typed_diagram: "ExecutableDiagram") -> None:  # type: ignore
         """Register person configurations from typed diagram."""

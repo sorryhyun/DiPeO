@@ -12,7 +12,7 @@ from dipeo.application.registry import STATE_STORE
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 
 @register_handler

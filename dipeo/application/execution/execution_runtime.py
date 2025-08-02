@@ -17,7 +17,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 
 if TYPE_CHECKING:
     from dipeo.application.registry import ServiceRegistry, ServiceKey
-    from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableNode
+    from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableNode
     from dipeo.application.bootstrap import Container
 
 logger = logging.getLogger(__name__)
@@ -117,14 +117,12 @@ class ExecutionRuntime(StateTransitionMixin):
     
     
     def resolve_inputs(self, node: "ExecutableNode") -> dict[str, Any]:
-        from dipeo.application.resolution import (
-            StandardRuntimeInputResolver,
-            ExecutionContext,
-        )
+        from dipeo.application.execution.resolvers import StandardRuntimeResolver
+        from dipeo.application.resolution.runtime_input_resolver import ExecutionContext
         from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
         # Use direct resolver implementation
-        runtime_resolver = StandardRuntimeInputResolver()
+        runtime_resolver = StandardRuntimeResolver()
         
         # Gather node outputs from tracker
         node_outputs_dict = {}

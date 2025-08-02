@@ -10,11 +10,10 @@ from dipeo.application.resolution.input_resolution import (
     Connection,
     TransformRules,
 )
-from dipeo.core.execution.executable_diagram import ExecutableNode
+from dipeo.core.compilation.executable_diagram import ExecutableNode
 from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
 
-from .handle_resolver import HandleResolver
-from .arrow_transformer import ArrowTransformer
+from dipeo.domain.diagram.compilation import ConnectionResolver, EdgeBuilder
 
 
 class StandardCompileTimeResolver:
@@ -25,8 +24,8 @@ class StandardCompileTimeResolver:
     """
     
     def __init__(self):
-        self.handle_resolver = HandleResolver()
-        self.arrow_transformer = ArrowTransformer()
+        self.connection_resolver = ConnectionResolver()
+        self.edge_builder = EdgeBuilder()
         self.connection_rules = NodeConnectionRules()
         self.transform_rules = DataTransformRules()
     
@@ -43,7 +42,7 @@ class StandardCompileTimeResolver:
         3. Preserving arrow metadata for later use
         """
         # Resolve handle references
-        resolved_connections, errors = self.handle_resolver.resolve_arrows(arrows, nodes)
+        resolved_connections, errors = self.connection_resolver.resolve_connections(arrows, nodes)
         
         # Convert to Connection objects
         connections = []

@@ -7,9 +7,9 @@ from .handler_factory import (
 )
 from .handler_base import TypedNodeHandler
 from dipeo.diagram_generated import ExecutionOptions
-from dipeo.core.dynamic.execution_context import ExecutionContext
+from dipeo.core.execution.execution_context import ExecutionContext
 from .execution_runtime import ExecutionRuntime
-from .engine import TypedExecutionEngine
+from .typed_engine import TypedExecutionEngine
 from .use_cases import ExecuteDiagramUseCase
 
 # Compatibility imports for migration

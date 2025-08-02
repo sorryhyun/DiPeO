@@ -1,15 +1,15 @@
-# Arrow transformation for converting domain arrows to executable edges.
+"""Domain logic for building executable edges from arrows."""
 
 from dataclasses import dataclass
 from typing import Any
 
-from .handle_resolver import ResolvedConnection
-from dipeo.core.execution import ExecutableEdgeV2
+from dipeo.core.compilation.executable_diagram import ExecutableEdgeV2
 from dipeo.diagram_generated import ContentType, DomainArrow, DomainNode, NodeID, NodeType
 
 
 @dataclass
 class TransformationMetadata:
+    """Metadata describing how data should be transformed between nodes."""
     content_type: ContentType
     transformation_rules: dict[str, Any] = None
     
@@ -18,22 +18,33 @@ class TransformationMetadata:
             self.transformation_rules = {}
 
 
-class ArrowTransformer:
-    """Transforms DomainArrows into ExecutableEdgeV2s with data flow rules.
+@dataclass
+class ResolvedConnection:
+    """Represents a resolved connection between nodes."""
+    arrow_id: str
+    source_node_id: NodeID
+    target_node_id: NodeID
+    source_handle_label: str | None = None
+    target_handle_label: str | None = None
+
+
+class EdgeBuilder:
+    """Builds executable edges from domain arrows with transformation rules.
     
-    This class converts arrows with handle references into executable edges
-    with resolved node connections and data transformation metadata.
+    This is pure domain logic that transforms arrows into executable edges
+    with data flow rules, without any application dependencies.
     """
     
     def __init__(self):
         self._errors: list[str] = []
     
-    def transform_arrows(
+    def build_edges(
         self,
         arrows: list[DomainArrow],
         resolved_connections: list[ResolvedConnection],
         nodes: dict[NodeID, DomainNode]
     ) -> tuple[list[ExecutableEdgeV2], list[str]]:
+        """Build executable edges from arrows and resolved connections."""
         self._errors = []
         
         # Create arrow lookup
@@ -47,18 +58,19 @@ class ArrowTransformer:
                 self._errors.append(f"Arrow {connection.arrow_id} not found")
                 continue
             
-            edge = self._transform_connection(connection, arrow, nodes)
+            edge = self._build_edge(connection, arrow, nodes)
             if edge:
                 edges.append(edge)
         
         return edges, self._errors
     
-    def _transform_connection(
+    def _build_edge(
         self,
         connection: ResolvedConnection,
         arrow: DomainArrow,
         nodes: dict[NodeID, DomainNode]
     ) -> ExecutableEdgeV2 | None:
+        """Build a single executable edge from a connection."""
         # Get source and target nodes
         source_node = nodes.get(connection.source_node_id)
         target_node = nodes.get(connection.target_node_id)
@@ -92,10 +104,8 @@ class ArrowTransformer:
             target_node_id=connection.target_node_id,
             source_output=connection.source_handle_label.value if connection.source_handle_label else None,
             target_input=connection.target_handle_label.value if connection.target_handle_label else None,
-            data_transform={
-                "content_type": transform_metadata.content_type.value,
-                "rules": transform_metadata.transformation_rules
-            },
+            content_type=transform_metadata.content_type,
+            transform_rules=transform_metadata.transformation_rules,
             metadata=edge_metadata
         )
     
@@ -106,6 +116,7 @@ class ArrowTransformer:
         arrow: DomainArrow,
         connection: ResolvedConnection
     ) -> TransformationMetadata:
+        """Create transformation metadata for an edge."""
         # Default content type based on source node
         content_type = self._determine_content_type(source_node, arrow)
         
@@ -122,6 +133,7 @@ class ArrowTransformer:
         source_node: DomainNode,
         arrow: DomainArrow
     ) -> ContentType:
+        """Determine the content type for data flowing through an edge."""
         # Check for explicit content type in arrow field
         if arrow.content_type:
             return arrow.content_type
@@ -153,6 +165,7 @@ class ArrowTransformer:
         source_node: DomainNode,
         target_node: DomainNode
     ) -> dict[str, Any]:
+        """Extract transformation rules from arrow and node types."""
         rules = {}
         
         # Extract from arrow data
@@ -175,4 +188,3 @@ class ArrowTransformer:
             rules["format_for_conversation"] = True
         
         return rules
-

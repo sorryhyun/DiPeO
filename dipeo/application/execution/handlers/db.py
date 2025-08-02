@@ -15,7 +15,7 @@ from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 

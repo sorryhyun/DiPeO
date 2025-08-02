@@ -1,4 +1,4 @@
-# Handle resolution for converting handle references to concrete node IDs.
+"""Domain logic for resolving handle references to concrete node connections."""
 
 from dataclasses import dataclass
 
@@ -8,6 +8,7 @@ from dipeo.diagram_generated.handle_utils import parse_handle_id_safe
 
 @dataclass
 class ResolvedConnection:
+    """Represents a resolved connection between nodes."""
     arrow_id: str
     source_node_id: NodeID
     target_node_id: NodeID
@@ -15,16 +16,22 @@ class ResolvedConnection:
     target_handle_label: HandleLabel | None = None
 
 
-class HandleResolver:
+class ConnectionResolver:
+    """Resolves handle references in arrows to concrete node connections.
+    
+    This is pure domain logic that validates and transforms arrow references
+    into resolved connections, without any application dependencies.
+    """
     
     def __init__(self):
         self._errors: list[str] = []
     
-    def resolve_arrows(
+    def resolve_connections(
         self, 
         arrows: list[DomainArrow], 
         nodes: list[DomainNode]
     ) -> tuple[list[ResolvedConnection], list[str]]:
+        """Resolve all arrow handle references to node connections."""
         self._errors = []
         
         # Create node lookup for validation
@@ -44,6 +51,7 @@ class HandleResolver:
         arrow: DomainArrow, 
         valid_nodes: set[NodeID]
     ) -> ResolvedConnection | None:
+        """Resolve a single arrow to a connection."""
         # Parse source handle
         source_parsed = parse_handle_id_safe(arrow.source)
         if not source_parsed:
@@ -94,37 +102,35 @@ class HandleResolver:
             target_handle_label=target_parsed.handle_label
         )
     
-    def build_connection_map(
+    def build_connection_maps(
         self, 
         resolved: list[ResolvedConnection]
-    ) -> dict[NodeID, list[ResolvedConnection]]:
-        connection_map: dict[NodeID, list[ResolvedConnection]] = {}
-        
-        for connection in resolved:
-            if connection.source_node_id not in connection_map:
-                connection_map[connection.source_node_id] = []
-            connection_map[connection.source_node_id].append(connection)
-        
-        return connection_map
-    
-    def build_reverse_connection_map(
-        self, 
-        resolved: list[ResolvedConnection]
-    ) -> dict[NodeID, list[ResolvedConnection]]:
+    ) -> tuple[dict[NodeID, list[ResolvedConnection]], dict[NodeID, list[ResolvedConnection]]]:
+        """Build forward and reverse connection maps for efficient lookup."""
+        # Forward map: source_node -> connections
+        forward_map: dict[NodeID, list[ResolvedConnection]] = {}
+        # Reverse map: target_node -> connections
         reverse_map: dict[NodeID, list[ResolvedConnection]] = {}
         
         for connection in resolved:
+            # Forward map
+            if connection.source_node_id not in forward_map:
+                forward_map[connection.source_node_id] = []
+            forward_map[connection.source_node_id].append(connection)
+            
+            # Reverse map
             if connection.target_node_id not in reverse_map:
                 reverse_map[connection.target_node_id] = []
             reverse_map[connection.target_node_id].append(connection)
         
-        return reverse_map
+        return forward_map, reverse_map
     
     def find_disconnected_nodes(
         self,
         nodes: list[DomainNode],
         resolved: list[ResolvedConnection]
     ) -> set[NodeID]:
+        """Find nodes that have no connections."""
         connected_nodes = set()
         
         for connection in resolved:

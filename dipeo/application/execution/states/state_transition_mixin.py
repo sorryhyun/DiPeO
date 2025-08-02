@@ -11,7 +11,7 @@ from dipeo.diagram_generated import NodeExecutionStatus, NodeID, NodeState
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_tracker import ExecutionTracker
-    from dipeo.core.execution.executable_diagram import ExecutableDiagram
+    from dipeo.core.compilation.executable_diagram import ExecutableDiagram
 
 
 class TransitionType(Enum):

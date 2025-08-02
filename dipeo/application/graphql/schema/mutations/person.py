@@ -6,7 +6,7 @@ from uuid import uuid4
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
-from dipeo.core.dynamic import PersonManager
+from dipeo.domain.conversation import PersonManager
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import PersonLLMConfig, PersonID
 

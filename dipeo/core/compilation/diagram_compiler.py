@@ -8,7 +8,7 @@ from typing import Protocol
 
 from dipeo.models import DomainDiagram
 
-from dipeo.core.execution.executable_diagram import ExecutableDiagram
+from dipeo.core.compilation.executable_diagram import ExecutableDiagram
 
 
 class DiagramCompiler(Protocol):

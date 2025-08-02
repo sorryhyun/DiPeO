@@ -12,7 +12,7 @@ from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNod
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 
 @register_handler

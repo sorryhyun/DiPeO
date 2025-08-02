@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.executable_diagram import ExecutableNode
+    from dipeo.core.compilation.executable_diagram import ExecutableNode
     from dipeo.core.execution.node_output import NodeOutputProtocol
 
 # Type variable for node types

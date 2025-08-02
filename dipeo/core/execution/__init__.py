@@ -34,16 +34,13 @@ from dipeo.core.execution.node_strategy import (
     NodeStrategyRegistry,
     node_strategy_registry,
 )
-from dipeo.core.execution.input_resolution import (
-    Connection,
-    TransformRules,
-    CompileTimeResolver,
-    RuntimeInputResolver,
-    TransformationEngine,
-)
-from dipeo.core.execution.diagram_compiler import DiagramCompiler
-from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode, NodeOutputProtocolV2, StandardNodeOutput
+from dipeo.core.compilation.diagram_compiler import DiagramCompiler
+from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode, NodeOutputProtocolV2, StandardNodeOutput
+from dipeo.core.execution.execution_context import ExecutionContext
+from dipeo.core.execution.runtime_resolver import RuntimeResolver, TransformationRule
 from dipeo.core.execution.node_handler import TypedNodeHandler
+from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator
+from dipeo.core.execution.execution_state_manager import ExecutionStateManager
 from dipeo.diagram_generated.generated_nodes import (
     ApiJobNode,
     BaseExecutableNode,
@@ -88,12 +85,6 @@ __all__ = [
     "DefaultNodeStrategy",
     "NodeStrategyRegistry",
     "node_strategy_registry",
-    # Input resolution
-    "Connection",
-    "TransformRules",
-    "CompileTimeResolver",
-    "RuntimeInputResolver",
-    "TransformationEngine",
     # Diagram structures
     "ExecutableDiagram",
     "ExecutableEdgeV2",
@@ -122,4 +113,9 @@ __all__ = [
     # Protocols and base classes
     "DiagramCompiler",
     "TypedNodeHandler",
+    "ExecutionContext",
+    "RuntimeResolver",
+    "TransformationRule",
+    "DynamicOrderCalculator",
+    "ExecutionStateManager",
 ]

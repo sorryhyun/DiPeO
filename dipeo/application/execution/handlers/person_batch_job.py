@@ -28,8 +28,8 @@ from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
 from dipeo.diagram_generated.handle_utils import extract_node_id_from_handle
 
 if TYPE_CHECKING:
-    from dipeo.core.dynamic.conversation_manager import ConversationManager
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.domain.conversation.conversation_manager import ConversationManager
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 # PersonBatchJobNodeData is a type alias for PersonJobNodeData in TypeScript
 PersonBatchJobNodeData = PersonJobNodeData

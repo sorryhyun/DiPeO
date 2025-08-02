@@ -34,8 +34,8 @@ if TYPE_CHECKING:
     from dipeo.domain.ports.storage import DiagramStoragePort
     from dipeo.infrastructure.services.diagram import DiagramService, DiagramConverterService
     from dipeo.domain.db.services import DBOperationsDomainService
-    from dipeo.core.dynamic import ExecutionContext
-    from dipeo.core.execution import ExecutableDiagram
+    from dipeo.core.execution import ExecutionContext
+    from dipeo.core.compilation import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from typing import Any, Dict

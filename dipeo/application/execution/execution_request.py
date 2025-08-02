@@ -3,12 +3,12 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
-from dipeo.core.execution.executable_diagram import ExecutableNode
+from dipeo.core.compilation.executable_diagram import ExecutableNode
 from dipeo.diagram_generated import NodeExecutionStatus
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
 

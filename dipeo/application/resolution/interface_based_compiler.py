@@ -6,8 +6,8 @@ the new interfaces for better separation of concerns.
 
 from typing import Any
 
-from dipeo.core.execution.diagram_compiler import DiagramCompiler
-from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode
+from dipeo.core.compilation.diagram_compiler import DiagramCompiler
+from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode
 from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 
 from dipeo.application.resolution.input_resolution import (
@@ -16,7 +16,7 @@ from dipeo.application.resolution.input_resolution import (
     TransformRules,
 )
 from dipeo.application.resolution.compile_time_resolver import StandardCompileTimeResolver
-from dipeo.application.resolution.compiler import NodeFactory
+from dipeo.domain.diagram.compilation import NodeFactory
 from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalculator
 
 

@@ -14,7 +14,7 @@ from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
     from dipeo.domain.ports.storage import FileSystemPort
 
 

@@ -13,7 +13,7 @@ from dipeo.diagram_generated.models.notion_model import NotionNodeData
 from dipeo.models import NotionOperation
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 
 @register_handler

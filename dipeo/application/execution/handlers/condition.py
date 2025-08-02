@@ -12,7 +12,7 @@ from dipeo.application.registry import (
     CONDITION_EVALUATION_SERVICE,
     NODE_EXEC_COUNTS,
 )
-from dipeo.core.execution.executable_diagram import ExecutableDiagram
+from dipeo.core.compilation.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.core.execution.node_output import ConditionOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
@@ -20,7 +20,7 @@ from dipeo.diagram_generated.enums import NodeExecutionStatus
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 

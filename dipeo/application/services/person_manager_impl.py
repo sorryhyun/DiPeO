@@ -1,8 +1,8 @@
 """Simple in-memory implementation of PersonManager protocol."""
 
 
-from dipeo.core.dynamic.person import Person
-from dipeo.core.dynamic.person_manager import PersonManager
+from dipeo.domain.conversation.person import Person
+from dipeo.domain.conversation.person_manager import PersonManager
 from dipeo.models import LLMService, PersonID, PersonLLMConfig
 
 

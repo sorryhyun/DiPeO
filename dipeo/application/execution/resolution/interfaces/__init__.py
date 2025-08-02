@@ -8,7 +8,7 @@ This package defines the interfaces that enable:
 """
 
 # Import from core execution for moved classes
-from dipeo.core.execution.executable_diagram import (
+from dipeo.core.compilation.executable_diagram import (
     ExecutableEdgeV2,
     NodeOutputProtocolV2,
     StandardNodeOutput,
@@ -26,8 +26,8 @@ from .node_strategies import (
     NodeStrategyFactory,
     PersonJobStrategy,
 )
-# Import from core execution instead of duplicating
-from dipeo.core.execution.input_resolution import (
+# Import from application resolution instead of duplicating
+from dipeo.application.resolution.input_resolution import (
     CompileTimeResolver,
     Connection,
     RuntimeInputResolver,
