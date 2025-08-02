@@ -7,12 +7,16 @@ This package defines the interfaces that enable:
 - Pluggable transformation engine
 """
 
-from .data_structures import (
-    EdgeMetadata,
+# Import from core execution for moved classes
+from dipeo.core.execution.executable_diagram import (
     ExecutableEdgeV2,
     NodeOutputProtocolV2,
-    OutputExtractor,
     StandardNodeOutput,
+)
+# Import remaining classes from data_structures
+from .data_structures import (
+    EdgeMetadata,
+    OutputExtractor,
     TransformationContext,
 )
 from .node_strategies import (

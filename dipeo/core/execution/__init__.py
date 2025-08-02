@@ -42,7 +42,7 @@ from dipeo.core.execution.input_resolution import (
     TransformationEngine,
 )
 from dipeo.core.execution.diagram_compiler import DiagramCompiler
-from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdge, ExecutableNode
+from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode, NodeOutputProtocolV2, StandardNodeOutput
 from dipeo.core.execution.node_handler import TypedNodeHandler
 from dipeo.diagram_generated.generated_nodes import (
     ApiJobNode,
@@ -96,8 +96,10 @@ __all__ = [
     "TransformationEngine",
     # Diagram structures
     "ExecutableDiagram",
-    "ExecutableEdge",
+    "ExecutableEdgeV2",
     "ExecutableNode",
+    "NodeOutputProtocolV2",
+    "StandardNodeOutput",
     # Node types
     "BaseExecutableNode",
     "StartNode",

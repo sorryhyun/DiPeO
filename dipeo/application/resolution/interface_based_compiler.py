@@ -7,15 +7,13 @@ the new interfaces for better separation of concerns.
 from typing import Any
 
 from dipeo.core.execution.diagram_compiler import DiagramCompiler
-from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdge
+from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode
 from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
-from dipeo.core.execution.executable_diagram import ExecutableNode
 
 from dipeo.application.execution.resolution.interfaces import (
     CompileTimeResolver,
     Connection,
     TransformRules,
-    ExecutableEdgeV2,
 )
 from dipeo.application.execution.resolution.adapters import (
     CompileTimeResolverAdapter,
@@ -111,7 +109,7 @@ class InterfaceBasedDiagramCompiler(DiagramCompiler):
         connections: list[Connection],
         arrows: list[Any],
         node_map: dict[NodeID, ExecutableNode]
-    ) -> list[ExecutableEdge]:
+    ) -> list[ExecutableEdgeV2]:
         """Create executable edges with enhanced transformation rules."""
         typed_edges = []
         
@@ -178,7 +176,7 @@ class InterfaceBasedDiagramCompiler(DiagramCompiler):
     def _to_impl_node(self, node: ExecutableNode) -> Any:
         """Convert node for order calculator compatibility."""
         # Import here to avoid circular dependency
-        from .static_diagram_compiler import ExecutableNodeImpl
+        from .compatibility import ExecutableNodeImpl
         
         return ExecutableNodeImpl(
             id=node.id,
@@ -187,7 +185,7 @@ class InterfaceBasedDiagramCompiler(DiagramCompiler):
             data=node.to_dict()
         )
     
-    def _to_order_edge(self, edge: ExecutableEdge) -> Any:
+    def _to_order_edge(self, edge: ExecutableEdgeV2) -> Any:
         """Convert edge for order calculator compatibility."""
         # Create simple edge structure for order calculation
         class SimpleEdge:

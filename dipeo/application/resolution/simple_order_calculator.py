@@ -2,7 +2,7 @@
 Simplified execution order calculation that handles cycles gracefully.
 """
 
-from dipeo.core.execution import ExecutableEdge
+from dipeo.core.execution import ExecutableEdgeV2
 from dipeo.diagram_generated import DomainNode, NodeID, NodeType
 
 
@@ -12,7 +12,7 @@ class SimpleOrderCalculator:
     def calculate_order(
         self,
         nodes: list[DomainNode],
-        edges: list[ExecutableEdge]
+        edges: list[ExecutableEdgeV2]
     ) -> tuple[list[NodeID], list, list[str]]:
         """
         Calculate a reasonable execution order.

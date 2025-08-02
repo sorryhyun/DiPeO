@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from typing import Any
 
-from dipeo.application.resolution.handle_resolver import ResolvedConnection
-from dipeo.core.execution import ExecutableEdge
+from dipeo.application.execution.resolution.adapters.handle_resolver import ResolvedConnection
+from dipeo.core.execution import ExecutableEdgeV2
 from dipeo.diagram_generated import ContentType, DomainArrow, DomainNode, NodeID, NodeType
 
 
@@ -19,7 +19,7 @@ class TransformationMetadata:
 
 
 class ArrowTransformer:
-    """Transforms DomainArrows into ExecutableEdges with data flow rules.
+    """Transforms DomainArrows into ExecutableEdgeV2s with data flow rules.
     
     This class converts arrows with handle references into executable edges
     with resolved node connections and data transformation metadata.
@@ -33,7 +33,7 @@ class ArrowTransformer:
         arrows: list[DomainArrow],
         resolved_connections: list[ResolvedConnection],
         nodes: dict[NodeID, DomainNode]
-    ) -> tuple[list[ExecutableEdge], list[str]]:
+    ) -> tuple[list[ExecutableEdgeV2], list[str]]:
         self._errors = []
         
         # Create arrow lookup
@@ -58,7 +58,7 @@ class ArrowTransformer:
         connection: ResolvedConnection,
         arrow: DomainArrow,
         nodes: dict[NodeID, DomainNode]
-    ) -> ExecutableEdge | None:
+    ) -> ExecutableEdgeV2 | None:
         # Get source and target nodes
         source_node = nodes.get(connection.source_node_id)
         target_node = nodes.get(connection.target_node_id)
@@ -86,7 +86,7 @@ class ArrowTransformer:
             "label": getattr(arrow, 'label', None)
         }
         
-        return ExecutableEdge(
+        return ExecutableEdgeV2(
             id=arrow.id,
             source_node_id=connection.source_node_id,
             target_node_id=connection.target_node_id,

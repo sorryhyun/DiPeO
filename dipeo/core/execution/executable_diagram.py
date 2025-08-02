@@ -2,11 +2,9 @@
 
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+from dipeo.diagram_generated import ContentType
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Protocol
-
-# Note: ExecutableEdgeV2 from input resolution system provides enhanced edge representation
-# Consider migrating to ExecutableEdgeV2 for better transformation support
 
 @dataclass(frozen=True)
 class BaseExecutableNode:
@@ -40,17 +38,112 @@ class ExecutableNode(Protocol):
 
 
 @dataclass(frozen=True)
-class ExecutableEdge:
+class ExecutableEdgeV2:
+    """Enhanced edge representation with all resolution rules.
+    
+    This unified structure contains all information needed for both
+    compile-time validation and runtime execution.
+    """
+    # Identity
     id: str
     source_node_id: NodeID
     target_node_id: NodeID
-    source_output: str | None = None
-    target_input: str | None = None
-    data_transform: dict[str, Any] | None = None
+    
+    # Connection details
+    source_output: str = "default"
+    target_input: str = "default"
+    
+    # Transformation rules (determined at compile time)
+    content_type: ContentType | None = None
+    transform_rules: dict[str, Any] = field(default_factory=dict)
+    
+    # Runtime behavior hints
+    is_conditional: bool = False
+    requires_first_execution: bool = False
+    
+    # Additional metadata
     metadata: dict[str, Any] = field(default_factory=dict)
     
+    def get_transform_rule(self, rule_type: str) -> Any | None:
+        """Get a specific transformation rule."""
+        return self.transform_rules.get(rule_type)
+    
+    def has_transform_rule(self, rule_type: str) -> bool:
+        """Check if a transformation rule exists."""
+        return rule_type in self.transform_rules
+    
     def __repr__(self) -> str:
-        return f"ExecutableEdge({self.source_node_id} -> {self.target_node_id})"
+        return f"ExecutableEdgeV2({self.source_node_id} -> {self.target_node_id})"
+
+
+class NodeOutputProtocolV2(Protocol):
+    """Enhanced protocol for node outputs with consistent access patterns."""
+    
+    @property
+    def value(self) -> Any:
+        """Primary output value."""
+        ...
+    
+    @property
+    def outputs(self) -> dict[str, Any]:
+        """Named outputs dictionary."""
+        ...
+    
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Output metadata."""
+        ...
+    
+    def get_output(self, name: str = "default") -> Any:
+        """Get a specific named output or default value."""
+        ...
+    
+    def has_output(self, name: str) -> bool:
+        """Check if a named output exists."""
+        ...
+
+
+@dataclass
+class StandardNodeOutput:
+    """Standard implementation of NodeOutputProtocolV2."""
+    
+    value: Any
+    outputs: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    
+    def get_output(self, name: str = "default") -> Any:
+        """Get a specific named output or default value."""
+        if name == "default":
+            return self.outputs.get(name, self.value)
+        return self.outputs.get(name)
+    
+    def has_output(self, name: str) -> bool:
+        """Check if a named output exists."""
+        if name == "default":
+            return True  # Always has default
+        return name in self.outputs
+    
+    @classmethod
+    def from_value(cls, value: Any) -> "StandardNodeOutput":
+        """Create from a simple value."""
+        return cls(value=value, outputs={"default": value})
+    
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "StandardNodeOutput":
+        """Create from a dictionary representation."""
+        if "value" in data:
+            return cls(
+                value=data["value"],
+                outputs=data.get("outputs", {"default": data["value"]}),
+                metadata=data.get("metadata", {})
+            )
+        else:
+            # Treat entire dict as outputs
+            return cls(
+                value=data.get("default", data),
+                outputs=data,
+                metadata={}
+            )
 
 
 class ExecutableDiagram:
@@ -62,20 +155,20 @@ class ExecutableDiagram:
     
     def __init__(self, 
                  nodes: list[ExecutableNode], 
-                 edges: list[ExecutableEdge],
+                 edges: list[ExecutableEdgeV2],
                  execution_order: list[NodeID],
                  metadata: dict[str, Any] | None = None,
                  api_keys: dict[str, str] | None = None):
         self.nodes: tuple[ExecutableNode, ...] = tuple(nodes)
-        self.edges: tuple[ExecutableEdge, ...] = tuple(edges)
+        self.edges: tuple[ExecutableEdgeV2, ...] = tuple(edges)
         self.execution_order: tuple[NodeID, ...] = tuple(execution_order)
         self.metadata: dict[str, Any] = metadata or {}
         self.api_keys: dict[str, str] = api_keys or {}
         self._node_index: dict[NodeID, ExecutableNode] = {
             node.id: node for node in self.nodes
         }
-        self._outgoing_edges: dict[NodeID, list[ExecutableEdge]] = {}
-        self._incoming_edges: dict[NodeID, list[ExecutableEdge]] = {}
+        self._outgoing_edges: dict[NodeID, list[ExecutableEdgeV2]] = {}
+        self._incoming_edges: dict[NodeID, list[ExecutableEdgeV2]] = {}
         for edge in self.edges:
             self._outgoing_edges.setdefault(edge.source_node_id, []).append(edge)
             self._incoming_edges.setdefault(edge.target_node_id, []).append(edge)
@@ -118,10 +211,10 @@ class ExecutableDiagram:
     def get_nodes_by_type(self, node_type: NodeType) -> list[ExecutableNode]:
         return [node for node in self.nodes if node.type == node_type]
     
-    def get_outgoing_edges(self, node_id: NodeID) -> list[ExecutableEdge]:
+    def get_outgoing_edges(self, node_id: NodeID) -> list[ExecutableEdgeV2]:
         return self._outgoing_edges.get(node_id, [])
     
-    def get_incoming_edges(self, node_id: NodeID) -> list[ExecutableEdge]:
+    def get_incoming_edges(self, node_id: NodeID) -> list[ExecutableEdgeV2]:
         return self._incoming_edges.get(node_id, [])
     
     def get_start_nodes(self) -> list[ExecutableNode]:

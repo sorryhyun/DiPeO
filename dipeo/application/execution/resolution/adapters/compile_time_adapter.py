@@ -6,8 +6,8 @@ and the existing StaticDiagramCompiler implementation.
 
 from typing import Any
 
-from dipeo.diagram_generated import DomainArrow, DomainNode, NodeID
-from dipeo.core.execution.executable_diagram import ExecutableNode, ExecutableEdge
+from dipeo.diagram_generated import DomainArrow, DomainNode
+from dipeo.core.execution.executable_diagram import ExecutableNode, ExecutableEdgeV2
 from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
 
 from ..interfaces import (
@@ -15,8 +15,8 @@ from ..interfaces import (
     Connection,
     TransformRules,
 )
-from ....resolution.handle_resolver import HandleResolver
-from ....resolution.arrow_transformer import ArrowTransformer
+from .handle_resolver import HandleResolver
+from .arrow_transformer import ArrowTransformer
 
 
 class CompileTimeResolverAdapter(CompileTimeResolver):
@@ -101,7 +101,7 @@ class ExecutableNodeAdapter:
     def to_executable_impl(node: ExecutableNode) -> Any:
         """Convert typed node to ExecutableNodeImpl for compatibility."""
         # Import here to avoid circular dependency
-        from ....resolution.static_diagram_compiler import ExecutableNodeImpl
+        from ....resolution.compatibility import ExecutableNodeImpl
         
         return ExecutableNodeImpl(
             id=node.id,
@@ -122,33 +122,32 @@ class ExecutableNodeAdapter:
 
 
 class EdgeAdapter:
-    """Adapts between ExecutableEdge representations."""
+    """Adapts between ExecutableEdgeV2 representations."""
     
     @staticmethod
     def create_executable_edge(
         edge_data: dict[str, Any],
         transform_rules: TransformRules | None = None
-    ) -> ExecutableEdge:
-        """Create ExecutableEdge from edge data and rules."""
-        data_transform = transform_rules.rules if transform_rules else {}
+    ) -> ExecutableEdgeV2:
+        """Create ExecutableEdgeV2 from edge data and rules."""
+        transform_rules_dict = transform_rules.rules if transform_rules else {}
         
         # Merge with existing data_transform if present
         if 'data_transform' in edge_data:
-            data_transform = {**edge_data['data_transform'], **data_transform}
+            transform_rules_dict = {**edge_data['data_transform'], **transform_rules_dict}
         
-        return ExecutableEdge(
+        return ExecutableEdgeV2(
             id=edge_data['id'],
             source_node_id=edge_data['source_node_id'],
             target_node_id=edge_data['target_node_id'],
-            source_output=edge_data.get('source_output'),
-            target_input=edge_data.get('target_input'),
-            data_transform=data_transform,
+            source_output=edge_data.get('source_output', 'default'),
+            target_input=edge_data.get('target_input', 'default'),
+            transform_rules=transform_rules_dict,
             metadata=edge_data.get('metadata', {})
         )
     
     @staticmethod
-    def to_enhanced_edge(edge: ExecutableEdge) -> Any:
-        """Convert to enhanced edge representation if needed."""
-        # For now, just return the edge as-is
-        # In future, could convert to ExecutableEdgeV2
+    def to_enhanced_edge(edge: ExecutableEdgeV2) -> ExecutableEdgeV2:
+        """Return the enhanced edge representation."""
+        # Already using ExecutableEdgeV2
         return edge

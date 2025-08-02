@@ -6,7 +6,7 @@ input resolution behavior specific to the application layer.
 
 from typing import Any, TYPE_CHECKING
 
-from dipeo.core.execution.executable_diagram import ExecutableEdge, ExecutableNode
+from dipeo.core.execution.executable_diagram import ExecutableEdgeV2, ExecutableNode
 from dipeo.core.execution.node_strategy import NodeStrategy
 from dipeo.diagram_generated import NodeType
 
@@ -20,7 +20,7 @@ class ApplicationNodeStrategy(NodeStrategy):
     
     def should_process_edge(
         self,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         node: ExecutableNode,
         execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
@@ -42,7 +42,7 @@ class ApplicationNodeStrategy(NodeStrategy):
     def transform_input(
         self,
         value: Any,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """Apply node-type-specific transformations to input value.
@@ -60,7 +60,7 @@ class ApplicationNodeStrategy(NodeStrategy):
     
     def get_input_key(
         self,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         default: str = "default"
     ) -> str:
         """Get the input key where value should be placed.
@@ -71,7 +71,7 @@ class ApplicationNodeStrategy(NodeStrategy):
             return edge.metadata["label"]
         return edge.target_input or default
     
-    def requires_special_handling(self, edge: ExecutableEdge) -> bool:
+    def requires_special_handling(self, edge: ExecutableEdgeV2) -> bool:
         """Check if edge requires special handling."""
         return False
 
@@ -98,7 +98,7 @@ class PersonJobStrategy(ApplicationNodeStrategy):
     # Application-specific methods
     def should_process_edge(
         self,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         node: ExecutableNode,
         execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
@@ -107,7 +107,7 @@ class PersonJobStrategy(ApplicationNodeStrategy):
         node_exec_count = execution_context.get_node_execution_count(node.id)
         
         # Special case: Always process conversation_state inputs from condition nodes
-        if hasattr(edge, 'data_transform') and edge.data_transform and edge.data_transform.get('content_type') == 'conversation_state':
+        if hasattr(edge, 'transform_rules') and edge.transform_rules and edge.transform_rules.get('content_type') == 'conversation_state':
             return True
         
         # On first execution (execution count is 1 when we're executing for the first time)
@@ -128,14 +128,14 @@ class PersonJobStrategy(ApplicationNodeStrategy):
     def transform_input(
         self,
         value: Any,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """PersonJob nodes may need conversation state handling."""
         # Base implementation - no transformation
         return value
     
-    def has_first_inputs(self, edges: list[ExecutableEdge]) -> bool:
+    def has_first_inputs(self, edges: list[ExecutableEdgeV2]) -> bool:
         """Check if any edges target "first" inputs."""
         return any(
             edge.target_input and (
@@ -161,7 +161,7 @@ class ConditionStrategy(ApplicationNodeStrategy):
     # Application-specific methods
     def should_process_edge(
         self,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         node: ExecutableNode,
         execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
@@ -172,7 +172,7 @@ class ConditionStrategy(ApplicationNodeStrategy):
     def transform_input(
         self,
         value: Any,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """Condition nodes may need special output handling."""
@@ -184,7 +184,7 @@ class DefaultStrategy(ApplicationNodeStrategy):
     
     def should_process_edge(
         self,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         node: ExecutableNode,
         execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
@@ -195,7 +195,7 @@ class DefaultStrategy(ApplicationNodeStrategy):
     def transform_input(
         self,
         value: Any,
-        edge: ExecutableEdge,
+        edge: ExecutableEdgeV2,
         execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """No transformation by default."""
