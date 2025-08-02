@@ -6,7 +6,7 @@ connection resolution and transformation rule determination.
 
 from dipeo.diagram_generated import DomainArrow, DomainNode
 from dipeo.diagram_generated.enums import NodeType
-from dipeo.application.resolution.input_resolution import (
+from dipeo.core.resolution import (
     Connection,
     TransformRules,
 )

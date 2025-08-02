@@ -4,7 +4,7 @@
 from .interface_based_compiler import InterfaceBasedDiagramCompiler
 from .compile_time_resolver import StandardCompileTimeResolver
 from .runtime_input_resolver import StandardRuntimeInputResolver, ExecutionContext
-from .input_resolution import (
+from dipeo.core.resolution import (
     Connection,
     TransformRules,
     CompileTimeResolver,

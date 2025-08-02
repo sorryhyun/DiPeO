@@ -93,7 +93,6 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
             services=services,
             metadata={},
             execution_id=getattr(context, 'execution_id', ''),
-            runtime=getattr(context, 'runtime', None),
             parent_container=getattr(context, '_container', None),
             parent_registry=getattr(context, '_service_registry', None)
         )

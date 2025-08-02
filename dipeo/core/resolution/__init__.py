@@ -26,12 +26,13 @@ from .node_strategies import (
     NodeStrategyFactory,
     PersonJobStrategy,
 )
-# Import from application resolution instead of duplicating
-from dipeo.application.resolution.input_resolution import (
+# Import base resolution interfaces
+from .interfaces import (
     CompileTimeResolver,
     Connection,
     RuntimeInputResolver,
     TransformRules,
+    TransformationEngine,
 )
 from .transformation_engine import (
     BranchOnCondition,

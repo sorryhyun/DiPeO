@@ -23,6 +23,7 @@ from dipeo.diagram_generated import (
     NodeState,
 )
 from dipeo.infra.config.settings import get_settings
+from dipeo.domain.execution import DomainDynamicOrderCalculator
 
 from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker
 from dipeo.application.execution.states.state_transition_mixin import StateTransitionMixin
@@ -376,18 +377,22 @@ class TypedExecutionEngine(StateTransitionMixin):
     
     def _create_handler_context(self, engine_state: dict[str, Any]) -> Any:
         """Create a context object that handlers expect (ExecutionRuntime interface)."""
+        # Reference to self for use in nested class
+        engine_self = self
+        
         # Create a minimal wrapper that provides the ExecutionRuntime interface
         class HandlerContext:
             def __init__(self, state):
                 self._state = state
                 self._tracker = state['tracker']
                 self._node_states = state['node_states']
-                self._service_registry = self.service_registry
+                self._service_registry = engine_self.service_registry
                 self._container = state['container']
                 self.metadata = state['metadata']
                 self._variables = state['variables']
                 self._current_node_id = state['current_node_id']
                 self._state_lock = state['state_lock']
+                self._readiness_checker = state['readiness_checker']
             
             @property
             def diagram(self):
@@ -428,7 +433,10 @@ class TypedExecutionEngine(StateTransitionMixin):
                     return result
                 return None
             
-            def get_node_execution_count(self, node_id: NodeID) -> int:
+            def get_node_execution_count(self, node_id: NodeID | str) -> int:
+                # Handle both NodeID and string inputs for compatibility
+                if isinstance(node_id, str):
+                    node_id = NodeID(node_id)
                 return self._tracker.get_execution_count(node_id)
             
             def get_variables(self) -> dict[str, Any]:
@@ -453,32 +461,88 @@ class TypedExecutionEngine(StateTransitionMixin):
                     config_overrides=config_overrides or {}
                 )
             
-            # State transition methods (delegated to engine)
+            # State transition methods - use engine's methods
             def transition_node_to_completed(self, node_id: NodeID, output: Any) -> None:
                 with self._state_lock:
-                    self._transition_to_completed(node_id, output)
+                    engine_self._transition_node_to_completed(
+                        node_id, output, self._node_states, self._tracker
+                    )
             
             def transition_node_to_maxiter(self, node_id: NodeID, output: Any) -> None:
                 with self._state_lock:
-                    self._transition_to_maxiter(node_id, output)
+                    engine_self._transition_node_to_maxiter(
+                        node_id, output, self._node_states, self._tracker
+                    )
             
             def reset_node(self, node_id: NodeID) -> None:
                 with self._state_lock:
-                    self._reset_node(node_id)
+                    engine_self._reset_node(node_id, self._node_states)
             
-            def _transition_to_completed(self, node_id: NodeID, output: Any) -> None:
-                self._node_states[node_id] = NodeState(status=NodeExecutionStatus.COMPLETED)
-                self._tracker.complete_execution(node_id, CompletionStatus.SUCCESS, output=output)
+            # Additional methods from ExecutionRuntime
+            def get_ready_nodes(self) -> list["ExecutableNode"]:
+                return [
+                    node for node in self.diagram.nodes
+                    if self._readiness_checker.is_node_ready(node, self._node_states)
+                ]
             
-            def _transition_to_maxiter(self, node_id: NodeID, output: Any) -> None:
-                self._node_states[node_id] = NodeState(status=NodeExecutionStatus.MAXITER_REACHED)
-                self._tracker.complete_execution(node_id, CompletionStatus.MAX_ITER, output=output)
+            def is_complete(self) -> bool:
+                if any(state.status == NodeExecutionStatus.RUNNING for state in self._node_states.values()):
+                    return False
+                return len(self.get_ready_nodes()) == 0
             
-            def _reset_node(self, node_id: NodeID) -> None:
-                self._node_states[node_id] = NodeState(status=NodeExecutionStatus.PENDING)
+            def get_completed_nodes(self) -> list[NodeID]:
+                return [
+                    node_id for node_id, state in self._node_states.items()
+                    if state.status == NodeExecutionStatus.COMPLETED
+                ]
+            
+            def get_node(self, node_id: NodeID) -> Optional["ExecutableNode"]:
+                return self.diagram.get_node(node_id)
+            
+            def get_execution_summary(self) -> dict[str, Any]:
+                return self._tracker.get_execution_summary()
+            
+            def has_running_nodes(self) -> bool:
+                return any(
+                    state.status == NodeExecutionStatus.RUNNING 
+                    for state in self._node_states.values()
+                )
+            
+            def count_nodes_by_status(self, statuses: list[str]) -> int:
+                status_enums = [NodeExecutionStatus[status] for status in statuses]
+                return sum(
+                    1 for state in self._node_states.values()
+                    if state.status in status_enums
+                )
+            
+            # Add resolve_inputs method for compatibility
+            def resolve_inputs(self, node: "ExecutableNode") -> dict[str, Any]:
+                # Build context for input resolution
+                context = engine_self._build_execution_context(self._state)
+                
+                # Get incoming edges
+                incoming_edges = [
+                    edge for edge in self.diagram.edges 
+                    if edge.target_node_id == node.id
+                ]
+                
+                # Use runtime resolver
+                return engine_self.runtime_resolver.resolve_node_inputs(
+                    node=node,
+                    incoming_edges=incoming_edges,
+                    context=context
+                )
+            
+            # Add to_execution_state for state persistence
+            def to_execution_state(self) -> ExecutionState:
+                return ExecutionStatePersistence.save_to_state(
+                    self._state['execution_id'],
+                    self._state['diagram_id'],
+                    self.diagram,
+                    self._node_states,
+                    self._tracker
+                )
         
-        # Bind self to the context class
-        HandlerContext.service_registry = self.service_registry
         return HandlerContext(engine_state)
     
     async def _handle_node_completion(
@@ -594,103 +658,8 @@ class TypedExecutionEngine(StateTransitionMixin):
         }
     
     def _create_default_order_calculator(self) -> Any:
-        """Create default order calculator (static for now)."""
-        # For now, use a simple implementation that mimics static ordering
-        class StaticOrderCalculator:
-            def get_ready_nodes(
-                self,
-                diagram: ExecutableDiagram,
-                node_states: dict[NodeID, NodeState],
-                context: CoreExecutionContext
-            ) -> list[ExecutableNode]:
-                """Get nodes ready for execution based on static dependencies."""
-                # Simple ready check based on dependencies
-                ready = []
-                for node in diagram.nodes:
-                    node_state = node_states.get(node.id)
-                    if not node_state:
-                        continue
-                        
-                    # Skip if already completed or running
-                    if node_state.status in [NodeExecutionStatus.COMPLETED, 
-                                           NodeExecutionStatus.RUNNING,
-                                           NodeExecutionStatus.MAXITER_REACHED]:
-                        continue
-                    
-                    # Check if all dependencies are satisfied
-                    incoming_edges = [e for e in diagram.edges if e.target_node_id == node.id]
-                    dependencies_met = True
-                    
-                    for edge in incoming_edges:
-                        source_state = node_states.get(edge.source_node_id)
-                        if not source_state or source_state.status != NodeExecutionStatus.COMPLETED:
-                            dependencies_met = False
-                            break
-                    
-                    if dependencies_met:
-                        ready.append(node)
-                
-                return ready
-            
-            def get_blocked_nodes(
-                self,
-                diagram: ExecutableDiagram,
-                node_states: dict[NodeID, NodeState],
-                context: CoreExecutionContext
-            ) -> list[ExecutableNode]:
-                """Get nodes that are blocked from execution."""
-                return []
-            
-            def should_terminate(
-                self,
-                diagram: ExecutableDiagram,
-                node_states: dict[NodeID, NodeState],
-                context: CoreExecutionContext
-            ) -> bool:
-                """Check if execution should terminate."""
-                return False
-            
-            def get_next_batch(
-                self,
-                diagram: ExecutableDiagram,
-                node_states: dict[NodeID, NodeState],
-                context: CoreExecutionContext,
-                max_parallel: int = 10
-            ) -> list[ExecutableNode]:
-                """Get next batch of nodes to execute."""
-                ready_nodes = self.get_ready_nodes(diagram, node_states, context)
-                return ready_nodes[:max_parallel]
-            
-            def handle_loop_node(
-                self,
-                node: ExecutableNode,
-                node_states: dict[NodeID, NodeState],
-                context: CoreExecutionContext
-            ) -> bool:
-                """Handle loop node logic."""
-                return True
-            
-            def resolve_conditional_dependencies(
-                self,
-                diagram: ExecutableDiagram,
-                node_states: dict[NodeID, NodeState],
-                context: CoreExecutionContext
-            ) -> None:
-                """Resolve conditional dependencies."""
-                pass
-            
-            def get_execution_stats(
-                self,
-                node_states: dict[NodeID, NodeState]
-            ) -> dict[str, Any]:
-                """Get execution statistics."""
-                return {
-                    "total_nodes": len(node_states),
-                    "completed": sum(1 for state in node_states.values() 
-                                   if state.status == NodeExecutionStatus.COMPLETED)
-                }
-        
-        return StaticOrderCalculator()
+        """Create default order calculator using domain implementation."""
+        return DomainDynamicOrderCalculator()
     
     def _create_default_state_manager(self) -> ExecutionStateManager:
         """Create default state manager."""

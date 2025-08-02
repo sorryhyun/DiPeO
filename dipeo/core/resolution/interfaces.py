@@ -1,4 +1,4 @@
-"""Input resolution system for diagram execution.
+"""Core input resolution interfaces.
 
 This module provides the core types and abstractions for compile-time and runtime
 input resolution, enabling clean separation between static analysis and dynamic execution.

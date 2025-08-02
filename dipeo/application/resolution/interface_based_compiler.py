@@ -10,7 +10,7 @@ from dipeo.core.compilation.diagram_compiler import DiagramCompiler
 from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode
 from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 
-from dipeo.application.resolution.input_resolution import (
+from dipeo.core.resolution import (
     CompileTimeResolver,
     Connection,
     TransformRules,
@@ -60,24 +60,16 @@ class InterfaceBasedDiagramCompiler(DiagramCompiler):
             node_map
         )
         
-        # 5. Calculate execution order
-        execution_order, groups, order_errors = self.order_calculator.calculate_order(
-            executable_nodes,
-            typed_edges
-        )
-        self.validation_errors.extend(order_errors)
+        # 5. Skip static execution order calculation (using dynamic ordering)
+        # The engine will determine execution order dynamically at runtime
         
         # 6. Create immutable executable diagram
         return ExecutableDiagram(
             nodes=executable_nodes,
             edges=typed_edges,
-            execution_order=execution_order,
+            execution_order=None,  # No longer using static order
             metadata={
                 "name": domain_diagram.metadata.name if domain_diagram.metadata else None,
-                "execution_groups": [{
-                    "level": group.level,
-                    "nodes": list(group.nodes)
-                } for group in groups] if groups else [],
                 "validation_errors": self.validation_errors.copy()
             }
         )

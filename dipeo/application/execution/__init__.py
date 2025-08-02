@@ -8,17 +8,10 @@ from .handler_factory import (
 from .handler_base import TypedNodeHandler
 from dipeo.diagram_generated import ExecutionOptions
 from dipeo.core.execution.execution_context import ExecutionContext
-from .execution_runtime import ExecutionRuntime
 from .typed_engine import TypedExecutionEngine
 from .use_cases import ExecuteDiagramUseCase
 
-# Compatibility imports for migration
-from .execution_runtime import ExecutionRuntime as SimpleExecution
-from .execution_runtime import ExecutionRuntime as TypedStatefulExecution
-from .execution_runtime import ExecutionRuntime as StatefulExecution
-
 __all__ = [
-    "ExecutionRuntime",
     "TypedExecutionEngine",
     # Use cases
     "ExecuteDiagramUseCase",
@@ -30,8 +23,4 @@ __all__ = [
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
-    # Compatibility exports during migration
-    "SimpleExecution",
-    "TypedStatefulExecution",
-    "StatefulExecution",
 ]

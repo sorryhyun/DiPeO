@@ -15,7 +15,6 @@ from dipeo.domain.diagram.compilation import (
     EdgeBuilder,
     ConnectionResolver,
 )
-from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalculator
 
 
 class StandardCompiler(DiagramCompiler):
@@ -25,7 +24,6 @@ class StandardCompiler(DiagramCompiler):
     1. NodeFactory for creating typed nodes
     2. ConnectionResolver for resolving handle references
     3. EdgeBuilder for creating executable edges
-    4. SimpleOrderCalculator for determining execution order
     """
     
     def __init__(self):
@@ -33,7 +31,6 @@ class StandardCompiler(DiagramCompiler):
         self.node_factory = NodeFactory()
         self.connection_resolver = ConnectionResolver()
         self.edge_builder = EdgeBuilder()
-        self.order_calculator = SimpleOrderCalculator()
         self.validation_errors: list[str] = []
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
@@ -64,24 +61,16 @@ class StandardCompiler(DiagramCompiler):
         )
         self.validation_errors.extend(edge_errors)
         
-        # 5. Calculate execution order (still in application layer for now)
-        execution_order, groups, order_errors = self.order_calculator.calculate_order(
-            executable_nodes,
-            typed_edges
-        )
-        self.validation_errors.extend(order_errors)
+        # 5. Skip static execution order calculation (using dynamic ordering)
+        # The engine will determine execution order dynamically at runtime
         
         # 6. Create immutable executable diagram
         return ExecutableDiagram(
             nodes=executable_nodes,
             edges=typed_edges,
-            execution_order=execution_order,
+            execution_order=None,  # No longer using static order
             metadata={
                 "name": domain_diagram.metadata.name if domain_diagram.metadata else None,
-                "execution_groups": [{
-                    "level": group.level,
-                    "nodes": list(group.nodes)
-                } for group in groups] if groups else [],
                 "validation_errors": self.validation_errors.copy()
             }
         )

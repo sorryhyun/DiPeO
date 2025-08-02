@@ -156,12 +156,12 @@ class ExecutableDiagram:
     def __init__(self, 
                  nodes: list[ExecutableNode], 
                  edges: list[ExecutableEdgeV2],
-                 execution_order: list[NodeID],
+                 execution_order: list[NodeID] | None = None,
                  metadata: dict[str, Any] | None = None,
                  api_keys: dict[str, str] | None = None):
         self.nodes: tuple[ExecutableNode, ...] = tuple(nodes)
         self.edges: tuple[ExecutableEdgeV2, ...] = tuple(edges)
-        self.execution_order: tuple[NodeID, ...] = tuple(execution_order)
+        self.execution_order: tuple[NodeID, ...] = tuple(execution_order) if execution_order else tuple()
         self.metadata: dict[str, Any] = metadata or {}
         self.api_keys: dict[str, str] = api_keys or {}
         self._node_index: dict[NodeID, ExecutableNode] = {

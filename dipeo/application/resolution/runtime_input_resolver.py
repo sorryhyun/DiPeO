@@ -7,11 +7,11 @@ including node-specific strategies and data transformations.
 from typing import Any
 
 from dipeo.diagram_generated import NodeID, NodeType
-from dipeo.application.resolution.input_resolution import RuntimeInputResolver, TransformRules
+from dipeo.core.resolution import RuntimeInputResolver, TransformRules
 from dipeo.core.compilation.executable_diagram import ExecutableEdgeV2, ExecutableNode, ExecutableDiagram
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 
-from dipeo.application.execution.resolution.interfaces import (
+from dipeo.core.resolution import (
     NodeStrategyFactory,
     StandardNodeOutput,
     StandardTransformationEngine,

@@ -13,7 +13,7 @@ from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.core.compilation.executable_diagram import ExecutableEdgeV2, ExecutableNode
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 
-from dipeo.application.execution.resolution.interfaces import (
+from dipeo.core.resolution import (
     NodeStrategyFactory,
     StandardNodeOutput,
     StandardTransformationEngine,
