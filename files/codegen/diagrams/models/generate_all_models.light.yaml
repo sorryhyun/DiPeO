@@ -102,19 +102,19 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Generate Node Specs Index (auto-generates index.ts)
-  - label: Generate Node Specs Index
-    type: sub_diagram
-    position: {x: 400, y: 350}
+  # Generate TypeScript Indexes (node-data and node-specs)
+  - label: Generate TypeScript Indexes
+    type: code_job
+    position: {x: 400, y: 375}
     props:
-      diagram_name: codegen/diagrams/models/generate_node_specs_index
-      diagram_format: light
-      passInputData: false
+      language: python
+      filePath: files/codegen/code/models/generate_typescript_indexes.py
+      functionName: main
 
   # Build TypeScript models
   - label: Build TypeScript Models
     type: code_job
-    position: {x: 600, y: 350}
+    position: {x: 600, y: 400}
     props:
       language: bash
       code: |
@@ -124,7 +124,7 @@ nodes:
   # Generate summary report
   - label: Generate Summary
     type: code_job
-    position: {x: 800, y: 350}
+    position: {x: 800, y: 400}
     props:
       language: python
       code: |
@@ -141,7 +141,7 @@ nodes:
         static_nodes = inputs.get('static_nodes', {})
         build_result = inputs.get('build_result', {})
         
-        print(f"Model generation complete - 10 artifact types generated - done!")
+        print(f"Model generation complete - 11 artifact types generated - done!")
         
         result = {
             'status': 'success',
@@ -160,7 +160,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1000, y: 350}
+    position: {x: 1000, y: 400}
     props:
       save_to_file: false
 
@@ -189,7 +189,7 @@ connections:
   - from: Parse All TypeScript
     to: Generate Validation Models
   - from: Parse All TypeScript
-    to: Generate Node Specs Index
+    to: Generate TypeScript Indexes
   
   # Python generation tasks connect directly to Generate Summary
   - from: Generate Python Models
@@ -219,6 +219,9 @@ connections:
   - from: Generate Validation Models
     to: Generate Summary
     label: validation_models
+  - from: Generate TypeScript Indexes
+    to: Generate Summary
+    label: typescript_indexes
   
   # Build TypeScript after summary
   - from: Generate Summary
