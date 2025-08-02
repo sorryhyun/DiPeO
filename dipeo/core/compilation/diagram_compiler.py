@@ -1,7 +1,7 @@
 """Protocol for compiling between different diagram representations.
 
 This module provides a protocol that diagram compilers must implement.
-The actual implementation is now interface-based and lives in the application layer.
+The actual implementation lives in the application layer.
 """
 
 from typing import Protocol
@@ -14,8 +14,8 @@ from dipeo.core.compilation.executable_diagram import ExecutableDiagram
 class DiagramCompiler(Protocol):
     """Protocol for diagram compilation.
     
-    Note: The primary implementation is InterfaceBasedDiagramCompiler
-    in dipeo.application.resolution.interface_based_compiler
+    Note: The primary implementation is StandardCompiler
+    in dipeo.application.compilation.standard_compiler
     """
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
