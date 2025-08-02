@@ -5,6 +5,9 @@ from dipeo.diagram_generated.enums import NodeType
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Protocol
 
+# Note: ExecutableEdgeV2 from input resolution system provides enhanced edge representation
+# Consider migrating to ExecutableEdgeV2 for better transformation support
+
 @dataclass(frozen=True)
 class BaseExecutableNode:
     id: NodeID

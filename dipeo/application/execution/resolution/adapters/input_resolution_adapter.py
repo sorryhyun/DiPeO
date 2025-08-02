@@ -1,18 +1,19 @@
-"""Adapter to make new interfaces work with existing TypedInputResolutionService.
+"""Standard runtime input resolver implementation and adapters.
 
-This adapter allows gradual migration from the old input resolution
-to the new interface-based approach.
+This module provides:
+- StandardRuntimeInputResolver: The primary implementation of RuntimeInputResolver
+- TypedInputResolutionServiceAdapter: Adapter for backward compatibility
+- ExecutionContextAdapter: Adapter for execution context data
 """
 
 from typing import Any
 
 from dipeo.diagram_generated import NodeType
-from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
+from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 
 from ..interfaces import (
     RuntimeInputResolver,
-    ExecutionContext,
     NodeStrategyFactory,
     StandardNodeOutput,
     StandardTransformationEngine,
@@ -45,6 +46,12 @@ class ExecutionContextAdapter:
     def get_node_exec_count(self, node_id: str) -> int:
         return self._node_exec_counts.get(node_id, 0)
     
+    def get_node_execution_count(self, node_id) -> int:
+        """Alias to match core ExecutionContext interface."""
+        # Handle both NodeID and str types
+        node_id_str = str(node_id) if hasattr(node_id, '__str__') else node_id
+        return self.get_node_exec_count(node_id_str)
+    
     def has_node_output(self, node_id: str) -> bool:
         return node_id in self._node_outputs
     
@@ -52,8 +59,12 @@ class ExecutionContextAdapter:
         return self._node_outputs.get(node_id)
 
 
-class RuntimeInputResolverAdapter(RuntimeInputResolver):
-    """Adapts the new RuntimeInputResolver interface to work with existing code."""
+class StandardRuntimeInputResolver(RuntimeInputResolver):
+    """Standard implementation of RuntimeInputResolver.
+    
+    This is the primary implementation that handles input resolution
+    using node strategies and transformation engines.
+    """
     
     def __init__(self):
         self.strategy_factory = NodeStrategyFactory()
@@ -63,7 +74,7 @@ class RuntimeInputResolverAdapter(RuntimeInputResolver):
         self,
         node_id: str,
         edges: list[Any],  # ExecutableEdge from existing code
-        context: ExecutionContext
+        context: ExecutionContextAdapter
     ) -> dict[str, Any]:
         """Resolve inputs using the new interface approach."""
         inputs = {}
@@ -97,14 +108,13 @@ class RuntimeInputResolverAdapter(RuntimeInputResolver):
             # Get input key
             input_key = strategy.get_input_key(edge)
             inputs[input_key] = transformed_value
-        
         return inputs
     
     def should_process_edge(
         self,
         edge: Any,
         node: Any,
-        context: ExecutionContext,
+        context: ExecutionContextAdapter,
         has_special_inputs: bool = False
     ) -> bool:
         """Determine if edge should be processed."""
@@ -114,7 +124,7 @@ class RuntimeInputResolverAdapter(RuntimeInputResolver):
     def get_edge_value(
         self,
         edge: Any,
-        context: ExecutionContext  
+        context: ExecutionContextAdapter  
     ) -> Any:
         """Extract value from edge's source node."""
         source_node_id = str(edge.source_node_id)
@@ -200,7 +210,7 @@ class TypedInputResolutionServiceAdapter:
     """Adapter that makes the existing service use new interfaces internally."""
     
     def __init__(self):
-        self.resolver = RuntimeInputResolverAdapter()
+        self.resolver = StandardRuntimeInputResolver()
     
     def resolve_inputs_for_node(
         self,

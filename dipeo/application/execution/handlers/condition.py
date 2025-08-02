@@ -12,7 +12,7 @@ from dipeo.application.registry import (
     CONDITION_EVALUATION_SERVICE,
     NODE_EXEC_COUNTS,
 )
-from dipeo.core.static.executable_diagram import ExecutableDiagram
+from dipeo.core.execution.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.core.execution.node_output import ConditionOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData

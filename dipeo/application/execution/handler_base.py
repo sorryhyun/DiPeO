@@ -1,8 +1,8 @@
 
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
-from dipeo.core.static.executable_diagram import ExecutableNode
-from dipeo.core.static.node_handler import TypedNodeHandler as CoreTypedHandler
+from dipeo.core.execution.executable_diagram import ExecutableNode
+from dipeo.core.execution.node_handler import TypedNodeHandler as CoreTypedHandler
 from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput
 from dipeo.application.registry import EXECUTION_RUNTIME
 

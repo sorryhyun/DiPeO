@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterator, Callable
 
 from dipeo.application.execution.execution_runtime import ExecutionRuntime
-from dipeo.core.static.executable_diagram import ExecutableNode
+from dipeo.core.execution.executable_diagram import ExecutableNode
 from dipeo.models import NodeID, NodeExecutionStatus
 
 logger = logging.getLogger(__name__)

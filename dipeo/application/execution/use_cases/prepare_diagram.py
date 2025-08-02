@@ -7,7 +7,7 @@ from typing import Any
 from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
 from dipeo.core import BaseService, ValidationError
 from dipeo.core.ports.diagram_port import DiagramPort as DiagramStorageDomainService
-from dipeo.core.static import ExecutableDiagram
+from dipeo.core.execution import ExecutableDiagram
 from dipeo.domain.diagram.utils import (
     dict_to_domain_diagram,
     domain_diagram_to_dict,
@@ -15,7 +15,7 @@ from dipeo.domain.diagram.utils import (
 from dipeo.domain.validators import DiagramValidator
 from dipeo.models import DiagramMetadata, DomainDiagram
 
-from ...resolution import StaticDiagramCompiler
+# Compiler imported inline where used
 
 logger = logging.getLogger(__name__)
 
@@ -118,10 +118,11 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                 domain_diagram.metadata = DiagramMetadata(**metadata_dict)
 
         # Step 5: Compile diagram to ExecutableDiagram with static types
-        logger.info("Compiling diagram with StaticDiagramCompiler")
+        logger.info("Compiling diagram with InterfaceBasedDiagramCompiler")
         import time
         start_time = time.time()
-        compiler = StaticDiagramCompiler()
+        from dipeo.application.resolution.interface_based_compiler import InterfaceBasedDiagramCompiler
+        compiler = InterfaceBasedDiagramCompiler()
         executable_diagram = compiler.compile(domain_diagram)
         # Add API keys to metadata
         executable_diagram.metadata["api_keys"] = api_keys

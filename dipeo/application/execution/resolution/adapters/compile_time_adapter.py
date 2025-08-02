@@ -7,7 +7,7 @@ and the existing StaticDiagramCompiler implementation.
 from typing import Any
 
 from dipeo.diagram_generated import DomainArrow, DomainNode, NodeID
-from dipeo.core.static.executable_diagram import ExecutableNode, ExecutableEdge
+from dipeo.core.execution.executable_diagram import ExecutableNode, ExecutableEdge
 from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
 
 from ..interfaces import (
@@ -41,11 +41,11 @@ class CompileTimeResolverAdapter(CompileTimeResolver):
         connections = []
         for conn in resolved_connections:
             connection = Connection(
-                source_node_id=conn['source_node_id'],
-                target_node_id=conn['target_node_id'], 
-                source_output=conn.get('source_output'),
-                target_input=conn.get('target_input'),
-                metadata=conn.get('metadata', {})
+                source_node_id=conn.source_node_id,
+                target_node_id=conn.target_node_id, 
+                source_output=str(conn.source_handle_label) if conn.source_handle_label else None,
+                target_input=str(conn.target_handle_label) if conn.target_handle_label else None,
+                metadata={'arrow_id': conn.arrow_id}
             )
             connections.append(connection)
         
@@ -101,7 +101,7 @@ class ExecutableNodeAdapter:
     def to_executable_impl(node: ExecutableNode) -> Any:
         """Convert typed node to ExecutableNodeImpl for compatibility."""
         # Import here to avoid circular dependency
-        from ..static_diagram_compiler import ExecutableNodeImpl
+        from ....resolution.static_diagram_compiler import ExecutableNodeImpl
         
         return ExecutableNodeImpl(
             id=node.id,

@@ -24,7 +24,7 @@ nodes:
   props:
     operation: read
     sub_type: file
-    source_details: files/uploads/questions.txt
+    file: files/uploads/questions.txt
 - label: pessimist
   type: person_job
   position: {x: 899, y: 380}

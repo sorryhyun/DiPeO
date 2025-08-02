@@ -1,6 +1,5 @@
 """Application context and dependency injection configuration."""
 
-
 from dipeo.application.bootstrap import Container
 from dipeo.core.config import Config, LLMConfig, StorageConfig
 
@@ -41,6 +40,7 @@ def create_server_container() -> Container:
 
     # Register CLI session service if not already registered
     from dipeo.application.services.cli_session_service import CliSessionService
+
     if not container.registry.has(CLI_SESSION_SERVICE):
         container.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 

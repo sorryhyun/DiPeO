@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Protocol
 
 from dipeo.diagram_generated import ContentType
+from dipeo.core.execution.input_resolution import TransformationEngine as TransformationEngineBase, TransformRules
 
 
 class TransformationRule(Protocol):
@@ -29,8 +30,12 @@ class TransformationRule(Protocol):
         ...
 
 
-class TransformationEngine(ABC):
-    """Abstract base class for transformation engines."""
+class TransformationEngine(TransformationEngineBase, ABC):
+    """Abstract base class for transformation engines.
+    
+    This extends the core TransformationEngine with additional
+    methods for managing transformation rules.
+    """
     
     @abstractmethod
     def register_transformer(self, rule_type: str, transformer: TransformationRule) -> None:

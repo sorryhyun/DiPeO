@@ -16,17 +16,16 @@ from .data_structures import (
     TransformationContext,
 )
 from .node_strategies import (
+    ApplicationNodeStrategy,
     ConditionStrategy,
     DefaultStrategy,
-    ExecutionContextProtocol,
     NodeStrategyFactory,
-    NodeTypeStrategy,
     PersonJobStrategy,
 )
-from .resolvers import (
+# Import from core execution instead of duplicating
+from dipeo.core.execution.input_resolution import (
     CompileTimeResolver,
     Connection,
-    ExecutionContext,
     RuntimeInputResolver,
     TransformRules,
 )
@@ -56,10 +55,6 @@ __all__ = [
     "DefaultStrategy",
     # Data structures
     "EdgeMetadata",
-    # Resolvers
-    "ExecutionContext",
-    # Node strategies
-    "ExecutionContextProtocol",
     # Data structures
     "ExecutableEdgeV2",
     # Transformation engine
@@ -71,7 +66,7 @@ __all__ = [
     # Data structures
     "NodeOutputProtocolV2",
     # Node strategies
-    "NodeTypeStrategy",
+    "ApplicationNodeStrategy",
     # Data structures
     "OutputExtractor",
     # Node strategies

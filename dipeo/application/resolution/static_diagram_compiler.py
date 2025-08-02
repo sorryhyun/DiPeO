@@ -6,10 +6,10 @@ from dipeo.application.resolution.arrow_transformer import ArrowTransformer
 from dipeo.application.resolution.compiler import NodeFactory
 from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalculator
 from dipeo.application.resolution.handle_resolver import HandleResolver
-from dipeo.core.static.diagram_compiler import DiagramCompiler
-from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableEdge
+from dipeo.core.execution.diagram_compiler import DiagramCompiler
+from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdge
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.static.executable_diagram import ExecutableNode
+from dipeo.core.execution.executable_diagram import ExecutableNode
 from dipeo.domain.execution import NodeConnectionRules, DataTransformRules
 from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 

@@ -12,11 +12,12 @@ import os
 if sys.platform == "win32":
     # Set UTF-8 encoding for stdout and stderr
     import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
     # Set environment variable for child processes
-    os.environ['PYTHONIOENCODING'] = 'utf-8'
-    os.environ['PYTHONUTF8'] = '1'
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+    os.environ["PYTHONUTF8"] = "1"
 
 import argparse
 import warnings
@@ -134,7 +135,7 @@ def main():
                     print(f"Error: Input file not found: {args.inputs}")
                     sys.exit(1)
                 try:
-                    with input_path.open(encoding='utf-8') as f:
+                    with input_path.open(encoding="utf-8") as f:
                         input_variables = json.load(f)
                 except json.JSONDecodeError as e:
                     print(f"Error: Invalid JSON in input file: {e}")

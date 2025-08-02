@@ -16,7 +16,7 @@ from dipeo.models import (
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_tracker import ExecutionTracker
-    from dipeo.core.static.executable_diagram import ExecutableDiagram
+    from dipeo.core.execution.executable_diagram import ExecutableDiagram
 
 
 class ExecutionStatePersistence:

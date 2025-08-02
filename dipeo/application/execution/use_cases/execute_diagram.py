@@ -19,7 +19,7 @@ from dipeo.application.registry import (
 if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.core.ports.state_store import StateStorePort
-    from dipeo.core.static.executable_diagram import ExecutableDiagram
+    from dipeo.core.execution.executable_diagram import ExecutableDiagram
     from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
     from dipeo.models import DomainDiagram
 
@@ -212,8 +212,8 @@ class ExecuteDiagramUseCase(BaseService):
         # TODO: Add updated validation logic if needed
         # Validation has been temporarily removed while updating the flow validation system
         
-        from ...resolution import StaticDiagramCompiler
-        compiler = StaticDiagramCompiler()
+        from ...resolution.interface_based_compiler import InterfaceBasedDiagramCompiler
+        compiler = InterfaceBasedDiagramCompiler()
         
         api_keys = None
         if hasattr(self.service_registry, 'resolve'):

@@ -1,12 +1,14 @@
-"""Backward compatibility adapters for input resolution refactoring.
+"""Input resolution implementations and adapters.
 
-These adapters allow the existing code to gradually migrate to the new
-interface-based approach without breaking changes.
+This module contains:
+- StandardRuntimeInputResolver: The primary implementation of runtime input resolution
+- TypedInputResolutionServiceAdapter: Adapter for backward compatibility with old service
+- Various adapters for bridging between old and new data structures
 """
 
 from .input_resolution_adapter import (
     ExecutionContextAdapter,
-    RuntimeInputResolverAdapter,
+    StandardRuntimeInputResolver,
     TypedInputResolutionServiceAdapter,
 )
 
@@ -19,7 +21,7 @@ from .compile_time_adapter import (
 __all__ = [
     # Runtime adapters
     "ExecutionContextAdapter",
-    "RuntimeInputResolverAdapter", 
+    "StandardRuntimeInputResolver", 
     "TypedInputResolutionServiceAdapter",
     
     # Compile-time adapters

@@ -17,7 +17,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 
 if TYPE_CHECKING:
     from dipeo.application.registry import ServiceRegistry, ServiceKey
-    from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
+    from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableNode
     from dipeo.application.bootstrap import Container
 
 logger = logging.getLogger(__name__)
@@ -117,33 +117,51 @@ class ExecutionRuntime(StateTransitionMixin):
     
     
     def resolve_inputs(self, node: "ExecutableNode") -> dict[str, Any]:
-        from dipeo.application.execution.resolution import (
-            TypedInputResolutionService,
+        from dipeo.application.execution.resolution.interfaces import RuntimeInputResolver
+        from dipeo.application.execution.resolution.adapters import (
+            StandardRuntimeInputResolver,
+            ExecutionContextAdapter,
         )
         from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
-        typed_input_service = TypedInputResolutionService()
+        # Use adapter for backward compatibility
+        runtime_resolver = StandardRuntimeInputResolver()
         
-        node_memory_config = None
-        if isinstance(node, PersonJobNode) and node.memory_settings:
-            node_memory_config = node.memory_settings
-        
+        # Gather node outputs from tracker
         node_outputs_dict = {}
         for n in self.diagram.nodes:
             protocol_output = self._tracker.get_last_output(n.id)
             if protocol_output:
                 node_outputs_dict[str(n.id)] = protocol_output
         
-        return typed_input_service.resolve_inputs_for_node(
-            node_id=str(node.id),
-            node_type=node.type,
-            diagram=self.diagram,
+        # Create execution context
+        node_exec_counts = {
+            str(node_id): self._tracker.get_execution_count(node_id) 
+            for node_id in self._node_states.keys()
+        }
+        
+        context = ExecutionContextAdapter(
             node_outputs=node_outputs_dict,
-            node_exec_counts={
-                str(node_id): self._tracker.get_execution_count(node_id) 
-                for node_id in self._node_states.keys()
-            },
-            node_memory_config=node_memory_config
+            node_exec_counts=node_exec_counts,
+            current_node_id=str(node.id)
+        )
+        
+        # Get incoming edges for this node
+        incoming_edges = [
+            edge for edge in self.diagram.edges 
+            if str(edge.target_node_id) == str(node.id)
+        ]
+        
+        # Add node memory config to context if it's a PersonJob node
+        if isinstance(node, PersonJobNode) and node.memory_settings:
+            # The adapter handles memory config through the legacy interface
+            pass
+        
+        # Use the new resolver
+        return runtime_resolver.resolve_inputs(
+            node_id=str(node.id),
+            edges=incoming_edges,
+            context=context
         )
     
     

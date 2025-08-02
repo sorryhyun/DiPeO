@@ -1,48 +1,28 @@
-"""Strategy pattern interfaces for node-type-specific behavior.
+"""Strategy pattern implementations for node-type-specific behavior.
 
-These interfaces allow different node types to customize their
-input resolution behavior without cluttering the main resolver.
+These strategies extend the core NodeStrategy to provide additional
+input resolution behavior specific to the application layer.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Protocol
+from typing import Any, TYPE_CHECKING
 
-from dipeo.core.static.executable_diagram import ExecutableEdge, ExecutableNode
+from dipeo.core.execution.executable_diagram import ExecutableEdge, ExecutableNode
+from dipeo.core.execution.node_strategy import NodeStrategy
 from dipeo.diagram_generated import NodeType
 
-
-class ExecutionContextProtocol(Protocol):
-    """Protocol for execution context used by strategies."""
-    
-    @property
-    def is_first_execution(self) -> bool:
-        """Check if this is the first execution of the diagram."""
-        ...
-    
-    def get_node_exec_count(self, node_id: str) -> int:
-        """Get execution count for a specific node."""
-        ...
-    
-    def has_node_output(self, node_id: str) -> bool:
-        """Check if a node has produced output."""
-        ...
+if TYPE_CHECKING:
+    from ..adapters.input_resolution_adapter import ExecutionContextAdapter
 
 
-class NodeTypeStrategy(ABC):
-    """Base strategy for node-type-specific input resolution behavior."""
+# Application-layer extension methods for NodeStrategy
+class ApplicationNodeStrategy(NodeStrategy):
+    """Extended NodeStrategy with application-specific methods."""
     
-    @property
-    @abstractmethod
-    def node_type(self) -> NodeType:
-        """The node type this strategy handles."""
-        pass
-    
-    @abstractmethod
     def should_process_edge(
         self,
         edge: ExecutableEdge,
         node: ExecutableNode,
-        execution_context: ExecutionContextProtocol,
+        execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
     ) -> bool:
         """Determine if an edge should be processed in current execution state.
@@ -56,14 +36,14 @@ class NodeTypeStrategy(ABC):
         Returns:
             True if the edge should be processed
         """
-        pass
+        # Default implementation processes all edges
+        return True
     
-    @abstractmethod
     def transform_input(
         self,
         value: Any,
         edge: ExecutableEdge,
-        execution_context: ExecutionContextProtocol
+        execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """Apply node-type-specific transformations to input value.
         
@@ -75,7 +55,8 @@ class NodeTypeStrategy(ABC):
         Returns:
             Transformed value
         """
-        pass
+        # Default implementation - no transformation
+        return value
     
     def get_input_key(
         self,
@@ -95,46 +76,60 @@ class NodeTypeStrategy(ABC):
         return False
 
 
-class PersonJobStrategy(NodeTypeStrategy):
+class PersonJobStrategy(ApplicationNodeStrategy):
     """Strategy for PersonJob node type with first/default input handling."""
     
-    @property
-    def node_type(self) -> NodeType:
-        return NodeType.PERSON_JOB
+    def __init__(self):
+        super().__init__(NodeType.PERSON_JOB)
     
+    # Core NodeStrategy methods
+    def get_special_inputs(self) -> set[str]:
+        """PersonJob has 'first' and 'default' special inputs."""
+        return {"first", "default"}
+    
+    def should_skip_input(self, input_name: str, has_connection: bool) -> bool:
+        """Skip 'default' if any connection exists."""
+        return input_name == "default" and has_connection
+    
+    def requires_first_execution(self, input_name: str) -> bool:
+        """The 'first' input requires first execution semantics."""
+        return input_name == "first"
+    
+    # Application-specific methods
     def should_process_edge(
         self,
         edge: ExecutableEdge,
         node: ExecutableNode,
-        execution_context: ExecutionContextProtocol,
+        execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
     ) -> bool:
         """PersonJob nodes have special handling for "first" inputs."""
-        node_exec_count = execution_context.get_node_exec_count(str(node.id))
+        node_exec_count = execution_context.get_node_execution_count(node.id)
         
         # Special case: Always process conversation_state inputs from condition nodes
         if hasattr(edge, 'data_transform') and edge.data_transform and edge.data_transform.get('content_type') == 'conversation_state':
             return True
         
-        # On first execution
+        # On first execution (execution count is 1 when we're executing for the first time)
         if node_exec_count == 1:
             if has_special_inputs:
                 # Only process "first" inputs
-                target_input = edge.target_input or ""
-                return target_input == "first" or target_input.endswith("_first")
+                target_input = str(edge.target_input or "")
+                return target_input == "first" or target_input.endswith("_first") or target_input == "HandleLabel.FIRST"
             else:
                 # Only process default inputs
-                return not edge.target_input or edge.target_input == "default"
+                target_input = str(edge.target_input or "")
+                return not edge.target_input or target_input == "default" or target_input == "HandleLabel.DEFAULT"
         else:
             # After first execution, skip "first" inputs
-            target_input = edge.target_input or ""
-            return not (target_input == "first" or target_input.endswith("_first"))
+            target_input = str(edge.target_input or "")
+            return not (target_input == "first" or target_input.endswith("_first") or target_input == "HandleLabel.FIRST")
     
     def transform_input(
         self,
         value: Any,
         edge: ExecutableEdge,
-        execution_context: ExecutionContextProtocol
+        execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """PersonJob nodes may need conversation state handling."""
         # Base implementation - no transformation
@@ -143,23 +138,32 @@ class PersonJobStrategy(NodeTypeStrategy):
     def has_first_inputs(self, edges: list[ExecutableEdge]) -> bool:
         """Check if any edges target "first" inputs."""
         return any(
-            edge.target_input and (edge.target_input == "first" or edge.target_input.endswith("_first"))
+            edge.target_input and (
+                str(edge.target_input) == "first" or 
+                str(edge.target_input).endswith("_first") or 
+                str(edge.target_input) == "HandleLabel.FIRST"
+            )
             for edge in edges
         )
 
 
-class ConditionStrategy(NodeTypeStrategy):
+class ConditionStrategy(ApplicationNodeStrategy):
     """Strategy for Condition node type."""
     
-    @property
-    def node_type(self) -> NodeType:
-        return NodeType.CONDITION
+    def __init__(self):
+        super().__init__(NodeType.CONDITION)
     
+    # Core NodeStrategy methods
+    def get_special_inputs(self) -> set[str]:
+        """Condition nodes have special branch inputs."""
+        return {"if_true", "if_false"}
+    
+    # Application-specific methods
     def should_process_edge(
         self,
         edge: ExecutableEdge,
         node: ExecutableNode,
-        execution_context: ExecutionContextProtocol,
+        execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
     ) -> bool:
         """Condition nodes process all edges normally."""
@@ -169,27 +173,20 @@ class ConditionStrategy(NodeTypeStrategy):
         self,
         value: Any,
         edge: ExecutableEdge,
-        execution_context: ExecutionContextProtocol
+        execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """Condition nodes may need special output handling."""
         return value
 
 
-class DefaultStrategy(NodeTypeStrategy):
+class DefaultStrategy(ApplicationNodeStrategy):
     """Default strategy for nodes without special behavior."""
-    
-    def __init__(self, node_type: NodeType):
-        self._node_type = node_type
-    
-    @property
-    def node_type(self) -> NodeType:
-        return self._node_type
     
     def should_process_edge(
         self,
         edge: ExecutableEdge,
         node: ExecutableNode,
-        execution_context: ExecutionContextProtocol,
+        execution_context: "ExecutionContextAdapter",
         has_special_inputs: bool = False
     ) -> bool:
         """Default nodes process all edges."""
@@ -199,7 +196,7 @@ class DefaultStrategy(NodeTypeStrategy):
         self,
         value: Any,
         edge: ExecutableEdge,
-        execution_context: ExecutionContextProtocol
+        execution_context: "ExecutionContextAdapter"
     ) -> Any:
         """No transformation by default."""
         return value
@@ -209,7 +206,7 @@ class NodeStrategyFactory:
     """Factory for creating node-type-specific strategies."""
     
     def __init__(self):
-        self._strategies: dict[NodeType, NodeTypeStrategy] = {}
+        self._strategies: dict[NodeType, ApplicationNodeStrategy] = {}
         self._register_default_strategies()
     
     def _register_default_strategies(self) -> None:
@@ -217,14 +214,14 @@ class NodeStrategyFactory:
         self.register(PersonJobStrategy())
         self.register(ConditionStrategy())
     
-    def register(self, strategy: NodeTypeStrategy) -> None:
+    def register(self, strategy: ApplicationNodeStrategy) -> None:
         """Register a strategy for a node type."""
         self._strategies[strategy.node_type] = strategy
     
-    def get_strategy(self, node_type: NodeType) -> NodeTypeStrategy:
+    def get_strategy(self, node_type: NodeType) -> ApplicationNodeStrategy:
         """Get strategy for a node type, or default strategy."""
         return self._strategies.get(node_type, DefaultStrategy(node_type))
     
-    def create_strategy(self, node: ExecutableNode) -> NodeTypeStrategy:
+    def create_strategy(self, node: ExecutableNode) -> ApplicationNodeStrategy:
         """Create strategy based on node instance."""
         return self.get_strategy(node.type)

@@ -2,7 +2,7 @@
 Simplified execution order calculation that handles cycles gracefully.
 """
 
-from dipeo.core.static import ExecutableEdge
+from dipeo.core.execution import ExecutableEdge
 from dipeo.diagram_generated import DomainNode, NodeID, NodeType
 
 
