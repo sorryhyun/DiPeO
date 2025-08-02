@@ -14,10 +14,9 @@ export interface PersonJobNodeData {
   first_only_prompt: string;
   default_prompt?: string;
   max_iteration: number;
-  memory_profile?: string;
-  memory_config?: Record<string, any>;
-  memory_settings?: Record<string, any>;
+  memory_profile?: 'O' | 'b' | 'j' | 'e' | 'c' | 't' | '.' | 'v' | 'a' | 'l' | 'u' | 'e' | 's' | '(' | 'M' | 'e' | 'm' | 'o' | 'r' | 'y' | 'P' | 'r' | 'o' | 'f' | 'i' | 'l' | 'e' | ')';
   tools?: string;
+  memory_settings?: Record<string, any>;
 }
 
 // Zod schema for validation
@@ -26,8 +25,7 @@ export const PersonJobNodeDataSchema = z.object({
   first_only_prompt: z.string(),
   default_prompt: z.string().optional(),
   max_iteration: z.number(),
-  memory_profile: z.string().optional(),
-  memory_config: z.record(z.any()).optional(),
-  memory_settings: z.record(z.any()).optional(),
+  memory_profile: z.any().optional(),
   tools: z.string().optional(),
+  memory_settings: z.record(z.any()).optional(),
 });

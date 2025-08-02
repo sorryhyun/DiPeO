@@ -50,6 +50,7 @@ nodes:
         - .temp/json-schema-validator_data_ast.json
         - .temp/typescript-ast_data_ast.json
         - .temp/sub-diagram_data_ast.json
+        - .temp/integrated-api_data_ast.json
 
   # Extract and prepare GraphQL data
   - label: Prepare GraphQL Data

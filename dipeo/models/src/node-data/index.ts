@@ -14,3 +14,4 @@ export * from './template-job.data';
 export * from './json-schema-validator.data';
 export * from './typescript-ast.data';
 export * from './sub-diagram.data';
+export * from './integrated-api.data';

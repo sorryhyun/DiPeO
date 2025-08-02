@@ -10,56 +10,23 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-02T11:54:18.428023
+Generated at: 2025-08-02T14:00:04.859588
 """
 
 import strawberry
-from typing import Optional
-from strawberry.types import Info
+from typing import *
+from strawberry.types import *
 
 # Import data types and unions
-from .strawberry_nodes import (
-    NodeDataUnion,
-
-    ApiJobDataType,
-
-    CodeJobDataType,
-
-    ConditionDataType,
-
-    DbDataType,
-
-    EndpointDataType,
-
-    HookDataType,
-
-    JsonSchemaValidatorDataType,
-
-    NotionDataType,
-
-    PersonBatchJobDataType,
-
-    PersonJobDataType,
-
-    StartDataType,
-
-    SubDiagramDataType,
-
-    TemplateJobDataType,
-
-    TypescriptAstDataType,
-
-    UserResponseDataType,
-
-)
+from .strawberry_nodes import *
 
 # Import base types
-from dipeo.application.graphql.types.domain_types import DomainNodeType
-from dipeo.application.graphql.types.inputs import Vec2Input
+from dipeo.application.graphql.types.domain_types import *
+from dipeo.application.graphql.types.inputs import *
 
 # Import services and keys
-from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+from dipeo.application.registry import *
+from dipeo.application.registry.keys import *
 
 
 # Generate input types for each node

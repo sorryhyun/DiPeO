@@ -385,6 +385,7 @@ enum NodeType {
   JSON_SCHEMA_VALIDATOR
   TYPESCRIPT_AST
   SUB_DIAGRAM
+  INTEGRATED_API
 }
 
 """Unique identifier for persons"""

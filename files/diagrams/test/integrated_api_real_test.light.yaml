@@ -1,0 +1,36 @@
+version: light
+nodes:
+- label: start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    
+- label: integrated_api_test
+  type: integrated_api
+  position: {x: 300, y: 100}
+  props:
+    provider: notion
+    operation: query_database
+    resource_id: "202c8edd335e8059af75fe79d0451885"
+    timeout: 30
+    max_retries: 2
+    
+- label: endpoint
+  type: endpoint
+  position: {x: 500, y: 100}
+  props:
+    save_to_file: true
+    file_name: integrated_api_real_result.json
+    
+connections:
+- from: start
+  to: integrated_api_test
+  
+- from: integrated_api_test
+  to: endpoint
+  
+apikeys:
+  notion_key:
+    service: notion
+    key: test-api-key

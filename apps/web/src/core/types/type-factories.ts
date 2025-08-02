@@ -15,6 +15,7 @@ import {
   JsonSchemaValidatorNodeData,
   TypescriptAstNodeData,
   SubDiagramNodeData,
+  IntegratedApiNodeData,
   WithUI
 } from './domain';
 
@@ -37,6 +38,7 @@ export interface NodeTypeRegistry {
   json_schema_validator: JsonSchemaValidatorNodeData;
   typescript_ast: TypescriptAstNodeData;
   sub_diagram: SubDiagramNodeData;
+  integrated_api: IntegratedApiNodeData;
 }
 
 /**
@@ -84,7 +86,7 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
   const validKeys: NodeTypeKey[] = [
     'start', 'condition', 'person_job', 'endpoint', 'db',
     'code_job', 'api_job', 'user_response', 'notion', 'person_batch_job', 'hook',
-    'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram'
+    'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram', 'integrated_api'
   ];
   return validKeys.includes(key as NodeTypeKey);
 }
@@ -94,7 +96,7 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
 export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeData,
   DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
   NotionNodeData, PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
-  JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData } from './domain';
+  JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData, IntegratedApiNodeData } from './domain';
 
 /**
  * Form data type aliases for backward compatibility
@@ -114,3 +116,4 @@ export type TemplateJobFormData = NodeFormData<'template_job'>;
 export type JsonSchemaValidatorFormData = NodeFormData<'json_schema_validator'>;
 export type TypescriptAstFormData = NodeFormData<'typescript_ast'>;
 export type SubDiagramFormData = NodeFormData<'sub_diagram'>;
+export type IntegratedApiFormData = NodeFormData<'integrated_api'>;

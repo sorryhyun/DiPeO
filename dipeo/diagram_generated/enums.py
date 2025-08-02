@@ -48,6 +48,8 @@ These enums are used by both frontend and backend via code generation"""
     
     SUB_DIAGRAM = "sub_diagram"
     
+    INTEGRATED_API = "integrated_api"
+    
 
 
 class HandleDirection(str, Enum):

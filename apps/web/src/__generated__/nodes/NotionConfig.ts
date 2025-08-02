@@ -28,7 +28,7 @@ export const notionConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: notionFields,
-  primaryDisplayField: 'action',
+  primaryDisplayField: 'operation',
 };
 
 export default notionConfig;

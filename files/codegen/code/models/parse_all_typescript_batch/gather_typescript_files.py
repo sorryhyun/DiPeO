@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from typing import Dict, Any
+import glob
 
 
 def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -19,7 +20,8 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
     base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
     
-    file_paths = [
+    # Core files that should always be included
+    core_files = [
         'dipeo/models/src/diagram.ts',
         'dipeo/models/src/execution.ts',
         'dipeo/models/src/conversation.ts',
@@ -33,26 +35,22 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'dipeo/models/src/enums.ts'
     ]
     
-    # Add all individual node data files
+    # Auto-discover all node data files
+    node_data_pattern = str(base_dir / 'dipeo/models/src/node-data/*.data.ts')
     node_data_files = [
-        'dipeo/models/src/node-data/start.data.ts',
-        'dipeo/models/src/node-data/condition.data.ts',
-        'dipeo/models/src/node-data/person-job.data.ts',
-        'dipeo/models/src/node-data/code-job.data.ts',
-        'dipeo/models/src/node-data/api-job.data.ts',
-        'dipeo/models/src/node-data/endpoint.data.ts',
-        'dipeo/models/src/node-data/db.data.ts',
-        'dipeo/models/src/node-data/user-response.data.ts',
-        'dipeo/models/src/node-data/notion.data.ts',
-        'dipeo/models/src/node-data/person-batch-job.data.ts',
-        'dipeo/models/src/node-data/hook.data.ts',
-        'dipeo/models/src/node-data/template-job.data.ts',
-        'dipeo/models/src/node-data/json-schema-validator.data.ts',
-        'dipeo/models/src/node-data/typescript-ast.data.ts',
-        'dipeo/models/src/node-data/sub-diagram.data.ts'
+        str(Path(f).relative_to(base_dir)) 
+        for f in glob.glob(node_data_pattern)
     ]
     
-    file_paths.extend(node_data_files)
+    # Auto-discover all node spec files (excluding index.ts and node-specifications.ts)
+    node_spec_pattern = str(base_dir / 'dipeo/models/src/node-specs/*.spec.ts')
+    node_spec_files = [
+        str(Path(f).relative_to(base_dir)) 
+        for f in glob.glob(node_spec_pattern)
+    ]
+    
+    # Combine all files
+    file_paths = core_files + node_data_files + node_spec_files
     
     # Map file paths to simpler keys for the cache
     file_mapping = {
@@ -69,12 +67,18 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'dipeo/models/src/enums.ts': 'enums'
     }
     
-    # Add mappings for individual node data files
+    # Add mappings for auto-discovered node data files
     for node_file in node_data_files:
         # Extract the base name without extension
         # e.g., 'dipeo/models/src/node-data/start.data.ts' -> 'start_data'
-        base_name = node_file.split('/')[-1].replace('.data.ts', '_data')
+        base_name = Path(node_file).stem.replace('.data', '_data')
         file_mapping[node_file] = base_name
+    
+    # Add mappings for auto-discovered node spec files
+    for spec_file in node_spec_files:
+        # e.g., 'dipeo/models/src/node-specs/start.spec.ts' -> 'start_spec'
+        base_name = Path(spec_file).stem.replace('.spec', '_spec')
+        file_mapping[spec_file] = base_name
     
     # Read all files
     sources = {}
@@ -87,6 +91,9 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
             print(f"Error reading {full_path}: {e}")
     
     print(f"Gathered {len(sources)} TypeScript files for batch parsing")
+    print(f"  - Core files: {len(core_files)}")
+    print(f"  - Auto-discovered node data files: {len(node_data_files)}")
+    print(f"  - Auto-discovered node spec files: {len(node_spec_files)}")
     
     return {
         'sources': sources,

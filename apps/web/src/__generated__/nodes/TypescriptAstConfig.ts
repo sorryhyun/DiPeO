@@ -35,7 +35,7 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
     outputFormat: 'standard',
   },
   customFields: typescriptAstFields,
-  primaryDisplayField: 'operation',
+  primaryDisplayField: 'parseMode',
 };
 
 export default typescriptAstConfig;

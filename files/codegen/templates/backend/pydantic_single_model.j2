@@ -1,41 +1,13 @@
 # Auto-generated Pydantic model for {{ nodeType }} node
 
-from typing import Optional, Dict, Any, List{% if fields | selectattr('type', 'equalto', 'enum') | list %}, Literal{% endif %}
-from pydantic import BaseModel, Field
-
-{%- set enum_imports = [] %}
-{%- set integration_imports = [] %}
-{%- for field in fields %}
-{%- if field.name == 'method' and field | python_type_with_context(nodeType) == 'HttpMethod' %}
-{%- if enum_imports.append('HttpMethod') %}{% endif %}
-{%- elif field.name == 'operation' and field | python_type_with_context(nodeType) == 'NotionOperation' %}
-{%- if integration_imports.append('NotionOperation') %}{% endif %}
-{%- elif field.name == 'sub_type' and field | python_type_with_context(nodeType) == 'DBBlockSubType' %}
-{%- if enum_imports.append('DBBlockSubType') %}{% endif %}
-{%- elif field.name == 'language' and field | python_type_with_context(nodeType) == 'SupportedLanguage' %}
-{%- if enum_imports.append('SupportedLanguage') %}{% endif %}
-{%- elif field.name == 'code_type' and field | python_type_with_context(nodeType) == 'SupportedLanguage' %}
-{%- if enum_imports.append('SupportedLanguage') %}{% endif %}
-{%- elif field.name == 'hook_type' and field | python_type_with_context(nodeType) == 'HookType' %}
-{%- if enum_imports.append('HookType') %}{% endif %}
-{%- elif field.name == 'trigger_mode' and field | python_type_with_context(nodeType) == 'HookTriggerMode' %}
-{%- if enum_imports.append('HookTriggerMode') %}{% endif %}
-{%- elif field.name == 'service' and field | python_type_with_context(nodeType) == 'LLMService' %}
-{%- if enum_imports.append('LLMService') %}{% endif %}
-{%- elif field.name == 'diagram_format' and field | python_type_with_context(nodeType) == 'DiagramFormat' %}
-{%- if enum_imports.append('DiagramFormat') %}{% endif %}
-{%- endif %}
-{%- endfor %}
+from typing import *
+from pydantic import *
 
 {% if nodeType == 'person_job' %}
-from dipeo.diagram_generated.domain_models import PersonID, MemorySettings, ToolConfig
+from dipeo.diagram_generated.domain_models import *
 {% endif %}
-{%- if enum_imports %}
-from dipeo.diagram_generated.enums import {{ enum_imports | unique | join(', ') }}
-{%- endif %}
-{%- if integration_imports %}
-from dipeo.diagram_generated.integrations import {{ integration_imports | unique | join(', ') }}
-{%- endif %}
+from dipeo.diagram_generated.enums import *
+from dipeo.diagram_generated.integrations import *
 
 
 class {{ nodeType | pascal_case }}NodeData(BaseModel):

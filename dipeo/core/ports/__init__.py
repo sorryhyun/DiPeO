@@ -14,16 +14,19 @@ from .message_router import MessageRouterPort
 from .notion_service import NotionServicePort
 from .state_store import StateStorePort
 from .diagram_port import DiagramPort
+from .integrated_api_service import IntegratedApiServicePort, ApiProviderPort
 
 __all__ = [
+    "ApiProviderPort",
+    "APIKeyPort",
     "DiagramConverter",
     "DiagramPort",
     "ExecutionObserver",
     "FileServicePort",
     "FormatStrategy",
+    "IntegratedApiServicePort",
     "LLMServicePort",
     "MessageRouterPort",
     "NotionServicePort",
     "StateStorePort",
-    "APIKeyPort",
 ]

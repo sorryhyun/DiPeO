@@ -61,7 +61,26 @@ def extract_integration_interfaces(ast_data: dict) -> List[dict]:
 
 def main(inputs: dict) -> dict:
     """Main entry point for integration extraction."""
-    ast_data = inputs.get('default', {})
+    # When loading from file, the content comes as a JSON string in 'default'
+    ast_json = inputs.get('default', {})
+    
+    # Parse JSON if it's a string
+    if isinstance(ast_json, str):
+        try:
+            import json
+            ast_data = json.loads(ast_json)
+        except Exception as e:
+            print(f"[ERROR] Failed to parse JSON: {e}")
+            return {
+                'enums': [],
+                'interfaces': [],
+                'imports': {
+                    'from_enums': ['LLMService', 'APIServiceType', 'ToolType'],
+                    'from_execution': ['TokenUsage']
+                }
+            }
+    else:
+        ast_data = ast_json
     
     # Extract both enums and interfaces
     enums = extract_integration_enums(ast_data)

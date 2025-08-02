@@ -11,23 +11,24 @@ nodes:
       custom_data:
         message: Starting integration models generation
 
-  # Load integration.ts file
-  - label: Load Integration File
-    type: db
+  # Run batch parser if cache doesn't exist
+  - label: Parse TypeScript Batch
+    type: sub_diagram
     position: {x: 200, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # Load cached integration AST data
+  - label: Load Integration AST
+    type: db
+    position: {x: 400, y: 200}
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/integration.ts
-
-  # Parse integration.ts specifically
-  - label: Parse Integration TS
-    type: typescript_ast
-    position: {x: 350, y: 200}
-    props:
-      extractPatterns: ["interface", "type", "enum", "export"]
-      includeJSDoc: true
-      parseMode: module
+      source_details: .temp/integration_ast.json
 
   # Extract integration-specific definitions
   - label: Extract Integrations
@@ -57,17 +58,16 @@ nodes:
       save_to_file: false
 
 connections:
-  # Load file first
+  # Run batch parser first
   - from: Start
-    to: Load Integration File
+    to: Parse TypeScript Batch
+    
+  # Load cached AST after parsing
+  - from: Parse TypeScript Batch
+    to: Load Integration AST
 
-  # Pass file content to parser
-  - from: Load Integration File
-    to: Parse Integration TS
-    label: source
-
-  # Extract definitions
-  - from: Parse Integration TS
+  # Extract definitions from cached AST
+  - from: Load Integration AST
     to: Extract Integrations
 
   # Pass extracted data to template

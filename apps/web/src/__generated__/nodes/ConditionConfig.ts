@@ -27,6 +27,7 @@ export const conditionConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    condition_type: 'custom',
   },
   customFields: conditionFields,
   primaryDisplayField: 'condition_type',

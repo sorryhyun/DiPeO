@@ -20,7 +20,8 @@ export const FIELD_TYPES = {
   CODE: 'code',
   FILEPATH: 'filepath',
   PASSWORD: 'password',
-  GROUP: 'group'
+  GROUP: 'group',
+  NODE_SELECT: 'nodeSelect'
 } as const;
 
 export type FieldType = typeof FIELD_TYPES[keyof typeof FIELD_TYPES];

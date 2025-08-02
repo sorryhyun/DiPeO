@@ -8,17 +8,19 @@
 
 # Auto-generated Pydantic model for condition node
 
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from typing import *
+from pydantic import *
 
 
+from dipeo.diagram_generated.enums import *
+from dipeo.diagram_generated.integrations import *
 
 
 class ConditionNodeData(BaseModel):
     """Data model for Condition node."""
-    condition_type: str = Field(description="Type of condition to evaluate")
+    condition_type: Optional[Literal["detect_max_iterations", "check_nodes_executed", "custom"]] = Field(description="Type of condition to evaluate")
     expression: Optional[str] = Field(description="Boolean expression to evaluate")
-    node_indices: Optional[List[Any]] = Field(description="Node indices for condition evaluation")
+    node_indices: Optional[List[Any]] = Field(description="Node indices for detect_max_iteration condition")
 
     class Config:
         extra = "forbid"

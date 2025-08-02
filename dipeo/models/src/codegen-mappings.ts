@@ -17,7 +17,8 @@ export const NODE_INTERFACE_MAP: Record<string, string> = {
   'template_job': 'TemplateJobNodeData',
   'json_schema_validator': 'JsonSchemaValidatorNodeData',
   'typescript_ast': 'TypescriptAstNodeData',
-  'sub_diagram': 'SubDiagramNodeData'
+  'sub_diagram': 'SubDiagramNodeData',
+  'integrated_api': 'IntegratedApiNodeData'
 };
 
 export const TS_TO_PY_TYPE: Record<string, string> = {
@@ -45,7 +46,8 @@ export const TS_TO_PY_TYPE: Record<string, string> = {
   'ContentType': 'ContentType',
   'MemoryView': 'MemoryView',
   'MemoryProfile': 'MemoryProfile',
-  'ToolSelection': 'ToolSelection'
+  'ToolSelection': 'ToolSelection',
+  'APIServiceType': 'APIServiceType'
 };
 
 export const TYPE_TO_FIELD: Record<string, string> = {
@@ -63,7 +65,8 @@ export const TYPE_TO_FIELD: Record<string, string> = {
   'MemoryView': 'select',
   'DiagramFormat': 'select',
   'MemoryProfile': 'select',
-  'ToolSelection': 'select'
+  'ToolSelection': 'select',
+  'APIServiceType': 'select'
 };
 
 export const TYPE_TO_ZOD: Record<string, string> = {
@@ -86,7 +89,8 @@ export const TYPE_TO_ZOD: Record<string, string> = {
   'MemoryView': 'z.nativeEnum(MemoryView)',
   'DiagramFormat': 'z.nativeEnum(DiagramFormat)',
   'MemoryProfile': 'z.nativeEnum(MemoryProfile)',
-  'ToolSelection': 'z.nativeEnum(ToolSelection)'
+  'ToolSelection': 'z.nativeEnum(ToolSelection)',
+  'APIServiceType': 'z.nativeEnum(APIServiceType)'
 };
 
 export const BRANDED_TYPES = [
@@ -94,7 +98,7 @@ export const BRANDED_TYPES = [
   'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 
   'HookType', 'NotionOperation',
   'HookTriggerMode', 'ContentType', 'MemoryView',
-  'MemoryProfile', 'ToolSelection'
+  'MemoryProfile', 'ToolSelection', 'APIServiceType'
 ];
 
 export const BASE_FIELDS = ['label', 'flipped'];
@@ -157,6 +161,13 @@ export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
     'batch': { default: 'False' },
     'batch_input_key': { default: '"items"' },
     'batch_parallel': { default: 'True' }
+  },
+  'integrated_api': {
+    'provider': { default: 'field(default=APIServiceType.NOTION)' },
+    'operation': { default: '""' },
+    'timeout': { default: '30' },
+    'max_retries': { default: '3' },
+    'config': { default: 'field(default_factory=dict)' }
   }
 };
 

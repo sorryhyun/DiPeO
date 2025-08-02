@@ -120,6 +120,7 @@ __all__ = [
     "ExecutionStatus",
     "EventType",
     "APIServiceType",
+    "NotionOperation",
     "ToolType",
 
     # Domain models

@@ -8,6 +8,7 @@ import { conditionConfig } from '@/__generated__/nodes/ConditionConfig';
 import { dbConfig } from '@/__generated__/nodes/DbConfig';
 import { endpointConfig } from '@/__generated__/nodes/EndpointConfig';
 import { hookConfig } from '@/__generated__/nodes/HookConfig';
+import { integratedApiConfig } from '@/__generated__/nodes/IntegratedApiConfig';
 import { jsonSchemaValidatorConfig } from '@/__generated__/nodes/JsonSchemaValidatorConfig';
 import { notionConfig } from '@/__generated__/nodes/NotionConfig';
 import { personBatchJobConfig } from '@/__generated__/nodes/PersonBatchJobConfig';
@@ -25,6 +26,7 @@ export function registerAllNodes() {
   registerNodeConfig(dbConfig);
   registerNodeConfig(endpointConfig);
   registerNodeConfig(hookConfig);
+  registerNodeConfig(integratedApiConfig);
   registerNodeConfig(jsonSchemaValidatorConfig);
   registerNodeConfig(notionConfig);
   registerNodeConfig(personBatchJobConfig);

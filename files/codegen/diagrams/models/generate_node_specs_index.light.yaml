@@ -1,0 +1,45 @@
+# Generate Node Specs Index
+# Auto-generates the node-specs/index.ts file by discovering all spec files
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 150}
+    props:
+      custom_data:
+        message: Auto-generating node-specs/index.ts
+
+  - label: Generate Index
+    type: code_job
+    position: {x: 250, y: 150}
+    props:
+      language: python
+      file_path: files/codegen/code/models/generate_node_specs_index.py
+      function_name: main
+
+  - label: Show Results
+    type: person_job
+    position: {x: 450, y: 150}
+    props:
+      person: coder
+      system_prompt: Report the results of the node-specs index generation
+      prompt_template: |
+        Node specs index generation completed:
+        - Output: {output_path}
+        - Found {spec_count} spec files
+        - Files: {spec_files}
+        
+        The file has been generated successfully.
+
+arrows:
+  - from: Start
+    to: Generate Index
+    
+  - from: Generate Index
+    to: Show Results
+    dataMapping:
+      output_path: output_path
+      spec_count: spec_count
+      spec_files: spec_files

@@ -28,7 +28,7 @@ export const jsonSchemaValidatorConfig: UnifiedNodeConfig = {
   defaults: {
   },
   customFields: jsonSchemaValidatorFields,
-  primaryDisplayField: 'schema_name',
+  primaryDisplayField: 'schema_path',
 };
 
 export default jsonSchemaValidatorConfig;

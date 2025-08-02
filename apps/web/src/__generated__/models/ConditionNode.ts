@@ -10,14 +10,14 @@
 import { z } from 'zod';
 
 export interface ConditionNodeData {
-  condition_type: string;
+  condition_type?: 'detect_max_iterations' | 'check_nodes_executed' | 'custom';
   expression?: string;
   node_indices?: any[];
 }
 
 // Zod schema for validation
 export const ConditionNodeDataSchema = z.object({
-  condition_type: z.string(),
+  condition_type: z.any().optional(),
   expression: z.string().optional(),
   node_indices: z.array(z.any()).optional(),
 });

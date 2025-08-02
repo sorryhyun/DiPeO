@@ -102,6 +102,15 @@ nodes:
       diagram_format: light
       passInputData: false
 
+  # Generate Node Specs Index (auto-generates index.ts)
+  - label: Generate Node Specs Index
+    type: sub_diagram
+    position: {x: 400, y: 350}
+    props:
+      diagram_name: codegen/diagrams/models/generate_node_specs_index
+      diagram_format: light
+      passInputData: false
+
   # Build TypeScript models
   - label: Build TypeScript Models
     type: code_job
@@ -179,6 +188,8 @@ connections:
     to: Generate Strawberry Mutations
   - from: Parse All TypeScript
     to: Generate Validation Models
+  - from: Parse All TypeScript
+    to: Generate Node Specs Index
   
   # Python generation tasks connect directly to Generate Summary
   - from: Generate Python Models

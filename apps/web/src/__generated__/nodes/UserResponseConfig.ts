@@ -26,9 +26,10 @@ export const userResponseConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    timeout: 300,
   },
   customFields: userResponseFields,
-  primaryDisplayField: 'response_type',
+  primaryDisplayField: 'prompt',
 };
 
 export default userResponseConfig;

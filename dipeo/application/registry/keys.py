@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         APIKeyPort,
         DiagramPort,
         ASTParserPort,
+        IntegratedApiServicePort,
     )
     from dipeo.application.services import (
         ConversationManagerImpl,
@@ -70,6 +71,7 @@ DIAGRAM_SERVICE_NEW = ServiceKey["DiagramService"]("diagram_service")
 API_SERVICE = ServiceKey["APIService"]("api_service")
 NOTION_SERVICE = ServiceKey["NotionServicePort"]("notion_service")
 API_KEY_SERVICE = ServiceKey["APIKeyPort"]("api_key_service")
+INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"]("integrated_api_service")
 
 # Parser Services
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
@@ -141,6 +143,7 @@ __all__ = [
     "API_SERVICE",
     "NOTION_SERVICE",
     "API_KEY_SERVICE",
+    "INTEGRATED_API_SERVICE",
     
     # Parser
     "AST_PARSER",

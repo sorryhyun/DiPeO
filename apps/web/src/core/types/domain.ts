@@ -76,7 +76,8 @@ export type {
   TemplateJobNodeData,
   JsonSchemaValidatorNodeData,
   TypescriptAstNodeData,
-  SubDiagramNodeData
+  SubDiagramNodeData,
+  IntegratedApiNodeData
 } from '@dipeo/domain-models';
 
 // Execution Types

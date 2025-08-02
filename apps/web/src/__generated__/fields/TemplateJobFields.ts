@@ -20,10 +20,13 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
   },
   {
     name: 'template_content',
-    type: 'text',
+    type: 'textarea',
     label: 'Template Content',
     required: false,
+    placeholder: 'Enter template content...',
     description: 'Inline template content',
+    rows: 10,
+    adjustable: true,
   },
   {
     name: 'output_path',
@@ -45,7 +48,8 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
     type: 'select',
     label: 'Engine',
     required: false,
-    description: 'Engine configuration',
+    defaultValue: "jinja2",
+    description: 'Template engine to use',
     options: [
       { value: 'internal', label: 'Internal' },
       { value: 'jinja2', label: 'Jinja2' },

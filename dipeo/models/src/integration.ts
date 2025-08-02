@@ -35,6 +35,16 @@ export interface ToolOutput {
   raw_response?: any;
 }
 
+export enum NotionOperation {
+  CREATE_PAGE = 'create_page',
+  UPDATE_PAGE = 'update_page',
+  READ_PAGE = 'read_page',
+  DELETE_PAGE = 'delete_page',
+  CREATE_DATABASE = 'create_database',
+  QUERY_DATABASE = 'query_database',
+  UPDATE_DATABASE = 'update_database'
+}
+
 export interface ChatResult {
   text: string;
   token_usage?: TokenUsage | null;
@@ -51,12 +61,3 @@ export interface LLMRequestOptions {
   response_format?: any;
 }
 
-export enum NotionOperation {
-  CREATE_PAGE = 'create_page',
-  UPDATE_PAGE = 'update_page',
-  READ_PAGE = 'read_page',
-  DELETE_PAGE = 'delete_page',
-  CREATE_DATABASE = 'create_database',
-  QUERY_DATABASE = 'query_database',
-  UPDATE_DATABASE = 'update_database'
-}
