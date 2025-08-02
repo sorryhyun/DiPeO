@@ -22,7 +22,7 @@ from .enums import (
     NodeType, HandleDirection, HandleLabel, DataType,
     MemoryView, DiagramFormat, DBBlockSubType, ContentType, SupportedLanguage,
     HttpMethod, HookType, HookTriggerMode, ExecutionStatus, NodeExecutionStatus,
-    EventType, LLMService, APIServiceType, NotionOperation, ToolType
+    EventType, LLMService, APIServiceType, ToolType
 )
 
 
@@ -2282,6 +2282,8 @@ class LLMRequestOptions(BaseModel):
 # Type aliases that reference models
 
 PersonMemoryMessage = Message
+
+
 
 
 

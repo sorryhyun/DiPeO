@@ -19,7 +19,7 @@ from dipeo.diagram_generated.domain_models import (
 )
 from dipeo.diagram_generated.enums import (
     NodeType, HookTriggerMode, SupportedLanguage, HttpMethod, 
-    DBBlockSubType, NotionOperation, HookType, LLMService
+    DBBlockSubType, HookType, LLMService
 )
 
 
@@ -33,8 +33,7 @@ class NotionNode:
     # Required node-specific fields
     api_key: str
     database_id: str
-    operation: NotionOperation
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False

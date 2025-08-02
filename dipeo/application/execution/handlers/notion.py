@@ -9,8 +9,8 @@ from dipeo.application.registry import NOTION_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import NotionNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.domain.validators import NotionValidator
-from dipeo.diagram_generated.models.notion_model import NotionNodeData, NotionOperation
-
+from dipeo.diagram_generated.models.notion_model import NotionNodeData
+from dipeo.models import NotionOperation
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.dynamic.execution_context import ExecutionContext

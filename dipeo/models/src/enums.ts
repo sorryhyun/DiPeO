@@ -168,16 +168,6 @@ export enum APIServiceType {
   JIRA = 'jira'
 }
 
-export enum NotionOperation {
-  CREATE_PAGE = 'create_page',
-  UPDATE_PAGE = 'update_page',
-  READ_PAGE = 'read_page',
-  DELETE_PAGE = 'delete_page',
-  CREATE_DATABASE = 'create_database',
-  QUERY_DATABASE = 'query_database',
-  UPDATE_DATABASE = 'update_database'
-}
-
 export enum ToolType {
   WEB_SEARCH = 'web_search',
   WEB_SEARCH_PREVIEW = 'web_search_preview',

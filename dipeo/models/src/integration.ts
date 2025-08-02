@@ -4,10 +4,10 @@
  * Separated from core diagram models for better modularity
  */
 
-import { LLMService, APIServiceType, NotionOperation, ToolType } from './enums.js';
+import { LLMService, APIServiceType, ToolType } from './enums.js';
 import { TokenUsage } from './execution.js';
 
-export { LLMService, APIServiceType, NotionOperation, ToolType };
+export { LLMService, APIServiceType, ToolType };
 
 export interface ToolConfig {
   type: ToolType;
@@ -51,3 +51,12 @@ export interface LLMRequestOptions {
   response_format?: any;
 }
 
+export enum NotionOperation {
+  CREATE_PAGE = 'create_page',
+  UPDATE_PAGE = 'update_page',
+  READ_PAGE = 'read_page',
+  DELETE_PAGE = 'delete_page',
+  CREATE_DATABASE = 'create_database',
+  QUERY_DATABASE = 'query_database',
+  UPDATE_DATABASE = 'update_database'
+}

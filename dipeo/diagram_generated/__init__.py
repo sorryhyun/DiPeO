@@ -19,10 +19,11 @@ from .enums import (
     ExecutionStatus,
     EventType,
     APIServiceType,
-    NotionOperation,
     ToolType,
 )
-
+from .integrations import (
+    NotionOperation
+)
 # Re-export all domain models
 from .domain_models import (
     # Core types
@@ -119,7 +120,6 @@ __all__ = [
     "ExecutionStatus",
     "EventType",
     "APIServiceType",
-    "NotionOperation",
     "ToolType",
 
     # Domain models

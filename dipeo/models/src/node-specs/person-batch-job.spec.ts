@@ -69,5 +69,5 @@ export const personBatchJobSpec: NodeSpecification = {
     maxRetries: 3
   },
   
-  primaryDisplayField: "batch_size"
+  primaryDisplayField: "batch_key"
 };

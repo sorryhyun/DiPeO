@@ -6,6 +6,11 @@
       "additionalProperties": false,
       "properties": {
         "condition_type": {
+          "enum": [
+            "check_nodes_executed",
+            "custom",
+            "detect_max_iterations"
+          ],
           "type": "string"
         },
         "expression": {
@@ -25,7 +30,6 @@
         }
       },
       "required": [
-        "condition_type",
         "label"
       ],
       "type": "object"

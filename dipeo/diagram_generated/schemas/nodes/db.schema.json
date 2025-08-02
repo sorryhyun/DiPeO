@@ -11,10 +11,6 @@
       ],
       "type": "string"
     },
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "DBNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -49,6 +45,9 @@
         "query": {
           "type": "string"
         },
+        "serialize_json": {
+          "type": "boolean"
+        },
         "sub_type": {
           "$ref": "#/definitions/DBBlockSubType"
         }
@@ -58,6 +57,10 @@
         "operation",
         "sub_type"
       ],
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

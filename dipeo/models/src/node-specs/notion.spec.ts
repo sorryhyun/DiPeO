@@ -36,18 +36,22 @@ export const notionSpec: NodeSpecification = {
     },
     {
       name: "operation",
-      type: "string",
+      type: "enum",
       required: true,
       description: "Operation to perform on the database",
       validation: {
-        allowedValues: ["query", "create", "update"]
+        allowedValues: ["query_database", "create_page", "update_page", "read_page", "delete_page", "create_database", "update_database"]
       },
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "query", label: "Query Database" },
-          { value: "create", label: "Create Page" },
-          { value: "update", label: "Update Page" }
+          { value: "query_database", label: "Query Database" },
+          { value: "create_page", label: "Create Page" },
+          { value: "update_page", label: "Update Page" },
+          { value: "read_page", label: "Read Page" },
+          { value: "delete_page", label: "Delete Page" },
+          { value: "create_database", label: "Create Database" },
+          { value: "update_database", label: "Update Database" }
         ]
       }
     },
@@ -81,5 +85,5 @@ export const notionSpec: NodeSpecification = {
     maxRetries: 3
   },
   
-  primaryDisplayField: "action"
+  primaryDisplayField: "operation"
 };

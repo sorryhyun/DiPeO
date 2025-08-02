@@ -14,8 +14,9 @@ from .enums import (
     NodeType, HandleDirection, HandleLabel, DataType,
     MemoryView, DiagramFormat, DBBlockSubType, ContentType, SupportedLanguage,
     HttpMethod, HookType, HookTriggerMode, ExecutionStatus, NodeExecutionStatus,
-    EventType, LLMService, APIServiceType, NotionOperation, ToolType
+    EventType, LLMService, APIServiceType, ToolType
 )
+from .integrations import NotionOperation
 
 {# ============ Branded IDs ============ #}
 {% set base_branded_ids = ['NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 'DiagramID', 'ExecutionID', 'HookID', 'TaskID'] %}

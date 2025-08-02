@@ -1,6 +1,6 @@
 
 import { BaseNodeData } from '../diagram';
-import { HttpMethod } from '../enums';
+import { HttpMethod, AuthType } from '../enums';
 
 export interface ApiJobNodeData extends BaseNodeData {
   url: string;
@@ -9,6 +9,6 @@ export interface ApiJobNodeData extends BaseNodeData {
   params?: Record<string, any>;
   body?: any;
   timeout?: number;
-  auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
+  auth_type?: AuthType;
   auth_config?: Record<string, string>;
 }

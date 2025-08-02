@@ -79,5 +79,5 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
     maxRetries: 3
   },
   
-  primaryDisplayField: "schema_name"
+  primaryDisplayField: "schema_path"
 };

@@ -151,5 +151,5 @@ export const subDiagramSpec: NodeSpecification = {
     }
   ],
   
-  primaryDisplayField: "diagram_path"
+  primaryDisplayField: "diagram_name"
 };
