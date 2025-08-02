@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from dipeo.application.execution.resolution.adapters.handle_resolver import ResolvedConnection
+from .handle_resolver import ResolvedConnection
 from dipeo.core.execution import ExecutableEdgeV2
 from dipeo.diagram_generated import ContentType, DomainArrow, DomainNode, NodeID, NodeType
 

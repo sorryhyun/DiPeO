@@ -10,15 +10,12 @@ from dipeo.core.execution.diagram_compiler import DiagramCompiler
 from dipeo.core.execution.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode
 from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 
-from dipeo.application.execution.resolution.interfaces import (
+from dipeo.application.resolution.input_resolution import (
     CompileTimeResolver,
     Connection,
     TransformRules,
 )
-from dipeo.application.execution.resolution.adapters import (
-    CompileTimeResolverAdapter,
-    EdgeAdapter,
-)
+from dipeo.application.resolution.compile_time_resolver import StandardCompileTimeResolver
 from dipeo.application.resolution.compiler import NodeFactory
 from dipeo.application.resolution.simple_order_calculator import SimpleOrderCalculator
 
@@ -31,11 +28,10 @@ class InterfaceBasedDiagramCompiler(DiagramCompiler):
     """
     
     def __init__(self, compile_time_resolver: CompileTimeResolver | None = None):
-        # Use adapter for backward compatibility if no resolver provided
-        self.compile_time_resolver = compile_time_resolver or CompileTimeResolverAdapter()
+        # Use standard resolver if none provided
+        self.compile_time_resolver = compile_time_resolver or StandardCompileTimeResolver()
         self.node_factory = NodeFactory()
         self.order_calculator = SimpleOrderCalculator()
-        self.edge_adapter = EdgeAdapter()
         self.validation_errors: list[str] = []
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
@@ -65,15 +61,9 @@ class InterfaceBasedDiagramCompiler(DiagramCompiler):
         )
         
         # 5. Calculate execution order
-        # Create compatibility nodes for order calculator
-        impl_nodes = [self._to_impl_node(node) for node in executable_nodes]
-        
-        # Convert typed edges for order calculator
-        order_edges = [self._to_order_edge(edge) for edge in typed_edges]
-        
         execution_order, groups, order_errors = self.order_calculator.calculate_order(
-            impl_nodes,
-            order_edges
+            executable_nodes,
+            typed_edges
         )
         self.validation_errors.extend(order_errors)
         
@@ -150,50 +140,28 @@ class InterfaceBasedDiagramCompiler(DiagramCompiler):
                 arrow_metadata = getattr(arrow, 'metadata', {})
                 arrow_label = getattr(arrow, 'label', None)
             
-            # Create edge data structure
+            # Create edge metadata
             edge_metadata = {**conn.metadata, **arrow_metadata}
             if arrow_label:
                 edge_metadata['label'] = arrow_label
-                
-            edge_data = {
-                'id': arrow_id or f"{conn.source_node_id}->{conn.target_node_id}",
-                'source_node_id': conn.source_node_id,
-                'target_node_id': conn.target_node_id,
-                'source_output': conn.source_output,
-                'target_input': conn.target_input,
-                'metadata': edge_metadata
-            }
             
-            # Create ExecutableEdge using adapter
-            typed_edge = self.edge_adapter.create_executable_edge(
-                edge_data,
-                transform_rules
+            # Extract transform rules
+            transform_rules_dict = transform_rules.rules if transform_rules else {}
+            
+            # Create ExecutableEdge directly
+            typed_edge = ExecutableEdgeV2(
+                id=arrow_id or f"{conn.source_node_id}->{conn.target_node_id}",
+                source_node_id=conn.source_node_id,
+                target_node_id=conn.target_node_id,
+                source_output=conn.source_output or 'default',
+                target_input=conn.target_input or 'default',
+                transform_rules=transform_rules_dict,
+                metadata=edge_metadata
             )
             typed_edges.append(typed_edge)
         
         return typed_edges
     
-    def _to_impl_node(self, node: ExecutableNode) -> Any:
-        """Convert node for order calculator compatibility."""
-        # Import here to avoid circular dependency
-        from .compatibility import ExecutableNodeImpl
-        
-        return ExecutableNodeImpl(
-            id=node.id,
-            type=node.type,
-            position=node.position,
-            data=node.to_dict()
-        )
-    
-    def _to_order_edge(self, edge: ExecutableEdgeV2) -> Any:
-        """Convert edge for order calculator compatibility."""
-        # Create simple edge structure for order calculation
-        class SimpleEdge:
-            def __init__(self, source_node_id, target_node_id):
-                self.source_node_id = source_node_id
-                self.target_node_id = target_node_id
-        
-        return SimpleEdge(edge.source_node_id, edge.target_node_id)
     
     def decompile(self, executable_diagram: ExecutableDiagram) -> DomainDiagram:
         """Convert executable diagram back to domain representation."""

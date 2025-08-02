@@ -1,10 +1,19 @@
 # Diagram resolution pipeline for transforming DomainDiagram to ExecutableDiagram.
 # Handles resolution, arrow transformation, execution order, and validation.
 
-from dipeo.application.execution.resolution.adapters.arrow_transformer import ArrowTransformer
+from .arrow_transformer import ArrowTransformer
 from .compiler import NodeFactory
-from dipeo.application.execution.resolution.adapters.handle_resolver import HandleResolver
+from .handle_resolver import HandleResolver
 from .interface_based_compiler import InterfaceBasedDiagramCompiler
+from .compile_time_resolver import StandardCompileTimeResolver
+from .runtime_input_resolver import StandardRuntimeInputResolver, ExecutionContext
+from .input_resolution import (
+    Connection,
+    TransformRules,
+    CompileTimeResolver,
+    RuntimeInputResolver,
+    TransformationEngine,
+)
 
 # Compatibility imports for migration
 from .simple_order_calculator import SimpleOrderCalculator
@@ -12,7 +21,19 @@ from .simple_order_calculator import SimpleOrderCalculator
 ExecutionOrderCalculator = SimpleOrderCalculator
 
 __all__ = [
+    "ArrowTransformer",
     "ExecutionOrderCalculator",
+    "HandleResolver",
     "NodeFactory",
-    "InterfaceBasedDiagramCompiler"
+    "InterfaceBasedDiagramCompiler",
+    "StandardCompileTimeResolver",
+    "StandardRuntimeInputResolver",
+    "ExecutionContext",
+    "SimpleOrderCalculator",
+    # Base abstractions
+    "Connection",
+    "TransformRules",
+    "CompileTimeResolver",
+    "RuntimeInputResolver",
+    "TransformationEngine",
 ]

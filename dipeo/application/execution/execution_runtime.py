@@ -117,14 +117,13 @@ class ExecutionRuntime(StateTransitionMixin):
     
     
     def resolve_inputs(self, node: "ExecutableNode") -> dict[str, Any]:
-        from dipeo.application.execution.resolution.interfaces import RuntimeInputResolver
-        from dipeo.application.execution.resolution.adapters import (
+        from dipeo.application.resolution import (
             StandardRuntimeInputResolver,
-            ExecutionContextAdapter,
+            ExecutionContext,
         )
         from dipeo.diagram_generated.generated_nodes import PersonJobNode
         
-        # Use adapter for backward compatibility
+        # Use direct resolver implementation
         runtime_resolver = StandardRuntimeInputResolver()
         
         # Gather node outputs from tracker
@@ -140,7 +139,7 @@ class ExecutionRuntime(StateTransitionMixin):
             for node_id in self._node_states.keys()
         }
         
-        context = ExecutionContextAdapter(
+        context = ExecutionContext(
             node_outputs=node_outputs_dict,
             node_exec_counts=node_exec_counts,
             current_node_id=str(node.id)
@@ -158,9 +157,9 @@ class ExecutionRuntime(StateTransitionMixin):
             pass
         
         # Use the new resolver
-        return runtime_resolver.resolve_inputs(
-            node_id=str(node.id),
-            edges=incoming_edges,
+        return runtime_resolver.resolve_node_inputs(
+            node=node,
+            incoming_edges=incoming_edges,
             context=context
         )
     
