@@ -146,7 +146,7 @@ export function useMonitoringStreamSSE({
         }
       };
 
-      eventSource.onerror = (event) => {
+      eventSource.onerror = (_event) => {
         // Check if we're in monitor mode
         const store = useUnifiedStore.getState();
         const isMonitorMode = store.isMonitorMode;
@@ -158,8 +158,8 @@ export function useMonitoringStreamSSE({
           return;
         }
         
-        // Check if this is a normal closure (readyState === CLOSED with no error)
-        if (eventSourceRef.current?.readyState === EventSource.CLOSED && !event.error) {
+        // Check if this is a normal closure (readyState === CLOSED)
+        if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
           console.log('[SSE] Connection closed normally');
           setIsConnected(false);
           return;
