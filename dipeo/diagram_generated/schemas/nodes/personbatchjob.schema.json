@@ -2,27 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonBatchJobNodeData",
   "definitions": {
-    "MemorySettings": {
-      "additionalProperties": false,
-      "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
-        }
-      },
-      "required": [
-        "view"
-      ],
-      "type": "object"
-    },
     "MemoryView": {
       "enum": [
         "all_involved",
@@ -44,6 +23,27 @@
       },
       "required": [
         "__brand"
+      ],
+      "type": "object"
+    },
+    "MemorySettings": {
+      "additionalProperties": false,
+      "properties": {
+        "max_messages": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "preserve_system": {
+          "type": "boolean"
+        },
+        "view": {
+          "$ref": "#/definitions/MemoryView"
+        }
+      },
+      "required": [
+        "view"
       ],
       "type": "object"
     },

@@ -2,19 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/DBNodeData",
   "definitions": {
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "DBBlockSubType": {
-      "enum": [
-        "fixed_prompt",
-        "file",
-        "code",
-        "api_tool"
-      ],
-      "type": "string"
-    },
     "DBNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -61,6 +48,19 @@
         "operation",
         "sub_type"
       ],
+      "type": "object"
+    },
+    "DBBlockSubType": {
+      "enum": [
+        "fixed_prompt",
+        "file",
+        "code",
+        "api_tool"
+      ],
+      "type": "string"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }
