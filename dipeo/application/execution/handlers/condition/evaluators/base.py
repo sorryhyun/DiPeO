@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Protocol, TypedDict
 
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.compilation.executable_diagram import ExecutableDiagram
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 

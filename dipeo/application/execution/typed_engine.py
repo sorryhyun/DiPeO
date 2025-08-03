@@ -10,7 +10,7 @@ import threading
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.execution.execution_tracker import ExecutionTracker, CompletionStatus
 from dipeo.core.execution.execution_context import ExecutionContext as CoreExecutionContext
 from dipeo.core.execution.runtime_resolver import RuntimeResolver

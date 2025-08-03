@@ -7,7 +7,7 @@ from typing import Any
 from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
 from dipeo.core import BaseService, ValidationError
 from dipeo.core.ports.diagram_port import DiagramPort as DiagramStorageDomainService
-from dipeo.core.compilation import ExecutableDiagram
+from dipeo.domain.diagram.models import ExecutableDiagram
 from dipeo.domain.diagram.utils import (
     dict_to_domain_diagram,
     domain_diagram_to_dict,

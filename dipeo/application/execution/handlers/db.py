@@ -61,11 +61,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        # Get service from services (handle both dict and ServiceRegistry)
-        if isinstance(services, dict):
-            db_service = services.get(DB_OPERATIONS_SERVICE.name)
-        else:
-            db_service = services.get(DB_OPERATIONS_SERVICE)
+        # Get service from ServiceRegistry
+        db_service = services.get(DB_OPERATIONS_SERVICE)
         
         if db_service is None:
             raise RuntimeError("db_operations_service not available")

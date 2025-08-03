@@ -34,8 +34,8 @@ from dipeo.core.execution.node_strategy import (
     NodeStrategyRegistry,
     node_strategy_registry,
 )
-from dipeo.core.compilation.diagram_compiler import DiagramCompiler
-from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode, NodeOutputProtocolV2, StandardNodeOutput
+from dipeo.core.ports.diagram_compiler import DiagramCompiler
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode, NodeOutputProtocolV2, StandardNodeOutput
 from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.core.execution.runtime_resolver import RuntimeResolver, TransformationRule
 from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator

@@ -6,7 +6,7 @@ input resolution behavior specific to the application layer.
 
 from typing import Any, TYPE_CHECKING
 
-from dipeo.core.compilation.executable_diagram import ExecutableEdgeV2, ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode
 from dipeo.core.execution.node_strategy import NodeStrategy
 from dipeo.diagram_generated import NodeType
 

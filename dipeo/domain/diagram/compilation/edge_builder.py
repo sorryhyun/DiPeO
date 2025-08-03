@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from dipeo.core.compilation.executable_diagram import ExecutableEdgeV2
+from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2
 from dipeo.diagram_generated import ContentType, DomainArrow, DomainNode, NodeID, NodeType
 
 

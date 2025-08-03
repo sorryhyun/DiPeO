@@ -4,11 +4,11 @@ This module provides a protocol that diagram compilers must implement.
 The actual implementation lives in the application layer.
 """
 
-from typing import Protocol
+from typing import Protocol, TYPE_CHECKING
 
-from dipeo.models import DomainDiagram
-
-from dipeo.core.compilation.executable_diagram import ExecutableDiagram
+if TYPE_CHECKING:
+    from dipeo.models import DomainDiagram
+    from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 
 class DiagramCompiler(Protocol):
@@ -18,7 +18,7 @@ class DiagramCompiler(Protocol):
     in dipeo.application.compilation.standard_compiler
     """
     
-    def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
+    def compile(self, domain_diagram: "DomainDiagram") -> "ExecutableDiagram":
         """Compile domain diagram to executable form with resolved connections and execution order."""
         ...
     

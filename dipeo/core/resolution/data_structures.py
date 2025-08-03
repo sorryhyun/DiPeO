@@ -10,7 +10,7 @@ from typing import Any
 from dipeo.diagram_generated import ContentType
 # Note: ExecutableEdgeV2, NodeOutputProtocolV2, and StandardNodeOutput have been moved to
 # dipeo.core.execution.executable_diagram for better architectural alignment
-from dipeo.core.compilation.executable_diagram import ExecutableEdgeV2
+from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2
 
 
 class EdgeMetadata:

@@ -12,7 +12,7 @@ import logging
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_tracker import ExecutionTracker
-    from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableNode
+    from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 
 logger = logging.getLogger(__name__)
 

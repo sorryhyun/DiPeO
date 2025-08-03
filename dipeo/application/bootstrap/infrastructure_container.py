@@ -15,7 +15,6 @@ from dipeo.application.registry.keys import (
     INTEGRATED_API_SERVICE,
     LLM_SERVICE,
     MESSAGE_ROUTER,
-    NOTION_SERVICE,
     PERSON_MANAGER,
     PROMPT_BUILDER,
     STATE_STORE,
@@ -138,12 +137,6 @@ class InfrastructureContainer:
         self.registry.register(
             API_SERVICE,
             None  # Override when API calls are needed
-        )
-
-        # Notion service - None for now
-        self.registry.register(
-            NOTION_SERVICE,
-            None  # Override when Notion integration is needed
         )
 
         # Integrated API service

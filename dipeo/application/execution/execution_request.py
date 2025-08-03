@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
-from dipeo.core.compilation.executable_diagram import ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.diagram_generated import NodeExecutionStatus
 
 if TYPE_CHECKING:

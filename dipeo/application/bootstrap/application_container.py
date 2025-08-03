@@ -20,7 +20,6 @@ from dipeo.application.registry.keys import (
     FILESYSTEM_ADAPTER,
     LLM_SERVICE,
     MESSAGE_ROUTER,
-    NOTION_SERVICE,
     PERSON_MANAGER,
     PROMPT_BUILDER,
     STATE_STORE,

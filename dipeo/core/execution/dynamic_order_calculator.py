@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Protocol, Sequence
 
 from dipeo.diagram_generated import NodeID
-from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.execution.execution_context import ExecutionContext
 
 

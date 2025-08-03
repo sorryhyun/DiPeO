@@ -7,7 +7,7 @@ handling loops, conditionals, and dynamic dependencies.
 from typing import Any, Optional
 from collections import defaultdict
 
-from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator as DynamicOrderCalculatorProtocol
 from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.diagram_generated import NodeID, NodeState, NodeExecutionStatus, NodeType

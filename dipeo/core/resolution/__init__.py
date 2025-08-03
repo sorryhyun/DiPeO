@@ -8,7 +8,7 @@ This package defines the interfaces that enable:
 """
 
 # Import from core execution for moved classes
-from dipeo.core.compilation.executable_diagram import (
+from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableEdgeV2,
     NodeOutputProtocolV2,
     StandardNodeOutput,

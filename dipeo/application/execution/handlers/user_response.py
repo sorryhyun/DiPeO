@@ -54,10 +54,8 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        if isinstance(services, dict):
-            exec_context = services.get(EXECUTION_CONTEXT.name)
-        else:
-            exec_context = services.get(EXECUTION_CONTEXT)
+        # Get execution context from ServiceRegistry
+        exec_context = services.get(EXECUTION_CONTEXT)
         if (
             exec_context
             and hasattr(exec_context, "interactive_handler")

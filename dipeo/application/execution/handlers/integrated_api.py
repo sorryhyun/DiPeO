@@ -63,14 +63,9 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     ) -> NodeOutputProtocol:
         """Execute the API operation through the integrated service."""
         
-        # Get services (handle both dict and ServiceRegistry)
-        if isinstance(services, dict):
-            integrated_api_service = self.integrated_api_service or services.get(INTEGRATED_API_SERVICE.name)
-            api_key_service = self.api_key_service or services.get(API_KEY_SERVICE.name)
-        else:
-            # It's a ServiceRegistry
-            integrated_api_service = self.integrated_api_service or services.get(INTEGRATED_API_SERVICE)
-            api_key_service = self.api_key_service or services.get(API_KEY_SERVICE)
+        # Get services from ServiceRegistry
+        integrated_api_service = self.integrated_api_service or services.get(INTEGRATED_API_SERVICE)
+        api_key_service = self.api_key_service or services.get(API_KEY_SERVICE)
         
         if not integrated_api_service:
             return ErrorOutput(

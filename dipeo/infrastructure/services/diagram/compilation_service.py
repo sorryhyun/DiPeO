@@ -9,8 +9,8 @@ import logging
 import time
 
 from dipeo.core import BaseService
-from dipeo.core.compilation.diagram_compiler import DiagramCompiler
-from dipeo.core.compilation.executable_diagram import ExecutableDiagram
+from dipeo.core.ports.diagram_compiler import DiagramCompiler
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.compilation import (
     CompilationResult,

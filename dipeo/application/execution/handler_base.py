@@ -3,9 +3,8 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Optional, TypeVar, Generic
 
 from pydantic import BaseModel
-from dipeo.core.compilation.executable_diagram import ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput
-from dipeo.application.registry import EXECUTION_RUNTIME
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
@@ -60,24 +59,6 @@ class TypedNodeHandler(ABC, Generic[T]):
             NodeOutputProtocol containing the execution results
         """
         ...
-    
-    def _get_execution(self, context: Any) -> "ExecutionRuntime":
-        if hasattr(context, 'runtime') and context.runtime:
-            return context.runtime
-        
-        execution_state = getattr(context, 'execution_state', None)
-        if execution_state:
-            runtime = getattr(execution_state, '_runtime', None)
-            if runtime:
-                return runtime
-        
-        service_registry = getattr(context, 'service_registry', None)
-        if service_registry:
-            runtime = service_registry.resolve(EXECUTION_RUNTIME)
-            if runtime:
-                return runtime
-        
-        raise ValueError("ExecutionRuntime not found in context")
     
     def validate(self, request: "ExecutionRequest[T]") -> Optional[str]:
         return None

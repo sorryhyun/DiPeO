@@ -16,7 +16,7 @@ import json
 import logging
 from typing import Any
 
-from dipeo.core.compilation.executable_diagram import (
+from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableDiagram,
     ExecutableEdgeV2,
     ExecutableNode,

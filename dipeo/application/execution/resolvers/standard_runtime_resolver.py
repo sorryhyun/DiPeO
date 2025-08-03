@@ -10,7 +10,7 @@ from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.core.execution.node_output import TextOutput
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.compilation.executable_diagram import ExecutableEdgeV2, ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 
 from dipeo.core.resolution import (
