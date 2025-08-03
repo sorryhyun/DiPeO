@@ -232,7 +232,8 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with extracted static node data
     """
-    # Get inputs
+    
+    # In DiPeO, labeled connections come directly at the top level
     mappings = inputs.get('mappings', {})
     temp_results = inputs.get('temp_results', {})
     base_data = inputs.get('base_data', {})

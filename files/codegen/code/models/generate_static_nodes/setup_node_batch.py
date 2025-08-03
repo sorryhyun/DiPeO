@@ -15,8 +15,13 @@ def setup_node_batch(inputs: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with items array for batch processing and metadata
     """
-    # Parse the manifest data
-    manifest_data = inputs.get('manifest', {})
+    
+    # When no label is specified, db node might wrap in 'default'
+    if 'default' in inputs and len(inputs) == 1:
+        manifest_data = inputs['default']
+    else:
+        manifest_data = inputs
+        
     if isinstance(manifest_data, str):
         manifest_data = json.loads(manifest_data)
     
@@ -36,9 +41,6 @@ def setup_node_batch(inputs: Dict[str, Any]) -> Dict[str, Any]:
     # Match the pattern used in working batch examples
     items = [{'node_type': node_type} for node_type in node_types]
     
-    # Debug output
-    print(f"[setup_node_batch] Created {len(items)} batch items")
-    print(f"[setup_node_batch] First 3 items: {items[:3]}")
     
     result = {
         'items': items,

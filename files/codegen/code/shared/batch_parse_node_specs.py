@@ -84,12 +84,6 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         
         # Debug: print first result to see structure
         results = batch_result.get('results', {})
-        if results:
-            first_key = next(iter(results))
-            print(f"Debug: First result key: {first_key}, type: {type(first_key)}")
-            print(f"Debug: Source list length: {len(source_list)}")
-            if source_list:
-                print(f"Debug: First source: {source_list[0]}")
         
         # Handle both numeric indices and file paths
         for key, parse_result in results.items():

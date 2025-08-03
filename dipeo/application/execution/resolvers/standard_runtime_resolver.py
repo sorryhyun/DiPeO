@@ -59,12 +59,12 @@ class StandardRuntimeResolver(RuntimeResolver):
             value = self._get_edge_value(edge, context)
             if value is None:
                 continue
-            
+
             # Apply transformations
             transformed_value = self._apply_transformations(value, edge)
             if transformed_value is None:
                 continue
-            
+
             # Get input key from edge
             input_key = edge.target_input or 'default'
             inputs[input_key] = transformed_value
@@ -132,23 +132,28 @@ class StandardRuntimeResolver(RuntimeResolver):
         # Handle StandardNodeOutput
         if isinstance(value, StandardNodeOutput):
             output_key = edge.source_output or "default"
-            
+
             # Extract the actual value based on output key
             if not isinstance(value.value, dict):
                 # Non-dict values are wrapped
                 output_dict = {"default": value.value}
             else:
                 output_dict = value.value
-            
-            # Get the specific output
+
             if output_key in output_dict:
                 actual_value = output_dict[output_key]
-            elif output_key == "default" and len(output_dict) == 1:
-                # If requesting default and only one output, use it
-                actual_value = next(iter(output_dict.values()))
-            elif "default" in output_dict:
-                # Fallback to default
-                actual_value = output_dict["default"]
+            elif output_key == "default":
+                # Special handling for default output
+                if len(output_dict) == 1:
+                    # If requesting default and only one output, use it
+                    actual_value = next(iter(output_dict.values()))
+                elif "default" in output_dict:
+                    # Use explicit default key
+                    actual_value = output_dict["default"]
+                else:
+                    # For multi-file DB read or similar cases, use the entire dict
+                    # when requesting default and no explicit default key exists
+                    actual_value = output_dict
             else:
                 # No matching output
                 return None

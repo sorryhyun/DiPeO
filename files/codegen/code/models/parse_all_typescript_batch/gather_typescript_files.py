@@ -95,11 +95,13 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     print(f"  - Auto-discovered node data files: {len(node_data_files)}")
     print(f"  - Auto-discovered node spec files: {len(node_spec_files)}")
     
-    return {
+    result = {
         'sources': sources,
         'file_mapping': file_mapping,  
         'file_count': len(sources)
     }
+    
+    return result
 
 
 # Keep backward compatibility

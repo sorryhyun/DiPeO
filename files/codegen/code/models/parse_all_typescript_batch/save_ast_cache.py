@@ -55,11 +55,12 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Save each AST file
     for file_path, key in file_mapping.items():
-        if not isinstance(parsed_results, dict) or key not in parsed_results:
-            print(f"Warning: No parsed result for {key}")
+        # The parsed_results are keyed by file_path, not by the mapped key
+        if not isinstance(parsed_results, dict) or file_path not in parsed_results:
+            print(f"Warning: No parsed result for {key} (looking for path: {file_path})")
             continue
         
-        parse_result = parsed_results[key]
+        parse_result = parsed_results[file_path]
         ast_data = {
             'interfaces': parse_result.get('interfaces', []),
             'types': parse_result.get('types', []),

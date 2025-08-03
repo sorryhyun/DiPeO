@@ -77,7 +77,7 @@ class TypedExecutionEngine(StateTransitionMixin):
         
         # Initialize engine state
         engine_state = self._initialize_engine_state(
-            diagram, execution_state, container
+            diagram, execution_state, container, options
         )
         
         # Notify observers
@@ -159,7 +159,8 @@ class TypedExecutionEngine(StateTransitionMixin):
         self,
         diagram: ExecutableDiagram,
         execution_state: ExecutionState,
-        container: Optional["Container"]
+        container: Optional["Container"],
+        options: dict[str, Any]
     ) -> dict[str, Any]:
         """Initialize the engine's internal state."""
         # Initialize node states
@@ -185,6 +186,9 @@ class TypedExecutionEngine(StateTransitionMixin):
         # Create readiness checker
         readiness_checker = NodeReadinessChecker(diagram, tracker)
         
+        # Extract metadata from options
+        metadata = options.get('metadata', {})
+        
         return {
             'execution_id': execution_state.id,
             'diagram_id': execution_state.diagram_id,
@@ -193,7 +197,7 @@ class TypedExecutionEngine(StateTransitionMixin):
             'tracker': tracker,
             'readiness_checker': readiness_checker,
             'variables': execution_state.variables or {},
-            'metadata': {},
+            'metadata': metadata,
             'current_node_id': [None],
             'container': container,
             'state_lock': threading.Lock()
@@ -420,7 +424,9 @@ class TypedExecutionEngine(StateTransitionMixin):
             
             def get_node_output(self, node_id: str) -> Any:
                 protocol_output = self._tracker.get_last_output(NodeID(node_id))
-                return protocol_output.value if protocol_output else None
+                # Return the full protocol output object, not just the value
+                # The runtime resolver needs the full object to handle different output types
+                return protocol_output
             
             def get_node_result(self, node_id: NodeID) -> Optional[dict[str, Any]]:
                 protocol_output = self._tracker.get_last_output(node_id)

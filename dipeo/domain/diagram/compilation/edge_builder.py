@@ -98,12 +98,37 @@ class EdgeBuilder:
             "label": getattr(arrow, 'label', None)
         }
         
+        # Get handle label values - handle both enum and string cases
+        source_output = None
+        if connection.source_handle_label:
+            # If it's an enum, get its value; otherwise use it as string
+            source_output = (connection.source_handle_label.value 
+                           if hasattr(connection.source_handle_label, 'value') 
+                           else str(connection.source_handle_label))
+        
+        # Arrow label can override the source_output (for labeled connections)
+        if arrow.label:
+            source_output = arrow.label
+        
+        target_input = None
+        if connection.target_handle_label:
+            # If it's an enum, get its value; otherwise use it as string
+            target_input = (connection.target_handle_label.value 
+                          if hasattr(connection.target_handle_label, 'value') 
+                          else str(connection.target_handle_label))
+        
+        # Arrow label sets the target_input for labeled connections
+        # This allows the receiving node to get the input with the label as the key
+        if arrow.label:
+            target_input = arrow.label
+        
+        
         return ExecutableEdgeV2(
             id=arrow.id,
             source_node_id=connection.source_node_id,
             target_node_id=connection.target_node_id,
-            source_output=connection.source_handle_label.value if connection.source_handle_label else None,
-            target_input=connection.target_handle_label.value if connection.target_handle_label else None,
+            source_output=source_output,
+            target_input=target_input,
             content_type=transform_metadata.content_type,
             transform_rules=transform_metadata.transformation_rules,
             metadata=edge_metadata

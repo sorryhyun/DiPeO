@@ -15,13 +15,31 @@ def read_batch_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with parsed_nodes array and count
     """
-    # Get batch info
-    batch_info = inputs.get('batch_info', {})
-    temp_dir = batch_info.get('temp_dir', '.temp/codegen/node_data')
-    node_types = batch_info.get('node_types', [])
+    
+    # Handle different input formats
+    # When coming from batch processing, might be wrapped in 'default'
+    if 'default' in inputs and 'batch_info' not in inputs:
+        # This is from the batch sub-diagram output
+        batch_output = inputs['default']
+        # Still need batch_info from the other connection
+        batch_info = {}
+        temp_dir = '.temp/codegen/node_data'
+        node_types = []
+    else:
+        # Get batch info from labeled connection
+        batch_info = inputs.get('batch_info', {})
+        temp_dir = batch_info.get('temp_dir', '.temp/codegen/node_data')
+        node_types = batch_info.get('node_types', [])
     
     # Read all temp files
     parsed_nodes: List[Dict[str, Any]] = []
+    
+    
+    # If node_types is empty, scan the directory for JSON files
+    if not node_types and os.path.exists(temp_dir):
+        json_files = [f for f in os.listdir(temp_dir) if f.endswith('.json')]
+        node_types = [f[:-5] for f in json_files]  # Remove .json extension
+    
     
     for node_type in node_types:
         temp_file = os.path.join(temp_dir, f"{node_type}.json")
@@ -32,6 +50,7 @@ def read_batch_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
                 parsed_nodes.append(data)
             except Exception as e:
                 pass  # Skip failed files silently
+        else:
     
     # Clean up temp directory
     if os.path.exists(temp_dir):

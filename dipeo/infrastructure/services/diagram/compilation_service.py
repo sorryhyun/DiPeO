@@ -64,8 +64,6 @@ class CompilationService(BaseService, DiagramCompiler):
             raise RuntimeError("CompilationService not initialized")
         
         diagram_name = domain_diagram.metadata.name if domain_diagram.metadata else "unnamed"
-        logger.debug(f"Starting compilation of diagram: {diagram_name}")
-        
         start_time = time.time()
         
         try:
@@ -76,10 +74,6 @@ class CompilationService(BaseService, DiagramCompiler):
             compilation_time = time.time() - start_time
             self._compilation_count += 1
             self._total_compilation_time += compilation_time
-            
-            logger.info(
-                f"Diagram '{diagram_name}' compiled successfully in {compilation_time:.3f}s"
-            )
             
             return result
             

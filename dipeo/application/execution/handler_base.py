@@ -85,12 +85,17 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
     ) -> NodeOutputProtocol:
         from dipeo.application.execution.execution_request import ExecutionRequest
         
+        # Extract metadata from context if available
+        context_metadata = {}
+        if hasattr(context, 'metadata') and context.metadata:
+            context_metadata = context.metadata
+        
         request = ExecutionRequest(
             node=node,
             context=context,
             inputs=inputs,
             services=services,
-            metadata={},
+            metadata=context_metadata,
             execution_id=getattr(context, 'execution_id', ''),
             parent_container=getattr(context, '_container', None),
             parent_registry=getattr(context, '_service_registry', None)

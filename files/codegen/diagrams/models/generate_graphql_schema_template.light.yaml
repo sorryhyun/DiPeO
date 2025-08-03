@@ -29,7 +29,7 @@ nodes:
       operation: read
       sub_type: file
       serialize_json: true
-      source_details:
+      file:
         - .temp/diagram_ast.json
         - .temp/execution_ast.json
         - .temp/conversation_ast.json
@@ -101,12 +101,10 @@ connections:
   # Prepare GraphQL data from AST
   - from: Load All AST Files
     to: Prepare GraphQL Data
-    label: all_ast_files
   
   # Pass prepared data to template
   - from: Prepare GraphQL Data
     to: Generate GraphQL Schema
-    label: default
   
   # Generate summary
   - from: Prepare GraphQL Data
