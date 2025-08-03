@@ -24,29 +24,38 @@ def auto_register_handlers() -> List[Type[TypedNodeHandler]]:
     handlers_dir = Path(__file__).parent
     registered_handlers = []
     
-    # Find all Python files in the handlers directory
-    for file_path in handlers_dir.glob("*.py"):
-        # Skip special files
-        if file_path.name.startswith("_") or file_path.name == "auto_register.py":
+    # Find all Python files and directories in the handlers directory
+    for item_path in handlers_dir.iterdir():
+        # Skip special files and non-Python files
+        if item_path.name.startswith("_") or item_path.name == "auto_register.py":
             continue
-            
-        module_name = file_path.stem
         
-        try:
-            # Import the module dynamically
-            module = importlib.import_module(f".{module_name}", package="dipeo.application.execution.handlers")
-            
-            # Find all handler classes in the module
-            for name, obj in inspect.getmembers(module):
-                if (inspect.isclass(obj) and 
-                    issubclass(obj, TypedNodeHandler) and 
-                    obj.__module__ == module.__name__):
-                    # The @register_handler decorator will be called automatically
-                    # when the module is imported
-                    registered_handlers.append(obj)
-                    
-        except Exception as e:
-            print(f"Warning: Failed to import handler module {module_name}: {e}")
+        module_name = None
+        
+        # Handle regular .py files
+        if item_path.is_file() and item_path.suffix == ".py":
+            module_name = item_path.stem
+        
+        # Handle directories with __init__.py (handler packages)
+        elif item_path.is_dir() and (item_path / "__init__.py").exists():
+            module_name = item_path.name
+        
+        if module_name:
+            try:
+                # Import the module dynamically
+                module = importlib.import_module(f".{module_name}", package="dipeo.application.execution.handlers")
+                
+                # Find all handler classes in the module
+                for name, obj in inspect.getmembers(module):
+                    if (inspect.isclass(obj) and 
+                        issubclass(obj, TypedNodeHandler) and 
+                        obj.__module__.startswith("dipeo.application.execution.handlers")):
+                        # The @register_handler decorator will be called automatically
+                        # when the module is imported
+                        registered_handlers.append(obj)
+                        
+            except Exception as e:
+                print(f"Warning: Failed to import handler module {module_name}: {e}")
             
     return registered_handlers
 

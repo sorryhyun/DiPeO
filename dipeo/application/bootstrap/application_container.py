@@ -10,7 +10,6 @@ from dipeo.application.registry.keys import (
     BLOB_STORE,
     CLI_SESSION_SERVICE,
     COMPILATION_SERVICE,
-    CONDITION_EVALUATION_SERVICE,
     CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_CONVERTER,
@@ -83,11 +82,6 @@ class ApplicationContainer:
             )
         )
 
-        from dipeo.application.utils.evaluator import ConditionEvaluator
-        self.registry.register(
-            CONDITION_EVALUATION_SERVICE,
-            ConditionEvaluator()
-        )
 
         from dipeo.application.services.person_manager_impl import PersonManagerImpl
         self.registry.register(

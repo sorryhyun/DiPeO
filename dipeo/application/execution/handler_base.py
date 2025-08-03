@@ -1,8 +1,9 @@
 
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, Generic
 
+from pydantic import BaseModel
 from dipeo.core.compilation.executable_diagram import ExecutableNode
-from dipeo.core.execution.node_handler import TypedNodeHandler as CoreTypedHandler
 from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput
 from dipeo.application.registry import EXECUTION_RUNTIME
 
@@ -13,7 +14,52 @@ if TYPE_CHECKING:
 T = TypeVar('T', bound=ExecutableNode)
 
 
-class TypedNodeHandlerBase(CoreTypedHandler[T]):
+class TypedNodeHandler(ABC, Generic[T]):
+    """Base for type-safe node handlers. Defines execution pattern for typed nodes."""
+    
+    @property
+    @abstractmethod
+    def node_class(self) -> type[T]:
+        ...
+    
+    @property
+    @abstractmethod
+    def node_type(self) -> str:
+        ...
+    
+    @property
+    @abstractmethod
+    def schema(self) -> type[BaseModel]:
+        ...
+    
+    @property
+    def requires_services(self) -> list[str]:
+        return []
+    
+    @property
+    def description(self) -> str:
+        return f"Typed handler for {self.node_type} nodes"
+    
+    @abstractmethod
+    async def execute(
+        self,
+        node: T,
+        context: Any,
+        inputs: dict[str, Any],
+        services: dict[str, Any]
+    ) -> NodeOutputProtocol:
+        """Execute the handler with strongly-typed node.
+        
+        Args:
+            node: The typed node instance
+            context: Execution context (application-specific)
+            inputs: Input data from connected nodes
+            services: Available services for execution
+            
+        Returns:
+            NodeOutputProtocol containing the execution results
+        """
+        ...
     
     def _get_execution(self, context: Any) -> "ExecutionRuntime":
         if hasattr(context, 'runtime') and context.runtime:
@@ -121,5 +167,4 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
 
 
 # Backward compatibility alias
-TypedNodeHandler = TypedNodeHandlerBase
-
+TypedNodeHandlerBase = TypedNodeHandler

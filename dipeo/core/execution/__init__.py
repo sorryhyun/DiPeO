@@ -38,7 +38,6 @@ from dipeo.core.compilation.diagram_compiler import DiagramCompiler
 from dipeo.core.compilation.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode, NodeOutputProtocolV2, StandardNodeOutput
 from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.core.execution.runtime_resolver import RuntimeResolver, TransformationRule
-from dipeo.core.execution.node_handler import TypedNodeHandler
 from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator
 from dipeo.core.execution.execution_state_manager import ExecutionStateManager
 from dipeo.diagram_generated.generated_nodes import (
@@ -112,7 +111,6 @@ __all__ = [
     "create_executable_node",
     # Protocols and base classes
     "DiagramCompiler",
-    "TypedNodeHandler",
     "ExecutionContext",
     "RuntimeResolver",
     "TransformationRule",

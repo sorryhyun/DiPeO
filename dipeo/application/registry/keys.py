@@ -58,7 +58,6 @@ FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
 CONVERSATION_SERVICE = ServiceKey["ConversationManagerImpl"]("conversation_service")  # Alias
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
-CONDITION_EVALUATION_SERVICE = ServiceKey["ConditionEvaluator"]("condition_evaluation_service")
 PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
 
 # Domain Services
@@ -130,7 +129,6 @@ __all__ = [
     "CONVERSATION_MANAGER",
     "CONVERSATION_SERVICE",
     "PROMPT_BUILDER",
-    "CONDITION_EVALUATION_SERVICE",
     "PERSON_MANAGER",
     
     # Domain
