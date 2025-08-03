@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import hashlib
+import shutil
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dipeo.core.ports.ast_parser_port import ASTParserPort
@@ -74,8 +75,45 @@ class TypeScriptParser(ASTParserPort):
             # On Windows, use pnpm.CMD to avoid bash PATH issues
             import platform
             if platform.system() == 'Windows':
-                # Use pnpm.CMD which is the Windows command wrapper
-                cmd = ['pnpm.CMD', 'tsx', str(self.parser_script)]
+                # Try to find pnpm in PATH or common locations
+                pnpm_cmd = None
+                
+                # First try pnpm.CMD in PATH
+                if shutil.which('pnpm.CMD'):
+                    pnpm_cmd = 'pnpm.CMD'
+                elif shutil.which('pnpm'):
+                    pnpm_cmd = 'pnpm'
+                else:
+                    # Try common pnpm installation locations
+                    possible_pnpm_paths = [
+                        os.path.expanduser('~\\AppData\\Local\\pnpm\\pnpm.CMD'),
+                        os.path.expanduser('~\\AppData\\Roaming\\npm\\pnpm.CMD'),
+                        'C:\\Program Files\\nodejs\\pnpm.CMD',
+                        'C:\\Program Files (x86)\\nodejs\\pnpm.CMD',
+                    ]
+                    
+                    for path in possible_pnpm_paths:
+                        if os.path.exists(path):
+                            pnpm_cmd = path
+                            break
+                
+                # If pnpm not found, try npx as fallback
+                if not pnpm_cmd and shutil.which('npx.CMD'):
+                    cmd = ['npx.CMD', 'tsx', str(self.parser_script)]
+                elif not pnpm_cmd and shutil.which('npx'):
+                    cmd = ['npx', 'tsx', str(self.parser_script)]
+                elif pnpm_cmd:
+                    cmd = [pnpm_cmd, 'tsx', str(self.parser_script)]
+                else:
+                    # Last resort: try node directly with tsx
+                    node_cmd = shutil.which('node') or 'node'
+                    tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx'
+                    if not tsx_path.exists():
+                        tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx.CMD'
+                    if tsx_path.exists():
+                        cmd = [node_cmd, str(tsx_path), str(self.parser_script)]
+                    else:
+                        raise ServiceError('Could not find pnpm, npx, or tsx to run TypeScript parser')
                 
                 if extract_patterns:
                     cmd.append(f'--patterns={",".join(extract_patterns)}')
@@ -86,11 +124,23 @@ class TypeScriptParser(ASTParserPort):
                 cmd.append(f'--mode={parse_mode}')
                 cmd.append(tmp_file_path)
                 
+                # Add GitHub Actions paths to subprocess environment
+                env = os.environ.copy()
+                if 'GITHUB_ACTIONS' in env:
+                    # In GitHub Actions, ensure we have access to installed tools
+                    github_path = env.get('GITHUB_PATH', '')
+                    if github_path and os.path.exists(github_path):
+                        with open(github_path, 'r') as f:
+                            additional_paths = f.read().strip().split('\n')
+                            current_path = env.get('PATH', '')
+                            env['PATH'] = os.pathsep.join(additional_paths + [current_path])
+                
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
                     cwd=str(self.project_root),
+                    env=env,
                     timeout=30
                 )
             else:
@@ -276,8 +326,45 @@ class TypeScriptParser(ASTParserPort):
             # On Windows, use pnpm.CMD to avoid bash PATH issues
             import platform
             if platform.system() == 'Windows':
-                # Use pnpm.CMD which is the Windows command wrapper
-                cmd = ['pnpm.CMD', 'tsx', str(self.parser_script), '--batch']
+                # Try to find pnpm in PATH or common locations
+                pnpm_cmd = None
+                
+                # First try pnpm.CMD in PATH
+                if shutil.which('pnpm.CMD'):
+                    pnpm_cmd = 'pnpm.CMD'
+                elif shutil.which('pnpm'):
+                    pnpm_cmd = 'pnpm'
+                else:
+                    # Try common pnpm installation locations
+                    possible_pnpm_paths = [
+                        os.path.expanduser('~\\AppData\\Local\\pnpm\\pnpm.CMD'),
+                        os.path.expanduser('~\\AppData\\Roaming\\npm\\pnpm.CMD'),
+                        'C:\\Program Files\\nodejs\\pnpm.CMD',
+                        'C:\\Program Files (x86)\\nodejs\\pnpm.CMD',
+                    ]
+                    
+                    for path in possible_pnpm_paths:
+                        if os.path.exists(path):
+                            pnpm_cmd = path
+                            break
+                
+                # If pnpm not found, try npx as fallback
+                if not pnpm_cmd and shutil.which('npx.CMD'):
+                    cmd = ['npx.CMD', 'tsx', str(self.parser_script), '--batch']
+                elif not pnpm_cmd and shutil.which('npx'):
+                    cmd = ['npx', 'tsx', str(self.parser_script), '--batch']
+                elif pnpm_cmd:
+                    cmd = [pnpm_cmd, 'tsx', str(self.parser_script), '--batch']
+                else:
+                    # Last resort: try node directly with tsx
+                    node_cmd = shutil.which('node') or 'node'
+                    tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx'
+                    if not tsx_path.exists():
+                        tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx.CMD'
+                    if tsx_path.exists():
+                        cmd = [node_cmd, str(tsx_path), str(self.parser_script), '--batch']
+                    else:
+                        raise ServiceError('Could not find pnpm, npx, or tsx to run TypeScript parser')
                 
                 if extract_patterns:
                     cmd.append(f'--patterns={",".join(extract_patterns)}')
@@ -287,12 +374,24 @@ class TypeScriptParser(ASTParserPort):
                 
                 cmd.append(f'--mode={parse_mode}')
                 
+                # Add GitHub Actions paths to subprocess environment
+                env = os.environ.copy()
+                if 'GITHUB_ACTIONS' in env:
+                    # In GitHub Actions, ensure we have access to installed tools
+                    github_path = env.get('GITHUB_PATH', '')
+                    if github_path and os.path.exists(github_path):
+                        with open(github_path, 'r') as f:
+                            additional_paths = f.read().strip().split('\n')
+                            current_path = env.get('PATH', '')
+                            env['PATH'] = os.pathsep.join(additional_paths + [current_path])
+                
                 result = subprocess.run(
                     cmd,
                     input=batch_input,
                     capture_output=True,
                     text=True,
                     cwd=str(self.project_root),
+                    env=env,
                     timeout=60  # Increased timeout for batch processing
                 )
             else:
