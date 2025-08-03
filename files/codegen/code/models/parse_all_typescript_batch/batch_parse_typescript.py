@@ -3,6 +3,7 @@ import json
 import subprocess
 import tempfile
 import os
+import shutil
 from pathlib import Path
 from typing import Dict, Any
 
@@ -50,13 +51,63 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         # On Windows, use pnpm.CMD to avoid bash PATH issues
         import platform
         if platform.system() == 'Windows':
-            # Use pnpm.CMD which is the Windows command wrapper
-            cmd = ['pnpm.CMD', 'tsx', str(parser_script), f'--batch-input={tmp_file_path}', '--patterns=interface,type,enum,const', '--include-jsdoc', '--mode=module']
+            # Try to find pnpm in PATH or common locations
+            pnpm_cmd = None
+            
+            # First try pnpm.CMD in PATH
+            if shutil.which('pnpm.CMD'):
+                pnpm_cmd = 'pnpm.CMD'
+            elif shutil.which('pnpm'):
+                pnpm_cmd = 'pnpm'
+            else:
+                # Try common pnpm installation locations
+                possible_pnpm_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\pnpm\\pnpm.CMD'),
+                    os.path.expanduser('~\\AppData\\Roaming\\npm\\pnpm.CMD'),
+                    'C:\\Program Files\\nodejs\\pnpm.CMD',
+                    'C:\\Program Files (x86)\\nodejs\\pnpm.CMD',
+                ]
+                
+                for path in possible_pnpm_paths:
+                    if os.path.exists(path):
+                        pnpm_cmd = path
+                        break
+            
+            # If pnpm not found, try npx as fallback
+            if not pnpm_cmd and shutil.which('npx.CMD'):
+                cmd = ['npx.CMD', 'tsx', str(parser_script), f'--batch-input={tmp_file_path}', '--patterns=interface,type,enum,const', '--include-jsdoc', '--mode=module']
+            elif not pnpm_cmd and shutil.which('npx'):
+                cmd = ['npx', 'tsx', str(parser_script), f'--batch-input={tmp_file_path}', '--patterns=interface,type,enum,const', '--include-jsdoc', '--mode=module']
+            elif pnpm_cmd:
+                cmd = [pnpm_cmd, 'tsx', str(parser_script), f'--batch-input={tmp_file_path}', '--patterns=interface,type,enum,const', '--include-jsdoc', '--mode=module']
+            else:
+                # Last resort: try node directly with tsx
+                node_cmd = shutil.which('node') or 'node'
+                tsx_path = project_root / 'node_modules' / '.bin' / 'tsx'
+                if not tsx_path.exists():
+                    tsx_path = project_root / 'node_modules' / '.bin' / 'tsx.CMD'
+                if tsx_path.exists():
+                    cmd = [node_cmd, str(tsx_path), str(parser_script), f'--batch-input={tmp_file_path}', '--patterns=interface,type,enum,const', '--include-jsdoc', '--mode=module']
+                else:
+                    raise RuntimeError('Could not find pnpm, npx, or tsx to run TypeScript parser')
+            
+            # Add GitHub Actions paths to subprocess environment
+            env = os.environ.copy()
+            if 'GITHUB_ACTIONS' in env:
+                # In GitHub Actions, ensure we have access to installed tools
+                github_path = env.get('GITHUB_PATH', '')
+                if github_path and os.path.exists(github_path):
+                    with open(github_path, 'r') as f:
+                        additional_paths = f.read().strip().split('\n')
+                        current_path = env.get('PATH', '')
+                        env['PATH'] = os.pathsep.join(additional_paths + [current_path])
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 cwd=str(project_root),
+                env=env,
                 timeout=60
             )
         else:

@@ -4,6 +4,8 @@ import json
 import subprocess
 import tempfile
 import os
+import shutil
+import platform
 from pathlib import Path
 from typing import Dict, Any
 
@@ -45,22 +47,80 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     project_root = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
     parser_script = project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
     
-    cmd = [
-        'pnpm', 'tsx', str(parser_script),
-        f'--batch-input={tmp_file_path}',
-        '--patterns=const',  # Node specs use export const
-        '--include-jsdoc',
-        '--mode=module'
-    ]
-    
     print(f"Executing batch TypeScript parsing for {len(sources)} node spec files...")
     
     try:
+        # Platform-specific command resolution
+        if platform.system() == 'Windows':
+            # Try to find pnpm in PATH or common locations
+            pnpm_cmd = None
+            
+            # First try pnpm.CMD in PATH
+            if shutil.which('pnpm.CMD'):
+                pnpm_cmd = 'pnpm.CMD'
+            elif shutil.which('pnpm'):
+                pnpm_cmd = 'pnpm'
+            else:
+                # Try common pnpm installation locations
+                possible_pnpm_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\pnpm\\pnpm.CMD'),
+                    os.path.expanduser('~\\AppData\\Roaming\\npm\\pnpm.CMD'),
+                    'C:\\Program Files\\nodejs\\pnpm.CMD',
+                    'C:\\Program Files (x86)\\nodejs\\pnpm.CMD',
+                ]
+                
+                for path in possible_pnpm_paths:
+                    if os.path.exists(path):
+                        pnpm_cmd = path
+                        break
+            
+            # Build command based on available tools
+            if not pnpm_cmd and shutil.which('npx.CMD'):
+                cmd = ['npx.CMD', 'tsx', str(parser_script)]
+            elif not pnpm_cmd and shutil.which('npx'):
+                cmd = ['npx', 'tsx', str(parser_script)]
+            elif pnpm_cmd:
+                cmd = [pnpm_cmd, 'tsx', str(parser_script)]
+            else:
+                # Last resort: try node directly with tsx
+                node_cmd = shutil.which('node') or 'node'
+                tsx_path = project_root / 'node_modules' / '.bin' / 'tsx'
+                if not tsx_path.exists():
+                    tsx_path = project_root / 'node_modules' / '.bin' / 'tsx.CMD'
+                if tsx_path.exists():
+                    cmd = [node_cmd, str(tsx_path), str(parser_script)]
+                else:
+                    raise RuntimeError('Could not find pnpm, npx, or tsx to run TypeScript parser')
+            
+            # Add GitHub Actions paths to subprocess environment
+            env = os.environ.copy()
+            if 'GITHUB_ACTIONS' in env:
+                # In GitHub Actions, ensure we have access to installed tools
+                github_path = env.get('GITHUB_PATH', '')
+                if github_path and os.path.exists(github_path):
+                    with open(github_path, 'r') as f:
+                        additional_paths = f.read().strip().split('\n')
+                        current_path = env.get('PATH', '')
+                        env['PATH'] = os.pathsep.join(additional_paths + [current_path])
+        else:
+            # On Unix-like systems, use normal command
+            cmd = ['pnpm', 'tsx', str(parser_script)]
+            env = None
+        
+        # Add common arguments
+        cmd.extend([
+            f'--batch-input={tmp_file_path}',
+            '--patterns=const',  # Node specs use export const
+            '--include-jsdoc',
+            '--mode=module'
+        ])
+        
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             cwd=str(project_root),
+            env=env if platform.system() == 'Windows' else None,
             timeout=60
         )
         
