@@ -77,14 +77,6 @@ from .domain_models import (
     LLMRequestOptions,
 )
 
-# Re-export functions from handle_utils (now in domain layer)
-from dipeo.domain.diagram.handle import (
-    create_handle_id,
-    parse_handle_id,
-    parse_handle_id_safe,
-    extract_node_id_from_handle,
-    is_valid_handle_id,
-)
 
 
 # Re-export functions from conversions
@@ -142,13 +134,6 @@ __all__ = [
     # Configuration models
     "MemorySettings",
     "PersonLLMConfig",
-
-    # Functions from handle_utils
-    "create_handle_id",
-    "parse_handle_id",
-    "parse_handle_id_safe",
-    "extract_node_id_from_handle",
-    "is_valid_handle_id",
 
     # Other models
     "BaseNodeData",

@@ -110,6 +110,7 @@ export interface ExecutionSlice {
   stopExecution: () => void;
   pauseExecution: () => void;
   resumeExecution: () => void;
+  clearExecutionState: () => void;
   
   // Node state management
   updateNodeExecution: (nodeId: NodeID, state: NodeState) => void;
@@ -156,6 +157,11 @@ export const createExecutionSlice: StateCreator<
   
   // Execution control
   startExecution: (executionId) => set(state => {
+    // Clear previous execution state before starting new one
+    state.execution.nodeStates.clear();
+    state.execution.runningNodes.clear();
+    state.execution.context = {};
+    
     state.execution = {
       id: executionId,
       isRunning: true,
@@ -172,7 +178,8 @@ export const createExecutionSlice: StateCreator<
     state.execution.isRunning = false;
     state.execution.isPaused = false;
     state.execution.runningNodes.clear();
-    state.execution.nodeStates.clear(); // Clear all node highlights
+    // Do NOT clear nodeStates - preserve them for visualization
+    // state.execution.nodeStates.clear(); // Clear all node highlights
     // NOTE: UI state changes should be handled by UI slice listening to execution state changes
   }),
   
@@ -206,7 +213,7 @@ export const createExecutionSlice: StateCreator<
   
   // Node state management
   updateNodeExecution: (nodeId, nodeState) => set(state => {
-    console.log('[ExecutionSlice] Updating node execution:', nodeId, nodeState);
+    // console.log('[ExecutionSlice] Updating node execution:', nodeId, nodeState);
     updateNodeState(state, nodeId, nodeState);
   }),
   
@@ -254,5 +261,16 @@ export const createExecutionSlice: StateCreator<
   
   clearExecutionContext: () => set(state => {
     state.execution.context = {};
+  }),
+  
+  clearExecutionState: () => set(state => {
+    state.execution = {
+      id: null,
+      isRunning: false,
+      isPaused: false,
+      runningNodes: new Set(),
+      nodeStates: new Map(),
+      context: {}
+    };
   })
 });

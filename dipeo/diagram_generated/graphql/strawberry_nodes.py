@@ -10,7 +10,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-02T14:00:04.848375
+Generated at: 2025-08-03T23:08:22.388309
 """
 
 import strawberry
@@ -19,7 +19,7 @@ from strawberry.types import *
 
 # Import Pydantic models
 
-from dipeo.diagram_generated.models import *
+from ..models import *
 
 
 # Import scalars
@@ -61,6 +61,12 @@ class EndpointDataType:
 @strawberry.experimental.pydantic.type(HookNodeData, all_fields=True)
 class HookDataType:
     """Executes hooks at specific points in the diagram execution - Data fields only"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(IntegratedApiNodeData, all_fields=True)
+class IntegratedApiDataType:
+    """Connect to external APIs like Notion, Slack, GitHub, and more - Data fields only"""
     pass
 
 
@@ -137,6 +143,8 @@ NodeDataUnion = strawberry.union(
 
         HookDataType,
 
+        IntegratedApiDataType,
+
         JsonSchemaValidatorDataType,
 
         NotionDataType,
@@ -175,6 +183,8 @@ __all__ = [
     'EndpointDataType',
 
     'HookDataType',
+
+    'IntegratedApiDataType',
 
     'JsonSchemaValidatorDataType',
 

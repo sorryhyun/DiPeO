@@ -110,10 +110,17 @@ class MonitoringStreamObserver(ExecutionObserver):
             self._event_queues[execution_id].add(queue)
         
         try:
+            # Send initial connection event to confirm SSE is ready
+            yield {"data": json.dumps({
+                "type": "CONNECTION_ESTABLISHED",
+                "execution_id": execution_id,
+                "timestamp": datetime.utcnow().isoformat(),
+            })}
+            
             while True:
                 # Wait for event with timeout to allow periodic heartbeats
                 try:
-                    event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    event = await asyncio.wait_for(queue.get(), timeout=10.0)
                     if event is None:  # Sentinel value to close stream
                         break
                     
@@ -121,7 +128,12 @@ class MonitoringStreamObserver(ExecutionObserver):
                     yield {"data": json.dumps(event)}
                     
                 except asyncio.TimeoutError:
-                    # Continue waiting for next event
+                    # Send heartbeat to keep connection alive
+                    yield {"data": json.dumps({
+                        "type": "HEARTBEAT",
+                        "execution_id": execution_id,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })}
                     continue
                     
         finally:
@@ -291,9 +303,11 @@ class MonitoringStreamObserver(ExecutionObserver):
                 logging.getLogger('dipeo.infra').removeHandler(handler)
                 del self._log_handlers[execution_id]
         
-        # Add a small delay to ensure all events are sent before closing
-        await asyncio.sleep(0.5)
-        # Close the stream after completion
+        # Small delay to ensure events are flushed to the client
+        # This is minimal but necessary for reliable event delivery
+        await asyncio.sleep(0.2)
+        
+        # Close the stream after completion to allow CLI shutdown
         await self.close_execution(execution_id)
     
     async def on_execution_error(self, execution_id: str, error: str):
@@ -319,5 +333,8 @@ class MonitoringStreamObserver(ExecutionObserver):
                 logging.getLogger('dipeo.infra').removeHandler(handler)
                 del self._log_handlers[execution_id]
         
-        # Close the stream after error
+        # Small delay to ensure events are flushed to the client
+        await asyncio.sleep(0.2)
+        
+        # Close the stream after error to allow CLI shutdown
         await self.close_execution(execution_id)

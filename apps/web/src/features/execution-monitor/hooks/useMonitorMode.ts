@@ -74,7 +74,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       if (activeSession.session_id !== lastSessionIdRef.current) {
         lastSessionIdRef.current = activeSession.session_id;
         
-        console.log('[Monitor] Detected active CLI session:', activeSession.execution_id);
+        console.log('[Monitor] CLI execution:', activeSession.execution_id);
         toast.info(`Connected to CLI execution: ${activeSession.diagram_name}`);
         
         // Load diagram if data is provided

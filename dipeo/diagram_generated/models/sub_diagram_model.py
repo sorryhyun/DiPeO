@@ -12,8 +12,8 @@ from typing import *
 from pydantic import *
 
 
-from dipeo.diagram_generated.enums import *
-from dipeo.diagram_generated.integrations import *
+from ..enums import *
+from ..integrations import *
 
 
 class SubDiagramNodeData(BaseModel):
@@ -26,6 +26,10 @@ class SubDiagramNodeData(BaseModel):
     wait_for_completion: Optional[bool] = Field(description="Whether to wait for sub-diagram completion")
     isolate_conversation: Optional[bool] = Field(description="Create isolated conversation context for sub-diagram")
     ignoreIfSub: Optional[bool] = Field(description="Skip execution if this diagram is being run as a sub-diagram")
+    diagram_format: Optional[DiagramFormat] = Field(description="Format of the diagram file (yaml, json, or light)")
+    batch: Optional[bool] = Field(description="Execute sub-diagram in batch mode for multiple inputs")
+    batch_input_key: Optional[str] = Field(description="Key in inputs containing the array of items for batch processing")
+    batch_parallel: Optional[bool] = Field(description="Execute batch items in parallel")
 
     class Config:
         extra = "forbid"

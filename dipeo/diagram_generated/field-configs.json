@@ -580,6 +580,51 @@
           "defaultValue": false
         }
       ]
+    },
+    {
+      "nodeType": "integrated_api",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "select",
+          "label": "Provider",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "text",
+          "label": "Operation",
+          "required": true
+        },
+        {
+          "name": "config",
+          "type": "code",
+          "label": "Config",
+          "required": false
+        },
+        {
+          "name": "resource_id",
+          "type": "text",
+          "label": "Resource Id",
+          "required": false
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "Timeout",
+          "required": false,
+          "placeholder": "Timeout in seconds",
+          "min": 0,
+          "max": 600,
+          "defaultValue": 30
+        },
+        {
+          "name": "max_retries",
+          "type": "number",
+          "label": "Max Retries",
+          "required": false
+        }
+      ]
     }
   ],
   "enum_values": {}

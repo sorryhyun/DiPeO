@@ -43,6 +43,10 @@ jobs:
         with:
           python-version: '3.13'
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            apps/server/setup.py
+            apps/cli/setup.py
       
       - name: Install Windows dependencies
         run: |
@@ -54,25 +58,34 @@ jobs:
           # Use the GitHub Actions Python directly (no venv)
           python -m pip install --upgrade pip setuptools wheel
           
-          # Pin PyInstaller to a stable version compatible with Python 3.13
+          # Install dependencies in parallel and with no-deps where possible
+          Write-Host "Installing Python dependencies..."
+          
+          # Install PyInstaller separately first (it has many dependencies)
+          pip install --no-deps pyinstaller==6.14.2
           pip install pyinstaller==6.14.2
           
-          # Install other dependencies
-          pip install -r requirements.txt
+          # Install core dependencies from requirements.txt
+          pip install -r requirements.txt --no-compile
           
-          # Install the CLI and server packages
+          # Install the CLI and server packages (editable installs are slower)
+          pip install -e ./apps/server -e ./apps/cli --no-deps
           pip install -e ./apps/server -e ./apps/cli
           
-          # Add Windows-specific workarounds
-          pip install --upgrade cffi pycparser
+          # Add Windows-specific workarounds (only if needed)
+          pip install --upgrade cffi pycparser --no-compile
           
-          # Show installed versions for debugging
-          Write-Host "Installed packages:"
-          pip list
+          # Quick version checks (skip full pip list)
           Write-Host "Python version: $(python --version)"
           Write-Host "PyInstaller version: $(pyinstaller --version)"
-          Write-Host "Checking dipeo command:"
-          Get-Command dipeo -ErrorAction SilentlyContinue
+          
+          # Check if dipeo command is available
+          $dipeoCmd = Get-Command dipeo -ErrorAction SilentlyContinue
+          if ($dipeoCmd) {
+            Write-Host "dipeo command found at: $($dipeoCmd.Source)"
+          } else {
+            Write-Host "WARNING: dipeo command not found in PATH"
+          }
           
           Write-Host "Python environment setup complete"
       
@@ -83,6 +96,30 @@ jobs:
       - name: Build TypeScript models
         run: pnpm --filter @dipeo/domain-models build
       
+      - name: Verify TypeScript tools
+        run: |
+          Write-Host "Checking for tsx availability..."
+          Get-Command tsx -ErrorAction SilentlyContinue
+          if ($?) {
+            Write-Host "tsx found in PATH"
+          } else {
+            Write-Host "tsx not found in PATH, checking node_modules..."
+            if (Test-Path "node_modules/.bin/tsx.CMD") {
+              Write-Host "tsx.CMD found in node_modules/.bin/"
+            } elseif (Test-Path "node_modules/.bin/tsx") {
+              Write-Host "tsx found in node_modules/.bin/"
+            } else {
+              Write-Host "ERROR: tsx not found anywhere!"
+            }
+          }
+          
+          Write-Host "Checking TypeScript parser script..."
+          if (Test-Path "dipeo/infra/parsers/typescript/ts_ast_extractor.ts") {
+            Write-Host "TypeScript parser script found"
+          } else {
+            Write-Host "ERROR: TypeScript parser script not found!"
+          }
+      
       - name: Generate code
         run: |
           Write-Host "Running unified diagram-based code generation..."
@@ -90,15 +127,15 @@ jobs:
           # Generate models
           dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=30
           
+          # Generate backend
+          dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=30
+          
           # Apply staged changes (copy files)
           if (Test-Path "dipeo/diagram_generated_staged") {
             Write-Host "Copying staged files to active directory..."
             Copy-Item -Path "dipeo/diagram_generated_staged/*" -Destination "dipeo/diagram_generated/" -Recurse -Force
             Write-Host "Staged changes applied successfully!"
           }
-          
-          # Generate backend
-          dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=30
           
           # Generate frontend
           dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=30

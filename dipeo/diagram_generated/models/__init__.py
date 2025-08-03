@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 """
 Generated Pydantic models for DiPeO nodes.
 """
@@ -9,6 +17,7 @@ from .condition_model import ConditionNodeData
 from .db_model import DbNodeData
 from .endpoint_model import EndpointNodeData
 from .hook_model import HookNodeData
+from .integrated_api_model import IntegratedApiNodeData
 from .json_schema_validator_model import JsonSchemaValidatorNodeData
 from .notion_model import NotionNodeData
 from .person_batch_job_model import PersonBatchJobNodeData
@@ -19,6 +28,7 @@ from .template_job_model import TemplateJobNodeData
 from .typescript_ast_model import TypescriptAstNodeData
 from .user_response_model import UserResponseNodeData
 
+
 # Export all models
 __all__ = [
     "ApiJobNodeData",
@@ -27,6 +37,7 @@ __all__ = [
     "DbNodeData",
     "EndpointNodeData",
     "HookNodeData",
+    "IntegratedApiNodeData",
     "JsonSchemaValidatorNodeData",
     "NotionNodeData",
     "PersonBatchJobNodeData",

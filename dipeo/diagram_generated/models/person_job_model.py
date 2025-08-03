@@ -12,10 +12,10 @@ from typing import *
 from pydantic import *
 
 
-from dipeo.diagram_generated.domain_models import *
+from ..domain_models import *
 
-from dipeo.diagram_generated.enums import *
-from dipeo.diagram_generated.integrations import *
+from ..enums import *
+from ..integrations import *
 
 
 class PersonJobNodeData(BaseModel):

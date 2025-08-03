@@ -12,8 +12,8 @@ from typing import *
 from pydantic import *
 
 
-from dipeo.diagram_generated.enums import *
-from dipeo.diagram_generated.integrations import *
+from ..enums import *
+from ..integrations import *
 
 
 class ConditionNodeData(BaseModel):

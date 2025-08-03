@@ -36,11 +36,11 @@ install:
 # Diagram-based code generation (NEW DEFAULT)
 codegen:
 	@echo "Running unified diagram-based code generation..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=15
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=25
+	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=15
 	@sleep 1
 	make apply-syntax-only
-	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=10
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=10
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=15
 	make graphql-schema
 	@echo "All code generation completed using DiPeO diagrams!"
 

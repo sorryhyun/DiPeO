@@ -13,11 +13,13 @@ from dipeo.diagram_generated import (
     NodeID,
     NodeType,
     ContentType,
-    DataType,
-    create_handle_id,
-    parse_handle_id,
+    DataType
 )
-from dipeo.models import MemoryView
+from dipeo.models import (
+    MemoryView,
+    create_handle_id,
+    parse_handle_id
+)
 from dipeo.diagram_generated.conversions import node_kind_to_domain_type
 
 from dipeo.domain.diagram.utils import (

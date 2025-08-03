@@ -9,10 +9,12 @@ from dipeo.diagram_generated import (
     HandleDirection,
     HandleLabel,
     NodeID,
-    create_handle_id,
-    parse_handle_id,
 )
-
+from dipeo.models import (
+    MemoryView,
+    create_handle_id,
+    parse_handle_id
+)
 from dipeo.domain.diagram.utils import (
     _node_id_map, 
     _YamlMixin, 
