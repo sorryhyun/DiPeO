@@ -94,11 +94,21 @@ class ExecuteDiagramUseCase(BaseService):
             else:
                 streaming_observer = MonitoringStreamObserver()
             from dipeo.application.execution.observers import StateStoreObserver
+            from dipeo.application.execution.observers.event_publishing_observer import EventPublishingObserver
             
             engine_observers = []
             
             if self.state_store:
                 engine_observers.append(StateStoreObserver(self.state_store))
+            
+            # Add event publishing observer for web executions to enable GraphQL subscriptions
+            if not use_monitoring_stream and hasattr(self.service_registry, 'resolve'):
+                from dipeo.application.registry.keys import MESSAGE_ROUTER
+                message_router = self.service_registry.resolve(MESSAGE_ROUTER)
+                if message_router:
+                    # Pass the typed diagram so observer can access node types
+                    event_observer = EventPublishingObserver(message_router, typed_diagram)
+                    engine_observers.append(event_observer)
                 
             engine_observers.append(streaming_observer)
         from dipeo.application.execution.typed_engine import TypedExecutionEngine

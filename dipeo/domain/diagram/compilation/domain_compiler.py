@@ -175,10 +175,18 @@ class DomainDiagramCompiler(DiagramCompiler):
         
         # Validate node types
         for node in context.nodes_list:
-            if not hasattr(NodeType, node.type.name):
+            try:
+                # Check if node.type is a valid NodeType enum
+                if not isinstance(node.type, NodeType):
+                    context.result.add_error(
+                        CompilationPhase.VALIDATION,
+                        f"Invalid node type: {node.type} (not a NodeType enum)",
+                        node_id=node.id
+                    )
+            except Exception as e:
                 context.result.add_error(
                     CompilationPhase.VALIDATION,
-                    f"Unknown node type: {node.type}",
+                    f"Error validating node type: {node.type} - {str(e)}",
                     node_id=node.id
                 )
     
@@ -418,10 +426,10 @@ class DomainDiagramCompiler(DiagramCompiler):
         # Extract persons from PersonJobNodes
         persons = []
         for node in executable_diagram.nodes:
-            if isinstance(node, PersonJobNode) and node.person_id:
+            if isinstance(node, PersonJobNode) and node.person:
                 persons.append({
-                    "id": node.person_id,
-                    "name": node.person_id.capitalize()
+                    "id": node.person,
+                    "name": node.person.capitalize()
                 })
         
         return DomainDiagram(

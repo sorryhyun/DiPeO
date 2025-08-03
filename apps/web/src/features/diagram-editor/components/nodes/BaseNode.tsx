@@ -27,23 +27,44 @@ function useNodeStatus(nodeIdStr: string) {
   const operations = useCanvasOperations();
   const hookNodeState = operations.executionOps.getNodeExecutionState(nodeId(nodeIdStr));
   
-  // Debug logging
-  if (nodeExecutionState || hookNodeState) {
-    console.log('[BaseNode] Node status for', nodeIdStr, {
-      nodeExecutionState,
-      hookNodeState
-    });
-  }
-  
-  return useMemo(() => ({
-    isRunning: nodeExecutionState?.status === NodeExecutionStatus.RUNNING || hookNodeState?.status === 'running',
-    isSkipped: nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || hookNodeState?.status === 'skipped',
-    isCompleted: nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED || hookNodeState?.status === 'completed',
-    hasError: nodeExecutionState?.status === NodeExecutionStatus.FAILED || hookNodeState?.status === 'error',
-    isMaxIterReached: nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED,
-    progress: hookNodeState?.progress,
-    error: nodeExecutionState?.error || hookNodeState?.error,
-  }), [nodeExecutionState, hookNodeState]);
+  return useMemo(() => {
+    // Check both enum values and string values for compatibility
+    const isRunning = 
+      nodeExecutionState?.status === NodeExecutionStatus.RUNNING || 
+      nodeExecutionState?.status === 'RUNNING' as any ||
+      hookNodeState?.status === 'running';
+    
+    const isSkipped = 
+      nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || 
+      nodeExecutionState?.status === 'SKIPPED' as any ||
+      hookNodeState?.status === 'skipped';
+    
+    const isCompleted = 
+      nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || 
+      nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED ||
+      nodeExecutionState?.status === 'COMPLETED' as any ||
+      nodeExecutionState?.status === 'MAXITER_REACHED' as any ||
+      hookNodeState?.status === 'completed';
+    
+    const hasError = 
+      nodeExecutionState?.status === NodeExecutionStatus.FAILED || 
+      nodeExecutionState?.status === 'FAILED' as any ||
+      hookNodeState?.status === 'error';
+    
+    const isMaxIterReached = 
+      nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED ||
+      nodeExecutionState?.status === 'MAXITER_REACHED' as any;
+    
+    return {
+      isRunning,
+      isSkipped,
+      isCompleted,
+      hasError,
+      isMaxIterReached,
+      progress: hookNodeState?.progress,
+      error: nodeExecutionState?.error || hookNodeState?.error,
+    };
+  }, [nodeExecutionState, hookNodeState]);
 }
 
 function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal: boolean; vertical: boolean }) {

@@ -10,7 +10,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-02T14:00:04.859588
+Generated at: 2025-08-03T21:10:44.348373
 """
 
 import strawberry
@@ -133,6 +133,24 @@ class CreateHookInput:
 @strawberry.input  
 class UpdateHookInput:
     """Input for updating a Hook node"""
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
+
+
+@strawberry.input
+class CreateIntegratedApiInput:
+    """Input for creating a Integrated API node"""
+    diagram_id: str
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
+
+@strawberry.input  
+class UpdateIntegratedApiInput:
+    """Input for updating a Integrated API node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
     data: Optional[strawberry.scalars.JSON] = None
@@ -692,6 +710,74 @@ class NodeMutations:
         id: str, input: UpdateHookInput
     ) -> HookDataType:
         """Update a Hook node"""
+        registry: ServiceRegistry = info.context["registry"]
+        
+        
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+        
+        # Update the node
+        domain_node = await integrated_service.update_node(
+            diagram_id=None,  # TODO: Need diagram_id from somewhere
+            node_id=id,
+            data=input.data
+        )
+        
+        
+        # Convert to GraphQL type
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
+
+
+    @strawberry.mutation
+    async def create_integrated_api_node(
+        self,
+        info: Info,
+        input: CreateIntegratedApiInput
+    ) -> IntegratedApiDataType:
+        """Create a Integrated Api node"""
+        registry: ServiceRegistry = info.context["registry"]
+        
+        
+        # Prepare node data
+        node_data = {
+            "type": "integrated_api",
+            "position": input.position,
+            "data": input.data
+        }
+        
+        # Get diagram service
+        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+        
+        # Create the node
+        domain_node = await integrated_service.create_node(
+            diagram_id=input.diagram_id,
+            node_data=node_data
+        )
+        
+        
+        # Convert to GraphQL type
+        # For now, return the DomainNodeType directly
+        return DomainNodeType(
+            id=domain_node.id,
+            type=domain_node.type,
+            position=domain_node.position,
+            data=domain_node.data
+        )
+
+
+    @strawberry.mutation
+    async def update_integrated_api_node(
+        self,
+        info: Info,
+        id: str, input: UpdateIntegratedApiInput
+    ) -> IntegratedApiDataType:
+        """Update a Integrated Api node"""
         registry: ServiceRegistry = info.context["registry"]
         
         
@@ -1351,6 +1437,9 @@ __all__ = [
 
     'CreateHookInput',
     'UpdateHookInput',
+
+    'CreateIntegratedApiInput',
+    'UpdateIntegratedApiInput',
 
     'CreateJsonSchemaValidatorInput',
     'UpdateJsonSchemaValidatorInput',

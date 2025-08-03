@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useExecutionGraphQL } from './useExecutionGraphQL';
 import { useMonitoringStreamSSE } from './useMonitoringStreamSSE';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
@@ -17,12 +17,30 @@ export function useExecutionStreaming({ executionId, skip = false }: UseExecutio
   const [executionUpdates, setExecutionUpdates] = useState<any>(null);
   const [nodeUpdates, setNodeUpdates] = useState<any>(null);
   const [interactivePrompts, setInteractivePrompts] = useState<any>(null);
+  const [updateCounter, setUpdateCounter] = useState(0);
 
   // Check if this execution was launched from CLI (indicated by monitor mode)
+  const isMonitorMode = useUnifiedStore(state => state.isMonitorMode);
+  
   useEffect(() => {
     // Use SSE streaming when in monitor mode (CLI executions)
-    const store = useUnifiedStore.getState();
-    setUseMonitoringStream(store.isMonitorMode);
+    setUseMonitoringStream(isMonitorMode);
+  }, [isMonitorMode]);
+
+  // Create stable callbacks for SSE handlers
+  const handleExecutionUpdate = useCallback((update: any) => {
+    setExecutionUpdates(update);
+    setUpdateCounter(c => c + 1); // Force re-render
+  }, []);
+
+  const handleNodeUpdate = useCallback((update: any) => {
+    setNodeUpdates(update);
+    setUpdateCounter(c => c + 1); // Force re-render
+  }, []);
+
+  const handleInteractivePrompt = useCallback((prompt: any) => {
+    setInteractivePrompts(prompt);
+    setUpdateCounter(c => c + 1); // Force re-render
   }, []);
 
   // GraphQL subscriptions (for web-launched executions)
@@ -35,9 +53,9 @@ export function useExecutionStreaming({ executionId, skip = false }: UseExecutio
   const { isConnected: sseConnected, error: sseError } = useMonitoringStreamSSE({
     executionId,
     skip: skip || !useMonitoringStream, // Skip if not using SSE
-    onExecutionUpdate: (update) => setExecutionUpdates(update),
-    onNodeUpdate: (update) => setNodeUpdates(update),
-    onInteractivePrompt: (prompt) => setInteractivePrompts(prompt),
+    onExecutionUpdate: handleExecutionUpdate,
+    onNodeUpdate: handleNodeUpdate,
+    onInteractivePrompt: handleInteractivePrompt,
   });
 
   // Use appropriate data source

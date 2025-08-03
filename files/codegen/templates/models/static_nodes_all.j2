@@ -126,7 +126,11 @@ def create_executable_node(
     """Factory function to create typed executable nodes from diagram data."""
     data = data or {}
     
+{%- if static_nodes_data is defined %}
+{%- set classes = static_nodes_data.node_classes if static_nodes_data.node_classes is defined else [] %}
+{%- else %}
 {%- set classes = node_classes if node_classes is defined else [] %}
+{%- endif %}
 {% for node_class in classes %}
     if node_type == NodeType.{{ node_class.node_type | upper }}:
         return {{ node_class.class_name }}(

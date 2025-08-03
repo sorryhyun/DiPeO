@@ -3,6 +3,7 @@
 from .state_store_observer import StateStoreObserver
 from .monitoring_stream_observer import MonitoringStreamObserver
 from .scoped_observer import ScopedObserver, ObserverMetadata, create_scoped_observers
+from .event_publishing_observer import EventPublishingObserver
 
 __all__ = [
     "StateStoreObserver", 
@@ -10,4 +11,5 @@ __all__ = [
     "ScopedObserver",
     "ObserverMetadata",
     "create_scoped_observers",
+    "EventPublishingObserver",
 ]
