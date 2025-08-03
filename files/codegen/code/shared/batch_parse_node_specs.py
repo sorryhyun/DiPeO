@@ -128,6 +128,14 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         os.unlink(tmp_file_path)
         
         if result.returncode != 0:
+            print(f"Parser failed with return code: {result.returncode}")
+            print(f"Command was: {' '.join(cmd)}")
+            print(f"Working directory: {project_root}")
+            print(f"stderr: {result.stderr}")
+            print(f"stdout: {result.stdout[:500]}...")
+            # Check if this is a "command not found" error
+            if "is not recognized" in result.stderr or "command not found" in result.stderr.lower():
+                print(f"ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
             raise RuntimeError(f"Parser failed: {result.stderr}")
         
         # Parse the batch result

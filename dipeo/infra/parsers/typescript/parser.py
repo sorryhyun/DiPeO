@@ -422,7 +422,13 @@ class TypeScriptParser(ASTParserPort):
             
             if result.returncode != 0:
                 print(f"[TypeScript Parser] Batch parser failed with return code {result.returncode}")
+                print(f"[TypeScript Parser] Command was: {' '.join(cmd)}")
+                print(f"[TypeScript Parser] Working directory: {self.project_root}")
                 print(f"[TypeScript Parser] stderr: {result.stderr}")
+                print(f"[TypeScript Parser] stdout: {result.stdout[:500]}...")
+                # Check if this is a "command not found" error
+                if "is not recognized" in result.stderr or "command not found" in result.stderr.lower():
+                    print(f"[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
                 raise ServiceError(f'Batch parser failed: {result.stderr}')
             
             # Parse the JSON output

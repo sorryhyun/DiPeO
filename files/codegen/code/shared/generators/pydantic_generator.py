@@ -95,7 +95,15 @@ from __future__ import annotations
     
     # Process files in parallel
     start_time = time.time()
-    max_workers = min(8, len(schema_files))  # Limit concurrent processes
+    max_workers = max(1, min(8, len(schema_files)))  # Ensure at least 1 worker
+    
+    if not schema_files:
+        print(f"Warning: No schema files found in {schemas_dir}")
+        return {
+            'models_generated': {},
+            'errors': [f"No schema files found in {schemas_dir}"],
+            'elapsed_time': 0.0
+        }
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks

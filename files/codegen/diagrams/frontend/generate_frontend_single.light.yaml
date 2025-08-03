@@ -16,6 +16,7 @@ nodes:
       language: python
       code: |
         # Handle both direct and nested input
+        default = inputs.get('default', {})
         if "node_spec_path" in default:
             node_type = default["node_spec_path"]
         elif "default" in default and isinstance(default["default"], dict):
@@ -44,9 +45,19 @@ nodes:
       language: python
       code: |
         # Combine AST data and node type into proper format
+        # Handle case where ast_data might be missing or invalid
+        ast_data = inputs.get('ast_data')
+        node_type = inputs.get('node_type')
+        
+        if not ast_data:
+            raise ValueError(f"No AST data found for node type: {node_type}")
+        
+        if isinstance(ast_data, str):
+            raise ValueError(f"AST data is a string instead of dict: {ast_data[:100]}...")
+        
         result = {
-            'ast_data': inputs['ast_data'],
-            'node_type': inputs['node_type']  # Now it's already a string
+            'ast_data': ast_data,
+            'node_type': node_type
         }
   
   # Extract all frontend data in one step
