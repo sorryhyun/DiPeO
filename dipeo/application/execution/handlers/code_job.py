@@ -23,7 +23,6 @@ from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)

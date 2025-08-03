@@ -107,12 +107,10 @@ class TypedExecutionEngine(StateTransitionMixin):
                     continue
                 
                 step_count += 1
-                logger.debug(f"Step {step_count}: Found {len(ready_nodes)} ready nodes: {[str(n.id) for n in ready_nodes]}")
-                
+
                 # Execute ready nodes
                 results = {}
                 for node in ready_nodes:
-                    logger.debug(f"Executing node: {node.id}")
                     result = await self._execute_node(
                         node=node,
                         diagram=diagram,

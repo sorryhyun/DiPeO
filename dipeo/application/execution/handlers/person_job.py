@@ -21,7 +21,6 @@ from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData, M
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)

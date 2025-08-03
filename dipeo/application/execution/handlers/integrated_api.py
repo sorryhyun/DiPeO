@@ -14,7 +14,6 @@ from dipeo.diagram_generated.models.integrated_api_model import IntegratedApiNod
 from dipeo.diagram_generated.enums import APIServiceType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.execution.execution_context import ExecutionContext
 
 

@@ -12,7 +12,6 @@ from dipeo.domain.validators import NotionValidator
 from dipeo.diagram_generated.models.notion_model import NotionNodeData
 from dipeo.models import NotionOperation
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.execution.execution_context import ExecutionContext
 
 

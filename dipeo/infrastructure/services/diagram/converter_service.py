@@ -9,6 +9,7 @@ from dipeo.domain.diagram.strategies import (
     LightYamlStrategy,
     NativeJsonStrategy,
     ReadableYamlStrategy,
+    ExecutableJsonStrategy,
 )
 from dipeo.models import DomainDiagram
 
@@ -35,6 +36,7 @@ class DiagramConverterService(BaseService, DiagramConverter):
         self.register_strategy(NativeJsonStrategy())
         self.register_strategy(LightYamlStrategy())
         self.register_strategy(ReadableYamlStrategy())
+        self.register_strategy(ExecutableJsonStrategy())
     
     def register_strategy(self, strategy: FormatStrategy) -> None:
         self.strategies[strategy.format_id] = strategy

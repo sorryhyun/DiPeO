@@ -19,7 +19,6 @@ from dipeo.diagram_generated.models.condition_model import ConditionNodeData
 from dipeo.diagram_generated.enums import NodeExecutionStatus
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)

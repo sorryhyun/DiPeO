@@ -9,6 +9,7 @@ from dipeo.application.registry.keys import (
     AST_PARSER,
     BLOB_STORE,
     CLI_SESSION_SERVICE,
+    COMPILATION_SERVICE,
     CONDITION_EVALUATION_SERVICE,
     CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
@@ -46,11 +47,20 @@ class ApplicationContainer:
 
     def _setup_application_services(self):
         """Register application-level services with dependencies."""
-        from dipeo.infrastructure.services.diagram import DiagramConverterService
+        from dipeo.infrastructure.services.diagram import DiagramConverterService, CompilationService
+        
+        # Register diagram converter service
         self.registry.register(
             DIAGRAM_CONVERTER,
             DiagramConverterService()
         )
+        
+        # Register compilation service
+        self.registry.register(
+            COMPILATION_SERVICE,
+            CompilationService()
+        )
+        
         self._setup_app_services()
 
     def _setup_app_services(self):

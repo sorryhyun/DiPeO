@@ -215,8 +215,11 @@ class ExecuteDiagramUseCase(BaseService):
         # TODO: Add updated validation logic if needed
         # Validation has been temporarily removed while updating the flow validation system
         
-        from ...compilation import StandardCompiler
-        compiler = StandardCompiler()
+        # Get compilation service from registry
+        from dipeo.application.registry import COMPILATION_SERVICE
+        compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+        if not compiler:
+            raise RuntimeError("CompilationService not found in registry")
         
         api_keys = None
         if hasattr(self.service_registry, 'resolve'):

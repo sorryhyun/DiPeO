@@ -25,7 +25,7 @@ from dipeo.diagram_generated.domain_models import (
     PersonID,
 )
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
-from dipeo.diagram_generated.handle_utils import extract_node_id_from_handle
+from dipeo.domain.diagram.handle import extract_node_id_from_handle
 
 if TYPE_CHECKING:
     from dipeo.domain.conversation.conversation_manager import ConversationManager

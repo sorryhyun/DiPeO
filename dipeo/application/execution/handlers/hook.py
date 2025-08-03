@@ -17,7 +17,6 @@ from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.execution.execution_context import ExecutionContext
 
 

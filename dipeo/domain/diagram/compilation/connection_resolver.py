@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from dipeo.diagram_generated import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
-from dipeo.diagram_generated.handle_utils import parse_handle_id_safe
+from dipeo.domain.diagram.handle import parse_handle_id_safe
 
 
 @dataclass

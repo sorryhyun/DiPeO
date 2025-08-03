@@ -16,7 +16,6 @@ from dipeo.infrastructure.services.template.template_integration import get_enha
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from dipeo.core.execution.execution_context import ExecutionContext
 
 

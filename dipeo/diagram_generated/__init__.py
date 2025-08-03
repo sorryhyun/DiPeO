@@ -77,8 +77,8 @@ from .domain_models import (
     LLMRequestOptions,
 )
 
-# Re-export functions from handle_utils
-from .handle_utils import (
+# Re-export functions from handle_utils (now in domain layer)
+from dipeo.domain.diagram.handle import (
     create_handle_id,
     parse_handle_id,
     parse_handle_id_safe,

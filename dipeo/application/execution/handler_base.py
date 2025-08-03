@@ -8,7 +8,6 @@ from dipeo.application.registry import EXECUTION_RUNTIME
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
 
 
 T = TypeVar('T', bound=ExecutableNode)

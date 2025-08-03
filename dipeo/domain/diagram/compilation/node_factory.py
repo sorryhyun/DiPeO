@@ -73,9 +73,11 @@ class NodeFactory:
     
     def _validate_start_node(self, node: StartNode) -> None:
         """Validate StartNode specific constraints."""
-        if node.trigger_mode and not node.hook_event:
+        from dipeo.diagram_generated import HookTriggerMode
+        
+        if node.trigger_mode == HookTriggerMode.HOOK and not node.hook_event:
             self.validation_errors.append(
-                f"Start node {node.id} with trigger_mode must have hook_event"
+                f"Start node {node.id} with trigger_mode 'hook' must have hook_event"
             )
     
     def get_validation_errors(self) -> list[str]:

@@ -3,6 +3,13 @@
 from .connection_resolver import ConnectionResolver, ResolvedConnection
 from .edge_builder import EdgeBuilder, TransformationMetadata
 from .node_factory import NodeFactory
+from .domain_compiler import (
+    DomainDiagramCompiler,
+    CompilationResult,
+    CompilationError,
+    CompilationPhase,
+    CompilationContext,
+)
 
 __all__ = [
     "NodeFactory",
@@ -10,4 +17,9 @@ __all__ = [
     "ConnectionResolver",
     "ResolvedConnection",
     "TransformationMetadata",
+    "DomainDiagramCompiler",
+    "CompilationResult",
+    "CompilationError",
+    "CompilationPhase",
+    "CompilationContext",
 ]

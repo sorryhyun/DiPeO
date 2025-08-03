@@ -118,11 +118,13 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                 domain_diagram.metadata = DiagramMetadata(**metadata_dict)
 
         # Step 5: Compile diagram to ExecutableDiagram with static types
-        logger.info("Compiling diagram with StandardCompiler")
+        logger.info("Compiling diagram with CompilationService")
         import time
         start_time = time.time()
-        from dipeo.application.compilation import StandardCompiler
-        compiler = StandardCompiler()
+        from dipeo.application.registry import COMPILATION_SERVICE
+        compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+        if not compiler:
+            raise RuntimeError("CompilationService not found in registry")
         executable_diagram = compiler.compile(domain_diagram)
         # Add API keys to metadata
         executable_diagram.metadata["api_keys"] = api_keys

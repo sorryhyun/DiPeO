@@ -7,8 +7,8 @@ Provides a single source of truth for handle ID parsing and creation.
 
 from typing import NamedTuple
 
-from .domain_models import HandleID, NodeID
-from .enums import HandleDirection, HandleLabel
+from dipeo.diagram_generated.domain_models import HandleID, NodeID
+from dipeo.diagram_generated.enums import HandleDirection, HandleLabel
 
 
 class ParsedHandle(NamedTuple):
