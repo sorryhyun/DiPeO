@@ -90,15 +90,15 @@ jobs:
           # Generate models
           dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=30
           
+          # Generate backend
+          dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=30
+          
           # Apply staged changes (copy files)
           if (Test-Path "dipeo/diagram_generated_staged") {
             Write-Host "Copying staged files to active directory..."
             Copy-Item -Path "dipeo/diagram_generated_staged/*" -Destination "dipeo/diagram_generated/" -Recurse -Force
             Write-Host "Staged changes applied successfully!"
           }
-          
-          # Generate backend
-          dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=30
           
           # Generate frontend
           dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=30
