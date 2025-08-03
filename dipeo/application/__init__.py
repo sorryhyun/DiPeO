@@ -23,7 +23,6 @@ from dipeo.application.execution.handlers import (
 from .execution import (
     ExecutionContext,
     ExecutionOptions,
-    ExecutionRuntime,
     HandlerRegistry,
     TypedExecutionEngine,
     TypedNodeHandler,
@@ -37,8 +36,6 @@ from .execution.use_cases import ExecuteDiagramUseCase
 # Service Registry
 
 __all__ = [
-    # Context
-    "ExecutionRuntime",
     # Engine
     "TypedExecutionEngine",
     # Execution

@@ -19,10 +19,11 @@ from .enums import (
     ExecutionStatus,
     EventType,
     APIServiceType,
-    NotionOperation,
     ToolType,
 )
-
+from .integrations import (
+    NotionOperation
+)
 # Re-export all domain models
 from .domain_models import (
     # Core types
@@ -76,8 +77,8 @@ from .domain_models import (
     LLMRequestOptions,
 )
 
-# Re-export functions from handle_utils
-from .handle_utils import (
+# Re-export functions from handle_utils (now in domain layer)
+from dipeo.domain.diagram.handle import (
     create_handle_id,
     parse_handle_id,
     parse_handle_id_safe,

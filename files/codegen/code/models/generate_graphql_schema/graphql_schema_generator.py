@@ -395,8 +395,19 @@ def prepare_graphql_data_for_template(inputs: dict) -> dict:
     This function extracts GraphQL types and prepares them in the format
     expected by the GraphQL schema Jinja2 template.
     """
-    # First extract all GraphQL types using the existing function
-    graphql_types = extract_graphql_types_from_multi_read(inputs)
+    # When DB node returns multi-file read with DataOutput, it comes wrapped in 'default'
+    if 'default' in inputs and isinstance(inputs['default'], dict):
+        # This is the actual file dictionary from multi-file DB read
+        all_files = inputs['default']
+    elif 'all_ast_files' in inputs:
+        # Legacy labeled connection support
+        all_files = inputs['all_ast_files']
+    else:
+        # Try to use inputs directly
+        all_files = inputs
+    
+    # Extract GraphQL types from the files
+    graphql_types = extract_graphql_types_from_multi_read({'all_ast_files': all_files})
     
     # Add current timestamp for the template
     graphql_types['now'] = datetime.now().isoformat()

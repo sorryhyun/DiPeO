@@ -17,6 +17,9 @@
     "NotionNodeData": {
       "additionalProperties": false,
       "properties": {
+        "api_key": {
+          "type": "string"
+        },
         "database_id": {
           "type": "string"
         },
@@ -34,6 +37,8 @@
         }
       },
       "required": [
+        "api_key",
+        "database_id",
         "label",
         "operation"
       ],

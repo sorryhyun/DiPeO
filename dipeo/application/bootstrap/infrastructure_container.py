@@ -12,9 +12,9 @@ from dipeo.application.registry.keys import (
     DIAGRAM_STORAGE_SERVICE,
     DIAGRAM_VALIDATOR,
     EXECUTION_SERVICE,
+    INTEGRATED_API_SERVICE,
     LLM_SERVICE,
     MESSAGE_ROUTER,
-    NOTION_SERVICE,
     PERSON_MANAGER,
     PROMPT_BUILDER,
     STATE_STORE,
@@ -139,10 +139,20 @@ class InfrastructureContainer:
             None  # Override when API calls are needed
         )
 
-        # Notion service - None for now
+        # Integrated API service
+        from dipeo.infrastructure.services.integrated_api import IntegratedApiService
+        from dipeo.infra.adapters.http.api_service import APIService
+        from dipeo.domain.api.services import APIBusinessLogic
+        
+        # Create API service for providers that need it
+        api_business_logic = APIBusinessLogic()
+        api_service = APIService(api_business_logic)
+        
+        # Create and register integrated API service
+        integrated_api_service = IntegratedApiService(api_service=api_service)
         self.registry.register(
-            NOTION_SERVICE,
-            None  # Override when Notion integration is needed
+            INTEGRATED_API_SERVICE,
+            integrated_api_service
         )
 
         # AST parser - None for now

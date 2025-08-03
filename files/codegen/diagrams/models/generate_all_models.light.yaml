@@ -39,10 +39,19 @@ nodes:
       diagram_format: light
       passInputData: false
 
+  # Generate integrations
+  - label: Generate Integrations
+    type: sub_diagram
+    position: {x: 400, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/generate_integrations
+      diagram_format: light
+      passInputData: false
+
   # Generate conversions
   - label: Generate Conversions
     type: sub_diagram
-    position: {x: 400, y: 250}
+    position: {x: 400, y: 300}
     props:
       diagram_name: codegen/diagrams/models/generate_conversions
       diagram_format: light
@@ -87,16 +96,25 @@ nodes:
   # Generate Validation Models (JSON Schema + Pydantic)
   - label: Generate Validation Models
     type: sub_diagram
-    position: {x: 400, y: 200}
+    position: {x: 400, y: 250}
     props:
       diagram_name: codegen/diagrams/models/generate_validation_models
       diagram_format: light
       passInputData: false
 
+  # Generate TypeScript Indexes (node-data and node-specs)
+  - label: Generate TypeScript Indexes
+    type: code_job
+    position: {x: 400, y: 375}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generate_typescript_indexes.py
+      functionName: main
+
   # Build TypeScript models
   - label: Build TypeScript Models
     type: code_job
-    position: {x: 600, y: 350}
+    position: {x: 600, y: 400}
     props:
       language: bash
       code: |
@@ -106,7 +124,7 @@ nodes:
   # Generate summary report
   - label: Generate Summary
     type: code_job
-    position: {x: 800, y: 350}
+    position: {x: 800, y: 400}
     props:
       language: python
       code: |
@@ -116,13 +134,14 @@ nodes:
         # Collect results from all sub-diagrams
         python_models = inputs.get('python_models', {})
         enums = inputs.get('enums', {})
+        integrations = inputs.get('integrations', {})
         conversions = inputs.get('conversions', {})
         field_configs = inputs.get('field_configs', {})
         graphql_schema = inputs.get('graphql_schema', {})
         static_nodes = inputs.get('static_nodes', {})
         build_result = inputs.get('build_result', {})
         
-        print(f"Model generation complete - 10 artifact types generated - done!")
+        print(f"Model generation complete - 11 artifact types generated - done!")
         
         result = {
             'status': 'success',
@@ -130,6 +149,7 @@ nodes:
             'artifacts': {
                 'python_models': 'dipeo/diagram_generated_staged/domain_models.py',
                 'enums': 'dipeo/diagram_generated_staged/enums.py',
+                'integrations': 'dipeo/diagram_generated_staged/integrations.py',
                 'conversions': 'dipeo/diagram_generated_staged/conversions.py',
                 'field_configs': 'apps/web/src/__generated__/fields.ts',
                 'zod_schemas': 'apps/web/src/__generated__/schemas.ts',
@@ -140,7 +160,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1000, y: 350}
+    position: {x: 1000, y: 400}
     props:
       save_to_file: false
 
@@ -155,6 +175,8 @@ connections:
   - from: Parse All TypeScript
     to: Generate Enums
   - from: Parse All TypeScript
+    to: Generate Integrations
+  - from: Parse All TypeScript
     to: Generate Conversions
   - from: Parse All TypeScript
     to: Generate GraphQL Schema
@@ -166,6 +188,8 @@ connections:
     to: Generate Strawberry Mutations
   - from: Parse All TypeScript
     to: Generate Validation Models
+  - from: Parse All TypeScript
+    to: Generate TypeScript Indexes
   
   # Python generation tasks connect directly to Generate Summary
   - from: Generate Python Models
@@ -174,6 +198,9 @@ connections:
   - from: Generate Enums
     to: Generate Summary
     label: enums
+  - from: Generate Integrations
+    to: Generate Summary
+    label: integrations
   - from: Generate Conversions
     to: Generate Summary
     label: conversions
@@ -192,10 +219,17 @@ connections:
   - from: Generate Validation Models
     to: Generate Summary
     label: validation_models
-  
-  # Generate final summary
-  - from: Build TypeScript Models
+  - from: Generate TypeScript Indexes
     to: Generate Summary
+    label: typescript_indexes
+  
+  # Build TypeScript after summary
+  - from: Generate Summary
+    to: Build TypeScript Models
+  
+  # Connect build result to End
+  - from: Build TypeScript Models
+    to: End
     label: build_result
   - from: Generate Summary
     to: End

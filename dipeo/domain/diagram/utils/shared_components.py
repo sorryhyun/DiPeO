@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType
-from dipeo.diagram_generated.handle_utils import create_handle_id
+from dipeo.domain.diagram.handle import create_handle_id
 
 log = logging.getLogger(__name__)
 
@@ -100,11 +100,11 @@ class HandleGenerator:
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.CONDITION_TRUE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+                _make_handle(node_id, HandleLabel.CONDTRUE, HandleDirection.OUTPUT, DataType.BOOLEAN),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.CONDITION_FALSE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+                _make_handle(node_id, HandleLabel.CONDFALSE, HandleDirection.OUTPUT, DataType.BOOLEAN),
             )
             return
             

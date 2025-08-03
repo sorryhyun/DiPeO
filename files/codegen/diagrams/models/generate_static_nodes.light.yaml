@@ -158,17 +158,14 @@ connections:
   # Extract mappings
   - from: Load Mappings AST
     to: Extract Mappings
-    label: default
   
   # Prepare batch processing
   - from: Load Manifest
     to: Prepare Batch Processing
-    label: manifest
   
   # Batch parse node data
   - from: Prepare Batch Processing
     to: Batch Parse Node Data
-    label: default
   
   # Extract base interface
   - from: Load Diagram AST

@@ -1,6 +1,6 @@
 # DiPeO Makefile
 
-.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema diff-staged apply backup-generated
+.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
 
 # Default target
 help:
@@ -19,7 +19,10 @@ help:
 	@echo ""
 	@echo "Staging Commands:"
 	@echo "  make diff-staged  - Show differences between staged and active generated files"
-	@echo "  make apply        - Apply staged changes to active directory"
+	@echo "  make validate-staged - Validate staged files with mypy type checking"
+	@echo "  make validate-staged-syntax - Validate staged files (syntax only)"
+	@echo "  make apply        - Apply staged changes with full validation"
+	@echo "  make apply-syntax-only - Apply staged changes with syntax validation only"
 	@echo "  make backup-generated - Backup current generated files before applying"
 
 # Combined install
@@ -33,18 +36,11 @@ install:
 # Diagram-based code generation (NEW DEFAULT)
 codegen:
 	@echo "Running unified diagram-based code generation..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=25
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=15
 	@sleep 1
-	@echo "Applying staged changes to active directory..."
-	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
-		echo "Error: No staged directory found. Run 'make codegen' first."; \
-		exit 1; \
-	fi
-	@echo "Copying staged files to active directory..."
-	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
-	@echo "Staged changes applied successfully!"
-	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=15
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=15
+	make apply-syntax-only
+	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=10
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=10
 	make graphql-schema
 	@echo "All code generation completed using DiPeO diagrams!"
 
@@ -138,8 +134,48 @@ diff-staged:
 	@echo ""
 	@echo "For detailed diffs, run: diff -r dipeo/diagram_generated dipeo/diagram_generated_staged"
 
-apply:
+validate-staged:
+	@echo "Validating staged Python files..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "Error: No staged directory found. Run 'make codegen-models' first."; \
+		exit 1; \
+	fi
+	@echo "Running Python compilation check..."
+	@find dipeo/diagram_generated_staged -name "*.py" -type f | xargs python -m py_compile || \
+		(echo "Python compilation check failed!" && exit 1)
+	@echo "Running mypy type check on staged files only..."
+	@PYTHONPATH="$(shell pwd):$$PYTHONPATH" mypy dipeo/diagram_generated_staged \
+		--ignore-missing-imports \
+		--no-error-summary \
+		--exclude "__pycache__" \
+		--follow-imports=skip \
+		--no-implicit-reexport || \
+		(echo "Mypy type check failed!" && exit 1)
+	@echo "All validation checks passed!"
+
+validate-staged-syntax:
+	@echo "Validating staged Python files (syntax only)..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "Error: No staged directory found. Run 'make codegen-models' first."; \
+		exit 1; \
+	fi
+	@echo "Running Python compilation check..."
+	@find dipeo/diagram_generated_staged -name "*.py" -type f | xargs python -m py_compile || \
+		(echo "Python compilation check failed!" && exit 1)
+	@echo "Python syntax validation passed!"
+
+apply: validate-staged
 	@echo "Applying staged changes to active directory..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "Error: No staged directory found. Run 'make codegen' first."; \
+		exit 1; \
+	fi
+	@echo "Copying staged files to active directory..."
+	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+	@echo "Staged changes applied successfully!"
+
+apply-syntax-only: validate-staged-syntax
+	@echo "Applying staged changes to active directory (syntax validation only)..."
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
 		echo "Error: No staged directory found. Run 'make codegen' first."; \
 		exit 1; \

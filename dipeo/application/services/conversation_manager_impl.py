@@ -7,8 +7,8 @@ from typing import Any
 
 from dipeo.application.services.person_manager_impl import PersonManagerImpl
 from dipeo.core import BaseService
-from dipeo.core.dynamic.conversation import Conversation
-from dipeo.core.dynamic.conversation_manager import ConversationManager
+from dipeo.domain.conversation.conversation import Conversation
+from dipeo.domain.conversation.conversation_manager import ConversationManager
 from dipeo.core.utils import is_conversation
 from dipeo.models import (
     ApiKeyID,

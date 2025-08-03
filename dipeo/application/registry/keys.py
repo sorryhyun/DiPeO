@@ -11,13 +11,13 @@ if TYPE_CHECKING:
         LLMServicePort,
         StateStorePort,
         FileServicePort,
-        NotionServicePort,
         MessageRouterPort,
         DiagramConverter,
         ExecutionObserver,
         APIKeyPort,
         DiagramPort,
         ASTParserPort,
+        IntegratedApiServicePort,
     )
     from dipeo.application.services import (
         ConversationManagerImpl,
@@ -33,10 +33,9 @@ if TYPE_CHECKING:
     from dipeo.domain.ports.storage import DiagramStoragePort
     from dipeo.infrastructure.services.diagram import DiagramService, DiagramConverterService
     from dipeo.domain.db.services import DBOperationsDomainService
-    from dipeo.core.dynamic import ExecutionContext
-    from dipeo.core.static import ExecutableDiagram
+    from dipeo.core.execution import ExecutionContext
+    from dipeo.domain.diagram.models import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
     from typing import Any, Dict
 
 
@@ -57,7 +56,6 @@ FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
 CONVERSATION_SERVICE = ServiceKey["ConversationManagerImpl"]("conversation_service")  # Alias
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
-CONDITION_EVALUATION_SERVICE = ServiceKey["ConditionEvaluator"]("condition_evaluation_service")
 PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
 
 # Domain Services
@@ -68,8 +66,8 @@ DIAGRAM_SERVICE_NEW = ServiceKey["DiagramService"]("diagram_service")
 
 # External Integration Services
 API_SERVICE = ServiceKey["APIService"]("api_service")
-NOTION_SERVICE = ServiceKey["NotionServicePort"]("notion_service")
 API_KEY_SERVICE = ServiceKey["APIKeyPort"]("api_key_service")
+INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"]("integrated_api_service")
 
 # Parser Services
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
@@ -107,7 +105,6 @@ LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm")
 
 # Additional Services (newly added for migration)
 CLI_SESSION_SERVICE = ServiceKey["CliSessionService"]("cli_session_service")
-EXECUTION_RUNTIME = ServiceKey["ExecutionRuntime"]("execution_runtime")
 
 
 __all__ = [
@@ -128,7 +125,6 @@ __all__ = [
     "CONVERSATION_MANAGER",
     "CONVERSATION_SERVICE",
     "PROMPT_BUILDER",
-    "CONDITION_EVALUATION_SERVICE",
     "PERSON_MANAGER",
     
     # Domain
@@ -139,8 +135,8 @@ __all__ = [
     
     # External Integration
     "API_SERVICE",
-    "NOTION_SERVICE",
     "API_KEY_SERVICE",
+    "INTEGRATED_API_SERVICE",
     
     # Parser
     "AST_PARSER",
@@ -178,5 +174,4 @@ __all__ = [
     
     # Additional Services
     "CLI_SESSION_SERVICE",
-    "EXECUTION_RUNTIME",
 ]

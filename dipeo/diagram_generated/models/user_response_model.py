@@ -8,16 +8,18 @@
 
 # Auto-generated Pydantic model for user_response node
 
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from typing import *
+from pydantic import *
 
 
+from dipeo.diagram_generated.enums import *
+from dipeo.diagram_generated.integrations import *
 
 
 class UserResponseNodeData(BaseModel):
     """Data model for User Response node."""
     prompt: str = Field(description="Question to ask the user")
-    timeout: int = Field(description="Response timeout in seconds")
+    timeout: Optional[int] = Field(description="Response timeout in seconds")
 
     class Config:
         extra = "forbid"

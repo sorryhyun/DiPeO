@@ -6,6 +6,10 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -60,10 +64,6 @@
         "PATCH"
       ],
       "type": "string"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
     }
   }
 }

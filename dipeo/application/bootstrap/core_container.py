@@ -5,7 +5,6 @@ from dipeo.application.registry.keys import (
     EXECUTION_SERVICE,
     LLM_SERVICE,
     MESSAGE_ROUTER,
-    NOTION_SERVICE,
     PERSON_MANAGER,
     PROMPT_BUILDER,
     STATE_STORE,

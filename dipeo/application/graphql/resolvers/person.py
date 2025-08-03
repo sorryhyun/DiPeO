@@ -13,7 +13,7 @@ from dipeo.diagram_generated.domain_models import (
     DomainApiKey,
     PersonLLMConfig
 )
-from dipeo.core.dynamic import PersonManager
+from dipeo.domain.conversation import PersonManager
 from dipeo.core.ports import APIKeyPort
 from dipeo.infra.llm import LLMInfraService
 

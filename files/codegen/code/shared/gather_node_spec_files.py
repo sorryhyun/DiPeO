@@ -9,18 +9,24 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Gather all node spec files based on discovered specs.
     
     Args:
-        inputs: Contains 'discovered_specs' with node names from discovery
+        inputs: Contains either 'discovered_specs' with node names from discovery
+                or 'manifest' with nodes list
         
     Returns:
         Dict with 'sources' (list of file paths) and 'file_mapping' (dict mapping node type to file path)
     """
-    discovered = inputs.get('discovered_specs', {})
-    
-    # Get node names from discovery
-    node_types = discovered.get('node_names', [])
+    # Handle both old discovery format and new manifest format
+    if 'manifest' in inputs:
+        # New format - manifest directly contains nodes
+        manifest = inputs.get('manifest', {})
+        node_types = manifest.get('nodes', [])
+    else:
+        # Old format - discovered_specs
+        discovered = inputs.get('discovered_specs', {})
+        node_types = discovered.get('node_names', [])
     
     if not node_types:
-        raise ValueError("No node types found from discovery")
+        raise ValueError("No node types found from manifest or discovery")
     
     # Base directory for node specs
     base_dir = Path(os.environ.get('DIPEO_BASE_DIR', os.getcwd())) / "dipeo/models/src/node-specs"

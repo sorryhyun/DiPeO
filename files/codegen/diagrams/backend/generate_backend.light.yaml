@@ -28,6 +28,7 @@ nodes:
     props:
       file: files/codegen/manifests/all.json
       operation: read
+      
 
   - label: Prepare Node List
     type: code_job
@@ -45,8 +46,11 @@ nodes:
             raise ValueError("No node types found in manifest")
         
         # Create array of inputs for batch processing
+        # Add 'default' wrapper to prevent unwrapping by runtime resolver
         result = {
-            'items': [{'node_spec_path': node_type} for node_type in node_types]
+            'default': {
+                'items': [{'node_spec_path': node_type} for node_type in node_types]
+            }
         }
         
         print(f"Generating backend files for {len(node_types)} nodes from TypeScript specifications:")
@@ -63,71 +67,33 @@ nodes:
       batch_input_key: items  # Use 'items' key from input
       batch_parallel: true  # Process in parallel
 
-  - label: Process Backend Results
+
+  - label: Prepare Init Context
     type: code_job
     position: {x: 900, y: 200}
     props:
       language: python
       code: |
-        # Process batch results
-        batch_results = inputs.get('default', {})
+        # Prepare context for __init__.py generation
+        manifest_data = inputs.get('default', {})
+        node_types = manifest_data.get('nodes', [])
         
-        total = batch_results.get('total_items', 0)
-        successful = batch_results.get('successful', 0)
-        failed = batch_results.get('failed', 0)
+        print(f"Preparing to generate __init__.py for {len(node_types)} models")
         
-        print(f"\n=== Backend Files Generation Summary ===")
-        print(f"Total items: {total}")
-        print(f"Successful: {successful}")
-        print(f"Failed: {failed}")
-        
-        if batch_results.get('errors'):
-            print("\nErrors:")
-            for error in batch_results['errors']:
-                print(f"  - Item {error['index']}: {error['error']}")
-        
-        # Count generated artifacts
-        results = batch_results.get('results', [])
-        artifacts_count = {
-            'pydantic_models': 0,
-            'static_nodes': 0
-        }
-        
-        for r in results:
-            if isinstance(r, dict) and r.get('status') == 'success':
-                # Each successful backend generation produces pydantic models and static nodes
-                artifacts_count['pydantic_models'] += 1
-                artifacts_count['static_nodes'] += 1
-        
+        # Wrap in 'default' to prevent unwrapping by runtime resolver
         result = {
-            'backend_summary': f'Backend files generation completed: {successful}/{total} successful',
-            'artifacts_generated': artifacts_count,
-            'status': 'success' if failed == 0 else 'partial_failure'
+            'default': {
+                'node_types': node_types
+            }
         }
 
-
-  - label: Process Final Results
-    type: code_job
-    position: {x: 1200, y: 200}
+  - label: Generate Models Init
+    type: template_job
+    position: {x: 1100, y: 200}
     props:
-      language: python
-      code: |
-        # Process results from backend generation
-        backend_results = inputs.get('default', {})
-        
-        print(f"\n=== Complete Backend Generation Summary ===")
-        print(backend_results.get('backend_summary', ''))
-        
-        # Note: Strawberry types are maintained manually in dipeo/application/graphql/types/strawberry_types.py
-        # Note: Enums are generated as part of domain models via generate_all_models
-        
-        artifacts = backend_results.get('artifacts_generated', {})
-        
-        result = {
-            'message': 'Backend generation finished with TypeScript specifications',
-            'artifacts_generated': artifacts,
-            'backend_status': backend_results.get('status', 'unknown')
-        }
+      engine: jinja2
+      template_path: files/codegen/templates/backend/models_init.j2
+      output_path: dipeo/diagram_generated_staged/models/__init__.py
 
   - label: End
     type: endpoint
@@ -148,12 +114,16 @@ connections:
   - from: Prepare Node List
     to: Batch Generate Backend
   
+  # Also pass manifest to prepare init context
+  - from: Load Manifest
+    to: Prepare Init Context
+  
+  # Generate the models __init__.py
+  - from: Prepare Init Context
+    to: Generate Models Init
+  
+  # Both paths complete before ending
   - from: Batch Generate Backend
-    to: Process Backend Results
-  
-  # Pass backend results to final processing
-  - from: Process Backend Results
-    to: Process Final Results
-  
-  - from: Process Final Results
+    to: End
+  - from: Generate Models Init
     to: End

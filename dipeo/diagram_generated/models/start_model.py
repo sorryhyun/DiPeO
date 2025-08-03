@@ -8,11 +8,12 @@
 
 # Auto-generated Pydantic model for start node
 
-from typing import Optional, Dict, Any, List, Literal
-from pydantic import BaseModel, Field
+from typing import *
+from pydantic import *
 
 
-from dipeo.diagram_generated.enums import HookTriggerMode
+from dipeo.diagram_generated.enums import *
+from dipeo.diagram_generated.integrations import *
 
 
 class StartNodeData(BaseModel):

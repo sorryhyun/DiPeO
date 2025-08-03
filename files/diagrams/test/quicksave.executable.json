@@ -1,0 +1,139 @@
+{
+  "format": "executable",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "node_Y_MY",
+      "position": {
+        "x": 180,
+        "y": 290
+      },
+      "type": "start",
+      "label": "Start",
+      "flipped": false,
+      "trigger_mode": "manual",
+      "custom_data": {},
+      "output_data_structure": {},
+      "hook_event": null,
+      "hook_filters": null,
+      "data": {
+        "custom_data": {},
+        "output_data_structure": {},
+        "trigger_mode": "manual"
+      }
+    },
+    {
+      "id": "node_kga-",
+      "position": {
+        "x": 483,
+        "y": 304
+      },
+      "type": "person_job",
+      "label": "WebSearcher",
+      "flipped": false,
+      "person": "",
+      "first_only_prompt": "",
+      "default_prompt": "",
+      "max_iteration": 1,
+      "memory_profile": "FULL",
+      "memory_settings": {
+        "view": "all_involved",
+        "max_messages": null,
+        "preserve_system": true
+      },
+      "tools": null,
+      "data": {
+        "default_prompt": "",
+        "first_only_prompt": "",
+        "max_iteration": 1,
+        "memory_profile": "FULL",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "person": ""
+      }
+    },
+    {
+      "id": "node_bpwS",
+      "position": {
+        "x": 792,
+        "y": 281
+      },
+      "type": "endpoint",
+      "label": "result",
+      "flipped": false,
+      "save_to_file": true,
+      "file_name": "files/results/search_result.json",
+      "data": {
+        "file_name": "files/results/search_result.json",
+        "save_to_file": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "arrow_vF0K",
+      "source_node_id": "node_Y_MY",
+      "target_node_id": "node_kga-",
+      "source_output": "default",
+      "target_input": "default",
+      "content_type": "raw_text",
+      "transform_rules": {},
+      "is_conditional": false,
+      "requires_first_execution": false,
+      "metadata": {
+        "arrow_data": {},
+        "source_type": "start",
+        "target_type": "person_job",
+        "label": null
+      }
+    },
+    {
+      "id": "arrow_TGHq",
+      "source_node_id": "node_kga-",
+      "target_node_id": "node_bpwS",
+      "source_output": "default",
+      "target_input": "default",
+      "content_type": "raw_text",
+      "transform_rules": {},
+      "is_conditional": false,
+      "requires_first_execution": false,
+      "metadata": {
+        "arrow_data": {},
+        "source_type": "person_job",
+        "target_type": "endpoint",
+        "label": null
+      }
+    }
+  ],
+  "execution_order": [],
+  "metadata": {
+    "name": "websearch_example",
+    "validation_errors": [
+      "Start node node_Y_MY with trigger_mode must have hook_event",
+      "Person node node_kga- must have person_id"
+    ]
+  },
+  "execution_hints": {
+    "start_nodes": [
+      "node_Y_MY"
+    ],
+    "person_nodes": {},
+    "node_dependencies": {
+      "node_kga-": [
+        {
+          "source": "node_Y_MY",
+          "variable": "default"
+        }
+      ],
+      "node_bpwS": [
+        {
+          "source": "node_kga-",
+          "variable": "default"
+        }
+      ]
+    }
+  }
+}

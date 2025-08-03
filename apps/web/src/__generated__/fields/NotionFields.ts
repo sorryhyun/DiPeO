@@ -33,9 +33,13 @@ export const notionFields: UnifiedFieldDefinition[] = [
     required: true,
     description: 'Operation to perform on the database',
     options: [
-      { value: 'query', label: 'Query Database' },
-      { value: 'create', label: 'Create Page' },
-      { value: 'update', label: 'Update Page' },
+      { value: 'query_database', label: 'Query Database' },
+      { value: 'create_page', label: 'Create Page' },
+      { value: 'update_page', label: 'Update Page' },
+      { value: 'read_page', label: 'Read Page' },
+      { value: 'delete_page', label: 'Delete Page' },
+      { value: 'create_database', label: 'Create Database' },
+      { value: 'update_database', label: 'Update Database' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

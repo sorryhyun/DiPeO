@@ -10,52 +10,20 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-02T00:12:35.147460
+Generated at: 2025-08-02T14:00:04.848375
 """
 
 import strawberry
-from typing import Optional, List, Dict, Any
-from strawberry.types import Info
+from typing import *
+from strawberry.types import *
 
 # Import Pydantic models
 
-from dipeo.diagram_generated.models import (
-
-    ApiJobNodeData,
-
-    CodeJobNodeData,
-
-    ConditionNodeData,
-
-    DbNodeData,
-
-    EndpointNodeData,
-
-    HookNodeData,
-
-    JsonSchemaValidatorNodeData,
-
-    NotionNodeData,
-
-    PersonBatchJobNodeData,
-
-    PersonJobNodeData,
-
-    StartNodeData,
-
-    SubDiagramNodeData,
-
-    TemplateJobNodeData,
-
-    TypescriptAstNodeData,
-
-    UserResponseNodeData,
-
-)
+from dipeo.diagram_generated.models import *
 
 
 # Import scalars
-from dipeo.application.graphql.types.scalars import JSONScalar
+from dipeo.application.graphql.types.scalars import *
 
 
 # Generate Strawberry types for node data

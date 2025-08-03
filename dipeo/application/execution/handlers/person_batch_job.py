@@ -25,11 +25,11 @@ from dipeo.diagram_generated.domain_models import (
     PersonID,
 )
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
-from dipeo.diagram_generated.handle_utils import extract_node_id_from_handle
+from dipeo.domain.diagram.handle import extract_node_id_from_handle
 
 if TYPE_CHECKING:
-    from dipeo.core.dynamic.conversation_manager import ConversationManager
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.domain.conversation.conversation_manager import ConversationManager
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 # PersonBatchJobNodeData is a type alias for PersonJobNodeData in TypeScript
 PersonBatchJobNodeData = PersonJobNodeData
@@ -88,16 +88,10 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        # Get services from services (handle both dict and ServiceRegistry)
-        if isinstance(services, dict):
-            conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE.name)
-            llm_service = self.llm_service or services.get(LLM_SERVICE.name)
-            diagram: DomainDiagram | None = services.get(DIAGRAM.name)
-        else:
-            # It's a ServiceRegistry
-            conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE)
-            llm_service = self.llm_service or services.get(LLM_SERVICE)
-            diagram: DomainDiagram | None = services.get(DIAGRAM)
+        # Get services from ServiceRegistry
+        conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE)
+        llm_service = self.llm_service or services.get(LLM_SERVICE)
+        diagram: DomainDiagram | None = services.get(DIAGRAM)
         
         if not conversation_service or not llm_service:
             raise ValueError("Required services not available")
@@ -206,11 +200,8 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Create message builder
         # TODO: Add method to get execution_id from context protocol
         execution_id = getattr(context, '_execution_id', 'unknown')
-        if isinstance(services, dict):
-            prompt_builder = services.get(PROMPT_BUILDER.name)
-        else:
-            # It's a ServiceRegistry
-            prompt_builder = services.get(PROMPT_BUILDER)
+        # Get prompt builder from ServiceRegistry
+        prompt_builder = services.get(PROMPT_BUILDER)
         
         # Apply memory settings if configured
         if node.memory_settings:
@@ -230,11 +221,8 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Check for conversation state in inputs
         # Get current node ID from service
         current_node_id = None
-        if isinstance(services, dict):
-            node_info = services.get(CURRENT_NODE_INFO.name)
-        else:
-            # It's a ServiceRegistry
-            node_info = services.get(CURRENT_NODE_INFO)
+        # Get node info from ServiceRegistry
+        node_info = services.get(CURRENT_NODE_INFO)
         if node_info and 'node_id' in node_info:
             current_node_id = node_info['node_id']
         

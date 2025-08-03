@@ -4,12 +4,11 @@ from typing import Any
 from notion_client import Client
 
 from dipeo.core import BaseService, ExecutionError
-from dipeo.core.ports import NotionServicePort
 
 logger = logging.getLogger(__name__)
 
 
-class NotionAPIService(BaseService, NotionServicePort):
+class NotionAPIService(BaseService):
     def __init__(self):
         super().__init__()
         self._clients: dict[str, Client] = {}

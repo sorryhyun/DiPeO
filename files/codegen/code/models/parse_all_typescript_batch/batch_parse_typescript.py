@@ -19,9 +19,9 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         - parsed_results: Mapped parse results  
         - metadata: Batch processing metadata
     """
-    # When receiving from labeled connections, inputs['label'] contains the entire result from the sending node
+    # When receiving from labeled connections, inputs['label'] contains the labeled output
     sources_data = inputs.get('sources', {})
-    # Extract the actual sources from the input
+    # Handle case where we get the full node output vs just the sources
     if isinstance(sources_data, dict) and 'sources' in sources_data:
         sources = sources_data['sources']
         file_mapping = sources_data.get('file_mapping', {})

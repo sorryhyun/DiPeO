@@ -6,6 +6,7 @@
     "db",
     "endpoint",
     "hook",
+    "integrated_api",
     "json_schema_validator",
     "notion",
     "person_batch_job",

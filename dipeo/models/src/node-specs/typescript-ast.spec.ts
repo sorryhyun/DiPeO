@@ -159,5 +159,5 @@ export const typescriptAstSpec: NodeSpecification = {
     }
   ],
   
-  primaryDisplayField: "operation"
+  primaryDisplayField: "parseMode"
 };

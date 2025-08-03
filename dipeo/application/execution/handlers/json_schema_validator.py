@@ -14,8 +14,7 @@ from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutput
 from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchemaValidatorNodeData
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 
 @register_handler

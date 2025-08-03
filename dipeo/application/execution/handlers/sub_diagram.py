@@ -134,10 +134,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Execute the sub-diagram using the execute_diagram use case
             from dipeo.application.registry import ServiceRegistry, ServiceKey
             
-            # Get service registry from request or runtime
+            # Get service registry from request
             service_registry = request.parent_registry
-            if not service_registry and request.runtime:
-                service_registry = request.runtime._service_registry
             
             # For tests, create minimal registry if needed
             if not service_registry:
@@ -146,10 +144,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                     key = ServiceKey(service_name)
                     service_registry.register(key, service)
             
-            # Get container from request or runtime
+            # Get container from request
             container = request.parent_container
-            if not container and request.runtime:
-                container = request.runtime._container
             
             # Create the execution use case with the inherited services
             execute_use_case = ExecuteDiagramUseCase(
@@ -247,8 +243,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Use diagram service to load the diagram
             diagram = await diagram_service.load_from_file(file_path)
             
-            # Convert to dict for execution
-            return diagram.model_dump(by_alias=True)
+            # Return the DomainDiagram directly - execute_diagram can handle it
+            return diagram
             
         except Exception as e:
             log.error(f"Error loading diagram from '{file_path}': {str(e)}")
@@ -460,7 +456,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             metadata=original_request.metadata,
             execution_id=original_request.execution_id,
             iteration=original_request.iteration,
-            runtime=original_request.runtime,
             parent_container=original_request.parent_container,
             parent_registry=original_request.parent_registry
         )

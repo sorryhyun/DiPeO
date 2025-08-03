@@ -8,20 +8,21 @@
 
 // Auto-generated node configuration for api_job
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { apiJobFields } from '../fields/ApiJobFields';
 
 export const apiJobConfig: UnifiedNodeConfig = {
   label: 'API Job',
   icon: '🌐',
   color: '#00BCD4',
-  nodeType: 'api_job',
+  nodeType: NodeType.API_JOB,
   category: 'integration',
   handles: {
     input: [
-      { label: 'default', displayLabel: '', position: 'left' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: '', position: 'right' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

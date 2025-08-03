@@ -62,63 +62,9 @@ export const personJobFields: UnifiedFieldDefinition[] = [
       { value: 'GOLDFISH', label: 'Goldfish 🐠 - Last 1-2 exchanges only' },
       { value: 'CUSTOM', label: 'Custom ⚙️ - Use memory_settings below' },
     ],
-  },
-  {
-    name: 'memory_config',
-    type: 'code',
-    label: 'Memory Config',
-    required: false,
-    description: 'Deprecated memory configuration',
-  },
-  {
-    name: 'memory_settings',
-    type: 'group',
-    label: 'Memory Settings',
-    required: false,
-    description: 'Custom memory settings',
-    nestedFields: [
-      {
-        name: 'view',
-        type: 'select',
-        label: 'View',
-        required: false,
-        description: 'Memory view mode',
-        defaultValue: "all_involved",
-        uiConfig: {
-          inputType: 'select',
-          options: [
-            { value: 'all_involved', label: 'All Involved - Messages where person is sender or recipient' },
-            { value: 'sent_by_me', label: 'Sent By Me - Messages I sent' },
-            { value: 'sent_to_me', label: 'Sent To Me - Messages sent to me' },
-            { value: 'system_and_me', label: 'System and Me - System messages and my interactions' },
-            { value: 'conversation_pairs', label: 'Conversation Pairs - Request/response pairs' },
-            { value: 'all_messages', label: 'All Messages - All messages in conversation' },
-          ],
-        },
-      },
-      {
-        name: 'max_messages',
-        type: 'number',
-        label: 'Max Messages',
-        required: false,
-        description: 'Maximum number of messages to include',
-        uiConfig: {
-          inputType: 'number',
-          min: 1,
-        },
-      },
-      {
-        name: 'preserve_system',
-        type: 'checkbox',
-        label: 'Preserve System',
-        required: false,
-        description: 'Preserve system messages',
-        defaultValue: false,
-        uiConfig: {
-          inputType: 'checkbox',
-        },
-      },
-    ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
   },
   {
     name: 'tools',
@@ -127,10 +73,59 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     required: false,
     defaultValue: "none",
     description: 'Tools available to the AI agent',
+    column: 1,
     options: [
       { value: 'none', label: 'None - No tools' },
       { value: 'image', label: 'Image - Image generation capabilities' },
       { value: 'websearch', label: 'Web Search - Search the internet' },
+    ],
+  },
+  {
+    name: 'memory_settings',
+    type: 'group',
+    label: 'Memory Settings',
+    required: false,
+    description: 'Custom memory settings (when memory_profile is CUSTOM)',
+    nestedFields: [
+      {
+        name: 'view',
+        type: 'select',
+        label: 'View',
+        required: true,
+        description: 'Memory view type',
+        uiConfig: {
+          inputType: 'select',
+          options: [
+            { value: 'full_conversation', label: 'Full Conversation' },
+            { value: 'related_conversation_pairs', label: 'Related Conversation Pairs' },
+            { value: 'direct_messages', label: 'Direct Messages' },
+            { value: 'system_and_direct', label: 'System and Direct' },
+          ],
+        },
+      },
+      {
+        name: 'max_messages',
+        type: 'number',
+        label: 'Max Messages',
+        required: false,
+        description: 'Maximum number of messages to retain',
+        uiConfig: {
+          inputType: 'number',
+          min: 1,
+          max: 100,
+        },
+      },
+      {
+        name: 'preserve_system',
+        type: 'checkbox',
+        label: 'Preserve System',
+        required: false,
+        description: 'Always preserve system messages',
+        defaultValue: true,
+        uiConfig: {
+          inputType: 'checkbox',
+        },
+      },
     ],
   },
 ];

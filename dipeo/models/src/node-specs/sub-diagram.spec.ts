@@ -98,6 +98,53 @@ export const subDiagramSpec: NodeSpecification = {
       uiConfig: {
         inputType: "checkbox"
       }
+    },
+    {
+      name: "diagram_format",
+      type: "enum",
+      required: false,
+      description: "Format of the diagram file (yaml, json, or light)",
+      validation: {
+        allowedValues: ["yaml", "json", "light"]
+      },
+      uiConfig: {
+        inputType: "select",
+        options: [
+          { label: "YAML", value: "yaml" },
+          { label: "JSON", value: "json" },
+          { label: "Light", value: "light" }
+        ]
+      }
+    },
+    {
+      name: "batch",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "Execute sub-diagram in batch mode for multiple inputs",
+      uiConfig: {
+        inputType: "checkbox"
+      }
+    },
+    {
+      name: "batch_input_key",
+      type: "string",
+      required: false,
+      description: "Key in inputs containing the array of items for batch processing",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "items"
+      }
+    },
+    {
+      name: "batch_parallel",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "Execute batch items in parallel",
+      uiConfig: {
+        inputType: "checkbox"
+      }
     }
   ],
   
@@ -151,5 +198,5 @@ export const subDiagramSpec: NodeSpecification = {
     }
   ],
   
-  primaryDisplayField: "diagram_path"
+  primaryDisplayField: "diagram_name"
 };

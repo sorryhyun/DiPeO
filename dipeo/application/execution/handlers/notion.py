@@ -5,22 +5,21 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.registry import NOTION_SERVICE, API_KEY_SERVICE
+from dipeo.application.registry import INTEGRATED_API_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import NotionNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.domain.validators import NotionValidator
-from dipeo.diagram_generated.models.notion_model import NotionNodeData, NotionOperation
-
+from dipeo.diagram_generated.models.notion_model import NotionNodeData
+from dipeo.models import NotionOperation
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 
 @register_handler
 class NotionNodeHandler(TypedNodeHandler[NotionNode]):
     
-    def __init__(self, notion_service=None, api_key_service=None):
-        self.notion_service = notion_service
+    def __init__(self, integrated_api_service=None, api_key_service=None):
+        self.integrated_api_service = integrated_api_service
         self.api_key_service = api_key_service
         self.validator = NotionValidator()
 
@@ -40,7 +39,7 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["notion_service", "api_key_service"]
+        return ["integrated_api_service", "api_key_service"]
 
     @property
     def description(self) -> str:
@@ -62,17 +61,12 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        # Get services (handle both dict and ServiceRegistry)
-        if isinstance(services, dict):
-            notion_service = self.notion_service or services.get(NOTION_SERVICE.name)
-            api_key_service = self.api_key_service or services.get(API_KEY_SERVICE.name)
-        else:
-            # It's a ServiceRegistry
-            notion_service = self.notion_service or services.get(NOTION_SERVICE)
-            api_key_service = self.api_key_service or services.get(API_KEY_SERVICE)
+        # Get services from ServiceRegistry
+        integrated_api_service = self.integrated_api_service or services.get(INTEGRATED_API_SERVICE)
+        api_key_service = self.api_key_service or services.get(API_KEY_SERVICE)
         
-        if not notion_service:
-            raise ValueError("Notion service not available")
+        if not integrated_api_service:
+            raise ValueError("Integrated API service not available")
         if not api_key_service:
             raise ValueError("API key service not available")
         
@@ -104,42 +98,53 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
             raise ValueError(validation_result.errors[0].message)
         
         # Execute based on operation type
+        operation_map = {
+            NotionOperation.READ_PAGE: "read_page",
+            NotionOperation.CREATE_PAGE: "create_page",
+            NotionOperation.UPDATE_PAGE: "update_page",
+            NotionOperation.QUERY_DATABASE: "query_database"
+        }
+        
+        operation = operation_map.get(node.operation)
+        if not operation:
+            raise ValueError(f"Unsupported Notion operation: {node.operation}")
+        
+        # Prepare configuration based on operation
+        config = {}
+        resource_id = None
+        
         if node.operation == NotionOperation.READ_PAGE:
-            result = await notion_service.retrieve_page(node.page_id, api_key)
+            resource_id = node.page_id
             
         elif node.operation == NotionOperation.CREATE_PAGE:
-            # Extract page data from inputs
-            parent = inputs.get("parent", {})
-            properties = inputs.get("properties", {})
-            children = inputs.get("children")
-            result = await notion_service.create_page(
-                parent=parent,
-                properties=properties,
-                children=children,
-                api_key=api_key
-            )
+            config = {
+                "parent": inputs.get("parent", {}),
+                "properties": inputs.get("properties", {}),
+                "children": inputs.get("children")
+            }
             
         elif node.operation == NotionOperation.UPDATE_PAGE:
-            # For now, we can only append blocks to a page
+            resource_id = node.page_id
             blocks = inputs.get("blocks", [])
-            if blocks:
-                result = await notion_service.append_blocks(node.page_id, blocks, api_key)
-            else:
+            if not blocks:
                 raise ValueError("UPDATE_PAGE requires blocks to append")
+            config = {"blocks": blocks}
                 
         elif node.operation == NotionOperation.QUERY_DATABASE:
-            filter_query = inputs.get("filter")
-            sorts = inputs.get("sorts")
-            result = await notion_service.query_database(
-                database_id=node.database_id,
-                filter=filter_query,
-                sorts=sorts,
-                api_key=api_key
-            )
-            
-        else:
-            # This should have been caught by validation, but just in case
-            raise ValueError(f"Unsupported Notion operation: {node.operation}")
+            resource_id = node.database_id
+            config = {
+                "filter": inputs.get("filter"),
+                "sorts": inputs.get("sorts")
+            }
+        
+        # Execute through integrated API service
+        result = await integrated_api_service.execute_operation(
+            provider="notion",
+            operation=operation,
+            config=config,
+            resource_id=resource_id,
+            api_key=api_key
+        )
             
         return DataOutput(
             value={"default": result},

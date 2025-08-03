@@ -10,7 +10,6 @@ from dipeo.application.registry.keys import (
     BLOB_STORE,
     CLI_SESSION_SERVICE,
     COMPILATION_SERVICE,
-    CONDITION_EVALUATION_SERVICE,
     CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_CONVERTER,
@@ -21,7 +20,6 @@ from dipeo.application.registry.keys import (
     FILESYSTEM_ADAPTER,
     LLM_SERVICE,
     MESSAGE_ROUTER,
-    NOTION_SERVICE,
     PERSON_MANAGER,
     PROMPT_BUILDER,
     STATE_STORE,
@@ -47,17 +45,20 @@ class ApplicationContainer:
 
     def _setup_application_services(self):
         """Register application-level services with dependencies."""
-        from dipeo.application.resolution import StaticDiagramCompiler
-        self.registry.register(
-            COMPILATION_SERVICE,
-            StaticDiagramCompiler()
-        )
-
-        from dipeo.infrastructure.services.diagram import DiagramConverterService
+        from dipeo.infrastructure.services.diagram import DiagramConverterService, CompilationService
+        
+        # Register diagram converter service
         self.registry.register(
             DIAGRAM_CONVERTER,
             DiagramConverterService()
         )
+        
+        # Register compilation service
+        self.registry.register(
+            COMPILATION_SERVICE,
+            CompilationService()
+        )
+        
         self._setup_app_services()
 
     def _setup_app_services(self):
@@ -80,11 +81,6 @@ class ApplicationContainer:
             )
         )
 
-        from dipeo.application.utils.evaluator import ConditionEvaluator
-        self.registry.register(
-            CONDITION_EVALUATION_SERVICE,
-            ConditionEvaluator()
-        )
 
         from dipeo.application.services.person_manager_impl import PersonManagerImpl
         self.registry.register(
@@ -114,21 +110,9 @@ class ApplicationContainer:
         self.registry.register(
             EXECUTION_SERVICE,
             lambda: ExecuteDiagramUseCase(
-                file_service=self.registry.resolve(DIAGRAM_STORAGE),
+                service_registry=self.registry,
                 state_store=self.registry.resolve(STATE_STORE),
                 message_router=self.registry.resolve(MESSAGE_ROUTER),
-                compilation_service=self.registry.resolve(COMPILATION_SERVICE),
-                diagram_converter_service=self.registry.resolve(DIAGRAM_CONVERTER),
-                llm_service=self.registry.resolve(LLM_SERVICE),
-                prompt_builder=self.registry.resolve(PROMPT_BUILDER),
-                db_operations_service=self.registry.resolve(DB_OPERATIONS_SERVICE),
-                condition_evaluator=self.registry.resolve(CONDITION_EVALUATION_SERVICE),
-                api_service=self.registry.resolve(API_SERVICE),
-                notion_service=self.registry.resolve(NOTION_SERVICE),
-                person_manager=self.registry.resolve(PERSON_MANAGER),
-                conversation_manager=self.registry.resolve(CONVERSATION_MANAGER),
-                api_key_service=self.registry.resolve(API_KEY_SERVICE),
-                blob_store=self.registry.resolve(BLOB_STORE),
-                ast_parser=self.registry.resolve(AST_PARSER),
+                diagram_storage_service=self.registry.resolve(DIAGRAM_STORAGE),
             )
         )

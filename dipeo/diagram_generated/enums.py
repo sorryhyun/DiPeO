@@ -48,6 +48,8 @@ These enums are used by both frontend and backend via code generation"""
     
     SUB_DIAGRAM = "sub_diagram"
     
+    INTEGRATED_API = "integrated_api"
+    
 
 
 class HandleDirection(str, Enum):
@@ -66,9 +68,9 @@ class HandleLabel(str, Enum):
     
     FIRST = "first"
     
-    CONDITION_TRUE = "condtrue"
+    CONDTRUE = "condtrue"
     
-    CONDITION_FALSE = "condfalse"
+    CONDFALSE = "condfalse"
     
     SUCCESS = "success"
     
@@ -327,25 +329,6 @@ class APIServiceType(str, Enum):
     
 
 
-class NotionOperation(str, Enum):
-    """NotionOperation enum values"""
-    
-    CREATE_PAGE = "create_page"
-    
-    UPDATE_PAGE = "update_page"
-    
-    READ_PAGE = "read_page"
-    
-    DELETE_PAGE = "delete_page"
-    
-    CREATE_DATABASE = "create_database"
-    
-    QUERY_DATABASE = "query_database"
-    
-    UPDATE_DATABASE = "update_database"
-    
-
-
 class ToolType(str, Enum):
     """ToolType enum values"""
     
@@ -365,6 +348,41 @@ class ToolSelection(str, Enum):
     IMAGE = "image"
     
     WEBSEARCH = "websearch"
+    
+
+
+class ConditionType(str, Enum):
+    """ConditionType enum values"""
+    
+    DETECT_MAX_ITERATIONS = "detect_max_iterations"
+    
+    CHECK_NODES_EXECUTED = "check_nodes_executed"
+    
+    CUSTOM = "custom"
+    
+
+
+class TemplateEngine(str, Enum):
+    """TemplateEngine enum values"""
+    
+    INTERNAL = "internal"
+    
+    JINJA2 = "jinja2"
+    
+    HANDLEBARS = "handlebars"
+    
+
+
+class AuthType(str, Enum):
+    """AuthType enum values"""
+    
+    NONE = "none"
+    
+    BEARER = "bearer"
+    
+    BASIC = "basic"
+    
+    API_KEY = "api_key"
     
 
 
@@ -408,10 +426,14 @@ __all__ = [
     
     "APIServiceType",
     
-    "NotionOperation",
-    
     "ToolType",
     
     "ToolSelection",
+    
+    "ConditionType",
+    
+    "TemplateEngine",
+    
+    "AuthType",
     
 ]

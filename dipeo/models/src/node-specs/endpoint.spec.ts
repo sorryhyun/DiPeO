@@ -44,5 +44,5 @@ export const endpointSpec: NodeSpecification = {
     maxRetries: 3
   },
   
-  primaryDisplayField: "path"
+  primaryDisplayField: "save_to_file"
 };

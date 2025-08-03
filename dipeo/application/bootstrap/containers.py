@@ -67,6 +67,18 @@ class Container:
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
         if api_key_service and hasattr(api_key_service, 'initialize'):
             await api_key_service.initialize()
+        
+        # Initialize CompilationService
+        from dipeo.application.registry.keys import COMPILATION_SERVICE
+        compilation_service = self.registry.resolve(COMPILATION_SERVICE)
+        if compilation_service and hasattr(compilation_service, 'initialize'):
+            await compilation_service.initialize()
+        
+        # Initialize DiagramConverterService
+        from dipeo.application.registry.keys import DIAGRAM_CONVERTER
+        diagram_converter = self.registry.resolve(DIAGRAM_CONVERTER)
+        if diagram_converter and hasattr(diagram_converter, 'initialize'):
+            await diagram_converter.initialize()
     
     async def shutdown(self):
         """Clean up resources on shutdown."""

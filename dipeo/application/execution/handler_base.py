@@ -1,38 +1,64 @@
 
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, Generic
 
-from dipeo.core.static.executable_diagram import ExecutableNode
-from dipeo.core.static.node_handler import TypedNodeHandler as CoreTypedHandler
+from pydantic import BaseModel
+from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput
-from dipeo.application.registry import EXECUTION_RUNTIME
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
 
 
 T = TypeVar('T', bound=ExecutableNode)
 
 
-class TypedNodeHandlerBase(CoreTypedHandler[T]):
+class TypedNodeHandler(ABC, Generic[T]):
+    """Base for type-safe node handlers. Defines execution pattern for typed nodes."""
     
-    def _get_execution(self, context: Any) -> "ExecutionRuntime":
-        if hasattr(context, 'runtime') and context.runtime:
-            return context.runtime
+    @property
+    @abstractmethod
+    def node_class(self) -> type[T]:
+        ...
+    
+    @property
+    @abstractmethod
+    def node_type(self) -> str:
+        ...
+    
+    @property
+    @abstractmethod
+    def schema(self) -> type[BaseModel]:
+        ...
+    
+    @property
+    def requires_services(self) -> list[str]:
+        return []
+    
+    @property
+    def description(self) -> str:
+        return f"Typed handler for {self.node_type} nodes"
+    
+    @abstractmethod
+    async def execute(
+        self,
+        node: T,
+        context: Any,
+        inputs: dict[str, Any],
+        services: dict[str, Any]
+    ) -> NodeOutputProtocol:
+        """Execute the handler with strongly-typed node.
         
-        execution_state = getattr(context, 'execution_state', None)
-        if execution_state:
-            runtime = getattr(execution_state, '_runtime', None)
-            if runtime:
-                return runtime
-        
-        service_registry = getattr(context, 'service_registry', None)
-        if service_registry:
-            runtime = service_registry.resolve(EXECUTION_RUNTIME)
-            if runtime:
-                return runtime
-        
-        raise ValueError("ExecutionRuntime not found in context")
+        Args:
+            node: The typed node instance
+            context: Execution context (application-specific)
+            inputs: Input data from connected nodes
+            services: Available services for execution
+            
+        Returns:
+            NodeOutputProtocol containing the execution results
+        """
+        ...
     
     def validate(self, request: "ExecutionRequest[T]") -> Optional[str]:
         return None
@@ -86,14 +112,18 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
     ) -> NodeOutputProtocol:
         from dipeo.application.execution.execution_request import ExecutionRequest
         
+        # Extract metadata from context if available
+        context_metadata = {}
+        if hasattr(context, 'metadata') and context.metadata:
+            context_metadata = context.metadata
+        
         request = ExecutionRequest(
             node=node,
             context=context,
             inputs=inputs,
             services=services,
-            metadata={},
+            metadata=context_metadata,
             execution_id=getattr(context, 'execution_id', ''),
-            runtime=getattr(context, 'runtime', None),
             parent_container=getattr(context, '_container', None),
             parent_registry=getattr(context, '_service_registry', None)
         )
@@ -118,5 +148,4 @@ class TypedNodeHandlerBase(CoreTypedHandler[T]):
 
 
 # Backward compatibility alias
-TypedNodeHandler = TypedNodeHandlerBase
-
+TypedNodeHandlerBase = TypedNodeHandler

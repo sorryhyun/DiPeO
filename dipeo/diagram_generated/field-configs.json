@@ -96,7 +96,7 @@
           "name": "condition_type",
           "type": "text",
           "label": "Condition Type",
-          "required": true
+          "required": false
         },
         {
           "name": "expression",
@@ -168,6 +168,13 @@
           "type": "code",
           "label": "Data",
           "required": false
+        },
+        {
+          "name": "serialize_json",
+          "type": "checkbox",
+          "label": "Serialize Json",
+          "required": false,
+          "defaultValue": false
         }
       ]
     },
@@ -297,6 +304,18 @@
       "nodeType": "notion",
       "fields": [
         {
+          "name": "api_key",
+          "type": "text",
+          "label": "Api Key",
+          "required": true
+        },
+        {
+          "name": "database_id",
+          "type": "text",
+          "label": "Database Id",
+          "required": true
+        },
+        {
           "name": "operation",
           "type": "select",
           "label": "Operation",
@@ -306,12 +325,6 @@
           "name": "page_id",
           "type": "text",
           "label": "Page Id",
-          "required": false
-        },
-        {
-          "name": "database_id",
-          "type": "text",
-          "label": "Database Id",
           "required": false
         }
       ]

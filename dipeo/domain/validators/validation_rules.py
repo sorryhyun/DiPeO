@@ -59,7 +59,7 @@ class ValidationRules:
         NodeType.CONDITION: {
             "max_inputs": 1,  # Conditions typically have single input
             "max_outputs": None,  # Multiple branches allowed
-            "required_handles": [HandleLabel.DEFAULT, HandleLabel.CONDITION_TRUE, HandleLabel.CONDITION_FALSE],
+            "required_handles": [HandleLabel.DEFAULT, HandleLabel.CONDTRUE, HandleLabel.CONDFALSE],
             "allowed_targets": None,
             "allowed_sources": [NodeType.PERSON_JOB, NodeType.CODE_JOB, NodeType.DB]
         },

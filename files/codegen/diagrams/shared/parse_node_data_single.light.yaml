@@ -20,6 +20,7 @@ nodes:
         # Try to get node_type from default first (batch case), then inputs
         node_type = None
         
+        
         # Try getting from default variable (batch processing)
         if 'default' in locals():
             if isinstance(default, dict) and 'node_type' in default:
@@ -143,6 +144,13 @@ nodes:
             json.dump(interface_data, f, indent=2)
         
         result = {"saved": temp_file}
+        
+  # Return the parsed interface data  
+  - label: End
+    type: endpoint
+    position: {x: 950, y: 200}
+    props:
+      save_to_file: false
       
 connections:
   - from: Start
@@ -164,3 +172,7 @@ connections:
   - from: Extract Interface
     to: Save to Temp
     label: interface_data
+    
+  - from: Extract Interface
+    to: End
+    label: parsed_node

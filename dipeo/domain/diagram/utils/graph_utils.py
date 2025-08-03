@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from dipeo.diagram_generated.handle_utils import extract_node_id_from_handle
+from dipeo.domain.diagram.handle import extract_node_id_from_handle
 from dipeo.diagram_generated import DomainArrow
 
 def find_edges_from(edges: list[dict[str, Any] | DomainArrow], node_id: str) -> list[dict[str, Any] | DomainArrow]:

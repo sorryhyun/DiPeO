@@ -40,9 +40,8 @@ nodes:
         else:
             node_type = node_spec_path
             
-        result = {
-            'node_type': node_type
-        }
+        # Output just the string node type for typescript_spec_parser
+        result = node_type
   
   # Load cached AST data for this node spec
   - label: Load Cached AST
@@ -51,7 +50,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/node_spec_{node_type.node_type}_ast.json
+      source_details: .temp/node_spec_{node_type}_ast.json
       serialize_json: true
       
   # Load codegen mappings
@@ -79,40 +78,21 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
+      filePath: files/codegen/code/shared/typescript_spec_parser.py
+      functionName: main
+      
+  # Unwrap spec_data from nested structure
+  - label: Unwrap Spec Data
+    type: code_job
+    position: {x: 600, y: 200}
+    props:
+      language: python
       code: |
-        # Import the parser helper
-        from files.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast, transform_ast_to_spec
-        import json
-        
-        # The ast_data comes from cached AST - might be string or dict
-        if isinstance(ast_data, str):
-            # Check if it's an error message
-            if ast_data.startswith("Code execution failed:") or ast_data.startswith("Error:"):
-                raise ValueError(f"Failed to load AST data: {ast_data}")
-            try:
-                ast_data = json.loads(ast_data)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Failed to parse AST data as JSON: {e}")
-        
-        # Extract the actual node type
-        actual_node_type = node_type.get('node_type', 'unknown')
-        
-        # Convert node type to spec name (e.g., "person_job" -> "personJobSpec")
-        node_type_clean = actual_node_type.replace('-', '_')  # Normalize to underscores
-        spec_name = f"{node_type_clean.replace('_', ' ').title().replace(' ', '')}Spec"
-        spec_name = spec_name[0].lower() + spec_name[1:]  # camelCase
-        
-        # Extract the specification from AST
-        spec_data = extract_spec_from_ast(ast_data, spec_name)
-        
-        if not spec_data:
-            available_constants = [const.get('name', '') for const in ast_data.get('constants', [])]
-            raise ValueError(
-                f"Could not find specification '{spec_name}' for node type '{actual_node_type}'. "
-                f"Available constants: {available_constants}"
-            )
-        
-        result = spec_data
+        # The typescript_spec_parser returns {"spec_data": spec}, unwrap it
+        if isinstance(spec_data, dict) and 'spec_data' in spec_data:
+            result = spec_data['spec_data']
+        else:
+            result = spec_data
 
   # Extract node naming for file paths
   - label: Extract Node Naming
@@ -122,7 +102,9 @@ nodes:
       language: python
       code: |
         # Extract node type from spec for use in file paths
-        spec = spec_data
+        # When typescript_spec_parser returns {"spec_data": spec_data}, 
+        # and it's passed with label "spec_data", we get the actual spec dict
+        spec = inputs.get('spec_data', spec_data if 'spec_data' in locals() else {})
         
         # Ensure spec is a dict
         if not isinstance(spec, dict):
@@ -175,6 +157,10 @@ connections:
   - from: Start
     to: Parse Input
     
+  # Load codegen mappings early (independent of node type)
+  - from: Start
+    to: Load Codegen Mappings
+    
   # Extract node type
   - from: Parse Input
     to: Extract Node Type
@@ -195,8 +181,13 @@ connections:
     to: Extract Specification
     label: node_type
     
-  # Pass spec to extract node naming
+  # Unwrap the spec data
   - from: Extract Specification
+    to: Unwrap Spec Data
+    label: spec_data
+    
+  # Pass unwrapped spec to extract node naming
+  - from: Unwrap Spec Data
     to: Extract Node Naming
     label: spec_data
     
@@ -205,7 +196,7 @@ connections:
     to: Extract Mappings
     
   # Prepare template context with all data
-  - from: Extract Specification
+  - from: Unwrap Spec Data
     to: Prepare Template Context
     label: spec_data
   - from: Extract Mappings

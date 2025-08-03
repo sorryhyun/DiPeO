@@ -6,9 +6,10 @@ Legacy imports from dipeo.models will continue to work during migration.
 
 # Redirect imports to new diagram_generated module
 from dipeo.diagram_generated.conversions import *
-from dipeo.diagram_generated.handle_utils import *
+from dipeo.domain.diagram.handle import *
 from dipeo.diagram_generated.domain_models import *
 from dipeo.diagram_generated.enums import *
+from dipeo.diagram_generated.integrations import *
 
 # For backward compatibility, also import from legacy models if needed
 # This will be removed in Phase 5

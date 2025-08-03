@@ -12,24 +12,36 @@ import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 export const conditionFields: UnifiedFieldDefinition[] = [
   {
     name: 'condition_type',
-    type: 'text',
+    type: 'select',
     label: 'Condition Type',
-    required: true,
+    required: false,
+    defaultValue: "custom",
     description: 'Type of condition to evaluate',
+    options: [
+      { value: 'detect_max_iterations', label: 'Detect Max Iterations' },
+      { value: 'check_nodes_executed', label: 'Check Nodes Executed' },
+      { value: 'custom', label: 'Custom Expression' },
+    ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
   },
   {
     name: 'expression',
-    type: 'text',
+    type: 'textarea',
     label: 'Expression',
     required: false,
+    placeholder: 'e.g., inputs.value > 10',
     description: 'Boolean expression to evaluate',
+    rows: 3,
   },
   {
     name: 'node_indices',
-    type: 'text',
+    type: 'nodeSelect',
     label: 'Node Indices',
     required: false,
-    description: 'Node indices for condition evaluation',
+    placeholder: 'Select nodes to monitor',
+    description: 'Node indices for detect_max_iteration condition',
     validate: (value: unknown) => {
       return { isValid: true };
     },

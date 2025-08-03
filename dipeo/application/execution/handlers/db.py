@@ -14,8 +14,7 @@ from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +61,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         inputs: dict[str, Any],
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
-        # Get service from services (handle both dict and ServiceRegistry)
-        if isinstance(services, dict):
-            db_service = services.get(DB_OPERATIONS_SERVICE.name)
-        else:
-            db_service = services.get(DB_OPERATIONS_SERVICE)
+        # Get service from ServiceRegistry
+        db_service = services.get(DB_OPERATIONS_SERVICE)
         
         if db_service is None:
             raise RuntimeError("db_operations_service not available")
@@ -104,6 +100,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         try:
             if node.operation == "read" and len(processed_paths) > 1:
                 results = {}
+                serialize_json = getattr(node, 'serialize_json', False)
                 for file_path in processed_paths:
                     try:
                         result = await db_service.execute_operation(
@@ -111,15 +108,29 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                             operation=node.operation,
                             value=input_val,
                         )
-                        results[file_path] = result["value"]
+                        file_content = result["value"]
+                        
+                        # Parse JSON if serialize_json is true
+                        if serialize_json and isinstance(file_content, str):
+                            import json
+                            try:
+                                file_content = json.loads(file_content)
+                            except json.JSONDecodeError:
+                                logger.warning(f"Failed to parse JSON from {file_path}")
+                        
+                        results[file_path] = file_content
                     except Exception as e:
                         logger.warning(f"Failed to read file {file_path}: {e}")
                         results[file_path] = None
                 
+                # Debug logging for multi-file read output
+                logger.debug(f"DB {node.id} multi-file read returning dict with {len(results)} files")
+                logger.debug(f"  File paths: {list(results.keys())[:3]}...")
+                
                 return DataOutput(
                     value=results,
                     node_id=node.id,
-                    metadata={"multiple_files": True, "file_count": len(processed_paths)}
+                    metadata={"multiple_files": True, "file_count": len(processed_paths), "serialize_json": serialize_json}
                 )
             
             elif len(processed_paths) == 1:

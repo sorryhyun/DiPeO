@@ -13,8 +13,7 @@ from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
     from dipeo.domain.ports.storage import FileSystemPort
 
 
@@ -65,12 +64,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                 "filename": node.file_name or f"output_{node.id}.json"
             })
         
-        if isinstance(services, dict):
-            filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
-        else:
-            from dipeo.application.registry import ServiceKey
-            fs_key = ServiceKey("filesystem_adapter")
-            filesystem_adapter = self.filesystem_adapter or services.get(fs_key)
+        # Get filesystem adapter from ServiceRegistry
+        from dipeo.application.registry import ServiceKey
+        fs_key = ServiceKey("filesystem_adapter")
+        filesystem_adapter = self.filesystem_adapter or services.get(fs_key)
 
         result_data = inputs if inputs else {}
         
@@ -81,19 +78,14 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             file_name = node.metadata.get('file_path')
         
         if not file_name:
-            if isinstance(services, dict) and 'typed_node' in services:
-                typed_node = services['typed_node']
+            # Get typed node from ServiceRegistry if available
+            from dipeo.application.registry import ServiceKey
+            typed_node_key = ServiceKey("typed_node")
+            if services.has(typed_node_key):
+                typed_node = services.get(typed_node_key)
                 if hasattr(typed_node, 'to_dict'):
                     node_dict = typed_node.to_dict()
                     file_name = node_dict.get('file_path') or node_dict.get('file_name')
-            elif hasattr(services, 'has') and hasattr(services, 'get'):
-                from dipeo.application.registry import ServiceKey
-                typed_node_key = ServiceKey("typed_node")
-                if services.has(typed_node_key):
-                    typed_node = services.get(typed_node_key)
-                    if hasattr(typed_node, 'to_dict'):
-                        node_dict = typed_node.to_dict()
-                        file_name = node_dict.get('file_path') or node_dict.get('file_name')
 
         if save_to_file and file_name and filesystem_adapter:
             try:

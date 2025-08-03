@@ -7,10 +7,14 @@ from dipeo.diagram_generated.generated_nodes import ConditionNode
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.diagram_generated.generated_nodes import StartNode
 from dipeo.diagram_generated import NodeExecutionStatus, NodeID
+from dipeo.application.utils.template import TemplateProcessor
+import logging
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_tracker import ExecutionTracker
-    from dipeo.core.static.executable_diagram import ExecutableDiagram, ExecutableNode
+    from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
+
+logger = logging.getLogger(__name__)
 
 
 class NodeReadinessChecker:
@@ -19,6 +23,7 @@ class NodeReadinessChecker:
     def __init__(self, diagram: "ExecutableDiagram", tracker: "ExecutionTracker"):
         self.diagram = diagram
         self.tracker = tracker
+        self._template_processor = TemplateProcessor()
     
     def is_node_ready(
         self, 
@@ -48,6 +53,10 @@ class NodeReadinessChecker:
                 if not self._is_condition_branch_active(source_node.id, edge.source_output):
                     return False
         
+        # Check template variable dependencies
+        if not self._has_required_template_inputs(node, incoming_edges, node_states):
+            return False
+        
         return True
     
     def _get_relevant_edges(self, node: "ExecutableNode") -> list:
@@ -58,20 +67,25 @@ class NodeReadinessChecker:
         if isinstance(node, PersonJobNode):
             exec_count = self.tracker.get_execution_count(node.id)
 
-            # First execution? Only check 'first' inputs or non-loop edges
+            # First execution? Check appropriate edges
             if exec_count == 0:
-                first_edges = [e for e in incoming_edges if e.target_input == "first"]
+                # If there are ANY incoming edges targeting "first" inputs, 
+                # the node MUST wait for them before executing
+                first_edges = [e for e in incoming_edges if e.target_input in ("first", "HandleLabel.FIRST")]
                 if first_edges:
                     return first_edges
                 
-                # No 'first' edges - filter out loop edges from condition nodes
+                # No 'first' edges - check all non-loop edges
+                # This ensures nodes wait for their regular inputs on first execution
                 non_loop_edges = []
                 for edge in incoming_edges:
                     source_node = self.diagram.get_node(edge.source_node_id)
                     if source_node and not isinstance(source_node, ConditionNode):
                         non_loop_edges.append(edge)
-                if non_loop_edges:
-                    return non_loop_edges
+                
+                # Return all edges that need to be checked (could be empty list)
+                result = non_loop_edges if non_loop_edges else incoming_edges
+                return result
         
         return incoming_edges
     
@@ -110,3 +124,47 @@ class NodeReadinessChecker:
                    (branch == "condfalse" and not tracker_output.value)
         
         return False
+    
+    def _extract_template_variables(self, node: "ExecutableNode") -> set[str]:
+        """Extract template variables from node prompts."""
+        if not isinstance(node, PersonJobNode):
+            return set()
+        
+        variables = set()
+        
+        # Extract from default prompt
+        if node.default_prompt:
+            variables.update(self._template_processor.extract_variables(node.default_prompt))
+        
+        # Extract from first_only_prompt
+        if node.first_only_prompt:
+            variables.update(self._template_processor.extract_variables(node.first_only_prompt))
+        
+        return variables
+    
+    def _has_required_template_inputs(
+        self, 
+        node: "ExecutableNode", 
+        edges: list,
+        node_states: dict
+    ) -> bool:
+        """Check if all template variable dependencies are satisfied."""
+        # Extract template variables from the node
+        template_vars = self._extract_template_variables(node)
+        if not template_vars:
+            return True  # No template variables, no dependencies
+
+        # For PersonJobNode on first execution with template variables,
+        # we need to ensure all inputs providing those variables are ready
+        if isinstance(node, PersonJobNode):
+            exec_count = self.tracker.get_execution_count(node.id)
+            logger.debug(f"Node {node.id} execution count: {exec_count}")
+            
+            # First execution and has template variables?
+            if exec_count == 0 and template_vars:
+                for edge in edges:
+                    # Check if this edge's source is ready
+                    if not self._is_dependency_satisfied(edge, node_states):
+                        return False
+        
+        return True

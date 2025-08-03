@@ -27,7 +27,10 @@ export const templateJobSpec: NodeSpecification = {
       required: false,
       description: "Inline template content",
       uiConfig: {
-        inputType: "text"
+        inputType: "textarea",
+        placeholder: "Enter template content...",
+        rows: 10,
+        adjustable: true
       }
     },
     {
@@ -54,7 +57,8 @@ export const templateJobSpec: NodeSpecification = {
       name: "engine",
       type: "enum",
       required: false,
-      description: "Engine configuration",
+      defaultValue: "jinja2",
+      description: "Template engine to use",
       validation: {
         allowedValues: ["internal", "jinja2", "handlebars"]
       },
@@ -87,5 +91,5 @@ export const templateJobSpec: NodeSpecification = {
     maxRetries: 3
   },
   
-  primaryDisplayField: "template_name"
+  primaryDisplayField: "engine"
 };

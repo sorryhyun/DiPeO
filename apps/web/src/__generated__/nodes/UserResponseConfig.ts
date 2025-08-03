@@ -8,26 +8,28 @@
 
 // Auto-generated node configuration for user_response
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
 import { userResponseFields } from '../fields/UserResponseFields';
 
 export const userResponseConfig: UnifiedNodeConfig = {
   label: 'User Response',
   icon: '💬',
   color: '#E91E63',
-  nodeType: 'user_response',
+  nodeType: NodeType.USER_RESPONSE,
   category: 'interaction',
   handles: {
     input: [
-      { label: 'default', displayLabel: '', position: 'left' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: 'default', displayLabel: '', position: 'right' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
+    timeout: 300,
   },
   customFields: userResponseFields,
-  primaryDisplayField: 'response_type',
+  primaryDisplayField: 'prompt',
 };
 
 export default userResponseConfig;

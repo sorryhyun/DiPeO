@@ -6,22 +6,18 @@ Generated at: {{ strawberry_types.generated_at | default('N/A') }}
 """
 
 import strawberry
-from typing import Optional, List, Dict, Any
-from strawberry.types import Info
+from typing import *
+from strawberry.types import *
 
 # Import Pydantic models
 {% if strawberry_types and strawberry_types.strawberry_types %}
-from dipeo.diagram_generated.models import (
-{% for type_info in strawberry_types.strawberry_types %}
-    {{ type_info.pydantic_model }}NodeData,
-{% endfor %}
-)
+from ..models import *
 {% else %}
 # No node types found - this file will be populated after initial node spec generation
 {% endif %}
 
 # Import scalars
-from dipeo.application.graphql.types.scalars import JSONScalar
+from dipeo.application.graphql.types.scalars import *
 
 
 # Generate Strawberry types for node data

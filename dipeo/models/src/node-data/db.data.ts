@@ -9,4 +9,5 @@ export interface DBNodeData extends BaseNodeData {
   operation: string;
   query?: string;
   data?: Record<string, any>;
+  serialize_json?: boolean;
 }

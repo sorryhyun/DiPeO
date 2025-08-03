@@ -3,12 +3,11 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
-from dipeo.core.static.executable_diagram import ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.diagram_generated import NodeExecutionStatus
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_runtime import ExecutionRuntime
-    from dipeo.core.dynamic.execution_context import ExecutionContext
+    from dipeo.core.execution.execution_context import ExecutionContext
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
 
@@ -34,9 +33,6 @@ class ExecutionRequest(Generic[T]):
     metadata: dict[str, Any] = field(default_factory=dict)
     execution_id: str = ""
     iteration: int = 1
-    
-    # Runtime references
-    runtime: Optional["ExecutionRuntime"] = None
     
     # Parent context for sub-diagrams
     parent_container: Optional["Container"] = None
@@ -116,9 +112,6 @@ class ExecutionRequest(Generic[T]):
         """
         if self.parent_registry:
             return self.parent_registry.create_child()
-        elif self.runtime and hasattr(self.runtime, '_service_registry'):
-            # Fallback to runtime's service registry
-            return self.runtime._service_registry.create_child()
         return None
     
     def with_inputs(self, inputs: dict[str, Any]) -> "ExecutionRequest[T]":
@@ -131,7 +124,6 @@ class ExecutionRequest(Generic[T]):
             metadata=self.metadata,
             execution_id=self.execution_id,
             iteration=self.iteration,
-            runtime=self.runtime,
             parent_container=self.parent_container,
             parent_registry=self.parent_registry
         )
@@ -146,7 +138,6 @@ class ExecutionRequest(Generic[T]):
             metadata={**self.metadata, **metadata},
             execution_id=self.execution_id,
             iteration=self.iteration,
-            runtime=self.runtime,
             parent_container=self.parent_container,
             parent_registry=self.parent_registry
         )

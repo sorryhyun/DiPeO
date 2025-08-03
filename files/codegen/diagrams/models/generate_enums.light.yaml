@@ -28,7 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/enums_ast.json
+      file: .temp/enums_ast.json
 
   # Extract enum definitions (simplified - just data extraction)
   - label: Extract Enums

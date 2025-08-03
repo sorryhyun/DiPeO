@@ -1,14 +1,13 @@
 """Protocol definition for diagram I/O operations."""
 
 import logging
-from typing import Any
-
-logger = logging.getLogger(__name__)
-
 from typing import (
+    Any,
     Protocol,
     runtime_checkable,
 )
+
+logger = logging.getLogger(__name__)
 
 from dipeo.models import DiagramFormat, DomainDiagram
 

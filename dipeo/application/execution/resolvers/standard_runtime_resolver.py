@@ -1,0 +1,285 @@
+"""Standard runtime input resolver implementation.
+
+This resolver handles the actual value resolution during diagram execution,
+including node-specific strategies and data transformations.
+"""
+
+from typing import Any
+
+from dipeo.diagram_generated import NodeID, NodeType
+from dipeo.core.execution.runtime_resolver import RuntimeResolver
+from dipeo.core.execution.node_output import TextOutput
+from dipeo.core.execution.execution_context import ExecutionContext
+from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode
+from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
+
+from dipeo.core.resolution import (
+    NodeStrategyFactory,
+    StandardNodeOutput,
+    StandardTransformationEngine,
+)
+
+
+class StandardRuntimeResolver(RuntimeResolver):
+    """Standard implementation of runtime input resolution.
+    
+    This resolver coordinates:
+    1. Node-type-specific strategies for input handling
+    2. Data transformation based on content types
+    3. Edge filtering based on execution context
+    """
+    
+    def __init__(self):
+        self.strategy_factory = NodeStrategyFactory()
+        self.transformation_engine = StandardTransformationEngine()
+    
+    def resolve_node_inputs(
+        self,
+        node: ExecutableNode,
+        incoming_edges: list[ExecutableEdgeV2],
+        context: ExecutionContext
+    ) -> dict[str, Any]:
+        """Resolve all inputs for a node using strategies and transformations.
+        
+        This is the main entry point for runtime input resolution.
+        """
+        
+        inputs = {}
+        
+        # Get strategy for this node type
+        strategy = self.strategy_factory.get_strategy(node.type)
+        
+        # Check for special inputs (e.g., PersonJob "first" inputs)
+        has_special_inputs = self._has_special_inputs(node, incoming_edges, strategy)
+        
+        for edge in incoming_edges:
+            if not self._should_process_edge(edge, node, context, strategy, has_special_inputs):
+                continue
+            
+            # Get source output value
+            value = self._get_edge_value(edge, context)
+            if value is None:
+                continue
+
+            # Apply transformations
+            transformed_value = self._apply_transformations(value, edge)
+            
+            if transformed_value is None:
+                continue
+
+            # Get input key from edge
+            input_key = edge.target_input or 'default'
+            inputs[input_key] = transformed_value
+            
+        
+        return inputs
+    
+    def _has_special_inputs(
+        self,
+        node: ExecutableNode,
+        edges: list[ExecutableEdgeV2],
+        strategy: Any
+    ) -> bool:
+        """Check if node has special inputs like PersonJob 'first' inputs."""
+        if node.type == NodeType.PERSON_JOB and hasattr(strategy, 'has_first_inputs'):
+            return strategy.has_first_inputs(edges)
+        return False
+    
+    def _should_process_edge(
+        self,
+        edge: ExecutableEdgeV2,
+        node: ExecutableNode,
+        context: ExecutionContext,
+        strategy: Any,
+        has_special_inputs: bool
+    ) -> bool:
+        """Determine if an edge should be processed based on strategy."""
+        return strategy.should_process_edge(edge, node, context, has_special_inputs)
+    
+    def _get_edge_value(
+        self,
+        edge: ExecutableEdgeV2,
+        context: ExecutionContext
+    ) -> Any:
+        """Extract value from edge's source node output."""
+        source_output = context.get_node_output(edge.source_node_id)
+        
+        
+        if not source_output:
+            return None
+        
+        # Convert to StandardNodeOutput for consistent handling
+        if isinstance(source_output, NodeOutputProtocol):
+            if isinstance(source_output, ConditionOutput):
+                # Special handling for condition outputs
+                if source_output.value:  # True branch
+                    output_value = {"condtrue": source_output.true_output or {}}
+                else:  # False branch
+                    output_value = {"condfalse": source_output.false_output or {}}
+                return StandardNodeOutput.from_dict(output_value)
+            else:
+                # All other protocol outputs
+                return StandardNodeOutput.from_value(source_output.value)
+        elif isinstance(source_output, dict) and "value" in source_output:
+            # Legacy dict format
+            return StandardNodeOutput.from_value(source_output["value"])
+        else:
+            # Raw value
+            return StandardNodeOutput.from_value(source_output)
+    
+    def _apply_transformations(
+        self,
+        value: Any,
+        edge: ExecutableEdgeV2
+    ) -> Any:
+        """Apply transformation rules from edge to value."""
+        # Handle StandardNodeOutput
+        if isinstance(value, StandardNodeOutput):
+            output_key = edge.source_output or "default"
+            
+            # Extract the actual value based on output key
+            if not isinstance(value.value, dict):
+                # Non-dict values are wrapped
+                output_dict = {"default": value.value}
+            else:
+                output_dict = value.value
+
+            if output_key in output_dict:
+                actual_value = output_dict[output_key]
+            elif output_key == "default":
+                # Special handling for default output
+                if len(output_dict) == 1:
+                    # If requesting default and only one output, use it
+                    actual_value = next(iter(output_dict.values()))
+                elif "default" in output_dict:
+                    # Use explicit default key
+                    actual_value = output_dict["default"]
+                else:
+                    # For multi-file DB read or similar cases, use the entire dict
+                    # when requesting default and no explicit default key exists
+                    actual_value = output_dict
+            else:
+                # No matching output
+                return None
+        else:
+            actual_value = value
+        
+        # Apply transformations if edge has them
+        if edge.transform_rules:
+            actual_value = self.transformation_engine.transform(
+                actual_value,
+                edge.transform_rules
+            )
+        
+        return actual_value
+    
+    def resolve_single_input(
+        self,
+        node: ExecutableNode,
+        input_name: str,
+        edge: ExecutableEdgeV2,
+        context: ExecutionContext
+    ) -> Any:
+        """Resolve a single input value through an edge."""
+        # Get the value and apply transformations
+        value = self._get_edge_value(edge, context)
+        if value is not None:
+            value = self._apply_transformations(value, edge)
+        return value
+    
+    def extract_output_value(
+        self,
+        output: NodeOutputProtocol,
+        output_name: str = "default"
+    ) -> Any:
+        """Extract a specific output value from a node output."""
+        if isinstance(output, ConditionOutput):
+            # Special handling for condition outputs
+            if output.value:  # True branch
+                outputs = output.true_output or {}
+            else:  # False branch
+                outputs = output.false_output or {}
+            return outputs.get(output_name)
+        else:
+            # For other outputs, the value is the default output
+            if output_name == "default":
+                return output.value
+            # Try to extract from value if it's a dict
+            if isinstance(output.value, dict):
+                return output.value.get(output_name)
+            return None
+    
+    def apply_transformation(
+        self,
+        value: Any,
+        transformation_rules: dict[str, Any],
+        source_context: dict[str, Any] | None = None
+    ) -> Any:
+        """Apply transformation rules to a value."""
+        return self.transformation_engine.transform(value, transformation_rules)
+    
+    def register_transformation(
+        self,
+        name: str,
+        rule: Any
+    ) -> None:
+        """Register a custom transformation rule."""
+        # This would be implemented if we support custom transformations
+        pass
+    
+    def resolve_default_value(
+        self,
+        node: ExecutableNode,
+        input_name: str,
+        input_type: str | None = None
+    ) -> Any:
+        """Get default value for an unconnected input."""
+        # Most inputs default to None
+        # Could be enhanced with node-specific defaults
+        return None
+    
+    def resolve_conditional_input(
+        self,
+        node: ExecutableNode,
+        edges: list[ExecutableEdgeV2],
+        context: ExecutionContext,
+        condition_key: str = "is_conditional"
+    ) -> dict[str, Any]:
+        """Resolve inputs that depend on conditional branches."""
+        inputs = {}
+        for edge in edges:
+            # Check if edge is marked as conditional
+            if edge.metadata and edge.metadata.get(condition_key):
+                # Process conditional edge
+                value = self._get_edge_value(edge, context)
+                if value is not None:
+                    transformed_value = self._apply_transformations(value, edge)
+                    input_key = edge.target_input or 'default'
+                    inputs[input_key] = transformed_value
+        return inputs
+    
+    def validate_resolved_inputs(
+        self,
+        node: ExecutableNode,
+        inputs: dict[str, Any]
+    ) -> tuple[bool, list[str]]:
+        """Validate that resolved inputs meet node requirements."""
+        errors = []
+        
+        # Basic validation - could be enhanced with node-specific rules
+        if hasattr(node, 'required_inputs'):
+            for required in node.required_inputs:
+                if required not in inputs or inputs[required] is None:
+                    errors.append(f"Missing required input: {required}")
+        
+        return len(errors) == 0, errors
+    
+    def get_transformation_chain(
+        self,
+        source_type: str,
+        target_type: str
+    ) -> list[Any] | None:
+        """Get chain of transformations to convert between types."""
+        # For now, we don't support transformation chains
+        # This could be enhanced to find multi-step transformations
+        return None

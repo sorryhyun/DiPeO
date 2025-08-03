@@ -18,7 +18,8 @@ export enum NodeType {
   TEMPLATE_JOB = 'template_job',
   JSON_SCHEMA_VALIDATOR = 'json_schema_validator',
   TYPESCRIPT_AST = 'typescript_ast',
-  SUB_DIAGRAM = 'sub_diagram'
+  SUB_DIAGRAM = 'sub_diagram',
+  INTEGRATED_API = 'integrated_api'
 }
 
 export enum HandleDirection {
@@ -29,8 +30,8 @@ export enum HandleDirection {
 export enum HandleLabel {
   DEFAULT = 'default',
   FIRST = 'first',
-  CONDITION_TRUE = 'condtrue',
-  CONDITION_FALSE = 'condfalse',
+  CONDTRUE = 'condtrue',
+  CONDFALSE = 'condfalse',
   SUCCESS = 'success',
   ERROR = 'error',
   RESULTS = 'results'
@@ -168,16 +169,6 @@ export enum APIServiceType {
   JIRA = 'jira'
 }
 
-export enum NotionOperation {
-  CREATE_PAGE = 'create_page',
-  UPDATE_PAGE = 'update_page',
-  READ_PAGE = 'read_page',
-  DELETE_PAGE = 'delete_page',
-  CREATE_DATABASE = 'create_database',
-  QUERY_DATABASE = 'query_database',
-  UPDATE_DATABASE = 'update_database'
-}
-
 export enum ToolType {
   WEB_SEARCH = 'web_search',
   WEB_SEARCH_PREVIEW = 'web_search_preview',
@@ -188,4 +179,23 @@ export enum ToolSelection {
   NONE = 'none',
   IMAGE = 'image', 
   WEBSEARCH = 'websearch'
+}
+
+export enum ConditionType {
+  DETECT_MAX_ITERATIONS = 'detect_max_iterations',
+  CHECK_NODES_EXECUTED = 'check_nodes_executed',
+  CUSTOM = 'custom'
+}
+
+export enum TemplateEngine {
+  INTERNAL = 'internal',
+  JINJA2 = 'jinja2',
+  HANDLEBARS = 'handlebars'
+}
+
+export enum AuthType {
+  NONE = 'none',
+  BEARER = 'bearer',
+  BASIC = 'basic',
+  API_KEY = 'api_key'
 }

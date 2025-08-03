@@ -1,33 +1,19 @@
-from .api_job import ApiJobNodeHandler
-from .code_job import CodeJobNodeHandler
-from .condition import ConditionNodeHandler
-from .db import DBTypedNodeHandler
-from .endpoint import EndpointNodeHandler
-from .hook import HookNodeHandler
-from .json_schema_validator import JsonSchemaValidatorNodeHandler
-from .notion import NotionNodeHandler
-from .person_batch_job import PersonBatchJobNodeHandler
-from .person_job import PersonJobNodeHandler
-from .start import StartNodeHandler
-from .sub_diagram import SubDiagramNodeHandler
-from .template_job import TemplateJobNodeHandler
-from .typescript_ast import TypescriptAstNodeHandler
-from .user_response import UserResponseNodeHandler
+"""
+Handler module initialization with auto-registration.
 
-__all__ = [
-    "ApiJobNodeHandler",
-    "CodeJobNodeHandler",
-    "ConditionNodeHandler",
-    "DBTypedNodeHandler",
-    "EndpointNodeHandler",
-    "HookNodeHandler",
-    "JsonSchemaValidatorNodeHandler",
-    "NotionNodeHandler",
-    "PersonBatchJobNodeHandler",
-    "PersonJobNodeHandler",
-    "StartNodeHandler",
-    "SubDiagramNodeHandler",
-    "TemplateJobNodeHandler",
-    "TypescriptAstNodeHandler",
-    "UserResponseNodeHandler",
-]
+This module automatically imports all handler classes using the auto_register system,
+eliminating the need for manual imports when adding new handlers.
+"""
+
+from .auto_register import auto_register_handlers, get_handler_exports
+
+# Auto-register all handlers
+registered_handlers = auto_register_handlers()
+
+# Create a dynamic __all__ list
+__all__ = get_handler_exports()
+
+# Make handler classes available as module attributes
+# This maintains backward compatibility with existing imports
+for handler in registered_handlers:
+    globals()[handler.__name__] = handler
