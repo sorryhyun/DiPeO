@@ -47,8 +47,12 @@ def extract_jsdoc_description(node: dict) -> str:
 
 def extract_enums(ast_data: dict) -> List[dict]:
     """Extract enum definitions from TypeScript AST data."""
-    # The typescript_ast node returns enums directly
-    enums_from_ast = ast_data.get('enums', [])
+    # Handle case where ast_data might be a list (the enums array directly)
+    if isinstance(ast_data, list):
+        enums_from_ast = ast_data
+    else:
+        # The typescript_ast node returns enums directly
+        enums_from_ast = ast_data.get('enums', [])
     
     # Initialize result
     enums = []
@@ -88,5 +92,7 @@ def main(inputs: dict) -> dict:
     ast_data = inputs.get('default', {})
     enums = extract_enums(ast_data)
     
-    # Return as a dict to preserve structure when passed between nodes
-    return {'enums': enums}
+    # Return with 'default' key to prevent unwrapping by runtime resolver
+    # The runtime resolver unwraps single-key dicts when requesting 'default' output
+    result = {'default': {'enums': enums}}
+    return result

@@ -233,16 +233,29 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with extracted static node data
     """
     
+    # Debug logging - always print this
+    print(f"[generate_static_nodes] ENTRY - Called with inputs keys: {list(inputs.keys())}")
+    
+    # Warning for empty inputs (import-time call issue)
+    if not inputs:
+        print("[generate_static_nodes] WARNING: Called with empty inputs - possible timing issue!")
+        return {'node_classes': [], 'now': datetime.now().isoformat()}
+    
     # In DiPeO, labeled connections come directly at the top level
     mappings = inputs.get('mappings', {})
     temp_results = inputs.get('temp_results', {})
     base_data = inputs.get('base_data', {})
+    
+    print(f"[generate_static_nodes] mappings keys: {list(mappings.keys()) if mappings else 'None'}")
+    print(f"[generate_static_nodes] temp_results keys: {list(temp_results.keys()) if temp_results else 'None'}")
+    print(f"[generate_static_nodes] base_data keys: {list(base_data.keys()) if base_data else 'None'}")
     
     # Extract base interface
     base_interface = base_data.get('base_interface')
     
     # Get parsed nodes from temp results
     parsed_nodes = temp_results.get('parsed_nodes', [])
+    print(f"[generate_static_nodes] Found {len(parsed_nodes)} parsed nodes")
     
     # Combine all interfaces
     all_interfaces: List[Dict[str, Any]] = []
@@ -272,5 +285,14 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Run the static nodes extractor
     result = extract_static_nodes_data(combined_ast, mappings)
+    
+    print(f"[generate_static_nodes] Returning result with keys: {list(result.keys())}")
+    if 'node_classes' in result:
+        print(f"[generate_static_nodes] Generated {len(result['node_classes'])} node classes")
+        if result['node_classes']:
+            print(f"[generate_static_nodes] First node class: {result['node_classes'][0].get('class_name', 'Unknown')}")
+            # Print all node classes for debugging
+            for i, nc in enumerate(result['node_classes']):
+                print(f"  [{i}] {nc.get('class_name', 'Unknown')}")
     
     return result

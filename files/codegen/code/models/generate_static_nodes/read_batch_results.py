@@ -16,6 +16,8 @@ def read_batch_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with parsed_nodes array and count
     """
     
+    print(f"[read_batch_results] Called with inputs keys: {list(inputs.keys())}")
+    
     # Handle different input formats
     # When coming from batch processing, might be wrapped in 'default'
     if 'default' in inputs and 'batch_info' not in inputs:
@@ -39,6 +41,9 @@ def read_batch_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if not node_types and os.path.exists(temp_dir):
         json_files = [f for f in os.listdir(temp_dir) if f.endswith('.json')]
         node_types = [f[:-5] for f in json_files]  # Remove .json extension
+        print(f"[read_batch_results] Found {len(json_files)} JSON files in {temp_dir}")
+    else:
+        print(f"[read_batch_results] Using {len(node_types)} node types from batch_info")
     
     
     for node_type in node_types:
@@ -51,6 +56,8 @@ def read_batch_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
             except Exception as e:
                 pass  # Skip failed files silently
         else:
+            # File doesn't exist, skip it
+            pass
     
     # Clean up temp directory
     if os.path.exists(temp_dir):
@@ -60,5 +67,7 @@ def read_batch_results(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'parsed_nodes': parsed_nodes,
         'count': len(parsed_nodes)
     }
+    
+    print(f"[read_batch_results] Returning {len(parsed_nodes)} parsed nodes")
     
     return result

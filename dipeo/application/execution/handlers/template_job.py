@@ -98,13 +98,13 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             # Add inputs from connected nodes
             if inputs:
+                
                 # Check if we have a single 'default' key with dict value
                 if len(inputs) == 1 and 'default' in inputs and isinstance(inputs['default'], dict):
                     # Unwrap the default for better template ergonomics
                     template_vars.update(inputs['default'])
-                    # Debug logging for transparency
-                    # print(f"[DEBUG] Unwrapped 'default' input containing keys: {list(inputs['default'].keys())}")
                 else:
+                    # For labeled connections, merge all inputs into template_vars
                     template_vars.update(inputs)
 
             # Get template content

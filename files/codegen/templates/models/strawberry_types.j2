@@ -11,7 +11,7 @@ from strawberry.types import *
 
 # Import Pydantic models
 {% if strawberry_types and strawberry_types.strawberry_types %}
-from dipeo.diagram_generated.models import *
+from ..models import *
 {% else %}
 # No node types found - this file will be populated after initial node spec generation
 {% endif %}

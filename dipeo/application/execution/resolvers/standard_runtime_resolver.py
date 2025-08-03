@@ -43,6 +43,7 @@ class StandardRuntimeResolver(RuntimeResolver):
         
         This is the main entry point for runtime input resolution.
         """
+        
         inputs = {}
         
         # Get strategy for this node type
@@ -62,12 +63,14 @@ class StandardRuntimeResolver(RuntimeResolver):
 
             # Apply transformations
             transformed_value = self._apply_transformations(value, edge)
+            
             if transformed_value is None:
                 continue
 
             # Get input key from edge
             input_key = edge.target_input or 'default'
             inputs[input_key] = transformed_value
+            
         
         return inputs
     
@@ -101,6 +104,7 @@ class StandardRuntimeResolver(RuntimeResolver):
         """Extract value from edge's source node output."""
         source_output = context.get_node_output(edge.source_node_id)
         
+        
         if not source_output:
             return None
         
@@ -132,7 +136,7 @@ class StandardRuntimeResolver(RuntimeResolver):
         # Handle StandardNodeOutput
         if isinstance(value, StandardNodeOutput):
             output_key = edge.source_output or "default"
-
+            
             # Extract the actual value based on output key
             if not isinstance(value.value, dict):
                 # Non-dict values are wrapped

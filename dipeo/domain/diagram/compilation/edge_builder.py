@@ -106,10 +106,6 @@ class EdgeBuilder:
                            if hasattr(connection.source_handle_label, 'value') 
                            else str(connection.source_handle_label))
         
-        # Arrow label can override the source_output (for labeled connections)
-        if arrow.label:
-            source_output = arrow.label
-        
         target_input = None
         if connection.target_handle_label:
             # If it's an enum, get its value; otherwise use it as string
