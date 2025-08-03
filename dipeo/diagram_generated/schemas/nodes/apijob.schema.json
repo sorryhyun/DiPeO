@@ -12,6 +12,10 @@
       ],
       "type": "string"
     },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "Record<string,string>": {
       "additionalProperties": false,
       "type": "object"
@@ -59,10 +63,6 @@
         "method",
         "url"
       ],
-      "type": "object"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
       "type": "object"
     }
   }

@@ -2,6 +2,51 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonBatchJobNodeData",
   "definitions": {
+    "MemorySettings": {
+      "additionalProperties": false,
+      "properties": {
+        "max_messages": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "preserve_system": {
+          "type": "boolean"
+        },
+        "view": {
+          "$ref": "#/definitions/MemoryView"
+        }
+      },
+      "required": [
+        "view"
+      ],
+      "type": "object"
+    },
+    "MemoryView": {
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
+      ],
+      "type": "string"
+    },
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
     "PersonBatchJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -56,51 +101,6 @@
         "first_only_prompt",
         "label",
         "max_iteration"
-      ],
-      "type": "object"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
-      ],
-      "type": "object"
-    },
-    "MemoryView": {
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
-    },
-    "MemorySettings": {
-      "additionalProperties": false,
-      "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
-        }
-      },
-      "required": [
-        "view"
       ],
       "type": "object"
     }

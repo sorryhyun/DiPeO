@@ -2,16 +2,24 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
-    "PersonID": {
+    "MemorySettings": {
       "additionalProperties": false,
       "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
+        "max_messages": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "preserve_system": {
+          "type": "boolean"
+        },
+        "view": {
+          "$ref": "#/definitions/MemoryView"
         }
       },
       "required": [
-        "__brand"
+        "view"
       ],
       "type": "object"
     },
@@ -25,6 +33,19 @@
         "all_messages"
       ],
       "type": "string"
+    },
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
     },
     "PersonJobNodeData": {
       "additionalProperties": false,
@@ -80,27 +101,6 @@
         "first_only_prompt",
         "label",
         "max_iteration"
-      ],
-      "type": "object"
-    },
-    "MemorySettings": {
-      "additionalProperties": false,
-      "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
-        }
-      },
-      "required": [
-        "view"
       ],
       "type": "object"
     }

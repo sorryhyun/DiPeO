@@ -72,7 +72,14 @@ class ServerManager:
         if self.process:
             print("🛑 Stopping server...")
             self.process.terminate()
-            self.process.wait()
+            try:
+                # Wait up to 5 seconds for graceful shutdown
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                # Force kill if graceful shutdown fails
+                print("⚠️  Server didn't stop gracefully, forcing shutdown...")
+                self.process.kill()
+                self.process.wait()
             self.process = None
 
     def execute_diagram(

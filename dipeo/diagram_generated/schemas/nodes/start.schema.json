@@ -10,6 +10,14 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "HookTriggerMode": {
+      "enum": [
+        "none",
+        "manual",
+        "hook"
+      ],
+      "type": "string"
+    },
     "StartNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -40,14 +48,6 @@
         "trigger_mode"
       ],
       "type": "object"
-    },
-    "HookTriggerMode": {
-      "enum": [
-        "none",
-        "manual",
-        "hook"
-      ],
-      "type": "string"
     },
     "Record<string,string>": {
       "additionalProperties": false,
