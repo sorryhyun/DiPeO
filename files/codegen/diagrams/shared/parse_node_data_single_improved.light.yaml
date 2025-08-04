@@ -15,37 +15,18 @@ nodes:
     props:
       language: python
       code: |
-        # Parse input to extract node type and file path
-        # Check if we have a default value in inputs (common case)
-        if 'default' in inputs:
-            default_data = inputs['default']
-            if isinstance(default_data, dict):
-                node_type = default_data.get('node_type')
-                file_path = default_data.get('file_path')
-            else:
-                # If default is a string, use it as node_type
-                node_type = default_data
-                file_path = None
-        else:
-            # Direct inputs
-            node_type = inputs.get('node_type')
-            file_path = inputs.get('file_path')
+        # Extract node_type from inputs (handles both dict and string formats)
+        node_type = inputs.get('default', {}).get('node_type') if isinstance(inputs.get('default'), dict) else inputs.get('node_type', inputs.get('default'))
         
         if not node_type:
             raise ValueError(f"node_type not provided in input. Got: {inputs}")
         
-        # Convert underscore to hyphen for cache filename
-        cache_filename = node_type.replace('_', '-') + '_data'
-        
-        # Also create the file name with hyphens
+        # Create file name with hyphens (e.g., "person_job" -> "person-job.data.ts")
         file_name = node_type.replace('_', '-') + '.data.ts'
         
-        # Return the data directly as the result
         result = {
             "node_type": node_type,
-            "file_name": file_name,
-            "file_path": file_path,
-            "cache_filename": cache_filename
+            "file_name": file_name
         }
   
   # Load the TypeScript source file
@@ -67,88 +48,73 @@ nodes:
       parseMode: module
       outputFormat: for_codegen
         
-  # Format result and save cache
-  - label: Format and Save
+  # Format result for cache and output
+  - label: Format Data
     type: code_job
     position: {x: 750, y: 200}
     props:
       language: python
       code: |
-        # Format the AST result for saving and output
-        # Debug what we're receiving
-        print(f"[Format and Save] Received inputs keys: {inputs.keys()}")
+        from pathlib import Path
         
-        # The typescript_ast node outputs directly
-        # When connected with label 'ast_data', it comes as inputs['ast_data']
-        ast_data = inputs.get('ast_data')
-        
-        # Handle the case where ast_data might be a string reference
-        if isinstance(ast_data, str):
-            # This might be a connection label, check default
-            ast_data = inputs.get('default', {})
-            print(f"[Format and Save] Using default input for ast_data")
-        
-        # If still not found or not a dict, use empty dict
-        if not isinstance(ast_data, dict):
-            print(f"[Format and Save] ast_data is not a dict: {type(ast_data)}, using empty dict")
-            ast_data = {}
-            
-        # Get node_info from the inputs (sent from Parse Input)
-        # Parse Input now sends the entire data object as node_info
+        # Get the AST data and node info from inputs
+        ast_data = inputs.get('ast_data', {})
         node_info = inputs.get('node_info', {})
-        
-        # Extract node_type and cache_filename directly from node_info
         node_type = node_info.get('node_type', 'unknown')
-        cache_filename = node_info.get('cache_filename', node_type)
         
-        # Extract main interface
+        # Extract main interface (first one or matching name)
         interfaces = ast_data.get('interfaces', [])
         main_interface = None
         if interfaces:
-            # Find the main interface
+            # Try to find interface matching the node type
+            node_type_clean = node_type.replace('_', '')
             for interface in interfaces:
-                if interface.get('name', '').lower().replace('nodedata', '') == node_type.replace('_', ''):
+                if interface.get('name', '').lower().replace('nodedata', '') == node_type_clean:
                     main_interface = interface
                     break
-            if not main_interface and interfaces:
+            # Fallback to first interface if no match
+            if not main_interface:
                 main_interface = interfaces[0]
         
-        # Prepare data for saving
+        # Ensure .temp directory exists
+        Path('.temp').mkdir(exist_ok=True)
+        
+        # Prepare cache data
+        cache_filename = node_type.replace('_', '-') + '_data'
         cache_data = {
             'node_type': node_type,
             'ast': ast_data,
             'main_interface': main_interface
         }
         
-        import json
-        import os
-        from pathlib import Path
-        
-        # Ensure .temp directory exists
-        Path('.temp').mkdir(exist_ok=True)
-        
-        # Save the cache file
-        cache_path = f'.temp/{cache_filename}_ast.json'
-        with open(cache_path, 'w') as f:
-            json.dump(cache_data, f, indent=2)
-        
-        print(f"[Format and Save] Saved AST cache to {cache_path}")
-        
+        # Prepare output
         result = {
+            'content': cache_data,
+            'cache_path': f'.temp/{cache_filename}_ast.json',
             'parsed_node': {
                 'node_type': node_type,
                 'interface': main_interface,
                 'all_interfaces': interfaces,
                 'types': ast_data.get('types', []),
                 'enums': ast_data.get('enums', []),
-                'total_definitions': ast_data.get('total_definitions', 0)
+                'total_definitions': len(interfaces) + len(ast_data.get('types', [])) + len(ast_data.get('enums', []))
             }
         }
-        
+  
+  # Save cache to file using DB node
+  - label: Save Cache
+    type: db
+    position: {x: 900, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      file: "{cache_data.cache_path}"
+      serialize_json: true
+      
   # Return the parsed interface data  
   - label: End
     type: endpoint
-    position: {x: 950, y: 200}
+    position: {x: 1100, y: 200}
     props:
       save_to_file: false
       
@@ -165,13 +131,20 @@ connections:
     label: source
     
   - from: Parse TypeScript AST
-    to: Format and Save
+    to: Format Data
     label: ast_data
     
   - from: Parse Input
-    to: Format and Save
+    to: Format Data
     label: node_info
     
-  - from: Format and Save
+  - from: Format Data
+    to: Save Cache
+    label: cache_data
+    
+  - from: Format Data
     to: End
     label: parsed_node
+    
+  - from: Save Cache
+    to: End

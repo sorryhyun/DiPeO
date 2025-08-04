@@ -118,7 +118,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 )
             
             # Get TypeScript parser from services using DI pattern
-            parser_service = request.services.get("ast_parser")
+            parser_service = request.get_service("ast_parser")
             if not parser_service:
                 return ErrorOutput(
                     value="TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
