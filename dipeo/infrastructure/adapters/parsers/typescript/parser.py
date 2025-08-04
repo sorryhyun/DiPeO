@@ -10,21 +10,40 @@ from typing import Any
 
 from dipeo.core.base.exceptions import ServiceError
 
+from ..resource_locator import ParserResourceLocator
 from .platform_utils import get_tsx_command, setup_github_actions_env
 
 
 class TypeScriptParser:
     """TypeScript AST parser using ts-morph via Node.js subprocess."""
     
-    def __init__(self, project_root: Path | None = None):
+    def __init__(self, 
+                 project_root: Path | None = None,
+                 parser_script: Path | None = None,
+                 cache_enabled: bool = True):
         """Initialize the TypeScript parser.
         
         Args:
             project_root: Project root directory. If not provided, uses DIPEO_BASE_DIR or cwd.
+            parser_script: Path to the parser script. If not provided, uses resource locator.
+            cache_enabled: Whether to enable AST caching (default: True)
         """
         self.project_root = project_root or Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
-        self.parser_script = self.project_root / 'dipeo' / 'infrastructure' / 'adapters' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
-        self._cache: dict[str, dict[str, Any]] = {}
+        
+        # Use provided script path or get from resource locator
+        if parser_script:
+            self.parser_script = parser_script
+        else:
+            # Use resource locator to dynamically find the parser script
+            self.parser_script = ParserResourceLocator.get_parser_script('typescript', self.project_root)
+        
+        # Only initialize cache if enabled
+        self._cache: dict[str, dict[str, Any]] = {} if cache_enabled else None
+        self.cache_enabled = cache_enabled
+        
+        # Validate parser script exists
+        if not self.parser_script.exists():
+            raise ServiceError(f"Parser script not found: {self.parser_script}")
     
     async def parse(
         self,
@@ -49,6 +68,11 @@ class TypeScriptParser:
         Raises:
             ServiceError: If parsing fails
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[TypeScriptParser] Starting parse with {len(source)} chars, patterns: {extract_patterns}")
+        
         options = options or {}
         include_jsdoc = options.get('includeJSDoc', False)
         parse_mode = options.get('parseMode', 'module')
@@ -60,8 +84,8 @@ class TypeScriptParser:
             f"{source}:{','.join(sorted(extract_patterns))}:{include_jsdoc}:{parse_mode}".encode()
         ).hexdigest()
         
-        if cache_key in self._cache:
-            print(f"[TypeScript Parser] Cache hit for content hash {cache_key[:8]}")
+        if self.cache_enabled and self._cache is not None and cache_key in self._cache:
+            logger.info(f"[TypeScriptParser] Cache hit for content hash {cache_key[:8]}")
             return self._cache[cache_key]
         
         # Ensure parser script exists
@@ -94,6 +118,9 @@ class TypeScriptParser:
             # Setup environment (handles GitHub Actions if needed)
             env = setup_github_actions_env(os.environ.copy())
             
+            logger.info(f"[TypeScriptParser] Executing command: {' '.join(cmd)}")
+            logger.info(f"[TypeScriptParser] Working dir: {self.project_root}")
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -105,18 +132,21 @@ class TypeScriptParser:
             
             os.unlink(tmp_file_path)
             
+            logger.info(f"[TypeScriptParser] Command completed with return code: {result.returncode}")
+            
             if result.returncode != 0:
-                print(f"[TypeScript Parser] Parser failed with return code {result.returncode}")
-                print(f"[TypeScript Parser] Command was: {' '.join(cmd)}")
-                print(f"[TypeScript Parser] Working directory: {self.project_root}")
-                print(f"[TypeScript Parser] stderr: {result.stderr}")
-                print(f"[TypeScript Parser] stdout: {result.stdout[:500]}...")
+                logger.error(f"[TypeScriptParser] Parser failed with return code {result.returncode}")
+                logger.error(f"[TypeScriptParser] Command was: {' '.join(cmd)}")
+                logger.error(f"[TypeScriptParser] Working directory: {self.project_root}")
+                logger.error(f"[TypeScriptParser] stderr: {result.stderr}")
+                logger.error(f"[TypeScriptParser] stdout: {result.stdout[:500]}...")
                 # Check if this is a "command not found" error
                 if "is not recognized" in result.stderr or "command not found" in result.stderr.lower():
-                    print("[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
+                    logger.error("[TypeScriptParser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
                 raise ServiceError(f'Parser failed: {result.stderr}')
             
             parsed_result = json.loads(result.stdout)
+            logger.info(f"[TypeScriptParser] Parsed JSON result, keys: {list(parsed_result.keys())}")
 
             # Check for parser errors
             if parsed_result.get('error'):
@@ -146,8 +176,11 @@ class TypeScriptParser:
                 }
             }
             
-            self._cache[cache_key] = result
-            print(f"[TypeScript Parser] Cached result for content hash {cache_key[:8]}")
+            logger.info(f"[TypeScriptParser] Returning result with keys: {list(result.keys())}, ast_data keys: {list(ast_data.keys())}")
+            
+            if self.cache_enabled and self._cache is not None:
+                self._cache[cache_key] = result
+                logger.info(f"[TypeScriptParser] Cached result for content hash {cache_key[:8]}")
             
             return result
             
@@ -178,8 +211,11 @@ class TypeScriptParser:
     
     def clear_cache(self):
         """Clear the in-memory AST cache."""
-        self._cache.clear()
-        print("[TypeScript Parser] Cache cleared")
+        if self._cache is not None:
+            self._cache.clear()
+            print("[TypeScript Parser] Cache cleared")
+        else:
+            print("[TypeScript Parser] Cache is disabled, nothing to clear")
     
     async def parse_file(self, file_path: str, extract_patterns: list[str], options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Parse a TypeScript file.
@@ -246,7 +282,7 @@ class TypeScriptParser:
                 f"{source}:{','.join(sorted(extract_patterns))}:{include_jsdoc}:{parse_mode}".encode()
             ).hexdigest()
             
-            if cache_key in self._cache:
+            if self.cache_enabled and self._cache is not None and cache_key in self._cache:
                 print(f"[TypeScript Parser] Batch: Cache hit for {key} (hash {cache_key[:8]})")
                 cached_results[key] = self._cache[cache_key]
             else:
@@ -273,29 +309,38 @@ class TypeScriptParser:
             except RuntimeError as e:
                 raise ServiceError(str(e))
             
-            # Build full command
-            cmd = base_cmd + [str(self.parser_script), '--batch']
+            # Write batch input to temporary file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                temp_file.write(batch_input)
+                temp_file_path = temp_file.name
             
-            if extract_patterns:
-                cmd.append(f'--patterns={",".join(extract_patterns)}')
-            
-            if include_jsdoc:
-                cmd.append('--include-jsdoc')
-            
-            cmd.append(f'--mode={parse_mode}')
-            
-            # Setup environment (handles GitHub Actions if needed)
-            env = setup_github_actions_env(os.environ.copy())
-            
-            result = subprocess.run(
-                cmd,
-                input=batch_input,
-                capture_output=True,
-                text=True,
-                cwd=str(self.project_root),
-                env=env,
-                timeout=60  # Increased timeout for batch processing
-            )
+            try:
+                # Build full command with batch-input file
+                cmd = base_cmd + [str(self.parser_script), f'--batch-input={temp_file_path}']
+                
+                if extract_patterns:
+                    cmd.append(f'--patterns={",".join(extract_patterns)}')
+                
+                if include_jsdoc:
+                    cmd.append('--include-jsdoc')
+                
+                cmd.append(f'--mode={parse_mode}')
+                
+                # Setup environment (handles GitHub Actions if needed)
+                env = setup_github_actions_env(os.environ.copy())
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.project_root),
+                    env=env,
+                    timeout=60  # Increased timeout for batch processing
+                )
+            finally:
+                # Clean up temporary file
+                os.unlink(temp_file_path)
             
             if result.returncode != 0:
                 print(f"[TypeScript Parser] Batch parser failed with return code {result.returncode}")
@@ -348,7 +393,8 @@ class TypeScriptParser:
                 cache_key = hashlib.md5(
                     f"{source}:{','.join(sorted(extract_patterns))}:{include_jsdoc}:{parse_mode}".encode()
                 ).hexdigest()
-                self._cache[cache_key] = formatted_result
+                if self.cache_enabled and self._cache is not None:
+                    self._cache[cache_key] = formatted_result
                 
                 results[key] = formatted_result
             

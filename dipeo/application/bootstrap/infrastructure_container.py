@@ -155,12 +155,14 @@ class InfrastructureContainer:
             integrated_api_service
         )
 
-        # TypeScript AST parser service
-        from dipeo.infrastructure.services.typescript_parser_service import get_typescript_parser_service
-        typescript_parser_service = get_typescript_parser_service(
-            project_root=Path(self.config.base_dir)
+        # Generic AST parser service (supports multiple languages)
+        from dipeo.infrastructure.services.parser import get_parser_service
+        parser_service = get_parser_service(
+            default_language="typescript",
+            project_root=Path(self.config.base_dir),
+            cache_enabled=True
         )
         self.registry.register(
             AST_PARSER,
-            typescript_parser_service
+            parser_service
         )

@@ -11,12 +11,30 @@ nodes:
     
   # Load the TypeScript source file
   - label: Load Source File
-    type: db
+    type: code_job
     position: {x: 200, y: 200}
     props:
-      operation: read
-      sub_type: file
-      source_details: "{file_path}"
+      language: python
+      code: |
+        # Extract file path and load the TypeScript source file
+        # Handle batch input from sub_diagram
+        if 'default' in inputs:
+            data = inputs['default']
+            if isinstance(data, dict):
+                file_path = data.get('file_path', '')
+            else:
+                file_path = ''
+        else:
+            file_path = inputs.get('file_path', '')
+        
+        if not file_path:
+            raise ValueError("No file_path provided in input")
+        
+        # Read the file
+        with open(file_path, 'r') as f:
+            source = f.read()
+        
+        result = {'source': source}
       
   # Parse TypeScript using native typescript_ast node
   - label: Parse TypeScript
@@ -37,30 +55,47 @@ nodes:
     props:
       language: python
       code: |
-        def main(inputs):
-            """Format the parsed AST result with metadata."""
-            ast_data = inputs.get('ast_data', {})
-            metadata = inputs.get('metadata', {})
-            
-            # Extract file path and key from input
-            file_path = metadata.get('file_path', '')
-            key = metadata.get('key', file_path)
-            
-            # Create the formatted result
-            result = {
-                'key': key,
-                'file_path': file_path,
-                'ast': ast_data,
-                'success': True,
-                'metadata': {
-                    'interfaces_count': len(ast_data.get('interfaces', [])),
-                    'types_count': len(ast_data.get('types', [])),
-                    'enums_count': len(ast_data.get('enums', [])),
-                    'total_definitions': ast_data.get('total_definitions', 0)
-                }
+        # Format the parsed AST result with metadata
+        # The typescript_ast node outputs directly as the input
+        # Check if ast_data is a string key or the actual data
+        ast_data = inputs.get('ast_data', {})
+        
+        # If ast_data is a string, it might be a reference - use it as is
+        if isinstance(ast_data, str):
+            # In this case, ast_data might be a connection reference
+            # The actual data should be in the default input
+            ast_data = inputs.get('default', {})
+        
+        # Handle metadata separately
+        metadata = inputs.get('metadata', {})
+        
+        # If metadata is in the initial input (from Start node)
+        # In batch mode, the data comes wrapped in 'default'
+        if not metadata or metadata == 'metadata':  # 'metadata' string means connection label not actual data
+            if 'default' in inputs:
+                default_input = inputs.get('default', {})
+                if isinstance(default_input, dict):
+                    metadata = default_input
+            else:
+                metadata = {}
+        
+        # Extract file path and key from metadata
+        file_path = metadata.get('file_path', '')
+        key = metadata.get('key', file_path)
+        
+        # Create the formatted result
+        result = {
+            'key': key,
+            'file_path': file_path,
+            'ast': ast_data,
+            'success': True,
+            'metadata': {
+                'interfaces_count': len(ast_data.get('interfaces', [])),
+                'types_count': len(ast_data.get('types', [])),
+                'enums_count': len(ast_data.get('enums', [])),
+                'total_definitions': ast_data.get('total_definitions', 0)
             }
-            
-            return result
+        }
         
   # Return the parsed data
   - label: End
@@ -78,6 +113,7 @@ connections:
   # Load source file based on file_path
   - from: Start
     to: Load Source File
+    label: default
     
   # Pass source to TypeScript parser
   - from: Load Source File

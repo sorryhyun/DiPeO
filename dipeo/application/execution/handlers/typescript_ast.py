@@ -70,6 +70,24 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         node = request.node
         inputs = request.inputs
         
+        # Add debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[TypescriptAstNode {node.id}] Starting execution")
+        logger.debug(f"[TypescriptAstNode {node.id}] Inputs keys: {list(inputs.keys()) if inputs else 'None'}")
+        
+        # Debug: log the actual input values
+        for key, value in inputs.items():
+            value_type = type(value).__name__
+            if isinstance(value, str):
+                logger.debug(f"[TypescriptAstNode {node.id}] Input '{key}': string with {len(value)} chars")
+                if len(value) < 100:
+                    logger.debug(f"[TypescriptAstNode {node.id}]   Preview: {value[:50]}...")
+            elif isinstance(value, dict):
+                logger.debug(f"[TypescriptAstNode {node.id}] Input '{key}': dict with keys {list(value.keys())}")
+            else:
+                logger.debug(f"[TypescriptAstNode {node.id}] Input '{key}': {value_type}")
+        
         # Store execution metadata
         request.add_metadata("extract_patterns", node.extractPatterns or ['interface', 'type', 'enum'])
         request.add_metadata("include_jsdoc", node.includeJSDoc or False)
@@ -82,8 +100,14 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             source = node.source
             if not source:
                 source = inputs.get('source', '')
+                if source:
+                    logger.debug(f"[TypescriptAstNode {node.id}] Got source from inputs['source']: {len(source)} chars")
             if not source and 'default' in inputs and isinstance(inputs['default'], dict):
                 source = inputs['default'].get('source', '')
+                if source:
+                    logger.debug(f"[TypescriptAstNode {node.id}] Got source from inputs['default']['source']: {len(source)} chars")
+            
+            logger.debug(f"[TypescriptAstNode {node.id}] Final source found: {len(source) if source else 0} chars")
             
             # Debug: print what we found
             if not source:
@@ -104,6 +128,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             
             # Parse the TypeScript code using the parser service
             try:
+                logger.info(f"[TypescriptAstNode {node.id}] Calling parser service with {len(source)} chars")
                 result = await parser_service.parse(
                     source=source,
                     extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
@@ -112,8 +137,13 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                         'parseMode': node.parseMode or 'module'
                     }
                 )
+                logger.info(f"[TypescriptAstNode {node.id}] Parser returned result type: {type(result)}")
+                logger.debug(f"[TypescriptAstNode {node.id}] Parser result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
             except Exception as parser_error:
-                print(f"[TypeScript AST] Parser error: {str(parser_error)}")
+                logger.error(f"[TypescriptAstNode {node.id}] Parser failed with error: {str(parser_error)}")
+                logger.error(f"[TypescriptAstNode {node.id}] Error type: {type(parser_error).__name__}")
+                import traceback
+                logger.error(f"[TypescriptAstNode {node.id}] Traceback: {traceback.format_exc()}")
                 raise
             
 
@@ -176,6 +206,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             # Flatten output if requested
             if flatten_output and output_format == 'standard':
                 output_data = self._flatten_output(output_data)
+
+            logger.info(f"[TypescriptAstNode {node.id}] Successfully parsed, returning {len(output_data.get('interfaces', []))} interfaces, {len(output_data.get('types', []))} types, {len(output_data.get('enums', []))} enums")
+            logger.debug(f"[TypescriptAstNode {node.id}] Output keys: {list(output_data.keys())}")
 
             # Return successful result with all extracted data
             return DataOutput(

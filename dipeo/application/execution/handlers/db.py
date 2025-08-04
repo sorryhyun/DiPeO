@@ -70,6 +70,9 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         # Handle file or list of files
         file_paths = node.file
         
+        logger.debug(f"DB {node.id} initial file_paths: {file_paths}")
+        logger.debug(f"DB {node.id} operation: {node.operation}")
+        
         if isinstance(file_paths, str):
             file_paths = [file_paths]
         elif not file_paths:
@@ -83,10 +86,25 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     variables = context.get_variables()
                 
                 merged_variables = {**variables, **inputs}
+                logger.debug(f"DB {node.id} processing template: {file_path}")
+                logger.debug(f"DB {node.id} available variables: {list(merged_variables.keys())}")
+                
+                # Debug the actual content of variables
+                for key, val in merged_variables.items():
+                    if isinstance(val, dict):
+                        logger.debug(f"DB {node.id}   {key}: dict with keys {list(val.keys())[:5]}")
+                    elif isinstance(val, str):
+                        logger.debug(f"DB {node.id}   {key}: '{val[:50]}...'")
+                    else:
+                        logger.debug(f"DB {node.id}   {key}: {type(val).__name__}")
+                
                 template_processor = TemplateProcessor()
                 file_path = template_processor.process_single_brace(file_path, merged_variables)
+                logger.debug(f"DB {node.id} processed path: {file_path}")
             
             processed_paths.append(file_path)
+        
+        logger.debug(f"DB {node.id} final processed_paths: {processed_paths}")
 
         if node.operation == "write":
             input_val = inputs.get('generated_code') or inputs.get('content') or inputs.get('value') or self._first_non_empty(inputs)

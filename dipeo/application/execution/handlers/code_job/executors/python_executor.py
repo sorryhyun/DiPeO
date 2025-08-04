@@ -83,14 +83,22 @@ class PythonExecutor(BaseCodeExecutor):
         function_name: str = "main"
     ) -> Any:
         """Execute inline Python code."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.debug(f"[PythonExecutor] execute_inline called with {len(code)} chars of code")
+        logger.debug(f"[PythonExecutor] Input keys: {list(inputs.keys())}")
+        
         # Prepare inputs
         prepared_inputs = self.prepare_inputs(inputs)
+        logger.debug(f"[PythonExecutor] Prepared inputs: {list(prepared_inputs.keys())}")
         
         # Create a module from the inline code
         module_code = code
         
         # If the code doesn't define the function, wrap it
         if f"def {function_name}" not in code:
+            logger.debug(f"[PythonExecutor] Code doesn't define {function_name}, wrapping it")
             # Create a function that unpacks inputs as local variables
             input_vars = '\n'.join(f'    {k} = inputs.get("{k}")' for k in prepared_inputs)
             indented_code = '\n'.join('    ' + line for line in code.split('\n') if line.strip())
@@ -106,7 +114,9 @@ class PythonExecutor(BaseCodeExecutor):
         
         try:
             # Execute using the file-based method
+            logger.debug(f"[PythonExecutor] Executing wrapped code from temp file: {temp_file_path}")
             result = await self.execute_file(Path(temp_file_path), inputs, timeout, function_name)
+            logger.debug(f"[PythonExecutor] Execution result type: {type(result)}, value: {result if not isinstance(result, dict) else f'dict with keys: {list(result.keys())}'}")
             return result
         finally:
             # Clean up temporary file

@@ -28,32 +28,31 @@ nodes:
     props:
       language: python
       code: |
-        def main(inputs):
-            """Convert file paths to batch items for sub_diagram processing."""
-            sources_data = inputs.get('sources', {})
-            
-            if isinstance(sources_data, dict):
-                sources = sources_data.get('sources', [])
-                file_mapping = sources_data.get('file_mapping', {})
-            else:
-                sources = sources_data
-                file_mapping = {}
-            
-            # Create batch items with file path and metadata
-            items = []
-            for i, file_path in enumerate(sources):
-                item = {
-                    'file_path': file_path,
-                    'index': i,
-                    'key': file_mapping.get(file_path, file_path)
-                }
-                items.append(item)
-            
-            return {
-                'items': items,
-                'total': len(items),
-                'file_mapping': file_mapping
+        # Convert file paths to batch items for sub_diagram processing
+        sources_data = inputs.get('sources', {})
+        
+        if isinstance(sources_data, dict):
+            sources = sources_data.get('sources', [])
+            file_mapping = sources_data.get('file_mapping', {})
+        else:
+            sources = sources_data
+            file_mapping = {}
+        
+        # Create batch items with file path and metadata
+        items = []
+        for i, file_path in enumerate(sources):
+            item = {
+                'file_path': file_path,
+                'index': i,
+                'key': file_mapping.get(file_path, file_path)
             }
+            items.append(item)
+        
+        result = {
+            'items': items,
+            'total': len(items),
+            'file_mapping': file_mapping
+        }
 
   # Parse each TypeScript file using typescript_ast in parallel
   - label: Batch Parse TypeScript
