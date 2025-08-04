@@ -7,7 +7,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.core.ports.ast_parser_port import ASTParserPort
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
@@ -18,13 +17,13 @@ if TYPE_CHECKING:
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     """Handler for TypeScript AST parsing node."""
     
-    def __init__(self, typescript_parser=None):
-        """Initialize with TypeScript parser.
+    def __init__(self):
+        """Initialize the handler.
         
-        Args:
-            typescript_parser: The TypeScript AST parser implementation
+        The TypeScript parser service will be injected via the service registry
+        during execution, following the DI pattern.
         """
-        self._parser = typescript_parser
+        pass
     
     @property
     def node_class(self) -> type[TypescriptAstNode]:
@@ -40,7 +39,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return ["typescript_parser"]
+        return ["ast_parser"]  # Uses the AST_PARSER service key
     
     @property
     def description(self) -> str:
@@ -94,17 +93,18 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     error_type="ValidationError"
                 )
             
-            # Check if parser is available
-            if not self._parser:
+            # Get TypeScript parser from services using DI pattern
+            parser_service = request.services.get("ast_parser")
+            if not parser_service:
                 return ErrorOutput(
-                    value="TypeScript parser service not available",
+                    value="TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
                     node_id=node.id,
                     error_type="ServiceError"
                 )
             
-            # Parse the TypeScript code using the injected parser
+            # Parse the TypeScript code using the parser service
             try:
-                result = await self._parser.parse(
+                result = await parser_service.parse(
                     source=source,
                     extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
                     options={

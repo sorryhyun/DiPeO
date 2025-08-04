@@ -1,36 +1,37 @@
 """TypeScript AST parser implementation."""
 
-import subprocess
+import hashlib
 import json
 import os
+import subprocess
 import tempfile
-import hashlib
-import shutil
 from pathlib import Path
-from typing import Dict, Any, List, Optional
-from dipeo.core.ports.ast_parser_port import ASTParserPort
+from typing import Any
+
 from dipeo.core.base.exceptions import ServiceError
 
+from .platform_utils import get_tsx_command, setup_github_actions_env
 
-class TypeScriptParser(ASTParserPort):
+
+class TypeScriptParser:
     """TypeScript AST parser using ts-morph via Node.js subprocess."""
     
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None):
         """Initialize the TypeScript parser.
         
         Args:
             project_root: Project root directory. If not provided, uses DIPEO_BASE_DIR or cwd.
         """
         self.project_root = project_root or Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
-        self.parser_script = self.project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self.parser_script = self.project_root / 'dipeo' / 'infrastructure' / 'adapters' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
+        self._cache: dict[str, dict[str, Any]] = {}
     
     async def parse(
         self,
         source: str,
-        extract_patterns: List[str],
-        options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        extract_patterns: list[str],
+        options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Parse TypeScript source code and extract AST information.
         
         Args:
@@ -72,97 +73,35 @@ class TypeScriptParser(ASTParserPort):
                 tmp_file.write(source)
                 tmp_file_path = tmp_file.name
             
-            # On Windows, use pnpm.CMD to avoid bash PATH issues
-            import platform
-            if platform.system() == 'Windows':
-                # Try to find pnpm in PATH or common locations
-                pnpm_cmd = None
-                
-                # First try pnpm.CMD in PATH
-                if shutil.which('pnpm.CMD'):
-                    pnpm_cmd = 'pnpm.CMD'
-                elif shutil.which('pnpm'):
-                    pnpm_cmd = 'pnpm'
-                else:
-                    # Try common pnpm installation locations
-                    possible_pnpm_paths = [
-                        os.path.expanduser('~\\AppData\\Local\\pnpm\\pnpm.CMD'),
-                        os.path.expanduser('~\\AppData\\Roaming\\npm\\pnpm.CMD'),
-                        'C:\\Program Files\\nodejs\\pnpm.CMD',
-                        'C:\\Program Files (x86)\\nodejs\\pnpm.CMD',
-                    ]
-                    
-                    for path in possible_pnpm_paths:
-                        if os.path.exists(path):
-                            pnpm_cmd = path
-                            break
-                
-                # If pnpm not found, try npx as fallback
-                if not pnpm_cmd and shutil.which('npx.CMD'):
-                    cmd = ['npx.CMD', 'tsx', str(self.parser_script)]
-                elif not pnpm_cmd and shutil.which('npx'):
-                    cmd = ['npx', 'tsx', str(self.parser_script)]
-                elif pnpm_cmd:
-                    cmd = [pnpm_cmd, 'tsx', str(self.parser_script)]
-                else:
-                    # Last resort: try node directly with tsx
-                    node_cmd = shutil.which('node') or 'node'
-                    tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx'
-                    if not tsx_path.exists():
-                        tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx.CMD'
-                    if tsx_path.exists():
-                        cmd = [node_cmd, str(tsx_path), str(self.parser_script)]
-                    else:
-                        raise ServiceError('Could not find pnpm, npx, or tsx to run TypeScript parser')
-                
-                if extract_patterns:
-                    cmd.append(f'--patterns={",".join(extract_patterns)}')
-                
-                if include_jsdoc:
-                    cmd.append('--include-jsdoc')
-                
-                cmd.append(f'--mode={parse_mode}')
-                cmd.append(tmp_file_path)
-                
-                # Add GitHub Actions paths to subprocess environment
-                env = os.environ.copy()
-                if 'GITHUB_ACTIONS' in env:
-                    # In GitHub Actions, ensure we have access to installed tools
-                    github_path = env.get('GITHUB_PATH', '')
-                    if github_path and os.path.exists(github_path):
-                        with open(github_path, 'r') as f:
-                            additional_paths = f.read().strip().split('\n')
-                            current_path = env.get('PATH', '')
-                            env['PATH'] = os.pathsep.join(additional_paths + [current_path])
-                
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    cwd=str(self.project_root),
-                    env=env,
-                    timeout=30
-                )
-            else:
-                # On Unix-like systems, use normal command
-                cmd = ['pnpm', 'tsx', str(self.parser_script)]
-                
-                if extract_patterns:
-                    cmd.append(f'--patterns={",".join(extract_patterns)}')
-                
-                if include_jsdoc:
-                    cmd.append('--include-jsdoc')
-                
-                cmd.append(f'--mode={parse_mode}')
-                cmd.append(tmp_file_path)
-                
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    cwd=str(self.project_root),
-                    timeout=30
-                )
+            # Get platform-specific command
+            try:
+                base_cmd = get_tsx_command(self.project_root)
+            except RuntimeError as e:
+                raise ServiceError(str(e))
+            
+            # Build full command
+            cmd = base_cmd + [str(self.parser_script)]
+            
+            if extract_patterns:
+                cmd.append(f'--patterns={",".join(extract_patterns)}')
+            
+            if include_jsdoc:
+                cmd.append('--include-jsdoc')
+            
+            cmd.append(f'--mode={parse_mode}')
+            cmd.append(tmp_file_path)
+            
+            # Setup environment (handles GitHub Actions if needed)
+            env = setup_github_actions_env(os.environ.copy())
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=str(self.project_root),
+                env=env,
+                timeout=30
+            )
             
             os.unlink(tmp_file_path)
             
@@ -174,7 +113,7 @@ class TypeScriptParser(ASTParserPort):
                 print(f"[TypeScript Parser] stdout: {result.stdout[:500]}...")
                 # Check if this is a "command not found" error
                 if "is not recognized" in result.stderr or "command not found" in result.stderr.lower():
-                    print(f"[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
+                    print("[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
                 raise ServiceError(f'Parser failed: {result.stderr}')
             
             parsed_result = json.loads(result.stdout)
@@ -227,7 +166,7 @@ class TypeScriptParser(ASTParserPort):
                     os.unlink(tmp_file_path)
                 except:
                     pass
-            raise ServiceError(f'Failed to parse JSON output: {str(e)}')
+            raise ServiceError(f'Failed to parse JSON output: {e!s}')
         except Exception as e:
             # Clean up temp file if it exists
             if 'tmp_file_path' in locals():
@@ -235,14 +174,14 @@ class TypeScriptParser(ASTParserPort):
                     os.unlink(tmp_file_path)
                 except:
                     pass
-            raise ServiceError(f'Unexpected error during TypeScript parsing: {str(e)}')
+            raise ServiceError(f'Unexpected error during TypeScript parsing: {e!s}')
     
     def clear_cache(self):
         """Clear the in-memory AST cache."""
         self._cache.clear()
         print("[TypeScript Parser] Cache cleared")
     
-    async def parse_file(self, file_path: str, extract_patterns: List[str], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def parse_file(self, file_path: str, extract_patterns: list[str], options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Parse a TypeScript file.
         
         Args:
@@ -262,20 +201,20 @@ class TypeScriptParser(ASTParserPort):
             raise ServiceError(f'File not found: {full_path}')
         
         try:
-            with open(full_path, 'r', encoding='utf-8') as f:
+            with open(full_path, encoding='utf-8') as f:
                 source = f.read()
             
             return await self.parse(source, extract_patterns, options)
         
         except Exception as e:
-            raise ServiceError(f'Failed to read file: {str(e)}')
+            raise ServiceError(f'Failed to read file: {e!s}')
     
     async def parse_batch(
         self,
-        sources: Dict[str, str],
-        extract_patterns: List[str],
-        options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Dict[str, Any]]:
+        sources: dict[str, str],
+        extract_patterns: list[str],
+        options: dict[str, Any] | None = None
+    ) -> dict[str, dict[str, Any]]:
         """Parse multiple TypeScript sources in a single operation.
         
         This method significantly reduces subprocess overhead by processing
@@ -328,97 +267,35 @@ class TypeScriptParser(ASTParserPort):
                 'sources': uncached_sources
             })
             
-            # On Windows, use pnpm.CMD to avoid bash PATH issues
-            import platform
-            if platform.system() == 'Windows':
-                # Try to find pnpm in PATH or common locations
-                pnpm_cmd = None
-                
-                # First try pnpm.CMD in PATH
-                if shutil.which('pnpm.CMD'):
-                    pnpm_cmd = 'pnpm.CMD'
-                elif shutil.which('pnpm'):
-                    pnpm_cmd = 'pnpm'
-                else:
-                    # Try common pnpm installation locations
-                    possible_pnpm_paths = [
-                        os.path.expanduser('~\\AppData\\Local\\pnpm\\pnpm.CMD'),
-                        os.path.expanduser('~\\AppData\\Roaming\\npm\\pnpm.CMD'),
-                        'C:\\Program Files\\nodejs\\pnpm.CMD',
-                        'C:\\Program Files (x86)\\nodejs\\pnpm.CMD',
-                    ]
-                    
-                    for path in possible_pnpm_paths:
-                        if os.path.exists(path):
-                            pnpm_cmd = path
-                            break
-                
-                # If pnpm not found, try npx as fallback
-                if not pnpm_cmd and shutil.which('npx.CMD'):
-                    cmd = ['npx.CMD', 'tsx', str(self.parser_script), '--batch']
-                elif not pnpm_cmd and shutil.which('npx'):
-                    cmd = ['npx', 'tsx', str(self.parser_script), '--batch']
-                elif pnpm_cmd:
-                    cmd = [pnpm_cmd, 'tsx', str(self.parser_script), '--batch']
-                else:
-                    # Last resort: try node directly with tsx
-                    node_cmd = shutil.which('node') or 'node'
-                    tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx'
-                    if not tsx_path.exists():
-                        tsx_path = self.project_root / 'node_modules' / '.bin' / 'tsx.CMD'
-                    if tsx_path.exists():
-                        cmd = [node_cmd, str(tsx_path), str(self.parser_script), '--batch']
-                    else:
-                        raise ServiceError('Could not find pnpm, npx, or tsx to run TypeScript parser')
-                
-                if extract_patterns:
-                    cmd.append(f'--patterns={",".join(extract_patterns)}')
-                
-                if include_jsdoc:
-                    cmd.append('--include-jsdoc')
-                
-                cmd.append(f'--mode={parse_mode}')
-                
-                # Add GitHub Actions paths to subprocess environment
-                env = os.environ.copy()
-                if 'GITHUB_ACTIONS' in env:
-                    # In GitHub Actions, ensure we have access to installed tools
-                    github_path = env.get('GITHUB_PATH', '')
-                    if github_path and os.path.exists(github_path):
-                        with open(github_path, 'r') as f:
-                            additional_paths = f.read().strip().split('\n')
-                            current_path = env.get('PATH', '')
-                            env['PATH'] = os.pathsep.join(additional_paths + [current_path])
-                
-                result = subprocess.run(
-                    cmd,
-                    input=batch_input,
-                    capture_output=True,
-                    text=True,
-                    cwd=str(self.project_root),
-                    env=env,
-                    timeout=60  # Increased timeout for batch processing
-                )
-            else:
-                # On Unix-like systems, use normal command
-                cmd = ['pnpm', 'tsx', str(self.parser_script), '--batch']
-                
-                if extract_patterns:
-                    cmd.append(f'--patterns={",".join(extract_patterns)}')
-                
-                if include_jsdoc:
-                    cmd.append('--include-jsdoc')
-                
-                cmd.append(f'--mode={parse_mode}')
-                
-                result = subprocess.run(
-                    cmd,
-                    input=batch_input,
-                    capture_output=True,
-                    text=True,
-                    cwd=str(self.project_root),
-                    timeout=60  # Increased timeout for batch processing
-                )
+            # Get platform-specific command
+            try:
+                base_cmd = get_tsx_command(self.project_root)
+            except RuntimeError as e:
+                raise ServiceError(str(e))
+            
+            # Build full command
+            cmd = base_cmd + [str(self.parser_script), '--batch']
+            
+            if extract_patterns:
+                cmd.append(f'--patterns={",".join(extract_patterns)}')
+            
+            if include_jsdoc:
+                cmd.append('--include-jsdoc')
+            
+            cmd.append(f'--mode={parse_mode}')
+            
+            # Setup environment (handles GitHub Actions if needed)
+            env = setup_github_actions_env(os.environ.copy())
+            
+            result = subprocess.run(
+                cmd,
+                input=batch_input,
+                capture_output=True,
+                text=True,
+                cwd=str(self.project_root),
+                env=env,
+                timeout=60  # Increased timeout for batch processing
+            )
             
             if result.returncode != 0:
                 print(f"[TypeScript Parser] Batch parser failed with return code {result.returncode}")
@@ -428,7 +305,7 @@ class TypeScriptParser(ASTParserPort):
                 print(f"[TypeScript Parser] stdout: {result.stdout[:500]}...")
                 # Check if this is a "command not found" error
                 if "is not recognized" in result.stderr or "command not found" in result.stderr.lower():
-                    print(f"[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
+                    print("[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
                 raise ServiceError(f'Batch parser failed: {result.stderr}')
             
             # Parse the JSON output
@@ -488,16 +365,16 @@ class TypeScriptParser(ASTParserPort):
         except subprocess.TimeoutExpired:
             raise ServiceError('Batch TypeScript parsing timed out after 60 seconds')
         except json.JSONDecodeError as e:
-            raise ServiceError(f'Failed to parse batch JSON output: {str(e)}')
+            raise ServiceError(f'Failed to parse batch JSON output: {e!s}')
         except Exception as e:
-            raise ServiceError(f'Unexpected error during batch TypeScript parsing: {str(e)}')
+            raise ServiceError(f'Unexpected error during batch TypeScript parsing: {e!s}')
     
     async def parse_files_batch(
         self,
-        file_paths: List[str],
-        extract_patterns: List[str],
-        options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Dict[str, Any]]:
+        file_paths: list[str],
+        extract_patterns: list[str],
+        options: dict[str, Any] | None = None
+    ) -> dict[str, dict[str, Any]]:
         """Parse multiple TypeScript files in a single operation.
         
         Args:
@@ -521,136 +398,13 @@ class TypeScriptParser(ASTParserPort):
                 continue
             
             try:
-                with open(full_path, 'r', encoding='utf-8') as f:
+                with open(full_path, encoding='utf-8') as f:
                     sources[file_path] = f.read()
             except Exception as e:
-                print(f"[TypeScript Parser] Warning: Failed to read file {file_path}: {str(e)}")
+                print(f"[TypeScript Parser] Warning: Failed to read file {file_path}: {e!s}")
                 continue
         
         if not sources:
             return {}
         
         return await self.parse_batch(sources, extract_patterns, options)
-
-
-def transform_ts_to_python(ast_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Transform TypeScript AST to Python type definitions.
-    
-    This is a utility function that can be used to convert TypeScript
-    types to Python equivalents.
-    
-    Args:
-        ast_data: Dictionary containing parsed TypeScript AST data
-    
-    Returns:
-        Dictionary containing Python type mappings and definitions
-    """
-    interfaces = ast_data.get('interfaces', [])
-    types = ast_data.get('types', [])
-    enums = ast_data.get('enums', [])
-    
-    # Type mapping from TypeScript to Python
-    type_map = {
-        'string': 'str',
-        'number': 'float',
-        'boolean': 'bool',
-        'Date': 'datetime',
-        'any': 'Any',
-        'unknown': 'Any',
-        'void': 'None',
-        'null': 'None',
-        'undefined': 'Optional[Any]',
-        'object': 'Dict[str, Any]',
-        'Object': 'Dict[str, Any]',
-        'Array': 'List',
-        'Promise': 'Awaitable'
-    }
-    
-    def map_ts_type(ts_type: str) -> str:
-        """Map TypeScript type to Python type."""
-        # Handle array types
-        if ts_type.endswith('[]'):
-            inner_type = ts_type[:-2]
-            return f'List[{map_ts_type(inner_type)}]'
-        
-        # Handle generic types
-        if '<' in ts_type and '>' in ts_type:
-            base = ts_type[:ts_type.index('<')]
-            inner = ts_type[ts_type.index('<')+1:ts_type.rindex('>')]
-            
-            if base == 'Array':
-                return f'List[{map_ts_type(inner)}]'
-            elif base == 'Promise':
-                return f'Awaitable[{map_ts_type(inner)}]'
-            elif base == 'Record':
-                parts = inner.split(',', 1)
-                if len(parts) == 2:
-                    return f'Dict[{map_ts_type(parts[0].strip())}, {map_ts_type(parts[1].strip())}]'
-            
-            return f'{base}[{inner}]'
-        
-        # Handle union types
-        if '|' in ts_type:
-            parts = [map_ts_type(p.strip()) for p in ts_type.split('|')]
-            return f'Union[{", ".join(parts)}]'
-        
-        # Handle literal types
-        if ts_type.startswith('"') and ts_type.endswith('"'):
-            return f'Literal[{ts_type}]'
-        
-        # Map basic types
-        return type_map.get(ts_type, ts_type)
-    
-    # Transform interfaces to Python dataclasses
-    python_classes = []
-    for interface in interfaces:
-        fields = []
-        for prop in interface.get('properties', []):
-            py_type = map_ts_type(prop['type'])
-            if prop['optional']:
-                py_type = f'Optional[{py_type}]'
-            
-            fields.append({
-                'name': prop['name'],
-                'type': py_type,
-                'optional': prop['optional'],
-                'readonly': prop['readonly'],
-                'jsDoc': prop.get('jsDoc')
-            })
-        
-        python_classes.append({
-            'name': interface['name'],
-            'fields': fields,
-            'extends': interface.get('extends', []),
-            'isExported': interface['isExported'],
-            'jsDoc': interface.get('jsDoc')
-        })
-    
-    # Transform type aliases
-    python_types = []
-    for type_alias in types:
-        python_types.append({
-            'name': type_alias['name'],
-            'type': map_ts_type(type_alias['type']),
-            'isExported': type_alias['isExported'],
-            'jsDoc': type_alias.get('jsDoc')
-        })
-    
-    # Transform enums
-    python_enums = []
-    for enum in enums:
-        python_enums.append({
-            'name': enum['name'],
-            'members': enum['members'],
-            'isExported': enum['isExported'],
-            'jsDoc': enum.get('jsDoc')
-        })
-    
-    return {
-        'classes': python_classes,
-        'types': python_types,
-        'enums': python_enums,
-        'imports': ['from typing import Dict, List, Optional, Union, Any, Literal, Awaitable',
-                    'from datetime import datetime',
-                    'from dataclasses import dataclass, field']
-    }

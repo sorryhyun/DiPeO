@@ -1,0 +1,94 @@
+# Parse Single TypeScript File using typescript_ast Node
+# Used as a sub_diagram for batch processing
+# Replaces subprocess-based parsing with native DiPeO node
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    
+  # Load the TypeScript source file
+  - label: Load Source File
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: "{file_path}"
+      
+  # Parse TypeScript using native typescript_ast node
+  - label: Parse TypeScript
+    type: typescript_ast
+    position: {x: 400, y: 200}
+    props:
+      extractPatterns: ["interface", "type", "enum", "const", "class"]
+      includeJSDoc: true
+      parseMode: module
+      outputFormat: for_codegen
+      transformEnums: true
+      flattenOutput: false
+        
+  # Format and return the result
+  - label: Format Result
+    type: code_job
+    position: {x: 600, y: 200}
+    props:
+      language: python
+      code: |
+        def main(inputs):
+            """Format the parsed AST result with metadata."""
+            ast_data = inputs.get('ast_data', {})
+            metadata = inputs.get('metadata', {})
+            
+            # Extract file path and key from input
+            file_path = metadata.get('file_path', '')
+            key = metadata.get('key', file_path)
+            
+            # Create the formatted result
+            result = {
+                'key': key,
+                'file_path': file_path,
+                'ast': ast_data,
+                'success': True,
+                'metadata': {
+                    'interfaces_count': len(ast_data.get('interfaces', [])),
+                    'types_count': len(ast_data.get('types', [])),
+                    'enums_count': len(ast_data.get('enums', [])),
+                    'total_definitions': ast_data.get('total_definitions', 0)
+                }
+            }
+            
+            return result
+        
+  # Return the parsed data
+  - label: End
+    type: endpoint
+    position: {x: 800, y: 200}
+    props:
+      save_to_file: false
+      
+connections:
+  # Pass initial metadata through
+  - from: Start
+    to: Format Result
+    label: metadata
+    
+  # Load source file based on file_path
+  - from: Start
+    to: Load Source File
+    
+  # Pass source to TypeScript parser
+  - from: Load Source File
+    to: Parse TypeScript
+    label: source
+    
+  # Pass parsed AST to formatter
+  - from: Parse TypeScript
+    to: Format Result
+    label: ast_data
+    
+  # Return formatted result
+  - from: Format Result
+    to: End

@@ -1,0 +1,106 @@
+# Parse All TypeScript Model Files - Improved with typescript_ast
+# Uses typescript_ast nodes with sub_diagram batch processing
+# Eliminates subprocess overhead and platform-specific issues
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting improved TypeScript AST parsing using native nodes
+
+  # Gather all TypeScript model files
+  - label: Gather File Paths
+    type: code_job
+    position: {x: 200, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/parse_all_typescript_batch/gather_typescript_files.py
+      functionName: main
+
+  # Prepare batch items for sub_diagram processing
+  - label: Prepare Batch Items
+    type: code_job
+    position: {x: 400, y: 300}
+    props:
+      language: python
+      code: |
+        def main(inputs):
+            """Convert file paths to batch items for sub_diagram processing."""
+            sources_data = inputs.get('sources', {})
+            
+            if isinstance(sources_data, dict):
+                sources = sources_data.get('sources', [])
+                file_mapping = sources_data.get('file_mapping', {})
+            else:
+                sources = sources_data
+                file_mapping = {}
+            
+            # Create batch items with file path and metadata
+            items = []
+            for i, file_path in enumerate(sources):
+                item = {
+                    'file_path': file_path,
+                    'index': i,
+                    'key': file_mapping.get(file_path, file_path)
+                }
+                items.append(item)
+            
+            return {
+                'items': items,
+                'total': len(items),
+                'file_mapping': file_mapping
+            }
+
+  # Parse each TypeScript file using typescript_ast in parallel
+  - label: Batch Parse TypeScript
+    type: sub_diagram
+    position: {x: 600, y: 300}
+    props:
+      diagram_name: codegen/diagrams/shared/parse_single_typescript_ast
+      diagram_format: light
+      batch: true
+      batch_input_key: items
+      batch_parallel: true
+
+  # Consolidate batch results and save cache
+  - label: Save AST Cache
+    type: code_job
+    position: {x: 800, y: 300}
+    props:
+      language: python
+      filePath: files/codegen/code/models/parse_all_typescript_batch/save_improved_ast_cache.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 1000, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  # Linear flow with batch processing
+  - from: Start
+    to: Gather File Paths
+  
+  - from: Gather File Paths
+    to: Prepare Batch Items
+    label: sources
+  
+  - from: Prepare Batch Items
+    to: Batch Parse TypeScript
+    label: default
+  
+  - from: Batch Parse TypeScript
+    to: Save AST Cache
+    label: results
+  
+  - from: Prepare Batch Items
+    to: Save AST Cache
+    label: file_mapping
+  
+  - from: Save AST Cache
+    to: End

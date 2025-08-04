@@ -62,12 +62,44 @@ class ExecuteDiagramUseCase(BaseService):
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
         use_monitoring_stream: bool = False,  # Use monitoring-only streaming for CLI executions
+        use_unified_monitoring: bool = False,  # Use unified monitoring architecture
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
         typed_diagram = await self._compile_typed_diagram(diagram)
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
-        if observers is not None:
+        
+        # Use unified monitoring if flag is set
+        if use_unified_monitoring:
+            from dipeo.application.execution.observers.unified_event_observer import UnifiedEventObserver
+            
+            unified_observer = UnifiedEventObserver(
+                message_router=self.message_router,
+                execution_runtime=typed_diagram,
+                capture_logs=use_monitoring_stream  # Enable log capture for CLI
+            )
+            engine_observers = []
+            
+            if self.state_store:
+                from dipeo.application.execution.observers import StateStoreObserver
+                engine_observers.append(StateStoreObserver(self.state_store))
+            
+            engine_observers.append(unified_observer)
+            
+            # For CLI executions, we still need a way to stream updates
+            if use_monitoring_stream:
+                from dipeo.application.execution.observers import MonitoringStreamObserver
+                streaming_observer = MonitoringStreamObserver()
+                engine_observers.append(streaming_observer)
+                
+                try:
+                    from dipeo_server.api.sse import register_observer_for_execution
+                    register_observer_for_execution(execution_id, streaming_observer)
+                except ImportError:
+                    pass
+            else:
+                streaming_observer = None
+        elif observers is not None:
             engine_observers = observers
             streaming_observer = None
             for obs in observers:
@@ -122,7 +154,7 @@ class ExecuteDiagramUseCase(BaseService):
         )
 
         update_iterator = None
-        if not use_monitoring_stream:
+        if not use_monitoring_stream and streaming_observer:
             update_iterator = streaming_observer.subscribe(execution_id)
 
         async def run_execution():
@@ -175,7 +207,7 @@ class ExecuteDiagramUseCase(BaseService):
                 "execution_id": execution_id,
                 "status": state.status.value,
             }
-        else:
+        elif update_iterator:
             async for update_msg in update_iterator:
                 if isinstance(update_msg, dict) and "data" in update_msg:
                     try:
@@ -195,6 +227,25 @@ class ExecuteDiagramUseCase(BaseService):
                             break
                     except json.JSONDecodeError:
                         continue
+        else:
+            # For unified monitoring without streaming (e.g., web executions),
+            # events are consumed via MessageRouter/GraphQL subscriptions
+            # Just wait for execution to complete
+            await asyncio.sleep(0.1)
+            while True:
+                state = await self.state_store.get_state(execution_id)
+                if state and state.status in [
+                    ExecutionStatus.COMPLETED,
+                    ExecutionStatus.FAILED,
+                    ExecutionStatus.ABORTED,
+                ]:
+                    break
+                await asyncio.sleep(1)
+            yield {
+                "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
+                "execution_id": execution_id,
+                "status": state.status.value,
+            }
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""

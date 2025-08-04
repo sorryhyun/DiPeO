@@ -43,7 +43,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Run the TypeScript parser in batch mode
     project_root = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
-    parser_script = project_root / 'dipeo' / 'infra' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
+    parser_script = project_root / 'dipeo' / 'infrastructure' / 'adapters' / 'parsers' / 'typescript' / 'ts_ast_extractor.ts'
     
     print(f"Executing batch TypeScript parsing for {len(sources)} files...")
     

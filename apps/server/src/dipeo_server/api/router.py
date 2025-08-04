@@ -44,3 +44,8 @@ def setup_routes(app: FastAPI):
     from .sse import router as sse_router
 
     app.include_router(sse_router)
+    
+    # Unified SSE router (MessageRouter-based)
+    from .sse_unified import router as sse_unified_router
+    
+    app.include_router(sse_unified_router)

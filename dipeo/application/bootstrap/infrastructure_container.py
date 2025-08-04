@@ -155,8 +155,12 @@ class InfrastructureContainer:
             integrated_api_service
         )
 
-        # AST parser - None for now
+        # TypeScript AST parser service
+        from dipeo.infrastructure.services.typescript_parser_service import get_typescript_parser_service
+        typescript_parser_service = get_typescript_parser_service(
+            project_root=Path(self.config.base_dir)
+        )
         self.registry.register(
             AST_PARSER,
-            None  # Override when AST parsing is needed
+            typescript_parser_service
         )

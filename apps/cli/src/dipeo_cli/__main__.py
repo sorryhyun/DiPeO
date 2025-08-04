@@ -55,6 +55,11 @@ def main():
         default=300,
         help="Execution timeout in seconds (default: 300)",
     )
+    run_parser.add_argument(
+        "--unified",
+        action="store_true",
+        help="Use unified monitoring architecture (MessageRouter-based)",
+    )
 
     # Input data options (mutually exclusive)
     input_group = run_parser.add_mutually_exclusive_group()
@@ -157,6 +162,7 @@ def main():
                 args.timeout,
                 format_type,
                 input_variables,
+                args.unified,
             )
             sys.exit(0 if success else 1)
         elif args.command == "convert":

@@ -178,6 +178,7 @@ class UnifiedEventObserver(ExecutionObserver):
     def _setup_log_capture(self, execution_id: str):
         """Set up log capture for execution logs."""
         import asyncio
+        from datetime import datetime
 
         class LogCaptureHandler(logging.Handler):
             def __init__(self, observer, exec_id):
@@ -213,9 +214,16 @@ class UnifiedEventObserver(ExecutionObserver):
                 # Publish log asynchronously
                 try:
                     loop = asyncio.get_running_loop()
+                    # Use custom event format for logs since EXECUTION_LOG is not in EventType enum
+                    log_event = {
+                        "type": "EXECUTION_LOG",
+                        "execution_id": self.exec_id,
+                        "data": log_entry,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
                     loop.create_task(
-                        self.observer._publish_event(
-                            self.exec_id, EventType.EXECUTION_LOG, log_entry
+                        self.observer.message_router.broadcast_to_execution(
+                            self.exec_id, log_event
                         )
                     )
                 except RuntimeError:
