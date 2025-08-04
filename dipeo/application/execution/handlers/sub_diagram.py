@@ -159,6 +159,16 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Get parent observers if available
             parent_observers = options.get("observers", [])
             
+            # For batch parallel execution, filter out StateStoreObserver to prevent serialization
+            # The parent execution will track overall state
+            is_batch_item = request.metadata and request.metadata.get('is_batch_item', False)
+            if (getattr(node, 'batch', False) and getattr(node, 'batch_parallel', True)) or is_batch_item:
+                from dipeo.application.execution.observers import StateStoreObserver
+                parent_observers = [
+                    obs for obs in parent_observers 
+                    if not isinstance(obs, StateStoreObserver)
+                ]
+            
             # Log sub-diagram execution start
             request.add_metadata("sub_execution_id", sub_execution_id)
             

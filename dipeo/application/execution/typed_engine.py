@@ -108,9 +108,56 @@ class TypedExecutionEngine(StateTransitionMixin):
                 
                 step_count += 1
 
-                # Execute ready nodes
+                # Execute ready nodes in parallel with optional concurrency limit
+                # TODO: Make max_concurrent configurable via environment variable or config
+                max_concurrent = 10  # Default concurrency limit
+                
+                # Create semaphore for concurrency control if needed
+                semaphore = asyncio.Semaphore(max_concurrent) if len(ready_nodes) > 1 else None
+                
+                async def execute_with_semaphore(node):
+                    """Execute node with semaphore for concurrency control."""
+                    if semaphore:
+                        async with semaphore:
+                            return await self._execute_node(
+                                node=node,
+                                diagram=diagram,
+                                engine_state=engine_state,
+                                execution_id=execution_id,
+                                interactive_handler=interactive_handler
+                            )
+                    else:
+                        return await self._execute_node(
+                            node=node,
+                            diagram=diagram,
+                            engine_state=engine_state,
+                            execution_id=execution_id,
+                            interactive_handler=interactive_handler
+                        )
+                
+                # Execute nodes in parallel if there are multiple, sequentially if just one
                 results = {}
-                for node in ready_nodes:
+                if len(ready_nodes) > 1:
+                    # Create tasks for parallel execution
+                    tasks = []
+                    node_ids = []
+                    for node in ready_nodes:
+                        task = execute_with_semaphore(node)
+                        tasks.append(task)
+                        node_ids.append(str(node.id))
+                    
+                    # Execute all tasks in parallel
+                    task_results = await asyncio.gather(*tasks, return_exceptions=True)
+                    
+                    # Map results back to node IDs
+                    for node_id, result in zip(node_ids, task_results):
+                        if isinstance(result, Exception):
+                            # Re-raise exceptions from parallel execution
+                            raise result
+                        results[node_id] = result
+                elif ready_nodes:
+                    # Single node, execute directly without overhead
+                    node = ready_nodes[0]
                     result = await self._execute_node(
                         node=node,
                         diagram=diagram,

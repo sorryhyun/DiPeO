@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import os
 import subprocess
 import tempfile
@@ -12,6 +13,8 @@ from dipeo.core.base.exceptions import ServiceError
 
 from ..resource_locator import ParserResourceLocator
 from .platform_utils import get_tsx_command, setup_github_actions_env
+
+logger = logging.getLogger(__name__)
 
 
 class TypeScriptParser:
@@ -68,10 +71,7 @@ class TypeScriptParser:
         Raises:
             ServiceError: If parsing fails
         """
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.info(f"[TypeScriptParser] Starting parse with {len(source)} chars, patterns: {extract_patterns}")
+        logger.debug(f"[TypeScriptParser] Starting parse with {len(source)} chars, patterns: {extract_patterns}")
         
         options = options or {}
         include_jsdoc = options.get('includeJSDoc', False)
@@ -85,7 +85,7 @@ class TypeScriptParser:
         ).hexdigest()
         
         if self.cache_enabled and self._cache is not None and cache_key in self._cache:
-            logger.info(f"[TypeScriptParser] Cache hit for content hash {cache_key[:8]}")
+            logger.debug(f"[TypeScriptParser] Cache hit for content hash {cache_key[:8]}")
             return self._cache[cache_key]
         
         # Ensure parser script exists
@@ -118,8 +118,8 @@ class TypeScriptParser:
             # Setup environment (handles GitHub Actions if needed)
             env = setup_github_actions_env(os.environ.copy())
             
-            logger.info(f"[TypeScriptParser] Executing command: {' '.join(cmd)}")
-            logger.info(f"[TypeScriptParser] Working dir: {self.project_root}")
+            logger.debug(f"[TypeScriptParser] Executing command: {' '.join(cmd)}")
+            logger.debug(f"[TypeScriptParser] Working dir: {self.project_root}")
             
             result = subprocess.run(
                 cmd,
@@ -132,7 +132,7 @@ class TypeScriptParser:
             
             os.unlink(tmp_file_path)
             
-            logger.info(f"[TypeScriptParser] Command completed with return code: {result.returncode}")
+            logger.debug(f"[TypeScriptParser] Command completed with return code: {result.returncode}")
             
             if result.returncode != 0:
                 logger.error(f"[TypeScriptParser] Parser failed with return code {result.returncode}")
@@ -146,7 +146,7 @@ class TypeScriptParser:
                 raise ServiceError(f'Parser failed: {result.stderr}')
             
             parsed_result = json.loads(result.stdout)
-            logger.info(f"[TypeScriptParser] Parsed JSON result, keys: {list(parsed_result.keys())}")
+            logger.debug(f"[TypeScriptParser] Parsed JSON result, keys: {list(parsed_result.keys())}")
 
             # Check for parser errors
             if parsed_result.get('error'):
@@ -176,11 +176,11 @@ class TypeScriptParser:
                 }
             }
             
-            logger.info(f"[TypeScriptParser] Returning result with keys: {list(result.keys())}, ast_data keys: {list(ast_data.keys())}")
+            logger.debug(f"[TypeScriptParser] Returning result with keys: {list(result.keys())}, ast_data keys: {list(ast_data.keys())}")
             
             if self.cache_enabled and self._cache is not None:
                 self._cache[cache_key] = result
-                logger.info(f"[TypeScriptParser] Cached result for content hash {cache_key[:8]}")
+                logger.debug(f"[TypeScriptParser] Cached result for content hash {cache_key[:8]}")
             
             return result
             
@@ -213,9 +213,9 @@ class TypeScriptParser:
         """Clear the in-memory AST cache."""
         if self._cache is not None:
             self._cache.clear()
-            print("[TypeScript Parser] Cache cleared")
+            logger.debug("[TypeScript Parser] Cache cleared")
         else:
-            print("[TypeScript Parser] Cache is disabled, nothing to clear")
+            logger.debug("[TypeScript Parser] Cache is disabled, nothing to clear")
     
     async def parse_file(self, file_path: str, extract_patterns: list[str], options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Parse a TypeScript file.
@@ -283,7 +283,7 @@ class TypeScriptParser:
             ).hexdigest()
             
             if self.cache_enabled and self._cache is not None and cache_key in self._cache:
-                print(f"[TypeScript Parser] Batch: Cache hit for {key} (hash {cache_key[:8]})")
+                logger.debug(f"[TypeScript Parser] Batch: Cache hit for {key} (hash {cache_key[:8]})")
                 cached_results[key] = self._cache[cache_key]
             else:
                 uncached_sources[key] = source
@@ -291,7 +291,7 @@ class TypeScriptParser:
         if not uncached_sources:
             return cached_results
         
-        print(f"[TypeScript Parser] Batch processing {len(uncached_sources)} uncached sources")
+        logger.debug(f"[TypeScript Parser] Batch processing {len(uncached_sources)} uncached sources")
         
         # Ensure parser script exists
         if not self.parser_script.exists():
@@ -343,14 +343,14 @@ class TypeScriptParser:
                 os.unlink(temp_file_path)
             
             if result.returncode != 0:
-                print(f"[TypeScript Parser] Batch parser failed with return code {result.returncode}")
-                print(f"[TypeScript Parser] Command was: {' '.join(cmd)}")
-                print(f"[TypeScript Parser] Working directory: {self.project_root}")
-                print(f"[TypeScript Parser] stderr: {result.stderr}")
-                print(f"[TypeScript Parser] stdout: {result.stdout[:500]}...")
+                logger.error(f"[TypeScript Parser] Batch parser failed with return code {result.returncode}")
+                logger.error(f"[TypeScript Parser] Command was: {' '.join(cmd)}")
+                logger.error(f"[TypeScript Parser] Working directory: {self.project_root}")
+                logger.error(f"[TypeScript Parser] stderr: {result.stderr}")
+                logger.error(f"[TypeScript Parser] stdout: {result.stdout[:500]}...")
                 # Check if this is a "command not found" error
                 if "is not recognized" in result.stderr or "command not found" in result.stderr.lower():
-                    print("[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
+                    logger.error("[TypeScript Parser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
                 raise ServiceError(f'Batch parser failed: {result.stderr}')
             
             # Parse the JSON output
@@ -360,7 +360,7 @@ class TypeScriptParser:
             results = {}
             for key, parse_result in batch_result.get('results', {}).items():
                 if parse_result.get('error'):
-                    print(f"[TypeScript Parser] Error parsing {key}: {parse_result['error']}")
+                    logger.warning(f"[TypeScript Parser] Error parsing {key}: {parse_result['error']}")
                     continue
                 
                 # Extract AST data
@@ -404,7 +404,7 @@ class TypeScriptParser:
             # Log batch processing statistics
             if 'metadata' in batch_result:
                 meta = batch_result['metadata']
-                print(f"[TypeScript Parser] Batch completed: {meta['successCount']}/{meta['totalFiles']} successful in {meta['processingTimeMs']}ms")
+                logger.debug(f"[TypeScript Parser] Batch completed: {meta['successCount']}/{meta['totalFiles']} successful in {meta['processingTimeMs']}ms")
             
             return results
             
@@ -440,14 +440,14 @@ class TypeScriptParser:
             full_path = self.project_root / file_path
             
             if not full_path.exists():
-                print(f"[TypeScript Parser] Warning: File not found: {full_path}")
+                logger.warning(f"[TypeScript Parser] File not found: {full_path}")
                 continue
             
             try:
                 with open(full_path, encoding='utf-8') as f:
                     sources[file_path] = f.read()
             except Exception as e:
-                print(f"[TypeScript Parser] Warning: Failed to read file {file_path}: {e!s}")
+                logger.warning(f"[TypeScript Parser] Failed to read file {file_path}: {e!s}")
                 continue
         
         if not sources:

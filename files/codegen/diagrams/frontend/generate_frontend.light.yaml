@@ -16,7 +16,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 200}
     props:
-      diagram_name: codegen/diagrams/shared/parse_all_node_specs_batch
+      diagram_name: codegen/diagrams/shared/parse_all_node_specs_batch_clean
       diagram_format: light
       passInputData: false
       ignoreIfSub: true

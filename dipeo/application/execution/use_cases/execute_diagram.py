@@ -189,8 +189,19 @@ class ExecuteDiagramUseCase(BaseService):
                     error=str(e)
                 )
 
-        asyncio.create_task(run_execution())
-
+        # Check if this is a sub-diagram execution (for batch parallel support)
+        is_sub_diagram = options.get('is_sub_diagram', False) or options.get('parent_execution_id')
+        is_batch_item = options.get('is_batch_item', False) or (options.get('metadata', {}).get('is_batch_item', False))
+        
+        # Create the execution task
+        execution_task = asyncio.create_task(run_execution())
+        
+        # For sub-diagrams, we need to track the task to ensure proper parallel execution
+        # Store it so the iterator below can properly coordinate
+        if is_sub_diagram:
+            # We'll handle this task specially in the update loop
+            pass
+        
         if use_monitoring_stream:
             await asyncio.sleep(0.1)
             while True:
@@ -208,44 +219,90 @@ class ExecuteDiagramUseCase(BaseService):
                 "status": state.status.value,
             }
         elif update_iterator:
-            async for update_msg in update_iterator:
-                if isinstance(update_msg, dict) and "data" in update_msg:
-                    try:
-                        update = json.loads(update_msg["data"])
-                        yield update
-                        
-                        if update.get("type") in ["execution_complete", "execution_error"]:
-                            break
-                    except json.JSONDecodeError:
-                        continue
-                elif isinstance(update_msg, str) and update_msg.startswith("data: "):
-                    try:
-                        update = json.loads(update_msg[6:].strip())
-                        yield update
-                        
-                        if update.get("type") in ["execution_complete", "execution_error"]:
-                            break
-                    except json.JSONDecodeError:
-                        continue
+            # For sub-diagrams, we need to ensure the execution task runs properly
+            # while we're collecting updates
+            update_collection_task = None
+            
+            async def collect_updates():
+                async for update_msg in update_iterator:
+                    if isinstance(update_msg, dict) and "data" in update_msg:
+                        try:
+                            update = json.loads(update_msg["data"])
+                            yield update
+                            
+                            if update.get("type") in ["execution_complete", "execution_error"]:
+                                break
+                        except json.JSONDecodeError:
+                            continue
+                    elif isinstance(update_msg, str) and update_msg.startswith("data: "):
+                        try:
+                            update = json.loads(update_msg[6:].strip())
+                            yield update
+                            
+                            if update.get("type") in ["execution_complete", "execution_error"]:
+                                break
+                        except json.JSONDecodeError:
+                            continue
+            
+            # Stream updates as they come
+            async for update in collect_updates():
+                yield update
+            
+            # For sub-diagrams, ensure the execution task completes
+            if is_sub_diagram:
+                try:
+                    await execution_task
+                except Exception:
+                    pass  # Errors already handled
         else:
             # For unified monitoring without streaming (e.g., web executions),
             # events are consumed via MessageRouter/GraphQL subscriptions
-            # Just wait for execution to complete
-            await asyncio.sleep(0.1)
-            while True:
+            # For batch items and sub-diagrams, optimize completion handling
+            if is_batch_item:
+                # For batch items, wait for completion with minimal overhead
+                try:
+                    await execution_task
+                except Exception:
+                    pass  # Errors are already handled in run_execution
+                
+                # Yield minimal completion event
                 state = await self.state_store.get_state(execution_id)
-                if state and state.status in [
-                    ExecutionStatus.COMPLETED,
-                    ExecutionStatus.FAILED,
-                    ExecutionStatus.ABORTED,
-                ]:
-                    break
-                await asyncio.sleep(1)
-            yield {
-                "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
-                "execution_id": execution_id,
-                "status": state.status.value,
-            }
+                yield {
+                    "type": "execution_complete" if state and state.status == ExecutionStatus.COMPLETED else "execution_error",
+                    "execution_id": execution_id,
+                    "status": state.status.value if state else "unknown",
+                }
+            elif is_sub_diagram:
+                # Wait for the execution task to complete properly
+                try:
+                    await execution_task
+                except Exception:
+                    pass  # Errors are already handled in run_execution
+                
+                # Get final state
+                state = await self.state_store.get_state(execution_id)
+                yield {
+                    "type": "execution_complete" if state and state.status == ExecutionStatus.COMPLETED else "execution_error",
+                    "execution_id": execution_id,
+                    "status": state.status.value if state else "unknown",
+                }
+            else:
+                # Original behavior for non-sub-diagrams
+                await asyncio.sleep(0.1)
+                while True:
+                    state = await self.state_store.get_state(execution_id)
+                    if state and state.status in [
+                        ExecutionStatus.COMPLETED,
+                        ExecutionStatus.FAILED,
+                        ExecutionStatus.ABORTED,
+                    ]:
+                        break
+                    await asyncio.sleep(1)
+                yield {
+                    "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
+                    "execution_id": execution_id,
+                    "status": state.status.value,
+                }
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""

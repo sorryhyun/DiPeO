@@ -72,15 +72,10 @@ class ParserService(BaseService, ASTParserPort):
         """
         options = options or {}
         language = options.get("language", self._default_language)
-        
-        logger.info(f"[ParserService] Parsing {language} source with patterns: {extract_patterns}")
-        logger.debug(f"[ParserService] Source length: {len(source)} chars, language: {language}")
-        
+
         try:
             parser = await self._get_or_create_parser(language)
-            logger.info(f"[ParserService] Got parser type: {type(parser).__name__}")
             result = await parser.parse(source, extract_patterns, options)
-            logger.info(f"[ParserService] Parse successful, result type: {type(result)}")
             return result
         except Exception as e:
             logger.error(f"[ParserService] Parse failed: {str(e)}")
@@ -109,8 +104,6 @@ class ParserService(BaseService, ASTParserPort):
         if not language and '.' in file_path:
             language = self._detect_language_from_extension(file_path)
             options["language"] = language
-        
-        logger.debug(f"Parsing {language} file: {file_path}")
         
         parser = await self._get_or_create_parser(language)
         
@@ -143,8 +136,6 @@ class ParserService(BaseService, ASTParserPort):
         """
         options = options or {}
         language = options.get("language", self._default_language)
-        
-        logger.debug(f"Batch parsing {len(sources)} {language} sources")
         
         parser = await self._get_or_create_parser(language)
         
@@ -187,8 +178,6 @@ class ParserService(BaseService, ASTParserPort):
         # Parse each language group
         all_results = {}
         for language, paths in files_by_language.items():
-            logger.debug(f"Batch parsing {len(paths)} {language} files")
-            
             parser = await self._get_or_create_parser(language)
             
             if hasattr(parser, 'parse_files_batch'):
@@ -212,14 +201,12 @@ class ParserService(BaseService, ASTParserPort):
                 parser = self._parsers[language]
                 if hasattr(parser, 'clear_cache'):
                     parser.clear_cache()
-                    logger.info(f"Cleared cache for {language} parser")
         else:
             # Clear all parser caches
             for lang, parser in self._parsers.items():
                 if hasattr(parser, 'clear_cache'):
                     parser.clear_cache()
-            logger.info("Cleared cache for all parsers")
-    
+
     async def _get_or_create_parser(self, language: str) -> ASTParserPort:
         """Get existing parser or create new one for language.
         
@@ -230,8 +217,7 @@ class ParserService(BaseService, ASTParserPort):
             Parser instance for the language
         """
         if language not in self._parsers:
-            logger.debug(f"Creating new parser for language: {language}")
-            
+
             if self._project_root:
                 config = ParserConfig.from_dict(
                     {"project_root": self._project_root, "cache_enabled": self._cache_enabled},
