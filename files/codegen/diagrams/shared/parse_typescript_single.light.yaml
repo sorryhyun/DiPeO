@@ -29,7 +29,7 @@ nodes:
         
         # Simple cache path: just use basename + .json
         file_name = os.path.basename(file_path)
-        cache_path = f'.temp/{file_name}.json'
+        cache_path = f'temp/{file_name}.json'
         
         result = {
             'file_path': file_path,

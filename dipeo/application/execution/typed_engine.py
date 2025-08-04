@@ -110,7 +110,7 @@ class TypedExecutionEngine(StateTransitionMixin):
 
                 # Execute ready nodes in parallel with optional concurrency limit
                 # TODO: Make max_concurrent configurable via environment variable or config
-                max_concurrent = 10  # Default concurrency limit
+                max_concurrent = 20  # Default concurrency limit (increased from 10)
                 
                 # Create semaphore for concurrency control if needed
                 semaphore = asyncio.Semaphore(max_concurrent) if len(ready_nodes) > 1 else None

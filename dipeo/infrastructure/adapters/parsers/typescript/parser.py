@@ -1,5 +1,6 @@
 """TypeScript AST parser implementation."""
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -71,7 +72,7 @@ class TypeScriptParser:
         Raises:
             ServiceError: If parsing fails
         """
-        logger.debug(f"[TypeScriptParser] Starting parse with {len(source)} chars, patterns: {extract_patterns}")
+        # logger.debug(f"[TypeScriptParser] Starting parse with {len(source)} chars, patterns: {extract_patterns}")
         
         options = options or {}
         include_jsdoc = options.get('includeJSDoc', False)
@@ -85,7 +86,7 @@ class TypeScriptParser:
         ).hexdigest()
         
         if self.cache_enabled and self._cache is not None and cache_key in self._cache:
-            logger.debug(f"[TypeScriptParser] Cache hit for content hash {cache_key[:8]}")
+            # logger.debug(f"[TypeScriptParser] Cache hit for content hash {cache_key[:8]}")
             return self._cache[cache_key]
         
         # Ensure parser script exists
@@ -118,35 +119,48 @@ class TypeScriptParser:
             # Setup environment (handles GitHub Actions if needed)
             env = setup_github_actions_env(os.environ.copy())
             
-            logger.debug(f"[TypeScriptParser] Executing command: {' '.join(cmd)}")
-            logger.debug(f"[TypeScriptParser] Working dir: {self.project_root}")
+            # logger.debug(f"[TypeScriptParser] Executing command: {' '.join(cmd)}")
+            # logger.debug(f"[TypeScriptParser] Working dir: {self.project_root}")
             
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
+            # Use async subprocess for non-blocking execution
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
                 cwd=str(self.project_root),
-                env=env,
-                timeout=30
+                env=env
             )
+            
+            try:
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    process.communicate(), 
+                    timeout=30
+                )
+                stdout = stdout_bytes.decode('utf-8')
+                stderr = stderr_bytes.decode('utf-8')
+                returncode = process.returncode
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                raise ServiceError('Parser timeout after 30 seconds')
             
             os.unlink(tmp_file_path)
             
-            logger.debug(f"[TypeScriptParser] Command completed with return code: {result.returncode}")
+            # logger.debug(f"[TypeScriptParser] Command completed with return code: {returncode}")
             
-            if result.returncode != 0:
-                logger.error(f"[TypeScriptParser] Parser failed with return code {result.returncode}")
+            if returncode != 0:
+                logger.error(f"[TypeScriptParser] Parser failed with return code {returncode}")
                 logger.error(f"[TypeScriptParser] Command was: {' '.join(cmd)}")
                 logger.error(f"[TypeScriptParser] Working directory: {self.project_root}")
-                logger.error(f"[TypeScriptParser] stderr: {result.stderr}")
-                logger.error(f"[TypeScriptParser] stdout: {result.stdout[:500]}...")
+                logger.error(f"[TypeScriptParser] stderr: {stderr}")
+                logger.error(f"[TypeScriptParser] stdout: {stdout[:500]}...")
                 # Check if this is a "command not found" error
-                if "is not recognized" in result.stderr or "command not found" in result.stderr.lower():
+                if "is not recognized" in stderr or "command not found" in stderr.lower():
                     logger.error("[TypeScriptParser] ERROR: TypeScript parser command not found. Check pnpm/npx installation.")
-                raise ServiceError(f'Parser failed: {result.stderr}')
+                raise ServiceError(f'Parser failed: {stderr}')
             
-            parsed_result = json.loads(result.stdout)
-            logger.debug(f"[TypeScriptParser] Parsed JSON result, keys: {list(parsed_result.keys())}")
+            parsed_result = json.loads(stdout)
+            # logger.debug(f"[TypeScriptParser] Parsed JSON result, keys: {list(parsed_result.keys())}")
 
             # Check for parser errors
             if parsed_result.get('error'):
@@ -176,11 +190,11 @@ class TypeScriptParser:
                 }
             }
             
-            logger.debug(f"[TypeScriptParser] Returning result with keys: {list(result.keys())}, ast_data keys: {list(ast_data.keys())}")
+            # logger.debug(f"[TypeScriptParser] Returning result with keys: {list(result.keys())}, ast_data keys: {list(ast_data.keys())}")
             
             if self.cache_enabled and self._cache is not None:
                 self._cache[cache_key] = result
-                logger.debug(f"[TypeScriptParser] Cached result for content hash {cache_key[:8]}")
+                # logger.debug(f"[TypeScriptParser] Cached result for content hash {cache_key[:8]}")
             
             return result
             

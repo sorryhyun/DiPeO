@@ -155,7 +155,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         # Return appropriate output type based on result
         if isinstance(result, dict):
             # For dict results, return DataOutput so object content type works
-            logger.debug(f"[CodeJobNode {node.id}] Returning dict with keys: {list(result.keys())}")
+            # logger.debug(f"[CodeJobNode {node.id}] Returning dict with keys: {list(result.keys())}")
             return DataOutput(
                 value=result,
                 node_id=node.id,
@@ -164,7 +164,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         else:
             # For non-dict results, convert to string
             output = str(result)
-            logger.debug(f"[CodeJobNode {node.id}] Returning {len(output)} chars")
+            # logger.debug(f"[CodeJobNode {node.id}] Returning {len(output)} chars")
             return TextOutput(
                 value=output,
                 node_id=node.id,
