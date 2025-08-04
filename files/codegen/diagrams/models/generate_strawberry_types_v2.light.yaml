@@ -12,11 +12,11 @@ nodes:
         message: Starting Strawberry GraphQL types generation with template job
 
   # Run batch parser if cache doesn't exist
-  - label: Parse Node Specs Batch
+  - label: Parse TypeScript Batch
     type: sub_diagram
     position: {x: 200, y: 300}
     props:
-      diagram_name: codegen/diagrams/shared/parse_all_node_specs_batch_clean
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -61,10 +61,10 @@ nodes:
 connections:
   # Parse specs first
   - from: Start
-    to: Parse Node Specs Batch
+    to: Parse TypeScript Batch
   
   # Extract specifications
-  - from: Parse Node Specs Batch
+  - from: Parse TypeScript Batch
     to: Extract Node Specs
   
   # Generate types

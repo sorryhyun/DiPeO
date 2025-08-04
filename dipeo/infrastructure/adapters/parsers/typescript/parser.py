@@ -115,7 +115,7 @@ class TypeScriptParser:
             
             cmd.append(f'--mode={parse_mode}')
             cmd.append(tmp_file_path)
-            
+
             # Setup environment (handles GitHub Actions if needed)
             env = setup_github_actions_env(os.environ.copy())
             
@@ -189,9 +189,7 @@ class TypeScriptParser:
                     'astSummary': parsed_result.get('ast', {})
                 }
             }
-            
-            # logger.debug(f"[TypeScriptParser] Returning result with keys: {list(result.keys())}, ast_data keys: {list(ast_data.keys())}")
-            
+
             if self.cache_enabled and self._cache is not None:
                 self._cache[cache_key] = result
                 # logger.debug(f"[TypeScriptParser] Cached result for content hash {cache_key[:8]}")

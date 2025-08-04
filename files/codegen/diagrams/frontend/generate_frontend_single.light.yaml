@@ -34,7 +34,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: ".temp/node_spec_{node_type}_ast.json"  # Direct template interpolation
+      source_details: "temp/{node_type}.spec.ts.json"  # Direct template interpolation
       serialize_json: true
   
   # Prepare inputs for extractor

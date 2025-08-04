@@ -16,7 +16,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 200}
     props:
-      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -28,7 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/conversions_ast.json
+      source_details: temp/conversions.ts.json
 
   # Load the original conversions.ts file (still needed for raw source)
   - label: Load Conversions TS

@@ -50,7 +50,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/node_spec_{node_type}_ast.json
+      source_details: temp/{node_type}.spec.ts.json
       serialize_json: true
       
   # Load codegen mappings
@@ -60,7 +60,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/codegen_mappings_ast.json
+      source_details: temp/codegen-mappings.ts.json
       serialize_json: true
       
   # Extract mappings

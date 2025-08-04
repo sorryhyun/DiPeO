@@ -12,12 +12,12 @@ nodes:
       custom_data:
         message: Starting batch generation using TypeScript specifications for backend files
 
-  # Run batch parser for all node specs
-  - label: Parse All Node Specs
+  # Run batch parser for all TypeScript files
+  - label: Parse All TypeScript
     type: sub_diagram
     position: {x: 200, y: 200}
     props:
-      diagram_name: codegen/diagrams/shared/parse_all_node_specs_batch_clean
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -57,11 +57,11 @@ nodes:
         for nt in node_types:
             print(f"  - {nt}")
 
-  - label: Batch Generate Backend
+  - label: Batch Generate Backend Models
     type: sub_diagram
     position: {x: 700, y: 200}
     props:
-      diagram_name: codegen/diagrams/backend/generate_backend_single
+      diagram_name: codegen/diagrams/models/generate_backend_models_single
       diagram_format: light
       batch: true  # Enable batch mode
       batch_input_key: items  # Use 'items' key from input
@@ -103,16 +103,16 @@ nodes:
 
 connections:
   - from: Start
-    to: Parse All Node Specs
+    to: Parse All TypeScript
   
-  - from: Parse All Node Specs
+  - from: Parse All TypeScript
     to: Load Manifest
   
   - from: Load Manifest
     to: Prepare Node List
   
   - from: Prepare Node List
-    to: Batch Generate Backend
+    to: Batch Generate Backend Models
   
   # Also pass manifest to prepare init context
   - from: Load Manifest
@@ -123,7 +123,7 @@ connections:
     to: Generate Models Init
   
   # Both paths complete before ending
-  - from: Batch Generate Backend
+  - from: Batch Generate Backend Models
     to: End
   - from: Generate Models Init
     to: End

@@ -53,6 +53,7 @@ nodes:
       includeJSDoc: true
       parseMode: module
       outputFormat: for_codegen
+      extractPatterns: ["interface", "type", "enum", "const"]
       
   # Save to cache
   - label: Save Cache

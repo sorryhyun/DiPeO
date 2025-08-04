@@ -17,7 +17,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 300}
     props:
-      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -30,9 +30,9 @@ nodes:
       operation: read
       sub_type: file
       source_details:
-        - .temp/codegen_mappings_ast.json
-        - .temp/diagram_ast.json
-        - .temp/node_data_ast.json
+        - temp/codegen-mappings.ts.json
+        - temp/diagram.ts.json
+        - temp/start.data.ts.json
 
   # Extract mappings
   - label: Extract Mappings

@@ -16,7 +16,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 300}
     props:
-      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -30,27 +30,27 @@ nodes:
       sub_type: file
       serialize_json: true
       file:
-        - .temp/diagram_ast.json
-        - .temp/execution_ast.json
-        - .temp/conversation_ast.json
-        - .temp/enums_ast.json
-        - .temp/integration_ast.json
-        - .temp/start_data_ast.json
-        - .temp/condition_data_ast.json
-        - .temp/person-job_data_ast.json
-        - .temp/code-job_data_ast.json
-        - .temp/api-job_data_ast.json
-        - .temp/endpoint_data_ast.json
-        - .temp/db_data_ast.json
-        - .temp/user-response_data_ast.json
-        - .temp/notion_data_ast.json
-        - .temp/person-batch-job_data_ast.json
-        - .temp/hook_data_ast.json
-        - .temp/template-job_data_ast.json
-        - .temp/json-schema-validator_data_ast.json
-        - .temp/typescript-ast_data_ast.json
-        - .temp/sub-diagram_data_ast.json
-        - .temp/integrated-api_data_ast.json
+        - temp/diagram.ts.json
+        - temp/execution.ts.json
+        - temp/conversation.ts.json
+        - temp/enums.ts.json
+        - temp/integration.ts.json
+        - temp/start.data.ts.json
+        - temp/condition.data.ts.json
+        - temp/person-job.data.ts.json
+        - temp/code-job.data.ts.json
+        - temp/api-job.data.ts.json
+        - temp/endpoint.data.ts.json
+        - temp/db.data.ts.json
+        - temp/user-response.data.ts.json
+        - temp/notion.data.ts.json
+        - temp/person-batch-job.data.ts.json
+        - temp/hook.data.ts.json
+        - temp/template-job.data.ts.json
+        - temp/json-schema-validator.data.ts.json
+        - temp/typescript-ast.data.ts.json
+        - temp/sub-diagram.data.ts.json
+        - temp/integrated-api.data.ts.json
 
   # Extract and prepare GraphQL data
   - label: Prepare GraphQL Data

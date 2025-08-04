@@ -17,7 +17,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 300}
     props:
-      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -29,7 +29,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/codegen_mappings_ast.json
+      source_details: temp/codegen-mappings.ts.json
 
   # Extract mappings
   - label: Extract Mappings
@@ -63,7 +63,7 @@ nodes:
     type: sub_diagram
     position: {x: 800, y: 300}
     props:
-      diagram_name: codegen/diagrams/shared/parse_node_data_single_clean
+      diagram_name: codegen/diagrams/shared/parse_typescript_single
       diagram_format: light
       batch: true
       batch_input_key: items
@@ -76,7 +76,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/diagram_ast.json
+      source_details: temp/diagram.ts.json
 
   # Extract BaseNodeData interface
   - label: Extract Base Interface
