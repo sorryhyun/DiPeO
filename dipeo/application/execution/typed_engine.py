@@ -22,7 +22,7 @@ from dipeo.diagram_generated import (
     NodeID,
     NodeState,
 )
-from dipeo.infrastructure.services.config.settings import get_settings
+from dipeo.infrastructure.config import get_settings
 from dipeo.domain.execution import DomainDynamicOrderCalculator
 
 from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker

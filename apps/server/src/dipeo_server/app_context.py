@@ -34,7 +34,7 @@ def create_server_container() -> Container:
 
     container.registry.register(STATE_STORE, StateRegistry())
 
-    from dipeo.infrastructure.services.messaging import MessageRouter
+    from dipeo.infrastructure.adapters.messaging import MessageRouter
 
     container.registry.register(MESSAGE_ROUTER, MessageRouter())
 

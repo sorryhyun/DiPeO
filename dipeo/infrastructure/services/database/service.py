@@ -6,7 +6,7 @@ from dipeo.domain.ports.storage import FileSystemPort
 from dipeo.domain.db.services import DBOperationsDomainService as DomainDBService
 from dipeo.domain.validators import DataValidator
 
-from .db_adapter import DBOperationsAdapter
+from dipeo.infrastructure.adapters.database import DBOperationsAdapter
 
 
 class DBOperationsDomainService:

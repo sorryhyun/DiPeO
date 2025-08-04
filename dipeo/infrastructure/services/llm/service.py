@@ -17,7 +17,7 @@ from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.core.ports import LLMServicePort
 from dipeo.core.ports.apikey_port import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
-from dipeo.infrastructure.services.config.settings import get_settings
+from dipeo.infrastructure.config import get_settings
 from dipeo.models import ChatResult
 
 from .factory import create_adapter
