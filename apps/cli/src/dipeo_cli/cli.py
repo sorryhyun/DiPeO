@@ -292,7 +292,7 @@ class DiPeOCLI:
         # Use the unified converter for format conversion
         try:
             # Import required modules
-            from dipeo.infra.diagram.unified_converter import UnifiedDiagramConverter
+            from dipeo.domain.diagram.unified_converter import UnifiedDiagramConverter
 
             # Create converter
             converter = UnifiedDiagramConverter()

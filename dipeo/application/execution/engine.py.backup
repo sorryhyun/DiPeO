@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from dipeo.application.execution.execution_runtime import ExecutionRuntime
 from dipeo.application.execution.iterators.simple_iterator import SimpleAsyncIterator
 from dipeo.core.compilation.executable_diagram import ExecutableNode
-from dipeo.infra.config.settings import get_settings
+from dipeo.infrastructure.services.config.settings import get_settings
 
 if TYPE_CHECKING:
     from dipeo.application.registry import ServiceRegistry

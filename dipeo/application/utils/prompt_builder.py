@@ -36,7 +36,7 @@ class PromptBuilder:
         # If explicitly False, respect that. Otherwise check settings.
         if auto_prepend_conversation is not False:
             try:
-                from dipeo.infra.config.settings import get_settings
+                from dipeo.infrastructure.services.config.settings import get_settings
                 should_prepend = get_settings().auto_prepend_conversation
             except:
                 pass  # Keep default True if settings not available
@@ -215,7 +215,7 @@ class PromptBuilder:
         
         # Get context limit from settings
         try:
-            from dipeo.infra.config.settings import get_settings
+            from dipeo.infrastructure.services.config.settings import get_settings
             context_limit = get_settings().conversation_context_limit
         except:
             context_limit = 10  # Default fallback

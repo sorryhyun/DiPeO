@@ -15,7 +15,7 @@ from dipeo.models import (
     WebSearchResult,
 )
 
-from ..base import BaseLLMAdapter
+from ...services.llm.base import BaseLLMAdapter
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,6 @@ This package provides parsers for various source code formats used in DiPeO's co
 
 The parser infrastructure follows DiPeO's clean architecture principles:
 
-- **ports/**: Protocol definitions that abstract parser interfaces
 - **typescript/**: TypeScript AST parser implementation
 - Additional parsers can be added (e.g., python/, java/, etc.)
 
@@ -16,7 +15,7 @@ Parsers are injected through dependency injection and implement the `ASTParserPo
 
 Example:
 ```python
-from dipeo.infra.parsers.ports.ast_parser_port import ASTParserPort
+from dipeo.core.ports.ast_parser_port import ASTParserPort
 
 class MyHandler:
     def __init__(self, parser: ASTParserPort):

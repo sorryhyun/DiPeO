@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Optional
 
-from dipeo.infra.adapters.http.api_service import APIService
+from dipeo.infrastructure.adapters.http.api_service import APIService
 from dipeo.domain.api.services import APIBusinessLogic
 from .base_provider import BaseApiProvider
 

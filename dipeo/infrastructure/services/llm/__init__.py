@@ -1,6 +1,6 @@
 """LLM infrastructure adapters."""
 
-from .adapters import ChatGPTAdapter, ClaudeAdapter, GeminiAdapter
+from ...adapters.llm import ChatGPTAdapter, ClaudeAdapter, GeminiAdapter
 from .base import BaseLLMAdapter
 from .factory import create_adapter
 from .service import LLMInfraService
