@@ -1,11 +1,9 @@
 """Diagram domain services."""
 
-from .diagram_business_logic import DiagramBusinessLogic
-from .diagram_format_service import DiagramFormatService
-from .diagram_operations_service import DiagramOperationsService
+from .diagram_format_detector import DiagramFormatDetector
+from .diagram_statistics_service import DiagramStatisticsService
 
 __all__ = [
-    "DiagramBusinessLogic",
-    "DiagramFormatService",
-    "DiagramOperationsService",
+    "DiagramFormatDetector",
+    "DiagramStatisticsService",
 ]

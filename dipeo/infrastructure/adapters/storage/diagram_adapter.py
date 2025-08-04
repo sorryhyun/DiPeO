@@ -7,7 +7,7 @@ from datetime import datetime
 
 from dipeo.core import BaseService, StorageError
 from dipeo.domain.ports.storage import DiagramStoragePort, DiagramInfo, FileSystemPort
-from dipeo.domain.diagram.services import DiagramFormatService
+from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.infrastructure.services.diagram import DiagramConverterService
 from dipeo.models import DiagramFormat
 
@@ -30,7 +30,7 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         super().__init__()
         self.filesystem = filesystem
         self.base_path = Path(base_path)
-        self.format_service = DiagramFormatService()
+        self.format_detector = DiagramFormatDetector()
         self.converter = DiagramConverterService()
         self._initialized = False
     
@@ -59,10 +59,10 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         
         if format:
             format_enum = self._format_string_to_enum(format)
-            extension = self.format_service.get_file_extension_for_format(format_enum)
+            extension = self.format_detector.get_file_extension(format_enum)
             return self.base_path / f"{diagram_id}{extension}"
         
-        patterns = self.format_service.construct_search_patterns(diagram_id)
+        patterns = self.format_detector.construct_search_patterns(diagram_id)
         for pattern in patterns:
             path = self.base_path / pattern
             if self.filesystem.exists(path):
@@ -81,7 +81,7 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         return format_map.get(format.lower(), DiagramFormat.NATIVE)
     
     def _detect_format_from_path(self, path: Path) -> str:
-        format_enum = self.format_service.determine_format_from_filename(str(path))
+        format_enum = self.format_detector.detect_format_from_filename(str(path))
         if format_enum:
             return format_enum.value
         return "native"
@@ -96,7 +96,7 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             self.filesystem.mkdir(path.parent, parents=True)
             
             format_enum = self._format_string_to_enum(format)
-            self.format_service.validate_format(content, format_enum)
+            self.format_detector.validate_format(content, format_enum)
             
             with self.filesystem.open(path, "wb") as f:
                 f.write(content.encode('utf-8'))
@@ -150,7 +150,7 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
                 path = self.base_path / diagram_id
                 return self.filesystem.exists(path)
         
-        patterns = self.format_service.construct_search_patterns(diagram_id)
+        patterns = self.format_detector.construct_search_patterns(diagram_id)
         for pattern in patterns:
             path = self.base_path / pattern
             if self.filesystem.exists(path):
@@ -183,7 +183,7 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         
         if format:
             format_enum = self._format_string_to_enum(format)
-            extensions = [self.format_service.get_file_extension_for_format(format_enum)]
+            extensions = [self.format_detector.get_file_extension(format_enum)]
         else:
             extensions = [".native.json", ".light.yaml", ".readable.yaml"]
         

@@ -99,8 +99,8 @@ EXECUTION_VALIDATOR = ServiceKey["ExecutionValidator"]("execution_validator")
 # Business Logic Services
 API_BUSINESS_LOGIC = ServiceKey["APIBusinessLogic"]("api_business_logic")
 FILE_BUSINESS_LOGIC = ServiceKey["FileBusinessLogic"]("file_business_logic")
-DIAGRAM_OPERATIONS_SERVICE = ServiceKey["DiagramOperationsService"]("diagram_operations")
-DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatService"]("diagram_format")
+DIAGRAM_STATISTICS_SERVICE = ServiceKey["DiagramStatisticsService"]("diagram_statistics")
+DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatDetector"]("diagram_format")
 LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm")
 
 # Additional Services (newly added for migration)
@@ -168,7 +168,7 @@ __all__ = [
     # Business Logic
     "API_BUSINESS_LOGIC",
     "FILE_BUSINESS_LOGIC",
-    "DIAGRAM_OPERATIONS_SERVICE",
+    "DIAGRAM_STATISTICS_SERVICE",
     "DIAGRAM_FORMAT_SERVICE",
     "LLM_DOMAIN_SERVICE",
     

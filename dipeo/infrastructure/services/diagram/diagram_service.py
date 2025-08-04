@@ -7,7 +7,7 @@ from pathlib import Path
 from dipeo.core import BaseService
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.domain.ports.storage import DiagramStoragePort
-from dipeo.domain.diagram.services import DiagramFormatService
+from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
 from dipeo.models import DiagramFormat, DomainDiagram
 from .converter_service import DiagramConverterService
@@ -26,7 +26,7 @@ class DiagramService(BaseService, DiagramPort):
         super().__init__()
         self.storage = storage
         self.converter = converter or DiagramConverterService()
-        self.format_service = DiagramFormatService()
+        self.format_detector = DiagramFormatDetector()
         self._initialized = False
     
     async def initialize(self) -> None:
@@ -130,7 +130,7 @@ class DiagramService(BaseService, DiagramPort):
                 diagram_id = diagram_id[:-len(suffix)]
                 break
         
-        format = self.format_service.determine_format_from_filename(path)
+        format = self.format_detector.detect_format_from_filename(path)
         if not format:
             format = DiagramFormat.NATIVE
         
