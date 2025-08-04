@@ -364,7 +364,8 @@ def render_graphql_schema(inputs):
 
 def generate_summary(inputs):
     """Generate summary of GraphQL schema generation."""
-    graphql_types = inputs.get('graphql_types', {})
+    # The connection is labeled 'graphql_data' in the diagram
+    graphql_types = inputs.get('graphql_data', inputs.get('graphql_types', inputs.get('default', {})))
     
     print(f"GraphQL schema: {len(graphql_types.get('scalars', []))} scalars, {len(graphql_types.get('enums', []))} enums - done!") 
     print(f"Generated {len(graphql_types.get('types', []))} types")
@@ -403,7 +404,8 @@ def prepare_graphql_data_for_template(inputs: dict) -> dict:
         # Legacy labeled connection support
         all_files = inputs['all_ast_files']
     else:
-        # Try to use inputs directly
+        # Try to use inputs directly as the file dictionary
+        # DB node with multiple source_details returns a dict of filepath -> content
         all_files = inputs
     
     # Extract GraphQL types from the files
@@ -430,21 +432,30 @@ def extract_graphql_types_from_multi_read(inputs: dict) -> dict:
     node_data_enums = []
     
     for filepath, content in all_files.items():
-        if filepath.endswith('_ast.json'):
-            # Extract key name from filepath
-            key = filepath.split('/')[-1].replace('.json', '')
+        if filepath.endswith('.ts.json'):
+            # Extract key name from filepath (e.g., "temp/diagram.ts.json" -> "diagram")
+            filename = filepath.split('/')[-1].replace('.ts.json', '')
             # Content is already parsed if serialize_json=true
             parsed_content = content if isinstance(content, dict) else json.loads(content)
             
             # Special handling for node data files
-            if '_data_ast' in key:
+            if '.data' in filename:
                 # Accumulate node data interfaces/types/enums
                 node_data_interfaces.extend(parsed_content.get('interfaces', []))
                 node_data_types.extend(parsed_content.get('types', []))
                 node_data_enums.extend(parsed_content.get('enums', []))
             else:
-                # Regular AST files
-                ast_data[key] = parsed_content
+                # Map regular files to expected keys
+                if filename == 'diagram':
+                    ast_data['diagram_ast'] = parsed_content
+                elif filename == 'execution':
+                    ast_data['execution_ast'] = parsed_content
+                elif filename == 'conversation':
+                    ast_data['conversation_ast'] = parsed_content
+                elif filename == 'enums':
+                    ast_data['enums_ast'] = parsed_content
+                elif filename == 'integration':
+                    ast_data['integration_ast'] = parsed_content
     
     # Combine all node data into a single structure
     combined_node_data = {

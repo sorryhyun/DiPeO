@@ -14,7 +14,7 @@ def extract_node_specs(inputs: dict) -> dict:
     """Extract node specifications from cached AST data."""
     # Get base directory
     base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
-    cache_dir = base_dir / '.temp'
+    cache_dir = base_dir / 'temp'
     
     node_specs = []
     
@@ -50,11 +50,12 @@ def extract_node_specs(inputs: dict) -> dict:
     
     # Fallback to individual files
     spec_files = [
-        'node_spec_start_ast.json', 'node_spec_condition_ast.json', 'node_spec_person_job_ast.json',
-        'node_spec_code_job_ast.json', 'node_spec_api_job_ast.json', 'node_spec_endpoint_ast.json',
-        'node_spec_db_ast.json', 'node_spec_user_response_ast.json', 'node_spec_notion_ast.json',
-        'node_spec_person_batch_job_ast.json', 'node_spec_hook_ast.json', 'node_spec_template_job_ast.json',
-        'node_spec_json_schema_validator_ast.json', 'node_spec_typescript_ast_ast.json', 'node_spec_sub_diagram_ast.json'
+        'start.spec.ts.json', 'condition.spec.ts.json', 'person-job.spec.ts.json',
+        'code-job.spec.ts.json', 'api-job.spec.ts.json', 'endpoint.spec.ts.json',
+        'db.spec.ts.json', 'user-response.spec.ts.json', 'notion.spec.ts.json',
+        'person-batch-job.spec.ts.json', 'hook.spec.ts.json', 'template-job.spec.ts.json',
+        'json-schema-validator.spec.ts.json', 'typescript-ast.spec.ts.json', 'sub-diagram.spec.ts.json',
+        'integrated-api.spec.ts.json'
     ]
     
     for filename in spec_files:
@@ -64,12 +65,16 @@ def extract_node_specs(inputs: dict) -> dict:
                 with open(file_path, 'r') as f:
                     data = json.load(f)
                     # Extract the node specification
-                    for const in data.get('consts', []):
+                    for const in data.get('constants', []):
                         if const.get('name', '').endswith('Spec'):
                             spec_value = const.get('value', {})
                             if isinstance(spec_value, dict) and 'nodeType' in spec_value:
+                                # Clean up nodeType (remove quotes and NodeType. prefix)
+                                node_type = spec_value.get('nodeType', '')
+                                node_type = node_type.replace('NodeType.', '').replace('"', '').lower()
+                                
                                 node_specs.append({
-                                    'name': spec_value.get('nodeType'),
+                                    'name': node_type,
                                     'displayName': spec_value.get('displayName'),
                                     'category': spec_value.get('category'),
                                     'description': spec_value.get('description'),

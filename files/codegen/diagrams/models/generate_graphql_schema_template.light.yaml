@@ -29,7 +29,7 @@ nodes:
       operation: read
       sub_type: file
       serialize_json: true
-      file:
+      source_details:
         - temp/diagram.ts.json
         - temp/execution.ts.json
         - temp/conversation.ts.json
