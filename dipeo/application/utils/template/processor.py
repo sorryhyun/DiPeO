@@ -9,7 +9,7 @@ from .types import TemplateResult
 
 
 class TemplateProcessor:
-    # Unified template processor supporting Handlebars-style syntax
+    # Template processor supporting legacy double-brace syntax for backward compatibility
     
     # Regex patterns for different template syntaxes
     VARIABLE_PATTERN = re.compile(r'\{\{(\s*[\w\.]+\s*)\}\}')

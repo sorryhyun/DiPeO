@@ -2,17 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
-    "MemoryView": {
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
-    },
     "PersonID": {
       "additionalProperties": false,
       "properties": {
@@ -82,6 +71,17 @@
         "max_iteration"
       ],
       "type": "object"
+    },
+    "MemoryView": {
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
+      ],
+      "type": "string"
     },
     "MemorySettings": {
       "additionalProperties": false,

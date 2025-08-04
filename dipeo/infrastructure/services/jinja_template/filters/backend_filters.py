@@ -209,7 +209,7 @@ class BackendFilters:
         elif node_type == 'db':
             imports.append("from dipeo.core.services import DatabaseService")
         elif node_type == 'template_job':
-            imports.append("from dipeo.infrastructure.services.template import TemplateService")
+            imports.append("from dipeo.infrastructure.services.jinja_template import TemplateService")
         
         return sorted(list(set(imports)))
     

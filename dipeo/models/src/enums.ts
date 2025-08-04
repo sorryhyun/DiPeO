@@ -189,8 +189,7 @@ export enum ConditionType {
 
 export enum TemplateEngine {
   INTERNAL = 'internal',
-  JINJA2 = 'jinja2',
-  HANDLEBARS = 'handlebars'
+  JINJA2 = 'jinja2'
 }
 
 export enum AuthType {

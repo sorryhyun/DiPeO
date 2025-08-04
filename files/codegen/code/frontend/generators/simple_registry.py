@@ -1,6 +1,6 @@
 """Simple generator for frontend node registry imports."""
 from typing import Dict, Any, List
-from dipeo.infrastructure.services.template.filters.base_filters import BaseFilters
+from dipeo.infrastructure.services.jinja_template.filters.base_filters import BaseFilters
 
 def generate_simple_registry(node_types: List[str], template_content: str) -> str:
     """

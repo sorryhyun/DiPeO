@@ -50,6 +50,10 @@
       ],
       "type": "object"
     },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "DBBlockSubType": {
       "enum": [
         "fixed_prompt",
@@ -58,10 +62,6 @@
         "api_tool"
       ],
       "type": "string"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
     }
   }
 }

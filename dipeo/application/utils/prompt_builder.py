@@ -45,7 +45,7 @@ class PromptBuilder:
         if should_prepend and template_values:
             selected_prompt = self._prepend_conversation_context(selected_prompt, template_values)
         
-        # Use full template processing to support Handlebars syntax
+        # Use template processing to support variable substitution
         result = self._processor.process(selected_prompt, template_values)
         if result.errors:
             logger.warning(f"Template processing errors: {result.errors}")
