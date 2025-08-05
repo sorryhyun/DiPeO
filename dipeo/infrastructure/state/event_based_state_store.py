@@ -39,12 +39,15 @@ class EventBasedStateStore(StateStorePort):
     ):
         self.db_path = db_path or os.getenv("STATE_STORE_PATH", str(STATE_DB_PATH))
         self._conn: sqlite3.Connection | None = None
-        self._executor = ThreadPoolExecutor(max_workers=4)  # Multiple workers for parallel writes
+        self._executor = ThreadPoolExecutor(max_workers=1)  # Single worker to avoid threading issues
+        self._executor_shutdown = False  # Track executor state ourselves
         self._thread_id: int | None = None
         self.message_store = message_store
         self._execution_cache = ExecutionStateCache(ttl_seconds=3600)
+        self._reconnect_lock = asyncio.Lock()  # Separate lock for reconnection
         self._initialized = False
         self._db_lock = asyncio.Lock()  # Only for DB schema operations
+        self._conn_lock = threading.Lock()  # Thread-safe connection access
     
     async def initialize(self):
         """Initialize the state store."""
@@ -77,8 +80,9 @@ class EventBasedStateStore(StateStorePort):
                     pass
                 self._conn = None
             
-            if not self._executor._shutdown:
+            if not self._executor_shutdown:
                 self._executor.shutdown(wait=False)
+                self._executor_shutdown = True
             
             self._initialized = False
     
@@ -90,29 +94,77 @@ class EventBasedStateStore(StateStorePort):
         
         def _connect_sync():
             self._thread_id = threading.get_ident()
+            # Use thread-safe mode for SQLite
             conn = sqlite3.connect(
                 self.db_path,
                 check_same_thread=False,  # Allow multi-threaded access
                 isolation_level=None,
+                timeout=30.0,  # 30 second timeout
             )
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=5000")  # 5 second timeout for locks
+            conn.execute("PRAGMA busy_timeout=10000")  # 10 second timeout for locks
+            conn.execute("PRAGMA synchronous=NORMAL")  # Better performance with WAL
+            conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
+            conn.execute("PRAGMA mmap_size=268435456")  # Use memory-mapped I/O (256MB)
             return conn
         
-        if self._executor._shutdown:
-            self._executor = ThreadPoolExecutor(max_workers=4)
+        # Recreate executor if it was shut down
+        if self._executor_shutdown:
+            self._executor = ThreadPoolExecutor(max_workers=1)
+            self._executor_shutdown = False
         
-        self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+        try:
+            # Create new connection
+            new_conn = await loop.run_in_executor(self._executor, _connect_sync)
+            
+            # Swap connections atomically
+            old_conn = self._conn
+            self._conn = new_conn
+            
+            # Close old connection if any (after setting new one)
+            if old_conn:
+                try:
+                    await loop.run_in_executor(self._executor, old_conn.close)
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.error(f"Failed to connect to database: {e}")
+            raise
     
     async def _execute_internal(self, *args, **kwargs):
         """Internal execute method for use during initialization."""
         if self._conn is None:
             raise RuntimeError("Database connection not established")
         
+        # Check if executor is still valid
+        if self._executor_shutdown:
+            raise RuntimeError("Executor has been shut down - reinitialize the store")
+        
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            self._executor, self._conn.execute, *args, **kwargs
-        )
+        
+        # Retry logic for connection issues
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                return await loop.run_in_executor(
+                    self._executor, self._conn.execute, *args, **kwargs
+                )
+            except (sqlite3.InterfaceError, sqlite3.ProgrammingError, sqlite3.OperationalError) as e:
+                # These errors typically indicate connection issues
+                if attempt < max_retries - 1:
+                    logger.warning(f"SQLite error (attempt {attempt + 1}/{max_retries}): {e}, reconnecting...")
+                    async with self._reconnect_lock:
+                        # Only reconnect if connection is still the same one that failed
+                        await self._connect()
+                    # Small delay before retry
+                    await asyncio.sleep(0.1 * (attempt + 1))
+                else:
+                    logger.error(f"SQLite error after {max_retries} attempts: {e}")
+                    raise
+            except Exception as e:
+                # Other errors should not trigger reconnection
+                logger.error(f"Unexpected database error: {e}")
+                raise
     
     async def _execute(self, *args, **kwargs):
         """Execute a database operation without global lock."""
@@ -143,18 +195,45 @@ class EventBasedStateStore(StateStorePort):
         
         CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
         CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
+        CREATE INDEX IF NOT EXISTS idx_diagram_id ON execution_states(diagram_id);
         """
         
-        await asyncio.get_event_loop().run_in_executor(
-            self._executor, self._conn.executescript, schema
-        )
+        loop = asyncio.get_event_loop()
         
-        # Try to add metrics column to existing tables
+        # Retry logic for schema initialization
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                await loop.run_in_executor(
+                    self._executor, self._conn.executescript, schema
+                )
+                break
+            except (sqlite3.InterfaceError, sqlite3.ProgrammingError, sqlite3.OperationalError) as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"SQLite error during schema init (attempt {attempt + 1}/{max_retries}): {e}")
+                    async with self._reconnect_lock:
+                        await self._connect()
+                    await asyncio.sleep(0.1 * (attempt + 1))
+                else:
+                    logger.error(f"Failed to initialize schema after {max_retries} attempts: {e}")
+                    raise
+        
+        # Try to add metrics column to existing tables (migration)
         try:
-            await self._execute_internal("ALTER TABLE execution_states ADD COLUMN metrics TEXT DEFAULT NULL")
-        except sqlite3.OperationalError:
-            # Column already exists, ignore
-            pass
+            # Check if metrics column exists first
+            cursor = await self._execute_internal(
+                "PRAGMA table_info(execution_states)"
+            )
+            columns = await loop.run_in_executor(self._executor, cursor.fetchall)
+            has_metrics = any(col[1] == "metrics" for col in columns)
+            
+            if not has_metrics:
+                await self._execute_internal(
+                    "ALTER TABLE execution_states ADD COLUMN metrics TEXT DEFAULT NULL"
+                )
+        except Exception as e:
+            # Log but don't fail - column might already exist
+            logger.debug(f"Could not add metrics column (may already exist): {e}")
     
     async def create_execution(
         self,
