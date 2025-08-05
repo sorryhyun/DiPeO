@@ -256,7 +256,7 @@ class BatchSubDiagramExecutor:
             container=base_context['container']
         )
         
-        # Execute with minimal observers (no StateStoreObserver for batch items)
+        # Execute with minimal observers for batch items
         parent_observers = []
         
         # Execute and collect only final results

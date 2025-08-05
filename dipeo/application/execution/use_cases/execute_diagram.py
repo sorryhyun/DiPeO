@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseService
-from dipeo.models import ExecutionStatus
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
@@ -70,24 +69,18 @@ class ExecuteDiagramUseCase(BaseService):
         
         # Always use unified monitoring
         from dipeo.application.execution.observers.unified_event_observer import UnifiedEventObserver
-        from dipeo.application.execution.observers import StateStoreObserver
         
         # If observers are provided (e.g., for sub-diagrams), use them
         if observers is not None:
             engine_observers = observers
         else:
-            # Create unified observer
+            # Create unified observer for real-time updates
             unified_observer = UnifiedEventObserver(
                 message_router=self.message_router,
                 execution_runtime=typed_diagram,
                 capture_logs=use_monitoring_stream  # Enable log capture for CLI
             )
-            engine_observers = []
-            
-            if self.state_store:
-                engine_observers.append(StateStoreObserver(self.state_store))
-            
-            engine_observers.append(unified_observer)
+            engine_observers = [unified_observer]
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.registry.keys import EVENT_BUS
@@ -112,12 +105,8 @@ class ExecuteDiagramUseCase(BaseService):
         async def run_execution():
             try:
                 exec_state = await self.state_store.get_state(execution_id)
-                if exec_state:
-                    exec_state.status = ExecutionStatus.RUNNING
-                    exec_state.started_at = datetime.now(UTC).isoformat()
-                    exec_state.is_active = True
-                    await self.state_store.save_state(exec_state)
                 
+                # The engine will emit EXECUTION_STARTED event which triggers state updates
                 async for _ in engine.execute(
                     diagram=typed_diagram,
                     execution_state=exec_state,
@@ -127,19 +116,15 @@ class ExecuteDiagramUseCase(BaseService):
                 ):
                     pass
 
-                await self._finalize_execution_state(execution_id, ExecutionStatus.COMPLETED)
+                # Engine handles completion events internally
                 
             except Exception as e:
                 import logging
 
                 logger = logging.getLogger(__name__)
                 logger.error(f"Engine execution failed: {e}", exc_info=True)
-                
-                await self._finalize_execution_state(
-                    execution_id, 
-                    ExecutionStatus.FAILED,
-                    error=str(e)
-                )
+                # Error event will be emitted by the engine
+                raise
 
         # Check if this is a sub-diagram execution (for batch parallel support)
         is_sub_diagram = options.get('is_sub_diagram', False) or options.get('parent_execution_id')
@@ -351,37 +336,6 @@ class ExecuteDiagramUseCase(BaseService):
         
         # Store initial state
         await self.state_store.save_state(initial_state)
-    
-    async def _finalize_execution_state(
-        self,
-        execution_id: str,
-        status: "ExecutionStatus",
-        error: str | None = None
-    ) -> None:
-        """Finalize execution state in persistence layer."""
-        from dipeo.models import ExecutionStatus
-        
-        # Get current state
-        state = await self.state_store.get_state(execution_id)
-        if state:
-            if status == ExecutionStatus.COMPLETED:
-                state.status = ExecutionStatus.COMPLETED
-                state.ended_at = datetime.now(UTC).isoformat()
-                state.is_active = False
-                
-                # Calculate duration
-                if state.started_at:
-                    start = datetime.fromisoformat(state.started_at.replace('Z', '+00:00'))
-                    end = datetime.now(UTC)
-                    state.duration_seconds = (end - start).total_seconds()
-            elif status == ExecutionStatus.FAILED:
-                state.status = ExecutionStatus.FAILED
-                state.ended_at = datetime.now(UTC).isoformat()
-                state.is_active = False
-                state.error = error or "Unknown error"
-            
-            # Save final state
-            await self.state_store.save_state(state)
     
     def _extract_api_keys_for_typed_diagram(self, diagram: "DomainDiagram", api_key_service) -> dict[str, str]:
         """Extract API keys needed by the diagram.

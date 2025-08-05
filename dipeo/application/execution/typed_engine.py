@@ -76,6 +76,7 @@ class TypedExecutionEngine:
         if self._managed_event_bus:
             await self.event_bus.start()
         
+        context = None
         try:
             # Create execution context
             context = TypedExecutionContext.from_execution_state(
@@ -152,16 +153,18 @@ class TypedExecutionEngine:
             }
             
         except Exception as e:
-            # Emit execution error event
-            await self.event_bus.emit(ExecutionEvent(
-                type=EventType.NODE_FAILED,
-                execution_id=str(execution_state.id),
-                timestamp=time.time(),
-                data={
-                    "error": str(e),
-                    "error_type": type(e).__name__
-                }
-            ))
+            # Emit execution completed with failed status
+            from dipeo.models import ExecutionStatus
+            
+            if context:
+                await context.emit_event(
+                    EventType.EXECUTION_COMPLETED,
+                    {
+                        "status": ExecutionStatus.FAILED,
+                        "error": str(e),
+                        "error_type": type(e).__name__
+                    }
+                )
             
             yield {
                 "type": "execution_error",

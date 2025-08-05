@@ -9,6 +9,7 @@ from typing import Any
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.core.ports import StateStorePort
 from dipeo.models import ExecutionStatus, NodeExecutionStatus
+from .execution_state_cache import ExecutionStateCache
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class AsyncStateManager(EventConsumer):
         self._write_task: asyncio.Task | None = None
         self._running = False
         self._buffer_lock = asyncio.Lock()
+        self._execution_cache = ExecutionStateCache(ttl_seconds=3600)  # 1 hour TTL
     
     async def start(self) -> None:
         """Start the async state manager."""
@@ -30,6 +32,7 @@ class AsyncStateManager(EventConsumer):
             return
             
         self._running = True
+        await self._execution_cache.start()
         self._write_task = asyncio.create_task(self._write_loop())
         logger.info("AsyncStateManager started")
     
@@ -47,6 +50,9 @@ class AsyncStateManager(EventConsumer):
         
         # Flush any remaining writes
         await self._flush_buffer()
+        
+        # Stop execution cache
+        await self._execution_cache.stop()
         
         logger.info("AsyncStateManager stopped")
     
@@ -138,12 +144,18 @@ class AsyncStateManager(EventConsumer):
         diagram_id = data.get("diagram_id")
         variables = data.get("variables", {})
         
+        # Create execution in cache first for fast access
+        cache = await self._execution_cache.get_cache(execution_id)
+        
         # Create execution in state store
-        await self.state_store.create_execution(
+        state = await self.state_store.create_execution(
             execution_id=execution_id,
             diagram_id=diagram_id,
             variables=variables
         )
+        
+        # Cache the initial state
+        await cache.set_state(state)
         
         # Update status to running
         await self.state_store.update_status(
@@ -174,9 +186,14 @@ class AsyncStateManager(EventConsumer):
         if not node_id:
             return
         
+        # Update cache immediately for fast access
+        cache = await self._execution_cache.get_cache(execution_id)
+        
         # Update node output
         output = data.get("output")
         if output is not None:
+            await cache.set_node_output(node_id, output)
+            
             token_usage = data.get("metrics", {}).get("token_usage")
             await self.state_store.update_node_output(
                 execution_id=execution_id,
@@ -185,7 +202,10 @@ class AsyncStateManager(EventConsumer):
                 token_usage=token_usage
             )
         
-        # Update node status
+        # Update node status in cache
+        await cache.set_node_status(node_id, NodeExecutionStatus.COMPLETED)
+        
+        # Update node status in store
         await self.state_store.update_node_status(
             execution_id=execution_id,
             node_id=node_id,
@@ -238,3 +258,6 @@ class AsyncStateManager(EventConsumer):
         state = await self.state_store.get_state(execution_id)
         if state:
             await self.state_store.persist_final_state(state)
+        
+        # Remove from cache after persistence
+        await self._execution_cache.remove_cache(execution_id)

@@ -40,10 +40,11 @@ async def create_server_container() -> Container:
     event_bus = AsyncEventBus()
     container.registry.register(EVENT_BUS, event_bus)
 
-    # Create state store (keep existing StateRegistry for now)
-    from dipeo_server.infra.state_registry import StateRegistry
+    # Create event-based state store (no global lock)
+    from dipeo.infrastructure.state import EventBasedStateStore
 
-    state_store = StateRegistry()
+    state_store = EventBasedStateStore()
+    await state_store.initialize()
     container.registry.register(STATE_STORE, state_store)
 
     # Create state manager as separate service
@@ -58,13 +59,40 @@ async def create_server_container() -> Container:
     event_bus.subscribe(EventType.NODE_FAILED, state_manager)
     event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
 
+    # Create message router for real-time updates
+    from dipeo.infrastructure.adapters.messaging import MessageRouter
+    message_router = MessageRouter()
+    container.registry.register(MESSAGE_ROUTER, message_router)
+
+    # Create streaming monitor for real-time UI updates
+    from dipeo.infrastructure.monitoring import StreamingMonitor
+    streaming_monitor = StreamingMonitor(message_router)
+    
+    # Subscribe streaming monitor to all events
+    event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)
+    event_bus.subscribe(EventType.NODE_STARTED, streaming_monitor)
+    event_bus.subscribe(EventType.NODE_COMPLETED, streaming_monitor)
+    event_bus.subscribe(EventType.NODE_FAILED, streaming_monitor)
+    event_bus.subscribe(EventType.EXECUTION_COMPLETED, streaming_monitor)
+    event_bus.subscribe(EventType.METRICS_COLLECTED, streaming_monitor)
+
+    # Create metrics observer for performance analysis
+    from dipeo.application.execution.observers import MetricsObserver
+    metrics_observer = MetricsObserver(event_bus=event_bus)
+    
+    # Subscribe metrics observer to execution events
+    event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
+    event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)
+    event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
+    event_bus.subscribe(EventType.NODE_FAILED, metrics_observer)
+    event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
+
     # Start services
     await event_bus.start()
     await state_manager.start()
+    await streaming_monitor.start()
+    await metrics_observer.start()
 
-    from dipeo.infrastructure.adapters.messaging import MessageRouter
-
-    container.registry.register(MESSAGE_ROUTER, MessageRouter())
 
     # Register CLI session service if not already registered
     from dipeo.application.services.cli_session_service import CliSessionService
