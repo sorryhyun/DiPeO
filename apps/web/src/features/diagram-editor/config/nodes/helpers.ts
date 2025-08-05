@@ -1,4 +1,4 @@
-import { NodeType } from '@dipeo/domain-models';
+import { NodeType } from '@dipeo/models';
 import { derivePanelConfig } from '@/core/config/unifiedConfig';
 import { ENTITY_PANEL_CONFIGS } from '@/features/properties-editor/config';
 import { getNodeConfig } from '../nodeRegistry';

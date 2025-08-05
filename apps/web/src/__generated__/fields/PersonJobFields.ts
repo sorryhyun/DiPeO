@@ -27,6 +27,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     rows: 10,
     column: 2,
     adjustable: true,
+    showPromptFileButton: true,
   },
   {
     name: 'default_prompt',
@@ -38,6 +39,16 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     rows: 10,
     column: 2,
     adjustable: true,
+    showPromptFileButton: true,
+  },
+  {
+    name: 'prompt_file',
+    type: 'text',
+    label: 'Prompt File',
+    required: false,
+    placeholder: 'example.txt',
+    description: 'Path to prompt file in /files/prompts/',
+    column: 2,
   },
   {
     name: 'max_iteration',

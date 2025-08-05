@@ -8,7 +8,7 @@
 
 // Auto-generated node configuration for typescript_ast
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { typescriptAstFields } from '../fields/TypescriptAstFields';
 
 export const typescriptAstConfig: UnifiedNodeConfig = {
@@ -16,7 +16,7 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
   icon: '🔍',
   color: '#3178c6',
   nodeType: NodeType.TYPESCRIPT_AST,
-  category: 'utility',
+  category: 'codegen',
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },

@@ -1,7 +1,7 @@
 /**
- * Centralized domain type exports from @dipeo/domain-models
+ * Centralized domain type exports from @dipeo/models
  * This file serves as the single source of truth for domain types in the frontend
- * All domain types should be imported from here, not directly from @dipeo/domain-models
+ * All domain types should be imported from here, not directly from @dipeo/models
  */
 
 // Core Enums
@@ -28,7 +28,7 @@ export {
   ExecutionStatus,
   NodeExecutionStatus,
   EventType
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Branded ID Types
 export type {
@@ -39,7 +39,7 @@ export type {
   ApiKeyID,
   DiagramID,
   ExecutionID
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Core Domain Types
 export type {
@@ -57,7 +57,7 @@ export type {
   // Tool config
   ToolConfig,
   ToolSelection
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Node Data Types
 export type {
@@ -78,7 +78,7 @@ export type {
   TypescriptAstNodeData,
   SubDiagramNodeData,
   IntegratedApiNodeData
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Execution Types
 export type {
@@ -90,12 +90,12 @@ export type {
   InteractiveResponse,
   ExecutionUpdate,
   NodeDefinition
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Conversation Types
 export type {
   PersonMemoryMessage
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Utility Functions
 export {
@@ -114,7 +114,7 @@ export {
   domainTypeToNodeKind,
   // Type guards
   isDomainNode,
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // UI-Specific Type Augmentation
 // This is the only UI-specific type that should be defined here
@@ -138,7 +138,7 @@ import type {
   ApiKeyID as ApiKeyIDImport, 
   DiagramID as DiagramIDImport,
   ExecutionID as ExecutionIDImport 
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Re-export branded ID creation functions for UI convenience
 export const nodeId = (id: string): NodeIDImport => id as NodeIDImport;

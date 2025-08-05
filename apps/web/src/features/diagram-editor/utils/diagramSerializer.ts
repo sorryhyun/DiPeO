@@ -1,4 +1,4 @@
-import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/domain-models';
+import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/core/types';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';

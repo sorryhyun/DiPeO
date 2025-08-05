@@ -101,9 +101,14 @@ class PersonJobNode(BaseExecutableNode):
     # Optional node-specific fields
     person: Optional[PersonID] = None
     default_prompt: Optional[str] = None
+    prompt_file: Optional[str] = None
     memory_profile: Optional[MemoryProfile] = None
     memory_settings: Optional[MemorySettings] = None
     tools: Optional[ToolSelection] = None
+    batch: Optional[bool] = None
+    batch_input_key: Optional[str] = None
+    batch_parallel: Optional[bool] = None
+    max_concurrent: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -116,10 +121,15 @@ class PersonJobNode(BaseExecutableNode):
         data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt
         data["default_prompt"] = self.default_prompt
+        data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration
         data["memory_profile"] = self.memory_profile.value if self.memory_profile is not None else None
         data["memory_settings"] = self.memory_settings
         data["tools"] = self.tools.value if self.tools is not None else None
+        data["batch"] = self.batch
+        data["batch_input_key"] = self.batch_input_key
+        data["batch_parallel"] = self.batch_parallel
+        data["max_concurrent"] = self.max_concurrent
         return data
 
 
@@ -628,10 +638,15 @@ def create_executable_node(
             person=data.get("person", None),
             first_only_prompt=data.get("first_only_prompt"),
             default_prompt=data.get("default_prompt", None),
+            prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),
             memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
             memory_settings=data.get("memory_settings", None),
             tools=_to_enum(data.get("tools", None), ToolSelection),
+            batch=data.get("batch", None),
+            batch_input_key=data.get("batch_input_key", None),
+            batch_parallel=data.get("batch_parallel", None),
+            max_concurrent=data.get("max_concurrent", None),
         )
     
 
@@ -849,10 +864,15 @@ def create_executable_node(
             person=data.get("person", None),
             first_only_prompt=data.get("first_only_prompt"),
             default_prompt=data.get("default_prompt", None),
+            prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),
             memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
             memory_settings=data.get("memory_settings", None),
             tools=_to_enum(data.get("tools", None), ToolSelection),
+            batch=data.get("batch", None),
+            batch_input_key=data.get("batch_input_key", None),
+            batch_parallel=data.get("batch_parallel", None),
+            max_concurrent=data.get("max_concurrent", None),
         )
     
     raise ValueError(f"Unknown node type: {node_type}")

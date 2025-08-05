@@ -4,7 +4,7 @@ import type { ComputedSlice } from './slices/computedSlice';
 import type { ExecutionSlice } from '@/features/execution-monitor/store/executionSlice';
 import type { PersonSlice } from '@/features/person-management/store/personSlice';
 import type { UISlice } from './slices/uiSlice';
-import type { NodeID, ArrowID, PersonID, HandleID } from '@dipeo/domain-models';
+import type { NodeID, ArrowID, PersonID, HandleID } from '@dipeo/models';
 
 // Re-export NodeState from executionSlice for backward compatibility
 export type { NodeState } from '@/features/execution-monitor/store/executionSlice';

@@ -9,7 +9,7 @@ import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useCanvas as useCanvasBase, useCanvasInteractions } from '@/features/diagram-editor/hooks';
 import { useNodeOperations, useArrowOperations, usePersonOperations, useDiagramData, usePersonsData, useExecutionProgressComputed, useRunningNodesComputed, useCompletedNodesComputed, useFailedNodesComputed } from '@/core/store/hooks';
 import { useExecution } from '@/features/execution-monitor/hooks';
-import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/domain-models';
+import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/models';
 import { nodeId, NodeType } from '@/core/types';
 
 /**

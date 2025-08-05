@@ -311,6 +311,10 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         showFieldKey={false}
         showPromptFileButton={fieldConfig.showPromptFileButton}
         adjustable={fieldConfig.adjustable}
+        onPromptFileSelect={fieldConfig.showPromptFileButton ? (content: string, filename: string) => {
+          // Update the prompt_file field with the filename
+          handleFieldUpdate('prompt_file', filename);
+        } : undefined}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);

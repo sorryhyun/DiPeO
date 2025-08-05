@@ -2,7 +2,7 @@ import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagra
 import type { DomainPerson } from '@/core/types';
 import { apolloClient } from '@/lib/graphql/client';
 import { GetApiKeysDocument, GetAvailableModelsDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
-import { isLLMService } from '@dipeo/domain-models';
+import { isLLMService } from '@dipeo/models';
 
 interface ExtendedPersonData extends Partial<DomainPerson> {
   'llm_config.api_key_id'?: string;

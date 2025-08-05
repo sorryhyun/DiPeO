@@ -8,7 +8,7 @@ import {
   ExecutionStatus,
   NodeExecutionStatus,
   type NodeState as DomainNodeState,
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 /**
  * Store-specific node state that tracks execution state of individual nodes.

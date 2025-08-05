@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useEffect } from 'react';
 import { NodeProps, useReactFlow } from '@xyflow/react';
-import { Vec2 } from '@dipeo/domain-models';
+import { Vec2 } from '@dipeo/models';
 
 // Extend window interface for our cleanup function
 declare global {

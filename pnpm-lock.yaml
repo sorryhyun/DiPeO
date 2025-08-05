@@ -56,7 +56,7 @@ importers:
       '@apollo/client':
         specifier: ^3.13.8
         version: 3.13.8(@types/react@19.1.8)(graphql-ws@6.0.5(graphql@16.11.0)(ws@8.18.3))(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@dipeo/domain-models':
+      '@dipeo/models':
         specifier: workspace:*
         version: link:../../dipeo/models
       '@hookform/resolvers':

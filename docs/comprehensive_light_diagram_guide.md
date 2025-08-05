@@ -99,6 +99,7 @@ Executes prompts with LLM agents, supporting iteration and memory management.
     person: Agent Name              # Reference to persons section
     default_prompt: 'Analyze {{data}}'
     first_only_prompt: 'Start analysis of {{data}}'  # First iteration only
+    prompt_file: code-review.txt    # Load prompt from /files/prompts/ (optional)
     max_iteration: 5
     memory_profile: FOCUSED         # Memory management strategy
     tools:                          # Optional LLM tools
@@ -119,7 +120,18 @@ Executes prompts with LLM agents, supporting iteration and memory management.
 **Prompt Templates:**
 - `first_only_prompt`: Used only on first iteration
 - `default_prompt`: Used for all subsequent iterations
+- `prompt_file`: Path to external prompt file in `/files/prompts/` directory
 - Supports Handlebars syntax: `{{variable}}`, `{{nested.property}}`
+
+**Using External Prompt Files:**
+The `prompt_file` property allows you to reference external prompt files instead of embedding prompts directly in the diagram:
+- Files must be located in `/files/prompts/` directory
+- Use only the filename (e.g., `code-review.txt`, not the full path)
+- External files are useful for:
+  - Reusing prompts across multiple diagrams
+  - Managing complex, multi-line prompts
+  - Version controlling prompts separately
+- If both `prompt_file` and inline prompts are specified, the external file takes precedence
 
 ### 3. CODE_JOB Node
 

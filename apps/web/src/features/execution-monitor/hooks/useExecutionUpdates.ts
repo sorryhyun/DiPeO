@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { NodeExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/domain-models';
+import { NodeExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/models';
 import { nodeId, executionId } from '@/core/types';
 import { useExecutionState } from './useExecutionState';
 import { useUnifiedStore } from '@/core/store/unifiedStore';

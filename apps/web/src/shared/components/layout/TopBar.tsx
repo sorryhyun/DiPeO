@@ -8,7 +8,7 @@ import { useUIOperations, useExecutionOperations } from '@/core/store/hooks';
 import { toast } from 'sonner';
 import { useUnifiedStore, useDiagramFormat } from '@/core/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
-import { DiagramFormat } from '@dipeo/domain-models';
+import { DiagramFormat } from '@dipeo/models';
 import { useGetDiagramLazyQuery } from '@/__generated__/graphql';
 import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
 

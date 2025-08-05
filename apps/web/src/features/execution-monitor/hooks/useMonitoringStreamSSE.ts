@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ExecutionStatus, NodeExecutionStatus, EventType } from '@dipeo/domain-models';
+import { ExecutionStatus, NodeExecutionStatus, EventType } from '@dipeo/models';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 
 interface SSEEvent {

@@ -6,7 +6,7 @@ import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { createNode } from '@/core/store/helpers/importExportHelpers';
 import { getNodeConfig } from '../config/nodes';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
-import { NodeType, Vec2, DiagramFormat } from '@dipeo/domain-models';
+import { NodeType, Vec2, DiagramFormat } from '@dipeo/models';
 
 export interface DiagramSlice {
   // Core data structures

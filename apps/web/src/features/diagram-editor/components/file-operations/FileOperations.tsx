@@ -8,7 +8,7 @@ import {
   useUploadFileMutation,
   useGetDiagramLazyQuery
 } from '@/__generated__/graphql';
-import { DiagramFormat } from '@dipeo/domain-models';
+import { DiagramFormat } from '@dipeo/models';
 import { useFileOperations } from '@/features/diagram-editor/hooks';
 import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
 import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';

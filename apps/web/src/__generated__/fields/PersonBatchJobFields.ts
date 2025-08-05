@@ -34,6 +34,7 @@ export const personBatchJobFields: UnifiedFieldDefinition[] = [
     placeholder: 'Use {{item}} for current batch item, {{variable_name}} for other variables',
     description: 'Prompt template for each batch item',
     rows: 5,
+    showPromptFileButton: true,
     validate: (value: unknown) => {
       return { isValid: true };
     },

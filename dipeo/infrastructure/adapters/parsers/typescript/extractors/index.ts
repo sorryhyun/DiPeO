@@ -11,4 +11,4 @@ export { parseFunctions } from './function-extractor'
 export { parseConstants } from './constant-extractor'
 
 // Re-export types from the models package for convenience
-export * from '../../../../../models/src/parsers/ast-types'
+export * from '../../../../../models/src/codegen/ast-types'

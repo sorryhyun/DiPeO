@@ -12,7 +12,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import {type DomainDiagram, diagramId, executionId } from '@/core/types';
 import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types/execution';
-import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/domain-models';
+import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/models';
 import { createCommonStoreSelector } from '@/core/store/selectorFactory';
 import { useExecutionStreaming } from './useExecutionStreaming';
 import { useExecutionState } from './useExecutionState';

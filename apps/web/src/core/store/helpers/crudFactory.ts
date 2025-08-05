@@ -2,7 +2,7 @@ import { Draft } from 'immer';
 import { UnifiedStore } from '../unifiedStore.types';
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
 import { DomainArrow, DomainNode, DomainPerson } from '@/core/types';
-import {ArrowID, NodeID, PersonID} from '@dipeo/domain-models';
+import {ArrowID, NodeID, PersonID} from '@dipeo/models';
 
 type EntityType = 'nodes' | 'arrows' | 'persons';
 type EntityId = NodeID | ArrowID | PersonID;

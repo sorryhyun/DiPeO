@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { DiagramFormat } from '@dipeo/domain-models';
+import { DiagramFormat } from '@dipeo/models';
 import { useConvertDiagramFormatMutation, useUploadFileMutation } from '@/__generated__/graphql';
 import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
 import { toast } from 'sonner';

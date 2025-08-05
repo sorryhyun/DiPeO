@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
-import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/domain-models';
+import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/models';
 import { UnifiedStore } from '../unifiedStore.types';
 import type { SelectableID } from './uiSlice';
 import type { NodeState } from '@/features/execution-monitor/store/executionSlice';

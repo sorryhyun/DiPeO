@@ -8,7 +8,7 @@
 
 // Auto-generated node configuration for notion
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { notionFields } from '../fields/NotionFields';
 
 export const notionConfig: UnifiedNodeConfig = {

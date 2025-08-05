@@ -8,7 +8,7 @@
 
 // Auto-generated node configuration for hook
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { hookFields } from '../fields/HookFields';
 
 export const hookConfig: UnifiedNodeConfig = {

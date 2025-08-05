@@ -92,21 +92,21 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # List of interfaces to generate schemas for
     interfaces = [
-        ('StartNodeData', 'src/node-data/start.data.ts'),
-        ('ConditionNodeData', 'src/node-data/condition.data.ts'),
-        ('PersonJobNodeData', 'src/node-data/person-job.data.ts'),
-        ('CodeJobNodeData', 'src/node-data/code-job.data.ts'),
-        ('ApiJobNodeData', 'src/node-data/api-job.data.ts'),
-        ('EndpointNodeData', 'src/node-data/endpoint.data.ts'),
-        ('DBNodeData', 'src/node-data/db.data.ts'),
-        ('UserResponseNodeData', 'src/node-data/user-response.data.ts'),
-        ('NotionNodeData', 'src/node-data/notion.data.ts'),
-        ('PersonBatchJobNodeData', 'src/node-data/person-batch-job.data.ts'),
-        ('HookNodeData', 'src/node-data/hook.data.ts'),
-        ('TemplateJobNodeData', 'src/node-data/template-job.data.ts'),
-        ('JsonSchemaValidatorNodeData', 'src/node-data/json-schema-validator.data.ts'),
-        ('TypescriptAstNodeData', 'src/node-data/typescript-ast.data.ts'),
-        ('SubDiagramNodeData', 'src/node-data/sub-diagram.data.ts')
+        ('StartNodeData', 'src/core/nodes/start.data.ts'),
+        ('ConditionNodeData', 'src/core/nodes/condition.data.ts'),
+        ('PersonJobNodeData', 'src/core/nodes/person-job.data.ts'),
+        ('CodeJobNodeData', 'src/core/nodes/code-job.data.ts'),
+        ('ApiJobNodeData', 'src/core/nodes/api-job.data.ts'),
+        ('EndpointNodeData', 'src/core/nodes/endpoint.data.ts'),
+        ('DBNodeData', 'src/core/nodes/db.data.ts'),
+        ('UserResponseNodeData', 'src/core/nodes/user-response.data.ts'),
+        ('NotionNodeData', 'src/core/nodes/notion.data.ts'),
+        ('PersonBatchJobNodeData', 'src/core/nodes/person-batch-job.data.ts'),
+        ('HookNodeData', 'src/core/nodes/hook.data.ts'),
+        ('TemplateJobNodeData', 'src/core/nodes/template-job.data.ts'),
+        ('JsonSchemaValidatorNodeData', 'src/core/nodes/json-schema-validator.data.ts'),
+        ('TypescriptAstNodeData', 'src/core/nodes/typescript-ast.data.ts'),
+        ('SubDiagramNodeData', 'src/core/nodes/sub-diagram.data.ts')
     ]
     
     schemas = {}

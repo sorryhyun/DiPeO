@@ -10,7 +10,7 @@ import type { Node } from '@xyflow/react';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useNodeData, useNodeOperations, useArrowOperations, usePersonOperations } from '@/core/store/hooks';
 import { NodeID, PersonID, ArrowID, nodeId, personId, arrowId } from '@/core/types';
-import { Vec2, NodeType } from '@dipeo/domain-models';
+import { Vec2, NodeType } from '@dipeo/models';
 
 // Types
 export interface ContextMenuState {

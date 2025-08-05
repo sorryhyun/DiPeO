@@ -3,7 +3,7 @@
  */
 
 import { SourceFile } from 'ts-morph'
-import type { ClassInfo, PropertyInfo, MethodInfo, ParameterInfo } from '@dipeo/domain-models/parsers/ast-types'
+import type { ClassInfo, PropertyInfo, MethodInfo, ParameterInfo } from '@dipeo/models/codegen/ast-types'
 import { getJSDoc } from './utils'
 
 export function parseClasses(sourceFile: SourceFile, includeJSDoc: boolean): ClassInfo[] {

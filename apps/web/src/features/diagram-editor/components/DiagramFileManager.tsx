@@ -7,7 +7,7 @@ import { useFileOperations } from '@/features/diagram-editor/hooks';
 import { 
   useGetSupportedFormatsQuery
 } from '@/__generated__/graphql';
-import { DiagramFormat } from '@dipeo/domain-models';
+import { DiagramFormat } from '@dipeo/models';
 
 interface DiagramFileManagerProps {
   className?: string;

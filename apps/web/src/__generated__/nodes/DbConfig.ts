@@ -8,7 +8,7 @@
 
 // Auto-generated node configuration for db
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { dbFields } from '../fields/DbFields';
 
 export const dbConfig: UnifiedNodeConfig = {

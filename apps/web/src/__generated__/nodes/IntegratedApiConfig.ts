@@ -8,7 +8,7 @@
 
 // Auto-generated node configuration for integrated_api
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { integratedApiFields } from '../fields/IntegratedApiFields';
 
 export const integratedApiConfig: UnifiedNodeConfig = {

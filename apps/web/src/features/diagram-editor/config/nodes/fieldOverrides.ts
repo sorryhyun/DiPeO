@@ -49,13 +49,14 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
   },
   
   person_job: {
-    excludeFields: ['person', 'memory_config', 'memory_settings'], // person handled by labelPersonRow, memory fields excluded
+    excludeFields: ['person', 'memory_config', 'memory_settings', 'prompt_file'], // person handled by labelPersonRow, memory fields excluded, prompt_file integrated into prompt fields
     fieldOverrides: {
       tools: {
         placeholder: 'Optional tools configuration',
         rows: 2
       },
       first_only_prompt: {
+        type: 'variableTextArea',
         required: true,
         placeholder: 'Prompt to use only on first execution.',
         rows: 4,
@@ -69,6 +70,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         }
       },
       default_prompt: {
+        type: 'variableTextArea',
         column: 2,
         showPromptFileButton: true,
         validate: (value: unknown) => {

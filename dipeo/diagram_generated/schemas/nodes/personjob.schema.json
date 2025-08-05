@@ -2,33 +2,18 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
-    "MemoryView": {
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
-      ],
-      "type": "object"
-    },
     "PersonJobNodeData": {
       "additionalProperties": false,
       "properties": {
+        "batch": {
+          "type": "boolean"
+        },
+        "batch_input_key": {
+          "type": "string"
+        },
+        "batch_parallel": {
+          "type": "boolean"
+        },
         "default_prompt": {
           "type": "string"
         },
@@ -40,6 +25,9 @@
         },
         "label": {
           "type": "string"
+        },
+        "max_concurrent": {
+          "type": "number"
         },
         "max_iteration": {
           "type": "number"
@@ -66,6 +54,9 @@
         },
         "person": {
           "$ref": "#/definitions/PersonID"
+        },
+        "prompt_file": {
+          "type": "string"
         },
         "tools": {
           "enum": [
@@ -103,6 +94,30 @@
         "view"
       ],
       "type": "object"
+    },
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
+    "MemoryView": {
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
+      ],
+      "type": "string"
     }
   }
 }

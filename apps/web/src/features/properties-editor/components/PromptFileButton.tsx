@@ -4,7 +4,7 @@ import { FileText } from 'lucide-react';
 import { PromptFilePicker } from './PromptFilePicker';
 
 interface PromptFileButtonProps {
-  onSelectContent: (content: string) => void;
+  onSelectContent: (content: string, filename?: string) => void;
   className?: string;
   tooltip?: string;
 }
@@ -16,8 +16,8 @@ export function PromptFileButton({
 }: PromptFileButtonProps) {
   const [showPicker, setShowPicker] = useState(false);
   
-  const handleSelect = (content: string) => {
-    onSelectContent(content);
+  const handleSelect = (content: string, filename?: string) => {
+    onSelectContent(content, filename);
     setShowPicker(false);
   };
   

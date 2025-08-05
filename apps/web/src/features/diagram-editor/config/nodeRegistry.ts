@@ -1,5 +1,5 @@
 import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType } from '@dipeo/domain-models';
+import { NodeType } from '@dipeo/models';
 
 /**
  * Dynamic node registry for registering node configurations at runtime

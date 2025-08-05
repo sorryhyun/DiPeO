@@ -1,4 +1,4 @@
-import { NodeType } from '@dipeo/domain-models';
+import { NodeType } from '@dipeo/models';
 import { getNodeConfig, getAllNodeConfigs } from '../nodeRegistry';
 
 /**

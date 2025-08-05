@@ -5,7 +5,7 @@ import { NodeExecutionStatus } from '../../types/execution';
 import { ExecutionID, executionId } from '@/core/types';
 import { Button } from '@/shared/components/forms/buttons';
 import { useExecutionOrderQuery, ExecutionOrderQuery } from '@/__generated__/graphql';
-import { ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
+import { ExecutionStatus, isExecutionActive } from '@dipeo/models';
 
 interface ExecutionStep {
   nodeId: string;

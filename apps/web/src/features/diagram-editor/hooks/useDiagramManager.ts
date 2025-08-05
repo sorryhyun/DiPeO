@@ -7,7 +7,7 @@ import { useUnifiedStore } from '@/core/store/unifiedStore';
 import { useDebouncedSave } from '@/shared/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';
 import type { ExecutionOptions } from '@/features/execution-monitor/types/execution';
-import { DiagramFormat } from '@dipeo/domain-models';
+import { DiagramFormat } from '@dipeo/models';
 
 export interface DiagramMetadata {
   name?: string;

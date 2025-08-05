@@ -3,7 +3,7 @@
  */
 
 import { nanoid } from 'nanoid';
-import { DataType as DomainDataType, ApiKeyID, ArrowID, NodeID, PersonID } from '@dipeo/domain-models';
+import { DataType as DomainDataType, ApiKeyID, ArrowID, NodeID, PersonID } from '@dipeo/models';
 import {
   nodeId,
   arrowId,

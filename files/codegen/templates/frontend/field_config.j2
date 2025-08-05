@@ -48,6 +48,9 @@ export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
 {%- if field.uiConfig.adjustable %}
     adjustable: {{ field.uiConfig.adjustable | lower }},
 {%- endif %}
+{%- if field.uiConfig.showPromptFileButton %}
+    showPromptFileButton: {{ field.uiConfig.showPromptFileButton | lower }},
+{%- endif %}
 {%- if field.uiConfig.options %}
     options: [
 {%- for option in field.uiConfig.options %}

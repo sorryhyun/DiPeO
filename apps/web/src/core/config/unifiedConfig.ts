@@ -105,7 +105,8 @@ function convertToPanelFieldConfig<T>(field: UnifiedFieldDefinition<T>): TypedPa
     fields: field.fields?.map(f => convertToPanelFieldConfig(f)),
     validate: field.validate,
     column: field.column,
-    adjustable: field.adjustable
+    adjustable: field.adjustable,
+    showPromptFileButton: field.showPromptFileButton
   };
 }
 

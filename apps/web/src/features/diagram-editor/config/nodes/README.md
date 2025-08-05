@@ -6,7 +6,7 @@ This directory contains configuration files for all DiPeO node types. The config
 
 ### 1. Automatic Field Generation
 
-Field configurations are automatically generated from the TypeScript domain models in `@dipeo/domain-models`:
+Field configurations are automatically generated from the TypeScript domain models in `@dipeo/models`:
 
 ```bash
 # Run from dipeo/models directory

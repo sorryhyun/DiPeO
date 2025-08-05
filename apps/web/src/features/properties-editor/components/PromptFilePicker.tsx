@@ -17,7 +17,7 @@ interface PromptFile {
 interface PromptFilePickerProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (content: string) => void;
+  onSelect: (content: string, filename?: string) => void;
 }
 
 export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerProps) {
@@ -49,7 +49,7 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
   
   const handleSelect = () => {
     if (selectedFile && previewContent) {
-      onSelect(previewContent);
+      onSelect(previewContent, selectedFile);
       onClose();
     }
   };
@@ -68,6 +68,7 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
   };
   
   const formatFileSize = (bytes: number) => {
+    if (!bytes || isNaN(bytes)) return '';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -116,7 +117,13 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{file.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {formatFileSize(file.size)} • {format(new Date(file.modified * 1000), 'MMM dd, yyyy')}
+                        {formatFileSize(file.size) && (
+                          <>{formatFileSize(file.size)}</>
+                        )}
+                        {formatFileSize(file.size) && file.modified && !isNaN(file.modified) && ' • '}
+                        {file.modified && !isNaN(file.modified) && (
+                          <>{format(new Date(file.modified * 1000), 'MMM dd, yyyy')}</>
+                        )}
                       </div>
                     </div>
                   </div>

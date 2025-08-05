@@ -581,10 +581,15 @@ class PersonJobNodeData(BaseNodeData):
     person: Optional[PersonID] = Field(default=None)
     first_only_prompt: str
     default_prompt: Optional[str] = Field(default=None)
+    prompt_file: Optional[str] = Field(default=None)
     max_iteration: float
     memory_profile: Optional[MemoryProfile] = Field(default=None)
     memory_settings: Optional[MemorySettings] = Field(default=None)
     tools: Optional[ToolSelection] = Field(default=None)
+    batch: Optional[bool] = Field(default=None)
+    batch_input_key: Optional[str] = Field(default=None)
+    batch_parallel: Optional[bool] = Field(default=None)
+    max_concurrent: Optional[float] = Field(default=None)
 
 
 class StartNodeData(BaseNodeData):

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/shared/components/forms/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
-import { NodeType } from '@dipeo/domain-models';
+import { NodeType } from '@dipeo/models';
 import { useCanvas, useCanvasInteractions } from '@/features/diagram-editor/hooks';
 import { useSelectionData, useSelectionOperations, usePersonsData, usePersonOperations } from '@/core/store/hooks';
 import { LazyApiKeysModal } from '@/shared/components/feedback/LazyModals';
@@ -78,8 +78,9 @@ const categorizeNodes = () => {
     data: { name: 'Data Sources', icon: '📊', order: 4 },
     integration: { name: 'Integrations', icon: '🔌', order: 5 },
     interaction: { name: 'User Interaction', icon: '💬', order: 6 },
-    validation: { name: 'Validation', icon: '✅', order: 7 },
-    utility: { name: 'Utilities', icon: '🛠️', order: 8 },
+    codegen: { name: 'Code Generation', icon: '🏗️', order: 7 },
+    validation: { name: 'Validation', icon: '✅', order: 8 },
+    utility: { name: 'Utilities', icon: '🛠️', order: 9 },
   };
   
   // Group nodes by category
@@ -179,7 +180,7 @@ export const DiagramSidebar = React.memo(() => {
                           <span>{meta.icon}</span>
                           <span>{meta.name}</span>
                         </h4>
-                        <div className="grid grid-cols-2 gap-2 px-2">
+                        <div className="grid grid-cols-3 gap-2 px-2">
                           {nodes.map((block) => (
                             <DraggableBlock key={block.type} type={block.type} label={block.label} />
                           ))}

@@ -26,7 +26,7 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, 
 
 import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
-import { HandleDirection, HandleLabel } from '@dipeo/domain-models';
+import { HandleDirection, HandleLabel } from '@dipeo/models';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 import { ConversionService } from '@/core/services/ConversionService';
 

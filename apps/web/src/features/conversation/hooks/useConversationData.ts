@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { GetConversationsDocument } from '@/__generated__/graphql';
 import { createEntityQuery } from '@/lib/graphql/hooks';
 import type { ConversationFilters, UIConversationMessage, UIPersonMemoryState } from '@/core/types/conversation';
-import { type PersonID, type ExecutionID, type NodeID, ExecutionStatus, isExecutionActive } from '@dipeo/domain-models';
+import { type PersonID, type ExecutionID, type NodeID, ExecutionStatus, isExecutionActive } from '@dipeo/models';
 
 const MESSAGES_PER_PAGE = 50;
 

@@ -5,7 +5,7 @@ import {
   saveDiagram as saveDiagramFile,
   downloadFile
 } from '@/lib/utils/file';
-import { DiagramFormat } from '@dipeo/domain-models';
+import { DiagramFormat } from '@dipeo/models';
 import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
 import { createEntityMutation } from '@/lib/graphql/hooks';
 import { 

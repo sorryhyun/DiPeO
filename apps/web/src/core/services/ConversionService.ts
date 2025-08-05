@@ -5,7 +5,7 @@ import {
   type ArrowID,
   type PersonID,
   type HandleID
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 import { nodeId, arrowId, personId, handleId } from '@/core/types/branded';
 
 // Conversion utilities service for ID conversions and common transformations

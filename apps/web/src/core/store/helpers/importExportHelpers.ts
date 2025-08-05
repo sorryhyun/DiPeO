@@ -1,5 +1,5 @@
 import { DomainNode } from '@/core/types';
-import { NodeType, Vec2 } from '@dipeo/domain-models';
+import { NodeType, Vec2 } from '@dipeo/models';
 import { generateNodeId } from '@/core/types/utilities';
 import { getNodeConfig, generateNodeLabel } from '@/features/diagram-editor/config/nodes';
 

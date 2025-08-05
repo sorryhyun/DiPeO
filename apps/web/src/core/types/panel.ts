@@ -21,7 +21,8 @@ export const FIELD_TYPES = {
   FILEPATH: 'filepath',
   PASSWORD: 'password',
   GROUP: 'group',
-  NODE_SELECT: 'nodeSelect'
+  NODE_SELECT: 'nodeSelect',
+  PROMPT_FILE: 'promptFile'
 } as const;
 
 export type FieldType = typeof FIELD_TYPES[keyof typeof FIELD_TYPES];
@@ -73,6 +74,7 @@ export interface TypedPanelFieldConfig<T = unknown> extends BasePanelFieldConfig
   fields?: Array<TypedPanelFieldConfig<T>>;
   validate?: FieldValidator<T>;
   column?: 1 | 2;
+  showPromptFileButton?: boolean;
 }
 
 export interface PanelLayoutConfig<T = unknown> {

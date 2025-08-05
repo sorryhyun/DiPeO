@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Input, Select, Switch } from '@/shared/components/forms';
+import { Button } from '@/shared/components/forms/buttons';
 import { Spinner } from '@/shared/components/feedback';
 import { FileUploadButton } from '@/shared/components/forms/buttons';
+import { FileText } from 'lucide-react';
 import { 
   FULL_WIDTH, SPACE_Y_2, TEXTAREA_CLASSES, LABEL_TEXT, 
   ERROR_TEXT, ERROR_TEXT_MT, HELPER_TEXT, HELPER_TEXT_MT, 
@@ -11,6 +13,7 @@ import { readFileAsText } from '@/lib/utils/file';
 import { FIELD_TYPES } from '@/core/types/panel';
 import { LEGACY_TYPE_MAP } from '@/core/types/fieldTypeRegistry';
 import { PromptFileButton } from '../PromptFileButton';
+import { PromptFilePicker } from '../PromptFilePicker';
 
 export type FieldValue = string | number | boolean | null | undefined;
 
@@ -28,7 +31,8 @@ export type UnifiedFieldType =
   | typeof FIELD_TYPES.CODE
   | typeof FIELD_TYPES.FILEPATH
   | typeof FIELD_TYPES.PASSWORD
-  | 'file'; // File is UI-specific, not in base types
+  | 'file' // File is UI-specific, not in base types
+  | 'promptFile'; // Custom prompt file picker
 
 export interface UnifiedFormFieldProps {
   type: UnifiedFieldType;
@@ -57,6 +61,7 @@ export interface UnifiedFormFieldProps {
   showFieldKey?: boolean;
   showPromptFileButton?: boolean;
   adjustable?: boolean;
+  onPromptFileSelect?: (content: string, filename: string) => void;
 }
 
 type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layout' | 'error' | 'helperText'> & {
@@ -64,6 +69,7 @@ type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layo
   isLoadingState: boolean;
   setLocalLoading: (loading: boolean) => void;
   adjustable?: boolean;
+  onPromptFileSelect?: (content: string, filename: string) => void;
 };
 
 // Normalize legacy type names
@@ -141,7 +147,14 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
         {p.showPromptFileButton && (
           <div className="absolute top-2 right-2">
             <PromptFileButton
-              onSelectContent={(content) => p.onChange(content)}
+              onSelectContent={(content, filename) => {
+                // Update the textarea content
+                p.onChange(content);
+                // If we have a filename and a handler, also update the prompt_file field
+                if (filename && p.onPromptFileSelect) {
+                  p.onPromptFileSelect(content, filename);
+                }
+              }}
               tooltip="Load prompt from file"
             />
           </div>
@@ -314,7 +327,52 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       autoComplete="new-password"
       {...p.customProps}
     />
-  )
+  ),
+  
+  // Custom prompt file picker - stores filename, not content
+  'promptFile': (p) => {
+    const [showPicker, setShowPicker] = React.useState(false);
+    
+    return (
+      <>
+        <div className={FLEX_CENTER_GAP}>
+          <Input
+            id={p.fieldId}
+            type="text"
+            value={String(p.value || '')}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
+            placeholder={p.placeholder || 'prompt-file.txt'}
+            disabled={p.disabled}
+            className={FULL_WIDTH}
+            {...p.customProps}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 ml-2"
+            onClick={() => setShowPicker(true)}
+            title="Browse prompt files"
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
+        </div>
+        {showPicker && (
+          <PromptFilePicker
+            open={showPicker}
+            onClose={() => setShowPicker(false)}
+            onSelect={(content, filename) => {
+              // Set the filename value when a file is selected
+              if (filename) {
+                p.onChange(filename);
+              }
+              setShowPicker(false);
+            }}
+          />
+        )}
+      </>
+    );
+  }
 };
 
 /**
@@ -347,7 +405,8 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   isLoading = false,
   showFieldKey = false,
   showPromptFileButton = false,
-  adjustable = false
+  adjustable = false,
+  onPromptFileSelect
 }) => {
   const fieldId = `field-${name}`;
   const [localLoading, setLocalLoading] = useState(false);
@@ -381,7 +440,8 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     isLoadingState,
     setLocalLoading,
     showPromptFileButton,
-    adjustable
+    adjustable,
+    onPromptFileSelect
   };
   
   // Normalize field type for lookup

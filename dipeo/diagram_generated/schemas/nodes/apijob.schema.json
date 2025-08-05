@@ -6,6 +6,20 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
+      "type": "string"
+    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -49,20 +63,6 @@
         "method",
         "url"
       ],
-      "type": "object"
-    },
-    "HttpMethod": {
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH"
-      ],
-      "type": "string"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
       "type": "object"
     }
   }

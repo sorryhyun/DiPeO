@@ -3,13 +3,13 @@ import {
   ExecutionStatus,
   EventType,
   NodeExecutionStatus,
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Re-export canonical types that don't need adaptation
 export type { 
   PersonMemoryMessage,
   TokenUsage,
-} from '@dipeo/domain-models';
+} from '@dipeo/models';
 
 // Export the already imported enums
 export { ExecutionStatus, NodeExecutionStatus, EventType };
