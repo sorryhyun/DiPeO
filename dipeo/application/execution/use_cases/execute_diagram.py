@@ -90,14 +90,21 @@ class ExecuteDiagramUseCase(BaseService):
             engine_observers.append(unified_observer)
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
+        from dipeo.application.registry.keys import EVENT_BUS
         
         runtime_resolver = StandardRuntimeResolver()
         
-        # Create engine with observers directly
+        # Get event bus from registry if available
+        event_bus = None
+        if self.service_registry.has(EVENT_BUS):
+            event_bus = self.service_registry.resolve(EVENT_BUS)
+        
+        # Create engine with event bus (or observers for backward compatibility)
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             runtime_resolver=runtime_resolver,
-            observers=engine_observers,
+            event_bus=event_bus,
+            observers=engine_observers if not event_bus else None,
         )
 
         # No update iterator needed with unified monitoring

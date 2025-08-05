@@ -28,7 +28,7 @@ nodes:
   type: code_job
   position: {x: 19, y: 342}
   props:
-    code: files/code_examples/data_processor.py
+    filePath: files/code_examples/data_processor.py
     code_type: python
     functionName: parse_data
 - label: Quality Check
@@ -64,7 +64,7 @@ nodes:
   type: code_job
   position: {x: 731, y: 425}
   props:
-    code: files/code_examples/data_processor.py
+    filePath: files/code_examples/data_processor.py
     code_type: python
     functionName: extract_score
 - label: Check Quality Threshold
@@ -78,7 +78,7 @@ nodes:
   type: code_job
   position: {x: 271, y: 943}
   props:
-    code: files/code_examples/data_processor.py
+    filePath: files/code_examples/data_processor.py
     code_type: python
     functionName: transform_data
     flipped: [true, false]
@@ -95,7 +95,7 @@ nodes:
   type: code_job
   position: {x: -393, y: 854}
   props:
-    code: files/code_examples/data_processor.py
+    filePath: files/code_examples/data_processor.py
     flipped: [true, false]
     code_type: python
     functionName: enrich_data
@@ -103,7 +103,7 @@ nodes:
   type: code_job
   position: {x: -550, y: 950}
   props:
-    code: files/code_examples/data_processor.py
+    filePath: files/code_examples/data_processor.py
     code_type: python
     functionName: analyze_patterns
     flipped: [true, false]
@@ -129,7 +129,7 @@ nodes:
   type: code_job
   position: {x: 276, y: 655}
   props:
-    code: files/code_examples/data_processor.py
+    filePath: files/code_examples/data_processor.py
     flipped: [true, false]
     code_type: python
     functionName: handle_error
