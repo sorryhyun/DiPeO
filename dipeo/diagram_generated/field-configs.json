@@ -175,6 +175,13 @@
           "label": "Serialize Json",
           "required": false,
           "defaultValue": false
+        },
+        {
+          "name": "glob",
+          "type": "checkbox",
+          "label": "Glob",
+          "required": false,
+          "defaultValue": false
         }
       ]
     },

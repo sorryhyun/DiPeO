@@ -464,8 +464,185 @@ class LLMRequestOptions(BaseModel):
     response_format: Optional[Any] = Field(default=None)
 
 
+class ApiJobNodeData(BaseNodeData):
+    """ApiJobNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    url: str
+    method: HttpMethod
+    headers: Optional[Dict[str, str]] = Field(default=None)
+    params: Optional[Dict[str, Any]] = Field(default=None)
+    body: Optional[Any] = Field(default=None)
+    timeout: Optional[int] = Field(default=None)
+    auth_type: Optional[AuthType] = Field(default=None)
+    auth_config: Optional[Dict[str, str]] = Field(default=None)
+
+
+class CodeJobNodeData(BaseNodeData):
+    """CodeJobNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    language: SupportedLanguage
+    filePath: Optional[str] = Field(default=None)
+    code: Optional[str] = Field(default=None)
+    functionName: Optional[str] = Field(default=None)
+    timeout: Optional[int] = Field(default=None)
+
+
+class ConditionNodeData(BaseNodeData):
+    """ConditionNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    condition_type: Optional[ConditionType] = Field(default=None)
+    expression: Optional[str] = Field(default=None)
+    node_indices: Optional[List[str]] = Field(default=None)
+
+
+class DBNodeData(BaseNodeData):
+    """DBNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    file: Optional[List[Union[str]]] = Field(default=None)
+    collection: Optional[str] = Field(default=None)
+    sub_type: DBBlockSubType
+    operation: str
+    query: Optional[str] = Field(default=None)
+    data: Optional[Dict[str, Any]] = Field(default=None)
+    serialize_json: Optional[bool] = Field(default=None)
+    glob: Optional[bool] = Field(default=None)
+
+
+class EndpointNodeData(BaseNodeData):
+    """EndpointNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    save_to_file: bool
+    file_name: Optional[str] = Field(default=None)
+
+
+class HookNodeData(BaseNodeData):
+    """HookNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    hook_type: HookType
+    command: Optional[str] = Field(default=None)
+    args: Optional[List[str]] = Field(default=None)
+    env: Optional[Dict[str, str]] = Field(default=None)
+    cwd: Optional[str] = Field(default=None)
+    url: Optional[str] = Field(default=None)
+    method: Optional[HttpMethod] = Field(default=None)
+    headers: Optional[Dict[str, str]] = Field(default=None)
+    script: Optional[str] = Field(default=None)
+    function_name: Optional[str] = Field(default=None)
+    file_path: Optional[str] = Field(default=None)
+    format: Optional[Literal["json", "yaml", "text"]] = Field(default=None)
+    timeout: Optional[int] = Field(default=None)
+    retry_count: Optional[float] = Field(default=None)
+    retry_delay: Optional[float] = Field(default=None)
+
+
+class IntegratedApiNodeData(BaseNodeData):
+    """IntegratedApiNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    provider: APIServiceType
+    operation: str
+    config: Optional[Dict[str, Any]] = Field(default=None)
+    resource_id: Optional[str] = Field(default=None)
+    timeout: Optional[int] = Field(default=None)
+    max_retries: Optional[float] = Field(default=None)
+
+
+class JsonSchemaValidatorNodeData(BaseNodeData):
+    """JsonSchemaValidatorNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    schema_path: Optional[str] = Field(default=None)
+    schema: Optional[Dict[str, Any]] = Field(default=None)
+    data_path: Optional[str] = Field(default=None)
+    strict_mode: Optional[bool] = Field(default=None)
+    error_on_extra: Optional[bool] = Field(default=None)
+
+
+class NotionNodeData(BaseNodeData):
+    """NotionNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    api_key: str
+    database_id: str
+    operation: NotionOperation
+    page_id: Optional[str] = Field(default=None)
+
+
+class PersonJobNodeData(BaseNodeData):
+    """PersonJobNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    person: Optional[PersonID] = Field(default=None)
+    first_only_prompt: str
+    default_prompt: Optional[str] = Field(default=None)
+    max_iteration: float
+    memory_profile: Optional[MemoryProfile] = Field(default=None)
+    memory_settings: Optional[MemorySettings] = Field(default=None)
+    tools: Optional[ToolSelection] = Field(default=None)
+
+
+class StartNodeData(BaseNodeData):
+    """StartNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    trigger_mode: HookTriggerMode
+    custom_data: Optional[Dict[str, Union[str, float, bool]]] = Field(default=None)
+    output_data_structure: Optional[Dict[str, str]] = Field(default=None)
+    hook_event: Optional[str] = Field(default=None)
+    hook_filters: Optional[Dict[str, Any]] = Field(default=None)
+
+
+class SubDiagramNodeData(BaseNodeData):
+    """SubDiagramNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    diagram_name: Optional[str] = Field(default=None)
+    diagram_format: Optional[DiagramFormat] = Field(default=None)
+    diagram_data: Optional[Dict[str, Any]] = Field(default=None)
+    batch: Optional[bool] = Field(default=None)
+    batch_input_key: Optional[str] = Field(default=None)
+    batch_parallel: Optional[bool] = Field(default=None)
+    ignoreIfSub: Optional[bool] = Field(default=None)
+
+
+class TemplateJobNodeData(BaseNodeData):
+    """TemplateJobNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    template_path: Optional[str] = Field(default=None)
+    template_content: Optional[str] = Field(default=None)
+    output_path: Optional[str] = Field(default=None)
+    variables: Optional[Dict[str, Any]] = Field(default=None)
+    engine: Optional[TemplateEngine] = Field(default=None)
+
+
+class TypescriptAstNodeData(BaseNodeData):
+    """TypescriptAstNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    source: Optional[str] = Field(default=None)
+    extractPatterns: Optional[List[str]] = Field(default=None)
+    includeJSDoc: Optional[bool] = Field(default=None)
+    parseMode: Optional[Literal["module", "script"]] = Field(default=None)
+
+
+class UserResponseNodeData(BaseNodeData):
+    """UserResponseNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    prompt: str
+    timeout: int
+
+
 # Type aliases that reference models
 PersonMemoryMessage = Message
+PersonBatchJobNodeData = PersonJobNodeData
 
 
 
@@ -602,4 +779,52 @@ def is_chat_result(obj: Any) -> bool:
 def is_llm_request_options(obj: Any) -> bool:
     """Check if object is a LLMRequestOptions."""
     return isinstance(obj, LLMRequestOptions)
+def is_api_job_node_data(obj: Any) -> bool:
+    """Check if object is a ApiJobNodeData."""
+    return isinstance(obj, ApiJobNodeData)
+def is_code_job_node_data(obj: Any) -> bool:
+    """Check if object is a CodeJobNodeData."""
+    return isinstance(obj, CodeJobNodeData)
+def is_condition_node_data(obj: Any) -> bool:
+    """Check if object is a ConditionNodeData."""
+    return isinstance(obj, ConditionNodeData)
+def is_db_node_data(obj: Any) -> bool:
+    """Check if object is a DBNodeData."""
+    return isinstance(obj, DBNodeData)
+def is_endpoint_node_data(obj: Any) -> bool:
+    """Check if object is a EndpointNodeData."""
+    return isinstance(obj, EndpointNodeData)
+def is_hook_node_data(obj: Any) -> bool:
+    """Check if object is a HookNodeData."""
+    return isinstance(obj, HookNodeData)
+def is_integrated_api_node_data(obj: Any) -> bool:
+    """Check if object is a IntegratedApiNodeData."""
+    return isinstance(obj, IntegratedApiNodeData)
+def is_json_schema_validator_node_data(obj: Any) -> bool:
+    """Check if object is a JsonSchemaValidatorNodeData."""
+    return isinstance(obj, JsonSchemaValidatorNodeData)
+def is_notion_node_data(obj: Any) -> bool:
+    """Check if object is a NotionNodeData."""
+    return isinstance(obj, NotionNodeData)
+def is_person_job_node_data(obj: Any) -> bool:
+    """Check if object is a PersonJobNodeData."""
+    return isinstance(obj, PersonJobNodeData)
+def is_start_node_data(obj: Any) -> bool:
+    """Check if object is a StartNodeData."""
+    return isinstance(obj, StartNodeData)
+def is_sub_diagram_node_data(obj: Any) -> bool:
+    """Check if object is a SubDiagramNodeData."""
+    return isinstance(obj, SubDiagramNodeData)
+def is_template_job_node_data(obj: Any) -> bool:
+    """Check if object is a TemplateJobNodeData."""
+    return isinstance(obj, TemplateJobNodeData)
+def is_typescript_ast_node_data(obj: Any) -> bool:
+    """Check if object is a TypescriptAstNodeData."""
+    return isinstance(obj, TypescriptAstNodeData)
+def is_user_response_node_data(obj: Any) -> bool:
+    """Check if object is a UserResponseNodeData."""
+    return isinstance(obj, UserResponseNodeData)
 
+
+# Constants from TypeScript
+PROVIDER_OPERATIONS = {"[APIServiceType.ANTHROPIC]": [], "[APIServiceType.BEDROCK]": [], "[APIServiceType.DEEPSEEK]": [], "[APIServiceType.GEMINI]": [], "[APIServiceType.GITHUB]": ["create_issue", "update_issue", "list_issues", "create_pr", "merge_pr", "get_repo_info"], "[APIServiceType.GOOGLE]": [], "[APIServiceType.GOOGLE_SEARCH]": ["search"], "[APIServiceType.JIRA]": ["create_issue", "update_issue", "search_issues", "transition_issue", "add_comment"], "[APIServiceType.NOTION]": ["create_page", "update_page", "read_page", "delete_page", "create_database", "query_database", "update_database"], "[APIServiceType.OPENAI]": [], "[APIServiceType.SLACK]": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"], "[APIServiceType.VERTEX]": []}

@@ -259,6 +259,7 @@ export type ExecuteDiagramInput = {
   max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
   use_monitoring_stream?: InputMaybe<Scalars['Boolean']['input']>;
+  use_unified_monitoring?: InputMaybe<Scalars['Boolean']['input']>;
   variables?: InputMaybe<Scalars['JSON']['input']>;
 };
 
