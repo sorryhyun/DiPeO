@@ -6,9 +6,20 @@ from datetime import datetime
 import json
 import logging
 import yaml
+from dataclasses import dataclass
 
-from dipeo.application.graphql.types.cli_session import CliSession
 from dipeo.infrastructure.services.diagram.converter_service import DiagramConverterService
+
+
+@dataclass
+class CliSessionData:
+    """Internal representation of a CLI session."""
+    execution_id: str
+    diagram_name: str
+    diagram_format: str
+    started_at: datetime
+    is_active: bool
+    diagram_data: Optional[str] = None
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +29,7 @@ class CliSessionService:
     """Manages active CLI execution sessions."""
     
     def __init__(self):
-        self._active_session: Optional[CliSession] = None
+        self._active_session: Optional[CliSessionData] = None
         self._lock = asyncio.Lock()
         
     async def start_cli_session(
@@ -27,7 +38,7 @@ class CliSessionService:
         diagram_name: str,
         diagram_format: str,
         diagram_data: Optional[Dict[str, Any]] = None
-    ) -> CliSession:
+    ) -> CliSessionData:
         """Start a new CLI session."""
         async with self._lock:
             # Only one CLI session can be active at a time
@@ -70,7 +81,7 @@ class CliSessionService:
                     converted_data = diagram_data
             
             # Create new session
-            self._active_session = CliSession(
+            self._active_session = CliSessionData(
                 execution_id=execution_id,
                 diagram_name=diagram_name,
                 diagram_format=diagram_format,
@@ -90,7 +101,7 @@ class CliSessionService:
                 return True
             return False
     
-    async def get_active_session(self) -> Optional[CliSession]:
+    async def get_active_session(self) -> Optional[CliSessionData]:
         """Get the current active CLI session."""
         async with self._lock:
             if self._active_session and self._active_session.is_active:

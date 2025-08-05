@@ -104,18 +104,22 @@ class EventBasedStateStore(StateStorePort):
         
         self._conn = await loop.run_in_executor(self._executor, _connect_sync)
     
-    async def _execute(self, *args, **kwargs):
-        """Execute a database operation without global lock."""
-        if not self._initialized:
-            await self.initialize()
-        
+    async def _execute_internal(self, *args, **kwargs):
+        """Internal execute method for use during initialization."""
         if self._conn is None:
-            raise RuntimeError("StateStore not initialized")
+            raise RuntimeError("Database connection not established")
         
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self._executor, self._conn.execute, *args, **kwargs
         )
+    
+    async def _execute(self, *args, **kwargs):
+        """Execute a database operation without global lock."""
+        if not self._initialized:
+            raise RuntimeError("StateStore not initialized - call initialize() first")
+        
+        return await self._execute_internal(*args, **kwargs)
     
     async def _init_schema(self):
         """Initialize database schema."""
@@ -133,6 +137,7 @@ class EventBasedStateStore(StateStorePort):
             variables TEXT NOT NULL,
             exec_counts TEXT NOT NULL DEFAULT '{}',
             executed_nodes TEXT NOT NULL DEFAULT '[]',
+            metrics TEXT DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
@@ -143,6 +148,13 @@ class EventBasedStateStore(StateStorePort):
         await asyncio.get_event_loop().run_in_executor(
             self._executor, self._conn.executescript, schema
         )
+        
+        # Try to add metrics column to existing tables
+        try:
+            await self._execute_internal("ALTER TABLE execution_states ADD COLUMN metrics TEXT DEFAULT NULL")
+        except sqlite3.OperationalError:
+            # Column already exists, ignore
+            pass
     
     async def create_execution(
         self,
@@ -203,8 +215,8 @@ class EventBasedStateStore(StateStorePort):
             INSERT OR REPLACE INTO execution_states
             (execution_id, status, diagram_id, started_at, ended_at,
              node_states, node_outputs, token_usage, error, variables,
-             exec_counts, executed_nodes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             exec_counts, executed_nodes, metrics)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 state.id,
@@ -219,6 +231,7 @@ class EventBasedStateStore(StateStorePort):
                 json.dumps(state_dict["variables"]),
                 json.dumps(state_dict["exec_counts"]),
                 json.dumps(state_dict["executed_nodes"]),
+                json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
             ),
         )
     
@@ -235,7 +248,7 @@ class EventBasedStateStore(StateStorePort):
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
                    node_states, node_outputs, token_usage, error, variables,
-                   exec_counts, executed_nodes
+                   exec_counts, executed_nodes, metrics
             FROM execution_states
             WHERE execution_id = ?
             """,
@@ -263,6 +276,7 @@ class EventBasedStateStore(StateStorePort):
             "variables": json.loads(row[9]) if row[9] else {},
             "exec_counts": json.loads(row[10]) if len(row) > 10 and row[10] else {},
             "executed_nodes": json.loads(row[11]) if len(row) > 11 and row[11] else [],
+            "metrics": json.loads(row[12]) if len(row) > 12 and row[12] else None,
             "is_active": False,
         }
         return ExecutionState(**state_data)
@@ -448,7 +462,7 @@ class EventBasedStateStore(StateStorePort):
         offset: int = 0,
     ) -> list[ExecutionState]:
         """List executions."""
-        query = "SELECT execution_id, status, diagram_id, started_at, ended_at, node_states, node_outputs, token_usage, error, variables, exec_counts, executed_nodes FROM execution_states"
+        query = "SELECT execution_id, status, diagram_id, started_at, ended_at, node_states, node_outputs, token_usage, error, variables, exec_counts, executed_nodes, metrics FROM execution_states"
         conditions = []
         params = []
         
@@ -491,6 +505,7 @@ class EventBasedStateStore(StateStorePort):
                 "executed_nodes": json.loads(row[11])
                 if len(row) > 11 and row[11]
                 else [],
+                "metrics": json.loads(row[12]) if len(row) > 12 and row[12] else None,
                 "is_active": False,
             }
             execution_state = ExecutionState(**state_data)

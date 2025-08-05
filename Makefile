@@ -60,12 +60,12 @@ codegen:
 # Diagram-based code generation for node UI
 codegen-models:
 	@echo "Running diagram-based model generation for all nodes..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=30
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=40
 	@echo "Diagram-based code generation completed!"
 
 codegen-frontend:
 	@echo "Generating UI for all node types using diagram..."
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=30
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=40
 	@echo "All nodes generated via diagram!"
 
 

@@ -345,7 +345,17 @@ def create_query_type(registry: ServiceRegistry) -> type:
             
             from dipeo.application.services.cli_session_service import CliSessionService
             if isinstance(cli_session_service, CliSessionService):
-                return await cli_session_service.get_active_session()
+                session_data = await cli_session_service.get_active_session()
+                if session_data:
+                    # Convert internal CliSessionData to GraphQL CliSession
+                    return CliSession(
+                        execution_id=session_data.execution_id,
+                        diagram_name=session_data.diagram_name,
+                        diagram_format=session_data.diagram_format,
+                        started_at=session_data.started_at,
+                        is_active=session_data.is_active,
+                        diagram_data=session_data.diagram_data
+                    )
             
             return None
     

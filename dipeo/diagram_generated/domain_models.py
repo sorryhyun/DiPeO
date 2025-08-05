@@ -165,6 +165,35 @@ class NodeState(BaseModel):
     output: Optional[Dict[str, Any]] = Field(default=None)
 
 
+class NodeMetrics(BaseModel):
+    """NodeMetrics model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    node_id: str
+    node_type: str
+    start_time: float
+    end_time: Optional[float] = Field(default=None)
+    duration_ms: Optional[float] = Field(default=None)
+    memory_usage: Optional[int] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    dependencies: Optional[List[str]] = Field(default=None)
+
+
+class ExecutionMetrics(BaseModel):
+    """ExecutionMetrics model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    execution_id: ExecutionID
+    start_time: float
+    end_time: Optional[float] = Field(default=None)
+    total_duration_ms: Optional[float] = Field(default=None)
+    node_metrics: Dict[str, NodeMetrics]
+    critical_path: Optional[List[str]] = Field(default=None)
+    parallelizable_groups: Optional[List[List[str]]] = Field(default=None)
+    bottlenecks: Optional[List[Dict[str, Any]]] = Field(default=None)
+
+
 class ExecutionState(BaseModel):
     """ExecutionState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -183,6 +212,7 @@ class ExecutionState(BaseModel):
     is_active: Optional[bool] = Field(default=None)
     exec_counts: Dict[str, float]
     executed_nodes: List[str]
+    metrics: Optional[ExecutionMetrics] = Field(default=None)
 
 
 class ExecutionOptions(BaseModel):

@@ -28,6 +28,34 @@ export interface NodeState {
   output?: Record<string, any> | null;
 }
 
+export interface NodeMetrics {
+  node_id: string;
+  node_type: string;
+  start_time: number;
+  end_time?: number | null;
+  duration_ms?: number | null;
+  memory_usage?: number | null;
+  token_usage?: TokenUsage | null;
+  error?: string | null;
+  dependencies?: string[];
+}
+
+export interface ExecutionMetrics {
+  execution_id: ExecutionID;
+  start_time: number;
+  end_time?: number | null;
+  total_duration_ms?: number | null;
+  node_metrics: Record<string, NodeMetrics>;
+  critical_path?: string[];
+  parallelizable_groups?: string[][];
+  bottlenecks?: Array<{
+    node_id: string;
+    node_type: string;
+    duration_ms: number;
+    percentage: number;
+  }>;
+}
+
 
 export interface ExecutionState {
   id: ExecutionID;
@@ -44,6 +72,7 @@ export interface ExecutionState {
   is_active?: boolean;
   exec_counts: Record<string, number>;
   executed_nodes: string[];
+  metrics?: ExecutionMetrics | null;
 }
 
 
