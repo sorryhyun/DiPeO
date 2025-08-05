@@ -15,7 +15,7 @@ export interface PersonJobNodeData {
   default_prompt?: string;
   prompt_file?: string;
   max_iteration: number;
-  memory_profile?: 'O' | 'b' | 'j' | 'e' | 'c' | 't' | '.' | 'v' | 'a' | 'l' | 'u' | 'e' | 's' | '(' | 'M' | 'e' | 'm' | 'o' | 'r' | 'y' | 'P' | 'r' | 'o' | 'f' | 'i' | 'l' | 'e' | ')';
+  memory_profile?: 'FULL' | 'FOCUSED' | 'MINIMAL' | 'GOLDFISH' | 'CUSTOM';
   tools?: string;
   memory_settings?: Record<string, any>;
 }
@@ -27,7 +27,7 @@ export const PersonJobNodeDataSchema = z.object({
   default_prompt: z.string().optional(),
   prompt_file: z.string().optional(),
   max_iteration: z.number(),
-  memory_profile: z.any().optional(),
+  memory_profile: z.enum(["FULL", "FOCUSED", "MINIMAL", "GOLDFISH", "CUSTOM"]).optional(),
   tools: z.string().optional(),
   memory_settings: z.record(z.any()).optional(),
 });

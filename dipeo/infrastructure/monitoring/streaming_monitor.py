@@ -97,9 +97,9 @@ class StreamingMonitor(EventConsumer):
         ui_event = self._transform_for_ui(event)
         
         # Send through message router (which handles all subscriptions)
-        await self.message_router.publish_event(
+        await self.message_router.broadcast_to_execution(
             execution_id=event.execution_id,
-            event=ui_event
+            message=ui_event
         )
     
     def _transform_for_ui(self, event: ExecutionEvent) -> dict[str, Any]:

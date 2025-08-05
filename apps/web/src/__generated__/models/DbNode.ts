@@ -23,7 +23,7 @@ export interface DbNodeData {
 export const DbNodeDataSchema = z.object({
   file: z.string().optional(),
   collection: z.string().optional(),
-  sub_type: z.any(),
+  sub_type: z.enum(["fixed_prompt", "file", "code", "api_tool"]),
   operation: z.string(),
   query: z.string().optional(),
   data: z.record(z.any()).optional(),

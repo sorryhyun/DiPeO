@@ -19,7 +19,7 @@ export interface StartNodeData {
 
 // Zod schema for validation
 export const StartNodeDataSchema = z.object({
-  trigger_mode: z.any(),
+  trigger_mode: z.enum(["none", "manual", "hook"]),
   custom_data: z.string().optional(),
   output_data_structure: z.record(z.any()).optional(),
   hook_event: z.string().optional(),

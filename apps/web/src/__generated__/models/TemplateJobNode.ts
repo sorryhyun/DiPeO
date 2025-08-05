@@ -23,5 +23,5 @@ export const TemplateJobNodeDataSchema = z.object({
   template_content: z.string().optional(),
   output_path: z.string().optional(),
   variables: z.record(z.any()).optional(),
-  engine: z.any().optional(),
+  engine: z.enum(["internal", "jinja2"]).optional(),
 });

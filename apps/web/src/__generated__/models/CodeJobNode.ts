@@ -19,7 +19,7 @@ export interface CodeJobNodeData {
 
 // Zod schema for validation
 export const CodeJobNodeDataSchema = z.object({
-  language: z.any(),
+  language: z.enum(["python", "typescript", "bash", "shell"]),
   filePath: z.string().optional(),
   code: z.string().optional(),
   functionName: z.string().optional(),

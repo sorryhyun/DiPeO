@@ -24,8 +24,8 @@ export const TypescriptAstNodeDataSchema = z.object({
   source: z.string(),
   extractPatterns: z.array(z.any()).optional(),
   includeJSDoc: z.boolean().optional(),
-  parseMode: z.any().optional(),
+  parseMode: z.enum(["module", "script"]).optional(),
   transformEnums: z.boolean().optional(),
   flattenOutput: z.boolean().optional(),
-  outputFormat: z.any().optional(),
+  outputFormat: z.enum(["standard", "for_codegen", "for_analysis"]).optional(),
 });

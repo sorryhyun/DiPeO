@@ -136,8 +136,7 @@ class ExecutionStateCache:
             
         self._running = True
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
-        logger.info("ExecutionStateCache started")
-    
+
     async def stop(self) -> None:
         """Stop the cache and cleanup resources."""
         self._running = False
@@ -153,8 +152,7 @@ class ExecutionStateCache:
         async with self._cache_lock:
             self._caches.clear()
         
-        logger.info("ExecutionStateCache stopped")
-    
+
     async def get_cache(self, execution_id: str) -> ExecutionCache:
         """Get or create a cache for an execution."""
         # Fast path: check if cache exists
@@ -166,8 +164,7 @@ class ExecutionStateCache:
             # Double-check after acquiring lock
             if execution_id not in self._caches:
                 self._caches[execution_id] = ExecutionCache(execution_id)
-                logger.debug(f"Created cache for execution {execution_id}")
-            
+
             return self._caches[execution_id]
     
     async def remove_cache(self, execution_id: str) -> None:
@@ -175,8 +172,7 @@ class ExecutionStateCache:
         async with self._cache_lock:
             if execution_id in self._caches:
                 del self._caches[execution_id]
-                logger.debug(f"Removed cache for execution {execution_id}")
-    
+
     async def get_dirty_caches(self) -> list[ExecutionCache]:
         """Get all caches with unpersisted changes."""
         async with self._cache_lock:
@@ -218,9 +214,7 @@ class ExecutionStateCache:
         # Remove expired caches
         for exec_id in expired_executions:
             await self.remove_cache(exec_id)
-        
-        if expired_executions:
-            logger.info(f"Cleaned up {len(expired_executions)} expired caches")
+
     
     def get_cache_stats(self) -> dict[str, Any]:
         """Get statistics about the cache."""
