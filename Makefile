@@ -42,7 +42,7 @@ install-dev: install
 # Diagram-based code generation (NEW DEFAULT)
 codegen:
 	@echo "Running unified diagram-based code generation..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=40
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=60
 	@sleep 1
 	make apply-syntax-only
 	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=25
