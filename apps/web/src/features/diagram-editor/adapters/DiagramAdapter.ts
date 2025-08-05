@@ -24,11 +24,11 @@
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
 import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType, MemoryView } from '@/core/types';
 
-import { nodeKindToGraphQLType, graphQLTypeToNodeKind, areHandlesCompatible } from '@/lib/graphql/types';
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, HandleLabel } from '@dipeo/models';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 import { ConversionService } from '@/core/services/ConversionService';
+import { ValidationService } from '@/core/services/ValidationService';
 
 /**
  * React Flow specific diagram representation
@@ -190,7 +190,7 @@ export class DiagramAdapter {
 
     return {
       id: node.id,
-      type: graphQLTypeToNodeKind(node.type),
+      type: ConversionService.nodeTypeToString(node.type),
       position,
       data: {
         ...nodeData, // Spread processed node data
@@ -259,7 +259,7 @@ export class DiagramAdapter {
     
     return {
       id: ConversionService.toNodeId(rfNode.id),
-      type: nodeKindToGraphQLType(rfNode.type || 'start'),
+      type: ConversionService.stringToNodeType(rfNode.type || 'start'),
       position: { ...rfNode.position },
       data: {
         ...nodeData,
@@ -434,10 +434,11 @@ export class DiagramAdapter {
       return validated;
     }
 
-    // Check compatibility
-    if (!areHandlesCompatible(sourceHandle, targetHandle)) {
+    // Use ValidationService for connection validation
+    const connectionValidation = ValidationService.validateConnection(sourceHandle, targetHandle);
+    if (!connectionValidation.valid) {
       validated.isValid = false;
-      validated.validationMessage = `Incompatible types: ${sourceHandle.data_type} → ${targetHandle.data_type}`;
+      validated.validationMessage = connectionValidation.errors.join('; ');
       return validated;
     }
 

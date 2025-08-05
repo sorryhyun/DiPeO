@@ -265,6 +265,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             onChange={(v) => handleFieldUpdate('label', v)}
             placeholder={fieldConfig.labelPlaceholder}
             disabled={isReadOnly}
+            nodeType={normalizedNodeType}
           />
           <UnifiedFormField
             type="personSelect"
@@ -275,6 +276,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             placeholder={fieldConfig.personPlaceholder}
             disabled={isReadOnly}
             persons={personsForSelect}
+            nodeType={normalizedNodeType}
           />
         </FormRow>
       );
@@ -315,9 +317,10 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           // Update the prompt_file field with the filename
           handleFieldUpdate('prompt_file', filename);
         } : undefined}
+        nodeType={normalizedNodeType}
       />
     );
-  }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields]);
+  }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields, normalizedNodeType]);
 
   const renderSection = useCallback((fields: TypedPanelFieldConfig<Record<string, unknown>>[] | undefined) => {
     if (!fields) {
@@ -370,6 +373,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
                 onChange={(v) => handleFieldUpdate('label', v)}
                 placeholder="Enter label"
                 disabled={isReadOnly}
+                nodeType={normalizedNodeType}
               />
             </div>
           )}

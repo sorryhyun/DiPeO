@@ -1,12 +1,16 @@
 import { StateCreator } from 'zustand';
 import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/core/types';
 import { generateArrowId } from '@/core/types/utilities';
-import { ConversionService } from '@/core/services/ConversionService';
+import { 
+  ConversionService, 
+  NodeFactory, 
+  NodeService, 
+  ValidationService,
+  DiagramOperations 
+} from '@/core/services';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
-import { createNode } from '@/core/store/helpers/importExportHelpers';
-import { getNodeConfig } from '../config/nodes';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
-import { NodeType, Vec2, DiagramFormat } from '@dipeo/models';
+import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';
 
 export interface DiagramSlice {
   // Core data structures
@@ -28,6 +32,10 @@ export interface DiagramSlice {
   updateNodeSilently: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
   getNode: (id: NodeID) => DomainNode | undefined;
+  
+  // Import/Export operations
+  importDiagram: (jsonString: string) => Promise<{ success: boolean; error?: string }>;
+  exportDiagram: (pretty?: boolean) => string;
   
   // Arrow operations
   addArrow: (source: string, target: string, data?: Record<string, unknown>) => ArrowID;
@@ -78,10 +86,21 @@ export const createDiagramSlice: StateCreator<
 
   // Node operations
   addNode: (type, position, initialData) => {
-    const nodeConfig = getNodeConfig(type);
-    const nodeDefaults = nodeConfig ? { ...nodeConfig.defaults } : {};
-    const mergedData = { ...nodeDefaults, ...initialData };
-    const node = createNode(type, position, mergedData);
+    // Use NodeFactory for type-safe node creation with validation
+    const result = NodeFactory.createNodeWithValidation(type, position, initialData);
+    
+    if (!result.success) {
+      console.error('Failed to create node:', result.error);
+      // Fall back to creating without validation for backward compatibility
+      const node = NodeFactory.createNode(type, position, initialData);
+      set(state => {
+        state.nodes.set(ConversionService.toNodeId(node.id), node);
+        afterChange(state);
+      });
+      return ConversionService.toNodeId(node.id);
+    }
+    
+    const node = result.data;
     set(state => {
       state.nodes.set(ConversionService.toNodeId(node.id), node);
       afterChange(state);
@@ -343,49 +362,39 @@ export const createDiagramSlice: StateCreator<
 
   validateDiagram: () => {
     const state = get();
+    
+    // Create a DomainDiagram from the current state
+    const diagram: DomainDiagram = {
+      nodes: Array.from(state.nodes.values()),
+      handles: Array.from(state.handles.values()),
+      arrows: Array.from(state.arrows.values()),
+      persons: Array.from(state.persons.values())
+    };
+    
+    // Use ValidationService for comprehensive validation
+    const validationResult = ValidationService.validateDiagram(diagram);
+    
+    // Convert validation result to expected format
     const errors: string[] = [];
     
-    // Check for empty diagram
-    if (state.nodes.size === 0) {
-      errors.push('Diagram has no nodes');
-      return { isValid: false, errors };
-    }
-    
-    // Check for start node
-    const nodeArray = Array.from(state.nodes.values());
-    const hasStartNode = nodeArray.some(
-      node => node.type === NodeType.START
-    );
-    if (!hasStartNode) {
-      errors.push('Diagram must have at least one start node');
-    }
-    
-    // Check for endpoint node
-    const hasEndpoint = nodeArray.some(
-      node => node.type === NodeType.ENDPOINT
-    );
-    if (!hasEndpoint) {
-      errors.push('Diagram should have at least one endpoint node');
-    }
-    
-    // Check for unconnected nodes
-    const connectedNodes = new Set<string>();
-    state.arrows.forEach(arrow => {
-      const sourceNodeId = ConversionService.parseHandleId(arrow.source).node_id;
-      const targetNodeId = ConversionService.parseHandleId(arrow.target).node_id;
-      if (sourceNodeId) connectedNodes.add(sourceNodeId);
-      if (targetNodeId) connectedNodes.add(targetNodeId);
+    // Add node errors
+    validationResult.nodeErrors.forEach((fieldErrors, nodeId) => {
+      const node = state.nodes.get(nodeId as NodeID);
+      const nodeLabel = node?.data?.label || nodeId;
+      Object.entries(fieldErrors).forEach(([field, messages]) => {
+        messages.forEach(message => {
+          errors.push(`Node ${nodeLabel}: ${field} - ${message}`);
+        });
+      });
     });
     
-    const unconnectedNodes = nodeArray.filter(
-      node => !connectedNodes.has(node.id) && node.type !== NodeType.START
-    );
+    // Add connection errors
+    errors.push(...validationResult.connectionErrors);
     
-    if (unconnectedNodes.length > 0) {
-      errors.push(`${unconnectedNodes.length} node(s) are not connected`);
-    }
+    // Add general errors
+    errors.push(...validationResult.generalErrors);
     
-    // Check for person nodes without assigned persons
+    // Add additional person assignment check
     state.nodes.forEach(node => {
       if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && !node.data?.person) {
         errors.push(`Node ${node.data?.label || node.id} requires a person to be assigned`);
@@ -396,5 +405,61 @@ export const createDiagramSlice: StateCreator<
       isValid: errors.length === 0,
       errors
     };
+  },
+  
+  // Import/Export operations
+  importDiagram: async (jsonString) => {
+    try {
+      const result = await DiagramOperations.importDiagram(jsonString);
+      
+      if (!result.success) {
+        return { success: false, error: result.errors?.join(', ') || 'Import failed' };
+      }
+      
+      if (!result.diagram) {
+        return { success: false, error: 'No diagram data found' };
+      }
+      
+      const diagram = result.diagram;
+      const metadata = diagram.metadata || {} as any;
+      
+      // Clear current diagram
+      get().clearDiagram();
+      
+      // Set metadata
+      set(state => {
+        if (metadata.name) state.diagramName = metadata.name;
+        if (metadata.description) state.diagramDescription = metadata.description;
+        if (metadata.id) state.diagramId = metadata.id;
+        if (metadata.format) state.diagramFormat = metadata.format;
+      });
+      
+      // Restore nodes and arrows
+      const { nodes, arrows } = ConversionService.diagramArraysToMaps(diagram);
+      get().restoreDiagram(nodes, arrows);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to import diagram:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  },
+  
+  exportDiagram: (pretty = false) => {
+    const state = get();
+    
+    // Create DomainDiagram from current state
+    const diagram: DomainDiagram = {
+      nodes: Array.from(state.nodes.values()),
+      handles: Array.from(state.handles.values()),
+      arrows: Array.from(state.arrows.values()),
+      persons: Array.from(state.persons.values())
+    };
+    
+    // Use DiagramOperations for export
+    return DiagramOperations.exportDiagram(diagram, pretty);
   }
 });

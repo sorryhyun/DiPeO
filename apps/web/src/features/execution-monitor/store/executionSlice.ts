@@ -8,6 +8,8 @@ import {
   ExecutionStatus,
   NodeExecutionStatus,
   type NodeState as DomainNodeState,
+  EventType,
+  type ExecutionUpdate,
 } from '@dipeo/models';
 
 /**
@@ -122,6 +124,9 @@ export interface ExecutionSlice {
   // Context management
   updateExecutionContext: (updates: Record<string, unknown>) => void;
   clearExecutionContext: () => void;
+  
+  // Event handling
+  handleExecutionEvent: (event: ExecutionUpdate) => void;
 }
 
 // Helper to clear node from running state
@@ -272,5 +277,70 @@ export const createExecutionSlice: StateCreator<
       nodeStates: new Map(),
       context: {}
     };
+  }),
+  
+  // Type-safe event handling
+  handleExecutionEvent: (event) => set(state => {
+    switch (event.type) {
+      case EventType.EXECUTION_STATUS_CHANGED:
+        // Handle execution-level status changes
+        if (event.data?.status === ExecutionStatus.RUNNING) {
+          state.startExecution(event.execution_id);
+        } else if (event.data?.status === ExecutionStatus.COMPLETED || 
+                   event.data?.status === ExecutionStatus.FAILED) {
+          state.stopExecution();
+        } else if (event.data?.status === ExecutionStatus.PAUSED) {
+          state.pauseExecution();
+        }
+        break;
+        
+      case EventType.NODE_STATUS_CHANGED:
+        // Handle node-level status changes
+        if (event.node_id && event.status) {
+          const nodeState: NodeState = {
+            status: event.status,
+            timestamp: event.timestamp ? new Date(event.timestamp).getTime() : Date.now(),
+            error: event.error
+          };
+          updateNodeState(state, event.node_id as NodeID, nodeState);
+        }
+        break;
+        
+      case EventType.NODE_PROGRESS:
+        // Handle node progress updates (e.g., streaming responses)
+        if (event.node_id && event.data) {
+          state.updateExecutionContext({ 
+            [`${event.node_id}_progress`]: event.data 
+          });
+        }
+        break;
+        
+      case EventType.EXECUTION_ERROR:
+        // Handle execution errors
+        if (event.error) {
+          console.error('[ExecutionSlice] Execution error:', event.error);
+          if (event.node_id) {
+            state.setNodeFailed(event.node_id as NodeID, event.error);
+          }
+        }
+        break;
+        
+      case EventType.EXECUTION_UPDATE:
+        // Handle generic execution updates
+        if (event.result && event.node_id) {
+          state.updateExecutionContext({ 
+            [event.node_id]: event.result 
+          });
+        }
+        break;
+        
+      case EventType.INTERACTIVE_PROMPT:
+      case EventType.INTERACTIVE_RESPONSE:
+        // These are handled by other parts of the system
+        break;
+        
+      default:
+        console.warn('[ExecutionSlice] Unknown event type:', event.type);
+    }
   })
 });

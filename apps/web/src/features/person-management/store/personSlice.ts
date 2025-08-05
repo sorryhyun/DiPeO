@@ -3,6 +3,7 @@ import { DomainPerson, PersonID, apiKeyId } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
 import { LLMService } from '@dipeo/models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
+import { ConversionService } from '@/core/services';
 
 export interface PersonSlice {
   // Core data
@@ -16,6 +17,7 @@ export interface PersonSlice {
   // Batch operations
   batchUpdatePersons: (updates: Array<{id: PersonID, updates: Partial<DomainPerson>}>) => void;
   importPersons: (persons: DomainPerson[]) => void;
+  importPersonsFromGraphQL: (graphqlPersons: any[]) => void;
   
   // Clear and restore operations
   clearPersons: () => void;
@@ -110,6 +112,19 @@ export const createPersonSlice: StateCreator<
     importPersons: (persons) => set(state => {
       persons.forEach(person => {
         state.persons.set(person.id as PersonID, person);
+      });
+      state.triggerArraySync();
+    }),
+    
+    importPersonsFromGraphQL: (graphqlPersons) => set(state => {
+      // Use ConversionService to convert GraphQL persons to domain format
+      graphqlPersons.forEach(graphqlPerson => {
+        try {
+          const domainPerson = ConversionService.convertGraphQLPerson(graphqlPerson);
+          state.persons.set(domainPerson.id as PersonID, domainPerson);
+        } catch (error) {
+          console.error('Failed to convert GraphQL person:', error, graphqlPerson);
+        }
       });
       state.triggerArraySync();
     }),

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Input, Select, Switch } from '@/shared/components/forms';
 import { Button } from '@/shared/components/forms/buttons';
 import { Spinner } from '@/shared/components/feedback';
@@ -14,6 +14,9 @@ import { FIELD_TYPES } from '@/core/types/panel';
 import { LEGACY_TYPE_MAP } from '@/core/types/fieldTypeRegistry';
 import { PromptFileButton } from '../PromptFileButton';
 import { PromptFilePicker } from '../PromptFilePicker';
+import { ValidationService } from '@/core/services/ValidationService';
+import { NodeService } from '@/core/services/NodeService';
+import { debounce } from '@/lib/utils/debounce';
 
 export type FieldValue = string | number | boolean | null | undefined;
 
@@ -62,6 +65,11 @@ export interface UnifiedFormFieldProps {
   showPromptFileButton?: boolean;
   adjustable?: boolean;
   onPromptFileSelect?: (content: string, filename: string) => void;
+  // Validation props
+  nodeType?: string;
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  onValidationChange?: (isValid: boolean, errors: string[]) => void;
 }
 
 type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layout' | 'error' | 'helperText'> & {
@@ -406,11 +414,69 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   showFieldKey = false,
   showPromptFileButton = false,
   adjustable = false,
-  onPromptFileSelect
+  onPromptFileSelect,
+  nodeType,
+  validateOnChange = true,
+  validateOnBlur = true,
+  onValidationChange
 }) => {
   const fieldId = `field-${name}`;
   const [localLoading, setLocalLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
   const isLoadingState = isLoading || localLoading;
+  
+  // Get field metadata from NodeService if nodeType is provided
+  const fieldMetadata = useMemo(() => {
+    if (!nodeType || !name) return null;
+    const nodeSpec = NodeService.getNodeSpec(nodeType);
+    return nodeSpec?.fields?.find(f => f.name === name);
+  }, [nodeType, name]);
+  
+  // Validation function
+  const validateFieldValue = useCallback((fieldValue: FieldValue) => {
+    if (!nodeType || !name) return;
+    
+    setIsValidating(true);
+    const errors = ValidationService.getFieldValidationMessages(nodeType, name, fieldValue);
+    setValidationErrors(errors);
+    
+    // Notify parent component
+    if (onValidationChange) {
+      onValidationChange(errors.length === 0, errors);
+    }
+    
+    setIsValidating(false);
+  }, [nodeType, name, onValidationChange]);
+  
+  // Debounced validation for onChange
+  const debouncedValidate = useMemo(
+    () => debounce(validateFieldValue, 300),
+    [validateFieldValue]
+  );
+  
+  // Handle value changes with validation
+  const handleChange = useCallback((newValue: FieldValue) => {
+    onChange(newValue);
+    
+    if (validateOnChange && nodeType) {
+      debouncedValidate(newValue);
+    }
+  }, [onChange, validateOnChange, nodeType, debouncedValidate]);
+  
+  // Handle blur events with validation
+  const handleBlur = useCallback(() => {
+    if (validateOnBlur && nodeType) {
+      validateFieldValue(value);
+    }
+  }, [validateOnBlur, nodeType, value, validateFieldValue]);
+  
+  // Validate on mount if nodeType is provided
+  useEffect(() => {
+    if (nodeType && name) {
+      validateFieldValue(value);
+    }
+  }, [nodeType, name]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Memoize variable detection hint
   const variableHint = useMemo(() => {
@@ -419,23 +485,34 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     return hint ? `${hint}\n${variableText}` : variableText;
   }, [detectedVariables, hint]);
   
+  // Combine validation errors with prop error
+  const displayError = error || (validationErrors.length > 0 ? validationErrors[0] : null);
+  
+  // Use field metadata for enhanced configuration
+  const enhancedPlaceholder = placeholder || fieldMetadata?.uiConfig?.placeholder;
+  const enhancedHelperText = helperText || fieldMetadata?.description;
+  const isRequired = required || fieldMetadata?.required;
+  
   // Create widget props
   const widgetProps: WidgetProps = {
     value,
-    onChange,
-    placeholder,
+    onChange: handleChange,
+    placeholder: enhancedPlaceholder,
     options,
     disabled,
     min,
     max,
     persons,
     acceptedFileTypes,
-    customProps,
+    customProps: {
+      ...customProps,
+      onBlur: handleBlur
+    },
     rows,
     hint,
     detectedVariables,
     onFileUpload,
-    isLoading,
+    isLoading: isLoading || isValidating,
     fieldId,
     isLoadingState,
     setLocalLoading,
@@ -457,11 +534,11 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
         <label htmlFor={fieldId} className={`block ${LABEL_TEXT}`}>
           {label}
           {showFieldKey && name && <span className="text-xs text-gray-500 ml-1">({name})</span>}
-          {required && <span className={REQUIRED_ASTERISK}>*</span>}
+          {isRequired && <span className={REQUIRED_ASTERISK}>*</span>}
         </label>
         {fieldElement}
-        {(helperText || variableHint) && <p className={HELPER_TEXT}>{variableHint || helperText}</p>}
-        {error && <p className={ERROR_TEXT}>{error}</p>}
+        {(enhancedHelperText || variableHint) && <p className={HELPER_TEXT}>{variableHint || enhancedHelperText}</p>}
+        {displayError && <p className={ERROR_TEXT}>{displayError}</p>}
       </div>
     );
   }
@@ -472,12 +549,12 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
       <label htmlFor={fieldId} className={`${LABEL_TEXT} min-w-[120px]`}>
         {label}
         {showFieldKey && name && <span className="text-xs text-gray-500 ml-1">({name})</span>}
-        {required && <span className={REQUIRED_ASTERISK}>*</span>}
+        {isRequired && <span className={REQUIRED_ASTERISK}>*</span>}
       </label>
       <div className="flex-1">
         {fieldElement}
-        {(helperText || variableHint) && <p className={HELPER_TEXT_MT}>{variableHint || helperText}</p>}
-        {error && <p className={ERROR_TEXT_MT}>{error}</p>}
+        {(enhancedHelperText || variableHint) && <p className={HELPER_TEXT_MT}>{variableHint || enhancedHelperText}</p>}
+        {displayError && <p className={ERROR_TEXT_MT}>{displayError}</p>}
       </div>
     </div>
   );

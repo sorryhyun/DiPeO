@@ -2,7 +2,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { ArrowUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
-import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
+import { NodeService } from '@/core/services';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/core/store/hooks/state';
@@ -68,14 +68,14 @@ function useNodeStatus(nodeIdStr: string) {
 }
 
 function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal: boolean; vertical: boolean }) {
-  const config = getNodeConfig(nodeType as NodeType);
+  const handles = NodeService.getNodeHandles(nodeType);
   
   return useMemo(() => {
-    if (!config) return [];
+    if (!handles || (!handles.inputs?.length && !handles.outputs?.length)) return [];
     
     const allHandles = [
-      ...(config.handles.output || []).map(handle => ({ ...handle, type: 'output' as const })),
-      ...(config.handles.input || []).map(handle => ({ ...handle, type: 'input' as const }))
+      ...(handles.outputs || []).map((handle: any) => ({ ...handle, type: 'output' as const })),
+      ...(handles.inputs || []).map((handle: any) => ({ ...handle, type: 'input' as const }))
     ];
     
     const handlesByPosition = allHandles.reduce((acc, handle) => {
@@ -97,9 +97,10 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
     }> = [];
     
     Object.entries(handlesByPosition).forEach(([pos, handles]) => {
-      const count = handles.length;
+      const handleArray = handles as any[];
+      const count = handleArray.length;
       
-      handles.forEach((handle, index) => {
+      handleArray.forEach((handle, index) => {
         const isVertical = pos === 'top' || pos === 'bottom';
         const isHorizontal = pos === 'left' || pos === 'right';
         
@@ -161,7 +162,7 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
     });
     
     return processedHandles;
-  }, [nodeId, config, flippedState]);
+  }, [nodeId, handles, flippedState]);
 }
 
 const StatusIndicator = React.memo(({ status }: { status: ReturnType<typeof useNodeStatus> }) => {
@@ -339,7 +340,10 @@ export function BaseNode({
   
   const nId = nodeId(id);
   const status = useNodeStatus(id);
-  const config = getNodeConfig(type as NodeType);
+  const nodeSpec = NodeService.getNodeSpec(type);
+  const nodeIcon = NodeService.getNodeIcon(type);
+  const nodeColor = NodeService.getNodeColor(type);
+  const nodeDisplayName = NodeService.getNodeDisplayName(type);
   
   const flippedState = useMemo(() => {
     if (Array.isArray(data?.flipped)) {
@@ -387,13 +391,13 @@ export function BaseNode({
     'data-completed': status.isCompleted,
     'data-skipped': status.isSkipped,
     'data-selected': selected,
-    'data-color': config?.color,
+    'data-color': nodeColor,
     'data-execution': isExecutionMode,
-  }), [status, selected, config?.color, isExecutionMode]);
+  }), [status, selected, nodeColor, isExecutionMode]);
   
   const primaryDisplayField = useMemo(() => {
-    return config?.primaryDisplayField || null;
-  }, [config]);
+    return NodeService.getPrimaryDisplayField(type) || null;
+  }, [type]);
 
   const displayData = useMemo(() => {
     const longTextFields = [
@@ -431,7 +435,7 @@ export function BaseNode({
   return (
     <div
       className={nodeClassNames}
-      title={status.progress || `${config?.label || 'Unknown'} Node`}
+      title={status.progress || `${nodeDisplayName || 'Unknown'} Node`}
       onMouseEnter={() => !dragging && setIsHovered(true)}
       onMouseLeave={() => !dragging && setIsHovered(false)}
       {...dataAttributes}
@@ -476,9 +480,9 @@ export function BaseNode({
 
       <div className={status.isRunning ? 'relative z-10' : ''}>
         <NodeHeader 
-          icon={config?.icon || '📦'}
+          icon={nodeIcon || '📦'}
           label={String(data.label || data.name || '')}
-          configLabel={config?.label || 'Node'}
+          configLabel={nodeDisplayName || 'Node'}
           _isExecutionMode={isExecutionMode}
           memoryEmoji={type === 'person_job' && data.memory_profile ? (
             data.memory_profile === 'FULL' ? '🧠' :

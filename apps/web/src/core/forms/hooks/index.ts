@@ -1,5 +1,6 @@
 export { useFormState } from './useFormState';
 export { useFormValidation } from './useFormValidation';
+export { useNodeFormValidation } from './useNodeFormValidation';
 export { useFormAutoSave } from './useFormAutoSave';
 export { useAsyncFieldOptions, useMultipleAsyncFieldOptions } from './useAsyncFieldOptions';
 export { useFormManager } from './useFormManager';

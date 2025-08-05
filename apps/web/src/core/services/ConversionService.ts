@@ -1,10 +1,25 @@
 import { 
   parseHandleId as domainParseHandleId,
   createHandleId as domainCreateHandleId,
+  diagramArraysToMaps,
+  diagramMapsToArrays,
+  areHandlesCompatible,
+  convertGraphQLPersonToDomain,
+  convertGraphQLDiagramToDomain,
+  NODE_TYPE_MAP,
+  NODE_TYPE_REVERSE_MAP,
+  nodeKindToDomainType,
+  domainTypeToNodeKind,
   type NodeID,
   type ArrowID,
   type PersonID,
-  type HandleID
+  type HandleID,
+  type DomainDiagram,
+  type DomainNode,
+  type DomainArrow,
+  type DomainHandle,
+  type DomainPerson,
+  type NodeType
 } from '@dipeo/models';
 import { nodeId, arrowId, personId, handleId } from '@/core/types/branded';
 
@@ -168,5 +183,73 @@ export class ConversionService {
       type: type.trim(),
       enabled: true
     }));
+  }
+  
+  // ===== Domain Conversions =====
+  
+  /**
+   * Convert diagram with arrays to diagram with maps for efficient lookups
+   * Centralizes the conversion logic from @dipeo/models
+   */
+  static diagramArraysToMaps(diagram: Partial<DomainDiagram>): {
+    nodes: Map<NodeID, DomainNode>;
+    arrows: Map<ArrowID, DomainArrow>;
+    handles: Map<HandleID, DomainHandle>;
+    persons: Map<PersonID, DomainPerson>;
+  } {
+    return diagramArraysToMaps(diagram);
+  }
+  
+  /**
+   * Convert diagram with maps back to arrays for storage/transmission
+   * Centralizes the conversion logic from @dipeo/models
+   */
+  static diagramMapsToArrays(maps: {
+    nodes: Map<NodeID, DomainNode>;
+    arrows: Map<ArrowID, DomainArrow>;
+    handles: Map<HandleID, DomainHandle>;
+    persons: Map<PersonID, DomainPerson>;
+  }): DomainDiagram {
+    return diagramMapsToArrays(maps) as DomainDiagram;
+  }
+  
+  /**
+   * Check if two handles are compatible for connection
+   * Centralizes handle compatibility logic from @dipeo/models
+   */
+  static areHandlesCompatible(source: DomainHandle, target: DomainHandle): boolean {
+    return areHandlesCompatible(source, target);
+  }
+  
+  /**
+   * Convert GraphQL person response to domain person model
+   * Centralizes GraphQL conversion logic
+   */
+  static convertGraphQLPerson(person: any): DomainPerson {
+    return convertGraphQLPersonToDomain(person);
+  }
+  
+  /**
+   * Convert GraphQL diagram response to domain diagram model
+   * Centralizes GraphQL conversion logic
+   */
+  static convertGraphQLDiagram(diagram: any): Partial<DomainDiagram> {
+    return convertGraphQLDiagramToDomain(diagram);
+  }
+  
+  /**
+   * Convert node type enum to string representation
+   * Uses the reverse map from @dipeo/models
+   */
+  static nodeTypeToString(type: NodeType): string {
+    return domainTypeToNodeKind(type);
+  }
+  
+  /**
+   * Convert string to node type enum
+   * Uses the node type map from @dipeo/models
+   */
+  static stringToNodeType(str: string): NodeType {
+    return nodeKindToDomainType(str);
   }
 }
