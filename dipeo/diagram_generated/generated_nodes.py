@@ -55,20 +55,23 @@ class BaseExecutableNode:
 # Number of classes: 15
 
 @dataclass(frozen=True)
-class StartNode(BaseExecutableNode):
+class ApiJobNode(BaseExecutableNode):
     # Required node-specific fields
-    trigger_mode: Optional[HookTriggerMode] = field()
+    url: str = field()
+    method: HttpMethod = field()
     # Type field with default
-    type: NodeType = field(default=NodeType.START, init=False)
+    type: NodeType = field(default=NodeType.API_JOB, init=False)
     # Base optional fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    custom_data: Optional[Dict[str, Union[str, int, bool]]] = None
-    output_data_structure: Optional[Dict[str, str]] = None
-    hook_event: Optional[str] = None
-    hook_filters: Optional[Dict[str, Any]] = None
+    headers: Optional[Dict[str, str]] = None
+    params: Optional[Dict[str, Any]] = None
+    body: Optional[Any] = None
+    timeout: Optional[int] = None
+    auth_type: Optional[AuthType] = None
+    auth_config: Optional[Dict[str, str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -78,37 +81,33 @@ class StartNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["trigger_mode"] = self.trigger_mode.value if self.trigger_mode is not None else None
-        data["custom_data"] = self.custom_data
-        data["output_data_structure"] = self.output_data_structure
-        data["hook_event"] = self.hook_event
-        data["hook_filters"] = self.hook_filters
+        data["url"] = self.url
+        data["method"] = self.method.value if self.method is not None else None
+        data["headers"] = self.headers
+        data["params"] = self.params
+        data["body"] = self.body
+        data["timeout"] = self.timeout
+        data["auth_type"] = self.auth_type
+        data["auth_config"] = self.auth_config
         return data
 
 
 
 @dataclass(frozen=True)
-class PersonJobNode(BaseExecutableNode):
+class CodeJobNode(BaseExecutableNode):
     # Required node-specific fields
-    first_only_prompt: str = field()
-    max_iteration: int = field()
+    language: SupportedLanguage = field()
     # Type field with default
-    type: NodeType = field(default=NodeType.PERSON_JOB, init=False)
+    type: NodeType = field(default=NodeType.CODE_JOB, init=False)
     # Base optional fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    person: Optional[PersonID] = None
-    default_prompt: Optional[str] = None
-    prompt_file: Optional[str] = None
-    memory_profile: Optional[MemoryProfile] = None
-    memory_settings: Optional[MemorySettings] = None
-    tools: Optional[ToolSelection] = None
-    batch: Optional[bool] = None
-    batch_input_key: Optional[str] = None
-    batch_parallel: Optional[bool] = None
-    max_concurrent: Optional[int] = None
+    filePath: Optional[str] = None
+    code: Optional[str] = None
+    functionName: Optional[str] = None
+    timeout: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -118,18 +117,11 @@ class PersonJobNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["person"] = self.person
-        data["first_only_prompt"] = self.first_only_prompt
-        data["default_prompt"] = self.default_prompt
-        data["prompt_file"] = self.prompt_file
-        data["max_iteration"] = self.max_iteration
-        data["memory_profile"] = self.memory_profile.value if self.memory_profile is not None else None
-        data["memory_settings"] = self.memory_settings
-        data["tools"] = self.tools.value if self.tools is not None else None
-        data["batch"] = self.batch
-        data["batch_input_key"] = self.batch_input_key
-        data["batch_parallel"] = self.batch_parallel
-        data["max_concurrent"] = self.max_concurrent
+        data["language"] = self.language.value if self.language is not None else None
+        data["filePath"] = self.filePath
+        data["code"] = self.code
+        data["functionName"] = self.functionName
+        data["timeout"] = self.timeout
         return data
 
 
@@ -158,33 +150,6 @@ class ConditionNode(BaseExecutableNode):
         data["condition_type"] = self.condition_type
         data["expression"] = self.expression
         data["node_indices"] = self.node_indices
-        return data
-
-
-
-@dataclass(frozen=True)
-class EndpointNode(BaseExecutableNode):
-    # Required node-specific fields
-    save_to_file: bool = field()
-    # Type field with default
-    type: NodeType = field(default=NodeType.ENDPOINT, init=False)
-    # Base optional fields
-    label: str = ""
-    flipped: bool = False
-    metadata: Optional[Dict[str, Any]] = None
-    # Optional node-specific fields
-    file_name: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
-        data = super().to_dict()
-        data["type"] = self.type.value
-        data["label"] = self.label
-        data["flipped"] = self.flipped
-        if self.metadata:
-            data["metadata"] = self.metadata
-        data["save_to_file"] = self.save_to_file
-        data["file_name"] = self.file_name
         return data
 
 
@@ -229,20 +194,17 @@ class DBNode(BaseExecutableNode):
 
 
 @dataclass(frozen=True)
-class CodeJobNode(BaseExecutableNode):
+class EndpointNode(BaseExecutableNode):
     # Required node-specific fields
-    language: SupportedLanguage = field()
+    save_to_file: bool = field()
     # Type field with default
-    type: NodeType = field(default=NodeType.CODE_JOB, init=False)
+    type: NodeType = field(default=NodeType.ENDPOINT, init=False)
     # Base optional fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    filePath: Optional[str] = None
-    code: Optional[str] = None
-    functionName: Optional[str] = None
-    timeout: Optional[int] = None
+    file_name: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -252,107 +214,8 @@ class CodeJobNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["language"] = self.language.value if self.language is not None else None
-        data["filePath"] = self.filePath
-        data["code"] = self.code
-        data["functionName"] = self.functionName
-        data["timeout"] = self.timeout
-        return data
-
-
-
-@dataclass(frozen=True)
-class ApiJobNode(BaseExecutableNode):
-    # Required node-specific fields
-    url: str = field()
-    method: HttpMethod = field()
-    # Type field with default
-    type: NodeType = field(default=NodeType.API_JOB, init=False)
-    # Base optional fields
-    label: str = ""
-    flipped: bool = False
-    metadata: Optional[Dict[str, Any]] = None
-    # Optional node-specific fields
-    headers: Optional[Dict[str, str]] = None
-    params: Optional[Dict[str, Any]] = None
-    body: Optional[Any] = None
-    timeout: Optional[int] = None
-    auth_type: Optional[AuthType] = None
-    auth_config: Optional[Dict[str, str]] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
-        data = super().to_dict()
-        data["type"] = self.type.value
-        data["label"] = self.label
-        data["flipped"] = self.flipped
-        if self.metadata:
-            data["metadata"] = self.metadata
-        data["url"] = self.url
-        data["method"] = self.method.value if self.method is not None else None
-        data["headers"] = self.headers
-        data["params"] = self.params
-        data["body"] = self.body
-        data["timeout"] = self.timeout
-        data["auth_type"] = self.auth_type
-        data["auth_config"] = self.auth_config
-        return data
-
-
-
-@dataclass(frozen=True)
-class UserResponseNode(BaseExecutableNode):
-    # Required node-specific fields
-    prompt: str = field()
-    timeout: int = field()
-    # Type field with default
-    type: NodeType = field(default=NodeType.USER_RESPONSE, init=False)
-    # Base optional fields
-    label: str = ""
-    flipped: bool = False
-    metadata: Optional[Dict[str, Any]] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
-        data = super().to_dict()
-        data["type"] = self.type.value
-        data["label"] = self.label
-        data["flipped"] = self.flipped
-        if self.metadata:
-            data["metadata"] = self.metadata
-        data["prompt"] = self.prompt
-        data["timeout"] = self.timeout
-        return data
-
-
-
-@dataclass(frozen=True)
-class NotionNode(BaseExecutableNode):
-    # Required node-specific fields
-    api_key: str = field()
-    database_id: str = field()
-    operation: NotionOperation = field()
-    # Type field with default
-    type: NodeType = field(default=NodeType.NOTION, init=False)
-    # Base optional fields
-    label: str = ""
-    flipped: bool = False
-    metadata: Optional[Dict[str, Any]] = None
-    # Optional node-specific fields
-    page_id: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
-        data = super().to_dict()
-        data["type"] = self.type.value
-        data["label"] = self.label
-        data["flipped"] = self.flipped
-        if self.metadata:
-            data["metadata"] = self.metadata
-        data["api_key"] = self.api_key
-        data["database_id"] = self.database_id
-        data["operation"] = self.operation.value if self.operation is not None else None
-        data["page_id"] = self.page_id
+        data["save_to_file"] = self.save_to_file
+        data["file_name"] = self.file_name
         return data
 
 
@@ -411,19 +274,21 @@ class HookNode(BaseExecutableNode):
 
 
 @dataclass(frozen=True)
-class TemplateJobNode(BaseExecutableNode):
+class IntegratedApiNode(BaseExecutableNode):
+    # Required node-specific fields
+    provider: APIServiceType = field()
+    operation: str = field()
     # Type field with default
-    type: NodeType = field(default=NodeType.TEMPLATE_JOB, init=False)
+    type: NodeType = field(default=NodeType.INTEGRATED_API, init=False)
     # Base optional fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    template_path: Optional[str] = None
-    template_content: Optional[str] = None
-    output_path: Optional[str] = None
-    variables: Optional[Dict[str, Any]] = None
-    engine: Optional[TemplateEngine] = None
+    config: Optional[Dict[str, Any]] = None
+    resource_id: Optional[str] = None
+    timeout: Optional[int] = None
+    max_retries: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -433,11 +298,12 @@ class TemplateJobNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["template_path"] = self.template_path
-        data["template_content"] = self.template_content
-        data["output_path"] = self.output_path
-        data["variables"] = self.variables
-        data["engine"] = self.engine
+        data["provider"] = self.provider
+        data["operation"] = self.operation.value if self.operation is not None else None
+        data["config"] = self.config
+        data["resource_id"] = self.resource_id
+        data["timeout"] = self.timeout
+        data["max_retries"] = self.max_retries
         return data
 
 
@@ -475,18 +341,19 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 
 
 @dataclass(frozen=True)
-class TypescriptAstNode(BaseExecutableNode):
+class NotionNode(BaseExecutableNode):
+    # Required node-specific fields
+    api_key: str = field()
+    database_id: str = field()
+    operation: NotionOperation = field()
     # Type field with default
-    type: NodeType = field(default=NodeType.TYPESCRIPT_AST, init=False)
+    type: NodeType = field(default=NodeType.NOTION, init=False)
     # Base optional fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    source: Optional[str] = None
-    extractPatterns: Optional[List[str]] = None
-    includeJSDoc: Optional[bool] = None
-    parseMode: Optional[Literal["module", "script"]] = None
+    page_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -496,10 +363,90 @@ class TypescriptAstNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["source"] = self.source
-        data["extractPatterns"] = self.extractPatterns
-        data["includeJSDoc"] = self.includeJSDoc
-        data["parseMode"] = self.parseMode
+        data["api_key"] = self.api_key
+        data["database_id"] = self.database_id
+        data["operation"] = self.operation.value if self.operation is not None else None
+        data["page_id"] = self.page_id
+        return data
+
+
+
+@dataclass(frozen=True)
+class PersonJobNode(BaseExecutableNode):
+    # Required node-specific fields
+    first_only_prompt: str = field()
+    max_iteration: int = field()
+    # Type field with default
+    type: NodeType = field(default=NodeType.PERSON_JOB, init=False)
+    # Base optional fields
+    label: str = ""
+    flipped: bool = False
+    metadata: Optional[Dict[str, Any]] = None
+    # Optional node-specific fields
+    person: Optional[PersonID] = None
+    default_prompt: Optional[str] = None
+    prompt_file: Optional[str] = None
+    memory_profile: Optional[MemoryProfile] = None
+    memory_settings: Optional[MemorySettings] = None
+    tools: Optional[ToolSelection] = None
+    batch: Optional[bool] = None
+    batch_input_key: Optional[str] = None
+    batch_parallel: Optional[bool] = None
+    max_concurrent: Optional[int] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["type"] = self.type.value
+        data["label"] = self.label
+        data["flipped"] = self.flipped
+        if self.metadata:
+            data["metadata"] = self.metadata
+        data["person"] = self.person
+        data["first_only_prompt"] = self.first_only_prompt
+        data["default_prompt"] = self.default_prompt
+        data["prompt_file"] = self.prompt_file
+        data["max_iteration"] = self.max_iteration
+        data["memory_profile"] = self.memory_profile.value if self.memory_profile is not None else None
+        data["memory_settings"] = self.memory_settings
+        data["tools"] = self.tools.value if self.tools is not None else None
+        data["batch"] = self.batch
+        data["batch_input_key"] = self.batch_input_key
+        data["batch_parallel"] = self.batch_parallel
+        data["max_concurrent"] = self.max_concurrent
+        return data
+
+
+
+@dataclass(frozen=True)
+class StartNode(BaseExecutableNode):
+    # Required node-specific fields
+    trigger_mode: Optional[HookTriggerMode] = field()
+    # Type field with default
+    type: NodeType = field(default=NodeType.START, init=False)
+    # Base optional fields
+    label: str = ""
+    flipped: bool = False
+    metadata: Optional[Dict[str, Any]] = None
+    # Optional node-specific fields
+    custom_data: Optional[Dict[str, Union[str, int, bool]]] = None
+    output_data_structure: Optional[Dict[str, str]] = None
+    hook_event: Optional[str] = None
+    hook_filters: Optional[Dict[str, Any]] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["type"] = self.type.value
+        data["label"] = self.label
+        data["flipped"] = self.flipped
+        if self.metadata:
+            data["metadata"] = self.metadata
+        data["trigger_mode"] = self.trigger_mode.value if self.trigger_mode is not None else None
+        data["custom_data"] = self.custom_data
+        data["output_data_structure"] = self.output_data_structure
+        data["hook_event"] = self.hook_event
+        data["hook_filters"] = self.hook_filters
         return data
 
 
@@ -541,21 +488,19 @@ class SubDiagramNode(BaseExecutableNode):
 
 
 @dataclass(frozen=True)
-class IntegratedApiNode(BaseExecutableNode):
-    # Required node-specific fields
-    provider: APIServiceType = field()
-    operation: str = field()
+class TemplateJobNode(BaseExecutableNode):
     # Type field with default
-    type: NodeType = field(default=NodeType.INTEGRATED_API, init=False)
+    type: NodeType = field(default=NodeType.TEMPLATE_JOB, init=False)
     # Base optional fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    config: Optional[Dict[str, Any]] = None
-    resource_id: Optional[str] = None
-    timeout: Optional[int] = None
-    max_retries: Optional[int] = None
+    template_path: Optional[str] = None
+    template_content: Optional[str] = None
+    output_path: Optional[str] = None
+    variables: Optional[Dict[str, Any]] = None
+    engine: Optional[TemplateEngine] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -565,12 +510,67 @@ class IntegratedApiNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["provider"] = self.provider
-        data["operation"] = self.operation.value if self.operation is not None else None
-        data["config"] = self.config
-        data["resource_id"] = self.resource_id
+        data["template_path"] = self.template_path
+        data["template_content"] = self.template_content
+        data["output_path"] = self.output_path
+        data["variables"] = self.variables
+        data["engine"] = self.engine
+        return data
+
+
+
+@dataclass(frozen=True)
+class TypescriptAstNode(BaseExecutableNode):
+    # Type field with default
+    type: NodeType = field(default=NodeType.TYPESCRIPT_AST, init=False)
+    # Base optional fields
+    label: str = ""
+    flipped: bool = False
+    metadata: Optional[Dict[str, Any]] = None
+    # Optional node-specific fields
+    source: Optional[str] = None
+    extractPatterns: Optional[List[str]] = None
+    includeJSDoc: Optional[bool] = None
+    parseMode: Optional[Literal["module", "script"]] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["type"] = self.type.value
+        data["label"] = self.label
+        data["flipped"] = self.flipped
+        if self.metadata:
+            data["metadata"] = self.metadata
+        data["source"] = self.source
+        data["extractPatterns"] = self.extractPatterns
+        data["includeJSDoc"] = self.includeJSDoc
+        data["parseMode"] = self.parseMode
+        return data
+
+
+
+@dataclass(frozen=True)
+class UserResponseNode(BaseExecutableNode):
+    # Required node-specific fields
+    prompt: str = field()
+    timeout: int = field()
+    # Type field with default
+    type: NodeType = field(default=NodeType.USER_RESPONSE, init=False)
+    # Base optional fields
+    label: str = ""
+    flipped: bool = False
+    metadata: Optional[Dict[str, Any]] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data["type"] = self.type.value
+        data["label"] = self.label
+        data["flipped"] = self.flipped
+        if self.metadata:
+            data["metadata"] = self.metadata
+        data["prompt"] = self.prompt
         data["timeout"] = self.timeout
-        data["max_retries"] = self.max_retries
         return data
 
 
@@ -582,21 +582,21 @@ class PersonBatchJobNode(PersonJobNode):
 
 
 ExecutableNode = Union[
-    StartNode,
-    PersonJobNode,
-    ConditionNode,
-    EndpointNode,
-    DBNode,
-    CodeJobNode,
     ApiJobNode,
-    UserResponseNode,
-    NotionNode,
+    CodeJobNode,
+    ConditionNode,
+    DBNode,
+    EndpointNode,
     HookNode,
-    TemplateJobNode,
-    JsonSchemaValidatorNode,
-    TypescriptAstNode,
-    SubDiagramNode,
     IntegratedApiNode,
+    JsonSchemaValidatorNode,
+    NotionNode,
+    PersonJobNode,
+    StartNode,
+    SubDiagramNode,
+    TemplateJobNode,
+    TypescriptAstNode,
+    UserResponseNode,
     PersonBatchJobNode
 ]
 
@@ -613,40 +613,36 @@ def create_executable_node(
     """Factory function to create typed executable nodes from diagram data."""
     data = data or {}
 
-    if node_type == NodeType.START:
-        return StartNode(
+    if node_type == NodeType.API_JOB:
+        return ApiJobNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            trigger_mode=_to_enum(data.get("trigger_mode"), HookTriggerMode),
-            custom_data=data.get("custom_data", None),
-            output_data_structure=data.get("output_data_structure", None),
-            hook_event=data.get("hook_event", None),
-            hook_filters=data.get("hook_filters", None),
+            url=data.get("url"),
+            method=_to_enum(data.get("method"), HttpMethod),
+            headers=data.get("headers", None),
+            params=data.get("params", None),
+            body=data.get("body", None),
+            timeout=data.get("timeout", None),
+            auth_type=data.get("auth_type", None),
+            auth_config=data.get("auth_config", None),
         )
     
 
-    if node_type == NodeType.PERSON_JOB:
-        return PersonJobNode(
+    if node_type == NodeType.CODE_JOB:
+        return CodeJobNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            person=data.get("person", None),
-            first_only_prompt=data.get("first_only_prompt"),
-            default_prompt=data.get("default_prompt", None),
-            prompt_file=data.get("prompt_file", None),
-            max_iteration=data.get("max_iteration"),
-            memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
-            memory_settings=data.get("memory_settings", None),
-            tools=_to_enum(data.get("tools", None), ToolSelection),
-            batch=data.get("batch", None),
-            batch_input_key=data.get("batch_input_key", None),
-            batch_parallel=data.get("batch_parallel", None),
-            max_concurrent=data.get("max_concurrent", None),
+            language=_to_enum(data.get("language"), SupportedLanguage),
+            filePath=data.get("filePath", None),
+            code=data.get("code", None),
+            functionName=data.get("functionName", None),
+            timeout=data.get("timeout", None),
         )
     
 
@@ -660,18 +656,6 @@ def create_executable_node(
             condition_type=data.get("condition_type", None),
             expression=data.get("expression", None),
             node_indices=data.get("node_indices", None),
-        )
-    
-
-    if node_type == NodeType.ENDPOINT:
-        return EndpointNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            save_to_file=data.get("save_to_file"),
-            file_name=data.get("file_name", None),
         )
     
 
@@ -693,62 +677,15 @@ def create_executable_node(
         )
     
 
-    if node_type == NodeType.CODE_JOB:
-        return CodeJobNode(
+    if node_type == NodeType.ENDPOINT:
+        return EndpointNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            language=_to_enum(data.get("language"), SupportedLanguage),
-            filePath=data.get("filePath", None),
-            code=data.get("code", None),
-            functionName=data.get("functionName", None),
-            timeout=data.get("timeout", None),
-        )
-    
-
-    if node_type == NodeType.API_JOB:
-        return ApiJobNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            url=data.get("url"),
-            method=_to_enum(data.get("method"), HttpMethod),
-            headers=data.get("headers", None),
-            params=data.get("params", None),
-            body=data.get("body", None),
-            timeout=data.get("timeout", None),
-            auth_type=data.get("auth_type", None),
-            auth_config=data.get("auth_config", None),
-        )
-    
-
-    if node_type == NodeType.USER_RESPONSE:
-        return UserResponseNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            prompt=data.get("prompt"),
-            timeout=data.get("timeout"),
-        )
-    
-
-    if node_type == NodeType.NOTION:
-        return NotionNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            api_key=data.get("api_key"),
-            database_id=data.get("database_id"),
-            operation=_to_enum(data.get("operation"), NotionOperation),
-            page_id=data.get("page_id", None),
+            save_to_file=data.get("save_to_file"),
+            file_name=data.get("file_name", None),
         )
     
 
@@ -777,18 +714,19 @@ def create_executable_node(
         )
     
 
-    if node_type == NodeType.TEMPLATE_JOB:
-        return TemplateJobNode(
+    if node_type == NodeType.INTEGRATED_API:
+        return IntegratedApiNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            template_path=data.get("template_path", None),
-            template_content=data.get("template_content", None),
-            output_path=data.get("output_path", None),
-            variables=data.get("variables", None),
-            engine=data.get("engine", None),
+            provider=data.get("provider"),
+            operation=_to_enum(data.get("operation"), NotionOperation),
+            config=data.get("config", None),
+            resource_id=data.get("resource_id", None),
+            timeout=data.get("timeout", None),
+            max_retries=data.get("max_retries", None),
         )
     
 
@@ -807,17 +745,54 @@ def create_executable_node(
         )
     
 
-    if node_type == NodeType.TYPESCRIPT_AST:
-        return TypescriptAstNode(
+    if node_type == NodeType.NOTION:
+        return NotionNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            source=data.get("source", None),
-            extractPatterns=data.get("extractPatterns", None),
-            includeJSDoc=data.get("includeJSDoc", None),
-            parseMode=data.get("parseMode", None),
+            api_key=data.get("api_key"),
+            database_id=data.get("database_id"),
+            operation=_to_enum(data.get("operation"), NotionOperation),
+            page_id=data.get("page_id", None),
+        )
+    
+
+    if node_type == NodeType.PERSON_JOB:
+        return PersonJobNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            person=data.get("person", None),
+            first_only_prompt=data.get("first_only_prompt"),
+            default_prompt=data.get("default_prompt", None),
+            prompt_file=data.get("prompt_file", None),
+            max_iteration=data.get("max_iteration"),
+            memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
+            memory_settings=data.get("memory_settings", None),
+            tools=_to_enum(data.get("tools", None), ToolSelection),
+            batch=data.get("batch", None),
+            batch_input_key=data.get("batch_input_key", None),
+            batch_parallel=data.get("batch_parallel", None),
+            max_concurrent=data.get("max_concurrent", None),
+        )
+    
+
+    if node_type == NodeType.START:
+        return StartNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            trigger_mode=_to_enum(data.get("trigger_mode"), HookTriggerMode),
+            custom_data=data.get("custom_data", None),
+            output_data_structure=data.get("output_data_structure", None),
+            hook_event=data.get("hook_event", None),
+            hook_filters=data.get("hook_filters", None),
         )
     
 
@@ -838,19 +813,44 @@ def create_executable_node(
         )
     
 
-    if node_type == NodeType.INTEGRATED_API:
-        return IntegratedApiNode(
+    if node_type == NodeType.TEMPLATE_JOB:
+        return TemplateJobNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            provider=data.get("provider"),
-            operation=_to_enum(data.get("operation"), NotionOperation),
-            config=data.get("config", None),
-            resource_id=data.get("resource_id", None),
-            timeout=data.get("timeout", None),
-            max_retries=data.get("max_retries", None),
+            template_path=data.get("template_path", None),
+            template_content=data.get("template_content", None),
+            output_path=data.get("output_path", None),
+            variables=data.get("variables", None),
+            engine=data.get("engine", None),
+        )
+    
+
+    if node_type == NodeType.TYPESCRIPT_AST:
+        return TypescriptAstNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            source=data.get("source", None),
+            extractPatterns=data.get("extractPatterns", None),
+            includeJSDoc=data.get("includeJSDoc", None),
+            parseMode=data.get("parseMode", None),
+        )
+    
+
+    if node_type == NodeType.USER_RESPONSE:
+        return UserResponseNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            prompt=data.get("prompt"),
+            timeout=data.get("timeout"),
         )
     
 

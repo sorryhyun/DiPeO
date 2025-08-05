@@ -5,12 +5,12 @@
       "type": "start",
       "position": {
         "x": 50,
-        "y": 300
+        "y": 200
       },
       "data": {
         "label": "start",
         "custom_data": {
-          "message": "Starting complete domain model generation pipeline"
+          "message": "Starting batch generation using v2 template job approach"
         },
         "output_data_structure": {}
       }
@@ -20,82 +20,88 @@
       "type": "sub_diagram",
       "position": {
         "x": 200,
-        "y": 300
+        "y": 200
       },
       "data": {
         "label": "parse all typescript",
         "diagram_format": "light",
         "diagram_name": "codegen/diagrams/shared/parse_typescript_batch",
+        "ignoreIfSub": true,
         "passInputData": false
       }
     },
     {
       "id": "node_2",
-      "type": "sub_diagram",
+      "type": "db",
       "position": {
-        "x": 400,
-        "y": 100
+        "x": 350,
+        "y": 200
       },
       "data": {
-        "label": "generate python models",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_python_models_dynamic",
-        "passInputData": false
+        "label": "discover node specs",
+        "glob": true,
+        "operation": "read",
+        "serialize_json": true,
+        "sub_type": "file",
+        "file": [
+          "temp/specifications/nodes/*.spec.ts.json"
+        ]
       }
     },
     {
       "id": "node_3",
-      "type": "sub_diagram",
+      "type": "code_job",
       "position": {
-        "x": 400,
-        "y": 150
+        "x": 500,
+        "y": 200
       },
       "data": {
-        "label": "generate enums",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_enums",
-        "passInputData": false
+        "label": "prepare node list",
+        "filePath": "files/codegen/code/frontend/prepare_node_list_from_specs.py",
+        "functionName": "prepare_node_list_from_specs",
+        "language": "python"
       }
     },
     {
       "id": "node_4",
       "type": "sub_diagram",
       "position": {
-        "x": 400,
+        "x": 700,
         "y": 200
       },
       "data": {
-        "label": "generate integrations",
+        "label": "batch generate frontend",
+        "batch": true,
+        "batch_input_key": "items",
+        "batch_parallel": true,
         "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_integrations",
-        "passInputData": false
+        "diagram_name": "codegen/diagrams/frontend/generate_frontend_single"
       }
     },
     {
       "id": "node_5",
-      "type": "sub_diagram",
+      "type": "code_job",
       "position": {
-        "x": 400,
-        "y": 300
+        "x": 900,
+        "y": 200
       },
       "data": {
-        "label": "generate conversions",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_conversions",
-        "passInputData": false
+        "label": "process results",
+        "code": "# Process batch results\nbatch_results = inputs.get('default', {})\n\ntotal = batch_results.get('total_items', 0)\nsuccessful = batch_results.get('successful', 0)\nfailed = batch_results.get('failed', 0)\n\nprint(f\"\\n=== TypeScript Batch Generation Summary ===\")\nprint(f\"Total items: {total}\")\nprint(f\"Successful: {successful}\")\nprint(f\"Failed: {failed}\")\n\nif batch_results.get('errors'):\n    print(\"\\nErrors:\")\n    for error in batch_results['errors']:\n        print(f\"  - Item {error['index']}: {error['error']}\")\n\n# Extract generated file counts\nresults = batch_results.get('results', [])\ntotal_files = 0\nfor r in results:\n    if isinstance(r, dict) and 'files_generated' in r:\n        total_files += r['files_generated']\n\nresult = {\n    'message': f'TypeScript batch generation completed: {successful}/{total} successful',\n    'total_files_generated': total_files,\n    'status': 'success' if failed == 0 else 'partial_failure'\n}\n",
+        "language": "python"
       }
     },
     {
       "id": "node_6",
       "type": "sub_diagram",
       "position": {
-        "x": 400,
-        "y": 550
+        "x": 1100,
+        "y": 200
       },
       "data": {
-        "label": "generate graphql schema",
+        "label": "generate registry",
         "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_graphql_schema_template_dynamic",
+        "diagram_name": "codegen/diagrams/frontend/generate_frontend_registry",
         "passInputData": false
       }
     },
@@ -103,13 +109,13 @@
       "id": "node_7",
       "type": "sub_diagram",
       "position": {
-        "x": 400,
-        "y": 650
+        "x": 1300,
+        "y": 200
       },
       "data": {
-        "label": "generate static nodes",
+        "label": "generate graphql queries",
         "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_static_nodes",
+        "diagram_name": "codegen/diagrams/frontend/generate_graphql_queries",
         "passInputData": false
       }
     },
@@ -117,13 +123,13 @@
       "id": "node_8",
       "type": "sub_diagram",
       "position": {
-        "x": 400,
-        "y": 450
+        "x": 1300,
+        "y": 300
       },
       "data": {
-        "label": "generate strawberry types",
+        "label": "generate zod schemas",
         "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_strawberry_types_v2_dynamic",
+        "diagram_name": "codegen/diagrams/frontend/generate_zod_schemas_v2",
         "passInputData": false
       }
     },
@@ -131,76 +137,22 @@
       "id": "node_9",
       "type": "sub_diagram",
       "position": {
-        "x": 400,
-        "y": 500
+        "x": 1300,
+        "y": 400
       },
       "data": {
-        "label": "generate strawberry mutations",
+        "label": "generate field configs",
         "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_strawberry_mutations_v2",
+        "diagram_name": "codegen/diagrams/frontend/generate_field_configs_v2",
         "passInputData": false
       }
     },
     {
       "id": "node_10",
-      "type": "sub_diagram",
-      "position": {
-        "x": 400,
-        "y": 250
-      },
-      "data": {
-        "label": "generate validation models",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/models/generate_validation_models",
-        "passInputData": false
-      }
-    },
-    {
-      "id": "node_11",
-      "type": "code_job",
-      "position": {
-        "x": 400,
-        "y": 375
-      },
-      "data": {
-        "label": "generate typescript indexes",
-        "filePath": "files/codegen/code/models/generate_typescript_indexes.py",
-        "functionName": "main",
-        "language": "python"
-      }
-    },
-    {
-      "id": "node_12",
-      "type": "code_job",
-      "position": {
-        "x": 600,
-        "y": 400
-      },
-      "data": {
-        "label": "build typescript models",
-        "code": "cd dipeo/models && pnpm build\necho \"TypeScript models built successfully\"\n",
-        "language": "bash"
-      }
-    },
-    {
-      "id": "node_13",
-      "type": "code_job",
-      "position": {
-        "x": 800,
-        "y": 400
-      },
-      "data": {
-        "label": "generate summary",
-        "code": "from datetime import datetime\nimport json\n\n# Collect results from all sub-diagrams\npython_models = inputs.get('python_models', {})\nenums = inputs.get('enums', {})\nintegrations = inputs.get('integrations', {})\nconversions = inputs.get('conversions', {})\nfield_configs = inputs.get('field_configs', {})\ngraphql_schema = inputs.get('graphql_schema', {})\nstatic_nodes = inputs.get('static_nodes', {})\nbuild_result = inputs.get('build_result', {})\n\nprint(f\"Model generation complete - 11 artifact types generated - done!\")\n\nresult = {\n    'status': 'success',\n    'message': 'All domain models generated successfully',\n    'artifacts': {\n        'python_models': 'dipeo/diagram_generated_staged/domain_models.py',\n        'enums': 'dipeo/diagram_generated_staged/enums.py',\n        'integrations': 'dipeo/diagram_generated_staged/integrations.py',\n        'conversions': 'dipeo/diagram_generated_staged/conversions.py',\n        'field_configs': 'apps/web/src/__generated__/fields.ts',\n        'zod_schemas': 'apps/web/src/__generated__/schemas.ts',\n        'graphql_schema': 'dipeo/diagram_generated_staged/domain-schema.graphql',\n        'static_nodes': 'dipeo/diagram_generated_staged/generated_nodes.py'\n    }\n}\n",
-        "language": "python"
-      }
-    },
-    {
-      "id": "node_14",
       "type": "endpoint",
       "position": {
-        "x": 1000,
-        "y": 400
+        "x": 1500,
+        "y": 200
       },
       "data": {
         "label": "end",
@@ -227,7 +179,7 @@
     },
     {
       "id": "arrow_2",
-      "source": "node_1_default_output",
+      "source": "node_2_default_output",
       "target": "node_3_default_input",
       "label": null,
       "data": null,
@@ -235,7 +187,7 @@
     },
     {
       "id": "arrow_3",
-      "source": "node_1_default_output",
+      "source": "node_3_default_output",
       "target": "node_4_default_input",
       "label": null,
       "data": null,
@@ -243,7 +195,7 @@
     },
     {
       "id": "arrow_4",
-      "source": "node_1_default_output",
+      "source": "node_4_default_output",
       "target": "node_5_default_input",
       "label": null,
       "data": null,
@@ -251,7 +203,7 @@
     },
     {
       "id": "arrow_5",
-      "source": "node_1_default_output",
+      "source": "node_5_default_output",
       "target": "node_6_default_input",
       "label": null,
       "data": null,
@@ -259,7 +211,7 @@
     },
     {
       "id": "arrow_6",
-      "source": "node_1_default_output",
+      "source": "node_6_default_output",
       "target": "node_7_default_input",
       "label": null,
       "data": null,
@@ -267,7 +219,7 @@
     },
     {
       "id": "arrow_7",
-      "source": "node_1_default_output",
+      "source": "node_6_default_output",
       "target": "node_8_default_input",
       "label": null,
       "data": null,
@@ -275,7 +227,7 @@
     },
     {
       "id": "arrow_8",
-      "source": "node_1_default_output",
+      "source": "node_6_default_output",
       "target": "node_9_default_input",
       "label": null,
       "data": null,
@@ -283,7 +235,7 @@
     },
     {
       "id": "arrow_9",
-      "source": "node_1_default_output",
+      "source": "node_7_default_output",
       "target": "node_10_default_input",
       "label": null,
       "data": null,
@@ -291,112 +243,16 @@
     },
     {
       "id": "arrow_10",
-      "source": "node_1_default_output",
-      "target": "node_11_default_input",
+      "source": "node_8_default_output",
+      "target": "node_10_default_input",
       "label": null,
       "data": null,
       "content_type": "raw_text"
     },
     {
       "id": "arrow_11",
-      "source": "node_2_default_output",
-      "target": "node_13_default_input",
-      "label": "python_models",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_12",
-      "source": "node_3_default_output",
-      "target": "node_13_default_input",
-      "label": "enums",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_13",
-      "source": "node_4_default_output",
-      "target": "node_13_default_input",
-      "label": "integrations",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_14",
-      "source": "node_5_default_output",
-      "target": "node_13_default_input",
-      "label": "conversions",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_15",
-      "source": "node_6_default_output",
-      "target": "node_13_default_input",
-      "label": "graphql_schema",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_16",
-      "source": "node_7_default_output",
-      "target": "node_13_default_input",
-      "label": "static_nodes",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_17",
-      "source": "node_8_default_output",
-      "target": "node_13_default_input",
-      "label": "strawberry_types",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_18",
       "source": "node_9_default_output",
-      "target": "node_13_default_input",
-      "label": "strawberry_mutations",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_19",
-      "source": "node_10_default_output",
-      "target": "node_13_default_input",
-      "label": "validation_models",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_20",
-      "source": "node_11_default_output",
-      "target": "node_13_default_input",
-      "label": "typescript_indexes",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_21",
-      "source": "node_13_default_output",
-      "target": "node_12_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_22",
-      "source": "node_12_default_output",
-      "target": "node_14_default_input",
-      "label": "build_result",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_23",
-      "source": "node_13_default_output",
-      "target": "node_14_default_input",
+      "target": "node_10_default_input",
       "label": null,
       "data": null,
       "content_type": "raw_text"
@@ -563,70 +419,6 @@
       "direction": "input",
       "data_type": "any",
       "position": "left"
-    },
-    {
-      "id": "node_10_default_output",
-      "node_id": "node_10",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_11_default_input",
-      "node_id": "node_11",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_11_default_output",
-      "node_id": "node_11",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_12_default_input",
-      "node_id": "node_12",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_12_default_output",
-      "node_id": "node_12",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_13_default_input",
-      "node_id": "node_13",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_13_default_output",
-      "node_id": "node_13",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_14_default_input",
-      "node_id": "node_14",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     }
   ],
   "metadata": {
@@ -634,8 +426,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-05T08:01:23.377Z",
-    "modified": "2025-08-05T08:01:23.377Z",
+    "created": "2025-08-05T08:16:47.069Z",
+    "modified": "2025-08-05T08:16:47.069Z",
     "version": "1.0.0",
     "id": null
   }

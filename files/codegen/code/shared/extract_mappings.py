@@ -234,20 +234,46 @@ def main(inputs: dict) -> dict:
         # If it has file paths as keys, find the codegen-mappings.ts.json
         if any(key.endswith('.json') for key in default_data.keys()):
             # Multi-file format
+            mappings = None
+            node_interface_map = {}
+            
+            # First extract mappings from mappings.ts.json
             for filepath, content in default_data.items():
-                if 'codegen-mappings' in filepath:
-                    print(f"Found codegen-mappings file: {filepath}")
+                if 'mappings.ts.json' in filepath or 'codegen-mappings' in filepath:
+                    print(f"Found mappings file: {filepath}")
                     ast_data = content if isinstance(content, dict) else json.loads(content)
                     mappings = extract_mappings(ast_data)
-                    print(f"Extracted node_interface_map with {len(mappings.get('node_interface_map', {}))} entries")
-                    return mappings
-            # If not found, return empty mappings
-            print("No codegen-mappings file found in multi-file input")
-            return {
-                'node_interface_map': {},
-                'base_fields': ['label', 'flipped'],
-                'type_to_field': {}
-            }
+                    break
+            
+            # Then extract NODE_INTERFACE_MAP from node-interface-map.ts.json
+            for filepath, content in default_data.items():
+                if 'node-interface-map.ts.json' in filepath:
+                    print(f"Found node-interface-map file: {filepath}")
+                    ast_data = content if isinstance(content, dict) else json.loads(content)
+                    # Extract NODE_INTERFACE_MAP from this file
+                    for constant in ast_data.get('constants', []):
+                        if constant.get('name') == 'NODE_INTERFACE_MAP':
+                            value = constant.get('value', {})
+                            # Clean up the values - remove extra quotes from keys
+                            for k, v in value.items():
+                                clean_key = k.strip("'\"")
+                                node_interface_map[clean_key] = v
+                            print(f"Extracted NODE_INTERFACE_MAP with {len(node_interface_map)} entries")
+                            break
+            
+            # Merge the results
+            if mappings:
+                mappings['node_interface_map'] = node_interface_map
+                print(f"Final node_interface_map has {len(mappings.get('node_interface_map', {}))} entries")
+                return mappings
+            else:
+                # If no mappings found, return with NODE_INTERFACE_MAP
+                print("No mappings file found, returning NODE_INTERFACE_MAP only")
+                return {
+                    'node_interface_map': node_interface_map,
+                    'base_fields': ['label', 'flipped'],
+                    'type_to_field': {}
+                }
         else:
             # Single AST data
             print("Processing as single AST data")

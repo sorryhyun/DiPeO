@@ -24,7 +24,10 @@ nodes:
     glob: true  # Enable glob pattern expansion
     source_details:
     - temp/codegen/mappings.ts.json
+    - temp/codegen/node-interface-map.ts.json
     - temp/core/diagram.ts.json
+    # Base node data interface (must be loaded before node data files)
+    - temp/core/nodes/base.ts.json
     # Dynamically discover all node data files
     - "temp/core/nodes/*.data.ts.json"
 - label: extract mappings

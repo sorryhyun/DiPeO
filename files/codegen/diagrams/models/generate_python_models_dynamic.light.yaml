@@ -37,6 +37,8 @@ nodes:
         - temp/core/conversation.ts.json
         - temp/utilities/diagram-utils.ts.json
         - temp/core/integration.ts.json
+        # Base node data interface (must be loaded before node data files)
+        - temp/core/nodes/base.ts.json
         # Dynamic discovery of all node data files
         - "temp/core/nodes/*.data.ts.json"
 
