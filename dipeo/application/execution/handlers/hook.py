@@ -11,6 +11,7 @@ from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
@@ -48,25 +49,18 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     def requires_services(self) -> list[str]:
         return ["filesystem_adapter"]
     
-    async def execute(
-        self,
-        node: HookNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any]
-    ) -> NodeOutputProtocol:
-        return await self._execute_hook_node(node, context, inputs, services)
+    async def execute_request(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
+        return await self._execute_hook_node(request)
     
-    async def _execute_hook_node(
-        self,
-        node: HookNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any]
-    ) -> NodeOutputProtocol:
+    async def _execute_hook_node(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
+        # Extract properties from request
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        
         # Get filesystem adapter from services for file hooks
         if node.hook_type == HookType.file:
-            filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+            filesystem_adapter = self.filesystem_adapter or request.services.resolve("filesystem_adapter")
             if not filesystem_adapter:
                 raise NodeExecutionError("Filesystem adapter is required for file hooks")
             self._temp_filesystem_adapter = filesystem_adapter

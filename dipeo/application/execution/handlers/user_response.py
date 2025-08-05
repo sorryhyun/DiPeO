@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import EXECUTION_CONTEXT
 from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
@@ -38,24 +39,17 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     def description(self) -> str:
         return "Interactive node that prompts for user input"
 
-    async def execute(
-        self,
-        node: UserResponseNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutputProtocol:
-        return await self._execute_user_response(node, context, inputs, services)
+    async def execute_request(self, request: ExecutionRequest[UserResponseNode]) -> NodeOutputProtocol:
+        return await self._execute_user_response(request)
     
-    async def _execute_user_response(
-        self,
-        node: UserResponseNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutputProtocol:
+    async def _execute_user_response(self, request: ExecutionRequest[UserResponseNode]) -> NodeOutputProtocol:
+        # Extract properties from request
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        
         # Get execution context from ServiceRegistry
-        exec_context = services.get(EXECUTION_CONTEXT)
+        exec_context = request.services.resolve(EXECUTION_CONTEXT)
         if (
             exec_context
             and hasattr(exec_context, "interactive_handler")

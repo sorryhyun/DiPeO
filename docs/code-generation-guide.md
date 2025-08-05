@@ -2,96 +2,132 @@
 
 ## Overview
 
-DiPeO uses a multi-stage code generation pipeline to maintain type safety from TypeScript node specifications to GraphQL queries and Python handlers.
+DiPeO uses a diagram-driven, multi-stage code generation pipeline that "dog-foods" its own execution engine. All code generation is orchestrated through DiPeO diagrams, maintaining type safety from TypeScript node specifications to GraphQL queries and Python handlers.
 
 ## Generation Flow
 
 ```
-1. Node Specifications (TypeScript)
+1. Node Specifications (TypeScript in /dipeo/models/src/)
    ↓
-2. Generate Domain Models → /dipeo/diagram_generated_staged/
+2. Parse TypeScript → Cache AST (automatic discovery via glob)
    ↓
-3. Generate Backend Code
+3. Generate Domain Models → /dipeo/diagram_generated_staged/
    ↓
-4. Apply Staged Changes (make apply)
+4. Apply Staged Changes (automatic with syntax validation)
    ↓
-5. Generate Frontend Code (depends on applied models)
+5. Generate Frontend Code (reads from applied models)
    ↓
-6. Export GraphQL Schema (make graphql-schema)
+6. Export GraphQL Schema → /apps/server/schema.graphql
+   ↓
+7. Generate TypeScript Types (pnpm codegen)
 ```
 
-**Important**: The code generation process uses a staging directory (`/dipeo/diagram_generated_staged/`) to preview domain model changes before applying them. This ensures frontend generation sees the latest domain models.
+**Key Features**:
+- **Staging Directory**: Changes preview in `/dipeo/diagram_generated_staged/` before applying
+- **Dynamic Discovery**: Automatically finds all TypeScript files using glob patterns
+- **External Code**: All generation logic in `files/codegen/code/` for reusability
+- **Syntax Validation**: Default validation ensures generated code is syntactically correct
 
-### Stage 1: Node Specifications → Python Models
+### Stage 1: TypeScript Parsing & Caching
 
-**Source**: `/dipeo/models/src/node-specs/*.spec.ts`  
+**Source**: All TypeScript files in `/dipeo/models/src/`  
+**Cache**: `/temp/codegen/` and `/temp/core/` (AST JSON files)  
+**Diagram**: `codegen/diagrams/shared/parse_typescript_batch.light.yaml`
+
+The system automatically discovers and parses all TypeScript files, caching their AST for subsequent stages.
+
+### Stage 2: Domain Model Generation
+
+**Source**: Cached AST files + TypeScript specifications  
 **Staged Output**: `/dipeo/diagram_generated_staged/`  
 **Final Output**: `/dipeo/diagram_generated/`  
-**Commands**: 
-```bash
-make codegen  # Runs full pipeline including apply
-# Or manually:
-dipeo run codegen/diagrams/models/generate_all_models --light --debug
-make apply    # Apply staged changes
-```
+**Diagram**: `codegen/diagrams/models/generate_all_models.light.yaml`
 
-Generates:
+Orchestrates multiple sub-diagrams to generate:
 - Pydantic models (`/models/`)
-- JSON schemas (`/schemas/`)
+- Enums (`/enums/`)
 - Validation models (`/validation/`)
-- Node configurations (`/nodes/`)
-
-### Stage 2: Backend Code Generation
-
-**Source**: TypeScript node specifications  
-**Output**: Python node handlers and configurations  
-**Command**: Part of `make codegen` pipeline
-
-Generates backend-specific files for each node type.
+- GraphQL schema templates
+- Strawberry types and mutations
+- Static node classes
+- Type conversions
 
 ### Stage 3: Apply Staged Changes
 
-**Command**: `make apply`  
-**Action**: Copies `/dipeo/diagram_generated_staged/` → `/dipeo/diagram_generated/`
+**Action**: Automatic copy from `/dipeo/diagram_generated_staged/` → `/dipeo/diagram_generated/`  
+**Validation**: Syntax-only by default (Python compilation check)
 
-This critical step ensures that:
+The `make codegen` command automatically applies staged changes after syntax validation. This ensures:
 - Frontend generation sees the latest domain models
 - All components use consistent type definitions
-- Changes can be reviewed before applying
+- Broken code doesn't propagate through the pipeline
 
 ### Stage 4: Frontend Code Generation
 
-**Source**: Applied domain models + TypeScript specs  
-**Output**: 
-- `/apps/web/src/__generated__/queries/*.graphql` - GraphQL queries
-- Frontend node configurations and components
+**Source**: Applied domain models + Cached AST  
+**Diagram**: `codegen/diagrams/frontend/generate_frontend.light.yaml`  
+**Output**: `/apps/web/src/__generated__/`
 
-Generates:
-- `diagrams.graphql` - Diagram CRUD operations
-- `persons.graphql` - Person management
-- `executions.graphql` - Execution monitoring
-- Node-specific UI components and configs
+Uses v2 template-based generation to create:
+- Field configurations (`/fields/`)
+- Node models and configs (`/models/`, `/nodes/`)
+- GraphQL queries (`/queries/*.graphql`)
+- Zod validation schemas
+- Frontend registry
 
 ### Stage 5: Export GraphQL Schema
 
-**Command**: `make graphql-schema`  
+**Command**: Automatic in `make codegen`  
 **Output**: `/apps/server/schema.graphql`
 
-Exports the complete GraphQL schema from the running server, ensuring:
-- Schema reflects all current types and operations
-- Frontend codegen has up-to-date schema
-- Documentation stays synchronized
+Exports the complete GraphQL schema from the application layer, capturing all types and operations from the generated Strawberry types.
 
 ### Stage 6: GraphQL TypeScript Generation
 
 **Source**: `/apps/web/src/__generated__/queries/*.graphql` + `/apps/server/schema.graphql`  
 **Output**: `/apps/web/src/__generated__/graphql.tsx`  
-**Command**: `pnpm codegen` (in apps/web)
+**Command**: Automatic via `pnpm codegen`
 
-Generates:
+Generates fully typed:
 - TypeScript types for all GraphQL operations
 - React hooks (useQuery, useMutation, useSubscription)
 - Apollo Client integration code
+
+## Commands
+
+### Primary Commands
+
+```bash
+make codegen          # Complete pipeline: models → apply → frontend → schema → types
+make codegen-models   # Generate domain models only (to staged directory)
+make codegen-frontend # Generate frontend components only
+make codegen-watch    # Watch TypeScript files for changes
+```
+
+### Staging Commands
+
+```bash
+make diff-staged           # Compare staged vs active generated files
+make validate-staged       # Full validation with mypy type checking
+make validate-staged-syntax # Syntax validation only (faster)
+make apply                 # Apply with full validation
+make apply-syntax-only     # Apply with syntax validation only
+make backup-generated      # Backup before applying changes
+```
+
+### Direct Diagram Execution (Advanced)
+
+```bash
+# Generate all models
+dipeo run codegen/diagrams/models/generate_all_models --light --debug
+
+# Generate frontend
+dipeo run codegen/diagrams/frontend/generate_frontend --light --debug
+
+# Generate specific node
+dipeo run codegen/diagrams/models/generate_backend_models_single --light \
+  --input-data '{"node_name": "person_job"}'
+```
 
 ## Adding New Features
 
@@ -103,12 +139,16 @@ Generates:
    export const myNodeSpec: NodeSpecification = {
      nodeType: NodeType.MyNode,
      category: 'processing',
+     displayName: 'My Node',
+     icon: 'Code',
      fields: [
        {
          name: 'myField',
          type: 'string',
          required: true,
-         description: 'Description of the field'
+         description: 'Description of the field',
+         uiType: 'text',  // UI hint for frontend
+         placeholder: 'Enter value...'
        }
      ]
    };
@@ -126,10 +166,14 @@ Generates:
 
 3. **Run code generation**:
    ```bash
-   make codegen
+   make codegen  # Automatically discovers and processes the new spec
    ```
 
-4. **The node is now available** in the diagram editor with full type safety.
+4. **The node is now available** with:
+   - Full type safety across Python and TypeScript
+   - Auto-generated UI components
+   - GraphQL types and operations
+   - Validation schemas
 
 ### Adding New GraphQL Queries/Mutations
 
@@ -202,31 +246,55 @@ Generates:
        # Implementation
    ```
 
-## Key Files
+## Key Files and Directories
 
-### Code Generation
-- `/dipeo/models/src/node-specs/` - Node specifications (source of truth)
-- `/files/codegen/code/frontend/generators/` - Query generators
-- `/files/codegen/diagrams/` - Codegen orchestration diagrams
+### Source Files
+- `/dipeo/models/src/` - TypeScript specifications (source of truth)
+  - `/node-specs/` - Node type definitions
+  - `/core/` - Core domain types
+  - `/codegen/` - Code generation mappings
+
+### Code Generation System
+- `/files/codegen/diagrams/` - DiPeO diagrams orchestrating generation
+  - `/models/` - Domain model generation diagrams
+  - `/frontend/` - Frontend generation diagrams
+  - `/shared/` - Shared parsing and utilities
+- `/files/codegen/code/` - External Python code for diagrams
+  - Organized to match diagram structure
+  - All generation logic externalized for testing
+- `/files/codegen/templates/` - Jinja2 templates
+  - `/models/` - Python model templates
+  - `/frontend/` - TypeScript/React templates
 
 ### Generated Files (DO NOT EDIT)
-- `/dipeo/diagram_generated/` - Python models and schemas
-- `/apps/web/src/__generated__/queries/` - GraphQL query definitions
-- `/apps/web/src/__generated__/graphql.tsx` - TypeScript types and hooks
+- `/dipeo/diagram_generated_staged/` - Staging directory for preview
+- `/dipeo/diagram_generated/` - Active generated Python code
+- `/apps/web/src/__generated__/` - Generated frontend code
+- `/temp/` - Cached AST files (git-ignored)
 
 ### Configuration
 - `/apps/web/codegen.yml` - GraphQL code generator config
-- `/dipeo/models/tsconfig.json` - TypeScript to JSON Schema config
+- `Makefile` - Orchestrates the generation pipeline
 
-## Why This Order Matters
+## Architecture: Dog-fooding Approach
 
-The staged approach with `make apply` is crucial because:
-1. **Domain models must be generated first** - They define the core types
-2. **Backend generation can proceed independently** after domain models
-3. **Apply must happen before frontend** - Frontend queries depend on the actual domain model files
-4. **Frontend generation reads from applied models** - Not from staged directory
-5. **GraphQL schema export must happen after all generation** - Captures all new types and operations
-6. **Frontend TypeScript generation depends on exported schema** - Ensures type consistency
+DiPeO's code generation is a prime example of "dog-fooding" - using DiPeO diagrams to generate DiPeO's own code:
+
+1. **Visual Programming**: Each generation step is a diagram node
+2. **Composability**: Sub-diagrams handle specific generation tasks
+3. **Parallelization**: Batch processing for multiple files
+4. **Error Handling**: Graceful degradation in batch operations
+5. **Caching**: AST parsing cached to avoid redundant work
+
+## Why The Staging Approach Matters
+
+The staging directory (`diagram_generated_staged`) serves critical purposes:
+
+1. **Preview Changes**: Review generated code before applying
+2. **Atomic Updates**: All-or-nothing application of changes
+3. **Syntax Validation**: Catch errors before they break the system
+4. **Rollback Safety**: Easy to discard bad generations
+5. **Frontend Dependency**: Frontend reads from applied (not staged) models
 
 ## Best Practices
 
@@ -257,12 +325,55 @@ make dev-all  # Restart servers
 - Schema and queries may be out of sync
 - Run `make codegen` then `cd apps/web && pnpm codegen`
 
+## V2 Generation Improvements
+
+The current generation system uses "v2" diagrams with key improvements:
+
+1. **Template Job Nodes**: Direct template rendering without intermediate steps
+2. **Dynamic Discovery**: Glob patterns find all files automatically
+3. **External Code**: All logic in `files/codegen/code/` for reusability
+4. **Batch Processing**: Parallel generation of multiple nodes
+5. **Better Error Handling**: Graceful degradation in batch operations
+
+Example v2 pattern:
+```yaml
+- label: Generate Field Configs
+  type: template_job
+  props:
+    template_path: files/codegen/templates/frontend/field_config_v2.jinja2
+    output_path: "{{ output_dir }}/fields/{{ node_type_pascal }}Fields.ts"
+    context:
+      node_type: "{{ node_type }}"
+      fields: "{{ fields }}"
+      # ... other context
+```
+
 ## Architecture Notes
 
-The two-stage GraphQL generation (Python generates queries, then GraphQL codegen generates TypeScript) provides:
+### Why Make Commands Over Master Diagrams
+
+The codebase uses Make commands rather than a single master diagram because:
+- **Better error handling**: Make stops on first error
+- **Clear execution flow**: Each step is explicit
+- **Easier debugging**: Can run individual steps
+- **Standard tooling**: Developers know Make
+
+### Two-Stage GraphQL Generation
+
+The system generates GraphQL in two stages:
+1. **DiPeO generates queries** from domain knowledge
+2. **GraphQL codegen generates TypeScript** from queries + schema
+
+This provides:
 - **Domain-driven queries**: Operations match your domain model
 - **Type safety**: End-to-end from Python to TypeScript  
 - **Flexibility**: Can customize queries without changing schema
 - **Consistency**: All queries follow same patterns
 
-While the directory structure (`__generated__/queries/`) may seem confusing, these query files are source files for the GraphQL code generator, not its output. Only `graphql.tsx` is truly generated.
+### External Code Organization
+
+All generation logic lives in external Python files:
+- Matches diagram structure for discoverability
+- Enables unit testing of generation logic
+- Supports code reuse across diagrams
+- Example: `parse_typescript_single.light.yaml` uses functions from `files/codegen/code/shared/typescript_spec_parser.py`

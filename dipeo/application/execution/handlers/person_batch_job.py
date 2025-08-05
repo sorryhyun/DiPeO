@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import (
     CONVERSATION_SERVICE,
     LLM_SERVICE,
@@ -70,13 +71,12 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         return "Execute prompts across multiple persons in batch"
 
 
-    async def execute(
-        self,
-        node: PersonBatchJobNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutputProtocol:
+    async def execute_request(self, request: ExecutionRequest[PersonBatchJobNode]) -> NodeOutputProtocol:
+        # Extract properties from request
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        services = request.services
         # Note: The current implementation expects fields like person_ids, prompt, parallel_execution, aggregate_results
         # which don't exist in PersonBatchJobNode. For now, we'll pass the node directly.
         return await self._execute_batch(node, context, inputs, services)
@@ -89,9 +89,9 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         services: dict[str, Any],
     ) -> NodeOutputProtocol:
         # Get services from ServiceRegistry
-        conversation_service: ConversationManager = services.get(CONVERSATION_SERVICE)
-        llm_service = self.llm_service or services.get(LLM_SERVICE)
-        diagram: DomainDiagram | None = services.get(DIAGRAM)
+        conversation_service: ConversationManager = services.resolve(CONVERSATION_SERVICE)
+        llm_service = self.llm_service or services.resolve(LLM_SERVICE)
+        diagram: DomainDiagram | None = services.resolve(DIAGRAM)
         
         if not conversation_service or not llm_service:
             raise ValueError("Required services not available")
@@ -201,7 +201,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # TODO: Add method to get execution_id from context protocol
         execution_id = getattr(context, '_execution_id', 'unknown')
         # Get prompt builder from ServiceRegistry
-        prompt_builder = services.get(PROMPT_BUILDER)
+        prompt_builder = services.resolve(PROMPT_BUILDER)
         
         # Apply memory settings if configured
         if node.memory_settings:
@@ -222,7 +222,7 @@ class PersonBatchJobNodeHandler(TypedNodeHandler[PersonBatchJobNode]):
         # Get current node ID from service
         current_node_id = None
         # Get node info from ServiceRegistry
-        node_info = services.get(CURRENT_NODE_INFO)
+        node_info = services.resolve(CURRENT_NODE_INFO)
         if node_info and 'node_id' in node_info:
             current_node_id = node_info['node_id']
         

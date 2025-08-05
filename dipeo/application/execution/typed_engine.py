@@ -1,53 +1,55 @@
-"""Consolidated typed execution engine.
+"""Typed execution engine with event-based architecture.
 
-This engine directly manages state and execution, removing the need for
-a separate ExecutionRuntime wrapper.
+This engine manages diagram execution with decoupled observer notifications
+through an event bus system, enabling true parallel execution without lock contention.
 """
 
 import asyncio
 import logging
 import threading
+import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
-from dipeo.core.execution.execution_tracker import ExecutionTracker, CompletionStatus
-from dipeo.core.execution.execution_context import ExecutionContext as CoreExecutionContext
-from dipeo.core.execution.runtime_resolver import RuntimeResolver
-from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator
+from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
+from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker
+from dipeo.application.execution.states.state_transition_mixin import StateTransitionMixin
+from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution.execution_state_manager import ExecutionStateManager
+from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
+from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.diagram_generated import (
     ExecutionState,
     NodeExecutionStatus,
     NodeID,
     NodeState,
 )
-from dipeo.infrastructure.config import get_settings
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
-
-from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker
-from dipeo.application.execution.states.state_transition_mixin import StateTransitionMixin
-from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
+from dipeo.infrastructure.config import get_settings
+from dipeo.infrastructure.events import NullEventBus
 
 if TYPE_CHECKING:
-    from dipeo.application.registry import ServiceRegistry, ServiceKey
-    from dipeo.core.ports import ExecutionObserver
     from dipeo.application.bootstrap import Container
+    from dipeo.application.registry import ServiceRegistry
+    from dipeo.core.ports import ExecutionObserver
 
 logger = logging.getLogger(__name__)
 
 
 class TypedExecutionEngine(StateTransitionMixin):
-    """Consolidated engine that manages both state and execution.
+    """Event-based execution engine with decoupled observer notifications.
     
-    This engine directly manages:
+    This engine manages:
     - Node state transitions
     - Execution tracking
     - Dynamic order calculation
     - Input resolution
-    - Observer notifications
+    - Event-based notifications
     
-    No longer requires a separate ExecutionRuntime wrapper.
+    Observer notifications are now handled through an event bus,
+    enabling true parallel execution without lock contention.
     """
     
     def __init__(
@@ -56,14 +58,24 @@ class TypedExecutionEngine(StateTransitionMixin):
         runtime_resolver: RuntimeResolver,
         order_calculator: Any | None = None,
         state_manager: ExecutionStateManager | None = None,
+        event_bus: EventEmitter | None = None,
         observers: list["ExecutionObserver"] | None = None
     ):
         self.service_registry = service_registry
         self.runtime_resolver = runtime_resolver
         self.order_calculator = order_calculator or self._create_default_order_calculator()
-        self.state_manager = state_manager  # or self._create_default_state_manager()
-        self.observers = observers or []
+        self.state_manager = state_manager
         self._settings = get_settings()
+        self._managed_event_bus = False
+        
+        # Handle observers and event bus
+        if observers and not event_bus:
+            # Create event bus from observers for backward compatibility
+            from dipeo.infrastructure.events.observer_adapter import create_event_bus_with_observers
+            self.event_bus = create_event_bus_with_observers(observers)
+            self._managed_event_bus = True
+        else:
+            self.event_bus = event_bus or NullEventBus()
     
     async def execute(
         self,
@@ -73,21 +85,31 @@ class TypedExecutionEngine(StateTransitionMixin):
         container: Optional["Container"] = None,
         interactive_handler: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        """Execute a diagram with integrated state management."""
+        """Execute a diagram with event-based state management."""
         
-        # Initialize engine state
-        engine_state = self._initialize_engine_state(
-            diagram, execution_state, container, options
-        )
-        
-        # Notify observers
-        execution_id = str(execution_state.id)
-        diagram_id = str(execution_state.diagram_id)
-        
-        for observer in self.observers:
-            await observer.on_execution_start(execution_id, diagram_id)
+        # Start event bus if we're managing it
+        if self._managed_event_bus:
+            await self.event_bus.start()
         
         try:
+            # Initialize engine state
+            engine_state = self._initialize_engine_state(
+                diagram, execution_state, container, options
+            )
+            
+            # Emit execution started event
+            execution_id = str(execution_state.id)
+            diagram_id = str(execution_state.diagram_id)
+            
+            await self.event_bus.emit(ExecutionEvent(
+                type=EventType.EXECUTION_STARTED,
+                execution_id=execution_id,
+                timestamp=time.time(),
+                data={
+                    "diagram_id": diagram_id,
+                    "diagram_name": diagram.metadata.get("name", "unknown") if diagram.metadata else "unknown"
+                }
+            ))
             # Main execution loop
             step_count = 0
             while not self._is_complete(engine_state):
@@ -109,16 +131,15 @@ class TypedExecutionEngine(StateTransitionMixin):
                 step_count += 1
 
                 # Execute ready nodes in parallel with optional concurrency limit
-                # TODO: Make max_concurrent configurable via environment variable or config
-                max_concurrent = 20  # Default concurrency limit (increased from 10)
+                max_concurrent = 20  # Default concurrency limit
                 
                 # Create semaphore for concurrency control if needed
                 semaphore = asyncio.Semaphore(max_concurrent) if len(ready_nodes) > 1 else None
                 
-                async def execute_with_semaphore(node):
+                async def execute_with_semaphore(node, sem=None):
                     """Execute node with semaphore for concurrency control."""
-                    if semaphore:
-                        async with semaphore:
+                    if sem:
+                        async with sem:
                             return await self._execute_node(
                                 node=node,
                                 diagram=diagram,
@@ -142,7 +163,7 @@ class TypedExecutionEngine(StateTransitionMixin):
                     tasks = []
                     node_ids = []
                     for node in ready_nodes:
-                        task = execute_with_semaphore(node)
+                        task = execute_with_semaphore(node, semaphore)
                         tasks.append(task)
                         node_ids.append(str(node.id))
                     
@@ -150,7 +171,7 @@ class TypedExecutionEngine(StateTransitionMixin):
                     task_results = await asyncio.gather(*tasks, return_exceptions=True)
                     
                     # Map results back to node IDs
-                    for node_id, result in zip(node_ids, task_results):
+                    for node_id, result in zip(node_ids, task_results, strict=False):
                         if isinstance(result, Exception):
                             # Re-raise exceptions from parallel execution
                             raise result
@@ -179,8 +200,18 @@ class TypedExecutionEngine(StateTransitionMixin):
                 }
             
             # Execution complete
-            for observer in self.observers:
-                await observer.on_execution_complete(execution_id)
+            await self.event_bus.emit(ExecutionEvent(
+                type=EventType.EXECUTION_COMPLETED,
+                execution_id=execution_id,
+                timestamp=time.time(),
+                data={
+                    "total_steps": step_count,
+                    "execution_path": [
+                        str(node_id) for node_id, state in engine_state['node_states'].items()
+                        if state.status == NodeExecutionStatus.COMPLETED
+                    ]
+                }
+            ))
             
             yield {
                 "type": "execution_complete",
@@ -192,15 +223,26 @@ class TypedExecutionEngine(StateTransitionMixin):
             }
             
         except Exception as e:
-            # Notify observers of error
-            for observer in self.observers:
-                await observer.on_execution_error(execution_id, str(e))
+            # Emit execution error event
+            await self.event_bus.emit(ExecutionEvent(
+                type=EventType.NODE_FAILED,
+                execution_id=execution_id,
+                timestamp=time.time(),
+                data={
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                }
+            ))
             
             yield {
                 "type": "execution_error",
                 "error": str(e),
             }
             raise
+        finally:
+            # Stop event bus if we're managing it
+            if self._managed_event_bus:
+                await self.event_bus.stop()
     
     def _initialize_engine_state(
         self,
@@ -249,6 +291,159 @@ class TypedExecutionEngine(StateTransitionMixin):
             'container': container,
             'state_lock': threading.Lock()
         }
+    
+    async def _execute_node(
+        self,
+        node: ExecutableNode,
+        diagram: ExecutableDiagram,
+        engine_state: dict[str, Any],
+        execution_id: str,
+        interactive_handler: Any | None
+    ) -> dict[str, Any]:
+        """Execute a single node with event-based notifications."""
+        # Emit node started event
+        start_time = time.time()
+        await self.event_bus.emit(ExecutionEvent(
+            type=EventType.NODE_STARTED,
+            execution_id=execution_id,
+            timestamp=start_time,
+            data={
+                "node_id": str(node.id),
+                "node_type": node.type,
+                "node_name": getattr(node, 'name', str(node.id))
+            }
+        ))
+        
+        try:
+            # Start execution tracking
+            tracker = engine_state['tracker']
+            tracker.start_execution(node.id)
+            
+            # Get handler
+            from dipeo.application import get_global_registry
+            from dipeo.application.execution.handler_factory import HandlerFactory
+            
+            registry = get_global_registry()
+            if not hasattr(registry, '_service_registry') or registry._service_registry is None:
+                HandlerFactory(self.service_registry)
+            
+            handler = registry.create_handler(node.type)
+            
+            # Build context for input resolution
+            context = self._build_execution_context(engine_state)
+            
+            # Get incoming edges
+            incoming_edges = [
+                edge for edge in diagram.edges 
+                if edge.target_node_id == node.id
+            ]
+            
+            # Resolve inputs using runtime resolver
+            inputs = self.runtime_resolver.resolve_node_inputs(
+                node=node,
+                incoming_edges=incoming_edges,
+                context=context
+            )
+            
+            # Update current node
+            engine_state['current_node_id'][0] = node.id
+            
+            # Prepare services with execution context
+            from dipeo.application.registry import ServiceKey
+            self.service_registry.register(ServiceKey("diagram"), diagram)
+            self.service_registry.register(ServiceKey("execution_context"), {
+                "interactive_handler": interactive_handler
+            })
+            
+            # Create a context wrapper for the handler
+            handler_context = self._create_handler_context(engine_state)
+            
+            # Create ExecutionRequest
+            request = ExecutionRequest(
+                node=node,
+                context=handler_context,
+                inputs=inputs,
+                services=self.service_registry,
+                metadata={},
+                execution_id=execution_id,
+                parent_container=engine_state.get('container'),
+                parent_registry=self.service_registry
+            )
+            
+            # Execute handler with request
+            output = await handler.execute_request(request)
+            
+            # Handle state transitions based on node type
+            await self._handle_node_completion(
+                node=node,
+                output=output,
+                engine_state=engine_state,
+                diagram=diagram
+            )
+            
+            # Calculate execution metrics
+            end_time = time.time()
+            duration_ms = (end_time - start_time) * 1000
+            
+            # Emit node completed event with metrics
+            node_state = engine_state['node_states'][node.id]
+            await self.event_bus.emit(ExecutionEvent(
+                type=EventType.NODE_COMPLETED,
+                execution_id=execution_id,
+                timestamp=end_time,
+                data={
+                    "node_id": str(node.id),
+                    "node_type": node.type,
+                    "node_name": getattr(node, 'name', str(node.id)),
+                    "status": node_state.status.value,
+                    "output": self._serialize_output(output),
+                    "metrics": {
+                        "duration_ms": duration_ms,
+                        "start_time": start_time,
+                        "end_time": end_time
+                    }
+                }
+            ))
+            
+            # Return result
+            if hasattr(output, 'to_dict'):
+                return output.to_dict()
+            else:
+                return {"value": output.value, "metadata": output.metadata}
+            
+        except Exception as e:
+            logger.error(f"Error executing node {node.id}: {e}", exc_info=True)
+            
+            # Emit node failed event
+            await self.event_bus.emit(ExecutionEvent(
+                type=EventType.NODE_FAILED,
+                execution_id=execution_id,
+                timestamp=time.time(),
+                data={
+                    "node_id": str(node.id),
+                    "node_type": node.type,
+                    "node_name": getattr(node, 'name', str(node.id)),
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                }
+            ))
+            raise
+    
+    def _serialize_output(self, output: Any) -> dict[str, Any]:
+        """Serialize node output for event data."""
+        try:
+            if hasattr(output, 'to_dict'):
+                return output.to_dict()
+            elif hasattr(output, 'value'):
+                result = {"value": output.value}
+                if hasattr(output, 'metadata') and output.metadata:
+                    result["metadata"] = output.metadata
+                return result
+            else:
+                return {"value": str(output)}
+        except Exception as e:
+            logger.warning(f"Failed to serialize output: {e}")
+            return {"value": "output_serialization_failed"}
     
     def _build_execution_context(self, engine_state: dict[str, Any]) -> Any:
         """Build execution context for current state."""
@@ -305,7 +500,7 @@ class TypedExecutionEngine(StateTransitionMixin):
                 self._engine_state['variables'][name] = value
             
             @property
-            def current_node_id(self) -> Optional[NodeID]:
+            def current_node_id(self) -> NodeID | None:
                 """Get current executing node ID."""
                 return self._engine_state['current_node_id'][0]
             
@@ -333,96 +528,6 @@ class TypedExecutionEngine(StateTransitionMixin):
                 return self.get_node_execution_count(node_id) <= 1
         
         return EnhancedContext(engine_state, node_outputs, node_exec_counts)
-    
-    async def _execute_node(
-        self,
-        node: ExecutableNode,
-        diagram: ExecutableDiagram,
-        engine_state: dict[str, Any],
-        execution_id: str,
-        interactive_handler: Any | None
-    ) -> dict[str, Any]:
-        """Execute a single node."""
-        # Notify observers
-        for observer in self.observers:
-            await observer.on_node_start(execution_id, str(node.id))
-        
-        try:
-            # Start execution tracking
-            tracker = engine_state['tracker']
-            tracker.start_execution(node.id)
-            
-            # Get handler
-            from dipeo.application import get_global_registry
-            from dipeo.application.execution.handler_factory import HandlerFactory
-            
-            registry = get_global_registry()
-            if not hasattr(registry, '_service_registry') or registry._service_registry is None:
-                HandlerFactory(self.service_registry)
-            
-            handler = registry.create_handler(node.type)
-            
-            # Build context for input resolution
-            context = self._build_execution_context(engine_state)
-            
-            # Get incoming edges
-            incoming_edges = [
-                edge for edge in diagram.edges 
-                if edge.target_node_id == node.id
-            ]
-            
-            # Resolve inputs using runtime resolver
-            inputs = self.runtime_resolver.resolve_node_inputs(
-                node=node,
-                incoming_edges=incoming_edges,
-                context=context
-            )
-            
-            # Update current node
-            engine_state['current_node_id'][0] = node.id
-            
-            # Prepare services with execution context
-            from dipeo.application.registry import ServiceKey
-            self.service_registry.register(ServiceKey("diagram"), diagram)
-            self.service_registry.register(ServiceKey("execution_context"), {
-                "interactive_handler": interactive_handler
-            })
-            
-            # Create a context wrapper for the handler
-            handler_context = self._create_handler_context(engine_state)
-            
-            # Execute handler
-            output = await handler.execute(
-                node=node,
-                context=handler_context,
-                inputs=inputs,
-                services=self.service_registry
-            )
-            
-            # Handle state transitions based on node type
-            await self._handle_node_completion(
-                node=node,
-                output=output,
-                engine_state=engine_state,
-                diagram=diagram
-            )
-            
-            # Notify observers
-            node_state = engine_state['node_states'][node.id]
-            for observer in self.observers:
-                await observer.on_node_complete(execution_id, str(node.id), node_state)
-            
-            # Return result
-            if hasattr(output, 'to_dict'):
-                return output.to_dict()
-            else:
-                return {"value": output.value, "metadata": output.metadata}
-            
-        except Exception as e:
-            logger.error(f"Error executing node {node.id}: {e}", exc_info=True)
-            for observer in self.observers:
-                await observer.on_node_error(execution_id, str(node.id), str(e))
-            raise
     
     def _create_handler_context(self, engine_state: dict[str, Any]) -> Any:
         """Create a context object that handlers expect (ExecutionRuntime interface)."""
@@ -463,7 +568,7 @@ class TypedExecutionEngine(StateTransitionMixin):
             def container(self):
                 return self._container
             
-            def get_node_state(self, node_id: NodeID) -> Optional[NodeState]:
+            def get_node_state(self, node_id: NodeID) -> NodeState | None:
                 return self._node_states.get(node_id)
             
             def set_node_state(self, node_id: NodeID, state: NodeState) -> None:
@@ -475,7 +580,7 @@ class TypedExecutionEngine(StateTransitionMixin):
                 # The runtime resolver needs the full object to handle different output types
                 return protocol_output
             
-            def get_node_result(self, node_id: NodeID) -> Optional[dict[str, Any]]:
+            def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
                 protocol_output = self._tracker.get_last_output(node_id)
                 if protocol_output:
                     result = {"value": protocol_output.value}
@@ -503,7 +608,7 @@ class TypedExecutionEngine(StateTransitionMixin):
             def service_registry(self):
                 return self._service_registry
             
-            def create_sub_container(self, sub_execution_id: str, config_overrides: Optional[dict] = None):
+            def create_sub_container(self, sub_execution_id: str, config_overrides: dict | None = None):
                 if self._container is None:
                     return None
                 return self._container.create_sub_container(
@@ -604,7 +709,7 @@ class TypedExecutionEngine(StateTransitionMixin):
         diagram: ExecutableDiagram
     ) -> None:
         """Handle node completion and state transitions."""
-        from dipeo.diagram_generated.generated_nodes import PersonJobNode, ConditionNode
+        from dipeo.diagram_generated.generated_nodes import ConditionNode, PersonJobNode
         
         node_id = node.id
         tracker = engine_state['tracker']
@@ -729,7 +834,3 @@ class TypedExecutionEngine(StateTransitionMixin):
                 pass
         
         return InMemoryStateManager()
-
-
-# Alias for backward compatibility
-StatefulExecutionEngine = TypedExecutionEngine

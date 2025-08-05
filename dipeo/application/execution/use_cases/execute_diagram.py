@@ -92,6 +92,8 @@ class ExecuteDiagramUseCase(BaseService):
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         
         runtime_resolver = StandardRuntimeResolver()
+        
+        # Create engine with observers directly
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             runtime_resolver=runtime_resolver,
@@ -145,38 +147,42 @@ class ExecuteDiagramUseCase(BaseService):
             # We'll handle this task specially in the update loop
             pass
         
-        # Wait for execution completion and yield status
-        if use_monitoring_stream or is_batch_item or is_sub_diagram:
-            # Wait for the execution task to complete
-            try:
-                await execution_task
-            except Exception:
-                pass  # Errors are already handled in run_execution
-            
-            # Get final state
-            state = await self.state_store.get_state(execution_id)
-            yield {
-                "type": "execution_complete" if state and state.status == ExecutionStatus.COMPLETED else "execution_error",
-                "execution_id": execution_id,
-                "status": state.status.value if state else "unknown",
-            }
-        else:
-            # For web executions, events are consumed via MessageRouter/GraphQL subscriptions
-            await asyncio.sleep(0.1)
-            while True:
+        try:
+            # Wait for execution completion and yield status
+            if use_monitoring_stream or is_batch_item or is_sub_diagram:
+                # Wait for the execution task to complete
+                try:
+                    await execution_task
+                except Exception:
+                    pass  # Errors are already handled in run_execution
+                
+                # Get final state
                 state = await self.state_store.get_state(execution_id)
-                if state and state.status in [
-                    ExecutionStatus.COMPLETED,
-                    ExecutionStatus.FAILED,
-                    ExecutionStatus.ABORTED,
-                ]:
-                    break
-                await asyncio.sleep(1)
-            yield {
-                "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
-                "execution_id": execution_id,
-                "status": state.status.value,
-            }
+                yield {
+                    "type": "execution_complete" if state and state.status == ExecutionStatus.COMPLETED else "execution_error",
+                    "execution_id": execution_id,
+                    "status": state.status.value if state else "unknown",
+                }
+            else:
+                # For web executions, events are consumed via MessageRouter/GraphQL subscriptions
+                await asyncio.sleep(0.1)
+                while True:
+                    state = await self.state_store.get_state(execution_id)
+                    if state and state.status in [
+                        ExecutionStatus.COMPLETED,
+                        ExecutionStatus.FAILED,
+                        ExecutionStatus.ABORTED,
+                    ]:
+                        break
+                    await asyncio.sleep(1)
+                yield {
+                    "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
+                    "execution_id": execution_id,
+                    "status": state.status.value,
+                }
+        except Exception:
+            # Re-raise any exceptions
+            raise
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""

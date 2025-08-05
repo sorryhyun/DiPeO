@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
@@ -85,15 +86,14 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         
         return expanded_paths
 
-    async def execute(
-        self,
-        node: DBNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutputProtocol:
+    async def execute_request(self, request: ExecutionRequest[DBNode]) -> NodeOutputProtocol:
+        # Extract properties from request
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        
         # Get service from ServiceRegistry
-        db_service = services.get(DB_OPERATIONS_SERVICE)
+        db_service = request.services.resolve(DB_OPERATIONS_SERVICE)
         
         if db_service is None:
             raise RuntimeError("db_operations_service not available")
