@@ -12,7 +12,7 @@ DiPeO에 오신 것을 환영합니다! 이 가이드는 브라우저의 시각�
 >   - DiPeO 프로젝트 다이어그램으로 코드 생성하는 사례 및 실제 적용된 내용에 대해 다룹니다.
 > - [메모리 시스템 디자인](memory_system_design.md)
 >   - DiPeO를 시작한 계기이기도 하면서, person과 person job을 분리한 이유, 또한 LLM 컨텍스트를 관리하는 체계에 대해 다룹니다.
-> - [다이어그램 포맷](how_to_write_diagram.md)
+> - [다이어그램 포맷](comprehensive_light_diagram_guide.md)
 >   - DiPeO에서 사용하는 다이어그램을 텍스트 파일로 export하거나 import하기 위한 양식 및 작성법에 대해 다룹니다.
 > - [코드 생성 가이드](code-generation-guide.md)
 >   - DiPeO에서 신규 기능 개발 시 필요한 코드 생성 절차에 대해 다룹니다.

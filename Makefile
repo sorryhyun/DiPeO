@@ -6,6 +6,7 @@
 help:
 	@echo "DiPeO Commands:"
 	@echo "  make install      - Install all dependencies"
+	@echo "  make install-dev  - Install development dependencies (linters, formatters, etc.)"
 	@echo "  make codegen      - Generate all code using diagram-based approach"
 	@echo "  make codegen-node NODE_SPEC=path/to/spec.json - Generate code for a specific node"
 	@echo "  make codegen-watch - Watch node specifications for changes"
@@ -29,18 +30,22 @@ help:
 install:
 	@echo "Installing dependencies..."
 	pip install -r requirements.txt
-	pip install -e ./apps/server -e ./apps/cli
 	pnpm install
 	@echo "All dependencies installed!"
+
+# Install development dependencies
+install-dev: install
+	@echo "Installing development dependencies..."
+	pip install import-linter black mypy "ruff>=0.8.0" pytest-asyncio pytest-cov isort
+	@echo "Development dependencies installed!"
 
 # Diagram-based code generation (NEW DEFAULT)
 codegen:
 	@echo "Running unified diagram-based code generation..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=25
-	dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=15
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=40
 	@sleep 1
 	make apply-syntax-only
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=15
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=25
 	make graphql-schema
 	@echo "All code generation completed using DiPeO diagrams!"
 
