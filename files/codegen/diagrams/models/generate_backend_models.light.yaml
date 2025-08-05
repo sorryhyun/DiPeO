@@ -1,0 +1,104 @@
+# Backend Batch Generation with TypeScript Specifications
+# Uses the TypeScript specification parser to generate backend files for multiple node types
+# Also generates conversion functions for TypeScript <-> Python transformations
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      custom_data:
+        message: Starting batch generation using TypeScript specifications for backend files
+
+  # Run batch parser for all TypeScript files
+  - label: Parse All TypeScript
+    type: sub_diagram
+    position: {x: 200, y: 200}
+    props:
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # NEW: Discover node spec files dynamically using glob patterns
+  - label: Discover Node Specs
+    type: db
+    position: {x: 350, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      serialize_json: true  # Parse JSON files automatically
+      glob: true  # Enable glob pattern expansion
+      source_details:
+        # Dynamically discover all node spec files
+        - "temp/*.spec.ts.json"
+
+  - label: Prepare Node List
+    type: code_job
+    position: {x: 500, y: 200}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generate_backend_models/prepare_node_list_from_specs.py
+      functionName: prepare_node_list_from_specs
+
+  - label: Batch Generate Backend Models
+    type: sub_diagram
+    position: {x: 700, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/generate_backend_models_single
+      diagram_format: light
+      batch: true  # Enable batch mode
+      batch_input_key: items  # Use 'items' key from input
+      batch_parallel: true  # Process in parallel
+
+
+  - label: Prepare Init Context
+    type: code_job
+    position: {x: 900, y: 200}
+    props:
+      language: python
+      filePath: files/codegen/code/models/generate_backend_models/prepare_init_context_from_specs.py
+      functionName: prepare_init_context_from_specs
+
+  - label: Generate Models Init
+    type: template_job
+    position: {x: 1100, y: 200}
+    props:
+      engine: jinja2
+      template_path: files/codegen/templates/backend/models_init.j2
+      output_path: dipeo/diagram_generated_staged/models/__init__.py
+
+  - label: End
+    type: endpoint
+    position: {x: 1500, y: 200}
+    props:
+      save_to_file: false
+
+connections:
+  - from: Start
+    to: Parse All TypeScript
+  
+  - from: Parse All TypeScript
+    to: Discover Node Specs
+  
+  - from: Discover Node Specs
+    to: Prepare Node List
+  
+  - from: Prepare Node List
+    to: Batch Generate Backend Models
+  
+  # Also pass specs to prepare init context
+  - from: Discover Node Specs
+    to: Prepare Init Context
+  
+  # Generate the models __init__.py
+  - from: Prepare Init Context
+    to: Generate Models Init
+  
+  # Both paths complete before ending
+  - from: Batch Generate Backend Models
+    to: End
+  - from: Generate Models Init
+    to: End

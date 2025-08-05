@@ -36,7 +36,7 @@ class PromptBuilder:
         # If explicitly False, respect that. Otherwise check settings.
         if auto_prepend_conversation is not False:
             try:
-                from dipeo.infra.config.settings import get_settings
+                from dipeo.infrastructure.config import get_settings
                 should_prepend = get_settings().auto_prepend_conversation
             except:
                 pass  # Keep default True if settings not available
@@ -45,7 +45,7 @@ class PromptBuilder:
         if should_prepend and template_values:
             selected_prompt = self._prepend_conversation_context(selected_prompt, template_values)
         
-        # Use full template processing to support Handlebars syntax
+        # Use template processing to support variable substitution
         result = self._processor.process(selected_prompt, template_values)
         if result.errors:
             logger.warning(f"Template processing errors: {result.errors}")
@@ -215,7 +215,7 @@ class PromptBuilder:
         
         # Get context limit from settings
         try:
-            from dipeo.infra.config.settings import get_settings
+            from dipeo.infrastructure.config import get_settings
             context_limit = get_settings().conversation_context_limit
         except:
             context_limit = 10  # Default fallback

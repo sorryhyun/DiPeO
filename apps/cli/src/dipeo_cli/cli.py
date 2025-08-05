@@ -93,6 +93,7 @@ class DiPeOCLI:
         timeout: int = 300,
         format_type: str | None = None,
         input_variables: dict[str, Any] | None = None,
+        use_unified: bool = False,
     ):
         """Run a diagram via server."""
         # Resolve diagram path
@@ -150,6 +151,7 @@ class DiPeOCLI:
                 diagram_data,
                 input_variables,
                 use_monitoring_stream=True,
+                use_unified_monitoring=use_unified,
                 diagram_name=diagram_name or Path(diagram_path).stem,
                 diagram_format=diagram_format,
             )
@@ -292,7 +294,7 @@ class DiPeOCLI:
         # Use the unified converter for format conversion
         try:
             # Import required modules
-            from dipeo.infra.diagram.unified_converter import UnifiedDiagramConverter
+            from dipeo.domain.diagram.unified_converter import UnifiedDiagramConverter
 
             # Create converter
             converter = UnifiedDiagramConverter()

@@ -12,7 +12,7 @@ from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
-from dipeo.infrastructure.services.template.template_integration import get_enhanced_template_service
+from dipeo.infrastructure.services.jinja_template.template_integration import get_enhanced_template_service
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
@@ -44,7 +44,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     @property
     def description(self) -> str:
-        return "Renders templates using Handlebars-style syntax and outputs the result"
+        return "Renders templates using Jinja2 syntax and outputs the result"
     
     def validate(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[str]:
         """Validate the template job configuration."""
@@ -153,9 +153,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                         # Fall back to standard Jinja2
                         rendered = await self._render_jinja2(template_content, template_vars)
                         request.add_metadata("enhancement_fallback", str(e))
-                elif engine == "handlebars":
-                    # Use Python handlebars implementation
-                    rendered = await self._render_handlebars(template_content, template_vars)
                 else:
                     return ErrorOutput(
                         value=f"Unsupported template engine: {engine}",
@@ -221,87 +218,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         except ImportError:
             raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
     
-    async def _render_handlebars(self, template: str, variables: dict[str, Any]) -> str:
-        """Render template using Python handlebars implementation."""
-        try:
-            from pybars import Compiler
-            
-            # Compile the template
-            compiler = Compiler()
-            compiled = compiler.compile(template)
-            
-            # Add helper functions that might be useful
-            def ts_type(this, type_name):
-                """Convert field type to TypeScript type."""
-                type_map = {
-                    'string': 'string',
-                    'number': 'number',
-                    'boolean': 'boolean',
-                    'array': 'any[]',
-                    'object': 'Record<string, any>',
-                    'date': 'Date',
-                    'datetime': 'Date',
-                }
-                return type_map.get(type_name, 'any')
-            
-            def humanize(this, value):
-                """Convert snake_case or camelCase to human readable text."""
-                if isinstance(value, str):
-                    # Replace underscores with spaces and capitalize words
-                    result = value.replace('_', ' ')
-                    # Handle camelCase
-                    import re
-                    result = re.sub(r'([a-z])([A-Z])', r'\1 \2', result)
-                    # Capitalize first letter of each word
-                    return ' '.join(word.capitalize() for word in result.split())
-                return str(value)
-            
-            def safe_json(this, value):
-                """Serialize value to JSON for use in TypeScript/JavaScript code."""
-                if value is None:
-                    return 'null'
-                elif isinstance(value, bool):
-                    return 'true' if value else 'false'
-                elif isinstance(value, str):
-                    # For string values in TypeScript, use single quotes
-                    return f"'{value}'"
-                elif isinstance(value, (list, dict)):
-                    # For objects and arrays, use JSON serialization without indentation
-                    return json.dumps(value, separators=(', ', ': '))
-                else:
-                    return json.dumps(value)
-            
-            helpers = {
-                'json': lambda this, value: json.dumps(value),
-                'safeJson': safe_json,
-                'pascalCase': lambda this, value: ''.join(word.capitalize() for word in str(value).split('_')) if value is not None else '',
-                'camelCase': lambda this, value: str(value)[0].lower() + ''.join(word.capitalize() for word in str(value).split('_'))[1:] if value else '',
-                'upperCase': lambda this, value: str(value).upper() if value is not None else '',
-                'lowerCase': lambda this, value: str(value).lower() if value is not None else '',
-                'eq': lambda this, a, b: a == b,
-                'ne': lambda this, a, b: a != b,
-                'gt': lambda this, a, b: a > b if a is not None and b is not None else False,
-                'lt': lambda this, a, b: a < b if a is not None and b is not None else False,
-                'gte': lambda this, a, b: a >= b if a is not None and b is not None else False,
-                'lte': lambda this, a, b: a <= b if a is not None and b is not None else False,
-                'tsType': ts_type,
-                'humanize': humanize,
-            }
-            
-            # Ensure spec_data fields are available at top level for templates
-            if 'spec_data' in variables and isinstance(variables['spec_data'], dict):
-                # Make spec_data fields available at top level for easier access
-                for key, value in variables['spec_data'].items():
-                    if key not in variables:  # Don't override existing top-level keys
-                        variables[key] = value
-            
-            try:
-                result = compiled(variables, helpers=helpers)
-                return result
-            except Exception as e:
-                raise
-        except ImportError:
-            raise ImportError("PyBars3 is not installed. Install it with: pip install pybars3")
     
     def post_execute(
         self,

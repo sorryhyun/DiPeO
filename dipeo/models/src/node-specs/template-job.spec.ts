@@ -60,14 +60,13 @@ export const templateJobSpec: NodeSpecification = {
       defaultValue: "jinja2",
       description: "Template engine to use",
       validation: {
-        allowedValues: ["internal", "jinja2", "handlebars"]
+        allowedValues: ["internal", "jinja2"]
       },
       uiConfig: {
         inputType: "select",
         options: [
           { value: "internal", label: "Internal" },
-          { value: "jinja2", label: "Jinja2" },
-          { value: "handlebars", label: "Handlebars" }
+          { value: "jinja2", label: "Jinja2" }
         ]
       }
     }

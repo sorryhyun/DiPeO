@@ -212,6 +212,7 @@ input ExecuteDiagramInput {
   max_iterations: Int = null
   timeout_seconds: Int = null
   use_monitoring_stream: Boolean = null
+  use_unified_monitoring: Boolean = null
 }
 
 input ExecutionControlInput {

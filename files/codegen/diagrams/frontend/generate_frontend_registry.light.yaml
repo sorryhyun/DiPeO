@@ -8,35 +8,26 @@ nodes:
     type: start
     position: {x: 50, y: 200}
 
-  - label: Load Manifest
+  # NEW: Discover node spec files dynamically using glob patterns
+  - label: Discover Node Specs
     type: db
     position: {x: 200, y: 200}
     props:
-      file: files/codegen/manifests/all.json
       operation: read
+      sub_type: file
+      serialize_json: true  # Parse JSON files automatically
+      glob: true  # Enable glob pattern expansion
+      source_details:
+        # Dynamically discover all node spec files
+        - "temp/*.spec.ts.json"
 
   - label: Extract Node List
     type: code_job
     position: {x: 350, y: 200}
     props:
       language: python
-      code: |
-        # DB node now returns DataOutput, no need to parse JSON
-        manifest_data = default
-        
-        # Get node types
-        node_types = manifest_data.get('nodes', [])
-        
-        print(f"Found {len(node_types)} node types: {node_types}")
-        
-        # Use node types as-is from manifest
-        filtered_nodes = node_types
-        
-        print(f"Nodes to register: {filtered_nodes}")
-        
-        result = {
-            'node_list': filtered_nodes
-        }
+      filePath: files/codegen/code/frontend/generators/extract_node_list_from_specs.py
+      functionName: extract_node_list_from_specs
 
   - label: Generate Registry
     type: code_job
@@ -60,9 +51,9 @@ nodes:
 
 connections:
   - from: Start
-    to: Load Manifest
+    to: Discover Node Specs
   
-  - from: Load Manifest
+  - from: Discover Node Specs
     to: Extract Node List
   
   - from: Extract Node List

@@ -100,11 +100,11 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         """Execute the code job."""
         node = request.node
         inputs = request.inputs
-        
+
         language = node.language.value if hasattr(node.language, 'value') else node.language
         timeout = node.timeout or 30  # Default 30 seconds
         function_name = node.functionName or "main"  # Default to 'main'
-        
+
         # Store execution metadata
         request.add_metadata("language", language)
         request.add_metadata("timeout", timeout)
@@ -155,6 +155,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         # Return appropriate output type based on result
         if isinstance(result, dict):
             # For dict results, return DataOutput so object content type works
+            # logger.debug(f"[CodeJobNode {node.id}] Returning dict with keys: {list(result.keys())}")
             return DataOutput(
                 value=result,
                 node_id=node.id,
@@ -163,6 +164,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         else:
             # For non-dict results, convert to string
             output = str(result)
+            # logger.debug(f"[CodeJobNode {node.id}] Returning {len(output)} chars")
             return TextOutput(
                 value=output,
                 node_id=node.id,

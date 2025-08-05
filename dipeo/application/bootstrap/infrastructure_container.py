@@ -90,7 +90,7 @@ class InfrastructureContainer:
     def _setup_llm_adapter(self):
         """Configure LLM service based on environment."""
         # Use existing LLM infrastructure service
-        from dipeo.infra.llm.service import LLMInfraService
+        from dipeo.infrastructure.services.llm.service import LLMInfraService
         from dipeo.domain.llm import LLMDomainService
 
         # Get API key service from registry
@@ -141,7 +141,7 @@ class InfrastructureContainer:
 
         # Integrated API service
         from dipeo.infrastructure.services.integrated_api import IntegratedApiService
-        from dipeo.infra.adapters.http.api_service import APIService
+        from dipeo.infrastructure.adapters.http.api_service import APIService
         from dipeo.domain.api.services import APIBusinessLogic
         
         # Create API service for providers that need it
@@ -155,8 +155,14 @@ class InfrastructureContainer:
             integrated_api_service
         )
 
-        # AST parser - None for now
+        # Generic AST parser service (supports multiple languages)
+        from dipeo.infrastructure.services.parser import get_parser_service
+        parser_service = get_parser_service(
+            default_language="typescript",
+            project_root=Path(self.config.base_dir),
+            cache_enabled=True
+        )
         self.registry.register(
             AST_PARSER,
-            None  # Override when AST parsing is needed
+            parser_service
         )

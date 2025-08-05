@@ -16,7 +16,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 200}
     props:
-      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -28,7 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      file: .temp/enums_ast.json
+      file: temp/enums.ts.json
 
   # Extract enum definitions (simplified - just data extraction)
   - label: Extract Enums

@@ -61,56 +61,33 @@ class ExecuteDiagramUseCase(BaseService):
         execution_id: str,
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
-        use_monitoring_stream: bool = False,  # Use monitoring-only streaming for CLI executions
+        use_monitoring_stream: bool = False,  # Enable log capture for CLI executions
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
         typed_diagram = await self._compile_typed_diagram(diagram)
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
+        
+        # Always use unified monitoring
+        from dipeo.application.execution.observers.unified_event_observer import UnifiedEventObserver
+        from dipeo.application.execution.observers import StateStoreObserver
+        
+        # If observers are provided (e.g., for sub-diagrams), use them
         if observers is not None:
             engine_observers = observers
-            streaming_observer = None
-            for obs in observers:
-                from dipeo.application.execution.observers import MonitoringStreamObserver
-                if isinstance(obs, MonitoringStreamObserver):
-                    streaming_observer = obs
-                    break
-            
-            if not streaming_observer:
-                from dipeo.application.execution.observers import MonitoringStreamObserver
-                streaming_observer = MonitoringStreamObserver()
-                engine_observers = list(observers) + [streaming_observer]
         else:
-            from dipeo.application.execution.observers import MonitoringStreamObserver
-            
-            if use_monitoring_stream:
-                streaming_observer = MonitoringStreamObserver()
-                
-                try:
-                    from dipeo_server.api.sse import register_observer_for_execution
-                    register_observer_for_execution(execution_id, streaming_observer)
-                except ImportError:
-                    pass
-            else:
-                streaming_observer = MonitoringStreamObserver()
-            from dipeo.application.execution.observers import StateStoreObserver
-            from dipeo.application.execution.observers.event_publishing_observer import EventPublishingObserver
-            
+            # Create unified observer
+            unified_observer = UnifiedEventObserver(
+                message_router=self.message_router,
+                execution_runtime=typed_diagram,
+                capture_logs=use_monitoring_stream  # Enable log capture for CLI
+            )
             engine_observers = []
             
             if self.state_store:
                 engine_observers.append(StateStoreObserver(self.state_store))
             
-            # Add event publishing observer for web executions to enable GraphQL subscriptions
-            if not use_monitoring_stream and hasattr(self.service_registry, 'resolve'):
-                from dipeo.application.registry.keys import MESSAGE_ROUTER
-                message_router = self.service_registry.resolve(MESSAGE_ROUTER)
-                if message_router:
-                    # Pass the typed diagram so observer can access node types
-                    event_observer = EventPublishingObserver(message_router, typed_diagram)
-                    engine_observers.append(event_observer)
-                
-            engine_observers.append(streaming_observer)
+            engine_observers.append(unified_observer)
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         
@@ -121,9 +98,7 @@ class ExecuteDiagramUseCase(BaseService):
             observers=engine_observers,
         )
 
-        update_iterator = None
-        if not use_monitoring_stream:
-            update_iterator = streaming_observer.subscribe(execution_id)
+        # No update iterator needed with unified monitoring
 
         async def run_execution():
             try:
@@ -157,9 +132,36 @@ class ExecuteDiagramUseCase(BaseService):
                     error=str(e)
                 )
 
-        asyncio.create_task(run_execution())
-
-        if use_monitoring_stream:
+        # Check if this is a sub-diagram execution (for batch parallel support)
+        is_sub_diagram = options.get('is_sub_diagram', False) or options.get('parent_execution_id')
+        is_batch_item = options.get('is_batch_item', False) or (options.get('metadata', {}).get('is_batch_item', False))
+        
+        # Create the execution task
+        execution_task = asyncio.create_task(run_execution())
+        
+        # For sub-diagrams, we need to track the task to ensure proper parallel execution
+        # Store it so the iterator below can properly coordinate
+        if is_sub_diagram:
+            # We'll handle this task specially in the update loop
+            pass
+        
+        # Wait for execution completion and yield status
+        if use_monitoring_stream or is_batch_item or is_sub_diagram:
+            # Wait for the execution task to complete
+            try:
+                await execution_task
+            except Exception:
+                pass  # Errors are already handled in run_execution
+            
+            # Get final state
+            state = await self.state_store.get_state(execution_id)
+            yield {
+                "type": "execution_complete" if state and state.status == ExecutionStatus.COMPLETED else "execution_error",
+                "execution_id": execution_id,
+                "status": state.status.value if state else "unknown",
+            }
+        else:
+            # For web executions, events are consumed via MessageRouter/GraphQL subscriptions
             await asyncio.sleep(0.1)
             while True:
                 state = await self.state_store.get_state(execution_id)
@@ -175,26 +177,6 @@ class ExecuteDiagramUseCase(BaseService):
                 "execution_id": execution_id,
                 "status": state.status.value,
             }
-        else:
-            async for update_msg in update_iterator:
-                if isinstance(update_msg, dict) and "data" in update_msg:
-                    try:
-                        update = json.loads(update_msg["data"])
-                        yield update
-                        
-                        if update.get("type") in ["execution_complete", "execution_error"]:
-                            break
-                    except json.JSONDecodeError:
-                        continue
-                elif isinstance(update_msg, str) and update_msg.startswith("data: "):
-                    try:
-                        update = json.loads(update_msg[6:].strip())
-                        yield update
-                        
-                        if update.get("type") in ["execution_complete", "execution_error"]:
-                            break
-                    except json.JSONDecodeError:
-                        continue
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""

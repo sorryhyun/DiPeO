@@ -86,13 +86,13 @@ class DomainServiceRegistry:
     
     def _register_diagram_services(self) -> None:
         """Register diagram domain services."""
-        from .diagram.services.diagram_format_service import DiagramFormatService
-        from .diagram.services.diagram_operations_service import DiagramOperationsService
+        from .diagram.services.diagram_format_detector import DiagramFormatDetector
+        from .diagram.services.diagram_statistics_service import DiagramStatisticsService
         from .validators import DiagramValidator
         
         self._validators["diagram"] = DiagramValidator()
-        self._business_services["diagram_operations"] = DiagramOperationsService()
-        self._business_services["diagram_format"] = DiagramFormatService()
+        self._business_services["diagram_statistics"] = DiagramStatisticsService()
+        self._business_services["diagram_format"] = DiagramFormatDetector()
     
     def _register_db_services(self) -> None:
         """Register database domain services."""

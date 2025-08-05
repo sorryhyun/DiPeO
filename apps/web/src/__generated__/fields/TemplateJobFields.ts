@@ -53,7 +53,6 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
     options: [
       { value: 'internal', label: 'Internal' },
       { value: 'jinja2', label: 'Jinja2' },
-      { value: 'handlebars', label: 'Handlebars' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

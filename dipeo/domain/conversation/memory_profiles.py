@@ -12,6 +12,7 @@ class MemoryProfile(Enum):
     FOCUSED = auto()
     MINIMAL = auto()
     GOLDFISH = auto()
+    CUSTOM = auto()
 
 
 class MemoryProfileFactory:

@@ -29,6 +29,8 @@ export const subDiagramConfig: UnifiedNodeConfig = {
     wait_for_completion: true,
     isolate_conversation: false,
     ignoreIfSub: false,
+    batch: false,
+    batch_parallel: false,
   },
   customFields: subDiagramFields,
   primaryDisplayField: 'diagram_name',

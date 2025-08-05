@@ -7,7 +7,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.core.ports.ast_parser_port import ASTParserPort
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
@@ -18,13 +17,13 @@ if TYPE_CHECKING:
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     """Handler for TypeScript AST parsing node."""
     
-    def __init__(self, typescript_parser=None):
-        """Initialize with TypeScript parser.
+    def __init__(self):
+        """Initialize the handler.
         
-        Args:
-            typescript_parser: The TypeScript AST parser implementation
+        The TypeScript parser service will be injected via the service registry
+        during execution, following the DI pattern.
         """
-        self._parser = typescript_parser
+        pass
     
     @property
     def node_class(self) -> type[TypescriptAstNode]:
@@ -40,7 +39,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     
     @property
     def requires_services(self) -> list[str]:
-        return ["typescript_parser"]
+        return ["ast_parser"]  # Uses the AST_PARSER service key
     
     @property
     def description(self) -> str:
@@ -52,7 +51,10 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         # Only validate static configuration, not input data
         # Input validation will happen during execute_request
-        
+        # Add debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+
         # Validate extract patterns
         if node.extractPatterns:
             valid_patterns = {'interface', 'type', 'enum', 'class', 'function', 'const', 'export'}
@@ -70,7 +72,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         """Execute the TypeScript AST parsing."""
         node = request.node
         inputs = request.inputs
-        
+
         # Store execution metadata
         request.add_metadata("extract_patterns", node.extractPatterns or ['interface', 'type', 'enum'])
         request.add_metadata("include_jsdoc", node.includeJSDoc or False)
@@ -79,13 +81,15 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         try:
             # Get source code from node config or inputs
             # Also check in 'default' key as DiPeO may pass data there
+            # Add debug logging
+            import logging
+            logger = logging.getLogger(__name__)
 
             source = node.source
             if not source:
                 source = inputs.get('source', '')
             if not source and 'default' in inputs and isinstance(inputs['default'], dict):
                 source = inputs['default'].get('source', '')
-            
             # Debug: print what we found
             if not source:
                 return ErrorOutput(
@@ -94,17 +98,18 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     error_type="ValidationError"
                 )
             
-            # Check if parser is available
-            if not self._parser:
+            # Get TypeScript parser from services using DI pattern
+            parser_service = request.get_service("ast_parser")
+            if not parser_service:
                 return ErrorOutput(
-                    value="TypeScript parser service not available",
+                    value="TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
                     node_id=node.id,
                     error_type="ServiceError"
                 )
             
-            # Parse the TypeScript code using the injected parser
+            # Parse the TypeScript code using the parser service
             try:
-                result = await self._parser.parse(
+                result = await parser_service.parse(
                     source=source,
                     extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
                     options={
@@ -113,7 +118,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     }
                 )
             except Exception as parser_error:
-                print(f"[TypeScript AST] Parser error: {str(parser_error)}")
+                import traceback
+                logger.error(f"[TypescriptAstNode {node.id}] Traceback: {traceback.format_exc()}")
                 raise
             
 

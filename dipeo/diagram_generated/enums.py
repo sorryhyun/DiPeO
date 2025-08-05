@@ -369,8 +369,6 @@ class TemplateEngine(str, Enum):
     
     JINJA2 = "jinja2"
     
-    HANDLEBARS = "handlebars"
-    
 
 
 class AuthType(str, Enum):

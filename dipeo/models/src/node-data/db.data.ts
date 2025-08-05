@@ -10,4 +10,5 @@ export interface DBNodeData extends BaseNodeData {
   query?: string;
   data?: Record<string, any>;
   serialize_json?: boolean;
+  glob?: boolean;  // Enable glob pattern expansion for file paths
 }

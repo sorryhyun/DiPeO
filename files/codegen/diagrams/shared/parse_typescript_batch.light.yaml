@@ -1,0 +1,80 @@
+# Simplified TypeScript Batch Parser
+# Gathers all TypeScript model files and batch processes them
+# Each file saves its own cache via the single parser
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    
+  # Gather all TypeScript model files
+  - label: Gather TypeScript Files
+    type: code_job
+    position: {x: 200, y: 200}
+    props:
+      language: python
+      code: |
+        import os
+        import glob
+        
+        # Define base paths for TypeScript models
+        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        models_dir = os.path.join(base_dir, 'dipeo/models/src')
+        
+        # Gather TypeScript files from main dir and subdirectories
+        ts_files = []
+        
+        # Main directory files
+        ts_files.extend(glob.glob(os.path.join(models_dir, '*.ts')))
+        
+        # Node specs files
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'node-specs', '*.ts')))
+        
+        # Node data files
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'node-data', '*.ts')))
+        
+        # Create items for batch processing
+        items = []
+        for file_path in ts_files:
+            items.append({
+                'file_path': file_path
+            })
+        
+        print(f"Found {len(items)} TypeScript files to parse")
+        
+        # Wrap items for batch processing
+        result = {
+            'items': items
+        }
+    
+  # Batch parse files using sub_diagram
+  # Each file will save its own cache
+  - label: Batch Parse Files
+    type: sub_diagram
+    position: {x: 400, y: 200}
+    props:
+      diagram_name: codegen/diagrams/shared/parse_typescript_single
+      diagram_format: light
+      batch: true
+      batch_input_key: items
+      batch_parallel: true
+      
+  # End
+  - label: End
+    type: endpoint
+    position: {x: 600, y: 200}
+    props:
+      save_to_file: false
+      
+connections:
+  - from: Start
+    to: Gather TypeScript Files
+    
+  - from: Gather TypeScript Files
+    to: Batch Parse Files
+    label: items
+    
+  - from: Batch Parse Files
+    to: End

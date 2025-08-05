@@ -222,19 +222,27 @@ def extract_mappings(ast_data: dict) -> dict:
 
 def main(inputs: dict) -> dict:
     """Main entry point for mappings extraction."""
+    # Debug logging
+    print(f"extract_mappings received input keys: {list(inputs.keys())}")
+    
     # Check if we have multi-file input (new format)
     if 'default' in inputs and isinstance(inputs['default'], dict):
         # Check if it's a multi-file result
         default_data = inputs['default']
+        print(f"Default data keys: {list(default_data.keys())}")
         
-        # If it has file paths as keys, find the codegen_mappings_ast.json
-        if any(key.endswith('_ast.json') for key in default_data.keys()):
+        # If it has file paths as keys, find the codegen-mappings.ts.json
+        if any(key.endswith('.json') for key in default_data.keys()):
             # Multi-file format
             for filepath, content in default_data.items():
-                if filepath.endswith('codegen_mappings_ast.json'):
+                if 'codegen-mappings' in filepath:
+                    print(f"Found codegen-mappings file: {filepath}")
                     ast_data = content if isinstance(content, dict) else json.loads(content)
-                    return extract_mappings(ast_data)
+                    mappings = extract_mappings(ast_data)
+                    print(f"Extracted node_interface_map with {len(mappings.get('node_interface_map', {}))} entries")
+                    return mappings
             # If not found, return empty mappings
+            print("No codegen-mappings file found in multi-file input")
             return {
                 'node_interface_map': {},
                 'base_fields': ['label', 'flipped'],
@@ -242,8 +250,10 @@ def main(inputs: dict) -> dict:
             }
         else:
             # Single AST data
+            print("Processing as single AST data")
             return extract_mappings(default_data)
     else:
         # Legacy format
+        print("Processing as legacy format")
         ast_data = inputs.get('default', {})
         return extract_mappings(ast_data)

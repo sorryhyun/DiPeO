@@ -63,7 +63,7 @@ class ApplicationContainer:
 
     def _setup_app_services(self):
         """Set up application-level services."""
-        from dipeo.infra.database.service import DBOperationsDomainService
+        from dipeo.infrastructure.services.database.service import DBOperationsDomainService
         from dipeo.domain.validators import DataValidator
         
         # Get file system from registry (should be registered by infrastructure container)

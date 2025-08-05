@@ -17,7 +17,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 300}
     props:
-      diagram_name: codegen/diagrams/models/parse_all_typescript_batch
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
       ignoreIfSub: true
@@ -29,7 +29,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/codegen_mappings_ast.json
+      source_details: temp/codegen-mappings.ts.json
 
   # Extract mappings
   - label: Extract Mappings
@@ -40,34 +40,18 @@ nodes:
       filePath: files/codegen/code/shared/extract_mappings.py
       functionName: main
 
-  # Load manifest to get node types
-  - label: Load Manifest
+  # NEW: Load all node data AST files dynamically using glob patterns
+  - label: Load All Node Data AST
     type: db
     position: {x: 400, y: 300}
     props:
       operation: read
       sub_type: file
-      source_details: files/codegen/manifests/all.json
-
-  # Prepare temp directory and node list
-  - label: Prepare Batch Processing
-    type: code_job
-    position: {x: 600, y: 300}
-    props:
-      language: python
-      filePath: files/codegen/code/models/generate_static_nodes/setup_node_batch.py
-      functionName: setup_node_batch
-
-  # Batch parse node data files
-  - label: Batch Parse Node Data
-    type: sub_diagram
-    position: {x: 800, y: 300}
-    props:
-      diagram_name: codegen/diagrams/shared/parse_node_data_single
-      diagram_format: light
-      batch: true
-      batch_input_key: items
-      batch_parallel: true
+      serialize_json: true
+      glob: true  # Enable glob pattern expansion
+      source_details:
+        # Dynamically discover all node data files
+        - "temp/*.data.ts.json"
 
   # Load cached diagram AST for BaseNodeData
   - label: Load Diagram AST
@@ -76,7 +60,8 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: .temp/diagram_ast.json
+      source_details:
+        - temp/diagram.ts.json
 
   # Extract BaseNodeData interface
   - label: Extract Base Interface
@@ -87,19 +72,19 @@ nodes:
       filePath: files/codegen/code/models/generate_static_nodes/extract_base_interface.py
       functionName: extract_base_interface
 
-  # Read all temp files
-  - label: Read Temp Results
+  # Extract node data from AST files
+  - label: Extract Node Data
     type: code_job
-    position: {x: 1000, y: 400}
+    position: {x: 600, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_static_nodes/read_batch_results.py
-      functionName: read_batch_results
+      filePath: files/codegen/code/models/generate_static_nodes/extract_node_data_from_ast.py
+      functionName: extract_node_data_from_ast
 
   # Generate static nodes from all parsed data
   - label: Generate Static Nodes
     type: code_job
-    position: {x: 1000, y: 300}
+    position: {x: 800, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generate_static_nodes/generate_static_nodes.py
@@ -108,7 +93,7 @@ nodes:
   # Generate Python code using template
   - label: Generate Python Code
     type: template_job
-    position: {x: 1200, y: 300}
+    position: {x: 1000, y: 300}
     props:
       engine: jinja2
       template_path: files/codegen/templates/models/static_nodes_all.j2
@@ -130,7 +115,7 @@ nodes:
   # Generate success summary
   - label: Generate Summary
     type: code_job
-    position: {x: 1600, y: 300}
+    position: {x: 1200, y: 300}
     props:
       language: python
       filePath: files/codegen/code/shared/generators/summary_generator.py
@@ -138,7 +123,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1800, y: 300}
+    position: {x: 1400, y: 300}
     props:
       save_to_file: false
 
@@ -151,7 +136,7 @@ connections:
   - from: Parse TypeScript Batch
     to: Load Mappings AST
   - from: Parse TypeScript Batch
-    to: Load Manifest
+    to: Load All Node Data AST
   - from: Parse TypeScript Batch
     to: Load Diagram AST
   
@@ -159,30 +144,19 @@ connections:
   - from: Load Mappings AST
     to: Extract Mappings
   
-  # Prepare batch processing
-  - from: Load Manifest
-    to: Prepare Batch Processing
-  
-  # Batch parse node data
-  - from: Prepare Batch Processing
-    to: Batch Parse Node Data
+  # Extract node data from loaded AST files
+  - from: Load All Node Data AST
+    to: Extract Node Data
   
   # Extract base interface
   - from: Load Diagram AST
     to: Extract Base Interface
     label: diagram_ast
   
-  # Read temp results after batch processing
-  - from: Batch Parse Node Data
-    to: Read Temp Results
-  - from: Prepare Batch Processing
-    to: Read Temp Results
-    label: batch_info
-  
   # Generate static nodes with all inputs
-  - from: Read Temp Results
+  - from: Extract Node Data
     to: Generate Static Nodes
-    label: temp_results
+    label: node_data
   - from: Extract Mappings
     to: Generate Static Nodes
     label: mappings

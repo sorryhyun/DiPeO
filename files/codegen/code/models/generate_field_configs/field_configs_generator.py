@@ -18,7 +18,9 @@ from jinja2 import Template, StrictUndefined
 
 def extract_mappings_from_ast(mappings_ast: dict) -> dict:
     """Extract mappings from codegen mappings AST"""
-    # This is a simplified version - in real implementation, you'd parse the AST properly
+    # This should not be used anymore since mappings are extracted by the Extract Mappings node
+    # Return minimal defaults if called
+    print("WARNING: extract_mappings_from_ast called - should use mappings from Extract Mappings node")
     return {
         'node_interface_map': {},
         'base_fields': ['label', 'flipped'],
@@ -214,17 +216,29 @@ def extract_field_configs(inputs: dict) -> dict:
         # New format: dictionary where keys are file paths and values are file contents
         file_dict = inputs['ast_files']
         
+        # Handle wrapped inputs (runtime resolver may wrap in 'default')
+        if 'default' in file_dict and isinstance(file_dict['default'], dict):
+            file_dict = file_dict['default']
+        
         # Parse AST data from the files
         diagram_ast = None
-        node_data_ast = None
+        all_interfaces = []
         mappings_ast = None
         
         for filepath, content in file_dict.items():
-            if filepath.endswith('diagram_ast.json'):
+            if filepath == 'default':
+                continue
+            # Extract filename from path
+            filename = filepath.split('/')[-1] if '/' in filepath else filepath
+            
+            if filename == 'diagram.ts.json':
                 diagram_ast = content if isinstance(content, dict) else json.loads(content)
-            elif filepath.endswith('node_data_ast.json'):
-                node_data_ast = content if isinstance(content, dict) else json.loads(content)
-            elif filepath.endswith('codegen_mappings_ast.json'):
+            elif filename.endswith('.data.ts.json'):
+                # This is a node data file
+                ast_data = content if isinstance(content, dict) else json.loads(content)
+                interfaces = ast_data.get('interfaces', [])
+                all_interfaces.extend(interfaces)
+            elif filename == 'codegen-mappings.ts.json':
                 mappings_ast = content if isinstance(content, dict) else json.loads(content)
         
         # Get mappings
@@ -232,51 +246,19 @@ def extract_field_configs(inputs: dict) -> dict:
         if not mappings and mappings_ast:
             # Extract mappings from AST if not provided separately
             mappings = extract_mappings_from_ast(mappings_ast)
-    else:
-        # Legacy format: separate inputs
-        node_data_ast = inputs.get('node_data', {})
-        diagram_ast = inputs.get('default', {})
-        mappings = inputs.get('mappings', {})
-    
-    # If node_data is just the index file, we need to aggregate from individual files
-    if not node_data_ast or not node_data_ast.get('interfaces'):
-        # Load individual node data files
-        base_dir = Path(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-        cache_dir = base_dir / '.temp'
-        all_interfaces = []
         
-        print(f"Loading individual node data files from {cache_dir}")
-        
-        # Pattern to match individual node data files
-        matching_files = list(cache_dir.glob('*_data_ast.json'))
-        print(f"Found {len(matching_files)} matching files")
-        
-        for ast_file in matching_files:
-            # Skip the index file
-            if ast_file.name == 'node_data_ast.json':
-                continue
-            
-            try:
-                with open(ast_file, 'r') as f:
-                    data = json.load(f)
-                    interfaces = data.get('interfaces', [])
-                    all_interfaces.extend(interfaces)
-                    if interfaces:
-                        print(f"  Loaded {ast_file.name}: {len(interfaces)} interfaces")
-            except Exception as e:
-                print(f"Error loading {ast_file}: {e}")
-        
-        # Create aggregated AST data
+        # Create aggregated AST data from collected interfaces
         node_data_ast = {
             'interfaces': all_interfaces,
             'types': [],
             'enums': [],
             'constants': []
         }
-        
-        print(f"Total interfaces in aggregated data: {len(all_interfaces)}")
-    
-    mappings = inputs.get('mappings', {})
+    else:
+        # Legacy format: separate inputs
+        node_data_ast = inputs.get('node_data', {})
+        diagram_ast = inputs.get('default', {})
+        mappings = inputs.get('mappings', {})
     return extract_field_configs_core(node_data_ast, mappings)
 
 

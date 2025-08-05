@@ -24,8 +24,9 @@ nodes:
         else:
             raise ValueError(f"node_spec_path not found in input: {default}")
         
-        # Clean up node type and return just the string
-        result = node_type.replace('-', '_')
+        # Return the original node type (with underscores, from prepare_node_list_from_specs)
+        # Convert to hyphenated form for file loading
+        result = node_type.replace('_', '-')
 
   # Load cached AST data
   - label: Load AST
@@ -34,7 +35,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: ".temp/node_spec_{node_type}_ast.json"  # Direct template interpolation
+      source_details: "temp/{node_type}.spec.ts.json"  # Direct template interpolation
       serialize_json: true
   
   # Prepare inputs for extractor
@@ -47,13 +48,16 @@ nodes:
         # Combine AST data and node type into proper format
         # Handle case where ast_data might be missing or invalid
         ast_data = inputs.get('ast_data')
-        node_type = inputs.get('node_type')
+        node_type_hyphenated = inputs.get('node_type')
         
         if not ast_data:
-            raise ValueError(f"No AST data found for node type: {node_type}")
+            raise ValueError(f"No AST data found for node type: {node_type_hyphenated}")
         
         if isinstance(ast_data, str):
             raise ValueError(f"AST data is a string instead of dict: {ast_data[:100]}...")
+        
+        # Convert back to underscore format for the extractor
+        node_type = node_type_hyphenated.replace('-', '_')
         
         result = {
             'ast_data': ast_data,

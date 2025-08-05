@@ -37,7 +37,8 @@ class StateStoreObserver(ExecutionObserver):
         if not existing:
             await self.state_store.create_execution(execution_id, diagram_id)
         else:
-            logger.debug(f"StateStoreObserver: Execution {execution_id} already exists, skipping creation")
+            # logger.debug(f"StateStoreObserver: Execution {execution_id} already exists, skipping creation")
+            pass
 
     async def on_node_start(self, execution_id: str, node_id: str):
         await self.state_store.update_node_status(
@@ -66,7 +67,7 @@ class StateStoreObserver(ExecutionObserver):
     async def on_execution_complete(self, execution_id: str):
         import logging
         logger = logging.getLogger(__name__)
-        logger.debug(f"StateStoreObserver: Updating execution {execution_id} to COMPLETED")
+        # logger.debug(f"StateStoreObserver: Updating execution {execution_id} to COMPLETED")
         
         await self.state_store.update_status(execution_id, ExecutionStatus.COMPLETED)
         # Small delay to ensure state is fully persisted

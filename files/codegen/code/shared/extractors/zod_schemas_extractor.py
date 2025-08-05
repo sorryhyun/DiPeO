@@ -151,64 +151,45 @@ def main(inputs: dict) -> dict:
         # New format: dictionary where keys are file paths and values are file contents
         file_dict = inputs['ast_files']
         
+        # Handle wrapped inputs (runtime resolver may wrap in 'default')
+        if 'default' in file_dict and isinstance(file_dict['default'], dict):
+            file_dict = file_dict['default']
+        
         # Parse AST data from the files
         diagram_ast = None
-        node_data_ast = None
+        all_interfaces = []
         
         for filepath, content in file_dict.items():
-            if filepath.endswith('diagram_ast.json'):
+            if filepath == 'default':
+                continue
+            # Extract filename from path
+            filename = filepath.split('/')[-1] if '/' in filepath else filepath
+            
+            if filename == 'diagram.ts.json':
                 diagram_ast = content if isinstance(content, dict) else json.loads(content)
-            elif filepath.endswith('node_data_ast.json'):
-                node_data_ast = content if isinstance(content, dict) else json.loads(content)
+            elif filename.endswith('.data.ts.json'):
+                # This is a node data file
+                ast_data = content if isinstance(content, dict) else json.loads(content)
+                interfaces = ast_data.get('interfaces', [])
+                all_interfaces.extend(interfaces)
         
         # Get mappings
         mappings = inputs.get('mappings', {})
-    else:
-        # Legacy format: separate inputs
-        node_data_ast = inputs.get('node_data', {})
-        diagram_ast = inputs.get('default', {})
-        mappings = inputs.get('mappings', {})
-    
-    # If node_data is just the index file, we need to aggregate from individual files
-    if not node_data_ast or not node_data_ast.get('interfaces'):
-        # Load individual node data files
-        import json
-        from pathlib import Path
         
-        base_dir = Path(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-        cache_dir = base_dir / '.temp'
-        all_interfaces = []
-        
-        print(f"Loading individual node data files from {cache_dir}")
-        print(f"Current working directory: {os.getcwd()}")
-        print(f"Absolute cache dir path: {cache_dir.absolute()}")
-        
-        # Pattern to match individual node data files
-        matching_files = list(cache_dir.glob('*_data_ast.json'))
-        print(f"Found {len(matching_files)} matching files")
-        
-        for ast_file in matching_files:
-            # Skip the index file
-            if ast_file.name == 'node_data_ast.json':
-                continue
-            
-            try:
-                with open(ast_file, 'r') as f:
-                    data = json.load(f)
-                    interfaces = data.get('interfaces', [])
-                    all_interfaces.extend(interfaces)
-                    if interfaces:
-                        print(f"  Loaded {ast_file.name}: {len(interfaces)} interfaces")
-            except Exception as e:
-                print(f"Error loading {ast_file}: {e}")
-        
-        # Create aggregated AST data
+        # Create aggregated AST data from collected interfaces
         node_data_ast = {
             'interfaces': all_interfaces,
             'types': [],
             'enums': [],
             'constants': []
         }
+    else:
+        # Legacy format: separate inputs
+        node_data_ast = inputs.get('node_data', {})
+        diagram_ast = inputs.get('default', {})
+        mappings = inputs.get('mappings', {})
+        all_interfaces = []
+    
     
     mappings = inputs.get('mappings', {})
     result = extract_zod_schemas(node_data_ast, mappings)

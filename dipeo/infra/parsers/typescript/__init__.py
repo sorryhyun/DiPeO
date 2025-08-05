@@ -1,1 +1,0 @@
-"""TypeScript AST parser implementation."""

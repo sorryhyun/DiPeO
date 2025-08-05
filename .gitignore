@@ -163,3 +163,4 @@ yarn.lock
 
 /apps/server/src/__generated__/
 /files/codegen/code/services/tests/.dipeo_cache/
+/temp/

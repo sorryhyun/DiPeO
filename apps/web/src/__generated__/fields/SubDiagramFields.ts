@@ -83,4 +83,43 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     defaultValue: false,
     description: 'Skip execution if this diagram is being run as a sub-diagram',
   },
+  {
+    name: 'diagram_format',
+    type: 'select',
+    label: 'Diagram Format',
+    required: false,
+    description: 'Format of the diagram file (yaml, json, or light)',
+    options: [
+      { value: 'yaml', label: 'YAML' },
+      { value: 'json', label: 'JSON' },
+      { value: 'light', label: 'Light' },
+    ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
+  },
+  {
+    name: 'batch',
+    type: 'checkbox',
+    label: 'Batch',
+    required: false,
+    defaultValue: false,
+    description: 'Execute sub-diagram in batch mode for multiple inputs',
+  },
+  {
+    name: 'batch_input_key',
+    type: 'text',
+    label: 'Batch Input Key',
+    required: false,
+    placeholder: 'items',
+    description: 'Key in inputs containing the array of items for batch processing',
+  },
+  {
+    name: 'batch_parallel',
+    type: 'checkbox',
+    label: 'Batch Parallel',
+    required: false,
+    defaultValue: false,
+    description: 'Execute batch items in parallel',
+  },
 ];
