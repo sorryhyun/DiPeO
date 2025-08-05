@@ -262,7 +262,10 @@ class SingleSubDiagramExecutor:
                 if data.get("status") == "COMPLETED":
                     break
                 elif data.get("status") == "FAILED":
-                    execution_error = data.get("error", "Execution failed")
+                    execution_error = data.get("error")
+                    if not execution_error:
+                        # Try to get more context from the data
+                        execution_error = f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
                     log.error(f"Sub-diagram execution failed: {execution_error}")
                     break
             
@@ -277,7 +280,11 @@ class SingleSubDiagramExecutor:
                 break
             
             elif update_type == "execution_error":
-                execution_error = update.get("error", "Unknown error")
+                execution_error = update.get("error")
+                if not execution_error:
+                    # If no error message provided, try to get status for more context
+                    status = update.get("status", "unknown")
+                    execution_error = f"Execution failed with status: {status}"
                 log.error(f"Sub-diagram execution failed: {execution_error}")
                 break
         

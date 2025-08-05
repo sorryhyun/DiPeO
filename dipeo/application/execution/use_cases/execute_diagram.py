@@ -151,10 +151,13 @@ class ExecuteDiagramUseCase(BaseService):
                 
                 # Get final state
                 state = await self.state_store.get_state(execution_id)
+                # Only treat FAILED and ABORTED as errors, not PENDING or RUNNING
+                is_error = state and state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
                 yield {
-                    "type": "execution_complete" if state and state.status == ExecutionStatus.COMPLETED else "execution_error",
+                    "type": "execution_error" if is_error else "execution_complete",
                     "execution_id": execution_id,
                     "status": state.status.value if state else "unknown",
+                    "error": state.error if state and state.error else ("Failed" if is_error else None),
                 }
             else:
                 # For web executions, events are consumed via MessageRouter/GraphQL subscriptions
@@ -168,10 +171,13 @@ class ExecuteDiagramUseCase(BaseService):
                     ]:
                         break
                     await asyncio.sleep(1)
+                # Only treat FAILED and ABORTED as errors
+                is_error = state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
                 yield {
-                    "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
+                    "type": "execution_error" if is_error else "execution_complete",
                     "execution_id": execution_id,
                     "status": state.status.value,
+                    "error": state.error if state.error else ("Failed" if is_error else None),
                 }
         except Exception:
             # Re-raise any exceptions
