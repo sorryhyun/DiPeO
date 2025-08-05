@@ -109,16 +109,6 @@ def start():
     config.accesslog = None  # Disable access logs
     config.errorlog = "-"   # Log errors to stdout
 
-    # Set up custom filter for hypercorn access logs
-    class SSEFilter(logging.Filter):
-        def filter(self, record):
-            # Filter out SSE endpoint access logs
-            return "/sse/executions/" not in record.getMessage()
-
-    # Apply filter to hypercorn access logger
-    hypercorn_logger = logging.getLogger("hypercorn.access")
-    hypercorn_logger.addFilter(SSEFilter())
-
     config.keep_alive_timeout = 75.0
 
     config.h2_max_concurrent_streams = 100

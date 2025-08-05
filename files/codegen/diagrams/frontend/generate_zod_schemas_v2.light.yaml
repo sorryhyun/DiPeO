@@ -20,10 +20,13 @@ nodes:
   props:
     operation: read
     sub_type: file
+    serialize_json: true  # Parse JSON files automatically
+    glob: true  # Enable glob pattern expansion
     source_details:
     - temp/codegen-mappings.ts.json
     - temp/diagram.ts.json
-    - temp/start.data.ts.json
+    # Dynamically discover all node data files
+    - "temp/*.data.ts.json"
 - label: extract mappings
   type: code_job
   position: {x: 509, y: -9}

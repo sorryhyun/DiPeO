@@ -56,9 +56,9 @@ def main():
         help="Execution timeout in seconds (default: 300)",
     )
     run_parser.add_argument(
-        "--unified",
+        "--legacy",
         action="store_true",
-        help="Use unified monitoring architecture (MessageRouter-based)",
+        help="Use legacy monitoring architecture (deprecated)",
     )
 
     # Input data options (mutually exclusive)
@@ -162,7 +162,7 @@ def main():
                 args.timeout,
                 format_type,
                 input_variables,
-                args.unified,
+                not args.legacy,  # Use unified by default, legacy only if flag is set
             )
             sys.exit(0 if success else 1)
         elif args.command == "convert":

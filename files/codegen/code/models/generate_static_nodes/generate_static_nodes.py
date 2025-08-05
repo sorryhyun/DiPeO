@@ -243,18 +243,25 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # In DiPeO, labeled connections come directly at the top level
     mappings = inputs.get('mappings', {})
-    temp_results = inputs.get('temp_results', {})
+    node_data = inputs.get('node_data', {})
     base_data = inputs.get('base_data', {})
     
     print(f"[generate_static_nodes] mappings keys: {list(mappings.keys()) if mappings else 'None'}")
-    print(f"[generate_static_nodes] temp_results keys: {list(temp_results.keys()) if temp_results else 'None'}")
+    print(f"[generate_static_nodes] node_data keys: {list(node_data.keys()) if node_data else 'None'}")
     print(f"[generate_static_nodes] base_data keys: {list(base_data.keys()) if base_data else 'None'}")
     
     # Extract base interface
     base_interface = base_data.get('base_interface')
     
-    # Get parsed nodes from temp results
-    parsed_nodes = temp_results.get('parsed_nodes', [])
+    # Convert node_data to parsed_nodes format
+    parsed_nodes = []
+    for node_type, data in node_data.items():
+        if node_type != 'default':
+            parsed_nodes.append({
+                'node_type': node_type,
+                'interface_name': data['interface'].get('name'),
+                'interface': data['interface']
+            })
     print(f"[generate_static_nodes] Found {len(parsed_nodes)} parsed nodes")
     
     # Combine all interfaces

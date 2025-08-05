@@ -14,7 +14,7 @@ export interface TemplateJobNodeData {
   template_content?: string;
   output_path?: string;
   variables?: Record<string, any>;
-  engine?: 'internal' | 'jinja2' | 'handlebars';
+  engine?: 'internal' | 'jinja2';
 }
 
 // Zod schema for validation

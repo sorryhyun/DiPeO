@@ -79,7 +79,6 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         options=options,
                         execution_id=str(execution_id),
                         use_monitoring_stream=input.use_monitoring_stream or False,
-                        use_unified_monitoring=input.use_unified_monitoring or False,
                     ):
                         # Process updates if needed
                         pass

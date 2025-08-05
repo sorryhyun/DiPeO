@@ -53,8 +53,8 @@ class ServerManager:
             ["python", "main.py"],
             cwd=server_path,
             env=env,
-            stdout=subprocess.PIPE if not debug else None,
-            stderr=subprocess.PIPE if not debug else None,
+            stdout=None,  # Inherit parent's stdout to allow redirection
+            stderr=None,  # Inherit parent's stderr to allow redirection
         )
 
         # Wait for server to be ready

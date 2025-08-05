@@ -60,7 +60,8 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: temp/diagram.ts.json
+      source_details:
+        - temp/diagram.ts.json
 
   # Extract BaseNodeData interface
   - label: Extract Base Interface

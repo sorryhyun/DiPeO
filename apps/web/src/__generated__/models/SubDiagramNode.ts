@@ -18,6 +18,10 @@ export interface SubDiagramNodeData {
   wait_for_completion?: boolean;
   isolate_conversation?: boolean;
   ignoreIfSub?: boolean;
+  diagram_format?: 'yaml' | 'json' | 'light';
+  batch?: boolean;
+  batch_input_key?: string;
+  batch_parallel?: boolean;
 }
 
 // Zod schema for validation
@@ -30,4 +34,8 @@ export const SubDiagramNodeDataSchema = z.object({
   wait_for_completion: z.boolean().optional(),
   isolate_conversation: z.boolean().optional(),
   ignoreIfSub: z.boolean().optional(),
+  diagram_format: z.any().optional(),
+  batch: z.boolean().optional(),
+  batch_input_key: z.string().optional(),
+  batch_parallel: z.boolean().optional(),
 });

@@ -17,14 +17,27 @@ def extract_node_data_from_ast(inputs: Dict[str, Any]) -> Dict[str, Any]:
     # The db node with glob returns a dict with filenames as keys
     node_data_by_type = {}
     
-    for filename, ast_data in inputs.items():
-        if filename == 'default':
+    print(f"[extract_node_data_from_ast] inputs keys: {list(inputs.keys())}")
+    print(f"[extract_node_data_from_ast] inputs type: {type(inputs)}")
+    
+    # Handle wrapped inputs (runtime resolver may wrap in 'default')
+    if 'default' in inputs and isinstance(inputs['default'], dict):
+        actual_inputs = inputs['default']
+    else:
+        actual_inputs = inputs
+    
+    for filepath, ast_data in actual_inputs.items():
+        if filepath == 'default':
             # Skip the default key if present
             continue
             
-        # Extract node type from filename (e.g., "api_job.data.ts.json" -> "api_job")
+        # Extract filename from path
+        filename = filepath.split('/')[-1] if '/' in filepath else filepath
+        
+        # Extract node type from filename (e.g., "api-job.data.ts.json" -> "api_job")
         if '.data.ts.json' in filename:
-            node_type = filename.replace('.data.ts.json', '')
+            # Replace hyphens with underscores for node_type
+            node_type = filename.replace('.data.ts.json', '').replace('-', '_')
             
             # Parse the AST data if it's a string
             if isinstance(ast_data, str):
@@ -42,9 +55,9 @@ def extract_node_data_from_ast(inputs: Dict[str, Any]) -> Dict[str, Any]:
             if data_interface:
                 node_data_by_type[node_type] = {
                     'interface': data_interface,
-                    'properties': interface.get('properties', [])
+                    'properties': data_interface.get('properties', [])
                 }
-                print(f"Found data interface for {node_type}: {interface_name}")
+                print(f"Found data interface for {node_type}: {data_interface.get('name', '')}")
     
     print(f"Extracted data for {len(node_data_by_type)} node types")
     

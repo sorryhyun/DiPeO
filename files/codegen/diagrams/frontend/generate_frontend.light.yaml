@@ -21,36 +21,26 @@ nodes:
       passInputData: false
       ignoreIfSub: true
 
-  - label: Load Manifest
+  # NEW: Discover node spec files dynamically using glob patterns
+  - label: Discover Node Specs
     type: db
     position: {x: 350, y: 200}
     props:
-      file: files/codegen/manifests/all.json
       operation: read
+      sub_type: file
+      serialize_json: true  # Parse JSON files automatically
+      glob: true  # Enable glob pattern expansion
+      source_details:
+        # Dynamically discover all node spec files
+        - "temp/*.spec.ts.json"
 
   - label: Prepare Node List
     type: code_job
     position: {x: 500, y: 200}
     props:
       language: python
-      code: |
-        # DB node now returns DataOutput, no need to parse JSON
-        manifest_data = inputs.get('default', {})
-        
-        # Get node types from manifest
-        node_types = manifest_data.get('nodes', [])
-        
-        if not node_types:
-            raise ValueError("No node types found in manifest")
-        
-        # Create array of inputs for batch processing
-        result = {
-            'items': [{'node_spec_path': node_type} for node_type in node_types]
-        }
-        
-        print(f"Generating frontend files for {len(node_types)} nodes from TypeScript specifications:")
-        for nt in node_types:
-            print(f"  - {nt}")
+      filePath: files/codegen/code/frontend/prepare_node_list_from_specs.py
+      functionName: prepare_node_list_from_specs
 
   # Use the simplified diagram with template_job nodes
   - label: Batch Generate Frontend
@@ -105,6 +95,7 @@ nodes:
     props:
       diagram_name: codegen/diagrams/frontend/generate_frontend_registry
       diagram_format: light
+      passInputData: false
 
   # Use v2 diagrams for these
   - label: Generate GraphQL Queries
@@ -113,6 +104,7 @@ nodes:
     props:
       diagram_name: codegen/diagrams/frontend/generate_graphql_queries
       diagram_format: light
+      passInputData: false
 
   - label: Generate Zod Schemas
     type: sub_diagram
@@ -120,6 +112,7 @@ nodes:
     props:
       diagram_name: codegen/diagrams/frontend/generate_zod_schemas_v2
       diagram_format: light
+      passInputData: false
 
   - label: Generate Field Configs
     type: sub_diagram
@@ -127,6 +120,7 @@ nodes:
     props:
       diagram_name: codegen/diagrams/frontend/generate_field_configs_v2
       diagram_format: light
+      passInputData: false
 
   - label: End
     type: endpoint
@@ -139,9 +133,9 @@ connections:
     to: Parse All TypeScript
   
   - from: Parse All TypeScript
-    to: Load Manifest
+    to: Discover Node Specs
   
-  - from: Load Manifest
+  - from: Discover Node Specs
     to: Prepare Node List
   
   - from: Prepare Node List
