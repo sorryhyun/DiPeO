@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseService
+from dipeo.diagram_generated.enums import ExecutionStatus
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
