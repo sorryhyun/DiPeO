@@ -196,6 +196,7 @@ class DBNode(BaseExecutableNode):
     query: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
     serialize_json: Optional[bool] = None
+    glob: Optional[bool] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -212,6 +213,7 @@ class DBNode(BaseExecutableNode):
         data["query"] = self.query
         data["data"] = self.data
         data["serialize_json"] = self.serialize_json
+        data["glob"] = self.glob
         return data
 
 
@@ -672,6 +674,7 @@ def create_executable_node(
             query=data.get("query", None),
             data=data.get("data", None),
             serialize_json=data.get("serialize_json", None),
+            glob=data.get("glob", None),
         )
     
 

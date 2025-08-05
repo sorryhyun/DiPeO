@@ -26,7 +26,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 100}
     props:
-      diagram_name: codegen/diagrams/models/generate_python_models
+      diagram_name: codegen/diagrams/models/generate_python_models_dynamic
       diagram_format: light
       passInputData: false
 
@@ -62,7 +62,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 550}
     props:
-      diagram_name: codegen/diagrams/models/generate_graphql_schema_template
+      diagram_name: codegen/diagrams/models/generate_graphql_schema_template_dynamic
       diagram_format: light
       passInputData: false
 
@@ -80,7 +80,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 450}
     props:
-      diagram_name: codegen/diagrams/models/generate_strawberry_types_v2
+      diagram_name: codegen/diagrams/models/generate_strawberry_types_v2_dynamic
       diagram_format: light
       passInputData: false
 

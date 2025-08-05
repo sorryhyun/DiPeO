@@ -29,14 +29,14 @@ def combine_node_data_ast(inputs):
     all_types = []
     all_enums = []
     
-    # List of node data cache files
-    node_data_files = [
-        'start_data_ast.json', 'condition_data_ast.json', 'person-job_data_ast.json',
-        'code-job_data_ast.json', 'api-job_data_ast.json', 'endpoint_data_ast.json',
-        'db_data_ast.json', 'user-response_data_ast.json', 'notion_data_ast.json',
-        'person-batch-job_data_ast.json', 'hook_data_ast.json', 'template-job_data_ast.json',
-        'json-schema-validator_data_ast.json', 'typescript-ast_data_ast.json', 'sub-diagram_data_ast.json'
-    ]
+    # Get node data files from input or discover dynamically
+    node_data_files = inputs.get('node_data_files', [])
+    
+    if not node_data_files:
+        # Fallback: discover files dynamically
+        if cache_dir.exists():
+            node_data_files = [f.name for f in cache_dir.glob('*_data_ast.json')]
+            print(f"Discovered {len(node_data_files)} node data files")
     
     # Look for cache files
     

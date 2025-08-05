@@ -48,15 +48,14 @@ def extract_node_specs(inputs: dict) -> dict:
         except Exception as e:
             print(f"Error reading consolidated cache: {e}")
     
-    # Fallback to individual files
-    spec_files = [
-        'start.spec.ts.json', 'condition.spec.ts.json', 'person-job.spec.ts.json',
-        'code-job.spec.ts.json', 'api-job.spec.ts.json', 'endpoint.spec.ts.json',
-        'db.spec.ts.json', 'user-response.spec.ts.json', 'notion.spec.ts.json',
-        'person-batch-job.spec.ts.json', 'hook.spec.ts.json', 'template-job.spec.ts.json',
-        'json-schema-validator.spec.ts.json', 'typescript-ast.spec.ts.json', 'sub-diagram.spec.ts.json',
-        'integrated-api.spec.ts.json'
-    ]
+    # Get spec files from input or discover dynamically
+    spec_files = inputs.get('spec_files', [])
+    
+    if not spec_files:
+        # Discover files dynamically
+        if cache_dir.exists():
+            spec_files = [f.name for f in cache_dir.glob('*.spec.ts.json')]
+            print(f"Discovered {len(spec_files)} spec files")
     
     for filename in spec_files:
         file_path = cache_dir / filename

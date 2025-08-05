@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import glob
 import logging
+import os
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -54,6 +56,35 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 return v
         return None
 
+    @staticmethod
+    def _expand_glob_patterns(file_paths: list[str], base_dir: str | None = None) -> list[str]:
+        """Expand glob patterns in file paths."""
+        expanded_paths = []
+        
+        for path in file_paths:
+            # Check if path contains glob characters
+            if any(char in path for char in ['*', '?', '[', ']']):
+                # Handle relative paths with base_dir
+                if base_dir and not os.path.isabs(path):
+                    pattern = os.path.join(base_dir, path)
+                else:
+                    pattern = path
+                
+                # Expand glob pattern
+                matches = glob.glob(pattern)
+                if matches:
+                    # If base_dir was used, convert back to relative paths
+                    if base_dir and not os.path.isabs(path):
+                        matches = [os.path.relpath(m, base_dir) for m in matches]
+                    expanded_paths.extend(sorted(matches))
+                else:
+                    logger.warning(f"Glob pattern '{path}' matched no files")
+            else:
+                # Not a glob pattern, add as-is
+                expanded_paths.append(path)
+        
+        return expanded_paths
+
     async def execute(
         self,
         node: DBNode,
@@ -87,6 +118,13 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 file_path = template_processor.process_single_brace(file_path, merged_variables)
 
             processed_paths.append(file_path)
+        
+        # Get base directory for relative path resolution
+        base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+        
+        # Expand glob patterns only if glob flag is true
+        if getattr(node, 'glob', False):
+            processed_paths = self._expand_glob_patterns(processed_paths, base_dir)
 
         if node.operation == "write":
             input_val = inputs.get('generated_code') or inputs.get('content') or inputs.get('value') or self._first_non_empty(inputs)
@@ -126,7 +164,12 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 return DataOutput(
                     value=results,
                     node_id=node.id,
-                    metadata={"multiple_files": True, "file_count": len(processed_paths), "serialize_json": serialize_json}
+                    metadata={
+                        "multiple_files": True, 
+                        "file_count": len(processed_paths), 
+                        "serialize_json": serialize_json,
+                        "glob": getattr(node, 'glob', False)
+                    }
                 )
             
             elif len(processed_paths) == 1:

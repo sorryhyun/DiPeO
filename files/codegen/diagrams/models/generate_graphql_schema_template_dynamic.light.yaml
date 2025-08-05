@@ -1,5 +1,5 @@
-# Generate GraphQL Schema using Template Job
-# Uses template_job with GraphQL filters for type conversion
+# Generate GraphQL Schema using Template Job - Dynamic Discovery
+# Uses glob patterns to automatically discover all node data files
 
 version: light
 
@@ -9,7 +9,7 @@ nodes:
     position: {x: 50, y: 300}
     props:
       custom_data:
-        message: Starting GraphQL schema generation using template_job
+        message: Starting GraphQL schema generation with dynamic file discovery
 
   # Run batch parser if cache doesn't exist
   - label: Parse TypeScript Batch
@@ -21,50 +21,38 @@ nodes:
       passInputData: false
       ignoreIfSub: true
 
-  # Load all cached AST data at once
+  # NEW: Load all AST files dynamically using glob patterns
   - label: Load All AST Files
     type: db
-    position: {x: 400, y: 400}
+    position: {x: 400, y: 300}
     props:
       operation: read
       sub_type: file
       serialize_json: true
+      glob: true  # Enable glob pattern expansion
       source_details:
+        # Core AST files
         - temp/diagram.ts.json
         - temp/execution.ts.json
         - temp/conversation.ts.json
         - temp/enums.ts.json
         - temp/integration.ts.json
-        - temp/start.data.ts.json
-        - temp/condition.data.ts.json
-        - temp/person-job.data.ts.json
-        - temp/code-job.data.ts.json
-        - temp/api-job.data.ts.json
-        - temp/endpoint.data.ts.json
-        - temp/db.data.ts.json
-        - temp/user-response.data.ts.json
-        - temp/notion.data.ts.json
-        - temp/person-batch-job.data.ts.json
-        - temp/hook.data.ts.json
-        - temp/template-job.data.ts.json
-        - temp/json-schema-validator.data.ts.json
-        - temp/typescript-ast.data.ts.json
-        - temp/sub-diagram.data.ts.json
-        - temp/integrated-api.data.ts.json
+        # Dynamic discovery of all node data files
+        - "temp/*.data.ts.json"  # This will match all node data files automatically!
 
-  # Extract and prepare GraphQL data
+  # Prepare GraphQL data for template
   - label: Prepare GraphQL Data
     type: code_job
-    position: {x: 600, y: 400}
+    position: {x: 600, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
       functionName: prepare_graphql_data_for_template
 
-  # Generate GraphQL schema using template_job
-  - label: Generate GraphQL Schema
+  # Render GraphQL schema with template job
+  - label: Render GraphQL Schema
     type: template_job
-    position: {x: 800, y: 400}
+    position: {x: 800, y: 300}
     props:
       engine: jinja2
       template_path: files/codegen/templates/models/graphql_schema_v2.j2
@@ -74,10 +62,10 @@ nodes:
       # The data from the previous node is available as input_data
       use_input_data: true
 
-  # Generate success summary
+  # Generate summary of what was created
   - label: Generate Summary
     type: code_job
-    position: {x: 1000, y: 400}
+    position: {x: 1000, y: 300}
     props:
       language: python
       filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
@@ -85,34 +73,34 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1200, y: 400}
+    position: {x: 1200, y: 300}
     props:
       save_to_file: false
 
 connections:
-  # Run batch parser first
+  # Parse specs first
   - from: Start
     to: Parse TypeScript Batch
   
-  # Load cached AST data after parsing
+  # Load all AST files
   - from: Parse TypeScript Batch
     to: Load All AST Files
   
-  # Prepare GraphQL data from AST
+  # Prepare GraphQL data
   - from: Load All AST Files
     to: Prepare GraphQL Data
   
-  # Pass prepared data to template
+  # Render schema
   - from: Prepare GraphQL Data
-    to: Generate GraphQL Schema
+    to: Render GraphQL Schema
   
   # Generate summary
   - from: Prepare GraphQL Data
     to: Generate Summary
     label: graphql_data
   
-  # End
-  - from: Generate GraphQL Schema
+  # End connections
+  - from: Render GraphQL Schema
     to: End
   - from: Generate Summary
     to: End
