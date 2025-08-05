@@ -51,6 +51,10 @@ class Settings:
         )
         self.node_ready_poll_interval = float(os.getenv("DIPEO_NODE_READY_POLL_INTERVAL", "0.01"))
         self.node_ready_max_polls = int(os.getenv("DIPEO_NODE_READY_MAX_POLLS", "100"))
+        
+        # Event queue configuration
+        self.event_queue_size = int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "10000"))
+        self.monitoring_queue_size = int(os.getenv("DIPEO_MONITORING_QUEUE_SIZE", "10000"))
 
         self.cors_origins = self._parse_list(os.getenv("DIPEO_CORS_ORIGINS", "*"))
         self.allowed_file_extensions = self._parse_list(

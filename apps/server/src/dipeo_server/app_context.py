@@ -34,10 +34,12 @@ async def create_server_container() -> Container:
         STATE_STORE,
     )
 
-    # Create event bus
+    # Create event bus with configuration
     from dipeo.infrastructure.events import AsyncEventBus
-
-    event_bus = AsyncEventBus()
+    from dipeo.infrastructure.config import get_settings
+    
+    settings = get_settings()
+    event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
     container.registry.register(EVENT_BUS, event_bus)
 
     # Create event-based state store (no global lock)
@@ -66,7 +68,7 @@ async def create_server_container() -> Container:
 
     # Create streaming monitor for real-time UI updates
     from dipeo.infrastructure.monitoring import StreamingMonitor
-    streaming_monitor = StreamingMonitor(message_router)
+    streaming_monitor = StreamingMonitor(message_router, queue_size=settings.monitoring_queue_size)
     
     # Subscribe streaming monitor to all events
     event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)

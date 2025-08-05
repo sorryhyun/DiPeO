@@ -29,10 +29,10 @@ class StreamingMonitor(EventConsumer):
     - Provides backpressure to prevent memory issues
     """
     
-    def __init__(self, message_router: MessageRouterPort):
+    def __init__(self, message_router: MessageRouterPort, queue_size: int = 10000):
         self.message_router = message_router
         self._execution_streams: Dict[str, List[StreamClient]] = defaultdict(list)
-        self._event_queue = asyncio.Queue(maxsize=1000)  # Bounded queue for backpressure
+        self._event_queue = asyncio.Queue(maxsize=queue_size)  # Bounded queue for backpressure
         self._running = False
         self._process_task: asyncio.Task | None = None
     
