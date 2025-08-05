@@ -34,7 +34,7 @@ nodes:
         # Also load the consolidated cache if available
         - "temp/all_node_specs_ast.json"
         # Dynamically discover all node spec files
-        - "temp/*.spec.ts.json"
+        - "temp/specifications/nodes/*.spec.ts.json"
 
   # Extract node specifications from loaded AST files
   - label: Extract Node Specs

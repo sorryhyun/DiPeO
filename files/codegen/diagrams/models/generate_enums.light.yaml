@@ -21,14 +21,16 @@ nodes:
       passInputData: false
       ignoreIfSub: true
 
-  # Load cached enums AST
+  # Load cached enums AST from multiple files
   - label: Load Enums AST
     type: db
     position: {x: 400, y: 200}
     props:
       operation: read
       sub_type: file
-      file: temp/enums.ts.json
+      glob: true
+      source_details:
+        - "temp/core/enums/*.ts.json"
 
   # Extract enum definitions (simplified - just data extraction)
   - label: Extract Enums

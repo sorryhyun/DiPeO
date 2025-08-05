@@ -32,14 +32,13 @@ nodes:
       glob: true  # Enable glob pattern expansion
       source_details:
         # Core domain model files
-        - temp/diagram.ts.json
-        - temp/execution.ts.json
-        - temp/conversation.ts.json
-        - temp/node-specifications.ts.json
-        - temp/diagram-utils.ts.json
-        - temp/integration.ts.json
+        - temp/core/diagram.ts.json
+        - temp/core/execution.ts.json
+        - temp/core/conversation.ts.json
+        - temp/utilities/diagram-utils.ts.json
+        - temp/core/integration.ts.json
         # Dynamic discovery of all node data files
-        - "temp/*.data.ts.json"
+        - "temp/core/nodes/*.data.ts.json"
 
   # Extract raw model data (no conversion)
   - label: Extract Raw Model Data

@@ -90,9 +90,25 @@ def extract_enums(ast_data: dict) -> List[dict]:
 def main(inputs: dict) -> dict:
     """Main entry point for enum extraction."""
     ast_data = inputs.get('default', {})
-    enums = extract_enums(ast_data)
+    
+    # Handle multiple files loaded with glob
+    all_enums = []
+    
+    if isinstance(ast_data, dict) and all(isinstance(k, str) and k.endswith('.json') for k in ast_data.keys()):
+        # Multiple files from glob operation
+        print(f"Processing {len(ast_data)} AST files")
+        for file_path, file_content in ast_data.items():
+            file_enums = extract_enums(file_content)
+            all_enums.extend(file_enums)
+            if file_enums:
+                print(f"  Found {len(file_enums)} enums in {file_path}")
+    else:
+        # Single file or direct data
+        all_enums = extract_enums(ast_data)
+    
+    print(f"Total enums extracted: {len(all_enums)}")
     
     # Return with 'default' key to prevent unwrapping by runtime resolver
     # The runtime resolver unwraps single-key dicts when requesting 'default' output
-    result = {'default': {'enums': enums}}
+    result = {'default': {'enums': all_enums}}
     return result
