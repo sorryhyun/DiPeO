@@ -11,35 +11,15 @@ import {
   EventType,
   type ExecutionUpdate,
 } from '@dipeo/models';
+import { ExecutionConverter, type StoreNodeState, type StoreExecutionState } from '@/core/services/converters';
 
-/**
- * Store-specific node state that tracks execution state of individual nodes.
- * This is a simplified version of NodeResult for store usage.
- */
-export interface NodeState {
-  status: NodeExecutionStatus;
-  error?: string;
-  timestamp: number; // Using number for performance in store
-  skipReason?: string;
-}
-
-/**
- * Store-specific execution state optimized for Zustand.
- * Uses Set/Map for efficient updates and lookups.
- */
-export interface ExecutionState {
-  id: string | null;
-  isRunning: boolean;
-  isPaused: boolean;
-  runningNodes: Set<NodeID>;
-  nodeStates: Map<NodeID, NodeState>;
-  context: Record<string, unknown>;
-}
+// Re-export store types from converter
+export type { StoreNodeState as NodeState, StoreExecutionState as ExecutionState } from '@/core/services/converters';
 
 /**
  * Convert store NodeState to domain NodeState
  */
-export function toDomainNodeState(nodeState: NodeState): DomainNodeState {
+export function toDomainNodeState(nodeState: StoreNodeState): DomainNodeState {
   return {
     status: nodeState.status,
     started_at: new Date(nodeState.timestamp).toISOString(),
@@ -53,59 +33,17 @@ export function toDomainNodeState(nodeState: NodeState): DomainNodeState {
  * Convert store ExecutionState to canonical ExecutionState
  */
 export function toCanonicalExecutionState(
-  storeState: ExecutionState,
+  storeState: StoreExecutionState,
   diagramId?: string | null,
 ): CanonicalExecutionState {
-  let status: ExecutionStatus;
-  if (storeState.isPaused) {
-    status = ExecutionStatus.PAUSED;
-  } else if (storeState.isRunning) {
-    status = ExecutionStatus.RUNNING;
-  } else {
-    // Check if any nodes failed
-    const hasFailed = Array.from(storeState.nodeStates.values()).some(
-      state => state.status === NodeExecutionStatus.FAILED
-    );
-    status = hasFailed ? ExecutionStatus.FAILED : ExecutionStatus.COMPLETED;
-  }
-  
-  // Convert Map to dictionary for nodeStates
-  const nodeStatesDict: Record<string, DomainNodeState> = {};
-  storeState.nodeStates.forEach((nodeState, nodeId) => {
-    nodeStatesDict[nodeId] = {
-      status: nodeState.status,
-      started_at: new Date(nodeState.timestamp).toISOString(),
-      ended_at: nodeState.status !== NodeExecutionStatus.RUNNING ? new Date(nodeState.timestamp).toISOString() : null,
-      error: nodeState.error || null,
-      token_usage: null,
-    };
-  });
-  
-  // Convert context to nodeOutputs as plain objects
-  const nodeOutputsDict: Record<string, Record<string, any>> = {};
-  Object.entries(storeState.context).forEach(([nodeId, value]) => {
-    nodeOutputsDict[nodeId] = value as Record<string, any>;
-  });
-  
-  return {
-    id: (storeState.id || '') as ExecutionID,
-    status,
-    diagram_id: diagramId as DiagramID | null,
-    started_at: new Date().toISOString(), // Store doesn't track this, using current time
-    node_states: nodeStatesDict,
-    node_outputs: nodeOutputsDict,
-    variables: {},
-    token_usage: { input: 0, output: 0, cached: null, total: 0 },
-    error: null,
-    ended_at: status === ExecutionStatus.COMPLETED || status === ExecutionStatus.FAILED ? new Date().toISOString() : null,
-    is_active: storeState.isRunning,
-    exec_counts: {},
-    executed_nodes: [],
-  };
+  return ExecutionConverter.fromStore(
+    storeState,
+    diagramId ? diagramId as DiagramID : undefined
+  );
 }
 
 export interface ExecutionSlice {
-  execution: ExecutionState;
+  execution: StoreExecutionState;
   
   // Execution control
   startExecution: (executionId: string) => void;
@@ -115,7 +53,7 @@ export interface ExecutionSlice {
   clearExecutionState: () => void;
   
   // Node state management
-  updateNodeExecution: (nodeId: NodeID, state: NodeState) => void;
+  updateNodeExecution: (nodeId: NodeID, state: StoreNodeState) => void;
   setNodeRunning: (nodeId: NodeID) => void;
   setNodeCompleted: (nodeId: NodeID) => void;
   setNodeFailed: (nodeId: NodeID, error: string) => void;
@@ -135,7 +73,7 @@ const clearRunningNode = (state: UnifiedStore, nodeId: NodeID) => {
 };
 
 // Helper to update node state
-const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: NodeState) => {
+const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: StoreNodeState) => {
   state.execution.nodeStates.set(nodeId, nodeState);
   
   if (nodeState.status === NodeExecutionStatus.RUNNING) {
@@ -223,7 +161,7 @@ export const createExecutionSlice: StateCreator<
   }),
   
   setNodeRunning: (nodeId) => set(state => {
-    const nodeState: NodeState = {
+    const nodeState: StoreNodeState = {
       status: NodeExecutionStatus.RUNNING,
       timestamp: Date.now()
     };
@@ -231,7 +169,7 @@ export const createExecutionSlice: StateCreator<
   }),
   
   setNodeCompleted: (nodeId) => set(state => {
-    const nodeState: NodeState = {
+    const nodeState: StoreNodeState = {
       status: NodeExecutionStatus.COMPLETED,
       timestamp: Date.now()
     };
@@ -239,7 +177,7 @@ export const createExecutionSlice: StateCreator<
   }),
   
   setNodeFailed: (nodeId, error) => set(state => {
-    const nodeState: NodeState = {
+    const nodeState: StoreNodeState = {
       status: NodeExecutionStatus.FAILED,
       timestamp: Date.now(),
       error
@@ -248,7 +186,7 @@ export const createExecutionSlice: StateCreator<
   }),
   
   setNodeSkipped: (nodeId, reason) => set(state => {
-    const nodeState: NodeState = {
+    const nodeState: StoreNodeState = {
       status: NodeExecutionStatus.SKIPPED,
       timestamp: Date.now(),
       skipReason: reason
@@ -297,7 +235,7 @@ export const createExecutionSlice: StateCreator<
       case EventType.NODE_STATUS_CHANGED:
         // Handle node-level status changes
         if (event.node_id && event.status) {
-          const nodeState: NodeState = {
+          const nodeState: StoreNodeState = {
             status: event.status,
             timestamp: event.timestamp ? new Date(event.timestamp).getTime() : Date.now(),
             error: event.error

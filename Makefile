@@ -42,7 +42,7 @@ install-dev: install
 # Diagram-based code generation (NEW DEFAULT)
 codegen:
 	@echo "Running unified diagram-based code generation..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=60
+	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=90
 	@sleep 1
 	@echo "Applying staged changes to active directory (syntax validation only)..."
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
@@ -52,7 +52,7 @@ codegen:
 	@echo "Copying staged files to active directory..."
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
 	@echo "Staged changes applied successfully!"
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=40
+	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=60
 	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
 	pnpm --filter web codegen
 	@echo "All code generation completed using DiPeO diagrams!"
