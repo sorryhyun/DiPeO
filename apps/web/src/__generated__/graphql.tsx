@@ -295,6 +295,7 @@ export type ExecutionStateType = {
   executed_nodes: Array<Scalars['String']['output']>;
   id: Scalars['String']['output'];
   is_active?: Maybe<Scalars['Boolean']['output']>;
+  metrics?: Maybe<Scalars['JSON']['output']>;
   node_outputs: Scalars['JSON']['output'];
   node_states: Scalars['JSON']['output'];
   started_at: Scalars['String']['output'];
@@ -531,6 +532,8 @@ export type Query = {
   diagrams: Array<DomainDiagramType>;
   execution?: Maybe<ExecutionStateType>;
   execution_capabilities: Scalars['JSON']['output'];
+  execution_history: Array<ExecutionStateType>;
+  execution_metrics?: Maybe<Scalars['JSON']['output']>;
   execution_order: Scalars['JSON']['output'];
   executions: Array<ExecutionStateType>;
   health: Scalars['JSON']['output'];
@@ -584,6 +587,18 @@ export type QuerydiagramsArgs = {
 
 export type QueryexecutionArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type Queryexecution_historyArgs = {
+  diagram_id?: InputMaybe<Scalars['ID']['input']>;
+  include_metrics?: Scalars['Boolean']['input'];
+  limit?: Scalars['Int']['input'];
+};
+
+
+export type Queryexecution_metricsArgs = {
+  execution_id: Scalars['ID']['input'];
 };
 
 

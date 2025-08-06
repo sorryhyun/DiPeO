@@ -244,6 +244,7 @@ type ExecutionStateType {
   node_outputs: JSON!
   variables: JSON
   exec_counts: JSON!
+  metrics: JSON
   id: String!
   status: ExecutionStatus!
   diagram_id: String
@@ -432,6 +433,8 @@ type Query {
   prompt_files: [JSON!]!
   prompt_file(filename: String!): JSON!
   active_cli_session: CliSession
+  execution_metrics(execution_id: ID!): JSON
+  execution_history(diagram_id: ID = null, limit: Int! = 100, include_metrics: Boolean! = false): [ExecutionStateType!]!
 }
 
 input RegisterCliSessionInput {

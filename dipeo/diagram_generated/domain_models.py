@@ -174,7 +174,7 @@ class NodeMetrics(BaseModel):
     start_time: float
     end_time: Optional[float] = Field(default=None)
     duration_ms: Optional[float] = Field(default=None)
-    memory_usage: Optional[int] = Field(default=None)
+    memory_usage: Optional[float] = Field(default=None)
     token_usage: Optional[TokenUsage] = Field(default=None)
     error: Optional[str] = Field(default=None)
     dependencies: Optional[List[str]] = Field(default=None)
@@ -615,6 +615,12 @@ def is_token_usage(obj: Any) -> bool:
 def is_node_state(obj: Any) -> bool:
     """Check if object is a NodeState."""
     return isinstance(obj, NodeState)
+def is_node_metrics(obj: Any) -> bool:
+    """Check if object is a NodeMetrics."""
+    return isinstance(obj, NodeMetrics)
+def is_execution_metrics(obj: Any) -> bool:
+    """Check if object is a ExecutionMetrics."""
+    return isinstance(obj, ExecutionMetrics)
 def is_execution_state(obj: Any) -> bool:
     """Check if object is a ExecutionState."""
     return isinstance(obj, ExecutionState)

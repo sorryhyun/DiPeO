@@ -505,6 +505,15 @@ class EventBasedStateStore(StateStorePort):
         
         await self.save_state(state)
     
+    async def update_metrics(self, execution_id: str, metrics: dict[str, Any]):
+        """Update execution metrics."""
+        state = await self.get_state(execution_id)
+        if not state:
+            raise ValueError(f"Execution {execution_id} not found")
+        
+        state.metrics = metrics
+        await self.save_state(state)
+    
     async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
         """Add token usage."""
         cache = await self._execution_cache.get_cache(execution_id)

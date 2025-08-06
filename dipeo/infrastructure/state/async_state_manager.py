@@ -132,6 +132,10 @@ class AsyncStateManager(EventConsumer):
         for event in events_by_type.get(EventType.NODE_FAILED, []):
             await self._handle_node_failed(execution_id, event)
         
+        # Process metrics collection
+        if EventType.METRICS_COLLECTED in events_by_type:
+            await self._handle_metrics_collected(execution_id, events_by_type[EventType.METRICS_COLLECTED][-1])
+        
         # Process execution completion
         if EventType.EXECUTION_COMPLETED in events_by_type:
             await self._handle_execution_completed(execution_id, events_by_type[EventType.EXECUTION_COMPLETED][-1])
@@ -238,6 +242,21 @@ class AsyncStateManager(EventConsumer):
             output={"error": error},
             is_exception=True
         )
+    
+    async def _handle_metrics_collected(
+        self, execution_id: str, event: ExecutionEvent
+    ) -> None:
+        """Handle metrics collected event."""
+        data = event.data
+        metrics = data.get("metrics")
+        
+        if metrics:
+            # Update execution metrics in state store
+            await self.state_store.update_metrics(
+                execution_id=execution_id,
+                metrics=metrics
+            )
+            logger.debug(f"Saved metrics for execution {execution_id}")
     
     async def _handle_execution_completed(
         self, execution_id: str, event: ExecutionEvent

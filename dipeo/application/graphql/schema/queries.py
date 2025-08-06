@@ -358,5 +358,44 @@ def create_query_type(registry: ServiceRegistry) -> type:
                     )
             
             return None
+        
+        @strawberry.field
+        async def execution_metrics(self, execution_id: strawberry.ID) -> Optional[JSONScalar]:
+            """Get metrics for a specific execution."""
+            execution_id_typed = ExecutionID(str(execution_id))
+            execution = await execution_resolver.get_execution(execution_id_typed)
+            
+            if not execution or not hasattr(execution, 'metrics'):
+                return None
+            
+            return execution.metrics
+        
+        @strawberry.field
+        async def execution_history(
+            self,
+            diagram_id: Optional[strawberry.ID] = None,
+            limit: int = 100,
+            include_metrics: bool = False
+        ) -> List[ExecutionStateType]:
+            """Get execution history with optional metrics."""
+            filter_input = None
+            if diagram_id:
+                filter_input = ExecutionFilterInput(
+                    diagram_id=DiagramID(str(diagram_id))
+                )
+            
+            executions = await execution_resolver.list_executions(
+                filter=filter_input,
+                limit=limit,
+                offset=0
+            )
+            
+            # If not including metrics, clear them from results
+            if not include_metrics:
+                for execution in executions:
+                    if hasattr(execution, 'metrics'):
+                        execution.metrics = None
+            
+            return executions
     
     return Query

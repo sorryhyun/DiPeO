@@ -108,6 +108,34 @@ def main():
     # Monitor command
     monitor_parser = subparsers.add_parser("monitor", help="Open browser monitor")
     monitor_parser.add_argument("diagram", nargs="?", help="Diagram name")
+    
+    # Metrics command
+    metrics_parser = subparsers.add_parser("metrics", help="Display execution metrics")
+    metrics_parser.add_argument(
+        "execution_id",
+        nargs="?",
+        help="Execution ID to show metrics for (shows latest if not specified)"
+    )
+    metrics_parser.add_argument(
+        "--diagram",
+        type=str,
+        help="Show metrics history for specific diagram"
+    )
+    metrics_parser.add_argument(
+        "--bottlenecks",
+        action="store_true",
+        help="Show only bottleneck analysis"
+    )
+    metrics_parser.add_argument(
+        "--optimizations",
+        action="store_true",
+        help="Show optimization suggestions"
+    )
+    metrics_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output as JSON"
+    )
 
     args = parser.parse_args()
 
@@ -176,6 +204,14 @@ def main():
             cli.stats(args.diagram)
         elif args.command == "monitor":
             cli.monitor(args.diagram)
+        elif args.command == "metrics":
+            cli.metrics(
+                execution_id=args.execution_id,
+                diagram_id=args.diagram,
+                bottlenecks_only=args.bottlenecks,
+                optimizations_only=args.optimizations,
+                output_json=args.json
+            )
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")

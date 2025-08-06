@@ -205,6 +205,45 @@ class MetricsObserver(EventConsumer):
         parallelizable = self._find_parallelizable_nodes(metrics)
         critical_path = self._find_critical_path(metrics)
         
+        # Store patterns in metrics
+        metrics.bottlenecks = [b["node_id"] for b in bottlenecks]
+        metrics.parallelizable_groups = parallelizable
+        metrics.critical_path = critical_path
+        
+        # Emit metrics collected event for persistence
+        if self.event_bus:
+            # Convert metrics to dict for serialization
+            metrics_dict = {
+                "execution_id": metrics.execution_id,
+                "start_time": metrics.start_time,
+                "end_time": metrics.end_time,
+                "total_duration_ms": metrics.total_duration_ms,
+                "critical_path": metrics.critical_path,
+                "parallelizable_groups": metrics.parallelizable_groups,
+                "bottlenecks": metrics.bottlenecks,
+                "node_metrics": {
+                    node_id: {
+                        "node_id": nm.node_id,
+                        "node_type": nm.node_type,
+                        "start_time": nm.start_time,
+                        "end_time": nm.end_time,
+                        "duration_ms": nm.duration_ms,
+                        "memory_usage": nm.memory_usage,
+                        "token_usage": nm.token_usage,
+                        "error": nm.error,
+                        "dependencies": list(nm.dependencies),
+                    }
+                    for node_id, nm in metrics.node_metrics.items()
+                }
+            }
+            
+            await self.event_bus.emit(ExecutionEvent(
+                type=EventType.METRICS_COLLECTED,
+                execution_id=execution_id,
+                timestamp=time.time(),
+                data={"metrics": metrics_dict}
+            ))
+        
         if bottlenecks or parallelizable:
             optimization = DiagramOptimization(
                 execution_id=execution_id,

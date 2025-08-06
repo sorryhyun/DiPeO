@@ -95,10 +95,18 @@ class TypeScriptToPythonFilters:
             return result
             
         # Handle Array<T>
-        generic_array_match = re.match(r'^Array<(.+)>$', ts_type)
+        generic_array_match = re.match(r'^Array<(.+)>$', ts_type, re.DOTALL)
         if generic_array_match:
-            inner_type = cls.ts_to_python_type(generic_array_match.group(1), field_name, context)
-            result = f'List[{inner_type}]'
+            inner_type_str = generic_array_match.group(1).strip()
+            
+            # Special handling for inline object definitions with properties
+            if inner_type_str.startswith('{') and inner_type_str.endswith('}'):
+                # For complex inline objects, convert to Dict[str, Any]
+                # This is a simplification since Python doesn't have inline type definitions
+                result = 'List[Dict[str, Any]]'
+            else:
+                inner_type = cls.ts_to_python_type(inner_type_str, field_name, context)
+                result = f'List[{inner_type}]'
             cls._type_cache[cache_key] = result
             return result
             
