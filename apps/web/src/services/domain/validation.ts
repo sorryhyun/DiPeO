@@ -328,7 +328,13 @@ export class ValidationService {
     // Try to parse just this field
     try {
       const fieldData = { [fieldName]: value };
-      schema.partial().parse(fieldData);
+      // Check if schema has partial method (z.object does)
+      if ('partial' in schema && typeof schema.partial === 'function') {
+        (schema as any).partial().parse(fieldData);
+      } else {
+        // For non-object schemas, validate the entire structure
+        schema.parse({ [fieldName]: value });
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         error.errors.forEach(err => {

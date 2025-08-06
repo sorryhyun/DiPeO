@@ -6,12 +6,11 @@
 import {
   ExecutionStatus,
   NodeExecutionStatus,
-} from '@dipeo/models';
-import type {
-  ExecutionID,
-  DiagramID,
-  NodeID,
-  NodeState,
+  EventType,
+  type ExecutionID,
+  type DiagramID,
+  type NodeID,
+  type NodeState,
 } from '@dipeo/models';
 import { GraphQLService } from '../api/graphql';
 import { Converters } from '../conversion';
@@ -123,24 +122,19 @@ export class ExecutionService {
     if (!execution) return;
     
     // Update node state
-    if (update.node_id) {
+    if (update.node_id && update.status) {
       execution.nodeStates.set(update.node_id, {
-        nodeId: update.node_id,
-        status: update.status,
-        phase: update.phase,
-        result: update.result,
+        status: update.status as NodeExecutionStatus,
+        output: update.result,
         error: update.error,
-        startedAt: update.started_at,
-        endedAt: update.ended_at,
+        started_at: update.timestamp,
+        ended_at: update.status === NodeExecutionStatus.COMPLETED ? update.timestamp : null,
       });
     }
     
     // Update overall execution state
-    if (update.status) {
-      execution.status = update.status;
-    }
-    if (update.phase) {
-      execution.phase = update.phase;
+    if (update.type === EventType.EXECUTION_STATUS_CHANGED && update.data?.status) {
+      execution.status = update.data.status as ExecutionStatus;
     }
     
     // Check if execution completed
@@ -190,7 +184,7 @@ export class ExecutionService {
     
     let completed = 0;
     execution.nodeStates.forEach(state => {
-      if (state.status === ExecutionStatus.COMPLETED) {
+      if (state.status === NodeExecutionStatus.COMPLETED) {
         completed++;
       }
     });
@@ -232,8 +226,8 @@ export class ExecutionService {
     // Sort nodes by start time
     const sortedNodes = Array.from(execution.nodeStates.entries())
       .sort((a, b) => {
-        const aTime = a[1].startedAt?.getTime() || 0;
-        const bTime = b[1].startedAt?.getTime() || 0;
+        const aTime = a[1].started_at ? new Date(a[1].started_at).getTime() : 0;
+        const bTime = b[1].started_at ? new Date(b[1].started_at).getTime() : 0;
         return aTime - bTime;
       });
     
@@ -248,8 +242,7 @@ export class ExecutionService {
    * Check if execution can be retried
    */
   static canRetry(execution: ExecutionState): boolean {
-    return execution.status === ExecutionStatus.FAILED && 
-           execution.status !== ExecutionStatus.PENDING;
+    return execution.status === ExecutionStatus.FAILED;
   }
   
   /**

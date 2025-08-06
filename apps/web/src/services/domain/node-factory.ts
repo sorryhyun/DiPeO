@@ -13,6 +13,7 @@ import {
   DataType,
   type Vec2,
   type HandleLabel,
+  type NodeSpecification,
   nodeSpecificationRegistry,
   getNodeSpecification,
   createHandleId,
@@ -96,30 +97,32 @@ export class NodeFactory {
     const handles: DomainHandle[] = [];
     
     // Create input handles
-    if (nodeSpec.inputs) {
-      nodeSpec.inputs.forEach((input: any) => {
-        const handleId = createHandleId(nodeId, input.name, HandleDirection.INPUT);
+    if (nodeSpec.handles && nodeSpec.handles.inputs) {
+      nodeSpec.handles.inputs.forEach((handleName: string) => {
+        const handleLabel = handleName as HandleLabel;
+        const handleId = createHandleId(nodeId, handleLabel, HandleDirection.INPUT);
         handles.push({
           id: handleId,
           node_id: nodeId,
-          label: (input.label || input.name) as HandleLabel,
+          label: handleLabel,
           direction: HandleDirection.INPUT,
-          data_type: this.mapToDataType(input.type),
+          data_type: 'any' as DataType,
           position: null,
         });
       });
     }
     
     // Create output handles
-    if (nodeSpec.outputs) {
-      nodeSpec.outputs.forEach((output: any) => {
-        const handleId = createHandleId(nodeId, output.name, HandleDirection.OUTPUT);
+    if (nodeSpec.handles && nodeSpec.handles.outputs) {
+      nodeSpec.handles.outputs.forEach((handleName: string) => {
+        const handleLabel = handleName as HandleLabel;
+        const handleId = createHandleId(nodeId, handleLabel, HandleDirection.OUTPUT);
         handles.push({
           id: handleId,
           node_id: nodeId,
-          label: (output.label || output.name) as HandleLabel,
+          label: handleLabel,
           direction: HandleDirection.OUTPUT,
-          data_type: this.mapToDataType(output.type),
+          data_type: this.getOutputDataType(nodeSpec, handleName),
           position: null,
         });
       });
@@ -128,6 +131,17 @@ export class NodeFactory {
     return handles;
   }
   
+  /**
+   * Get output data type from specification
+   */
+  private static getOutputDataType(nodeSpec: NodeSpecification, outputName: string): DataType {
+    if (nodeSpec.outputs && nodeSpec.outputs[outputName]) {
+      const outputType = nodeSpec.outputs[outputName].type;
+      return outputType as DataType;
+    }
+    return 'any' as DataType;
+  }
+
   /**
    * Get default data from specification
    */
@@ -335,24 +349,29 @@ export class NodeFactory {
       return false;
     }
     
-    // Find output in source
-    const output = sourceSpec.outputs?.find((o: any) => o.name === sourceOutput);
-    if (!output) {
+    // Check if source has the output handle
+    if (!sourceSpec.handles?.outputs?.includes(sourceOutput)) {
       return false;
     }
     
-    // Find input in target
-    const input = targetSpec.inputs?.find((i: any) => i.name === targetInput);
-    if (!input) {
+    // Check if target has the input handle
+    if (!targetSpec.handles?.inputs?.includes(targetInput)) {
       return false;
     }
+    
+    // Get output type from source spec
+    const outputType = sourceSpec.outputs?.[sourceOutput]?.type || 'any';
+    
+    // Input types are generally 'any' for now since handles.inputs is just strings
+    // In the future, we might want to add input specifications
+    const inputType = 'any';
     
     // Check type compatibility
-    if (output.type === 'any' || input.type === 'any') {
+    if (outputType === 'any' || inputType === 'any') {
       return true;
     }
     
-    return output.type === input.type;
+    return outputType === inputType;
   }
 
   /**

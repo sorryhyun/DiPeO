@@ -435,7 +435,9 @@ export class DiagramAdapter {
     }
 
     // Use ValidationService for connection validation
-    const connectionValidation = ValidationService.validateConnection(sourceHandle, targetHandle);
+    // Convert nodes array to Map for validation
+    const nodesMap = new Map(diagram.nodes.map((n: DomainNode) => [n.id, n]));
+    const connectionValidation = ValidationService.validateConnection(sourceHandle.id, targetHandle.id, nodesMap);
     if (!connectionValidation.valid) {
       validated.isValid = false;
       validated.validationMessage = connectionValidation.errors.join('; ');

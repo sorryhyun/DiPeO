@@ -110,7 +110,57 @@ export class DiagramService {
         conditions: [],
         default_output: null,
       },
-      // ... other node types
+      [NodeType.API_JOB]: {
+        url: '',
+        method: 'GET',
+        headers: {},
+        body: null,
+      },
+      [NodeType.ENDPOINT]: {
+        path: '',
+        method: 'GET',
+      },
+      [NodeType.DB]: {
+        query: '',
+        database: '',
+      },
+      [NodeType.USER_RESPONSE]: {
+        prompt: '',
+        timeout: 300,
+      },
+      [NodeType.NOTION]: {
+        action: 'read',
+        database_id: '',
+      },
+      [NodeType.PERSON_BATCH_JOB]: {
+        person: null,
+        batch_size: 1,
+        mode: 'parallel',
+      },
+      [NodeType.HOOK]: {
+        hook_type: 'before',
+        target_node: '',
+      },
+      [NodeType.TEMPLATE_JOB]: {
+        template: '',
+        variables: {},
+      },
+      [NodeType.JSON_SCHEMA_VALIDATOR]: {
+        schema: {},
+      },
+      [NodeType.TYPESCRIPT_AST]: {
+        code: '',
+        query: '',
+      },
+      [NodeType.SUB_DIAGRAM]: {
+        diagram_id: '',
+        variables: {},
+      },
+      [NodeType.INTEGRATED_API]: {
+        integration_type: '',
+        action: '',
+        config: {},
+      },
     } as const;
     
     return defaults[type] || {};
@@ -308,7 +358,7 @@ export class DiagramService {
     // Validate imported diagram
     const validation = this.validateDiagram(diagram);
     if (!validation.valid) {
-      throw new Error(`Invalid diagram: ${validation.errors.map(e => e.message).join(', ')}`);
+      throw new Error(`Invalid diagram: ${validation.errors.join(', ')}`);
     }
     
     return diagram;

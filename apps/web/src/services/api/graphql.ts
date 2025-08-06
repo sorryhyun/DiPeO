@@ -5,6 +5,7 @@
 
 import { apolloClient } from '@/lib/graphql/client';
 import * as GraphQLOperations from '@/__generated__/graphql';
+import type { OperationVariables } from '@apollo/client';
 
 /**
  * Centralized GraphQL service that leverages generated hooks and operations
@@ -29,7 +30,7 @@ export class GraphQLService {
   /**
    * Execute a query directly (for non-hook usage)
    */
-  static async query<TData = any, TVariables = any>(
+  static async query<TData = any, TVariables extends OperationVariables = OperationVariables>(
     query: any,
     variables?: TVariables,
   ): Promise<TData> {
@@ -44,7 +45,7 @@ export class GraphQLService {
   /**
    * Execute a mutation
    */
-  static async mutate<TData = any, TVariables = any>(
+  static async mutate<TData = any, TVariables extends OperationVariables = OperationVariables>(
     mutation: any,
     variables?: TVariables,
   ): Promise<TData> {
@@ -58,7 +59,7 @@ export class GraphQLService {
   /**
    * Subscribe to real-time updates
    */
-  static subscribe<TData = any, TVariables = any>(
+  static subscribe<TData = any, TVariables extends OperationVariables = OperationVariables>(
     subscription: any,
     variables?: TVariables,
   ) {

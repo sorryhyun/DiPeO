@@ -378,21 +378,31 @@ export const createDiagramSlice: StateCreator<
     const errors: string[] = [];
     
     // Add node errors
-    validationResult.nodeErrors.forEach((fieldErrors, nodeId) => {
-      const node = state.nodes.get(nodeId as NodeID);
-      const nodeLabel = node?.data?.label || nodeId;
-      Object.entries(fieldErrors).forEach(([field, messages]) => {
-        messages.forEach(message => {
-          errors.push(`Node ${nodeLabel}: ${field} - ${message}`);
-        });
+    if (validationResult.nodeErrors) {
+      validationResult.nodeErrors.forEach((fieldErrors, nodeId) => {
+        const node = state.nodes.get(nodeId as NodeID);
+        const nodeLabel = node?.data?.label || nodeId;
+        if (Array.isArray(fieldErrors)) {
+          fieldErrors.forEach((error) => {
+            errors.push(`Node ${nodeLabel}: ${error.field} - ${error.message}`);
+          });
+        }
       });
-    });
+    }
     
     // Add connection errors
-    errors.push(...validationResult.connectionErrors);
+    if (validationResult.connectionErrors) {
+      validationResult.connectionErrors.forEach((error) => {
+        errors.push(error.message);
+      });
+    }
     
     // Add general errors
-    errors.push(...validationResult.generalErrors);
+    if (validationResult.generalErrors) {
+      validationResult.generalErrors.forEach((error) => {
+        errors.push(error.message);
+      });
+    }
     
     // Add additional person assignment check
     state.nodes.forEach(node => {
