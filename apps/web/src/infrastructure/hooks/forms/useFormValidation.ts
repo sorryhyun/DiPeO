@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import type { FieldValidator, ValidationResult, ValidationError, FormState } from '../types';
+import type { FieldValidator, ValidationResult, ValidationError, FormState } from '@/domain/diagram/forms/types';
 
 interface UseFormValidationOptions {
   validators?: Record<string, FieldValidator>;

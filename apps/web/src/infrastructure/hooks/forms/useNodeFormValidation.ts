@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { ValidationService, NodeService } from '@/infrastructure/services';
-import type { ValidationResult, ValidationError, FormState } from '../types';
+import type { ValidationResult, ValidationError, FormState } from '@/domain/diagram/forms/types';
 
 interface UseNodeFormValidationOptions {
   nodeType?: string;

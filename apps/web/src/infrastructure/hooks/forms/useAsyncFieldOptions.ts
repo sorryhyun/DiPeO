@@ -1,6 +1,6 @@
 import { useQuery, UseQueryResult, useQueries } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import type { AsyncFieldOptions, FormState } from '../types';
+import type { AsyncFieldOptions, FormState } from '@/domain/diagram/forms/types';
 
 interface UseAsyncFieldOptionsParams<T extends Record<string, any>> {
   field: string;

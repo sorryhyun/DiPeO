@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Info, AlertCircle, AlertTriangle, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useExecutionLogStream } from '@/domain/execution/hooks/useExecutionLogStream';
-import { useExecution } from '@/hooks';
+import { useExecution } from '@/domain/execution/hooks';
 import { formatTimestamp } from '@/lib/utils/date';
 import { executionId } from '@/infrastructure/types';
 
@@ -46,7 +46,7 @@ const getLogLevelColor = (level: string): string => {
 
 export const ExecutionLogView: React.FC = () => {
   const { execution, isRunning } = useExecution();
-  const { logs, clearLogs } = useExecutionLogStream(execution.id ? executionId(execution.id) : null);
+  const { logs, clearLogs } = useExecutionLogStream(execution.executionId ? executionId(execution.executionId) : null);
   const [filter, setFilter] = useState<string>('');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -76,7 +76,7 @@ export const ExecutionLogView: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `execution-log-${execution.id}-${new Date().toISOString()}.txt`;
+    a.download = `execution-log-${execution.executionId}-${new Date().toISOString()}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

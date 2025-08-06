@@ -9,7 +9,7 @@ import type {
   FormAutoSaveConfig,
   AsyncFieldOptions,
   FormFieldUpdate,
-} from '../types';
+} from '@/domain/diagram/forms/types';
 
 export interface UseFormManagerOptions<T extends Record<string, any>> {
   config: FormConfig<T>;

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { FormState, FormConfig, FormFieldUpdate, ValidationError } from '../types';
+import type { FormState, FormConfig, FormFieldUpdate, ValidationError } from '@/domain/diagram/forms/types';
 
 export function useFormState<T extends Record<string, any> = Record<string, any>>(
   config: FormConfig<T>

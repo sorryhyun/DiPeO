@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, Folder, FolderOpen } from 'lucide-react';
-import { FileNode } from './useDiagramFiles';
+import { FileNode } from '@/domain/diagram/hooks/useDiagramFiles';
 
 interface FileTreeItemProps {
   node: FileNode;

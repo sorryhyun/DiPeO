@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, RefreshCw } from 'lucide-react';
-import { useExecution } from '@/hooks';
+import { useExecution } from '@/domain/execution/hooks';
 import { NodeExecutionStatus } from '@/domain/execution/types/execution';
 import { ExecutionID, executionId } from '@/infrastructure/types';
 import { Button } from '@/ui/components/common/forms/buttons';
@@ -38,7 +38,7 @@ interface ExecutionOrderViewProps {
 
 export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executionId: providedExecutionId }) => {
   const { execution } = useExecution();
-  const currentExecutionId = providedExecutionId || (execution?.id ? executionId(execution.id) : undefined);
+  const currentExecutionId = providedExecutionId || (execution?.executionId ? executionId(execution.executionId) : undefined);
   const [executionOrder, setExecutionOrder] = useState<ExecutionOrderData | null>(null);
   
   // Determine if we should poll based on execution status

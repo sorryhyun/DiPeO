@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { TabsContext } from './TabsContext';
+import { TabsContext } from '@/ui/components/common/ui/tabs/TabsContext';
 
 export function useTabsContext() {
   const context = useContext(TabsContext);

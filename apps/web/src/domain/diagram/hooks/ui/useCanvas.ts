@@ -60,9 +60,6 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     arrows: arrowsMap, 
     persons: personsMap,
     handles: handlesMap,
-    nodesArray,
-    arrowsArray,
-    personsArray,
     dataVersion,
     isMonitorMode,
     addArrow,
@@ -78,9 +75,6 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     arrows: state.arrows,
     persons: state.persons,
     handles: state.handles,
-    nodesArray: state.nodesArray,
-    arrowsArray: state.arrowsArray,
-    personsArray: state.personsArray,
     dataVersion: state.dataVersion,
     isMonitorMode: state.isMonitorMode,
     addArrow: state.addArrow,
@@ -92,6 +86,19 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     clearSelection: state.clearSelection,
     selectedId: state.selectedId
   })));
+  
+  // Get arrays using memoization based on dataVersion
+  const nodesArray = React.useMemo(() => {
+    return nodesMap ? Array.from(nodesMap.values()) : [];
+  }, [nodesMap, dataVersion]);
+  
+  const arrowsArray = React.useMemo(() => {
+    return arrowsMap ? Array.from(arrowsMap.values()) : [];
+  }, [arrowsMap, dataVersion]);
+  
+  const personsArray = React.useMemo(() => {
+    return personsMap ? Array.from(personsMap.values()) : [];
+  }, [personsMap, dataVersion]);
   
   // We get arrays directly from store now, but keep handlesArray for local use
   const handlesArray = useMapToArray(handlesMap, dataVersion);

@@ -2,13 +2,13 @@ import { useMemo, useCallback, useRef, useEffect } from 'react';
 import { useCanvasState, useCanvasOperations } from '@/domain/diagram';
 import { arrowId, nodeId, personId } from '@/infrastructure/types';
 import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/domain/diagram/types/panel';
-import { 
-  useFormManager, 
-  type FormConfig, 
-  type FormAutoSaveConfig,
-  type FieldValidator,
-  type AsyncFieldOptions
-} from '@/domain/diagram/forms';
+import { useFormManager } from '@/infrastructure/hooks/forms';
+import type {
+  FormConfig, 
+  FormAutoSaveConfig,
+  FieldValidator,
+  AsyncFieldOptions
+} from '@/domain/diagram/forms/types';
 
 interface ValidationRule<T extends Record<string, unknown> = Record<string, unknown>> {
   field: keyof T;

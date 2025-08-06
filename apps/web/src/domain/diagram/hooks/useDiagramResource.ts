@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { useResource, type ResourceOperations } from '../core/useResource';
+import { useResource, type ResourceOperations } from '@/infrastructure/hooks/core/useResource';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { DiagramConverter } from '@/infrastructure/converters';
 import { Converters } from '@/infrastructure/services';

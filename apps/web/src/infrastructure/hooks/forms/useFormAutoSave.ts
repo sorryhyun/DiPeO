@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FormAutoSaveConfig, FormState } from '../types';
+import type { FormAutoSaveConfig, FormState } from '@/domain/diagram/forms/types';
 
 interface UseFormAutoSaveOptions<T extends Record<string, any>> {
   config: FormAutoSaveConfig;

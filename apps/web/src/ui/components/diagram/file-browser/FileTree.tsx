@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileTreeItem } from './FileTreeItem';
-import { FileNode } from './useDiagramFiles';
+import { FileNode } from '@/domain/diagram/hooks/useDiagramFiles';
 
 interface FileTreeProps {
   nodes: FileNode[];

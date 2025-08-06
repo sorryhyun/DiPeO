@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, RefreshCw, Loader2 } from 'lucide-react';
 import { FileTree } from './FileTree';
-import { FileNode, useDiagramFiles } from './useDiagramFiles';
+import { FileNode, useDiagramFiles } from '@/domain/diagram/hooks/useDiagramFiles';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useGetDiagramLazyQuery } from '@/__generated__/graphql';
 import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';

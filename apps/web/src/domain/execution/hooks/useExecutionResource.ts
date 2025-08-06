@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useStream, type StreamProtocol } from '../core/useStream';
+import { useStream, type StreamProtocol } from '@/infrastructure/hooks/core/useStream';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { 
   EventType, 

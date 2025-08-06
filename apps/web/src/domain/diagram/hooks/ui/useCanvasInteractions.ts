@@ -230,17 +230,21 @@ export function useCanvasInteractions(options: UseCanvasInteractionsOptions = {}
     event: React.DragEvent, 
     projectPosition: (x: number, y: number) => Vec2
   ) => {
+    console.log('[onNodeDrop] Called, enabled:', enabled, 'isMonitorMode:', isMonitorMode);
     if (!enabled || isMonitorMode) return;
     
     event.preventDefault();
     const type = event.dataTransfer.getData('application/reactflow');
+    console.log('[onNodeDrop] Node type:', type);
     if (!type) return;
     
     const dropPosition = projectPosition(
       event.clientX - dragOffset.current.x, 
       event.clientY - dragOffset.current.y
     );
+    console.log('[onNodeDrop] Drop position:', dropPosition);
     
+    console.log('[onNodeDrop] Calling nodeOps.addNode with type:', type, 'position:', dropPosition);
     nodeOps.addNode(type as NodeType, dropPosition);
     
     setDragState({

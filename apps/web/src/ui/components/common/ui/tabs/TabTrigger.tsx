@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { useTabsContext } from './useTabsContext';
+import { useTabsContext } from '@/infrastructure/hooks/ui/useTabsContext';
 
 interface TabTriggerProps {
   value: string;

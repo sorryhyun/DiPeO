@@ -4,6 +4,7 @@ import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '
 import { UnifiedStore } from '../types';
 import type { SelectableID } from './ui';
 import type { NodeState } from './execution';
+import { createComputedGetters } from '../helpers/computedGetters';
 
 export interface ComputedSlice {
   // Array versions of Maps (maintained for React components)
@@ -74,11 +75,8 @@ export const createComputedSlice: StateCreator<
   [],
   ComputedSlice
 > = (set, get) => ({
-  // Array versions of Maps (initialized as empty)
-  nodesArray: [],
-  arrowsArray: [],
-  personsArray: [],
-  handlesArray: [],
+  // Array versions of Maps (use computed getters)
+  ...createComputedGetters(get),
   
   // Node-related computed getters
   getNodeWithHandles: (nodeId) => {
