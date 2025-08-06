@@ -39,7 +39,7 @@ class SideEffectRegistry {
   private matchesPattern(action: string, pattern: string): boolean {
     // Support wildcards: "diagram.*" matches "diagram.addNode", "diagram.deleteNode", etc.
     if (pattern.includes('*')) {
-      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+      const regex = new RegExp(`^${  pattern.replace(/\*/g, '.*')  }$`);
       return regex.test(action);
     }
     return action === pattern;

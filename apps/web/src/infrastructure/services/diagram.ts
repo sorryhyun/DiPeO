@@ -3,6 +3,13 @@
  * Leverages @dipeo/models for type-safe operations
  */
 
+/**
+ * Generate a short UUID-like string (8 characters)
+ */
+function generateShortId(): string {
+  return Math.random().toString(36).substring(2, 10);
+}
+
 import type {
   DomainNode,
   DomainArrow,
@@ -33,7 +40,7 @@ export class DiagramService {
    * Create a new node with proper initialization
    */
   static createNode(type: NodeType, position: { x: number; y: number }): DomainNode {
-    const nodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as NodeID;
+    const nodeId = `node_${generateShortId()}` as NodeID;
     
     // Get node specification from @dipeo/models
     const nodeSpec = this.getNodeSpecification(type);
@@ -60,7 +67,7 @@ export class DiagramService {
       return null;
     }
     
-    const arrowId = `arrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as ArrowID;
+    const arrowId = `arrow_${generateShortId()}` as ArrowID;
     
     return {
       id: arrowId,
@@ -291,7 +298,7 @@ export class DiagramService {
     
     // Clone nodes with new IDs
     const clonedNodes = diagram.nodes.map(node => {
-      const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as NodeID;
+      const newId = `node_${generateShortId()}` as NodeID;
       idMap.set(node.id, newId);
       
       return {
@@ -314,7 +321,7 @@ export class DiagramService {
     // Clone arrows with updated references
     const clonedArrows = diagram.arrows.map(arrow => ({
       ...arrow,
-      id: `arrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as ArrowID,
+      id: `arrow_${generateShortId()}` as ArrowID,
       source: handleMap.get(arrow.source) || arrow.source,
       target: handleMap.get(arrow.target) || arrow.target,
     }));
@@ -332,7 +339,7 @@ export class DiagramService {
       handles: clonedHandles,
       metadata: {
         ...diagram.metadata,
-        id: `diagram_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as DiagramID,
+        id: `diagram_${generateShortId()}` as DiagramID,
         name: diagram.metadata?.name ? `${diagram.metadata.name} (Copy)` : 'Untitled (Copy)',
         version: diagram.metadata?.version || '1.0.0',
         created: new Date().toISOString(),

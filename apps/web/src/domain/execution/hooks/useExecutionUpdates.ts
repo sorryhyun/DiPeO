@@ -174,7 +174,7 @@ export function useExecutionUpdates({
       onUpdate?.({ 
         type: EventType.EXECUTION_ERROR, 
         execution_id: executionId(executionIdRef.current!),
-        error: error, 
+        error, 
         timestamp: new Date().toISOString() 
       });
       

@@ -228,7 +228,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
         });
       },
       
-      transaction: function<T>(fn: () => T): T {
+      transaction<T>(fn: () => T): T {
         const transactionId = crypto.randomUUID();
         const beforeSnapshot = createSnapshot(get());
         

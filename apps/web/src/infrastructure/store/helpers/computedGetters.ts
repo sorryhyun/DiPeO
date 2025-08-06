@@ -19,17 +19,12 @@ const cache: ArrayCache = {
 export const getNodesArray = (store: UnifiedStore): DomainNode[] => {
   // Check if store and nodes Map exist before trying to use them
   if (!store || !store.nodes || !(store.nodes instanceof Map)) {
-    console.log('[computedGetters] Store or nodes Map is invalid');
     return [];
   }
   const version = store.dataVersion ?? 0;
   if (cache.nodes.version !== version) {
-    console.log('[computedGetters] Recomputing nodes array, version changed from', cache.nodes.version, 'to', version);
-    console.log('[computedGetters] store.nodes.size:', store.nodes.size);
-    console.log('[computedGetters] store.nodes:', store.nodes);
     cache.nodes.array = Array.from(store.nodes.values());
     cache.nodes.version = version;
-    console.log('[computedGetters] New nodes array:', cache.nodes.array);
   }
   return cache.nodes.array;
 };
@@ -67,11 +62,7 @@ export const createComputedGetters = (get: () => UnifiedStore) => ({
   get nodesArray() {
     try {
       const state = get();
-      console.log('[computedGetters.nodesArray] Getting nodes array, state.nodes.size:', state.nodes?.size, 'dataVersion:', state.dataVersion);
-      // Temporarily bypass caching to debug the issue
-      const result = state.nodes ? Array.from(state.nodes.values()) : [];
-      console.log('[computedGetters.nodesArray] Direct array from Map:', result);
-      return result;
+      return getNodesArray(state);
     } catch (e) {
       console.error('[computedGetters] Error getting nodesArray:', e);
       return [];
@@ -80,8 +71,7 @@ export const createComputedGetters = (get: () => UnifiedStore) => ({
   get arrowsArray() {
     try {
       const state = get();
-      // Temporarily bypass caching to debug the issue
-      return state.arrows ? Array.from(state.arrows.values()) : [];
+      return getArrowsArray(state);
     } catch (e) {
       console.error('[computedGetters] Error getting arrowsArray:', e);
       return [];
@@ -90,8 +80,7 @@ export const createComputedGetters = (get: () => UnifiedStore) => ({
   get personsArray() {
     try {
       const state = get();
-      // Temporarily bypass caching to debug the issue
-      return state.persons ? Array.from(state.persons.values()) : [];
+      return getPersonsArray(state);
     } catch (e) {
       console.error('[computedGetters] Error getting personsArray:', e);
       return [];

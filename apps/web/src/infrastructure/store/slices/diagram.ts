@@ -86,8 +86,6 @@ export const createDiagramSlice: StateCreator<
 
   // Node operations
   addNode: (type, position, initialData) => {
-    console.log('[addNode] Called with type:', type, 'position:', position, 'initialData:', initialData);
-    
     // Use NodeFactory for type-safe node creation with validation
     const result = NodeFactory.createNodeWithValidation(type, position, initialData);
     
@@ -95,10 +93,8 @@ export const createDiagramSlice: StateCreator<
       console.error('Failed to create node:', result.error);
       // Fall back to creating without validation for backward compatibility
       const node = NodeFactory.createNode(type, position, initialData);
-      console.log('[addNode] Created node (fallback):', node);
       set(state => {
         state.nodes.set(Converters.toNodeId(node.id), node);
-        console.log('[addNode] After set (fallback), nodes.size:', state.nodes.size);
         state.dataVersion += 1;
         recordHistory(state);
       });
@@ -106,10 +102,8 @@ export const createDiagramSlice: StateCreator<
     }
     
     const node = result.data;
-    console.log('[addNode] Created node:', node);
     set(state => {
       state.nodes.set(Converters.toNodeId(node.id), node);
-      console.log('[addNode] After set, nodes.size:', state.nodes.size, 'dataVersion will be:', state.dataVersion + 1);
       state.dataVersion += 1;
       recordHistory(state);
     });

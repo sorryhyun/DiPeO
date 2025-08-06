@@ -8,6 +8,7 @@ import { useCanvasOperations } from '@/domain/diagram/contexts';
 import { useUIState } from '@/infrastructure/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/infrastructure/store/hooks';
 import { NodeType, NodeExecutionStatus, nodeId, personId } from '@/infrastructure/types';
+import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import './BaseNode.css';
 
 interface BaseNodeProps {
@@ -68,14 +69,19 @@ function useNodeStatus(nodeIdStr: string) {
 }
 
 function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal: boolean; vertical: boolean }) {
-  const handles = NodeService.getNodeHandles(nodeType);
+  // Get the node config which has the correct handle structure
+  const nodeConfig = getNodeConfig(nodeType);
+  const handles = nodeConfig?.handles;
   
   return useMemo(() => {
-    if (!handles || (!handles.inputs?.length && !handles.outputs?.length)) return [];
+    const inputs = handles?.input || [];
+    const outputs = handles?.output || [];
+    
+    if (!handles || (!inputs.length && !outputs.length)) return [];
     
     const allHandles = [
-      ...(handles.outputs || []).map((handle: any) => ({ ...handle, type: 'output' as const })),
-      ...(handles.inputs || []).map((handle: any) => ({ ...handle, type: 'input' as const }))
+      ...(outputs || []).map((handle: any) => ({ ...handle, type: 'output' as const })),
+      ...(inputs || []).map((handle: any) => ({ ...handle, type: 'input' as const }))
     ];
     
     const handlesByPosition = allHandles.reduce((acc, handle) => {
@@ -146,7 +152,7 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
         }
         
         const handleName = handle.label || 'default';
-        const uniqueId = `${nodeId}_${handle.type}_${handleName}`;
+        const uniqueId = `${nodeId}_${handleName}_${handle.type}`;
         
         processedHandles.push({
           type: handle.type,

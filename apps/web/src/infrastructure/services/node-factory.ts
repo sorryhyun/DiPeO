@@ -207,7 +207,7 @@ export class NodeFactory {
    * Generate a unique node ID
    */
   private static generateNodeId(): NodeID {
-    return `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as NodeID;
+    return `node_${Math.random().toString(36).substring(2, 10)}` as NodeID;
   }
   
   /**

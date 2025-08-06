@@ -17,7 +17,9 @@ export function registerNodeConfig(config: UnifiedNodeConfig<any>): void {
     return;
   }
   
-  dynamicNodeConfigs.set(config.nodeType, config);
+  // Ensure we store using the string value
+  const nodeTypeStr = typeof config.nodeType === 'string' ? config.nodeType : String(config.nodeType);
+  dynamicNodeConfigs.set(nodeTypeStr, config);
 }
 
 /**
