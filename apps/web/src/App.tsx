@@ -1,15 +1,15 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { TopBar, Sidebar } from './shared/components/layout';
-import { GlobalKeyboardHandler } from './shared/components/GlobalKeyboardHandler';
+import { TopBar, Sidebar } from './components/common/layout';
+import GlobalKeyboardHandler from './components/common/GlobalKeyboardHandler';
 import { CanvasProvider, useCanvasState, useCanvasOperations } from './shared/contexts/CanvasContext';
 import { useUIOperations } from './core/store/hooks';
 import { setupExecutionUISync } from './core/store/middleware/executionUISync';
 
-const LazyDiagramCanvas = React.lazy(() => import('./features/diagram-editor/components/DiagramCanvas'));
-const LazyExecutionView = React.lazy(() => import('./features/execution-monitor/components/ExecutionView'));
+const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/DiagramCanvas'));
+const LazyExecutionView = React.lazy(() => import('./components/execution/ExecutionView'));
 const LazyToaster = React.lazy(() => import('sonner').then(module => ({ default: module.Toaster })));
-const LazyInteractivePromptModal = React.lazy(() => import('./features/execution-monitor/components/InteractivePromptModal'));
+const LazyInteractivePromptModal = React.lazy(() => import('./components/execution/InteractivePromptModal'));
 
 function AppContent() {
   const { activeCanvas } = useCanvasState();
