@@ -27,8 +27,8 @@ import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, 
 import { generateId } from '@/core/types/utilities';
 import { HandleDirection, HandleLabel } from '@dipeo/models';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
-import { ConversionService } from '@/core/services/ConversionService';
-import { ValidationService } from '@/core/services/ValidationService';
+import { Converters } from '@/services/conversion';
+import { ValidationService } from '@/services/domain';
 
 /**
  * React Flow specific diagram representation
@@ -166,7 +166,7 @@ export class DiagramAdapter {
     
     // Convert tools array to comma-separated string for person_job nodes
     if (node.type === NodeType.PERSON_JOB && Array.isArray(nodeData.tools)) {
-      nodeData.tools = ConversionService.toolsArrayToString(nodeData.tools);
+      nodeData.tools = Converters.toolsArrayToString(nodeData.tools);
     }
 
     // Convert memory_settings to memory_profile for person_job nodes if memory_profile is missing
@@ -190,7 +190,7 @@ export class DiagramAdapter {
 
     return {
       id: node.id,
-      type: ConversionService.nodeTypeToString(node.type),
+      type: Converters.nodeTypeToString(node.type),
       position,
       data: {
         ...nodeData, // Spread processed node data
@@ -213,8 +213,8 @@ export class DiagramAdapter {
    * Convert domain arrow to React Flow edge
    */
   static arrowToReactFlow(arrow: DomainArrow): DiPeoEdge {
-    const sourceParsed = ConversionService.parseHandleId(arrow.source);
-    const targetParsed = ConversionService.parseHandleId(arrow.target);
+    const sourceParsed = Converters.parseHandleId(arrow.source);
+    const targetParsed = Converters.parseHandleId(arrow.target);
     const sourceNode = sourceParsed.node_id;
     const targetNode = targetParsed.node_id;
     
@@ -258,8 +258,8 @@ export class DiagramAdapter {
     const { _handles, ...nodeData } = rfNode.data || {};
     
     return {
-      id: ConversionService.toNodeId(rfNode.id),
-      type: ConversionService.stringToNodeType(rfNode.type || 'start'),
+      id: Converters.toNodeId(rfNode.id),
+      type: Converters.stringToNodeType(rfNode.type || 'start'),
       position: { ...rfNode.position },
       data: {
         ...nodeData,
@@ -276,13 +276,13 @@ export class DiagramAdapter {
     const sourceHandleLabel = (rfEdge.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (rfEdge.targetHandle || 'default') as HandleLabel;
     
-    const sourceHandle = ConversionService.createHandleId(
-      ConversionService.toNodeId(rfEdge.source), 
+    const sourceHandle = Converters.createHandleId(
+      Converters.toNodeId(rfEdge.source), 
       sourceHandleLabel,
       HandleDirection.OUTPUT
     );
-    const targetHandle = ConversionService.createHandleId(
-      ConversionService.toNodeId(rfEdge.target),
+    const targetHandle = Converters.createHandleId(
+      Converters.toNodeId(rfEdge.target),
       targetHandleLabel,
       HandleDirection.INPUT
     );
@@ -291,7 +291,7 @@ export class DiagramAdapter {
     const { content_type, label, ...restData } = rfEdge.data || {};
     
     const domainArrow: DomainArrow = {
-      id: ConversionService.toArrowId(rfEdge.id),
+      id: Converters.toArrowId(rfEdge.id),
       source: sourceHandle,
       target: targetHandle,
       data: Object.keys(restData).length > 0 ? restData : null
@@ -320,19 +320,19 @@ export class DiagramAdapter {
     const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
     
-    const sourceHandle = ConversionService.createHandleId(
-      ConversionService.toNodeId(connection.source),
+    const sourceHandle = Converters.createHandleId(
+      Converters.toNodeId(connection.source),
       sourceHandleLabel,
       HandleDirection.OUTPUT
     );
-    const targetHandle = ConversionService.createHandleId(
-      ConversionService.toNodeId(connection.target),
+    const targetHandle = Converters.createHandleId(
+      Converters.toNodeId(connection.target),
       targetHandleLabel,
       HandleDirection.INPUT
     );
 
     return {
-      id: ConversionService.toArrowId(generateId()),
+      id: Converters.toArrowId(generateId()),
       source: sourceHandle,
       target: targetHandle,
       data: {}
@@ -364,13 +364,13 @@ export class DiagramAdapter {
     const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
     
-    const sourceHandleId = ConversionService.createHandleId(
-      ConversionService.toNodeId(connection.source),
+    const sourceHandleId = Converters.createHandleId(
+      Converters.toNodeId(connection.source),
       sourceHandleLabel,
       HandleDirection.OUTPUT
     );
-    const targetHandleId = ConversionService.createHandleId(
-      ConversionService.toNodeId(connection.target),
+    const targetHandleId = Converters.createHandleId(
+      Converters.toNodeId(connection.target),
       targetHandleLabel,
       HandleDirection.INPUT
     );
@@ -405,12 +405,12 @@ export class DiagramAdapter {
     
     const sourceHandle = findHandleByLabel(
       handleIndex,
-      ConversionService.toNodeId(connection.source),
+      Converters.toNodeId(connection.source),
       sourceLabel
     );
     const targetHandle = findHandleByLabel(
       handleIndex,
-      ConversionService.toNodeId(connection.target),
+      Converters.toNodeId(connection.target),
       targetLabel
     );
 

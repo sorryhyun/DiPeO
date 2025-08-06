@@ -3,7 +3,7 @@ import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { ConversionService } from '@/core/services/ConversionService';
+import { Converters } from '@/services/conversion';
 import { stripTypenames } from '@/lib/utils';
 
 export interface SerializedDiagram {
@@ -60,7 +60,7 @@ function cleanNodeData(node: DomainNode): DomainNode {
         ? nodeData.max_iteration 
         : (Number(nodeData.max_iteration) || 1);
       if (typeof nodeData.tools === 'string') {
-        nodeData.tools = nodeData.tools ? ConversionService.stringToToolsArray(nodeData.tools) : null;
+        nodeData.tools = nodeData.tools ? Converters.stringToToolsArray(nodeData.tools) : null;
       }
       break;
     case NodeType.PERSON_BATCH_JOB:
@@ -69,7 +69,7 @@ function cleanNodeData(node: DomainNode): DomainNode {
         ? nodeData.max_iteration 
         : (Number(nodeData.max_iteration) || 1);
       if (typeof nodeData.tools === 'string') {
-        nodeData.tools = nodeData.tools ? ConversionService.stringToToolsArray(nodeData.tools) : null;
+        nodeData.tools = nodeData.tools ? Converters.stringToToolsArray(nodeData.tools) : null;
       }
       break;
     case NodeType.ENDPOINT:
@@ -106,7 +106,7 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   if (config.handles.input) {
     config.handles.input.forEach((handleConfig: { label: string; displayLabel?: string; position?: string }) => {
       const handleLabel = handleConfig.label as HandleLabel;
-      const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.INPUT);
+      const handleId = Converters.createHandleId(Converters.toNodeId(node.id), handleLabel, HandleDirection.INPUT);
       handles.push({
         id: handleId,
         node_id: node.id,
@@ -121,7 +121,7 @@ function generateHandlesForNode(node: DomainNode): DomainHandle[] {
   if (config.handles.output) {
     config.handles.output.forEach((handleConfig: { label: string; displayLabel?: string; position?: string }) => {
       const handleLabel = handleConfig.label as HandleLabel;
-      const handleId = ConversionService.createHandleId(ConversionService.toNodeId(node.id), handleLabel, HandleDirection.OUTPUT);
+      const handleId = Converters.createHandleId(Converters.toNodeId(node.id), handleLabel, HandleDirection.OUTPUT);
       handles.push({
         id: handleId,
         node_id: node.id,
@@ -183,7 +183,7 @@ export function serializeDiagram(): SerializedDiagram {
   
   const existingHandles = diagramArrays.handles || [];
   
-  const existingHandleMap = ConversionService.arrayToMap(existingHandles, handle => handle.id);
+  const existingHandleMap = Converters.arrayToMap(existingHandles, handle => handle.id);
   
   const generatedHandles: DomainHandle[] = [];
   cleanNodes.forEach(node => {
@@ -200,7 +200,7 @@ export function serializeDiagram(): SerializedDiagram {
   
   const allHandles = Array.from(existingHandleMap.values());
   
-  const nodeIds = ConversionService.arrayToUniqueSet(cleanNodes, node => node.id);
+  const nodeIds = Converters.arrayToUniqueSet(cleanNodes, node => node.id);
   const validHandles = allHandles.filter(handle => {
     if (!nodeIds.has(handle.node_id)) {
       console.warn(`Removing orphaned handle ${handle.id} for non-existent node ${handle.node_id}`);
@@ -209,7 +209,7 @@ export function serializeDiagram(): SerializedDiagram {
     return true;
   });
   
-  const allHandleIds = ConversionService.arrayToUniqueSet(allHandles, handle => handle.id);
+  const allHandleIds = Converters.arrayToUniqueSet(allHandles, handle => handle.id);
   
   
   const validArrows = (diagramArrays.arrows || []).filter(arrow => {

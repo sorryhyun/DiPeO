@@ -2,12 +2,12 @@ import { StateCreator } from 'zustand';
 import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/core/types';
 import { generateArrowId } from '@/core/types/utilities';
 import { 
-  ConversionService, 
+  Converters, 
   NodeFactory, 
   NodeService, 
   ValidationService,
   DiagramOperations 
-} from '@/core/services';
+} from '@/services';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
 import { recordHistory } from '@/core/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';
@@ -94,18 +94,18 @@ export const createDiagramSlice: StateCreator<
       // Fall back to creating without validation for backward compatibility
       const node = NodeFactory.createNode(type, position, initialData);
       set(state => {
-        state.nodes.set(ConversionService.toNodeId(node.id), node);
+        state.nodes.set(Converters.toNodeId(node.id), node);
         afterChange(state);
       });
-      return ConversionService.toNodeId(node.id);
+      return Converters.toNodeId(node.id);
     }
     
     const node = result.data;
     set(state => {
-      state.nodes.set(ConversionService.toNodeId(node.id), node);
+      state.nodes.set(Converters.toNodeId(node.id), node);
       afterChange(state);
     });
-    return ConversionService.toNodeId(node.id);
+    return Converters.toNodeId(node.id);
   },
 
   updateNode: (id, updates) => {
@@ -138,8 +138,8 @@ export const createDiagramSlice: StateCreator<
         // Remove connected arrows
         const arrowsToDelete = Array.from(state.arrows.entries())
           .filter(([_, arrow]) => {
-            const sourceNodeId = ConversionService.parseHandleId(arrow.source).node_id;
-            const targetNodeId = ConversionService.parseHandleId(arrow.target).node_id;
+            const sourceNodeId = Converters.parseHandleId(arrow.source).node_id;
+            const targetNodeId = Converters.parseHandleId(arrow.target).node_id;
             return sourceNodeId === id || targetNodeId === id;
           })
           .map(([arrowId]) => arrowId);
@@ -198,8 +198,8 @@ export const createDiagramSlice: StateCreator<
       let targetNodeId: NodeID;
       
       try {
-        const sourceParsed = ConversionService.parseHandleId(ConversionService.toHandleId(source));
-        const targetParsed = ConversionService.parseHandleId(ConversionService.toHandleId(target));
+        const sourceParsed = Converters.parseHandleId(Converters.toHandleId(source));
+        const targetParsed = Converters.parseHandleId(Converters.toHandleId(target));
         sourceNodeId = sourceParsed.node_id;
         targetNodeId = targetParsed.node_id;
       } catch (e) {
@@ -215,11 +215,11 @@ export const createDiagramSlice: StateCreator<
         throw new Error(`Target node ${targetNodeId} not found`);
       }
       
-      state.arrows.set(ConversionService.toArrowId(arrow.id), arrow);
+      state.arrows.set(Converters.toArrowId(arrow.id), arrow);
       afterChange(state);
     });
     
-    return ConversionService.toArrowId(arrow.id);
+    return Converters.toArrowId(arrow.id);
   },
 
   updateArrow: (id, updates) => {
@@ -276,8 +276,8 @@ export const createDiagramSlice: StateCreator<
           // Remove connected arrows
           const arrowsToDelete = Array.from(state.arrows.entries())
             .filter(([_, arrow]) => {
-              const sourceNodeId = ConversionService.parseHandleId(arrow.source).node_id;
-              const targetNodeId = ConversionService.parseHandleId(arrow.target).node_id;
+              const sourceNodeId = Converters.parseHandleId(arrow.source).node_id;
+              const targetNodeId = Converters.parseHandleId(arrow.target).node_id;
               return sourceNodeId === id || targetNodeId === id;
             })
             .map(([arrowId]) => arrowId);
@@ -435,7 +435,7 @@ export const createDiagramSlice: StateCreator<
       });
       
       // Restore nodes and arrows
-      const { nodes, arrows } = ConversionService.diagramArraysToMaps(diagram);
+      const { nodes, arrows } = Converters.diagramArraysToMaps(diagram);
       get().restoreDiagram(nodes, arrows);
       
       return { success: true };

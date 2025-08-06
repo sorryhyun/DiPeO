@@ -2,7 +2,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { Position, useUpdateNodeInternals } from '@xyflow/react';
 import { ArrowUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/shared/components/forms/buttons';
-import { NodeService } from '@/core/services';
+import { NodeService } from '@/services';
 import { FlowHandle } from '@/features/diagram-editor/components/controls';
 import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
 import { useUIState } from '@/core/store/hooks/state';

@@ -13,9 +13,9 @@ import {
   NodeType,
   DataType
 } from '@dipeo/models';
-import { ConversionService } from './ConversionService';
-import { NodeService } from './NodeService';
-import { ValidationService } from './ValidationService';
+import { Converters } from '../conversion';
+import { NodeService } from './node-service';
+import { ValidationService } from './validation-service';
 import { generateId } from '@/core/types/utilities';
 
 interface ImportResult {
@@ -126,7 +126,7 @@ export class DiagramOperations {
     const { sourceNodeId, sourceHandle, targetNodeId, targetHandle, label } = options;
     
     // Get nodes
-    const diagramMaps = ConversionService.diagramArraysToMaps(diagram);
+    const diagramMaps = Converters.diagramArraysToMaps(diagram);
     const sourceNode = diagramMaps.nodes.get(sourceNodeId);
     const targetNode = diagramMaps.nodes.get(targetNodeId);
     
@@ -183,7 +183,7 @@ export class DiagramOperations {
     
     // Create arrow
     const arrow: DomainArrow = {
-      id: ConversionService.toArrowId(`arrow_${generateId()}`),
+      id: Converters.toArrowId(`arrow_${generateId()}`),
       source: sourceHandleId,
       target: targetHandleId,
       label: label || '',
@@ -227,7 +227,7 @@ export class DiagramOperations {
     const failed: Array<{ item: DomainNode; error: string }> = [];
     
     for (const nodeSpec of nodes) {
-      const nodeId = ConversionService.toNodeId(`node_${generateId()}`);
+      const nodeId = Converters.toNodeId(`node_${generateId()}`);
       
       // Get defaults for node type
       const defaults = NodeService.getNodeDefaults(nodeSpec.type);
@@ -269,8 +269,8 @@ export class DiagramOperations {
     const outgoing: DomainArrow[] = [];
     
     for (const arrow of diagram.arrows) {
-      const sourceInfo = ConversionService.parseHandleId(arrow.source);
-      const targetInfo = ConversionService.parseHandleId(arrow.target);
+      const sourceInfo = Converters.parseHandleId(arrow.source);
+      const targetInfo = Converters.parseHandleId(arrow.target);
       
       if (sourceInfo.node_id === nodeId) {
         outgoing.push(arrow);
@@ -293,7 +293,7 @@ export class DiagramOperations {
   static cloneNode(node: DomainNode, newPosition: { x: number; y: number }): DomainNode {
     return {
       ...node,
-      id: ConversionService.toNodeId(`node_${generateId()}`),
+      id: Converters.toNodeId(`node_${generateId()}`),
       position: newPosition,
       data: { ...node.data }
     };

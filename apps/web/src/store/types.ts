@@ -14,7 +14,7 @@ import type {
   DiagramFormat,
 } from '@dipeo/models';
 
-import type { StoreExecutionState, StoreNodeState } from '@/core/services/converters';
+import type { StoreExecutionState, StoreNodeState } from '@/services/conversion';
 import type { DiagramSlice } from '@/features/diagram-editor/store/diagramSlice';
 import type { ExecutionSlice } from '@/features/execution-monitor/store/executionSlice';
 import type { PersonSlice } from '@/features/person-management/store/personSlice';

@@ -14,8 +14,8 @@ import { FIELD_TYPES } from '@/core/types/panel';
 import { LEGACY_TYPE_MAP } from '@/core/types/fieldTypeRegistry';
 import { PromptFileButton } from '../PromptFileButton';
 import { PromptFilePicker } from '../PromptFilePicker';
-import { ValidationService } from '@/core/services/ValidationService';
-import { NodeService } from '@/core/services/NodeService';
+import { ValidationService } from '@/services/domain';
+import { NodeService } from '@/services/domain';
 import { debounce } from '@/lib/utils/debounce';
 
 export type FieldValue = string | number | boolean | null | undefined;

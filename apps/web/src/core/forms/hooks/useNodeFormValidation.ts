@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { ValidationService } from '@/core/services/ValidationService';
-import { NodeService } from '@/core/services/NodeService';
+import { ValidationService, NodeService } from '@/services';
 import type { ValidationResult, ValidationError, FormState } from '../types';
 
 interface UseNodeFormValidationOptions {
@@ -101,7 +100,7 @@ export function useNodeFormValidation({
       
       // Convert field errors to ValidationError format
       Object.entries(fieldErrors).forEach(([field, messages]) => {
-        const fieldValidationErrors: ValidationError[] = messages.map(message => ({
+        const fieldValidationErrors: ValidationError[] = (messages as string[]).map((message: string) => ({
           field,
           message,
         }));
@@ -143,7 +142,7 @@ export function useNodeFormValidation({
   // Get field metadata for enhanced validation info
   const getFieldMetadata = useCallback((fieldName: string) => {
     if (!nodeSpec) return null;
-    return nodeSpec.fields?.find(f => f.name === fieldName);
+    return nodeSpec.fields?.find((f: any) => f.name === fieldName);
   }, [nodeSpec]);
 
   return {

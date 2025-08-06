@@ -11,10 +11,10 @@ import {
   EventType,
   type ExecutionUpdate,
 } from '@dipeo/models';
-import { ExecutionConverter, type StoreNodeState, type StoreExecutionState } from '@/core/services/converters';
+import { ExecutionConverter, type StoreNodeState, type StoreExecutionState } from '@/services/conversion';
 
 // Re-export store types from converter
-export type { StoreNodeState as NodeState, StoreExecutionState as ExecutionState } from '@/core/services/converters';
+export type { StoreNodeState as NodeState, StoreExecutionState as ExecutionState } from '@/services/conversion';
 
 /**
  * Convert store NodeState to domain NodeState

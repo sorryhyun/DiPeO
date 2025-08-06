@@ -3,7 +3,7 @@ import { DomainPerson, PersonID, apiKeyId } from '@/core/types';
 import { generatePersonId } from '@/core/types/utilities';
 import { LLMService } from '@dipeo/models';
 import { UnifiedStore } from '@/core/store/unifiedStore.types';
-import { ConversionService } from '@/core/services';
+import { Converters } from '@/services';
 
 export interface PersonSlice {
   // Core data
@@ -117,10 +117,10 @@ export const createPersonSlice: StateCreator<
     }),
     
     importPersonsFromGraphQL: (graphqlPersons) => set(state => {
-      // Use ConversionService to convert GraphQL persons to domain format
+      // Use Converters to convert GraphQL persons to domain format
       graphqlPersons.forEach(graphqlPerson => {
         try {
-          const domainPerson = ConversionService.convertGraphQLPerson(graphqlPerson);
+          const domainPerson = Converters.convertGraphQLPerson(graphqlPerson);
           state.persons.set(domainPerson.id as PersonID, domainPerson);
         } catch (error) {
           console.error('Failed to convert GraphQL person:', error, graphqlPerson);

@@ -9,7 +9,7 @@ import {
   areHandlesCompatible,
   NODE_TYPE_REVERSE_MAP
 } from '@dipeo/models';
-import { ConversionService } from './ConversionService';
+import { Converters } from '../conversion';
 
 // Type aliases for clarity
 type SafeParseResult<T = any> = SafeParseReturnType<T, T>;
@@ -20,7 +20,7 @@ interface ValidationResult {
   errors: string[];
 }
 
-interface DiagramValidationResult {
+export interface DiagramValidationResult {
   valid: boolean;
   nodeErrors: Map<string, FieldErrors>;
   connectionErrors: string[];
@@ -104,8 +104,8 @@ export class ValidationService {
     }
     
     if (!areHandlesCompatible(source, target)) {
-      const sourceInfo = ConversionService.parseHandleId(source.id);
-      const targetInfo = ConversionService.parseHandleId(target.id);
+      const sourceInfo = Converters.parseHandleId(source.id);
+      const targetInfo = Converters.parseHandleId(target.id);
       
       if (source.direction === target.direction) {
         errors.push(`Cannot connect two ${source.direction} handles`);
@@ -134,7 +134,7 @@ export class ValidationService {
     const generalErrors: string[] = [];
     
     // Convert to maps for efficient lookups
-    const { nodes, handles, arrows } = ConversionService.diagramArraysToMaps(diagram);
+    const { nodes, handles, arrows } = Converters.diagramArraysToMaps(diagram);
     
     // Validate each node
     for (const [nodeId, node] of nodes) {
@@ -170,8 +170,8 @@ export class ValidationService {
     // Check for orphaned nodes (no connections)
     const connectedNodes = new Set<string>();
     for (const arrow of arrows.values()) {
-      const sourceHandleInfo = ConversionService.parseHandleId(arrow.source);
-      const targetHandleInfo = ConversionService.parseHandleId(arrow.target);
+      const sourceHandleInfo = Converters.parseHandleId(arrow.source);
+      const targetHandleInfo = Converters.parseHandleId(arrow.target);
       connectedNodes.add(sourceHandleInfo.node_id);
       connectedNodes.add(targetHandleInfo.node_id);
     }

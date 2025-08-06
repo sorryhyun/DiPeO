@@ -3,14 +3,12 @@
  * Export all services from a single location for easy imports
  */
 
-export { ConversionService } from './ConversionService';
-export { DiagramOperations } from './DiagramOperations';
-export { NodeFactory } from './NodeFactory';
-export { NodeService } from './NodeService';
-export { ValidationService } from './ValidationService';
-
-// Export all converter modules
-export * from './converters';
+// Re-export services from the main services directory
+export { NodeFactory } from '@/services/domain';
+export { Converters } from '@/services/conversion';
+export { DiagramOperations } from '@/services/domain';
+export { NodeService } from '@/services/domain';
+export { ValidationService } from '@/services/domain';
 
 // Re-export types
-export type { ValidationError, Result } from './NodeFactory';
+export type { ValidationError, Result } from '@/services/domain/node-factory';

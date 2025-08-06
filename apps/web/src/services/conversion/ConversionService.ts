@@ -64,7 +64,7 @@ import type {
  * - Node System: Node type conversions and utilities
  * - Execution: Execution state transformations
  */
-export class ConversionService {
+export class Converters {
   // ===== ID Type Conversions =====
   
   /**

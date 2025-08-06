@@ -17,7 +17,7 @@ import { stripTypenames } from '@/lib/utils/graphql';
 
 export interface ExecutionState {
   id: string | null;
-  status: ExecutionStatus;
+  status: ExecutionStatus | NodeExecutionStatus;
   startTime: Date | null;
   endTime: Date | null;
   totalNodes: number;
@@ -28,7 +28,7 @@ export interface ExecutionState {
 
 export interface NodeState {
   nodeId: string;
-  status: ExecutionStatus;
+  status: NodeExecutionStatus;
   startTime: Date | null;
   endTime: Date | null;
   output?: any;
@@ -129,21 +129,21 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       case EventType.EXECUTION_STATUS_CHANGED:
         setExecution(prev => ({
           ...prev,
-          status: update.status || prev.status,
-          error: update.error || prev.error
+          status: (update as any).status || prev.status,
+          error: (update as any).error || prev.error
         }));
         
-        if (update.status === ExecutionStatus.COMPLETED) {
+        if ((update as any).status === ExecutionStatus.COMPLETED) {
           setExecution(prev => ({
             ...prev,
             endTime: new Date()
           }));
           store.stopExecution();
-        } else if (update.status === ExecutionStatus.FAILED) {
+        } else if ((update as any).status === ExecutionStatus.FAILED) {
           setExecution(prev => ({
             ...prev,
             endTime: new Date(),
-            error: update.error || 'Execution failed'
+            error: (update as any).error || 'Execution failed'
           }));
           store.stopExecution();
         }
@@ -159,7 +159,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           ...prev,
           status: ExecutionStatus.FAILED,
           endTime: new Date(),
-          error: update.error || 'Execution failed'
+          error: (update as any).error || 'Execution failed'
         }));
         store.stopExecution();
         break;
@@ -169,28 +169,31 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   const handleNodeUpdate = useCallback((update: ExecutionUpdate) => {
     if (debug) console.log('[Execution] Node update:', update);
     
-    const nodeId = update.node_id;
+    const nodeId = (update as any).node_id;
+    if (!nodeId) return;
     
     setNodeStates(prev => {
       const existing = prev[nodeId] || {
         nodeId,
-        status: ExecutionStatus.PENDING,
+        status: NodeExecutionStatus.PENDING,
         startTime: null,
         endTime: null,
+        output: undefined,
+        error: undefined,
         logs: []
       };
       
       const newState: NodeState = {
         ...existing,
-        status: update.status || existing.status,
-        output: update.output || existing.output,
-        error: update.error || existing.error,
-        logs: update.log ? [...existing.logs, update.log] : existing.logs
+        status: (update as any).status || existing.status,
+        output: (update as any).output || existing.output,
+        error: (update as any).error || existing.error,
+        logs: (update as any).log ? [...existing.logs, (update as any).log] : existing.logs
       };
       
-      if (update.status === ExecutionStatus.RUNNING && !existing.startTime) {
+      if ((update as any).status === NodeExecutionStatus.RUNNING && !existing.startTime) {
         newState.startTime = new Date();
-      } else if ([ExecutionStatus.COMPLETED, ExecutionStatus.FAILED].includes(update.status!)) {
+      } else if ([NodeExecutionStatus.COMPLETED, NodeExecutionStatus.FAILED].includes((update as any).status)) {
         newState.endTime = new Date();
       }
       
@@ -200,26 +203,26 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       };
     });
     
-    if (update.status === ExecutionStatus.COMPLETED) {
+    if ((update as any).status === NodeExecutionStatus.COMPLETED) {
       setExecution(prev => ({
         ...prev,
         completedNodes: prev.completedNodes + 1
       }));
       store.updateNode(nodeId, { data: { ...store.getNode(nodeId)?.data, isRunning: false } });
-    } else if (update.status === ExecutionStatus.FAILED) {
+    } else if ((update as any).status === NodeExecutionStatus.FAILED) {
       setExecution(prev => ({
         ...prev,
         failedNodes: prev.failedNodes + 1
       }));
       store.updateNode(nodeId, { data: { ...store.getNode(nodeId)?.data, isRunning: false, hasError: true } });
-    } else if (update.status === ExecutionStatus.RUNNING) {
+    } else if ((update as any).status === NodeExecutionStatus.RUNNING) {
       store.updateNode(nodeId, { data: { ...store.getNode(nodeId)?.data, isRunning: true } });
     }
   }, [debug, store]);
   
   const execute = useCallback(async (diagram?: DomainDiagram, options?: Record<string, any>) => {
     try {
-      const diagramData = diagram || store.exportDiagram();
+      const diagramData = diagram || JSON.parse(store.exportDiagram());
       
       const { data } = await executeDiagram({
         variables: {
@@ -268,7 +271,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }));
       throw error;
     }
-  }, [diagram, store, executeDiagram, debug, endpoint, stream]);
+  }, [store, executeDiagram, debug, endpoint, stream]);
   
   const connectToExecution = useCallback((executionId: string) => {
     setExecution(prev => ({
@@ -388,7 +391,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     store.stopExecution();
   }, [stream, store]);
   
-  const isRunning = execution.status === ExecutionStatus.RUNNING;
+  const isRunning = execution.status === ExecutionStatus.RUNNING || execution.status === NodeExecutionStatus.RUNNING;
   const progress = execution.totalNodes > 0 
     ? (execution.completedNodes / execution.totalNodes) * 100 
     : 0;
