@@ -65,7 +65,10 @@ export interface DiagramSlice {
 // Helper to handle post-change operations
 const afterChange = (state: UnifiedStore) => {
   state.dataVersion += 1;
-  // Arrays are now synced via middleware to avoid cross-slice violations
+  // Update computed arrays when Maps change
+  state.nodesArray = Array.from(state.nodes.values());
+  state.arrowsArray = Array.from(state.arrows.values());
+  state.handlesArray = Array.from(state.handles.values());
   recordHistory(state);
 };
 
@@ -95,8 +98,7 @@ export const createDiagramSlice: StateCreator<
       const node = NodeFactory.createNode(type, position, initialData);
       set(state => {
         state.nodes.set(Converters.toNodeId(node.id), node);
-        state.dataVersion += 1;
-        recordHistory(state);
+        afterChange(state);
       });
       return Converters.toNodeId(node.id);
     }
@@ -104,8 +106,7 @@ export const createDiagramSlice: StateCreator<
     const node = result.data;
     set(state => {
       state.nodes.set(Converters.toNodeId(node.id), node);
-      state.dataVersion += 1;
-      recordHistory(state);
+      afterChange(state);
     });
     return Converters.toNodeId(node.id);
   },
@@ -127,8 +128,8 @@ export const createDiagramSlice: StateCreator<
       if (node) {
         const updatedNode = { ...node, ...updates };
         state.nodes.set(id, updatedNode);
-        // No version increment or history for silent updates
-        // Arrays will be recomputed automatically when accessed
+        // Silent update - no version increment, history, or array sync
+        // Used for intermediate updates during operations
       }
     });
   },
@@ -334,7 +335,6 @@ export const createDiagramSlice: StateCreator<
       state.diagramDescription = '';
       state.diagramId = null;
       state.diagramFormat = null;
-      // Arrays will be updated by afterChange
       afterChange(state);
     });
   },
@@ -343,7 +343,6 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       state.nodes = new Map(nodes);
       state.arrows = new Map(arrows);
-      // Arrays will be updated by afterChange
       afterChange(state);
     });
   },
@@ -352,12 +351,21 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       state.nodes = new Map(nodes);
       state.arrows = new Map(arrows);
-      // No afterChange call - dataVersion not incremented
+      // Update arrays but don't increment version or record history
+      state.nodesArray = Array.from(state.nodes.values());
+      state.arrowsArray = Array.from(state.arrows.values());
+      state.handlesArray = Array.from(state.handles.values());
     });
   },
   
   triggerArraySync: () => {
     set(state => {
+      // Update all arrays from their Maps
+      state.nodesArray = Array.from(state.nodes.values());
+      state.arrowsArray = Array.from(state.arrows.values());
+      state.personsArray = Array.from(state.persons.values());
+      state.handlesArray = Array.from(state.handles.values());
+      // Keep dataVersion for backward compatibility but it's not critical
       state.dataVersion += 1;
     });
   },

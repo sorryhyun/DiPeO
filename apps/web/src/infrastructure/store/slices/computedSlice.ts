@@ -75,8 +75,11 @@ export const createComputedSlice: StateCreator<
   [],
   ComputedSlice
 > = (set, get) => ({
-  // Array versions of Maps (use computed getters)
-  ...createComputedGetters(get),
+  // Array versions of Maps - initialized as empty arrays
+  nodesArray: [],
+  arrowsArray: [],
+  personsArray: [],
+  handlesArray: [],
   
   // Node-related computed getters
   getNodeWithHandles: (nodeId) => {

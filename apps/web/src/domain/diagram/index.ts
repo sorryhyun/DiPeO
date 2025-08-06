@@ -164,6 +164,13 @@ export * from '@/ui/components/diagram/properties/fields/FormComponents';
 export { usePropertyManager } from './hooks/usePropertyManager';
 
 /**
+ * Person node management hooks
+ * These handle operations specific to Person (LLM) nodes
+ */
+export { usePersonOperations } from './hooks/operations';
+export { usePersonsData } from './hooks';
+
+/**
  * Core types for property forms and field configuration
  */
 export type {

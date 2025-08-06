@@ -157,7 +157,7 @@ export const DiagramSidebar = React.memo(() => {
         </TabList>
         
         {/* Workspace Tab - Consolidated view */}
-        <TabContent value="workspace" className="p-4 overflow-y-auto">
+        <TabContent value="workspace" className="p-2 overflow-y-auto">
           <div className="space-y-6">
             {/* Blocks Section */}
             <div>
@@ -176,11 +176,11 @@ export const DiagramSidebar = React.memo(() => {
                   {categorizedNodes.map(({ category, meta, nodes }, index) => (
                     nodes.length > 0 && (
                       <div key={category}>
-                        <h4 className={`font-semibold mb-2 ${index > 0 ? 'mt-4' : ''} text-sm text-gray-600 px-2 flex items-center gap-1`}>
+                        <h4 className={`font-semibold mb-2 ${index > 0 ? 'mt-4' : ''} text-sm text-gray-600 flex items-center gap-1`}>
                           <span>{meta.icon}</span>
                           <span>{meta.name}</span>
                         </h4>
-                        <div className="grid grid-cols-3 gap-2 px-2">
+                        <div className="grid grid-cols-3 gap-2">
                           {nodes.map((block) => (
                             <DraggableBlock key={block.type} type={block.type} label={block.label} />
                           ))}
@@ -206,7 +206,7 @@ export const DiagramSidebar = React.memo(() => {
               </h3>
               {personsExpanded && (
                 <div className="mt-3">
-                  <div className="space-y-1 max-h-48 overflow-y-auto px-2">
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
                     {persons.map((personId) => {
                       const person = getPersonById(personId);
                       if (!person) return null;
@@ -221,7 +221,7 @@ export const DiagramSidebar = React.memo(() => {
                       );
                     })}
                   </div>
-                  <div className="px-2">
+                  <div>
                     <Button
                       variant="outline"
                       className="w-full mt-2 text-sm py-2 hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
@@ -247,7 +247,7 @@ export const DiagramSidebar = React.memo(() => {
                 <span className="text-base">🔧</span>
                 <span className="text-base font-medium">Tools</span>
               </h3>
-              <div className="px-2">
+              <div>
                 <Button 
                   variant="outline" 
                   className="w-full bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200 py-2"

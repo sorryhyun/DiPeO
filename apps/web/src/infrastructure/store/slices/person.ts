@@ -52,7 +52,9 @@ export const createPersonSlice: StateCreator<
       
       set(state => {
         state.persons.set(person.id as PersonID, person);
-        state.triggerArraySync();
+        // Update personsArray directly in the same transaction
+        state.personsArray = Array.from(state.persons.values());
+        state.dataVersion += 1;
       });
       
       return person.id as PersonID;
@@ -89,13 +91,17 @@ export const createPersonSlice: StateCreator<
         }
         
         state.persons.set(id, updatedPerson);
-        state.triggerArraySync();
+        // Update personsArray directly in the same transaction
+        state.personsArray = Array.from(state.persons.values());
+        state.dataVersion += 1;
       }
     }),
     
     deletePerson: (id) => set(state => {
       state.persons.delete(id);
-      state.triggerArraySync();
+      // Update personsArray directly in the same transaction
+      state.personsArray = Array.from(state.persons.values());
+      state.dataVersion += 1;
     }),
   
     // Batch operations
@@ -106,14 +112,18 @@ export const createPersonSlice: StateCreator<
           state.persons.set(id, { ...person, ...personUpdates });
         }
       });
-      state.triggerArraySync();
+      // Update personsArray directly in the same transaction
+      state.personsArray = Array.from(state.persons.values());
+      state.dataVersion += 1;
     }),
     
     importPersons: (persons) => set(state => {
       persons.forEach(person => {
         state.persons.set(person.id as PersonID, person);
       });
-      state.triggerArraySync();
+      // Update personsArray directly in the same transaction
+      state.personsArray = Array.from(state.persons.values());
+      state.dataVersion += 1;
     }),
     
     importPersonsFromGraphQL: (graphqlPersons) => set(state => {
@@ -126,22 +136,29 @@ export const createPersonSlice: StateCreator<
           console.error('Failed to convert GraphQL person:', error, graphqlPerson);
         }
       });
-      state.triggerArraySync();
+      // Update personsArray directly in the same transaction
+      state.personsArray = Array.from(state.persons.values());
+      state.dataVersion += 1;
     }),
     
     // Clear and restore operations
     clearPersons: () => set(state => {
       state.persons.clear();
-      state.triggerArraySync();
+      // Update personsArray directly in the same transaction
+      state.personsArray = [];
+      state.dataVersion += 1;
     }),
     
     restorePersons: (persons) => set(state => {
       state.persons = new Map(persons);
-      state.triggerArraySync();
+      // Update personsArray directly in the same transaction
+      state.personsArray = Array.from(state.persons.values());
+      state.dataVersion += 1;
     }),
     
     restorePersonsSilently: (persons) => set(state => {
       state.persons = new Map(persons);
-      // No markPersonsChanged call - dataVersion not incremented
+      // Update personsArray but don't increment dataVersion
+      state.personsArray = Array.from(state.persons.values());
     })
 });

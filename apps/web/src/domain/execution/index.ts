@@ -69,6 +69,13 @@ export { useMonitorMode } from './hooks/useMonitorMode';
  */
 export { useExecutionGraphQL } from './hooks/useExecutionGraphQL';
 
+/**
+ * useConversationData - Hook for fetching and managing conversation data
+ * Provides access to conversation history during and after execution
+ */
+export { useConversationData } from './hooks/useConversationData';
+export type { UseConversationDataOptions } from './hooks/useConversationData';
+
 // ============================================
 // Types and Interfaces
 // ============================================

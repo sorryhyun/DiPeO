@@ -9,7 +9,7 @@ interface SidebarLayoutProps {
 export const SidebarLayout = React.memo<SidebarLayoutProps>(({ position, children, className = '' }) => {
   const baseClasses = position === 'right'
     ? 'h-full border-l bg-gray-50 overflow-y-auto'
-    : 'h-full p-4 border-r bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col overflow-hidden';
+    : 'h-full p-2 border-r bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col overflow-hidden';
 
   return (
     <aside className={`${baseClasses} ${className}`}>

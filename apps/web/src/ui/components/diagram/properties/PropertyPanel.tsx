@@ -95,14 +95,14 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
 
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
-  // Convert uppercase node types from GraphQL to lowercase for config lookup
-  const normalizedNodeType = typeof nodeType === 'string' ? nodeType.toLowerCase() : nodeType;
-  const nodeConfig = getNodeConfig(normalizedNodeType);
+  // For nodes, the type is already a NodeType enum value (e.g., 'person_job')
+  // For arrows and persons, it's a string ('arrow' or 'person')
+  const nodeConfig = nodeType !== 'arrow' && nodeType !== 'person' ? getNodeConfig(nodeType) : undefined;
   const queryClient = useQueryClient();
   
   // Debug logging for node config lookup
   if (!nodeConfig && nodeType !== 'arrow' && nodeType !== 'person') {
-    console.warn(`No config found for node type: ${nodeType} (normalized: ${normalizedNodeType})`);
+    console.warn(`No config found for node type: ${nodeType}`);
   }
   
   // Use context instead of individual hooks
@@ -264,7 +264,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             onChange={(v) => handleFieldUpdate('label', v)}
             placeholder={fieldConfig.labelPlaceholder}
             disabled={isReadOnly}
-            nodeType={normalizedNodeType}
+            nodeType={nodeType}
           />
           <UnifiedFormField
             type="personSelect"
@@ -275,7 +275,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             placeholder={fieldConfig.personPlaceholder}
             disabled={isReadOnly}
             persons={personsForSelect}
-            nodeType={normalizedNodeType}
+            nodeType={nodeType}
           />
         </FormRow>
       );
@@ -316,10 +316,10 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           // Update the prompt_file field with the filename
           handleFieldUpdate('prompt_file', filename);
         } : undefined}
-        nodeType={normalizedNodeType}
+        nodeType={nodeType}
       />
     );
-  }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields, normalizedNodeType]);
+  }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields, nodeType]);
 
   const renderSection = useCallback((fields: TypedPanelFieldConfig<Record<string, unknown>>[] | undefined) => {
     if (!fields) {
@@ -372,7 +372,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
                 onChange={(v) => handleFieldUpdate('label', v)}
                 placeholder="Enter label"
                 disabled={isReadOnly}
-                nodeType={normalizedNodeType}
+                nodeType={nodeType}
               />
             </div>
           )}

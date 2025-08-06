@@ -6,7 +6,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { DocumentNode, OperationVariables } from '@apollo/client';
 import { createEntityQuery, createEntityMutation } from '@/lib/graphql/hooks/factory';
-import { createStoreOperationHook, type OperationHookConfig } from '@/domain/person/hooks/factories/storeOpFactory';
+import { createStoreOperationHook, type OperationHookConfig } from './storeOpFactory';
 
 /**
  * Unified operation type

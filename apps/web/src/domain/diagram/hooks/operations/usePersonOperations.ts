@@ -5,7 +5,7 @@
  * Built using the store operation factory for consistency.
  */
 
-import { createStoreOperationHook } from './factories';
+import { createStoreOperationHook } from '@/infrastructure/hooks/factories';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { DomainPerson, personId } from '@/infrastructure/types';
 import type { NodeID,PersonID  } from '@dipeo/models';

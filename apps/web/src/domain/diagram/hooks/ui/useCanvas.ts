@@ -134,34 +134,42 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     if (readOnly || isMonitorMode) return;
     
     changes.forEach((change) => {
-      if (change.type === 'position' && change.position) {
-        const node = nodesMap.get(change.id as NodeID);
-        if (node) {
-          const tolerance = change.dragging ? 5 : 0.01;
-          const currentX = node.position?.x ?? 0;
-          const currentY = node.position?.y ?? 0;
-          const positionChanged = 
-            !isWithinTolerance(currentX, change.position.x, tolerance) ||
-            !isWithinTolerance(currentY, change.position.y, tolerance);
-          
-          if (positionChanged) {
-            updateNode(change.id as NodeID, { 
-              position: {
-                x: change.position.x,
-                y: change.position.y
-              }
-            });
+      if (change.type === 'position') {
+        if ('position' in change && change.position) {
+          const node = nodesMap.get(change.id as NodeID);
+          if (node) {
+            const tolerance = 'dragging' in change && change.dragging ? 5 : 0.01;
+            const currentX = node.position?.x ?? 0;
+            const currentY = node.position?.y ?? 0;
+            const positionChanged = 
+              !isWithinTolerance(currentX, change.position.x, tolerance) ||
+              !isWithinTolerance(currentY, change.position.y, tolerance);
+            
+            if (positionChanged) {
+              updateNode(change.id as NodeID, { 
+                position: {
+                  x: change.position.x,
+                  y: change.position.y
+                }
+              });
+            }
           }
         }
-      } else if (change.type === 'remove' && 'id' in change) {
-        deleteNode(change.id as NodeID);
-      } else if (change.type === 'select' && 'selected' in change && 'id' in change) {
-        if (change.selected) {
-          select(change.id as NodeID, 'node');
-        } else if (selectedId === change.id) {
-          clearSelection();
+      } else if (change.type === 'remove') {
+        if ('id' in change) {
+          deleteNode(change.id as NodeID);
+        }
+      } else if (change.type === 'select') {
+        if ('selected' in change && 'id' in change) {
+          if (change.selected) {
+            select(change.id as NodeID, 'node');
+          } else if (selectedId === change.id) {
+            clearSelection();
+          }
         }
       }
+      // For all other change types (add, reset, dimensions, replace, etc.)
+      // We don't need to do anything - React Flow handles them internally
     });
   }, [readOnly, isMonitorMode, isExecutionMode, nodesMap, updateNode, deleteNode, select, clearSelection, selectedId]);
   

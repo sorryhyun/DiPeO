@@ -159,7 +159,7 @@ const createStore = () => {
             state.handleIndex = rebuildHandleIndex(snapshot.handles);
           });
           
-          // Trigger array sync once through the diagram slice
+          // Trigger array sync once to update all arrays
           state.triggerArraySync();
         },
 
