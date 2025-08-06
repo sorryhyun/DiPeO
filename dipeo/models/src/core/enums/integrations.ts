@@ -9,7 +9,8 @@ export enum LLMService {
   GEMINI = 'gemini',
   BEDROCK = 'bedrock',
   VERTEX = 'vertex',
-  DEEPSEEK = 'deepseek'
+  DEEPSEEK = 'deepseek',
+  OLLAMA = 'ollama'
 }
 
 export enum APIServiceType {
@@ -20,6 +21,7 @@ export enum APIServiceType {
   BEDROCK = 'bedrock',
   VERTEX = 'vertex',
   DEEPSEEK = 'deepseek',
+  OLLAMA = 'ollama',
   NOTION = 'notion',
   GOOGLE_SEARCH = 'google_search',
   SLACK = 'slack',

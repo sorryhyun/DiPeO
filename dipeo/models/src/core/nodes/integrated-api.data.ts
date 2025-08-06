@@ -84,6 +84,7 @@ export const PROVIDER_OPERATIONS: Record<APIServiceType, string[]> = {
   [APIServiceType.BEDROCK]: [],
   [APIServiceType.VERTEX]: [],
   [APIServiceType.DEEPSEEK]: [],
+  [APIServiceType.OLLAMA]: [],
   [APIServiceType.GOOGLE_SEARCH]: [
     'search'
   ]

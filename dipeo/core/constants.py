@@ -35,6 +35,7 @@ VALID_LLM_SERVICES = {
     "anthropic",
     "gemini",
     "google",
+    "ollama",
 }
 
 DEFAULT_TIMEOUT = 30.0  # seconds
@@ -81,6 +82,10 @@ def normalize_service_name(service: str) -> str:
         "gpt-4": "openai",
         "gpt-3.5": "openai",
         "google": "gemini",
+        "llama": "ollama",
+        "mistral": "ollama",
+        "gemma": "ollama",
+        "phi": "ollama",
     }
 
     return aliases.get(normalized, normalized)

@@ -1,12 +1,10 @@
 """Server management for DiPeO CLI."""
 
-import json
 import subprocess
 import time
 from typing import Any
 
 import requests
-
 from dipeo.core.constants import BASE_DIR
 
 
@@ -23,7 +21,7 @@ class ServerManager:
         try:
             response = requests.get(f"{self.base_url}/health", timeout=1)
             return response.status_code == 200
-        except:
+        except Exception:
             return False
 
     def start(self, debug: bool = False) -> bool:
@@ -58,7 +56,7 @@ class ServerManager:
         )
 
         # Wait for server to be ready
-        for i in range(20):  # 10 seconds timeout
+        for _ in range(20):  # 10 seconds timeout
             time.sleep(0.5)
             if self.is_running():
                 print("✓ Server started successfully")
@@ -94,8 +92,8 @@ class ServerManager:
         """Execute a diagram via GraphQL."""
         query = """
         mutation ExecuteDiagram($diagramData: JSON, $variables: JSON, $useMonitoringStream: Boolean, $useUnifiedMonitoring: Boolean) {
-            execute_diagram(input: { 
-                diagram_data: $diagramData, 
+            execute_diagram(input: {
+                diagram_data: $diagramData,
                 variables: $variables,
                 use_monitoring_stream: $useMonitoringStream,
                 use_unified_monitoring: $useUnifiedMonitoring
@@ -224,7 +222,7 @@ class ServerManager:
                     "data" in result
                     and result["data"]["register_cli_session"]["success"]
                 ):
-                    print(f"📡 CLI session registered for monitoring")
+                    print("📡 CLI session registered for monitoring")
                     return True
         except Exception as e:
             print(f"[DEBUG] Failed to register CLI session: {e}")
@@ -250,7 +248,7 @@ class ServerManager:
 
             if response.status_code == 200:
                 return True
-        except:
+        except Exception:
             pass
 
         return False

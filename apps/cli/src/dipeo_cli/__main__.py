@@ -5,8 +5,11 @@ DiPeO CLI - Main entry point
 Minimal command-line interface for DiPeO diagram operations.
 """
 
-import sys
+import argparse
 import os
+import sys
+import warnings
+from typing import Any
 
 # Fix encoding issues on Windows
 if sys.platform == "win32":
@@ -19,10 +22,9 @@ if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
 
-import argparse
-import warnings
-
-from .cli import DiPeOCLI
+from .commands import ConvertCommand, MetricsCommand, RunCommand, UtilsCommand
+from .commands.base import DiagramLoader
+from .server_manager import ServerManager
 
 # Suppress non-critical warnings
 warnings.filterwarnings(
@@ -31,6 +33,91 @@ warnings.filterwarnings(
 warnings.filterwarnings(
     "ignore", message="Field name.*shadows an attribute", category=UserWarning
 )
+
+
+class DiPeOCLI:
+    """Minimal DiPeO CLI - thin orchestration layer."""
+
+    def __init__(self):
+        self.server = ServerManager()
+        
+        # Initialize command handlers
+        self.run_command = RunCommand(self.server)
+        self.convert_command = ConvertCommand()
+        self.metrics_command = MetricsCommand(self.server)
+        self.utils_command = UtilsCommand()
+
+    def run(
+        self,
+        diagram: str,
+        debug: bool = False,
+        no_browser: bool = False,
+        timeout: int = 300,
+        format_type: str | None = None,
+        input_variables: dict[str, Any] | None = None,
+        use_unified: bool = False,
+    ):
+        """Run a diagram via server."""
+        return self.run_command.execute(
+            diagram=diagram,
+            debug=debug,
+            no_browser=no_browser,
+            timeout=timeout,
+            format_type=format_type,
+            input_variables=input_variables,
+            use_unified=use_unified,
+        )
+
+    def convert(
+        self,
+        input_path: str,
+        output_path: str,
+        from_format: str | None = None,
+        to_format: str | None = None,
+    ):
+        """Convert between diagram formats."""
+        self.convert_command.execute(
+            input_path=input_path,
+            output_path=output_path,
+            from_format=from_format,
+            to_format=to_format,
+        )
+
+    def stats(self, diagram_path: str):
+        """Show diagram statistics."""
+        self.utils_command.stats(diagram_path)
+
+    def monitor(self, diagram_name: str | None = None):
+        """Open browser monitor."""
+        self.utils_command.monitor(diagram_name)
+
+    def metrics(
+        self,
+        execution_id: str | None = None,
+        diagram_id: str | None = None,
+        bottlenecks_only: bool = False,
+        optimizations_only: bool = False,
+        output_json: bool = False,
+    ):
+        """Display execution metrics."""
+        self.metrics_command.execute(
+            execution_id=execution_id,
+            diagram_id=diagram_id,
+            bottlenecks_only=bottlenecks_only,
+            optimizations_only=optimizations_only,
+            output_json=output_json,
+        )
+
+    # Compatibility methods for backward compatibility
+    def resolve_diagram_path(self, diagram: str, format_type: str | None = None) -> str:
+        """Resolve diagram path based on format type (backward compatibility)."""
+        loader = DiagramLoader()
+        return loader.resolve_diagram_path(diagram, format_type)
+
+    def load_diagram(self, file_path: str) -> dict[str, Any]:
+        """Load diagram from file (backward compatibility)."""
+        loader = DiagramLoader()
+        return loader.load_diagram(file_path)
 
 
 def main():
@@ -108,7 +195,7 @@ def main():
     # Monitor command
     monitor_parser = subparsers.add_parser("monitor", help="Open browser monitor")
     monitor_parser.add_argument("diagram", nargs="?", help="Diagram name")
-    
+
     # Metrics command
     metrics_parser = subparsers.add_parser("metrics", help="Display execution metrics")
     metrics_parser.add_argument(

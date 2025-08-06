@@ -163,6 +163,8 @@ class LLMService(str, Enum):
     
     DEEPSEEK = "deepseek"
     
+    OLLAMA = "ollama"
+    
 
 
 class APIServiceType(str, Enum):
@@ -181,6 +183,8 @@ class APIServiceType(str, Enum):
     VERTEX = "vertex"
     
     DEEPSEEK = "deepseek"
+    
+    OLLAMA = "ollama"
     
     NOTION = "notion"
     

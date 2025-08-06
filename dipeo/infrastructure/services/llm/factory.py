@@ -1,6 +1,6 @@
 """Factory for creating LLM adapters."""
 
-from ...adapters.llm import ChatGPTAdapter, ClaudeAdapter, GeminiAdapter
+from ...adapters.llm import ChatGPTAdapter, ClaudeAdapter, GeminiAdapter, OllamaAdapter
 from .base import BaseLLMAdapter
 
 
@@ -15,4 +15,6 @@ def create_adapter(
         return ChatGPTAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
     if provider in ["google", "gemini"]:
         return GeminiAdapter(model_name=model_name, api_key=api_key)
+    if provider == "ollama":
+        return OllamaAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
     raise ValueError(f"Unsupported provider: {provider}")
