@@ -1,13 +1,13 @@
 import { StateCreator } from 'zustand';
-import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/core/types';
-import { generateArrowId } from '@/core/types/utilities';
+import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/infrastructure/types';
+import { generateArrowId } from '@/infrastructure/types/utilities';
 import { 
   Converters, 
   NodeFactory, 
   NodeService, 
   ValidationService,
   DiagramOperations 
-} from '@/services';
+} from '@/infrastructure/services';
 import { UnifiedStore } from '@/infrastructure/store/types';
 import { recordHistory } from '@/infrastructure/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';

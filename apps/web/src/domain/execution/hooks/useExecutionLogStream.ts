@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { executionId } from '@/core/types';
+import { executionId } from '@/infrastructure/types';
 
 interface LogEntry {
   level: string;

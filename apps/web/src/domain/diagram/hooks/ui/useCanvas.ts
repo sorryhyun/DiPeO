@@ -11,7 +11,7 @@ import { type NodeChange, type EdgeChange, type Connection } from '@xyflow/react
 import { isWithinTolerance } from '@/lib/utils/math';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useUIState } from '@/infrastructure/store/hooks/state';
-import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
+import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/infrastructure/types';
 import { DiagramAdapter } from '@/domain/diagram/adapters/DiagramAdapter';
 import { NodeType, type NodeID, type ArrowID, type HandleID } from '@dipeo/models';
 

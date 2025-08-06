@@ -1,4 +1,4 @@
-import { DomainHandle, HandleID, NodeID } from '@/core/types';
+import { DomainHandle, HandleID, NodeID } from '@/infrastructure/types';
 
 /**
  * Rebuilds the handle index from the handles Map

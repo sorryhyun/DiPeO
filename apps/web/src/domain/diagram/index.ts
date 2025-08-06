@@ -11,29 +11,29 @@
  * DiagramCanvas - The main canvas component for diagram editing
  * Use this as the primary entry point for embedding the diagram editor
  */
-export { default as DiagramCanvas } from '@/components/diagram/DiagramCanvas';
+export { default as DiagramCanvas } from '@/ui/components/diagram/DiagramCanvas';
 
 /**
  * DiagramFileManager - Component for managing diagram file operations
  * Handles loading, saving, and listing diagram files
  */
-export { DiagramFileManager } from '@/components/diagram/DiagramFileManager';
+export { DiagramFileManager } from '@/ui/components/diagram/DiagramFileManager';
 
 /**
  * DiagramSidebar - Sidebar component with node palette
  * Used for displaying available node types that can be dragged onto the canvas
  */
-export { DiagramSidebar } from '@/components/diagram/sidebar/DiagramSidebar';
+export { DiagramSidebar } from '@/ui/components/diagram/sidebar/DiagramSidebar';
 
 
 // Node Components
 /**
  * Node-related exports for customization and extension
  */
-export { BaseNode } from '@/components/diagram/nodes/BaseNode';
-export { default as ConfigurableNode } from '@/components/diagram/nodes/ConfigurableNode';
-export { default as PersonNode } from '@/components/diagram/nodes/PersonNode';
-export { default as nodeTypes } from '@/components/diagram/nodes/nodeTypes';
+export { BaseNode } from '@/ui/components/diagram/nodes/BaseNode';
+export { default as ConfigurableNode } from '@/ui/components/diagram/nodes/ConfigurableNode';
+export { default as PersonNode } from '@/ui/components/diagram/nodes/PersonNode';
+export { default as nodeTypes } from '@/ui/components/diagram/nodes/nodeTypes';
 
 
 // Hooks
@@ -85,7 +85,7 @@ export type {
   DomainDiagram,
   NodeID,
   ArrowID
-} from '@/core/types/domain';
+} from '@/infrastructure/types/domain';
 
 
 // Utilities
@@ -125,7 +125,7 @@ export {
   useCanvasState,
   useCanvasOperations,
   useIsCanvasReadOnly
-} from '@/shared/contexts/CanvasContext';
+} from '@/domain/diagram/contexts';
 
 
 // ============================================
@@ -137,24 +137,24 @@ export {
  * Use this as the primary entry point for embedding the properties editor
  * Automatically syncs with selected nodes in the diagram
  */
-export { PropertyPanel } from '@/components/properties/PropertyPanel';
+export { PropertyPanel } from '@/ui/components/properties/PropertyPanel';
 
 /**
  * PropertiesTab - Tab component for organizing property sections
  * Used within PropertyPanel to group related properties
  */
-export { PropertiesTab } from '@/components/properties/PropertiesTab';
+export { PropertiesTab } from '@/ui/components/properties/PropertiesTab';
 
 /**
  * Unified form field component for property editing
  * Automatically renders the appropriate field type based on configuration
  */
-export { UnifiedFormField } from '@/components/properties/fields';
+export { UnifiedFormField } from '@/ui/components/properties/fields';
 
 /**
  * Core form components for building custom property forms
  */
-export * from '@/components/properties/fields/FormComponents';
+export * from '@/ui/components/properties/fields/FormComponents';
 
 /**
  * usePropertyManager - Main hook for property management
@@ -174,7 +174,7 @@ export type {
 /**
  * Re-export validation types from core
  */
-export type { ValidationResult, FieldType } from '@/core/types/panel';
+export type { ValidationResult, FieldType } from '@/infrastructure/types/panel';
 
 /**
  * Panel configurations for specific entity types

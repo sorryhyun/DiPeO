@@ -7,7 +7,7 @@
 
 
 // Auto-generated node configuration for user_response
-import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { userResponseFields } from '../fields/UserResponseFields';
 

@@ -62,7 +62,7 @@ export type {
   PersonID,
   LLMService,
   PersonLLMConfig
-} from '@/core/types/domain';
+} from '@/infrastructure/types/domain';
 
 // ============================================
 // Constants

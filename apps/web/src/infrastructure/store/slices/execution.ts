@@ -1,5 +1,5 @@
 import {StateCreator} from 'zustand';
-import {NodeID} from '@/core/types';
+import {NodeID} from '@/infrastructure/types';
 import {UnifiedStore} from '@/infrastructure/store/types';
 import {
   type DiagramID,
@@ -11,10 +11,10 @@ import {
   EventType,
   type ExecutionUpdate,
 } from '@dipeo/models';
-import { ExecutionConverter, type StoreNodeState, type StoreExecutionState } from '@/services/conversion';
+import { ExecutionConverter, type StoreNodeState, type StoreExecutionState } from '@/infrastructure/converters';
 
 // Re-export store types from converter
-export type { StoreNodeState as NodeState, StoreExecutionState as ExecutionState } from '@/services/conversion';
+export type { StoreNodeState as NodeState, StoreExecutionState as ExecutionState } from '@/infrastructure/converters';
 
 /**
  * Convert store NodeState to domain NodeState

@@ -7,7 +7,7 @@
 
 
 // Generated field configuration for person_job
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
 export const personJobFields: UnifiedFieldDefinition[] = [
   {

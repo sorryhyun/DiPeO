@@ -2,7 +2,7 @@
 
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../unifiedStore';
-import { NodeID, NodeType } from '@/core/types';
+import { NodeID, NodeType } from '@/infrastructure/types';
 
 // === UI State ===
 

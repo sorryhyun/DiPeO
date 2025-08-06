@@ -7,7 +7,7 @@
 
 
 // Auto-generated node configuration for sub_diagram
-import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { subDiagramFields } from '../fields/SubDiagramFields';
 

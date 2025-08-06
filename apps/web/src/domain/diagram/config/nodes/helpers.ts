@@ -1,5 +1,5 @@
 import { NodeType } from '@dipeo/models';
-import { derivePanelConfig } from '@/core/config/unifiedConfig';
+import { derivePanelConfig } from '@/infrastructure/config/unifiedConfig';
 import { ENTITY_PANEL_CONFIGS } from '@/domain/diagram/config';
 import { getNodeConfig } from '../nodeRegistry';
 

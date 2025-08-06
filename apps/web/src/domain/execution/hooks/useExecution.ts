@@ -10,7 +10,7 @@ import { ApolloError } from '@apollo/client';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import {type DomainDiagram, diagramId, executionId } from '@/core/types';
+import {type DomainDiagram, diagramId, executionId } from '@/infrastructure/types';
 import type { ExecutionOptions, InteractivePromptData } from '@/domain/execution/types/execution';
 import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/models';
 import { createCommonStoreSelector } from '@/infrastructure/store/selectorFactory';

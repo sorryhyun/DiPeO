@@ -2,7 +2,7 @@
  * Form field validation and utility types
  */
 
-import { FIELD_TYPES, type ValidationResult, type FieldType } from '@/core/types/panel';
+import { FIELD_TYPES, type ValidationResult, type FieldType } from '@/infrastructure/types/panel';
 
 /**
  * Property field types for form rendering
@@ -20,7 +20,7 @@ export type PropertyFieldType =
  * Map property field types to base field types
  */
 // Import from centralized field type registry
-import { PROPERTY_TO_BASE_FIELD_TYPE } from '@/core/types/fieldTypeRegistry';
+import { PROPERTY_TO_BASE_FIELD_TYPE } from '@/infrastructure/types/fieldTypeRegistry';
 export { PROPERTY_TO_BASE_FIELD_TYPE };
 
 /**

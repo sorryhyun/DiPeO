@@ -1,9 +1,9 @@
 import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/models';
-import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/core/types';
+import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/infrastructure/types';
 import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import { Converters } from '@/services/conversion';
+import { Converters } from '@/infrastructure/converters';
 import { stripTypenames } from '@/lib/utils';
 
 export interface SerializedDiagram {

@@ -22,13 +22,13 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType, MemoryView } from '@/core/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType, MemoryView } from '@/infrastructure/types';
 
-import { generateId } from '@/core/types/utilities';
+import { generateId } from '@/infrastructure/types/utilities';
 import { HandleDirection, HandleLabel } from '@dipeo/models';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
-import { Converters } from '@/services/conversion';
-import { ValidationService } from '@/services/domain';
+import { Converters } from '@/infrastructure/converters';
+import { ValidationService } from '@/infrastructure/services';
 
 /**
  * React Flow specific diagram representation

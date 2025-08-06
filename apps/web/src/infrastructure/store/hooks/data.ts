@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '../unifiedStore';
-import type { NodeID, ArrowID, PersonID, HandleID } from '@/core/types';
+import type { NodeID, ArrowID, PersonID, HandleID } from '@/infrastructure/types';
 
 // === Entity Data Hooks ===
 

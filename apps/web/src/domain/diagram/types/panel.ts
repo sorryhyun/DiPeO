@@ -13,7 +13,7 @@ import type {
   DBFormData as BaseDBFormData,
   DBNodeData,
   HookNodeData
-} from '@/core/types/type-factories';
+} from '@/infrastructure/types/type-factories';
 
 // Import shared panel types
 import type {
@@ -21,7 +21,7 @@ import type {
   PanelFormData,
   ConditionalConfig,
   OptionsConfig
-} from '@/core/types/panel';
+} from '@/infrastructure/types/panel';
 
 // Re-export types
 export type {
@@ -77,4 +77,4 @@ export interface PersonFormData extends Record<string, unknown> {
 export type {
   TypedPanelFieldConfig,
   PanelLayoutConfig
-} from '@/core/types/panel';
+} from '@/infrastructure/types/panel';

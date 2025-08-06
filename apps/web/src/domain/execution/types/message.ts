@@ -3,4 +3,4 @@ export type {
   InteractivePromptData,
   ConversationFilters,
   UIConversationMessage 
-} from '@/core/types/conversation';
+} from '@/infrastructure/types/conversation';

@@ -1,4 +1,4 @@
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 import { getGeneratedFields } from '@/__generated__/fields';
 import { createZodFieldValidator } from '@/__generated__/schemas';
 

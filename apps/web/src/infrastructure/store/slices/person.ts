@@ -1,9 +1,9 @@
 import { StateCreator } from 'zustand';
-import { DomainPerson, PersonID, apiKeyId } from '@/core/types';
-import { generatePersonId } from '@/core/types/utilities';
+import { DomainPerson, PersonID, apiKeyId } from '@/infrastructure/types';
+import { generatePersonId } from '@/infrastructure/types/utilities';
 import { LLMService } from '@dipeo/models';
 import { UnifiedStore } from '@/infrastructure/store/types';
-import { Converters } from '@/services';
+import { Converters } from '@/infrastructure/services';
 
 export interface PersonSlice {
   // Core data

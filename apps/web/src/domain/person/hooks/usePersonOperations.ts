@@ -7,7 +7,7 @@
 
 import { createStoreOperationHook } from './factories';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import { DomainPerson, personId } from '@/core/types';
+import { DomainPerson, personId } from '@/infrastructure/types';
 import type { NodeID,PersonID  } from '@dipeo/models';
 
 // Create the hook using our factory

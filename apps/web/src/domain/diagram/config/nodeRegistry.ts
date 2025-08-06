@@ -1,4 +1,4 @@
-import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
+import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType } from '@dipeo/models';
 
 /**

@@ -5,7 +5,7 @@
  * by pre-indexing handles by node_id instead of filtering arrays.
  */
 
-import { DomainHandle, NodeID } from '@/core/types';
+import { DomainHandle, NodeID } from '@/infrastructure/types';
 
 /**
  * Creates an index of handles grouped by node_id for O(1) lookups

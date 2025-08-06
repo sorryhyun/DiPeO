@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { ArrowID, NodeID, PersonID } from '@/core/types';
+import { ArrowID, NodeID, PersonID } from '@/infrastructure/types';
 import { Vec2 } from '@dipeo/models';
 import { UnifiedStore } from '../types';
 

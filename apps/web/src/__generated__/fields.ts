@@ -15,7 +15,7 @@
  * To customize fields, use the override system in each node's config file.
  */
 
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
 export interface GeneratedFieldConfigs {
   [nodeType: string]: UnifiedFieldDefinition[];

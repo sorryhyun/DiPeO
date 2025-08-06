@@ -7,7 +7,7 @@
 
 
 // Generated field configuration for typescript_ast
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
 export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {

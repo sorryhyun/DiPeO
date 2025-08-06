@@ -1,6 +1,6 @@
-import { DomainNode } from '@/core/types';
+import { DomainNode } from '@/infrastructure/types';
 import { NodeType, Vec2 } from '@dipeo/models';
-import { generateNodeId } from '@/core/types/utilities';
+import { generateNodeId } from '@/infrastructure/types/utilities';
 import { getNodeConfig, generateNodeLabel } from '@/domain/diagram/config/nodes';
 
 // Helper to create a node

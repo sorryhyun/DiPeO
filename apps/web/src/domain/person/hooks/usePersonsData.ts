@@ -1,6 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import type { DomainPerson } from '@/core/types';
+import type { DomainPerson } from '@/infrastructure/types';
 import { NodeType, PersonID } from '@dipeo/models';
 
 interface PersonsData {

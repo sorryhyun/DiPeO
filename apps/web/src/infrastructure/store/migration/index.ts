@@ -3,7 +3,7 @@ import { useUnifiedStore } from '../index';
 import type { DiagramSlice } from '@/infrastructure/store/slices/diagram';
 import type { ExecutionSlice } from '@/infrastructure/store/slices/execution';
 import type { PersonSlice } from '@/infrastructure/store/slices/person';
-import type { StoreExecutionState } from '@/services/conversion';
+import type { StoreExecutionState } from '@/infrastructure/converters';
 
 /**
  * Migration utilities for transitioning from feature-based stores to unified store

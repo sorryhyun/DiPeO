@@ -1,4 +1,4 @@
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 import { getGeneratedFields as getDomainFields } from '@/__generated__/fields';
 import { NODE_FIELD_OVERRIDES, mergeFieldConfigs } from './fieldOverrides';
 

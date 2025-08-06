@@ -1,8 +1,8 @@
 import { useMemo, useCallback } from 'react';
 import { useResource, type ResourceOperations } from '../core/useResource';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import { DiagramConverter } from '@/services/conversion';
-import { Converters } from '@/services';
+import { DiagramConverter } from '@/infrastructure/converters';
+import { Converters } from '@/infrastructure/services';
 import { DiagramFormat, type DomainDiagram, type DomainNode } from '@dipeo/models';
 import { 
   useGetDiagramQuery,

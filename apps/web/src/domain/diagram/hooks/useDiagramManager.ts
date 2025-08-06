@@ -4,7 +4,7 @@ import { useCanvas } from './ui/useCanvas';
 import { useExecution } from '@/domain/execution/hooks/useExecution';
 import { useFileOperations } from '@/domain/diagram/hooks';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import { useDebouncedSave } from '@/shared/hooks/useDebouncedSave';
+import { useDebouncedSave } from '@/infrastructure/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';
 import type { ExecutionOptions } from '@/domain/execution/types/execution';
 import { DiagramFormat } from '@dipeo/models';
