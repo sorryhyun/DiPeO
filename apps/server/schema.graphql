@@ -6,6 +6,7 @@ enum APIServiceType {
   BEDROCK
   VERTEX
   DEEPSEEK
+  OLLAMA
   NOTION
   GOOGLE_SEARCH
   SLACK
@@ -324,6 +325,7 @@ enum LLMService {
   BEDROCK
   VERTEX
   DEEPSEEK
+  OLLAMA
 }
 
 type Mutation {

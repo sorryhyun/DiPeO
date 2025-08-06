@@ -132,7 +132,15 @@ class LLMInfraService(BaseService, LLMServicePort):
             if messages is None:
                 messages = []
             
-            service = self._infer_service_from_model(model)
+            # Use explicitly passed service if available, otherwise infer from model
+            service = kwargs.pop('service', None)
+            if service:
+                # Normalize the service name if it's an enum or has a value attribute
+                if hasattr(service, 'value'):
+                    service = service.value
+                service = normalize_service_name(str(service))
+            else:
+                service = self._infer_service_from_model(model)
             is_valid, error_msg = self._llm_domain_service.validate_model_config(
                 provider=service,
                 model=model,

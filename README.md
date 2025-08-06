@@ -25,6 +25,17 @@ That's it! This will:
 - Generate required code
 - Start both frontend and backend services
 
+## ollama supports
+- Now we support ollama. All you have to do is add random api key to the file and write the diagram as:
+```yaml
+persons:
+  person 1:
+    service: ollama
+    model: gpt-oss:20b
+    api_key_id: APIKEY_21A814
+```
+read [example](files/diagrams/examples/simple_iter_ollama.light.yaml)
+
 ## Essential Scripts
 
 ### Makefile Commands
@@ -50,9 +61,3 @@ dipeo run files/diagrams/examples/simple_iter.light.yaml --light --debug
 - Node.js 22+ with pnpm 10+
 - Python 3.13+
 - tmux (optional, for better parallel execution)
-
-
-## 0.3.0 Release will include:
-- hook node for general event hooks. i.e. youtube subtitle generator
-- Gemini, Claude support
-- Custom LLM support

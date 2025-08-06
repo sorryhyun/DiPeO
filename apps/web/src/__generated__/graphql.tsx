@@ -64,6 +64,7 @@ export enum APIServiceType {
   GOOGLE_SEARCH = 'GOOGLE_SEARCH',
   JIRA = 'JIRA',
   NOTION = 'NOTION',
+  OLLAMA = 'OLLAMA',
   OPENAI = 'OPENAI',
   SLACK = 'SLACK',
   VERTEX = 'VERTEX'

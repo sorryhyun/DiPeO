@@ -3,7 +3,8 @@ import {
   CreateApiKeyDocument,
   DeleteApiKeyDocument,
   TestApiKeyDocument,
-  GetAvailableModelsDocument
+  GetAvailableModelsDocument,
+  APIServiceType
 } from '@/__generated__/graphql';
 import { createEntityQuery, createEntityMutation, createResponseHandler } from '@/lib/graphql/hooks';
 
@@ -69,10 +70,15 @@ export const useApiKeyOperations = () => {
   const [testMutation, { loading: testingApiKey }] = useTestApiKeyMutation();
 
   // Wrapper functions with proper typing
-  const createApiKey = async (label: string, service: string, key: string) => {
+  const createApiKey = async (label: string, service: string | APIServiceType, key: string) => {
+    // Convert string to enum if needed
+    const serviceEnum = Object.values(APIServiceType).includes(service as APIServiceType) 
+      ? service as APIServiceType
+      : APIServiceType[service.toUpperCase() as keyof typeof APIServiceType] || service as APIServiceType;
+    
     const result = await createMutation({
       variables: {
-        input: { label, service, key }
+        input: { label, service: serviceEnum, key }
       }
     });
     

@@ -19,6 +19,7 @@ const getServiceDisplayName = (service: string): string => {
     GOOGLE: 'Google AI',
     GEMINI: 'Google Gemini',
     DEEPSEEK: 'DeepSeek',
+    OLLAMA: 'Ollama (Local)',
     NOTION: 'Notion',
     GOOGLE_SEARCH: 'Google Search',
     SLACK: 'Slack',
@@ -71,17 +72,26 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
       return;
     }
     
+    // Special handling for Ollama - accept 'ollama' or 'OLLAMA' as the API key
+    const serviceUpper = newKeyForm.service.trim().toUpperCase();
+    const isOllama = serviceUpper === 'OLLAMA';
+    
     if (!newKeyForm.key?.trim()) {
       setErrors({ key: 'API key is required' });
       return;
     }
+    
+    // For Ollama, if user types 'ollama' or 'OLLAMA' as the key, treat it as valid
+    const apiKey = isOllama && (newKeyForm.key.trim().toLowerCase() === 'ollama' || newKeyForm.key.trim().toUpperCase() === 'OLLAMA')
+      ? 'ollama' // Use a placeholder for Ollama
+      : newKeyForm.key.trim();
 
     try {
       // Use GraphQL mutation
       await graphQLOperations.createApiKey(
         newKeyForm.label.trim(),
-        newKeyForm.service!.trim().toUpperCase(),
-        newKeyForm.key.trim()
+        serviceUpper,
+        apiKey
       );
       
       // Reset form
@@ -204,7 +214,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               />
               {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Available: OPENAI, ANTHROPIC, GEMINI, DEEPSEEK, NOTION, GOOGLE_SEARCH, SLACK, GITHUB, JIRA, BEDROCK, VERTEX
+                Available: OPENAI, ANTHROPIC, GEMINI, DEEPSEEK, OLLAMA, NOTION, GOOGLE_SEARCH, SLACK, GITHUB, JIRA, BEDROCK, VERTEX
               </p>
             </div>
             
@@ -214,12 +224,17 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               </label>
               <Input
                 type="password"
-                placeholder="sk-..."
+                placeholder={newKeyForm.service?.toUpperCase() === 'OLLAMA' ? "Type 'ollama' for local models" : "sk-..."}
                 value={newKeyForm.key || ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKeyForm({ ...newKeyForm, key: e.target.value })}
                 className={errors.key ? 'border-red-500' : ''}
               />
               {errors.key && <p className="text-red-500 text-sm mt-1">{errors.key}</p>}
+              {newKeyForm.service?.toUpperCase() === 'OLLAMA' && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  For Ollama, type 'ollama' as the API key (local models don't require authentication)
+                </p>
+              )}
             </div>
             
             <Button

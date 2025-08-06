@@ -4,159 +4,94 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 50,
+        "x": 330,
         "y": 200
       },
       "data": {
         "label": "start",
-        "custom_data": {
-          "message": "Starting batch generation using v2 template job approach"
-        },
+        "trigger_mode": "manual",
+        "custom_data": {},
         "output_data_structure": {}
       }
     },
     {
       "id": "node_1",
-      "type": "sub_diagram",
+      "type": "person_job",
       "position": {
-        "x": 200,
-        "y": 200
+        "x": 632,
+        "y": 231
       },
       "data": {
-        "label": "parse all typescript",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/shared/parse_typescript_batch",
-        "ignoreIfSub": true,
-        "passInputData": false
+        "label": "printer",
+        "default_prompt": "say hi",
+        "max_iteration": 3,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_2",
-      "type": "db",
+      "type": "condition",
       "position": {
-        "x": 350,
-        "y": 200
+        "x": 620,
+        "y": 425
       },
       "data": {
-        "label": "discover node specs",
-        "glob": true,
-        "operation": "read",
-        "serialize_json": true,
-        "sub_type": "file",
-        "file": [
-          "temp/specifications/nodes/*.spec.ts.json"
+        "label": "condition",
+        "condition_type": "detect_max_iterations",
+        "flipped": [
+          true,
+          true
         ]
       }
     },
     {
       "id": "node_3",
-      "type": "code_job",
+      "type": "endpoint",
       "position": {
-        "x": 500,
-        "y": 200
+        "x": 0,
+        "y": 437
       },
       "data": {
-        "label": "prepare node list",
-        "filePath": "files/codegen/code/frontend/prepare_node_list_from_specs.py",
-        "functionName": "prepare_node_list_from_specs",
-        "language": "python"
+        "label": "endpoint",
+        "file_format": "txt",
+        "flipped": [
+          true,
+          false
+        ],
+        "save_to_file": true,
+        "file_name": "files/results/total.txt"
       }
     },
     {
       "id": "node_4",
-      "type": "sub_diagram",
+      "type": "person_job",
       "position": {
-        "x": 700,
-        "y": 200
+        "x": 311,
+        "y": 443
       },
       "data": {
-        "label": "batch generate frontend",
-        "batch": true,
-        "batch_input_key": "items",
-        "batch_parallel": true,
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/frontend/generate_frontend_single"
-      }
-    },
-    {
-      "id": "node_5",
-      "type": "code_job",
-      "position": {
-        "x": 900,
-        "y": 200
-      },
-      "data": {
-        "label": "process results",
-        "code": "# Process batch results\nbatch_results = inputs.get('default', {})\n\ntotal = batch_results.get('total_items', 0)\nsuccessful = batch_results.get('successful', 0)\nfailed = batch_results.get('failed', 0)\n\nprint(f\"\\n=== TypeScript Batch Generation Summary ===\")\nprint(f\"Total items: {total}\")\nprint(f\"Successful: {successful}\")\nprint(f\"Failed: {failed}\")\n\nif batch_results.get('errors'):\n    print(\"\\nErrors:\")\n    for error in batch_results['errors']:\n        print(f\"  - Item {error['index']}: {error['error']}\")\n\n# Extract generated file counts\nresults = batch_results.get('results', [])\ntotal_files = 0\nfor r in results:\n    if isinstance(r, dict) and 'files_generated' in r:\n        total_files += r['files_generated']\n\nresult = {\n    'message': f'TypeScript batch generation completed: {successful}/{total} successful',\n    'total_files_generated': total_files,\n    'status': 'success' if failed == 0 else 'partial_failure'\n}\n",
-        "language": "python"
-      }
-    },
-    {
-      "id": "node_6",
-      "type": "sub_diagram",
-      "position": {
-        "x": 1100,
-        "y": 200
-      },
-      "data": {
-        "label": "generate registry",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/frontend/generate_frontend_registry",
-        "passInputData": false
-      }
-    },
-    {
-      "id": "node_7",
-      "type": "sub_diagram",
-      "position": {
-        "x": 1300,
-        "y": 200
-      },
-      "data": {
-        "label": "generate graphql queries",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/frontend/generate_graphql_queries",
-        "passInputData": false
-      }
-    },
-    {
-      "id": "node_8",
-      "type": "sub_diagram",
-      "position": {
-        "x": 1300,
-        "y": 300
-      },
-      "data": {
-        "label": "generate zod schemas",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/frontend/generate_zod_schemas_v2",
-        "passInputData": false
-      }
-    },
-    {
-      "id": "node_9",
-      "type": "sub_diagram",
-      "position": {
-        "x": 1300,
-        "y": 400
-      },
-      "data": {
-        "label": "generate field configs",
-        "diagram_format": "light",
-        "diagram_name": "codegen/diagrams/frontend/generate_field_configs_v2",
-        "passInputData": false
-      }
-    },
-    {
-      "id": "node_10",
-      "type": "endpoint",
-      "position": {
-        "x": 1500,
-        "y": 200
-      },
-      "data": {
-        "label": "end",
-        "save_to_file": false
+        "label": "ask",
+        "default_prompt": "How many times did you respond?",
+        "flipped": [
+          true,
+          false
+        ],
+        "max_iteration": 1,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "first_only_prompt": ""
       }
     }
   ],
@@ -175,90 +110,50 @@
       "target": "node_2_default_input",
       "label": null,
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "conversation_state"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_default_output",
-      "target": "node_3_default_input",
+      "source": "node_2_condfalse_output",
+      "target": "node_1_default_input",
       "label": null,
-      "data": null,
-      "content_type": "raw_text"
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "conversation_state"
     },
     {
       "id": "arrow_3",
-      "source": "node_3_default_output",
+      "source": "node_2_condtrue_output",
       "target": "node_4_default_input",
       "label": null,
-      "data": null,
-      "content_type": "raw_text"
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "conversation_state"
     },
     {
       "id": "arrow_4",
       "source": "node_4_default_output",
-      "target": "node_5_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_5",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_6",
-      "source": "node_6_default_output",
-      "target": "node_7_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_7",
-      "source": "node_6_default_output",
-      "target": "node_8_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_8",
-      "source": "node_6_default_output",
-      "target": "node_9_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_9",
-      "source": "node_7_default_output",
-      "target": "node_10_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_10",
-      "source": "node_8_default_output",
-      "target": "node_10_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_11",
-      "source": "node_9_default_output",
-      "target": "node_10_default_input",
+      "target": "node_3_default_input",
       "label": null,
       "data": null,
       "content_type": "raw_text"
     }
   ],
-  "persons": [],
+  "persons": [
+    {
+      "id": "person_person_1",
+      "label": "person 1",
+      "llm_config": {
+        "service": "ollama",
+        "model": "gpt-oss:20b",
+        "api_key_id": "APIKEY_21A814",
+        "system_prompt": null
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -267,6 +162,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_1_first_input",
+      "node_id": "node_1",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -293,11 +196,19 @@
       "position": "left"
     },
     {
-      "id": "node_2_default_output",
+      "id": "node_2_condtrue_output",
       "node_id": "node_2",
-      "label": "default",
+      "label": "condtrue",
       "direction": "output",
-      "data_type": "any",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_2_condfalse_output",
+      "node_id": "node_2",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
       "position": "right"
     },
     {
@@ -309,12 +220,12 @@
       "position": "left"
     },
     {
-      "id": "node_3_default_output",
-      "node_id": "node_3",
-      "label": "default",
-      "direction": "output",
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
       "data_type": "any",
-      "position": "right"
+      "position": "left"
     },
     {
       "id": "node_4_default_input",
@@ -331,94 +242,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_5_default_input",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_5_default_output",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_6_default_input",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_6_default_output",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_7_default_input",
-      "node_id": "node_7",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_7_default_output",
-      "node_id": "node_7",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_8_default_input",
-      "node_id": "node_8",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_8_default_output",
-      "node_id": "node_8",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_9_default_input",
-      "node_id": "node_9",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_9_default_output",
-      "node_id": "node_9",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_10_default_input",
-      "node_id": "node_10",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     }
   ],
   "metadata": {
@@ -426,8 +249,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-06T11:17:48.053Z",
-    "modified": "2025-08-06T11:17:48.053Z",
+    "created": "2025-08-06T12:30:55.552Z",
+    "modified": "2025-08-06T12:30:55.552Z",
     "version": "1.0.0",
     "id": null
   }
