@@ -164,7 +164,6 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           const selectedKey = apiKeysData.api_keys.find((k) => k.id === value);
           if (selectedKey) {
             updates['llm_config.service'] = selectedKey.service;
-          } else {
           }
         } catch (error) {
           console.error('Failed to update service:', error);

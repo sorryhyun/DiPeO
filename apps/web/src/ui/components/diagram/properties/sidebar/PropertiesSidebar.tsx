@@ -6,8 +6,8 @@ import { PersonID, DomainArrow, NodeID, ArrowID } from '@/infrastructure/types';
 import { SidebarLayout } from '@/ui/components/common/layout/SidebarLayout';
 
 // Lazy load PropertyPanel as it's only used in right sidebar
-const PropertiesPanelComponent = React.lazy(() => import('@/ui/components/properties/PropertyPanel').then(m => ({ default: m.PropertyPanel })));
-import type { UniversalData } from '@/ui/components/properties/PropertyPanel';
+const PropertiesPanelComponent = React.lazy(() => import('@/ui/components/diagram/properties/PropertyPanel').then(m => ({ default: m.PropertyPanel })));
+import type { UniversalData } from '@/ui/components/diagram/properties/PropertyPanel';
 
 export const PropertiesSidebar = React.memo(() => {
   const { state } = useCanvas();

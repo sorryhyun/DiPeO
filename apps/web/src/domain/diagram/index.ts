@@ -137,24 +137,24 @@ export {
  * Use this as the primary entry point for embedding the properties editor
  * Automatically syncs with selected nodes in the diagram
  */
-export { PropertyPanel } from '@/ui/components/properties/PropertyPanel';
+export { PropertyPanel } from '@/ui/components/diagram/properties/PropertyPanel';
 
 /**
  * PropertiesTab - Tab component for organizing property sections
  * Used within PropertyPanel to group related properties
  */
-export { PropertiesTab } from '@/ui/components/properties/PropertiesTab';
+export { PropertiesTab } from '@/ui/components/diagram/properties/PropertiesTab';
 
 /**
  * Unified form field component for property editing
  * Automatically renders the appropriate field type based on configuration
  */
-export { UnifiedFormField } from '@/ui/components/properties/fields';
+export { UnifiedFormField } from '@/ui/components/diagram/properties/fields';
 
 /**
  * Core form components for building custom property forms
  */
-export * from '@/ui/components/properties/fields/FormComponents';
+export * from '@/ui/components/diagram/properties/fields/FormComponents';
 
 /**
  * usePropertyManager - Main hook for property management

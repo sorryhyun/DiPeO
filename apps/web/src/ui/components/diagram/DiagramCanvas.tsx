@@ -32,7 +32,7 @@ import { DomainArrow, arrowId, nodeId, PersonID, NodeType } from '@/infrastructu
 import { DiagramAdapter } from '@/domain/diagram/adapters/DiagramAdapter';
 
 const PropertiesTab = React.lazy(
-  () => import("@/ui/components/properties/PropertiesTab")
+  () => import("@/ui/components/diagram/properties/PropertiesTab")
 );
 const ConversationTab = React.lazy(
   () => import("@/ui/components/conversation/ConversationTab")

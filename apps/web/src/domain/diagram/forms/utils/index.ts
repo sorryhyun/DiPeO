@@ -1,1 +1,1 @@
-export { useEvent } from './useEvent';
+export { useEvent } from '@/infrastructure/hooks/core/useEvent';

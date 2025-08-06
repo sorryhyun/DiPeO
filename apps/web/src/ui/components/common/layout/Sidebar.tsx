@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 
 // Lazy load feature-specific sidebars
 const DiagramSidebar = React.lazy(() => import('@/ui/components/diagram/sidebar/DiagramSidebar'));
-const PropertiesSidebar = React.lazy(() => import('@/ui/components/properties/sidebar/PropertiesSidebar'));
+const PropertiesSidebar = React.lazy(() => import('@/ui/components/diagram/properties/sidebar/PropertiesSidebar'));
 
 interface SidebarProps {
   position: 'left' | 'right';

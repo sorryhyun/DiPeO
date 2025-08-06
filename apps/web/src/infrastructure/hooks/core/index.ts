@@ -22,3 +22,5 @@ export type {
   FieldHelpers, 
   UseFormReturn 
 } from './useForm';
+
+export { useEvent } from './useEvent';

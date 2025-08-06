@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Input, Select, Switch } from '@/ui/components/common/forms';
-import { Button } from '@/ui/components/common/forms/buttons';
+import { Button, FileUploadButton } from '@/ui/components/common/forms/buttons';
 import { Spinner } from '@/ui/components/common/feedback';
-import { FileUploadButton } from '@/ui/components/common/forms/buttons';
 import { FileText } from 'lucide-react';
 import { 
   FULL_WIDTH, SPACE_Y_2, TEXTAREA_CLASSES, LABEL_TEXT, 
@@ -14,8 +13,7 @@ import { FIELD_TYPES } from '@/infrastructure/types/panel';
 import { LEGACY_TYPE_MAP } from '@/infrastructure/types/fieldTypeRegistry';
 import { PromptFileButton } from '../PromptFileButton';
 import { PromptFilePicker } from '../PromptFilePicker';
-import { ValidationService } from '@/infrastructure/services';
-import { NodeService } from '@/infrastructure/services';
+import { ValidationService, NodeService } from '@/infrastructure/services';
 import { debounce } from '@/lib/utils/debounce';
 
 export type FieldValue = string | number | boolean | null | undefined;
@@ -84,6 +82,51 @@ type WidgetProps = Omit<UnifiedFormFieldProps, 'type' | 'name' | 'label' | 'layo
 function normalizeUnifiedFieldType(type: string): UnifiedFieldType {
   return (LEGACY_TYPE_MAP[type as keyof typeof LEGACY_TYPE_MAP] || type) as UnifiedFieldType;
 }
+
+// PromptFileField component - extracted to fix React hooks rules
+const PromptFileField: React.FC<WidgetProps> = (p) => {
+  const [showPicker, setShowPicker] = React.useState(false);
+  
+  return (
+    <>
+      <div className={FLEX_CENTER_GAP}>
+        <Input
+          id={p.fieldId}
+          type="text"
+          value={String(p.value || '')}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
+          placeholder={p.placeholder || 'prompt-file.txt'}
+          disabled={p.disabled}
+          className={FULL_WIDTH}
+          {...p.customProps}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 ml-2"
+          onClick={() => setShowPicker(true)}
+          title="Browse prompt files"
+        >
+          <FileText className="h-4 w-4" />
+        </Button>
+      </div>
+      {showPicker && (
+        <PromptFilePicker
+          open={showPicker}
+          onClose={() => setShowPicker(false)}
+          onSelect={(content, filename) => {
+            // Set the filename value when a file is selected
+            if (filename) {
+              p.onChange(filename);
+            }
+            setShowPicker(false);
+          }}
+        />
+      )}
+    </>
+  );
+};
 
 // Widget lookup table for field types
 const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Element | null> = {
@@ -338,49 +381,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
   ),
   
   // Custom prompt file picker - stores filename, not content
-  'promptFile': (p) => {
-    const [showPicker, setShowPicker] = React.useState(false);
-    
-    return (
-      <>
-        <div className={FLEX_CENTER_GAP}>
-          <Input
-            id={p.fieldId}
-            type="text"
-            value={String(p.value || '')}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
-            placeholder={p.placeholder || 'prompt-file.txt'}
-            disabled={p.disabled}
-            className={FULL_WIDTH}
-            {...p.customProps}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 ml-2"
-            onClick={() => setShowPicker(true)}
-            title="Browse prompt files"
-          >
-            <FileText className="h-4 w-4" />
-          </Button>
-        </div>
-        {showPicker && (
-          <PromptFilePicker
-            open={showPicker}
-            onClose={() => setShowPicker(false)}
-            onSelect={(content, filename) => {
-              // Set the filename value when a file is selected
-              if (filename) {
-                p.onChange(filename);
-              }
-              setShowPicker(false);
-            }}
-          />
-        )}
-      </>
-    );
-  }
+  'promptFile': (p) => <PromptFileField {...p} />
 };
 
 /**

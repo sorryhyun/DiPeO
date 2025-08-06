@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '@/ui/components/common/forms/buttons';
-import { useExecution } from '@/domain/execution/hooks';
-import { useMonitorMode } from '@/domain/execution/hooks';
+import { useExecution, useMonitorMode } from '@/domain/execution/hooks';
 import { useNodesData, useArrowsData, usePersonsData, useDiagramData as useStoreDiagramData } from '@/infrastructure/store/hooks';
 import { nodeId, diagramId, DomainDiagram } from '@/infrastructure/types';
 import { toast } from 'sonner';
