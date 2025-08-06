@@ -271,16 +271,16 @@ function migrateUIState(legacyUI?: any): any | null {
  */
 export const importPathMigration: Record<string, string> = {
   // Old feature-based imports -> New unified imports
-  '@/features/diagram-editor/store/diagramSlice': '@/infrastructure/store/slices/diagram',
-  '@/features/execution-monitor/store/executionSlice': '@/infrastructure/store/slices/execution',
-  '@/features/person-management/store/personSlice': '@/infrastructure/store/slices/person',
+  '@/domain/diagram/store/diagramSlice': '@/infrastructure/store/slices/diagram',
+  '@/domain/execution/store/executionSlice': '@/infrastructure/store/slices/execution',
+  '@/domain/person/store/personSlice': '@/infrastructure/store/slices/person',
   '@/core/store/slices/uiSlice': '@/infrastructure/store/slices/ui',
   '@/core/store/unifiedStore': '@/infrastructure/store',
   
   // Hook migrations
-  '@/features/diagram-editor/hooks/useDiagramManager': '@/infrastructure/store/hooks/useDiagram',
-  '@/features/execution-monitor/hooks/useExecution': '@/infrastructure/store/hooks/useExecution',
-  '@/features/person-management/hooks/usePersonOperations': '@/infrastructure/store/hooks/usePerson',
+  '@/domain/diagram/hooks/useDiagramManager': '@/infrastructure/store/hooks/useDiagram',
+  '@/domain/execution/hooks/useExecution': '@/infrastructure/store/hooks/useExecution',
+  '@/domain/person/hooks/usePersonOperations': '@/infrastructure/store/hooks/usePerson',
 };
 
 /**

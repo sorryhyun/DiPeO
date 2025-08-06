@@ -1,4 +1,4 @@
-import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/domain/diagram/types/panel';
 import type { DomainPerson } from '@/core/types';
 import { apolloClient } from '@/lib/graphql/client';
 import { GetApiKeysDocument, GetAvailableModelsDocument, type GetApiKeysQuery } from '@/__generated__/graphql';

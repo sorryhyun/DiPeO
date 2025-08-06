@@ -1,7 +1,7 @@
 import { DomainNode } from '@/core/types';
 import { NodeType, Vec2 } from '@dipeo/models';
 import { generateNodeId } from '@/core/types/utilities';
-import { getNodeConfig, generateNodeLabel } from '@/features/diagram-editor/config/nodes';
+import { getNodeConfig, generateNodeLabel } from '@/domain/diagram/config/nodes';
 
 // Helper to create a node
 export function createNode(type: NodeType, position: Vec2, initialData?: Record<string, unknown>): DomainNode {

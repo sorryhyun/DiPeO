@@ -3,14 +3,14 @@ import { Layers } from 'lucide-react';
 import { Button } from '@/components/common/forms/buttons';
 import { Select } from '@/components/common/forms/Select';
 import { useUIState } from '@/infrastructure/store/hooks/state';
-import { useDiagramManager, useFileOperations, useDiagramSave } from '@/features/diagram-editor/hooks';
+import { useDiagramManager, useFileOperations, useDiagramSave } from '@/domain/diagram/hooks';
 import { useUIOperations, useExecutionOperations } from '@/infrastructure/store/hooks';
 import { toast } from 'sonner';
 import { useUnifiedStore, useDiagramFormat } from '@/infrastructure/store/unifiedStore';
 import { useShallow } from 'zustand/react/shallow';
 import { DiagramFormat } from '@dipeo/models';
 import { useGetDiagramLazyQuery } from '@/__generated__/graphql';
-import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
+import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
 
 
 const TopBar = () => {

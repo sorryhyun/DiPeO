@@ -6,9 +6,9 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import { useCanvas as useCanvasBase, useCanvasInteractions } from '@/features/diagram-editor/hooks';
+import { useCanvas as useCanvasBase, useCanvasInteractions } from '@/domain/diagram/hooks';
 import { useNodeOperations, useArrowOperations, usePersonOperations, useDiagramData, usePersonsData, useExecutionProgressComputed, useRunningNodesComputed, useCompletedNodesComputed, useFailedNodesComputed } from '@/infrastructure/store/hooks';
-import { useExecution } from '@/features/execution-monitor/hooks';
+import { useExecution } from '@/domain/execution/hooks';
 import type { Vec2, ArrowID, NodeID, PersonID, DomainNode, DomainArrow, DomainPerson } from '@dipeo/models';
 import { nodeId, NodeType } from '@/core/types';
 

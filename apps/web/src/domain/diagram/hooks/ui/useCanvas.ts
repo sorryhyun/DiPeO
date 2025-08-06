@@ -12,7 +12,7 @@ import { isWithinTolerance } from '@/lib/utils/math';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useUIState } from '@/infrastructure/store/hooks/state';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson, nodeId } from '@/core/types';
-import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { DiagramAdapter } from '@/domain/diagram/adapters/DiagramAdapter';
 import { NodeType, type NodeID, type ArrowID, type HandleID } from '@dipeo/models';
 
 

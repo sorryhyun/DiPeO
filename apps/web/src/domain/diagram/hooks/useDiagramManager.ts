@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCanvas } from './ui/useCanvas';
-import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
-import { useFileOperations } from '@/features/diagram-editor/hooks';
+import { useExecution } from '@/domain/execution/hooks/useExecution';
+import { useFileOperations } from '@/domain/diagram/hooks';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useDebouncedSave } from '@/shared/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';
-import type { ExecutionOptions } from '@/features/execution-monitor/types/execution';
+import type { ExecutionOptions } from '@/domain/execution/types/execution';
 import { DiagramFormat } from '@dipeo/models';
 
 export interface DiagramMetadata {

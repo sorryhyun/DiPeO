@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { DomainNode } from '@/core/types';
 import {ArrowID, NodeID} from '@dipeo/models';
-import { getAllNodeConfigs } from '@/features/diagram-editor/config/nodes';
+import { getAllNodeConfigs } from '@/domain/diagram/config/nodes';
 import { useCanvasOperations, useCanvasState } from '@/shared/contexts/CanvasContext';
 
 export interface ContextMenuProps {

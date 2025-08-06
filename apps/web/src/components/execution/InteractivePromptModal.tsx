@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/feedback';
 import { Button } from '@/components/common/forms/buttons';
-import type { InteractivePromptData } from '@/features/execution-monitor/types/execution';
+import type { InteractivePromptData } from '@/domain/execution/types/execution';
 
 interface InteractivePromptModalProps {
   prompt: InteractivePromptData | null;

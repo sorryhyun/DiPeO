@@ -1,5 +1,5 @@
 import { NodeType } from '@dipeo/models';
-import { NODE_ICONS, NODE_COLORS } from '@/features/diagram-editor/config/nodes';
+import { NODE_ICONS, NODE_COLORS } from '@/domain/diagram/config/nodes';
 
 export function formatTime(startTime: Date | null, endTime: Date | null, formatDuration: boolean = true): string {
   if (!startTime) return formatDuration ? '0s' : '-';

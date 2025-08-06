@@ -29,7 +29,7 @@ import { useUnifiedStore } from "@/infrastructure/store/unifiedStore";
 import { CustomArrow as CustomArrowBase } from "./CustomArrow";
 import nodeTypes from "./nodes/nodeTypes";
 import { DomainArrow, arrowId, nodeId, PersonID, NodeType } from '@/core/types';
-import { DiagramAdapter } from '@/features/diagram-editor/adapters/DiagramAdapter';
+import { DiagramAdapter } from '@/domain/diagram/adapters/DiagramAdapter';
 
 const PropertiesTab = React.lazy(
   () => import("@/components/properties/PropertiesTab")

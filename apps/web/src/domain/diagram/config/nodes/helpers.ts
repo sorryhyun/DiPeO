@@ -1,6 +1,6 @@
 import { NodeType } from '@dipeo/models';
 import { derivePanelConfig } from '@/core/config/unifiedConfig';
-import { ENTITY_PANEL_CONFIGS } from '@/features/properties-editor/config';
+import { ENTITY_PANEL_CONFIGS } from '@/domain/diagram/config';
 import { getNodeConfig } from '../nodeRegistry';
 
 /**

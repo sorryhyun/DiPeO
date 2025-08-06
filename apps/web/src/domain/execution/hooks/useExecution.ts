@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import {type DomainDiagram, diagramId, executionId } from '@/core/types';
-import type { ExecutionOptions, InteractivePromptData } from '@/features/execution-monitor/types/execution';
+import type { ExecutionOptions, InteractivePromptData } from '@/domain/execution/types/execution';
 import { EventType, NodeID, type ExecutionUpdate } from '@dipeo/models';
 import { createCommonStoreSelector } from '@/infrastructure/store/selectorFactory';
 import { useExecutionStreaming } from './useExecutionStreaming';

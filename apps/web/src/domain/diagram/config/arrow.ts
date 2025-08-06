@@ -1,4 +1,4 @@
-import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/features/diagram-editor/types/panel';
+import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/domain/diagram/types/panel';
 import type { ArrowData } from '@/lib/graphql/types';
 
 interface ExtendedArrowData extends ArrowData {

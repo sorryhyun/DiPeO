@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Info, AlertCircle, AlertTriangle, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/components/common/forms/buttons';
-import { useExecutionLogStream } from '@/features/execution-monitor/hooks/useExecutionLogStream';
+import { useExecutionLogStream } from '@/domain/execution/hooks/useExecutionLogStream';
 import { useExecution } from '@/hooks';
 import { formatTimestamp } from '@/lib/utils/date';
 import { executionId } from '@/core/types';

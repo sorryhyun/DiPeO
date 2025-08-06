@@ -9,7 +9,7 @@ import { useEffect, useRef } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { toast } from 'sonner';
 import { useExecution } from './useExecution';
-import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
+import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useUIState, useUIOperations } from '@/infrastructure/store/hooks';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, RefreshCw } from 'lucide-react';
 import { useExecution } from '@/hooks';
-import { NodeExecutionStatus } from '@/features/execution-monitor/types/execution';
+import { NodeExecutionStatus } from '@/domain/execution/types/execution';
 import { ExecutionID, executionId } from '@/core/types';
 import { Button } from '@/components/common/forms/buttons';
 import { useExecutionOrderQuery, ExecutionOrderQuery } from '@/__generated__/graphql';

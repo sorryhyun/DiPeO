@@ -4,7 +4,7 @@ import { FileTree } from './FileTree';
 import { FileNode, useDiagramFiles } from './useDiagramFiles';
 import { Button } from '@/components/common/forms/buttons';
 import { useGetDiagramLazyQuery } from '@/__generated__/graphql';
-import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
+import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
 import { toast } from 'sonner';
 
 export const DiagramFileBrowser: React.FC = () => {

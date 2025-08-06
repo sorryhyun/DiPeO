@@ -9,9 +9,9 @@ import {
   useGetDiagramLazyQuery
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/models';
-import { useFileOperations } from '@/features/diagram-editor/hooks';
-import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
-import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
+import { useFileOperations } from '@/domain/diagram/hooks';
+import { serializeDiagram } from '@/domain/diagram/utils/diagramSerializer';
+import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
 
 export const FileOperations: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);

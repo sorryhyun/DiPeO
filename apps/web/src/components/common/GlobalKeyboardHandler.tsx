@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useDiagramManager } from '@/features/diagram-editor/hooks';
+import { useDiagramManager } from '@/domain/diagram/hooks';
 import { toast } from 'sonner';
 
 export function GlobalKeyboardHandler() {

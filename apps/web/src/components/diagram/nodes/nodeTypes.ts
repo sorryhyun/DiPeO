@@ -1,5 +1,5 @@
 // Node types mapping for React Flow
-import { getAllNodeConfigs } from '@/features/diagram-editor/config/nodes';
+import { getAllNodeConfigs } from '@/domain/diagram/config/nodes';
 import ConfigurableNode from './ConfigurableNode';
 
 // Create node types object for React Flow using NODE_CONFIGS

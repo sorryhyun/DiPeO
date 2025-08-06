@@ -126,3 +126,64 @@ export {
   useCanvasOperations,
   useIsCanvasReadOnly
 } from '@/shared/contexts/CanvasContext';
+
+
+// ============================================
+// Properties Editor Exports (Merged)
+// ============================================
+
+/**
+ * PropertyPanel - The main properties editor panel component
+ * Use this as the primary entry point for embedding the properties editor
+ * Automatically syncs with selected nodes in the diagram
+ */
+export { PropertyPanel } from '@/components/properties/PropertyPanel';
+
+/**
+ * PropertiesTab - Tab component for organizing property sections
+ * Used within PropertyPanel to group related properties
+ */
+export { PropertiesTab } from '@/components/properties/PropertiesTab';
+
+/**
+ * Unified form field component for property editing
+ * Automatically renders the appropriate field type based on configuration
+ */
+export { UnifiedFormField } from '@/components/properties/fields';
+
+/**
+ * Core form components for building custom property forms
+ */
+export * from '@/components/properties/fields/FormComponents';
+
+/**
+ * usePropertyManager - Main hook for property management
+ * Provides methods for reading and updating node properties
+ * Handles validation and change propagation
+ */
+export { usePropertyManager } from './hooks/usePropertyManager';
+
+/**
+ * Core types for property forms and field configuration
+ */
+export type {
+  PropertyFieldType,
+  FormFieldConfig
+} from './types/form';
+
+/**
+ * Re-export validation types from core
+ */
+export type { ValidationResult, FieldType } from '@/core/types/panel';
+
+/**
+ * Panel configurations for specific entity types
+ * Use these for customizing property panels for arrows and persons
+ */
+export {
+  ArrowPanelConfig,
+  PersonPanelConfig,
+  arrowFields,
+  personFields,
+  ENTITY_PANEL_CONFIGS
+} from './config';

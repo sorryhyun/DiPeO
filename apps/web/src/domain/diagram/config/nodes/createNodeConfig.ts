@@ -1,6 +1,6 @@
 import type { UnifiedNodeConfig, UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
 import type { NodeTypeKey } from '@/core/types/type-factories';
-import type { NodeConfigItem } from '@/features/diagram-editor/types/config';
+import type { NodeConfigItem } from '@/domain/diagram/types/config';
 import { mergeFieldConfigs } from './fieldOverrides';
 import { getBestFieldConfig, hasSpecFields } from './field-utils';
 

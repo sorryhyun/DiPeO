@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from '@/components/common/feedback';
-import { DiagramFileManager } from '@/features/diagram-editor';
+import { DiagramFileManager } from '@/domain/diagram';
 
 interface DiagramFileModalProps {
   isOpen: boolean;

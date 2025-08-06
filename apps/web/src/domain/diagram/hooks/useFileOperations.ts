@@ -6,7 +6,7 @@ import {
   downloadFile
 } from '@/lib/utils/file';
 import { DiagramFormat } from '@dipeo/models';
-import { serializeDiagram } from '@/features/diagram-editor/utils/diagramSerializer';
+import { serializeDiagram } from '@/domain/diagram/utils/diagramSerializer';
 import { createEntityMutation } from '@/lib/graphql/hooks';
 import { 
   ConvertDiagramFormatDocument,
@@ -15,7 +15,7 @@ import {
   useGetDiagramLazyQuery
 } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
-import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
+import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
 
 // Create the mutation hook using factory pattern
 const useConvertDiagramMutation = createEntityMutation<ConvertDiagramFormatMutation, ConvertDiagramFormatMutationVariables>({

@@ -2,16 +2,16 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/common/forms/buttons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
+import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import { NodeType } from '@dipeo/models';
-import { useCanvas, useCanvasInteractions } from '@/features/diagram-editor/hooks';
+import { useCanvas, useCanvasInteractions } from '@/domain/diagram/hooks';
 import { useSelectionData, useSelectionOperations, usePersonsData, usePersonOperations } from '@/infrastructure/store/hooks';
 import { LazyApiKeysModal } from '@/components/common/feedback/LazyModals';
 import { PersonID, DomainPerson, personId } from '@/core/types';
 import { SidebarLayout } from '@/components/common/layout/SidebarLayout';
 import { Tabs, TabList, TabTrigger, TabContent } from '@/components/common/ui/tabs';
 import { DiagramFileBrowser } from '@/components/diagram/file-browser';
-import { getAllNodeConfigs } from '@/features/diagram-editor/config/nodeRegistry';
+import { getAllNodeConfigs } from '@/domain/diagram/config/nodeRegistry';
 
 // Memoized draggable block component
 export const DraggableBlock = React.memo<{ type: string; label: string }>(({ type, label }) => {

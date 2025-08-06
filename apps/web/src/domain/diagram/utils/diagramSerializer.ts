@@ -1,6 +1,6 @@
 import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/core/types';
-import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
+import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { Converters } from '@/services/conversion';

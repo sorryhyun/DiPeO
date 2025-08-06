@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useRef, useEffect } from 'react';
-import { useCanvasState, useCanvasOperations } from '@/features/diagram-editor';
+import { useCanvasState, useCanvasOperations } from '@/domain/diagram';
 import { arrowId, nodeId, personId } from '@/core/types';
-import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/features/diagram-editor/types/panel';
+import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/domain/diagram/types/panel';
 import { 
   useFormManager, 
   type FormConfig, 
