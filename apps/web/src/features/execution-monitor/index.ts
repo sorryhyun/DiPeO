@@ -13,25 +13,25 @@
  * ExecutionView - The main execution monitoring component
  * Displays real-time execution status, logs, and results
  */
-export { ExecutionView } from './components/ExecutionView';
+export { ExecutionView } from '@/components/execution/ExecutionView';
 
 /**
  * ExecutionControls - Control panel for execution operations
  * Provides start, stop, pause, and step-through controls
  */
-export { ExecutionControls } from './components/ExecutionControls';
+export { ExecutionControls } from '@/components/execution/ExecutionControls';
 
 /**
  * ExecutionOrderView - Visualizes the execution order of nodes
  * Shows the planned execution sequence before running
  */
-export { ExecutionOrderView } from './components/ExecutionOrderView';
+export { ExecutionOrderView } from '@/components/execution/ExecutionOrderView';
 
 /**
  * InteractivePromptModal - Modal for handling user interaction during execution
  * Used when nodes require user input during runtime
  */
-export { InteractivePromptModal } from './components/InteractivePromptModal';
+export { InteractivePromptModal } from '@/components/execution/InteractivePromptModal';
 
 // ============================================
 // Hooks
@@ -103,7 +103,7 @@ export type {
 /**
  * Store types for state management
  */
-export type { ExecutionSlice } from './store';
+export type { ExecutionSlice } from '@/infrastructure/store/slices/execution';
 
 // ============================================
 // Utilities

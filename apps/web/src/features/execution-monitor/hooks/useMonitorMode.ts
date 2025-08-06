@@ -10,8 +10,8 @@ import { useQuery, gql } from '@apollo/client';
 import { toast } from 'sonner';
 import { useExecution } from './useExecution';
 import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { useUIState, useUIOperations } from '@/core/store/hooks';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
+import { useUIState, useUIOperations } from '@/infrastructure/store/hooks';
 
 const ACTIVE_CLI_SESSION_QUERY = gql`
   query ActiveCliSession {

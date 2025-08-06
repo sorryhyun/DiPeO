@@ -14,7 +14,7 @@ import { createDiagramSlice } from './slices/diagram';
 import { createExecutionSlice } from './slices/execution';
 import { createPersonSlice } from './slices/person';
 import { createUISlice } from './slices/ui';
-import { createComputedSlice } from '@/core/store/slices/computedSlice';
+import { createComputedSlice } from './slices/computedSlice';
 
 // Re-export types and utilities
 export * from './types';

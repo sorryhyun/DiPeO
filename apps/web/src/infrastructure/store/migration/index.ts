@@ -1,8 +1,8 @@
 import { UnifiedStore } from '../types';
 import { useUnifiedStore } from '../index';
-import type { DiagramSlice } from '@/features/diagram-editor/store/diagramSlice';
-import type { ExecutionSlice } from '@/features/execution-monitor/store/executionSlice';
-import type { PersonSlice } from '@/features/person-management/store/personSlice';
+import type { DiagramSlice } from '@/infrastructure/store/slices/diagram';
+import type { ExecutionSlice } from '@/infrastructure/store/slices/execution';
+import type { PersonSlice } from '@/infrastructure/store/slices/person';
 import type { StoreExecutionState } from '@/services/conversion';
 
 /**
@@ -271,16 +271,16 @@ function migrateUIState(legacyUI?: any): any | null {
  */
 export const importPathMigration: Record<string, string> = {
   // Old feature-based imports -> New unified imports
-  '@/features/diagram-editor/store/diagramSlice': '@/store/slices/diagram',
-  '@/features/execution-monitor/store/executionSlice': '@/store/slices/execution',
-  '@/features/person-management/store/personSlice': '@/store/slices/person',
-  '@/core/store/slices/uiSlice': '@/store/slices/ui',
-  '@/core/store/unifiedStore': '@/store',
+  '@/features/diagram-editor/store/diagramSlice': '@/infrastructure/store/slices/diagram',
+  '@/features/execution-monitor/store/executionSlice': '@/infrastructure/store/slices/execution',
+  '@/features/person-management/store/personSlice': '@/infrastructure/store/slices/person',
+  '@/core/store/slices/uiSlice': '@/infrastructure/store/slices/ui',
+  '@/core/store/unifiedStore': '@/infrastructure/store',
   
   // Hook migrations
-  '@/features/diagram-editor/hooks/useDiagramManager': '@/store/hooks/useDiagram',
-  '@/features/execution-monitor/hooks/useExecution': '@/store/hooks/useExecution',
-  '@/features/person-management/hooks/usePersonOperations': '@/store/hooks/usePerson',
+  '@/features/diagram-editor/hooks/useDiagramManager': '@/infrastructure/store/hooks/useDiagram',
+  '@/features/execution-monitor/hooks/useExecution': '@/infrastructure/store/hooks/useExecution',
+  '@/features/person-management/hooks/usePersonOperations': '@/infrastructure/store/hooks/usePerson',
 };
 
 /**

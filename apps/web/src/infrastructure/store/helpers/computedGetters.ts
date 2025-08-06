@@ -1,4 +1,4 @@
-import { UnifiedStore } from '../unifiedStore.types';
+import { UnifiedStore } from '../types';
 import { DomainNode, DomainArrow, DomainPerson } from '@/core/types';
 
 // Memoization cache for computed arrays

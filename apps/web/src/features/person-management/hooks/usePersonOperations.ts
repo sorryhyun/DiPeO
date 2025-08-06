@@ -6,7 +6,7 @@
  */
 
 import { createStoreOperationHook } from './factories';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { DomainPerson, personId } from '@/core/types';
 import type { NodeID,PersonID  } from '@dipeo/models';
 

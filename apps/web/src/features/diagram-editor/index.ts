@@ -11,29 +11,29 @@
  * DiagramCanvas - The main canvas component for diagram editing
  * Use this as the primary entry point for embedding the diagram editor
  */
-export { default as DiagramCanvas } from './components/DiagramCanvas';
+export { default as DiagramCanvas } from '@/components/diagram/DiagramCanvas';
 
 /**
  * DiagramFileManager - Component for managing diagram file operations
  * Handles loading, saving, and listing diagram files
  */
-export { DiagramFileManager } from './components/DiagramFileManager';
+export { DiagramFileManager } from '@/components/diagram/DiagramFileManager';
 
 /**
  * DiagramSidebar - Sidebar component with node palette
  * Used for displaying available node types that can be dragged onto the canvas
  */
-export { DiagramSidebar } from './components/sidebar/DiagramSidebar';
+export { DiagramSidebar } from '@/components/diagram/sidebar/DiagramSidebar';
 
 
 // Node Components
 /**
  * Node-related exports for customization and extension
  */
-export { BaseNode } from './components/nodes/BaseNode';
-export { default as ConfigurableNode } from './components/nodes/ConfigurableNode';
-export { default as PersonNode } from './components/nodes/PersonNode';
-export { default as nodeTypes } from './components/nodes/nodeTypes';
+export { BaseNode } from '@/components/diagram/nodes/BaseNode';
+export { default as ConfigurableNode } from '@/components/diagram/nodes/ConfigurableNode';
+export { default as PersonNode } from '@/components/diagram/nodes/PersonNode';
+export { default as nodeTypes } from '@/components/diagram/nodes/nodeTypes';
 
 
 // Hooks
@@ -60,7 +60,7 @@ export { useFileOperations } from './hooks/useFileOperations';
  */
 export { useCanvasInteractions } from './hooks/ui';
 
-// Operation hooks have been moved to @/core/store/hooks
+// Operation hooks have been moved to @/infrastructure/store/hooks
 
 
 // Types and Interfaces
@@ -112,7 +112,7 @@ export {
  * Zustand store slices for diagram state management
  * Only use these if you need direct store access
  */
-export type { DiagramSlice } from './store';
+export type { DiagramSlice } from '@/infrastructure/store/slices/diagram';
 
 // Context Re-exports
 /**

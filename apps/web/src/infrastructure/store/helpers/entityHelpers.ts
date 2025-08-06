@@ -1,5 +1,5 @@
 import { Draft } from 'immer';
-import { UnifiedStore, Snapshot } from '../unifiedStore.types';
+import { UnifiedStore, Snapshot } from '../types';
 
 export const MAX_HISTORY_SIZE = 50;
 

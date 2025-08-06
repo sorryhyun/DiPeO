@@ -1,4 +1,4 @@
-import type { UnifiedStore } from './unifiedStore.types';
+import type { UnifiedStore } from './types';
 
 
 

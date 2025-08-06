@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { NodeType } from '@dipeo/models';
 import { useCanvas, useCanvasInteractions } from '@/features/diagram-editor/hooks';
-import { useSelectionData, useSelectionOperations, usePersonsData, usePersonOperations } from '@/core/store/hooks';
+import { useSelectionData, useSelectionOperations, usePersonsData, usePersonOperations } from '@/infrastructure/store/hooks';
 import { LazyApiKeysModal } from '@/components/common/feedback/LazyModals';
 import { PersonID, DomainPerson, personId } from '@/core/types';
 import { SidebarLayout } from '@/components/common/layout/SidebarLayout';

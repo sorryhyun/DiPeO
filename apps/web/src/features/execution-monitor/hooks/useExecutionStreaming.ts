@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useExecutionGraphQL } from './useExecutionGraphQL';
 import { useMonitoringStreamSSE } from './useMonitoringStreamSSE';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 
 interface UseExecutionStreamingProps {
   executionId: string | null;

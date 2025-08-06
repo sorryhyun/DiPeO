@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useCanvas } from './ui/useCanvas';
 import { useExecution } from '@/features/execution-monitor/hooks/useExecution';
 import { useFileOperations } from '@/features/diagram-editor/hooks';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useDebouncedSave } from '@/shared/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';
 import type { ExecutionOptions } from '@/features/execution-monitor/types/execution';

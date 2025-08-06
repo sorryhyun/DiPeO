@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useStream, type StreamProtocol } from '../core/useStream';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { 
   EventType, 
   ExecutionStatus,

@@ -5,8 +5,8 @@ import { Button } from '@/components/common/forms/buttons';
 import { NodeService } from '@/services';
 import { FlowHandle } from '@/components/diagram/controls';
 import { useCanvasOperations } from '@/shared/contexts/CanvasContext';
-import { useUIState } from '@/core/store/hooks/state';
-import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/core/store/hooks';
+import { useUIState } from '@/infrastructure/store/hooks/state';
+import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/infrastructure/store/hooks';
 import { NodeType, NodeExecutionStatus, nodeId, personId } from '@/core/types';
 import './BaseNode.css';
 

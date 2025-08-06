@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ExecutionStatus, NodeExecutionStatus, EventType } from '@dipeo/models';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 
 interface SSEEvent {
   type: string;

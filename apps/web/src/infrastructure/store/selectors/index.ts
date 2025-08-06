@@ -365,7 +365,7 @@ function checkIsDAG(adjacencyList: Map<NodeID, NodeID[]>): boolean {
 // Note: Selector hooks should be created in components that import both selectors and the store
 // to avoid circular dependencies. Example usage:
 // 
-// import { useUnifiedStore } from '@/store';
-// import { selectNodeById } from '@/store/selectors';
+// import { useUnifiedStore } from '@/infrastructure/store';
+// import { selectNodeById } from '@/infrastructure/store/selectors';
 // 
 // const useNodeById = (id: NodeID) => useUnifiedStore(selectNodeById(id));

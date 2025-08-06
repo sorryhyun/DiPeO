@@ -1,10 +1,10 @@
 import React, { Suspense, useEffect } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { TopBar, Sidebar } from './components/common/layout';
-import GlobalKeyboardHandler from './components/common/GlobalKeyboardHandler';
+import { GlobalKeyboardHandler } from './components/common/GlobalKeyboardHandler';
 import { CanvasProvider, useCanvasState, useCanvasOperations } from './shared/contexts/CanvasContext';
-import { useUIOperations } from './core/store/hooks';
-import { setupExecutionUISync } from './core/store/middleware/executionUISync';
+import { useUIOperations } from './infrastructure/store/hooks';
+// import { setupExecutionUISync } from './infrastructure/store/middleware/executionUISync'; // TODO: Implement if needed
 
 const LazyDiagramCanvas = React.lazy(() => import('./components/diagram/DiagramCanvas'));
 const LazyExecutionView = React.lazy(() => import('./components/execution/ExecutionView'));
@@ -17,10 +17,11 @@ function AppContent() {
   const { setActiveCanvas: _setActiveCanvas } = useUIOperations();
   
   
-  useEffect(() => {
-    const unsubscribe = setupExecutionUISync();
-    return unsubscribe;
-  }, []);
+  // TODO: Re-enable when setupExecutionUISync is migrated
+  // useEffect(() => {
+  //   const unsubscribe = setupExecutionUISync();
+  //   return unsubscribe;
+  // }, []);
   
   useEffect(() => {
     document.title = 'DiPeO';

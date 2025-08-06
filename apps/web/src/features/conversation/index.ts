@@ -14,19 +14,19 @@
  * ConversationDashboard - Main dashboard for conversation management
  * Displays list of conversations with filtering and search capabilities
  */
-export { ConversationDashboard } from './components/ConversationDashboard';
+export { ConversationDashboard } from '@/components/conversation/ConversationDashboard';
 
 /**
  * ConversationTab - Tab component for conversation viewing
  * Used within the main application to display conversation interface
  */
-export { ConversationTab } from './components/ConversationTab';
+export { ConversationTab } from '@/components/conversation/ConversationTab';
 
 /**
  * MessageList - Component for displaying conversation messages
  * Renders a thread of messages with proper formatting and metadata
  */
-export { MessageList } from './components/MessageList';
+export { MessageList } from '@/components/conversation/MessageList';
 
 
 // ============================================

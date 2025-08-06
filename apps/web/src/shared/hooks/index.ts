@@ -5,7 +5,7 @@ export {
   useArrowById,
   usePersonById,
   useSelectedEntity
-} from '@/core/store/unifiedStore';
+} from '@/infrastructure/store/unifiedStore';
 
 // Operations hooks
 export * from './useApiKeyOperations';

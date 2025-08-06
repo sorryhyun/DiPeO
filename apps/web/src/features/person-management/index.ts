@@ -52,7 +52,7 @@ export type {
 /**
  * Person management store types
  */
-export type { PersonSlice } from './store';
+export type { PersonSlice } from '@/infrastructure/store/slices/person';
 
 /**
  * Re-export domain types for Person management

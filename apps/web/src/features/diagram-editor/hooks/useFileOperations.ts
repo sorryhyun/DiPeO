@@ -14,7 +14,7 @@ import {
   type ConvertDiagramFormatMutationVariables,
   useGetDiagramLazyQuery
 } from '@/__generated__/graphql';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useDiagramLoader } from '@/features/diagram-editor/hooks/useDiagramLoader';
 
 // Create the mutation hook using factory pattern

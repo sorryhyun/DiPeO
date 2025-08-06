@@ -6,8 +6,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
-import type { UnifiedStore } from '@/core/store/unifiedStore.types';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
+import type { UnifiedStore } from '@/infrastructure/store/types';
 
 // Base configuration for operation hooks
 export interface OperationHookConfig<TEntity, TCreateArgs extends unknown[] = unknown[]> {

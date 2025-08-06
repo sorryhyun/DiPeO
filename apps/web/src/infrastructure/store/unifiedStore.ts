@@ -1,10 +1,10 @@
 import { create, StateCreator } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { ArrowID, NodeID, PersonID, HandleID } from '@/core/types';
-import { UnifiedStore } from "./unifiedStore.types";
-import { logger } from "./middleware/debugMiddleware";
-import { initializeArraySync } from "./middleware/arraySyncSubscriber";
+import { ArrowID, NodeID, PersonID, HandleID } from '@dipeo/models';
+import { UnifiedStore } from "./types";
+// import { logger } from "./middleware/debugMiddleware"; // TODO: implement if needed
+// import { initializeArraySync } from "./middleware/arraySyncSubscriber"; // TODO: Implement if needed
 
 import {
   createDiagramSlice,
@@ -200,15 +200,15 @@ const createStore = () => {
   // Apply middleware based on environment
   if (import.meta.env.DEV) {
     return create<UnifiedStore>()(
-      logger(
+      // logger( // TODO: Re-enable when logger is implemented
         devtools(
           subscribeWithSelector(
             immer(storeCreator)
           ),
           devtoolsOptions
-        ),
-        'UnifiedStore'
-      )
+        )
+        // 'UnifiedStore'
+      // )
     );
   }
 
@@ -226,7 +226,7 @@ const createStore = () => {
 export const useUnifiedStore = createStore();
 
 // Initialize array synchronization
-initializeArraySync(useUnifiedStore);
+// initializeArraySync(useUnifiedStore); // TODO: Re-enable when middleware is implemented
 
 // Store initialization is now handled by the backend
 // Auto-save and diagram persistence are managed through GraphQL

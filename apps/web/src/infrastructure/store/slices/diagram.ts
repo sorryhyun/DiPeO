@@ -8,8 +8,8 @@ import {
   ValidationService,
   DiagramOperations 
 } from '@/services';
-import { UnifiedStore } from '@/core/store/unifiedStore.types';
-import { recordHistory } from '@/core/store/helpers/entityHelpers';
+import { UnifiedStore } from '@/infrastructure/store/types';
+import { recordHistory } from '@/infrastructure/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';
 
 export interface DiagramSlice {

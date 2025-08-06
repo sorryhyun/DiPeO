@@ -15,11 +15,11 @@ import type {
 } from '@dipeo/models';
 
 import type { StoreExecutionState, StoreNodeState } from '@/services/conversion';
-import type { DiagramSlice } from '@/features/diagram-editor/store/diagramSlice';
-import type { ExecutionSlice } from '@/features/execution-monitor/store/executionSlice';
-import type { PersonSlice } from '@/features/person-management/store/personSlice';
-import type { UISlice as CoreUISlice } from '@/core/store/slices/uiSlice';
-import type { ComputedSlice } from '@/core/store/slices/computedSlice';
+import type { DiagramSlice } from './slices/diagram';
+import type { ExecutionSlice } from './slices/execution';
+import type { PersonSlice } from './slices/person';
+import type { UISlice } from './slices/ui';
+import type { ComputedSlice } from './slices/computedSlice';
 
 export type {
   NodeID,
@@ -34,13 +34,16 @@ export type {
 
 // ===== Store Snapshot for History =====
 
-export interface StoreSnapshot {
+export interface Snapshot {
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
   handles: Map<HandleID, DomainHandle>;
   timestamp: number;
 }
+
+// Alias for backward compatibility
+export type StoreSnapshot = Snapshot;
 
 export interface Transaction {
   id: string;
@@ -110,7 +113,7 @@ export interface UnifiedStore extends
   DiagramSlice,
   ExecutionSlice,
   PersonSlice,
-  CoreUISlice,
+  UISlice,
   ComputedSlice {
   // === Additional Core Data ===
   handles: Map<HandleID, DomainHandle>;

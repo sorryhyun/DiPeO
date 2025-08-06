@@ -2,7 +2,7 @@ import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/core/types';
 import { getNodeConfig } from '@/features/diagram-editor/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { Converters } from '@/services/conversion';
 import { stripTypenames } from '@/lib/utils';
 

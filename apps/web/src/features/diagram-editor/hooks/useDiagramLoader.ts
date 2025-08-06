@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { toast } from 'sonner';
 import { diagramArraysToMaps } from '@/lib/graphql/types';
 

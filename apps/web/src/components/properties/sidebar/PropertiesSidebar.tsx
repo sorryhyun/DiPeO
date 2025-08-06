@@ -1,7 +1,7 @@
 // Properties-specific sidebar component
 import React, { Suspense } from 'react';
 import { useCanvas } from '@/shared/contexts/CanvasContext';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { PersonID, DomainArrow, NodeID, ArrowID } from '@/core/types';
 import { SidebarLayout } from '@/components/common/layout/SidebarLayout';
 

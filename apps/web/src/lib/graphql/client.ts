@@ -3,7 +3,7 @@ import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { createUploadLink } from 'apollo-upload-client';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 
 const httpLink = createUploadLink({
   uri: `http://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,

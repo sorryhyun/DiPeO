@@ -7,8 +7,8 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node } from '@xyflow/react';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
-import { useNodeData, useNodeOperations, useArrowOperations, usePersonOperations } from '@/core/store/hooks';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
+import { useNodeData, useNodeOperations, useArrowOperations, usePersonOperations } from '@/infrastructure/store/hooks';
 import { NodeID, PersonID, ArrowID, nodeId, personId, arrowId } from '@/core/types';
 import { Vec2, NodeType } from '@dipeo/models';
 

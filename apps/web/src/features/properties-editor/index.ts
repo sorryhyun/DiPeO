@@ -15,13 +15,13 @@
  * Use this as the primary entry point for embedding the properties editor
  * Automatically syncs with selected nodes in the diagram
  */
-export { PropertyPanel } from './components/PropertyPanel';
+export { PropertyPanel } from '@/components/properties/PropertyPanel';
 
 /**
  * PropertiesTab - Tab component for organizing property sections
  * Used within PropertyPanel to group related properties
  */
-export { PropertiesTab } from './components/PropertiesTab';
+export { PropertiesTab } from '@/components/properties/PropertiesTab';
 
 // ============================================
 // Field Components
@@ -31,12 +31,12 @@ export { PropertiesTab } from './components/PropertiesTab';
  * Unified form field component for property editing
  * Automatically renders the appropriate field type based on configuration
  */
-export { UnifiedFormField } from './components/fields';
+export { UnifiedFormField } from '@/components/properties/fields';
 
 /**
  * Core form components for building custom property forms
  */
-export * from './components/fields/FormComponents';
+export * from '@/components/properties/fields/FormComponents';
 
 // ============================================
 // Hooks

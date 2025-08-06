@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Info, AlertCircle, AlertTriangle, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/components/common/forms/buttons';
-import { useExecutionLogStream } from '../../hooks/useExecutionLogStream';
-import { useExecution } from '../../hooks';
+import { useExecutionLogStream } from '@/features/execution-monitor/hooks/useExecutionLogStream';
+import { useExecution } from '@/hooks';
 import { formatTimestamp } from '@/lib/utils/date';
 import { executionId } from '@/core/types';
 
@@ -45,8 +45,8 @@ const getLogLevelColor = (level: string): string => {
 };
 
 export const ExecutionLogView: React.FC = () => {
-  const { execution } = useExecution();
-  const { logs, clearLogs } = useExecutionLogStream(execution.executionId ? executionId(execution.executionId) : null);
+  const { execution, isRunning } = useExecution();
+  const { logs, clearLogs } = useExecutionLogStream(execution.id ? executionId(execution.id) : null);
   const [filter, setFilter] = useState<string>('');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -76,14 +76,14 @@ export const ExecutionLogView: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `execution-log-${execution.executionId}-${new Date().toISOString()}.txt`;
+    a.download = `execution-log-${execution.id}-${new Date().toISOString()}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  if (!execution.isRunning && logs.length === 0) {
+  if (!isRunning && logs.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400">
         <div className="text-center">
@@ -176,7 +176,7 @@ export const ExecutionLogView: React.FC = () => {
       </div>
 
       {/* Status */}
-      {execution.isRunning && (
+      {isRunning && (
         <div className="px-4 py-2 bg-green-50 border-t text-sm text-green-700 flex items-center">
           <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full mr-2" />
           Streaming logs...

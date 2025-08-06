@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/common/forms/buttons';
-import { useExecution, useMonitorMode } from '../hooks';
-import { useNodesData, useArrowsData, usePersonsData, useDiagramData as useStoreDiagramData } from '@/core/store/hooks';
+import { useExecution } from '@/hooks';
+import { useMonitorMode } from '@/features/execution-monitor/hooks';
+import { useNodesData, useArrowsData, usePersonsData, useDiagramData as useStoreDiagramData } from '@/infrastructure/store/hooks';
 import { nodeId, diagramId, DomainDiagram } from '@/core/types';
 import { toast } from 'sonner';
 
@@ -19,7 +20,7 @@ const ExecutionControls = () => {
                    execution.execution.endTime ? 'success' : 'idle';
   
   // Get current running node from execution state
-  const currentRunningNode = execution.execution.currentNode;
+  const currentRunningNode = null; // TODO: Get from nodeStates or running nodes
 
   return (
     <div className="flex items-center justify-center gap-4 p-4 bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">

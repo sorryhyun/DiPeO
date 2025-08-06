@@ -1,5 +1,5 @@
 import { Draft } from 'immer';
-import { UnifiedStore } from '../unifiedStore.types';
+import { UnifiedStore } from '../types';
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
 import { DomainArrow, DomainNode, DomainPerson } from '@/core/types';
 import {ArrowID, NodeID, PersonID} from '@dipeo/models';

@@ -1,6 +1,6 @@
 import {StateCreator} from 'zustand';
 import {NodeID} from '@/core/types';
-import {UnifiedStore} from '@/core/store/unifiedStore.types';
+import {UnifiedStore} from '@/infrastructure/store/types';
 import {
   type DiagramID,
   type ExecutionID,

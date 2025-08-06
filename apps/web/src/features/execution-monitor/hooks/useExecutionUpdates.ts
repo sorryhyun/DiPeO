@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { NodeExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/models';
 import { nodeId, executionId } from '@/core/types';
 import { useExecutionState } from './useExecutionState';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 
 interface UseExecutionUpdatesProps {
   state: ReturnType<typeof useExecutionState>;

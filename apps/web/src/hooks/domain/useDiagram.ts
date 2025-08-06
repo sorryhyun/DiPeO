@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useResource, type ResourceOperations } from '../core/useResource';
-import { useUnifiedStore } from '@/core/store/unifiedStore';
+import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { DiagramConverter } from '@/services/conversion';
 import { Converters } from '@/services';
 import { DiagramFormat, type DomainDiagram, type DomainNode } from '@dipeo/models';

@@ -1,9 +1,9 @@
 import { StateCreator } from 'zustand';
-import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@/core/types';
+import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@dipeo/models';
 import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/models';
-import { UnifiedStore } from '../unifiedStore.types';
-import type { SelectableID } from './uiSlice';
-import type { NodeState } from '@/features/execution-monitor/store/executionSlice';
+import { UnifiedStore } from '../types';
+import type { SelectableID } from './ui';
+import type { NodeState } from './execution';
 
 export interface ComputedSlice {
   // Array versions of Maps (maintained for React components)

@@ -11,4 +11,4 @@ export * from './layout';
 export * from './ui';
 
 // Global components
-export { default as GlobalKeyboardHandler } from './GlobalKeyboardHandler';
+export { GlobalKeyboardHandler } from './GlobalKeyboardHandler';

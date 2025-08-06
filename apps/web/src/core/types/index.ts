@@ -56,4 +56,4 @@ export {
 
 // Store-specific types
 // TODO: Consider moving these to the store module
-export type { SelectableID, SelectableType } from '@/core/store/slices/uiSlice';
+export type { SelectableID, SelectableType } from '@/infrastructure/store/slices/ui';
