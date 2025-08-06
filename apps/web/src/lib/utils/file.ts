@@ -10,7 +10,7 @@ import {
   type UploadFileMutation,
   type UploadFileMutationVariables,
 } from '@/__generated__/graphql';
-import { DiagramFormat } from '@dipeo/domain-models';
+import { DiagramFormat } from '@dipeo/models';
 
 export type FileFormat = DiagramFormat;
 

@@ -195,7 +195,6 @@ class UnifiedEventObserver(ExecutionObserver):
                     for skip in [
                         "SSE connection",
                         "EventSourceResponse",
-                        "StateRegistry",
                         "APIKeyService",
                         "[ExecutionLogStream]",
                         "POST /graphql",

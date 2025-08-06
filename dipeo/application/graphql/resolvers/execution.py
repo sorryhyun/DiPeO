@@ -48,7 +48,7 @@ class ExecutionResolver:
             state_store = self.registry.resolve(STATE_STORE)
             
             # Get executions from state store
-            # Note: StateRegistry only supports diagram_id and status filters
+            # Note: EventBasedStateStore only supports diagram_id and status filters
             executions = await state_store.list_executions(
                 diagram_id=filter.diagram_id if filter else None,
                 status=filter.status if filter else None,

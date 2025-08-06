@@ -94,7 +94,7 @@ jobs:
           pnpm install --frozen-lockfile
       
       - name: Build TypeScript models
-        run: pnpm --filter @dipeo/domain-models build
+        run: pnpm --filter @dipeo/models build
       
       - name: Verify TypeScript tools
         run: |

@@ -134,11 +134,12 @@ class Person:
         # Prepare messages for LLM
         messages = self._prepare_messages_for_llm()
         
-        # Call LLM service
+        # Call LLM service - pass service type explicitly
         result = await llm_service.complete(
             messages=messages,
             model=self.llm_config.model,
             api_key_id=self.llm_config.api_key_id,
+            service=self.llm_config.service,  # Pass service type explicitly
             **llm_options
         )
         

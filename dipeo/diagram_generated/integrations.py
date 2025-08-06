@@ -20,28 +20,6 @@ from .enums import *
 from .domain_models import *
 
 
-# Integration-specific enums
-
-class NotionOperation(str, Enum):
-    """NotionOperation enum values"""
-    
-    CREATE_PAGE = "create_page"
-    
-    UPDATE_PAGE = "update_page"
-    
-    READ_PAGE = "read_page"
-    
-    DELETE_PAGE = "delete_page"
-    
-    CREATE_DATABASE = "create_database"
-    
-    QUERY_DATABASE = "query_database"
-    
-    UPDATE_DATABASE = "update_database"
-    
-
-
-
 
 
 # Integration interfaces (converted to Pydantic models)
@@ -159,11 +137,6 @@ __all__ = [
     "APIServiceType",
     
     "ToolType",
-    
-    
-    # Integration enums
-    
-    "NotionOperation",
     
     
     

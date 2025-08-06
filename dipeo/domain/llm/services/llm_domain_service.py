@@ -58,6 +58,11 @@ class LLMDomainService:
             "temperature_range": (0, 1),
             "requires_api_key": True,
         },
+        LLMService.OLLAMA.value: {
+            "allowed_params": ["temperature", "max_tokens", "top_p", "top_k", "seed", "num_predict"],
+            "temperature_range": (0, 2),
+            "requires_api_key": False,  # Ollama doesn't require API keys
+        },
     }
     
     def validate_model_config(self, provider: str, model: str, config: dict[str, Any]) -> tuple[bool, str | None]:

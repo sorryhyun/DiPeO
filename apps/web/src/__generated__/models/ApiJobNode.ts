@@ -23,11 +23,11 @@ export interface ApiJobNodeData {
 // Zod schema for validation
 export const ApiJobNodeDataSchema = z.object({
   url: z.string(),
-  method: z.any(),
+  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
   headers: z.record(z.any()).optional(),
   params: z.record(z.any()).optional(),
   body: z.record(z.any()).optional(),
   timeout: z.number().optional(),
-  auth_type: z.any().optional(),
+  auth_type: z.enum(["none", "bearer", "basic", "api_key"]).optional(),
   auth_config: z.record(z.any()).optional(),
 });

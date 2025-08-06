@@ -95,10 +95,18 @@ class TypeScriptToPythonFilters:
             return result
             
         # Handle Array<T>
-        generic_array_match = re.match(r'^Array<(.+)>$', ts_type)
+        generic_array_match = re.match(r'^Array<(.+)>$', ts_type, re.DOTALL)
         if generic_array_match:
-            inner_type = cls.ts_to_python_type(generic_array_match.group(1), field_name, context)
-            result = f'List[{inner_type}]'
+            inner_type_str = generic_array_match.group(1).strip()
+            
+            # Special handling for inline object definitions with properties
+            if inner_type_str.startswith('{') and inner_type_str.endswith('}'):
+                # For complex inline objects, convert to Dict[str, Any]
+                # This is a simplification since Python doesn't have inline type definitions
+                result = 'List[Dict[str, Any]]'
+            else:
+                inner_type = cls.ts_to_python_type(inner_type_str, field_name, context)
+                result = f'List[{inner_type}]'
             cls._type_cache[cache_key] = result
             return result
             
@@ -348,11 +356,21 @@ class TypeScriptToPythonFilters:
             # Check if field has validation.allowedValues
             validation = field.get('validation', {})
             allowed_values = validation.get('allowedValues', [])
-            if allowed_values:
+            
+            # If allowedValues is a string (like "Object.values(MemoryProfile)"), try uiConfig.options
+            if isinstance(allowed_values, str) and 'uiConfig' in field:
+                ui_config = field.get('uiConfig', {})
+                options = ui_config.get('options', [])
+                if options and isinstance(options, list):
+                    # Extract values from options
+                    values = [opt.get('value') for opt in options if isinstance(opt, dict) and 'value' in opt]
+                    if values:
+                        return ' | '.join(f"'{v}'" for v in values)
+            elif allowed_values and isinstance(allowed_values, list):
                 # Generate union type from allowed values
                 return ' | '.join(f"'{v}'" for v in allowed_values)
-            else:
-                return 'string'  # Fallback if no values specified
+            
+            return 'string'  # Fallback if no values specified
         
         return type_map.get(field_type.lower(), field_type)
     
@@ -400,14 +418,41 @@ class TypeScriptToPythonFilters:
         required = field.get('required', False)
         
         # Special handling for enum fields
-        if field_type == 'enum' and 'values' in field:
-            values = field.get('values', [])
-            if values:
-                # Generate z.enum() for enum fields
-                enum_values = ', '.join(f'"{v}"' for v in values)
-                base_schema = f'z.enum([{enum_values}])'
+        if field_type == 'enum':
+            # First check if field has direct values
+            if 'values' in field:
+                values = field.get('values', [])
+                if values:
+                    # Generate z.enum() for enum fields
+                    enum_values = ', '.join(f'"{v}"' for v in values)
+                    base_schema = f'z.enum([{enum_values}])'
+                else:
+                    base_schema = 'z.string()'
             else:
-                base_schema = 'z.string()'
+                # Check validation.allowedValues
+                validation = field.get('validation', {})
+                allowed_values = validation.get('allowedValues', [])
+                
+                # If allowedValues is a string (like "Object.values(MemoryProfile)"), try uiConfig.options
+                if isinstance(allowed_values, str) and 'uiConfig' in field:
+                    ui_config = field.get('uiConfig', {})
+                    options = ui_config.get('options', [])
+                    if options and isinstance(options, list):
+                        # Extract values from options
+                        values = [opt.get('value') for opt in options if isinstance(opt, dict) and 'value' in opt]
+                        if values:
+                            enum_values = ', '.join(f'"{v}"' for v in values)
+                            base_schema = f'z.enum([{enum_values}])'
+                        else:
+                            base_schema = 'z.string()'
+                    else:
+                        base_schema = 'z.string()'
+                elif allowed_values and isinstance(allowed_values, list):
+                    # Generate z.enum() from allowed values
+                    enum_values = ', '.join(f'"{v}"' for v in allowed_values)
+                    base_schema = f'z.enum([{enum_values}])'
+                else:
+                    base_schema = 'z.string()'
         else:
             # Base schemas for other types
             schema_map = {

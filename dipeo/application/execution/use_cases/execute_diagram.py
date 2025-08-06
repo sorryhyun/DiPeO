@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseService
-from dipeo.models import ExecutionStatus
+from dipeo.diagram_generated.enums import ExecutionStatus
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
@@ -70,32 +70,35 @@ class ExecuteDiagramUseCase(BaseService):
         
         # Always use unified monitoring
         from dipeo.application.execution.observers.unified_event_observer import UnifiedEventObserver
-        from dipeo.application.execution.observers import StateStoreObserver
         
         # If observers are provided (e.g., for sub-diagrams), use them
         if observers is not None:
             engine_observers = observers
         else:
-            # Create unified observer
+            # Create unified observer for real-time updates
             unified_observer = UnifiedEventObserver(
                 message_router=self.message_router,
                 execution_runtime=typed_diagram,
                 capture_logs=use_monitoring_stream  # Enable log capture for CLI
             )
-            engine_observers = []
-            
-            if self.state_store:
-                engine_observers.append(StateStoreObserver(self.state_store))
-            
-            engine_observers.append(unified_observer)
+            engine_observers = [unified_observer]
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
+        from dipeo.application.registry.keys import EVENT_BUS
         
         runtime_resolver = StandardRuntimeResolver()
+        
+        # Get event bus from registry if available
+        event_bus = None
+        if self.service_registry.has(EVENT_BUS):
+            event_bus = self.service_registry.resolve(EVENT_BUS)
+        
+        # Create engine with event bus (or observers for backward compatibility)
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             runtime_resolver=runtime_resolver,
-            observers=engine_observers,
+            event_bus=event_bus,
+            observers=engine_observers if not event_bus else None,
         )
 
         # No update iterator needed with unified monitoring
@@ -103,12 +106,8 @@ class ExecuteDiagramUseCase(BaseService):
         async def run_execution():
             try:
                 exec_state = await self.state_store.get_state(execution_id)
-                if exec_state:
-                    exec_state.status = ExecutionStatus.RUNNING
-                    exec_state.started_at = datetime.now(UTC).isoformat()
-                    exec_state.is_active = True
-                    await self.state_store.save_state(exec_state)
                 
+                # The engine will emit EXECUTION_STARTED event which triggers state updates
                 async for _ in engine.execute(
                     diagram=typed_diagram,
                     execution_state=exec_state,
@@ -118,19 +117,15 @@ class ExecuteDiagramUseCase(BaseService):
                 ):
                     pass
 
-                await self._finalize_execution_state(execution_id, ExecutionStatus.COMPLETED)
+                # Engine handles completion events internally
                 
             except Exception as e:
                 import logging
 
                 logger = logging.getLogger(__name__)
                 logger.error(f"Engine execution failed: {e}", exc_info=True)
-                
-                await self._finalize_execution_state(
-                    execution_id, 
-                    ExecutionStatus.FAILED,
-                    error=str(e)
-                )
+                # Error event will be emitted by the engine
+                raise
 
         # Check if this is a sub-diagram execution (for batch parallel support)
         is_sub_diagram = options.get('is_sub_diagram', False) or options.get('parent_execution_id')
@@ -145,38 +140,48 @@ class ExecuteDiagramUseCase(BaseService):
             # We'll handle this task specially in the update loop
             pass
         
-        # Wait for execution completion and yield status
-        if use_monitoring_stream or is_batch_item or is_sub_diagram:
-            # Wait for the execution task to complete
-            try:
-                await execution_task
-            except Exception:
-                pass  # Errors are already handled in run_execution
-            
-            # Get final state
-            state = await self.state_store.get_state(execution_id)
-            yield {
-                "type": "execution_complete" if state and state.status == ExecutionStatus.COMPLETED else "execution_error",
-                "execution_id": execution_id,
-                "status": state.status.value if state else "unknown",
-            }
-        else:
-            # For web executions, events are consumed via MessageRouter/GraphQL subscriptions
-            await asyncio.sleep(0.1)
-            while True:
+        try:
+            # Wait for execution completion and yield status
+            if use_monitoring_stream or is_batch_item or is_sub_diagram:
+                # Wait for the execution task to complete
+                try:
+                    await execution_task
+                except Exception:
+                    pass  # Errors are already handled in run_execution
+                
+                # Get final state
                 state = await self.state_store.get_state(execution_id)
-                if state and state.status in [
-                    ExecutionStatus.COMPLETED,
-                    ExecutionStatus.FAILED,
-                    ExecutionStatus.ABORTED,
-                ]:
-                    break
-                await asyncio.sleep(1)
-            yield {
-                "type": "execution_complete" if state.status == ExecutionStatus.COMPLETED else "execution_error",
-                "execution_id": execution_id,
-                "status": state.status.value,
-            }
+                # Only treat FAILED and ABORTED as errors, not PENDING or RUNNING
+                is_error = state and state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
+                yield {
+                    "type": "execution_error" if is_error else "execution_complete",
+                    "execution_id": execution_id,
+                    "status": state.status.value if state else "unknown",
+                    "error": state.error if state and state.error else ("Failed" if is_error else None),
+                }
+            else:
+                # For web executions, events are consumed via MessageRouter/GraphQL subscriptions
+                await asyncio.sleep(0.1)
+                while True:
+                    state = await self.state_store.get_state(execution_id)
+                    if state and state.status in [
+                        ExecutionStatus.COMPLETED,
+                        ExecutionStatus.FAILED,
+                        ExecutionStatus.ABORTED,
+                    ]:
+                        break
+                    await asyncio.sleep(1)
+                # Only treat FAILED and ABORTED as errors
+                is_error = state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
+                yield {
+                    "type": "execution_error" if is_error else "execution_complete",
+                    "execution_id": execution_id,
+                    "status": state.status.value,
+                    "error": state.error if state.error else ("Failed" if is_error else None),
+                }
+        except Exception:
+            # Re-raise any exceptions
+            raise
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""
@@ -338,37 +343,6 @@ class ExecuteDiagramUseCase(BaseService):
         
         # Store initial state
         await self.state_store.save_state(initial_state)
-    
-    async def _finalize_execution_state(
-        self,
-        execution_id: str,
-        status: "ExecutionStatus",
-        error: str | None = None
-    ) -> None:
-        """Finalize execution state in persistence layer."""
-        from dipeo.models import ExecutionStatus
-        
-        # Get current state
-        state = await self.state_store.get_state(execution_id)
-        if state:
-            if status == ExecutionStatus.COMPLETED:
-                state.status = ExecutionStatus.COMPLETED
-                state.ended_at = datetime.now(UTC).isoformat()
-                state.is_active = False
-                
-                # Calculate duration
-                if state.started_at:
-                    start = datetime.fromisoformat(state.started_at.replace('Z', '+00:00'))
-                    end = datetime.now(UTC)
-                    state.duration_seconds = (end - start).total_seconds()
-            elif status == ExecutionStatus.FAILED:
-                state.status = ExecutionStatus.FAILED
-                state.ended_at = datetime.now(UTC).isoformat()
-                state.is_active = False
-                state.error = error or "Unknown error"
-            
-            # Save final state
-            await self.state_store.save_state(state)
     
     def _extract_api_keys_for_typed_diagram(self, diagram: "DomainDiagram", api_key_service) -> dict[str, str]:
         """Extract API keys needed by the diagram.

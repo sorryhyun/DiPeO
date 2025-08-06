@@ -3,7 +3,7 @@
  */
 
 import { SourceFile, Node } from 'ts-morph'
-import type { ConstantInfo } from '@dipeo/domain-models/parsers/ast-types'
+import type { ConstantInfo } from '@dipeo/models/codegen/ast-types'
 import { getJSDoc, parseExpression } from './utils'
 
 export function parseConstants(sourceFile: SourceFile, includeJSDoc: boolean): ConstantInfo[] {

@@ -32,13 +32,12 @@ nodes:
       glob: true  # Enable glob pattern expansion
       source_details:
         # Core AST files
-        - temp/diagram.ts.json
-        - temp/execution.ts.json
-        - temp/conversation.ts.json
-        - temp/enums.ts.json
-        - temp/integration.ts.json
+        - temp/core/diagram.ts.json
+        - temp/core/execution.ts.json
+        - temp/core/conversation.ts.json
+        - temp/core/integration.ts.json
         # Dynamic discovery of all node data files
-        - "temp/*.data.ts.json"  # This will match all node data files automatically!
+        - "temp/core/nodes/*.data.ts.json"  # This will match all node data files automatically!
 
   # Prepare GraphQL data for template
   - label: Prepare GraphQL Data

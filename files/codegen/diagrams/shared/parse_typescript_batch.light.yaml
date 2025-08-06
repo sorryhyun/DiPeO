@@ -29,11 +29,23 @@ nodes:
         # Main directory files
         ts_files.extend(glob.glob(os.path.join(models_dir, '*.ts')))
         
-        # Node specs files
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'node-specs', '*.ts')))
+        # Core files
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'core', '*.ts')))
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'core', 'nodes', '*.ts')))
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'core', 'enums', '*.ts')))
         
-        # Node data files
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'node-data', '*.ts')))
+        # Specifications files
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'specifications', '*.ts')))
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'specifications', 'nodes', '*.ts')))
+        
+        # Utilities files
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'utilities', '*.ts')))
+        
+        # Codegen files
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'codegen', '*.ts')))
+        
+        # Frontend files
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))
         
         # Create items for batch processing
         items = []

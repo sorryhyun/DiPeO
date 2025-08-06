@@ -27,9 +27,24 @@ nodes:
         else:
             file_path = ''
         
-        # Simple cache path: just use basename + .json
-        file_name = os.path.basename(file_path)
-        cache_path = f'temp/{file_name}.json'
+        # Preserve directory structure in cache path
+        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        models_dir = os.path.join(base_dir, 'dipeo/models/src')
+        
+        # Get relative path from models_dir
+        if file_path.startswith(models_dir):
+            relative_path = os.path.relpath(file_path, models_dir)
+        else:
+            # Fallback to basename if not in expected location
+            relative_path = os.path.basename(file_path)
+        
+        # Create cache path preserving directory structure
+        cache_path = f'temp/{relative_path}.json'
+        cache_dir = os.path.dirname(cache_path)
+        
+        # Ensure cache directory exists
+        if cache_dir and cache_dir != 'temp':
+            os.makedirs(cache_dir, exist_ok=True)
         
         result = {
             'file_path': file_path,

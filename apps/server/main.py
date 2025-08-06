@@ -10,7 +10,7 @@ from fastapi.responses import Response
 
 from dipeo_server.api.middleware import setup_middleware
 from dipeo_server.api.router import setup_routes
-from dipeo_server.app_context import initialize_container
+from dipeo_server.app_context import initialize_container_async
 
 load_dotenv()
 
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    container = initialize_container()
+    container = await initialize_container_async()
     await init_resources(container)
     setup_routes(app)
 

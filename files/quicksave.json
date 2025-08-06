@@ -4,100 +4,94 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 50,
+        "x": 330,
         "y": 200
       },
       "data": {
         "label": "start",
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {}
       }
     },
     {
       "id": "node_1",
-      "type": "code_job",
+      "type": "person_job",
       "position": {
-        "x": 150,
-        "y": 200
+        "x": 632,
+        "y": 231
       },
       "data": {
-        "label": "parse input",
-        "code": "# Parse input to extract node type and file path\n# Check if we have a default value in inputs (common case)\nif 'default' in inputs:\n    default_data = inputs['default']\n    if isinstance(default_data, dict):\n        node_type = default_data.get('node_type')\n        file_path = default_data.get('file_path')\n    else:\n        # If default is a string, use it as node_type\n        node_type = default_data\n        file_path = None\nelse:\n    # Direct inputs\n    node_type = inputs.get('node_type')\n    file_path = inputs.get('file_path')\n\nif not node_type:\n    raise ValueError(f\"node_type not provided in input. Got: {inputs}\")\n\n# Convert underscore to hyphen for cache filename\ncache_filename = node_type.replace('_', '-') + '_data'\n\n# Also create the file name with hyphens\nfile_name = node_type.replace('_', '-') + '.data.ts'\n\n# Return the data directly as the result\nresult = {\n    \"node_type\": node_type,\n    \"file_name\": file_name,\n    \"file_path\": file_path,\n    \"cache_filename\": cache_filename\n}\n",
-        "language": "python"
+        "label": "printer",
+        "default_prompt": "say hi",
+        "max_iteration": 3,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_2",
-      "type": "db",
+      "type": "condition",
       "position": {
-        "x": 350,
-        "y": 200
+        "x": 620,
+        "y": 425
       },
       "data": {
-        "label": "load ts source",
-        "operation": "read",
-        "sub_type": "file",
-        "file": "dipeo/models/src/node-data/{data.file_name}"
+        "label": "condition",
+        "condition_type": "detect_max_iterations",
+        "flipped": [
+          true,
+          true
+        ]
       }
     },
     {
       "id": "node_3",
-      "type": "typescript_ast",
+      "type": "endpoint",
       "position": {
-        "x": 550,
-        "y": 200
+        "x": 0,
+        "y": 437
       },
       "data": {
-        "label": "parse typescript ast",
-        "extractPatterns": [
-          "interface",
-          "type",
-          "enum",
-          "const"
+        "label": "endpoint",
+        "file_format": "txt",
+        "flipped": [
+          true,
+          false
         ],
-        "includeJSDoc": true,
-        "outputFormat": "for_codegen",
-        "parseMode": "module"
+        "save_to_file": true,
+        "file_name": "files/results/total.txt"
       }
     },
     {
       "id": "node_4",
-      "type": "code_job",
+      "type": "person_job",
       "position": {
-        "x": 750,
-        "y": 200
+        "x": 311,
+        "y": 443
       },
       "data": {
-        "label": "format data",
-        "code": "# Format the AST result for saving and output\n# Debug what we're receiving\nprint(f\"[Format Data] Received inputs keys: {inputs.keys()}\")\n\n# The typescript_ast node outputs directly\n# When connected with label 'ast_data', it comes as inputs['ast_data']\nast_data = inputs.get('ast_data')\n\n# Handle the case where ast_data might be a string reference\nif isinstance(ast_data, str):\n    # This might be a connection label, check default\n    ast_data = inputs.get('default', {})\n    print(f\"[Format Data] Using default input for ast_data\")\n\n# If still not found or not a dict, use empty dict\nif not isinstance(ast_data, dict):\n    print(f\"[Format Data] ast_data is not a dict: {type(ast_data)}, using empty dict\")\n    ast_data = {}\n    \n# Get node_info from the inputs (sent from Parse Input)\n# Parse Input now sends the entire data object as node_info\nnode_info = inputs.get('node_info', {})\n\n# Extract node_type and cache_filename directly from node_info\nnode_type = node_info.get('node_type', 'unknown')\ncache_filename = node_info.get('cache_filename', node_type)\n\n# Extract main interface\ninterfaces = ast_data.get('interfaces', [])\nmain_interface = None\nif interfaces:\n    # Find the main interface\n    for interface in interfaces:\n        if interface.get('name', '').lower().replace('nodedata', '') == node_type.replace('_', ''):\n            main_interface = interface\n            break\n    if not main_interface and interfaces:\n        main_interface = interfaces[0]\n\n# Prepare data for saving\ncache_data = {\n    'node_type': node_type,\n    'ast': ast_data,\n    'main_interface': main_interface\n}\n\nimport json\nfrom pathlib import Path\n\n# Ensure .temp directory exists\nPath('.temp').mkdir(exist_ok=True)\n\n# Also prepare the output for the next nodes\nparsed_node = {\n    'node_type': node_type,\n    'interface': main_interface,\n    'all_interfaces': interfaces,\n    'types': ast_data.get('types', []),\n    'enums': ast_data.get('enums', []),\n    'total_definitions': ast_data.get('total_definitions', 0)\n}\n\n# Return the cache data as dict (DB node will handle serialization)\n# The DB node looks for 'content' key when writing\nresult = {\n    'content': cache_data,  # Pass as dict, let DB node serialize\n    'cache_path': f'.temp/{cache_filename}_ast.json',\n    'parsed_node': parsed_node\n}\n\nprint(f\"[Format Data] Prepared cache data for: {cache_filename}\")\n",
-        "language": "python"
-      }
-    },
-    {
-      "id": "node_5",
-      "type": "db",
-      "position": {
-        "x": 900,
-        "y": 200
-      },
-      "data": {
-        "label": "save cache",
-        "file": "{cache_data.cache_path}",
-        "operation": "write",
-        "serialize_json": true,
-        "sub_type": "file"
-      }
-    },
-    {
-      "id": "node_6",
-      "type": "endpoint",
-      "position": {
-        "x": 1100,
-        "y": 200
-      },
-      "data": {
-        "label": "end",
-        "save_to_file": false
+        "label": "ask",
+        "default_prompt": "How many times did you respond?",
+        "flipped": [
+          true,
+          false
+        ],
+        "max_iteration": 1,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "first_only_prompt": ""
       }
     }
   ],
@@ -114,60 +108,52 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": "data",
+      "label": null,
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "conversation_state"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_default_output",
-      "target": "node_3_default_input",
-      "label": "source",
-      "data": null,
-      "content_type": "raw_text"
+      "source": "node_2_condfalse_output",
+      "target": "node_1_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "conversation_state"
     },
     {
       "id": "arrow_3",
-      "source": "node_3_default_output",
+      "source": "node_2_condtrue_output",
       "target": "node_4_default_input",
-      "label": "ast_data",
-      "data": null,
-      "content_type": "raw_text"
+      "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "conversation_state"
     },
     {
       "id": "arrow_4",
-      "source": "node_1_default_output",
-      "target": "node_4_default_input",
-      "label": "node_info",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_5",
       "source": "node_4_default_output",
-      "target": "node_5_default_input",
-      "label": "cache_data",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_6",
-      "source": "node_4_default_output",
-      "target": "node_6_default_input",
-      "label": "parsed_node",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_7",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
+      "target": "node_3_default_input",
       "label": null,
       "data": null,
       "content_type": "raw_text"
     }
   ],
-  "persons": [],
+  "persons": [
+    {
+      "id": "person_person_1",
+      "label": "person 1",
+      "llm_config": {
+        "service": "ollama",
+        "model": "gpt-oss:20b",
+        "api_key_id": "APIKEY_21A814",
+        "system_prompt": null
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -176,6 +162,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_1_first_input",
+      "node_id": "node_1",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -202,11 +196,19 @@
       "position": "left"
     },
     {
-      "id": "node_2_default_output",
+      "id": "node_2_condtrue_output",
       "node_id": "node_2",
-      "label": "default",
+      "label": "condtrue",
       "direction": "output",
-      "data_type": "any",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_2_condfalse_output",
+      "node_id": "node_2",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
       "position": "right"
     },
     {
@@ -218,12 +220,12 @@
       "position": "left"
     },
     {
-      "id": "node_3_default_output",
-      "node_id": "node_3",
-      "label": "default",
-      "direction": "output",
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
       "data_type": "any",
-      "position": "right"
+      "position": "left"
     },
     {
       "id": "node_4_default_input",
@@ -240,46 +242,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_5_default_input",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_5_default_output",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_6_default_input",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_3_results_output",
-      "node_id": "node_3",
-      "label": "results",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_3_error_output",
-      "node_id": "node_3",
-      "label": "error",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
     }
   ],
   "metadata": {
@@ -287,8 +249,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-04T08:50:46.483Z",
-    "modified": "2025-08-04T08:50:46.483Z",
+    "created": "2025-08-06T12:30:55.552Z",
+    "modified": "2025-08-06T12:30:55.552Z",
     "version": "1.0.0",
     "id": null
   }

@@ -1,0 +1,1 @@
+export { useEvent } from '@/infrastructure/hooks/core/useEvent';

@@ -1,5 +1,5 @@
 // Generated field configuration for {{ nodeType }}
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
 export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
 {%- for field in fields %}
@@ -47,6 +47,9 @@ export const {{ nodeTypeCamel }}Fields: UnifiedFieldDefinition[] = [
 {%- endif %}
 {%- if field.uiConfig.adjustable %}
     adjustable: {{ field.uiConfig.adjustable | lower }},
+{%- endif %}
+{%- if field.uiConfig.showPromptFileButton %}
+    showPromptFileButton: {{ field.uiConfig.showPromptFileButton | lower }},
 {%- endif %}
 {%- if field.uiConfig.options %}
     options: [

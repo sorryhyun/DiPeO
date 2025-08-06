@@ -32,10 +32,13 @@ nodes:
       serialize_json: true  # Parse JSON files automatically
       glob: true  # Enable glob pattern expansion
       source_details:
-        - temp/codegen-mappings.ts.json
-        - temp/diagram.ts.json
+        - temp/codegen/mappings.ts.json
+        - temp/codegen/node-interface-map.ts.json
+        - temp/core/diagram.ts.json
+        # Base node data interface (must be loaded before node data files)
+        - temp/core/nodes/base.ts.json
         # Dynamically discover all node data files
-        - "temp/*.data.ts.json"
+        - "temp/core/nodes/*.data.ts.json"
 
   # Extract mappings
   - label: Extract Mappings

@@ -110,27 +110,44 @@ DiPeO diagrams can be represented as:
 * Types are imported into the server automatically
 * Proof of self-hosting: DiPeO uses its own execution engine to build its API layer
 
-### Multi-language Model Generation
+### Multi-language Model Generation (V2 Architecture)
 
-* System consumes TypeScript ASTs, produces Python Pydantic models, and other artifacts
-* Custom Jinja2 filters:
+* **Dynamic discovery**: System automatically finds all TypeScript files using glob patterns
+* **AST caching**: Parsed TypeScript cached to `/temp/` for performance
+* **Template-based generation**: V2 uses `template_job` nodes for direct rendering
 
-  * snake/camel/pascal conversion
-  * pluralization
-  * type conversion (e.g., `str` ↔ `string`)
-  * default value mapping
-* Template environment loads templates from strings, registers filters
-* `python_models.py` generator:
+**Generation flow**:
+1. Parse all TypeScript → Cache AST
+2. Generate Python models, enums, validations → Staged directory
+3. Apply staged changes with syntax validation
+4. Generate frontend using applied models
+5. Export GraphQL schema and generate TypeScript types
 
-  * Handles optional types, arrays, maps, unions, branded IDs
-  * Mappings define node→UI fields, Zod schemas, Pydantic defaults
-* Result: **Single source of truth** (TS definitions) across backend (Pydantic), frontend (React), API types
+**Custom Jinja2 filters**:
+* `ts_to_python`, `ts_to_graphql` - Type conversions
+* `snake_case`, `camel_case`, `pascal_case` - Naming conventions
+* `pluralize` - Collection naming
+* `get_graphql_type`, `get_zod_type` - Framework-specific types
+
+**Key generators**:
+* `/files/codegen/code/models/` - Python model generation
+* `/files/codegen/code/frontend/` - React/TypeScript generation
+* All use external files for testability and reuse
+
+**Result**: **Single source of truth** (TS definitions) generating:
+* Python Pydantic models with validation
+* GraphQL schema and Strawberry types
+* React components with Zod validation
+* Fully typed GraphQL operations
 
 ### Dog‑fooding via Diagram‑Driven Codegen
 
-* Code generation is orchestrated through diagrams
-* `run_codegen.py` creates a temporary diagram, runs it via the DiPeO CLI (`dipeo run <diagram>`)
-* DiPeO’s visual engine generates code for new nodes/UI—*dog‑fooding* in action
+* **All code generation is orchestrated through DiPeO diagrams** - no traditional code generators
+* Located in `/files/codegen/diagrams/` with sub-folders for models, frontend, and shared utilities
+* **Direct execution**: `make codegen` runs `dipeo run codegen/diagrams/models/generate_all_models --light`
+* **Staging approach**: Generated code goes to `/dipeo/diagram_generated_staged/` for validation before applying
+* **External code**: All generation logic in `/files/codegen/code/` matching diagram structure
+* DiPeO's execution engine generates its own code—true *dog‑fooding* in action
 
 ### Extensible Node Specifications
 
@@ -139,6 +156,22 @@ DiPeO diagrams can be represented as:
 * Specs power the codegen system: auto-generate backend models, GraphQL types, frontend forms
 * UI metadata ensures consistency and extensibility
 
+### Staging System and Validation
+
+* **Staged generation**: All generated code goes to `/dipeo/diagram_generated_staged/` first
+* **Syntax validation**: Python compilation check ensures generated code is valid
+* **Preview changes**: `make diff-staged` shows what will change
+* **Atomic updates**: Apply all changes or none - prevents partial updates
+* **Rollback safety**: Easy to discard bad generations before applying
+
+### Batch Processing and Parallelization
+
+* **Batch sub-diagrams**: Generate multiple nodes in parallel using `batch: true`
+* **Dynamic lists**: Discover files with glob patterns, process in batches
+* **Error resilience**: Failed items don't stop other generations
+* **Performance**: Parallel processing significantly reduces generation time
+* Example: Frontend generation processes all node specs concurrently
+
 ---
 
 ## Strengths and Unique Value
@@ -146,16 +179,32 @@ DiPeO diagrams can be represented as:
 * **Intuitive memory/context management:** Each LLM is a person with persistent memory; global convo model + per-agent views = fine‑grained control
 * **Visual programming w/ YAML round‑tripping:** Export/import diagrams as JSON/YAML; edit in code editor; Light YAML for quick edits, Domain JSON for full fidelity
 * **Self‑hosted operation & privacy:** All processing local, no external server
-* **Dog‑fooding meta‑codegen:** Platform uses itself for codegen—robustness, less manual work
-* **Cross‑language consistency:** TS models as single source of truth for Python types, Zod schemas, UI
+* **Advanced dog‑fooding meta‑codegen:** 
+  * Platform uses itself for all code generation—proven robustness
+  * Staging system ensures safe updates with validation
+  * External code organization enables testing and reuse
+  * V2 template jobs simplify generation flow
+* **Cross‑language consistency:** TS models as single source of truth generating:
+  * Python Pydantic models with full validation
+  * GraphQL schema with Strawberry types
+  * React components with TypeScript types
+  * Zod validation schemas
 * **Flexible agent collaboration:** Debate, pipeline, multi-agent patterns for complex workflows
-* **Extensible node system:** Node specs w/ UI metadata and execution rules → new nodes via diagrams
+* **Extensible node system:** 
+  * Node specs define complete behavior
+  * Auto-discovery of new specifications
+  * Parallel generation for performance
+  * UI metadata ensures consistency
 
 ---
 
 ## Conclusion
 
 > **DiPeO** is more than a diagram editor.
-> It’s a full‑stack platform integrating visual programming, robust memory management, and automated code generation. By modelling LLMs as persistent "persons" with global conversations and per‑agent filters, DiPeO lets developers design complex multi‑agent workflows *intuitively*. Its dog‑fooding approach—diagrams generating Pydantic models and GraphQL types—showcases a forward‑looking meta‑coding paradigm. With privacy‑preserving local execution, cross‑language codegen, and flexible pattern abstractions, DiPeO stands out for building and experimenting with AI-driven agents.
+> It's a full‑stack platform integrating visual programming, robust memory management, and automated code generation. By modelling LLMs as persistent "persons" with global conversations and per‑agent filters, DiPeO lets developers design complex multi‑agent workflows *intuitively*. 
+>
+> Its advanced dog‑fooding approach—where DiPeO diagrams orchestrate the generation of DiPeO's own code—demonstrates the platform's maturity and capabilities. The v2 architecture with staging directories, external code organization, and parallel batch processing shows how visual programming can handle sophisticated meta-programming tasks.
+>
+> With privacy‑preserving local execution, cross‑language type safety from a single TypeScript source of truth, and flexible pattern abstractions, DiPeO exemplifies the future of AI-driven development tools—where the platform builds itself.
 
 ---

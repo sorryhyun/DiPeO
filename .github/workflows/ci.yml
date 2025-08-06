@@ -48,7 +48,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Build TypeScript models
-      run: pnpm --filter @dipeo/domain-models build
+      run: pnpm --filter @dipeo/models build
 
     - name: Generate code
       run: make codegen

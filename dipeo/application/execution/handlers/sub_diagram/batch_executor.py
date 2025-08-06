@@ -256,7 +256,7 @@ class BatchSubDiagramExecutor:
             container=base_context['container']
         )
         
-        # Execute with minimal observers (no StateStoreObserver for batch items)
+        # Execute with minimal observers for batch items
         parent_observers = []
         
         # Execute and collect only final results
@@ -321,14 +321,21 @@ class BatchSubDiagramExecutor:
                 if data.get("status") == "COMPLETED":
                     break
                 elif data.get("status") == "FAILED":
-                    execution_error = data.get("error", "Execution failed")
+                    execution_error = data.get("error")
+                    if not execution_error:
+                        # Try to get more context from the data
+                        execution_error = f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
                     break
             
             # Legacy support (minimal)
             elif update_type == "execution_complete":
                 break
             elif update_type == "execution_error":
-                execution_error = update.get("error", "Unknown error")
+                execution_error = update.get("error")
+                if not execution_error:
+                    # If no error message provided, try to get status for more context
+                    status = update.get("status", "unknown")
+                    execution_error = f"Execution failed with status: {status}"
                 break
         
         return execution_results, execution_error

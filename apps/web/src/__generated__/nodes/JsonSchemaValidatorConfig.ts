@@ -7,8 +7,8 @@
 
 
 // Auto-generated node configuration for json_schema_validator
-import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { jsonSchemaValidatorFields } from '../fields/JsonSchemaValidatorFields';
 
 export const jsonSchemaValidatorConfig: UnifiedNodeConfig = {
@@ -16,7 +16,7 @@ export const jsonSchemaValidatorConfig: UnifiedNodeConfig = {
   icon: '✓',
   color: '#8BC34A',
   nodeType: NodeType.JSON_SCHEMA_VALIDATOR,
-  category: 'validation',
+  category: 'codegen',
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },

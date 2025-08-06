@@ -3,7 +3,7 @@
  */
 
 import { SourceFile } from 'ts-morph'
-import type { EnumInfo } from '@dipeo/domain-models/parsers/ast-types'
+import type { EnumInfo } from '@dipeo/models/codegen/ast-types'
 import { getJSDoc } from './utils'
 
 export function parseEnums(sourceFile: SourceFile, includeJSDoc: boolean): EnumInfo[] {

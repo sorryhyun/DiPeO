@@ -6,6 +6,16 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "DBBlockSubType": {
+      "description": "Node-specific enumerations",
+      "enum": [
+        "fixed_prompt",
+        "file",
+        "code",
+        "api_tool"
+      ],
+      "type": "string"
+    },
     "DBNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -56,15 +66,6 @@
         "sub_type"
       ],
       "type": "object"
-    },
-    "DBBlockSubType": {
-      "enum": [
-        "fixed_prompt",
-        "file",
-        "code",
-        "api_tool"
-      ],
-      "type": "string"
     }
   }
 }

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         ASTParserPort,
         IntegratedApiServicePort,
     )
+    from dipeo.core.events import EventEmitter
     from dipeo.application.services import (
         ConversationManagerImpl,
         PromptBuilder,
@@ -44,6 +45,7 @@ LLM_SERVICE = ServiceKey["LLMServicePort"]("llm_service")
 STATE_STORE = ServiceKey["StateStorePort"]("state_store")
 FILE_SERVICE = ServiceKey["FileServicePort"]("file_service")
 MESSAGE_ROUTER = ServiceKey["MessageRouterPort"]("message_router")
+EVENT_BUS = ServiceKey["EventEmitter"]("event_bus")
 
 # Storage Services
 BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
@@ -113,6 +115,7 @@ __all__ = [
     "STATE_STORE",
     "FILE_SERVICE",
     "MESSAGE_ROUTER",
+    "EVENT_BUS",
     
     # Storage
     "BLOB_STORE",

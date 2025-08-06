@@ -45,7 +45,19 @@ class LLMInfraService(BaseService, LLMServicePort):
             "opus": "anthropic",
             "gemini": "google",
             "bison": "google",
-            "palm": "google"
+            "palm": "google",
+            "llama": "ollama",
+            "mistral": "ollama",
+            "mixtral": "ollama",
+            "gemma": "ollama",
+            "phi": "ollama",
+            "qwen": "ollama",
+            "vicuna": "ollama",
+            "orca": "ollama",
+            "neural-chat": "ollama",
+            "starling": "ollama",
+            "codellama": "ollama",
+            "deepseek-coder": "ollama"
         }
 
     async def initialize(self) -> None:
@@ -81,8 +93,16 @@ class LLMInfraService(BaseService, LLMServicePort):
                     return entry["adapter"]
                 else:
                     del self._adapter_pool[cache_key]
-            raw_key = self._get_api_key(api_key_id)
-            adapter = create_adapter(provider, model, raw_key)
+            
+            # Special handling for Ollama - it doesn't require an API key
+            if provider == "ollama":
+                raw_key = ""  # Ollama doesn't need an API key
+                # Get Ollama host from environment or use default
+                base_url = self._settings.ollama_host if hasattr(self._settings, 'ollama_host') else None
+                adapter = create_adapter(provider, model, raw_key, base_url=base_url)
+            else:
+                raw_key = self._get_api_key(api_key_id)
+                adapter = create_adapter(provider, model, raw_key)
             
             self._adapter_pool[cache_key] = {
                 "adapter": adapter,
@@ -112,7 +132,15 @@ class LLMInfraService(BaseService, LLMServicePort):
             if messages is None:
                 messages = []
             
-            service = self._infer_service_from_model(model)
+            # Use explicitly passed service if available, otherwise infer from model
+            service = kwargs.pop('service', None)
+            if service:
+                # Normalize the service name if it's an enum or has a value attribute
+                if hasattr(service, 'value'):
+                    service = service.value
+                service = normalize_service_name(str(service))
+            else:
+                service = self._infer_service_from_model(model)
             is_valid, error_msg = self._llm_domain_service.validate_model_config(
                 provider=service,
                 model=model,

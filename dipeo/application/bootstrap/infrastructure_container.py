@@ -111,7 +111,7 @@ class InfrastructureContainer:
     def _setup_infrastructure_services(self):
         """Set up additional infrastructure services."""
         # State store - use None for CLI, server should override
-        # For server usage, this should be overridden with StateRegistry
+        # For server usage, this should be overridden with EventBasedStateStore
         self.registry.register(
             STATE_STORE,
             None  # Server must override this

@@ -7,7 +7,7 @@
 
 
 // Generated field configuration for user_response
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
 export const userResponseFields: UnifiedFieldDefinition[] = [
   {

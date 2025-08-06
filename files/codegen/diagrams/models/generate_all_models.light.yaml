@@ -102,7 +102,7 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Generate TypeScript Indexes (node-data and node-specs)
+  # Generate TypeScript Indexes (core/nodes and specifications/nodes)
   - label: Generate TypeScript Indexes
     type: code_job
     position: {x: 400, y: 375}

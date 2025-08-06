@@ -35,11 +35,6 @@ TaskID = NewType('TaskID', str)
 
 
 
-NodeCategory = Literal["control", "ai", "compute", "data", "integration", "interaction", "validation", "utility"]
-FieldType = Literal["string", "number", "boolean", "array", "object", "enum", "any"]
-UIInputType = Union[Any, Literal["text"], Literal["textarea"], Literal["number"], Literal["checkbox"], Literal["select"], Literal["code"], Literal["group"], Literal["json"], Literal["personSelect"]]
-
-
 
 class Vec2(BaseModel):
     """Vec2 model"""
@@ -148,14 +143,6 @@ class DomainDiagram(BaseModel):
     metadata: Optional[DiagramMetadata] = Field(default=None)
 
 
-class BaseNodeData(BaseModel):
-    """BaseNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    label: str
-    flipped: Optional[bool] = Field(default=None)
-
-
 class TokenUsage(BaseModel):
     """TokenUsage model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -178,6 +165,35 @@ class NodeState(BaseModel):
     output: Optional[Dict[str, Any]] = Field(default=None)
 
 
+class NodeMetrics(BaseModel):
+    """NodeMetrics model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    node_id: str
+    node_type: str
+    start_time: float
+    end_time: Optional[float] = Field(default=None)
+    duration_ms: Optional[float] = Field(default=None)
+    memory_usage: Optional[float] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    dependencies: Optional[List[str]] = Field(default=None)
+
+
+class ExecutionMetrics(BaseModel):
+    """ExecutionMetrics model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    execution_id: ExecutionID
+    start_time: float
+    end_time: Optional[float] = Field(default=None)
+    total_duration_ms: Optional[float] = Field(default=None)
+    node_metrics: Dict[str, NodeMetrics]
+    critical_path: Optional[List[str]] = Field(default=None)
+    parallelizable_groups: Optional[List[List[str]]] = Field(default=None)
+    bottlenecks: Optional[List[Dict[str, Any]]] = Field(default=None)
+
+
 class ExecutionState(BaseModel):
     """ExecutionState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -196,6 +212,7 @@ class ExecutionState(BaseModel):
     is_active: Optional[bool] = Field(default=None)
     exec_counts: Dict[str, float]
     executed_nodes: List[str]
+    metrics: Optional[ExecutionMetrics] = Field(default=None)
 
 
 class ExecutionOptions(BaseModel):
@@ -288,122 +305,6 @@ class Conversation(BaseModel):
     metadata: Optional[ConversationMetadata] = Field(default=None)
 
 
-class ValidationRules(BaseModel):
-    """ValidationRules model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    min: Optional[float] = Field(default=None)
-    max: Optional[float] = Field(default=None)
-    minLength: Optional[float] = Field(default=None)
-    maxLength: Optional[float] = Field(default=None)
-    pattern: Optional[str] = Field(default=None)
-    message: Optional[str] = Field(default=None)
-    itemType: Optional[FieldType] = Field(default=None)
-    allowedValues: Optional[List[str]] = Field(default=None)
-
-
-class UIConfiguration(BaseModel):
-    """UIConfiguration model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    inputType: UIInputType
-    placeholder: Optional[str] = Field(default=None)
-    column: Optional[Literal[1, 2]] = Field(default=None)
-    rows: Optional[float] = Field(default=None)
-    language: Optional[SupportedLanguage] = Field(default=None)
-    collapsible: Optional[bool] = Field(default=None)
-    readOnly: Optional[bool] = Field(default=None)
-    options: Optional[List[Dict[str, Any]]] = Field(default=None)
-    min: Optional[float] = Field(default=None)
-    max: Optional[float] = Field(default=None)
-    showPromptFileButton: Optional[bool] = Field(default=None)
-    adjustable: Optional[bool] = Field(default=None)
-
-
-class ConditionalConfig(BaseModel):
-    """ConditionalConfig model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    field: str
-    values: List[Any]
-    operator: Optional[Literal["equals", "notEquals", "includes"]] = Field(default=None)
-
-
-class FieldSpecification(BaseModel):
-    """FieldSpecification model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    name: str
-    type: FieldType
-    required: bool
-    description: str
-    defaultValue: Optional[Any] = Field(default=None)
-    validation: Optional[ValidationRules] = Field(default=None)
-    uiConfig: UIConfiguration
-    nestedFields: Optional[List[FieldSpecification]] = Field(default=None)
-    affects: Optional[List[str]] = Field(default=None)
-    conditional: Optional[ConditionalConfig] = Field(default=None)
-
-
-class HandleConfiguration(BaseModel):
-    """HandleConfiguration model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    inputs: List[str]
-    outputs: List[str]
-
-
-class OutputSpecification(BaseModel):
-    """OutputSpecification model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    type: Union[DataType, Literal["any"]]
-    description: str
-
-
-class ExecutionConfiguration(BaseModel):
-    """ExecutionConfiguration model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    timeout: Optional[int] = Field(default=None)
-    retryable: Optional[bool] = Field(default=None)
-    maxRetries: Optional[int] = Field(default=None)
-    requires: Optional[List[str]] = Field(default=None)
-
-
-class ExampleConfiguration(BaseModel):
-    """ExampleConfiguration model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    name: str
-    description: str
-    configuration: Dict[str, Any]
-
-
-class NodeSpecification(BaseModel):
-    """NodeSpecification model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    nodeType: NodeType
-    displayName: str
-    category: NodeCategory
-    icon: str
-    color: str
-    description: str
-    fields: List[FieldSpecification]
-    handles: HandleConfiguration
-    outputs: Optional[Dict[str, OutputSpecification]] = Field(default=None)
-    execution: Optional[ExecutionConfiguration] = Field(default=None)
-    examples: Optional[List[ExampleConfiguration]] = Field(default=None)
-    primaryDisplayField: Optional[str] = Field(default=None)
-
-
-class NodeSpecificationRegistry(BaseModel):
-    """NodeSpecificationRegistry model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    pass
-
-
 class ToolConfig(BaseModel):
     """ToolConfig model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -462,6 +363,14 @@ class LLMRequestOptions(BaseModel):
     n: Optional[float] = Field(default=None)
     tools: Optional[List[ToolConfig]] = Field(default=None)
     response_format: Optional[Any] = Field(default=None)
+
+
+class BaseNodeData(BaseModel):
+    """BaseNodeData model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    label: str
+    flipped: Optional[bool] = Field(default=None)
 
 
 class ApiJobNodeData(BaseNodeData):
@@ -581,10 +490,15 @@ class PersonJobNodeData(BaseNodeData):
     person: Optional[PersonID] = Field(default=None)
     first_only_prompt: str
     default_prompt: Optional[str] = Field(default=None)
+    prompt_file: Optional[str] = Field(default=None)
     max_iteration: float
     memory_profile: Optional[MemoryProfile] = Field(default=None)
     memory_settings: Optional[MemorySettings] = Field(default=None)
     tools: Optional[ToolSelection] = Field(default=None)
+    batch: Optional[bool] = Field(default=None)
+    batch_input_key: Optional[str] = Field(default=None)
+    batch_parallel: Optional[bool] = Field(default=None)
+    max_concurrent: Optional[float] = Field(default=None)
 
 
 class StartNodeData(BaseNodeData):
@@ -695,15 +609,18 @@ def is_diagram_metadata(obj: Any) -> bool:
 def is_domain_diagram(obj: Any) -> bool:
     """Check if object is a DomainDiagram."""
     return isinstance(obj, DomainDiagram)
-def is_base_node_data(obj: Any) -> bool:
-    """Check if object is a BaseNodeData."""
-    return isinstance(obj, BaseNodeData)
 def is_token_usage(obj: Any) -> bool:
     """Check if object is a TokenUsage."""
     return isinstance(obj, TokenUsage)
 def is_node_state(obj: Any) -> bool:
     """Check if object is a NodeState."""
     return isinstance(obj, NodeState)
+def is_node_metrics(obj: Any) -> bool:
+    """Check if object is a NodeMetrics."""
+    return isinstance(obj, NodeMetrics)
+def is_execution_metrics(obj: Any) -> bool:
+    """Check if object is a ExecutionMetrics."""
+    return isinstance(obj, ExecutionMetrics)
 def is_execution_state(obj: Any) -> bool:
     """Check if object is a ExecutionState."""
     return isinstance(obj, ExecutionState)
@@ -731,36 +648,6 @@ def is_conversation_metadata(obj: Any) -> bool:
 def is_conversation(obj: Any) -> bool:
     """Check if object is a Conversation."""
     return isinstance(obj, Conversation)
-def is_validation_rules(obj: Any) -> bool:
-    """Check if object is a ValidationRules."""
-    return isinstance(obj, ValidationRules)
-def is_ui_configuration(obj: Any) -> bool:
-    """Check if object is a UIConfiguration."""
-    return isinstance(obj, UIConfiguration)
-def is_conditional_config(obj: Any) -> bool:
-    """Check if object is a ConditionalConfig."""
-    return isinstance(obj, ConditionalConfig)
-def is_field_specification(obj: Any) -> bool:
-    """Check if object is a FieldSpecification."""
-    return isinstance(obj, FieldSpecification)
-def is_handle_configuration(obj: Any) -> bool:
-    """Check if object is a HandleConfiguration."""
-    return isinstance(obj, HandleConfiguration)
-def is_output_specification(obj: Any) -> bool:
-    """Check if object is a OutputSpecification."""
-    return isinstance(obj, OutputSpecification)
-def is_execution_configuration(obj: Any) -> bool:
-    """Check if object is a ExecutionConfiguration."""
-    return isinstance(obj, ExecutionConfiguration)
-def is_example_configuration(obj: Any) -> bool:
-    """Check if object is a ExampleConfiguration."""
-    return isinstance(obj, ExampleConfiguration)
-def is_node_specification(obj: Any) -> bool:
-    """Check if object is a NodeSpecification."""
-    return isinstance(obj, NodeSpecification)
-def is_node_specification_registry(obj: Any) -> bool:
-    """Check if object is a NodeSpecificationRegistry."""
-    return isinstance(obj, NodeSpecificationRegistry)
 def is_tool_config(obj: Any) -> bool:
     """Check if object is a ToolConfig."""
     return isinstance(obj, ToolConfig)
@@ -779,6 +666,9 @@ def is_chat_result(obj: Any) -> bool:
 def is_llm_request_options(obj: Any) -> bool:
     """Check if object is a LLMRequestOptions."""
     return isinstance(obj, LLMRequestOptions)
+def is_base_node_data(obj: Any) -> bool:
+    """Check if object is a BaseNodeData."""
+    return isinstance(obj, BaseNodeData)
 def is_api_job_node_data(obj: Any) -> bool:
     """Check if object is a ApiJobNodeData."""
     return isinstance(obj, ApiJobNodeData)
@@ -827,4 +717,4 @@ def is_user_response_node_data(obj: Any) -> bool:
 
 
 # Constants from TypeScript
-PROVIDER_OPERATIONS = {"[APIServiceType.ANTHROPIC]": [], "[APIServiceType.BEDROCK]": [], "[APIServiceType.DEEPSEEK]": [], "[APIServiceType.GEMINI]": [], "[APIServiceType.GITHUB]": ["create_issue", "update_issue", "list_issues", "create_pr", "merge_pr", "get_repo_info"], "[APIServiceType.GOOGLE]": [], "[APIServiceType.GOOGLE_SEARCH]": ["search"], "[APIServiceType.JIRA]": ["create_issue", "update_issue", "search_issues", "transition_issue", "add_comment"], "[APIServiceType.NOTION]": ["create_page", "update_page", "read_page", "delete_page", "create_database", "query_database", "update_database"], "[APIServiceType.OPENAI]": [], "[APIServiceType.SLACK]": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"], "[APIServiceType.VERTEX]": []}
+PROVIDER_OPERATIONS = {"[APIServiceType.ANTHROPIC]": [], "[APIServiceType.BEDROCK]": [], "[APIServiceType.DEEPSEEK]": [], "[APIServiceType.GEMINI]": [], "[APIServiceType.GITHUB]": ["create_issue", "update_issue", "list_issues", "create_pr", "merge_pr", "get_repo_info"], "[APIServiceType.GOOGLE]": [], "[APIServiceType.GOOGLE_SEARCH]": ["search"], "[APIServiceType.JIRA]": ["create_issue", "update_issue", "search_issues", "transition_issue", "add_comment"], "[APIServiceType.NOTION]": ["create_page", "update_page", "read_page", "delete_page", "create_database", "query_database", "update_database"], "[APIServiceType.OLLAMA]": [], "[APIServiceType.OPENAI]": [], "[APIServiceType.SLACK]": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"], "[APIServiceType.VERTEX]": []}

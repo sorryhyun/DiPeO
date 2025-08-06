@@ -28,7 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: temp/conversions.ts.json
+      source_details: temp/utilities/conversions.ts.json
 
   # Load the original conversions.ts file (still needed for raw source)
   - label: Load Conversions TS
@@ -37,7 +37,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/conversions.ts
+      source_details: dipeo/models/src/utilities/conversions.ts
 
   # Extract raw NODE_TYPE_MAP entries (no conversion)
   - label: Extract Raw Conversions Data

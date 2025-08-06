@@ -7,8 +7,8 @@
 
 
 // Auto-generated node configuration for condition
-import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { conditionFields } from '../fields/ConditionFields';
 
 export const conditionConfig: UnifiedNodeConfig = {

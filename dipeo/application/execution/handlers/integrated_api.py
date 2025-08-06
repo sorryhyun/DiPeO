@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import INTEGRATED_API_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import IntegratedApiNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
@@ -45,27 +46,20 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     def description(self) -> str:
         return "Executes operations on various API providers (Notion, Slack, GitHub, etc.)"
 
-    async def execute(
-        self,
-        node: IntegratedApiNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutputProtocol:
-        return await self._execute_api_operation(node, context, inputs, services)
+    async def execute_request(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
+        return await self._execute_api_operation(request)
     
-    async def _execute_api_operation(
-        self,
-        node: IntegratedApiNode,
-        context: "ExecutionContext",
-        inputs: dict[str, Any],
-        services: dict[str, Any],
-    ) -> NodeOutputProtocol:
+    async def _execute_api_operation(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
         """Execute the API operation through the integrated service."""
         
+        # Extract properties from request
+        node = request.node
+        context = request.context
+        inputs = request.inputs
+        
         # Get services from ServiceRegistry
-        integrated_api_service = self.integrated_api_service or services.get(INTEGRATED_API_SERVICE)
-        api_key_service = self.api_key_service or services.get(API_KEY_SERVICE)
+        integrated_api_service = self.integrated_api_service or request.services.resolve(INTEGRATED_API_SERVICE)
+        api_key_service = self.api_key_service or request.services.resolve(API_KEY_SERVICE)
         
         if not integrated_api_service:
             return ErrorOutput(

@@ -7,7 +7,7 @@
 
 
 // Generated field configuration for person_batch_job
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
 export const personBatchJobFields: UnifiedFieldDefinition[] = [
   {
@@ -34,6 +34,7 @@ export const personBatchJobFields: UnifiedFieldDefinition[] = [
     placeholder: 'Use {{item}} for current batch item, {{variable_name}} for other variables',
     description: 'Prompt template for each batch item',
     rows: 5,
+    showPromptFileButton: true,
     validate: (value: unknown) => {
       return { isValid: true };
     },

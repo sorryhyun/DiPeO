@@ -34,7 +34,7 @@ export const SubDiagramNodeDataSchema = z.object({
   wait_for_completion: z.boolean().optional(),
   isolate_conversation: z.boolean().optional(),
   ignoreIfSub: z.boolean().optional(),
-  diagram_format: z.any().optional(),
+  diagram_format: z.enum(["yaml", "json", "light"]).optional(),
   batch: z.boolean().optional(),
   batch_input_key: z.string().optional(),
   batch_parallel: z.boolean().optional(),

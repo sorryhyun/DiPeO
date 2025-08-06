@@ -345,8 +345,57 @@ def create_query_type(registry: ServiceRegistry) -> type:
             
             from dipeo.application.services.cli_session_service import CliSessionService
             if isinstance(cli_session_service, CliSessionService):
-                return await cli_session_service.get_active_session()
+                session_data = await cli_session_service.get_active_session()
+                if session_data:
+                    # Convert internal CliSessionData to GraphQL CliSession
+                    return CliSession(
+                        execution_id=session_data.execution_id,
+                        diagram_name=session_data.diagram_name,
+                        diagram_format=session_data.diagram_format,
+                        started_at=session_data.started_at,
+                        is_active=session_data.is_active,
+                        diagram_data=session_data.diagram_data
+                    )
             
             return None
+        
+        @strawberry.field
+        async def execution_metrics(self, execution_id: strawberry.ID) -> Optional[JSONScalar]:
+            """Get metrics for a specific execution."""
+            execution_id_typed = ExecutionID(str(execution_id))
+            execution = await execution_resolver.get_execution(execution_id_typed)
+            
+            if not execution or not hasattr(execution, 'metrics'):
+                return None
+            
+            return execution.metrics
+        
+        @strawberry.field
+        async def execution_history(
+            self,
+            diagram_id: Optional[strawberry.ID] = None,
+            limit: int = 100,
+            include_metrics: bool = False
+        ) -> List[ExecutionStateType]:
+            """Get execution history with optional metrics."""
+            filter_input = None
+            if diagram_id:
+                filter_input = ExecutionFilterInput(
+                    diagram_id=DiagramID(str(diagram_id))
+                )
+            
+            executions = await execution_resolver.list_executions(
+                filter=filter_input,
+                limit=limit,
+                offset=0
+            )
+            
+            # If not including metrics, clear them from results
+            if not include_metrics:
+                for execution in executions:
+                    if hasattr(execution, 'metrics'):
+                        execution.metrics = None
+            
+            return executions
     
     return Query

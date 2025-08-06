@@ -12,25 +12,25 @@ generates:
       - typescript-operations
       - typescript-react-apollo
     config:
-      # Use branded types from @dipeo/domain-models
+      # Use branded types from @dipeo/models
       scalars:
-        NodeID: "@dipeo/domain-models#NodeID"
-        HandleID: "@dipeo/domain-models#HandleID"
-        ArrowID: "@dipeo/domain-models#ArrowID"
-        PersonID: "@dipeo/domain-models#PersonID"
-        ApiKeyID: "@dipeo/domain-models#ApiKeyID"
-        ExecutionID: "@dipeo/domain-models#ExecutionID"
-        DiagramID: "@dipeo/domain-models#DiagramID"
-      # Import enums from @dipeo/domain-models
+        NodeID: "@dipeo/models#NodeID"
+        HandleID: "@dipeo/models#HandleID"
+        ArrowID: "@dipeo/models#ArrowID"
+        PersonID: "@dipeo/models#PersonID"
+        ApiKeyID: "@dipeo/models#ApiKeyID"
+        ExecutionID: "@dipeo/models#ExecutionID"
+        DiagramID: "@dipeo/models#DiagramID"
+      # Import enums from @dipeo/models
       enumsAsTypes: false
       enumValues:
-        NodeType: "@dipeo/domain-models#NodeType"
-        HandleDirection: "@dipeo/domain-models#HandleDirection"
-        HandleLabel: "@dipeo/domain-models#HandleLabel"
-        DataType: "@dipeo/domain-models#DataType"
-        LLMService: "@dipeo/domain-models#LLMService"
-        DiagramFormat: "@dipeo/domain-models#DiagramFormat"
-        ExecutionStatus: "@dipeo/domain-models#ExecutionStatus"
+        NodeType: "@dipeo/models#NodeType"
+        HandleDirection: "@dipeo/models#HandleDirection"
+        HandleLabel: "@dipeo/models#HandleLabel"
+        DataType: "@dipeo/models#DataType"
+        LLMService: "@dipeo/models#LLMService"
+        DiagramFormat: "@dipeo/models#DiagramFormat"
+        ExecutionStatus: "@dipeo/models#ExecutionStatus"
       # Skip generating TypeScript types for enums
       skipTypename: false
       # Use proper imports

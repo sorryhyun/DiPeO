@@ -161,6 +161,10 @@ class ExecutionStateType:
     @strawberry.field
     def exec_counts(self) -> JSONScalar:
         return self.exec_counts if hasattr(self, 'exec_counts') else {}
+    
+    @strawberry.field
+    def metrics(self) -> Optional[JSONScalar]:
+        return self.metrics if hasattr(self, 'metrics') else None
 
 @strawberry.experimental.pydantic.type(DomainDiagram, all_fields=True)
 class DomainDiagramType:

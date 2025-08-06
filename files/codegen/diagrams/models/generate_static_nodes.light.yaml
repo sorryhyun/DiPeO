@@ -29,7 +29,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: temp/codegen-mappings.ts.json
+      source_details: temp/codegen/mappings.ts.json
 
   # Extract mappings
   - label: Extract Mappings
@@ -51,7 +51,7 @@ nodes:
       glob: true  # Enable glob pattern expansion
       source_details:
         # Dynamically discover all node data files
-        - "temp/*.data.ts.json"
+        - "temp/core/nodes/*.data.ts.json"
 
   # Load cached diagram AST for BaseNodeData
   - label: Load Diagram AST
@@ -61,7 +61,7 @@ nodes:
       operation: read
       sub_type: file
       source_details:
-        - temp/diagram.ts.json
+        - temp/core/diagram.ts.json
 
   # Extract BaseNodeData interface
   - label: Extract Base Interface

@@ -1,4 +1,4 @@
-import type { Vec2 } from '@dipeo/domain-models';
+import type { Vec2 } from '@dipeo/models';
 
 export function getQuadraticPoint(
   start: Vec2,

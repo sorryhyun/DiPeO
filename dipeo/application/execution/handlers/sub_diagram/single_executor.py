@@ -85,14 +85,6 @@ class SingleSubDiagramExecutor:
             # Get parent observers if available
             parent_observers = options.get("observers", [])
             
-            # Filter out StateStoreObserver if needed
-            if self._should_filter_observers(node, request):
-                from dipeo.application.execution.observers import StateStoreObserver
-                parent_observers = [
-                    obs for obs in parent_observers 
-                    if not isinstance(obs, StateStoreObserver)
-                ]
-            
             # Log sub-diagram execution start
             if request.metadata:
                 request.add_metadata("sub_execution_id", sub_execution_id)
@@ -162,11 +154,6 @@ class SingleSubDiagramExecutor:
                 is_sub_diagram = True
         
         return is_sub_diagram
-    
-    def _should_filter_observers(self, node: SubDiagramNode, request: ExecutionRequest[SubDiagramNode]) -> bool:
-        """Check if observers should be filtered."""
-        is_batch_item = request.metadata and request.metadata.get('is_batch_item', False)
-        return (getattr(node, 'batch', False) and getattr(node, 'batch_parallel', True)) or is_batch_item
     
     async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> dict[str, Any]:
         """Load the diagram to execute."""
@@ -275,7 +262,10 @@ class SingleSubDiagramExecutor:
                 if data.get("status") == "COMPLETED":
                     break
                 elif data.get("status") == "FAILED":
-                    execution_error = data.get("error", "Execution failed")
+                    execution_error = data.get("error")
+                    if not execution_error:
+                        # Try to get more context from the data
+                        execution_error = f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
                     log.error(f"Sub-diagram execution failed: {execution_error}")
                     break
             
@@ -290,7 +280,11 @@ class SingleSubDiagramExecutor:
                 break
             
             elif update_type == "execution_error":
-                execution_error = update.get("error", "Unknown error")
+                execution_error = update.get("error")
+                if not execution_error:
+                    # If no error message provided, try to get status for more context
+                    status = update.get("status", "unknown")
+                    execution_error = f"Execution failed with status: {status}"
                 log.error(f"Sub-diagram execution failed: {execution_error}")
                 break
         

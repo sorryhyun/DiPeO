@@ -3,8 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@dipeo/domain-models/*": ["../../../../../dipeo/models/src/*"],
-      "@dipeo/domain-models": ["../../../../../dipeo/models/src/index.ts"]
+      "@dipeo/models/*": ["../../../../../dipeo/models/src/*"],
+      "@dipeo/models": ["../../../../../dipeo/models/src/index.ts"]
     },
     "module": "ESNext",
     "target": "ESNext",

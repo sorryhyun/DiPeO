@@ -155,6 +155,13 @@ def validate_service_name(service: str) -> str:
 def validate_api_key_format(key: str, service: str) -> None:
     if not key or not key.strip():
         raise ValidationError("API key cannot be empty")
+    
+    # Ollama doesn't need real API keys - accept 'ollama' as a placeholder
+    if service == APIServiceType.OLLAMA.value:
+        if key.lower() in ['ollama', 'local', 'none']:
+            return  # Accept common placeholders for Ollama
+        # Also accept any non-empty string for Ollama
+        return
 
     if service == APIServiceType.OPENAI.value and not key.startswith("sk-"):
         raise ValidationError("OpenAI API keys must start with 'sk-'")

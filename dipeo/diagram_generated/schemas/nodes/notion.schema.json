@@ -36,11 +36,8 @@
       "enum": [
         "create_page",
         "update_page",
-        "read_page",
-        "delete_page",
-        "create_database",
-        "query_database",
-        "update_database"
+        "get_page",
+        "query_database"
       ],
       "type": "string"
     }

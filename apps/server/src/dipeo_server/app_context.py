@@ -1,14 +1,17 @@
 """Application context and dependency injection configuration."""
 
+import asyncio
+
 from dipeo.application.bootstrap import Container
 from dipeo.core.config import Config, LLMConfig, StorageConfig
+from dipeo.core.events import EventType
 
 from dipeo_server.shared.constants import BASE_DIR
 
 _container: Container | None = None
 
 
-def create_server_container() -> Container:
+async def create_server_container() -> Container:
     """Create a server container with appropriate configuration.
 
     This replaces the complex ServerContainer with a simple configuration-based approach.
@@ -26,17 +29,72 @@ def create_server_container() -> Container:
     container = Container(config)
     from dipeo.application.registry.keys import (
         CLI_SESSION_SERVICE,
+        EVENT_BUS,
         MESSAGE_ROUTER,
         STATE_STORE,
     )
 
-    from dipeo_server.infra.state_registry import StateRegistry
+    # Create event bus with configuration
+    from dipeo.infrastructure.events import AsyncEventBus
+    from dipeo.infrastructure.config import get_settings
+    
+    settings = get_settings()
+    event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
+    container.registry.register(EVENT_BUS, event_bus)
 
-    container.registry.register(STATE_STORE, StateRegistry())
+    # Create event-based state store (no global lock)
+    from dipeo.infrastructure.state import EventBasedStateStore
 
+    state_store = EventBasedStateStore()
+    await state_store.initialize()
+    container.registry.register(STATE_STORE, state_store)
+
+    # Create state manager as separate service
+    from dipeo.infrastructure.state import AsyncStateManager
+
+    state_manager = AsyncStateManager(state_store)
+
+    # Subscribe state manager to relevant events
+    event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
+    event_bus.subscribe(EventType.NODE_STARTED, state_manager)
+    event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
+    event_bus.subscribe(EventType.NODE_FAILED, state_manager)
+    event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
+
+    # Create message router for real-time updates
     from dipeo.infrastructure.adapters.messaging import MessageRouter
+    message_router = MessageRouter()
+    container.registry.register(MESSAGE_ROUTER, message_router)
 
-    container.registry.register(MESSAGE_ROUTER, MessageRouter())
+    # Create streaming monitor for real-time UI updates
+    from dipeo.infrastructure.monitoring import StreamingMonitor
+    streaming_monitor = StreamingMonitor(message_router, queue_size=settings.monitoring_queue_size)
+    
+    # Subscribe streaming monitor to all events
+    event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)
+    event_bus.subscribe(EventType.NODE_STARTED, streaming_monitor)
+    event_bus.subscribe(EventType.NODE_COMPLETED, streaming_monitor)
+    event_bus.subscribe(EventType.NODE_FAILED, streaming_monitor)
+    event_bus.subscribe(EventType.EXECUTION_COMPLETED, streaming_monitor)
+    event_bus.subscribe(EventType.METRICS_COLLECTED, streaming_monitor)
+
+    # Create metrics observer for performance analysis
+    from dipeo.application.execution.observers import MetricsObserver
+    metrics_observer = MetricsObserver(event_bus=event_bus)
+    
+    # Subscribe metrics observer to execution events
+    event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
+    event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)
+    event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
+    event_bus.subscribe(EventType.NODE_FAILED, metrics_observer)
+    event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
+
+    # Start services
+    await event_bus.start()
+    await state_manager.start()
+    await streaming_monitor.start()
+    await metrics_observer.start()
+
 
     # Register CLI session service if not already registered
     from dipeo.application.services.cli_session_service import CliSessionService
@@ -60,6 +118,26 @@ def initialize_container() -> Container:
 
     if _container is None:
         # Initializing server with simplified container system
-        _container = create_server_container()
+        # Run the async function in a new event loop if needed
+        try:
+            asyncio.get_running_loop()
+            # If we're already in an event loop, this is an error
+            raise RuntimeError(
+                "initialize_container must be called before the event loop starts"
+            )
+        except RuntimeError:
+            # No event loop running, create container synchronously
+            _container = asyncio.run(create_server_container())
+
+    return _container
+
+
+async def initialize_container_async() -> Container:
+    """Async version of initialize_container for use within async contexts."""
+    global _container
+
+    if _container is None:
+        # Initializing server with simplified container system
+        _container = await create_server_container()
 
     return _container

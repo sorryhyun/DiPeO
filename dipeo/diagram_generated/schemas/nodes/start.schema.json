@@ -6,7 +6,7 @@
       "additionalProperties": false,
       "type": "object"
     },
-    "Record<string,string|number|boolean>": {
+    "Record<string,string>": {
       "additionalProperties": false,
       "type": "object"
     },
@@ -18,7 +18,7 @@
       ],
       "type": "string"
     },
-    "Record<string,string>": {
+    "Record<string,string|number|boolean>": {
       "additionalProperties": false,
       "type": "object"
     },

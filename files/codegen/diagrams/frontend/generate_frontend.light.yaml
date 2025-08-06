@@ -32,7 +32,7 @@ nodes:
       glob: true  # Enable glob pattern expansion
       source_details:
         # Dynamically discover all node spec files
-        - "temp/*.spec.ts.json"
+        - "temp/specifications/nodes/*.spec.ts.json"
 
   - label: Prepare Node List
     type: code_job

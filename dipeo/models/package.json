@@ -1,5 +1,5 @@
 {
-  "name": "@dipeo/domain-models",
+  "name": "@dipeo/models",
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",

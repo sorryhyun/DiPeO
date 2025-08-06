@@ -7,8 +7,8 @@
 
 
 // Auto-generated node configuration for start
-import type { UnifiedNodeConfig } from '@/core/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/domain-models';
+import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
+import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { startFields } from '../fields/StartFields';
 
 export const startConfig: UnifiedNodeConfig = {

@@ -22,6 +22,7 @@
           "$ref": "#/definitions/Record<string,any>"
         },
         "diagram_format": {
+          "description": "Diagram format enumeration",
           "enum": [
             "light",
             "native",

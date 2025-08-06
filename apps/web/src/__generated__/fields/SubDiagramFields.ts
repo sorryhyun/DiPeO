@@ -7,7 +7,7 @@
 
 
 // Generated field configuration for sub_diagram
-import type { UnifiedFieldDefinition } from '@/core/config/unifiedConfig';
+import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
 export const subDiagramFields: UnifiedFieldDefinition[] = [
   {

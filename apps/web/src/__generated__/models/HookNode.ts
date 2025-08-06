@@ -19,7 +19,7 @@ export interface HookNodeData {
 
 // Zod schema for validation
 export const HookNodeDataSchema = z.object({
-  hook_type: z.any(),
+  hook_type: z.enum(["shell", "http", "python", "file"]),
   command: z.string().optional(),
   url: z.string().regex(/^https?:\/\//).optional(),
   timeout: z.number().min(1).max(300).optional(),
