@@ -46,6 +46,7 @@ nodes:
         
         # Frontend files
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))
+        ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', 'query-definitions', '*.ts')))
         
         # Create items for batch processing
         items = []

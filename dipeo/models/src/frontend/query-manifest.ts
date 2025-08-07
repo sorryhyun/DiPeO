@@ -1,4 +1,5 @@
 import { EntityQueryConfig, QueryManifest } from './query-specifications';
+import { CrudOperation } from './query-enums';
 import { diagramRelationships, nodeRelationships } from './relationship-queries';
 
 export const defaultDiagramFields = [
@@ -96,7 +97,7 @@ export const queryManifest: QueryManifest = {
   entities: [
     {
       entity: 'Diagram',
-      operations: ['get', 'list', 'create', 'update', 'delete'],
+      operations: [CrudOperation.GET, CrudOperation.LIST, CrudOperation.CREATE, CrudOperation.UPDATE, CrudOperation.DELETE],
       defaultFields: defaultDiagramFields,
       relationships: diagramRelationships.map(rel => ({
         name: rel.field,
@@ -106,12 +107,12 @@ export const queryManifest: QueryManifest = {
     },
     {
       entity: 'Person',
-      operations: ['get', 'list', 'create', 'update', 'delete'],
+      operations: [CrudOperation.GET, CrudOperation.LIST, CrudOperation.CREATE, CrudOperation.UPDATE, CrudOperation.DELETE],
       defaultFields: defaultPersonFields
     },
     {
       entity: 'Execution',
-      operations: ['get', 'list', 'subscribe'],
+      operations: [CrudOperation.GET, CrudOperation.LIST, CrudOperation.SUBSCRIBE],
       defaultFields: defaultExecutionFields,
       relationships: [
         {
@@ -136,7 +137,7 @@ export const queryManifest: QueryManifest = {
     },
     {
       entity: 'Node',
-      operations: ['get', 'list', 'update'],
+      operations: [CrudOperation.GET, CrudOperation.LIST, CrudOperation.UPDATE],
       defaultFields: defaultNodeFields,
       relationships: nodeRelationships.map(rel => ({
         name: rel.field,
@@ -146,7 +147,7 @@ export const queryManifest: QueryManifest = {
     },
     {
       entity: 'APIKey',
-      operations: ['list', 'create', 'delete'],
+      operations: [CrudOperation.LIST, CrudOperation.CREATE, CrudOperation.DELETE],
       defaultFields: [
         { name: 'id', required: true },
         { name: 'name', required: true },

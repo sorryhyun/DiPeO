@@ -7,7 +7,7 @@ import { FlowHandle } from '@/ui/components/diagram/controls';
 import { useCanvasOperations } from '@/domain/diagram/contexts';
 import { useUIState } from '@/infrastructure/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/infrastructure/store/hooks';
-import { NodeType, Status, nodeId, personId, type NodeExecutionStatus } from '@/infrastructure/types';
+import { NodeType, Status, nodeId, personId } from '@/infrastructure/types';
 import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import './BaseNode.css';
 

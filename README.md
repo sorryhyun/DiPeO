@@ -36,15 +36,11 @@ persons:
 ```
 read [example](files/diagrams/examples/simple_iter_ollama.light.yaml)
 
-## Essential Scripts
+## Integrated API supports
+- We support Notion, custom LLM with curl, ... etc, any API services
 
-### Makefile Commands
-```bash
-make dev-server                   # Start backend server
-make dev-web                      # Start frontend server
-```
 
-### `./dipeo` - Run Diagrams
+### `dipeo` - Run Diagrams with CLI
 ```bash
 # run diagram with automatically running server
 dipeo run diagrams/examples/simple_iter --debug --light --timeout=10

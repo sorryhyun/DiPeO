@@ -14,8 +14,6 @@ import {
   type ExecutionUpdate,
   type TokenUsage,
   Status,
-  type ExecutionStatus,
-  type NodeExecutionStatus,
   EventType
 } from '@dipeo/models';
 import type { 
@@ -36,7 +34,7 @@ export interface StoreExecutionState {
 
 // Store-specific node state
 export interface StoreNodeState {
-  status: NodeExecutionStatus;
+  status: Status;
   error?: string;
   timestamp: number;
   skipReason?: string;
@@ -54,7 +52,7 @@ export class ExecutionConverter {
         if (state) {
           const nodeState = state as any;
           nodeStates[nodeId] = {
-            status: nodeState.status as NodeExecutionStatus,
+            status: nodeState.status as Status,
             started_at: nodeState.started_at,
             ended_at: nodeState.ended_at,
             error: nodeState.error,
@@ -66,7 +64,7 @@ export class ExecutionConverter {
     
     return {
       id: executionId(graphqlExecution.id),
-      status: graphqlExecution.status as ExecutionStatus,
+      status: graphqlExecution.status as Status,
       diagram_id: graphqlExecution.diagram_id ? diagramId(graphqlExecution.diagram_id) : null,
       started_at: graphqlExecution.started_at,
       ended_at: graphqlExecution.ended_at,
@@ -150,7 +148,7 @@ export class ExecutionConverter {
       }
     });
     
-    let status: ExecutionStatus;
+    let status: Status;
     if (storeExecution.isPaused) {
       status = Status.PAUSED;
     } else if (storeExecution.isRunning) {
@@ -189,7 +187,7 @@ export class ExecutionConverter {
     // Handle different update types
     if (update.type === EventType.NODE_STATUS_CHANGED && update.data?.node_id) {
       const id = nodeId(update.data.node_id);
-      const status = update.data.status as NodeExecutionStatus;
+      const status = update.data.status as Status;
       
       if (status === Status.RUNNING) {
         newState.runningNodes.add(id);
@@ -216,7 +214,7 @@ export class ExecutionConverter {
         });
       }
     } else if (update.type === EventType.EXECUTION_STATUS_CHANGED) {
-      const status = update.data?.status as ExecutionStatus;
+      const status = update.data?.status as Status;
       if (status === Status.COMPLETED || status === Status.FAILED) {
         newState.isRunning = false;
         newState.runningNodes.clear();

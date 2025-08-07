@@ -135,6 +135,7 @@ server.log
 
 # Testing
 coverage/
+.coverage
 .nyc_output/
 *.lcov
 

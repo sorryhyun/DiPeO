@@ -6,8 +6,6 @@ import {
   type ExecutionID,
   type ExecutionState as CanonicalExecutionState,
   Status,
-  type ExecutionStatus,
-  type NodeExecutionStatus,
   type NodeState as DomainNodeState,
   EventType,
   type ExecutionUpdate,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, RefreshCw } from 'lucide-react';
 import { useCanvas } from '@/domain/diagram/contexts';
-import { NodeExecutionStatus } from '@/domain/execution/types/execution';
 import { ExecutionID, executionId } from '@/infrastructure/types';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useExecutionOrderQuery, ExecutionOrderQuery } from '@/__generated__/graphql';
@@ -73,7 +72,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     }
   };
 
-  const getStatusIcon = (status: NodeExecutionStatus) => {
+  const getStatusIcon = (status: Status) => {
     switch (status) {
       case Status.COMPLETED:
         return <CheckCircle className="h-5 w-5 text-green-500" />;
@@ -92,7 +91,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     }
   };
 
-  const getStatusColor = (status: NodeExecutionStatus) => {
+  const getStatusColor = (status: Status) => {
     switch (status) {
       case Status.COMPLETED:
         return 'bg-green-50 border-green-200';
@@ -199,7 +198,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
             {executionOrder.nodes.map((step, index) => (
               <div
                 key={step.nodeId}
-                className={`rounded-lg border p-3 transition-all ${getStatusColor(step.status as NodeExecutionStatus)}`}
+                className={`rounded-lg border p-3 transition-all ${getStatusColor(step.status as Status)}`}
               >
                 <div className="flex items-start space-x-3">
                   {/* Step Number */}
@@ -211,7 +210,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        {getStatusIcon(step.status as NodeExecutionStatus)}
+                        {getStatusIcon(step.status as Status)}
                         <span className="font-medium text-gray-900">{step.nodeName}</span>
                       </div>
                       {step.duration && (

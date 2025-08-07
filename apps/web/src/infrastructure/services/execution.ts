@@ -5,8 +5,6 @@
 
 import {
   Status,
-  type ExecutionStatus,
-  type NodeExecutionStatus,
   EventType,
   type ExecutionID,
   type DiagramID,
@@ -23,7 +21,7 @@ import { ExecuteDiagramDocument, ControlExecutionDocument, ExecutionUpdatesDocum
 interface ExecutionState {
   id: ExecutionID;
   diagramId: DiagramID;
-  status: ExecutionStatus;
+  status: Status;
   nodeStates: Map<NodeID, NodeState>;
   startedAt?: Date;
   endedAt?: Date;
@@ -125,7 +123,7 @@ export class ExecutionService {
     // Update node state
     if (update.node_id && update.status) {
       execution.nodeStates.set(update.node_id, {
-        status: update.status as NodeExecutionStatus,
+        status: update.status as Status,
         output: update.result,
         error: update.error,
         started_at: update.timestamp,
@@ -135,7 +133,7 @@ export class ExecutionService {
     
     // Update overall execution state
     if (update.type === EventType.EXECUTION_STATUS_CHANGED && update.data?.status) {
-      execution.status = update.data.status as ExecutionStatus;
+      execution.status = update.data.status as Status;
     }
     
     // Check if execution completed
