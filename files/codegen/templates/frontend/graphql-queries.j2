@@ -1,4 +1,8 @@
 {#- GraphQL Query Generation Template -#}
+{#- Data comes from 'query_data' connection -#}
+{%- set queries = query_data.queries if query_data else [] -%}
+{%- set enums = query_data.enums if query_data else {} -%}
+{%- set metadata = query_data.metadata if query_data else {} -%}
 {%- macro render_field(field, indent=0) -%}
 {{ '  ' * indent }}{{ field.name }}
 {%- if field.args and field.args|length > 0 -%}
@@ -58,19 +62,19 @@ export interface {{ query.name | pascal_case }}Response {
 {#- Generate query map for runtime lookup -#}
 export const QUERIES = {
 {%- for query in queries if query.operationType == 'query' %}
-  {{ query.name | upper }}: {{ query.name | upper }}_QUERY,
+  {{ query.name | upper }}: {{ query.name | upper }}_QUERY{{ ',' if not loop.last else '' }}
 {%- endfor %}
 } as const;
 
 export const MUTATIONS = {
 {%- for query in queries if query.operationType == 'mutation' %}
-  {{ query.name | upper }}: {{ query.name | upper }}_MUTATION,
+  {{ query.name | upper }}: {{ query.name | upper }}_MUTATION{{ ',' if not loop.last else '' }}
 {%- endfor %}
 } as const;
 
 export const SUBSCRIPTIONS = {
 {%- for query in queries if query.operationType == 'subscription' %}
-  {{ query.name | upper }}: {{ query.name | upper }}_SUBSCRIPTION,
+  {{ query.name | upper }}: {{ query.name | upper }}_SUBSCRIPTION{{ ',' if not loop.last else '' }}
 {%- endfor %}
 } as const;
 

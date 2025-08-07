@@ -36,9 +36,20 @@ def load_query_definitions(ast_cache: Dict[str, Any]) -> List[Dict[str, Any]]:
     ]
     
     for file_name in query_files:
-        file_key = f'dipeo/models/src/frontend/query-definitions/{file_name}'
-        if file_key in ast_cache:
-            file_data = ast_cache[file_key]
+        # Try different key formats
+        possible_keys = [
+            f'frontend/query-definitions/{file_name}',
+            f'dipeo/models/src/frontend/query-definitions/{file_name}',
+            f'temp/frontend/query-definitions/{file_name}.json'
+        ]
+        
+        file_data = None
+        for key in possible_keys:
+            if key in ast_cache:
+                file_data = ast_cache[key]
+                break
+        
+        if file_data:
             # Extract constants that contain query definitions
             if 'constants' in file_data:
                 for const in file_data['constants']:
@@ -157,16 +168,51 @@ def extract_operation(query_def: Dict[str, Any]) -> str:
     return operation.lower()
 
 
+def graphql_to_typescript_type(graphql_type: str) -> str:
+    """
+    Convert GraphQL type to TypeScript type.
+    """
+    # Remove array and non-null markers for base type mapping
+    base_type = graphql_type.replace('[', '').replace(']', '').replace('!', '').strip()
+    
+    # Basic scalar mappings
+    type_map = {
+        'ID': 'string',
+        'String': 'string',
+        'Int': 'number',
+        'Float': 'number',
+        'Boolean': 'boolean',
+        'JSON': 'any',
+        'DateTime': 'string',
+        'Date': 'string',
+    }
+    
+    # Check if it's a known scalar
+    if base_type in type_map:
+        ts_type = type_map[base_type]
+    else:
+        # Keep complex types as-is (e.g., AddMessageInput, CreateDiagramInput)
+        ts_type = base_type
+    
+    # Handle arrays
+    if '[' in graphql_type:
+        ts_type = f'{ts_type}[]'
+    
+    return ts_type
+
+
 def transform_variables(variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Transform variable definitions into template-ready format.
     """
     transformed = []
     for var in variables:
+        graphql_type = var.get('graphqlType', var.get('type', 'String'))
+        
         transformed_var = {
             'name': var.get('name', ''),
-            'type': var.get('graphqlType', var.get('type', 'String')),
-            'tsType': var.get('tsType', 'string'),
+            'type': graphql_type,
+            'tsType': var.get('tsType') or graphql_to_typescript_type(graphql_type),
             'required': var.get('required', False),
             'description': var.get('description', '')
         }
@@ -235,55 +281,40 @@ def transform_field_args(args: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return transformed
 
 
-def prepare_query_data_for_template(input_data: Any) -> Dict[str, Any]:
+def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
     """
     Main entry point for preparing query data for the template.
     
     Args:
-        input_data: Contains loaded JSON files from temp/ directory
+        inputs: Contains loaded JSON files from temp/ directory
         
     Returns:
         Dictionary with 'queries' list ready for template rendering
     """
-    # Debug: print the type and structure of input_data
-    print(f"Input data type: {type(input_data)}")
-    if isinstance(input_data, dict):
-        print(f"Input data keys: {list(input_data.keys())[:5]}")  # First 5 keys
+    # Get the loaded data - connection is labeled 'ast_files' in diagram
+    loaded_data = inputs.get('ast_files', inputs.get('default', {})) if isinstance(inputs, dict) else inputs
     
     # Build ast_cache from loaded JSON files
     ast_cache = {}
     
-    # Handle different input formats from db node
-    if isinstance(input_data, str):
-        # If we got a string, try to parse it as JSON
-        try:
-            import json
-            input_data = json.loads(input_data)
-        except:
-            print(f"Could not parse input_data as JSON: {input_data[:100]}")
-            return {'queries': [], 'enums': {}, 'metadata': {}}
-    
-    # The db node with glob returns a dict with file paths as keys
-    if isinstance(input_data, dict):
-        # Check if we have a 'default' key (from connections)
-        if 'default' in input_data:
-            input_data = input_data['default']
-        
-        # Now process the files
-        for key, value in input_data.items():
+    # When db node uses glob=true, it returns {filepath: content, ...}
+    if isinstance(loaded_data, dict):
+        # Process the files directly
+        for key, value in loaded_data.items():
             # Skip non-dict entries
             if not isinstance(value, dict):
                 continue
             
             # Extract the relative path from temp/
             if key.startswith('temp/'):
-                # Convert temp/frontend/query-definitions/diagrams.ts.json 
-                # to dipeo/models/src/frontend/query-definitions/diagrams.ts
-                relative_path = key.replace('temp/', 'dipeo/models/src/').replace('.json', '')
+                # Use a simpler key - just remove 'temp/' and '.json'
+                relative_path = key.replace('temp/', '').replace('.json', '')
                 ast_cache[relative_path] = value
             else:
                 # Use key as-is if it doesn't start with temp/
                 ast_cache[key] = value
+    else:
+        return {'queries': [], 'enums': {}, 'metadata': {}}
     
     # Load query definitions
     query_definitions = load_query_definitions(ast_cache)
