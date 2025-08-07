@@ -4,106 +4,110 @@ import { QueryOperationType } from '../query-enums';
 export const fileQueries: EntityQueryDefinitions = {
   entity: 'File',
   queries: [
+    // Note: File operations are handled through upload mutations
+    // No direct file queries exist in the current schema
     {
-      name: 'ListFiles',
-      type: QueryOperationType.QUERY,
+      name: 'UploadFile',
+      type: QueryOperationType.MUTATION,
       variables: [
+        { name: 'file', type: 'Upload', required: true },
         { name: 'path', type: 'String' }
       ],
       fields: [
         {
-          name: 'files',
+          name: 'upload_file',
+          args: [
+            { name: 'file', value: 'file', isVariable: true },
+            { name: 'path', value: 'path', isVariable: true }
+          ],
           fields: [
-            { name: 'name' },
+            { name: 'success' },
             { name: 'path' },
-            { name: 'size' },
-            { name: 'modified' },
-            { name: 'is_directory' }
+            { name: 'size_bytes' },
+            { name: 'content_type' },
+            { name: 'message' },
+            { name: 'error' }
           ]
         }
       ]
     },
     {
-      name: 'GetFile',
-      type: QueryOperationType.QUERY,
+      name: 'UploadDiagram',
+      type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'path', type: 'String', required: true }
+        { name: 'file', type: 'Upload', required: true },
+        { name: 'format', type: 'DiagramFormat', required: true }
       ],
       fields: [
         {
-          name: 'file',
+          name: 'upload_diagram',
+          args: [
+            { name: 'file', value: 'file', isVariable: true },
+            { name: 'format', value: 'format', isVariable: true }
+          ],
           fields: [
-            { name: 'name' },
-            { name: 'path' },
+            { name: 'success' },
+            { 
+              name: 'diagram',
+              fields: [
+                { 
+                  name: 'metadata',
+                  fields: [
+                    { name: 'id' },
+                    { name: 'name' }
+                  ]
+                }
+              ]
+            },
+            { name: 'message' },
+            { name: 'error' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'ValidateDiagram',
+      type: QueryOperationType.MUTATION,
+      variables: [
+        { name: 'content', type: 'String', required: true },
+        { name: 'format', type: 'DiagramFormat', required: true }
+      ],
+      fields: [
+        {
+          name: 'validate_diagram',
+          args: [
+            { name: 'content', value: 'content', isVariable: true },
+            { name: 'format', value: 'format', isVariable: true }
+          ],
+          fields: [
+            { name: 'success' },
+            { name: 'errors' },
+            { name: 'warnings' },
+            { name: 'message' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'ConvertDiagramFormat',
+      type: QueryOperationType.MUTATION,
+      variables: [
+        { name: 'content', type: 'String', required: true },
+        { name: 'from_format', type: 'DiagramFormat', required: true },
+        { name: 'to_format', type: 'DiagramFormat', required: true }
+      ],
+      fields: [
+        {
+          name: 'convert_diagram_format',
+          args: [
+            { name: 'content', value: 'content', isVariable: true },
+            { name: 'from_format', value: 'from_format', isVariable: true },
+            { name: 'to_format', value: 'to_format', isVariable: true }
+          ],
+          fields: [
+            { name: 'success' },
             { name: 'content' },
-            { name: 'size' },
-            { name: 'modified' }
-          ]
-        }
-      ]
-    },
-    {
-      name: 'CreateFile',
-      type: QueryOperationType.MUTATION,
-      variables: [
-        { name: 'path', type: 'String', required: true },
-        { name: 'content', type: 'String', required: true }
-      ],
-      fields: [
-        {
-          name: 'create_file',
-          fields: [
-            { name: 'success' },
-            {
-              name: 'file',
-              fields: [
-                { name: 'path' },
-                { name: 'size' }
-              ]
-            },
-            { name: 'message' },
-            { name: 'error' }
-          ]
-        }
-      ]
-    },
-    {
-      name: 'UpdateFile',
-      type: QueryOperationType.MUTATION,
-      variables: [
-        { name: 'path', type: 'String', required: true },
-        { name: 'content', type: 'String', required: true }
-      ],
-      fields: [
-        {
-          name: 'update_file',
-          fields: [
-            { name: 'success' },
-            {
-              name: 'file',
-              fields: [
-                { name: 'path' },
-                { name: 'size' },
-                { name: 'modified' }
-              ]
-            },
-            { name: 'message' },
-            { name: 'error' }
-          ]
-        }
-      ]
-    },
-    {
-      name: 'DeleteFile',
-      type: QueryOperationType.MUTATION,
-      variables: [
-        { name: 'path', type: 'String', required: true }
-      ],
-      fields: [
-        {
-          name: 'delete_file',
-          fields: [
-            { name: 'success' },
+            { name: 'format' },
             { name: 'message' },
             { name: 'error' }
           ]

@@ -13,6 +13,9 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'api_keys',
+          args: [
+            { name: 'service', value: 'service', isVariable: true }
+          ],
           fields: [
             { name: 'id' },
             { name: 'label' },
@@ -31,6 +34,9 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'api_key',
+          args: [
+            { name: 'id', value: 'id', isVariable: true }
+          ],
           fields: [
             { name: 'id' },
             { name: 'label' },
@@ -48,7 +54,11 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'available_models'
+          name: 'available_models',
+          args: [
+            { name: 'service', value: 'service', isVariable: true },
+            { name: 'api_key_id', value: 'apiKeyId', isVariable: true }
+          ]
         }
       ]
     },
@@ -61,6 +71,9 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'create_api_key',
+          args: [
+            { name: 'input', value: 'input', isVariable: true }
+          ],
           fields: [
             { name: 'success' },
             {
@@ -86,6 +99,9 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'test_api_key',
+          args: [
+            { name: 'id', value: 'id', isVariable: true }
+          ],
           fields: [
             { name: 'success' },
             { name: 'message' },
@@ -103,6 +119,9 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'delete_api_key',
+          args: [
+            { name: 'id', value: 'id', isVariable: true }
+          ],
           fields: [
             { name: 'success' },
             { name: 'message' }

@@ -14,6 +14,7 @@ export * from './files';
 export * from './nodes';
 export * from './formats';
 export * from './prompts';
+export * from './cli-sessions';
 
 // Re-export as a collection for convenience
 import { diagramQueries } from './diagrams';
@@ -26,6 +27,7 @@ import { fileQueries } from './files';
 import { nodeQueries } from './nodes';
 import { formatQueries } from './formats';
 import { promptQueries } from './prompts';
+import { cliSessionQueries } from './cli-sessions';
 
 export const allQueryDefinitions = [
   diagramQueries,
@@ -37,5 +39,6 @@ export const allQueryDefinitions = [
   fileQueries,
   nodeQueries,
   formatQueries,
-  promptQueries
+  promptQueries,
+  cliSessionQueries
 ];

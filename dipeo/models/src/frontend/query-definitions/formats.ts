@@ -9,45 +9,18 @@ export const formatQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'supported_formats'
-        }
-      ]
-    },
-    {
-      name: 'ConvertFormat',
-      type: QueryOperationType.MUTATION,
-      variables: [
-        { name: 'input', type: 'ConvertFormatInput', required: true }
-      ],
-      fields: [
-        {
-          name: 'convert_format',
+          name: 'supported_formats',
           fields: [
-            { name: 'success' },
-            { name: 'output' },
             { name: 'format' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
-        }
-      ]
-    },
-    {
-      name: 'ValidateFormat',
-      type: QueryOperationType.MUTATION,
-      variables: [
-        { name: 'input', type: 'ValidateFormatInput', required: true }
-      ],
-      fields: [
-        {
-          name: 'validate_format',
-          fields: [
-            { name: 'valid' },
-            { name: 'errors' },
-            { name: 'warnings' }
+            { name: 'name' },
+            { name: 'description' },
+            { name: 'extension' },
+            { name: 'supports_import' },
+            { name: 'supports_export' }
           ]
         }
       ]
     }
+    // Note: Format conversion and validation are handled via file/diagram operations
   ]
 };

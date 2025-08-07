@@ -13,6 +13,9 @@ export const diagramQueries: EntityQueryDefinitions = {
       fields: [
         { 
           name: 'diagram',
+          args: [
+            { name: 'id', value: 'id', isVariable: true }
+          ],
           fields: [
             {
               name: 'nodes',
@@ -96,6 +99,11 @@ export const diagramQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'diagrams',
+          args: [
+            { name: 'filter', value: 'filter', isVariable: true },
+            { name: 'limit', value: 'limit', isVariable: true },
+            { name: 'offset', value: 'offset', isVariable: true }
+          ],
           fields: [
             {
               name: 'metadata',
@@ -124,6 +132,9 @@ export const diagramQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'create_diagram',
+          args: [
+            { name: 'input', value: 'input', isVariable: true }
+          ],
           fields: [
             { name: 'success' },
             {
@@ -153,6 +164,9 @@ export const diagramQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'execute_diagram',
+          args: [
+            { name: 'input', value: 'input', isVariable: true }
+          ],
           fields: [
             { name: 'success' },
             {
@@ -176,6 +190,9 @@ export const diagramQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'delete_diagram',
+          args: [
+            { name: 'id', value: 'id', isVariable: true }
+          ],
           fields: [
             { name: 'success' },
             { name: 'message' },

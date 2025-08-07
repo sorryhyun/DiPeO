@@ -5,48 +5,84 @@ export const nodeQueries: EntityQueryDefinitions = {
   entity: 'Node',
   queries: [
     {
-      name: 'GetNodeTypes',
-      type: QueryOperationType.QUERY,
-      fields: [
-        {
-          name: 'node_types'
-        }
-      ]
-    },
-    {
-      name: 'GetNodeSpecification',
-      type: QueryOperationType.QUERY,
+      name: 'CreateNode',
+      type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'type', type: 'String', required: true }
+        { name: 'diagram_id', type: 'ID', required: true },
+        { name: 'input', type: 'CreateNodeInput', required: true }
       ],
       fields: [
         {
-          name: 'node_specification',
+          name: 'create_node',
+          args: [
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
+            { name: 'input', value: 'input', isVariable: true }
+          ],
           fields: [
-            { name: 'type' },
-            { name: 'label' },
-            { name: 'category' },
-            { name: 'description' },
-            { name: 'input_handles' },
-            { name: 'output_handles' },
-            { name: 'properties' }
+            { name: 'success' },
+            { 
+              name: 'node',
+              fields: [
+                { name: 'id' },
+                { name: 'type' },
+                { 
+                  name: 'position',
+                  fields: [
+                    { name: 'x' },
+                    { name: 'y' }
+                  ]
+                },
+                { name: 'data' }
+              ]
+            },
+            { name: 'message' },
+            { name: 'error' }
           ]
         }
       ]
     },
     {
-      name: 'ValidateNode',
+      name: 'UpdateNode',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'input', type: 'ValidateNodeInput', required: true }
+        { name: 'diagram_id', type: 'ID', required: true },
+        { name: 'node_id', type: 'ID', required: true },
+        { name: 'input', type: 'UpdateNodeInput', required: true }
       ],
       fields: [
         {
-          name: 'validate_node',
+          name: 'update_node',
+          args: [
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
+            { name: 'node_id', value: 'node_id', isVariable: true },
+            { name: 'input', value: 'input', isVariable: true }
+          ],
           fields: [
-            { name: 'valid' },
-            { name: 'errors' },
-            { name: 'warnings' }
+            { name: 'success' },
+            { name: 'message' },
+            { name: 'error' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'DeleteNode',
+      type: QueryOperationType.MUTATION,
+      variables: [
+        { name: 'diagram_id', type: 'ID', required: true },
+        { name: 'node_id', type: 'ID', required: true }
+      ],
+      fields: [
+        {
+          name: 'delete_node',
+          args: [
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
+            { name: 'node_id', value: 'node_id', isVariable: true }
+          ],
+          fields: [
+            { name: 'success' },
+            { name: 'message' },
+            { name: 'error' }
           ]
         }
       ]

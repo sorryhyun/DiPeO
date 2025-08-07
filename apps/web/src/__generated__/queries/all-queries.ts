@@ -4,59 +4,48 @@
 
 
 
-import { gql } from '@apollo/client';export const ADDMESSAGE_MUTATION = gql`
-  mutation AddMessage(
-    $conversationId: ID!, 
-    $input: AddMessageInput!
+import { gql } from '@apollo/client';export const CONTROLEXECUTION_MUTATION = gql`
+  mutation ControlExecution(
+    $input: ExecutionControlInput!
   ) {
-    add_message {
+    control_execution(input: $input) {
       success
-      message {
+      execution_id
+      execution {
         id
-        role
-        content
-        timestamp
+        status
       }
-      error
-    }
-  }
-`;
-export interface AddMessageVariables {
-  conversationId: string;
-  input: AddMessageInput;
-}export const CANCELEXECUTION_MUTATION = gql`
-  mutation CancelExecution(
-    $id: ID!
-  ) {
-    cancel_execution {
-      success
       message
       error
     }
   }
 `;
-export interface CancelExecutionVariables {
-  id: string;
-}export const CONVERTFORMAT_MUTATION = gql`
-  mutation ConvertFormat(
-    $input: ConvertFormatInput!
+export interface ControlExecutionVariables {
+  input: ExecutionControlInput;
+}export const CONVERTDIAGRAMFORMAT_MUTATION = gql`
+  mutation ConvertDiagramFormat(
+    $content: String!, 
+    $from_format: DiagramFormat!, 
+    $to_format: DiagramFormat!
   ) {
-    convert_format {
+    convert_diagram_format(content: $content, from_format: $from_format, to_format: $to_format) {
       success
-      output
+      content
       format
       message
       error
     }
   }
 `;
-export interface ConvertFormatVariables {
-  input: ConvertFormatInput;
+export interface ConvertDiagramFormatVariables {
+  content: string;
+  from_format: DiagramFormat;
+  to_format: DiagramFormat;
 }export const CREATEAPIKEY_MUTATION = gql`
   mutation CreateApiKey(
     $input: CreateApiKeyInput!
   ) {
-    create_api_key {
+    create_api_key(input: $input) {
       success
       api_key {
         id
@@ -70,28 +59,11 @@ export interface ConvertFormatVariables {
 `;
 export interface CreateApiKeyVariables {
   input: CreateApiKeyInput;
-}export const CREATECONVERSATION_MUTATION = gql`
-  mutation CreateConversation(
-    $input: CreateConversationInput!
-  ) {
-    create_conversation {
-      success
-      conversation {
-        id
-        title
-      }
-      message
-      error
-    }
-  }
-`;
-export interface CreateConversationVariables {
-  input: CreateConversationInput;
 }export const CREATEDIAGRAM_MUTATION = gql`
   mutation CreateDiagram(
     $input: CreateDiagramInput!
   ) {
-    create_diagram {
+    create_diagram(input: $input) {
       success
       diagram {
         metadata {
@@ -106,30 +78,35 @@ export interface CreateConversationVariables {
 `;
 export interface CreateDiagramVariables {
   input: CreateDiagramInput;
-}export const CREATEFILE_MUTATION = gql`
-  mutation CreateFile(
-    $path: String!, 
-    $content: String!
+}export const CREATENODE_MUTATION = gql`
+  mutation CreateNode(
+    $diagram_id: ID!, 
+    $input: CreateNodeInput!
   ) {
-    create_file {
+    create_node(diagram_id: $diagram_id, input: $input) {
       success
-      file {
-        path
-        size
+      node {
+        id
+        type
+        position {
+          x
+          y
+        }
+        data
       }
       message
       error
     }
   }
 `;
-export interface CreateFileVariables {
-  path: string;
-  content: string;
+export interface CreateNodeVariables {
+  diagram_id: string;
+  input: CreateNodeInput;
 }export const CREATEPERSON_MUTATION = gql`
   mutation CreatePerson(
     $input: CreatePersonInput!
   ) {
-    create_person {
+    create_person(input: $input) {
       success
       person {
         id
@@ -142,28 +119,11 @@ export interface CreateFileVariables {
 `;
 export interface CreatePersonVariables {
   input: CreatePersonInput;
-}export const CREATEPROMPTTEMPLATE_MUTATION = gql`
-  mutation CreatePromptTemplate(
-    $input: CreatePromptTemplateInput!
-  ) {
-    create_prompt_template {
-      success
-      template {
-        id
-        name
-      }
-      message
-      error
-    }
-  }
-`;
-export interface CreatePromptTemplateVariables {
-  input: CreatePromptTemplateInput;
 }export const DELETEAPIKEY_MUTATION = gql`
   mutation DeleteApiKey(
     $id: ID!
   ) {
-    delete_api_key {
+    delete_api_key(id: $id) {
       success
       message
     }
@@ -171,24 +131,11 @@ export interface CreatePromptTemplateVariables {
 `;
 export interface DeleteApiKeyVariables {
   id: string;
-}export const DELETECONVERSATION_MUTATION = gql`
-  mutation DeleteConversation(
-    $id: ID!
-  ) {
-    delete_conversation {
-      success
-      message
-      error
-    }
-  }
-`;
-export interface DeleteConversationVariables {
-  id: string;
 }export const DELETEDIAGRAM_MUTATION = gql`
   mutation DeleteDiagram(
     $id: ID!
   ) {
-    delete_diagram {
+    delete_diagram(id: $id) {
       success
       message
       error
@@ -197,24 +144,26 @@ export interface DeleteConversationVariables {
 `;
 export interface DeleteDiagramVariables {
   id: string;
-}export const DELETEFILE_MUTATION = gql`
-  mutation DeleteFile(
-    $path: String!
+}export const DELETENODE_MUTATION = gql`
+  mutation DeleteNode(
+    $diagram_id: ID!, 
+    $node_id: ID!
   ) {
-    delete_file {
+    delete_node(diagram_id: $diagram_id, node_id: $node_id) {
       success
       message
       error
     }
   }
 `;
-export interface DeleteFileVariables {
-  path: string;
+export interface DeleteNodeVariables {
+  diagram_id: string;
+  node_id: string;
 }export const DELETEPERSON_MUTATION = gql`
   mutation DeletePerson(
     $id: ID!
   ) {
-    delete_person {
+    delete_person(id: $id) {
       success
       message
       error
@@ -223,24 +172,11 @@ export interface DeleteFileVariables {
 `;
 export interface DeletePersonVariables {
   id: string;
-}export const DELETEPROMPTTEMPLATE_MUTATION = gql`
-  mutation DeletePromptTemplate(
-    $id: ID!
-  ) {
-    delete_prompt_template {
-      success
-      message
-      error
-    }
-  }
-`;
-export interface DeletePromptTemplateVariables {
-  id: string;
 }export const EXECUTEDIAGRAM_MUTATION = gql`
   mutation ExecuteDiagram(
     $input: ExecuteDiagramInput!
   ) {
-    execute_diagram {
+    execute_diagram(input: $input) {
       success
       execution {
         id
@@ -252,26 +188,25 @@ export interface DeletePromptTemplateVariables {
 `;
 export interface ExecuteDiagramVariables {
   input: ExecuteDiagramInput;
-}export const RENDERPROMPT_MUTATION = gql`
-  mutation RenderPrompt(
-    $templateId: ID!, 
-    $variables: JSON!
+}export const SENDINTERACTIVERESPONSE_MUTATION = gql`
+  mutation SendInteractiveResponse(
+    $input: InteractiveResponseInput!
   ) {
-    render_prompt {
+    send_interactive_response(input: $input) {
       success
-      rendered
+      execution_id
+      message
       error
     }
   }
 `;
-export interface RenderPromptVariables {
-  templateId: string;
-  variables: any;
+export interface SendInteractiveResponseVariables {
+  input: InteractiveResponseInput;
 }export const TESTAPIKEY_MUTATION = gql`
   mutation TestApiKey(
     $id: ID!
   ) {
-    test_api_key {
+    test_api_key(id: $id) {
       success
       message
       error
@@ -280,32 +215,47 @@ export interface RenderPromptVariables {
 `;
 export interface TestApiKeyVariables {
   id: string;
-}export const UPDATEFILE_MUTATION = gql`
-  mutation UpdateFile(
-    $path: String!, 
-    $content: String!
+}export const UPDATENODE_MUTATION = gql`
+  mutation UpdateNode(
+    $diagram_id: ID!, 
+    $node_id: ID!, 
+    $input: UpdateNodeInput!
   ) {
-    update_file {
+    update_node(diagram_id: $diagram_id, node_id: $node_id, input: $input) {
       success
-      file {
-        path
-        size
-        modified
+      message
+      error
+    }
+  }
+`;
+export interface UpdateNodeVariables {
+  diagram_id: string;
+  node_id: string;
+  input: UpdateNodeInput;
+}export const UPDATENODESTATE_MUTATION = gql`
+  mutation UpdateNodeState(
+    $input: UpdateNodeStateInput!
+  ) {
+    update_node_state(input: $input) {
+      success
+      execution_id
+      execution {
+        id
+        status
       }
       message
       error
     }
   }
 `;
-export interface UpdateFileVariables {
-  path: string;
-  content: string;
+export interface UpdateNodeStateVariables {
+  input: UpdateNodeStateInput;
 }export const UPDATEPERSON_MUTATION = gql`
   mutation UpdatePerson(
     $id: ID!, 
     $input: UpdatePersonInput!
   ) {
-    update_person {
+    update_person(id: $id, input: $input) {
       success
       person {
         id
@@ -319,56 +269,77 @@ export interface UpdateFileVariables {
 export interface UpdatePersonVariables {
   id: string;
   input: UpdatePersonInput;
-}export const UPDATEPROMPTTEMPLATE_MUTATION = gql`
-  mutation UpdatePromptTemplate(
-    $id: ID!, 
-    $input: UpdatePromptTemplateInput!
+}export const UPLOADDIAGRAM_MUTATION = gql`
+  mutation UploadDiagram(
+    $file: Upload!, 
+    $format: DiagramFormat!
   ) {
-    update_prompt_template {
+    upload_diagram(file: $file, format: $format) {
       success
-      template {
-        id
-        name
+      diagram {
+        metadata {
+          id
+          name
+        }
       }
       message
       error
     }
   }
 `;
-export interface UpdatePromptTemplateVariables {
-  id: string;
-  input: UpdatePromptTemplateInput;
-}export const VALIDATEFORMAT_MUTATION = gql`
-  mutation ValidateFormat(
-    $input: ValidateFormatInput!
+export interface UploadDiagramVariables {
+  file: Upload;
+  format: DiagramFormat;
+}export const UPLOADFILE_MUTATION = gql`
+  mutation UploadFile(
+    $file: Upload!, 
+    $path: String
   ) {
-    validate_format {
-      valid
-      errors
-      warnings
+    upload_file(file: $file, path: $path) {
+      success
+      path
+      size_bytes
+      content_type
+      message
+      error
     }
   }
 `;
-export interface ValidateFormatVariables {
-  input: ValidateFormatInput;
-}export const VALIDATENODE_MUTATION = gql`
-  mutation ValidateNode(
-    $input: ValidateNodeInput!
+export interface UploadFileVariables {
+  file: Upload;
+  path?: string;
+}export const VALIDATEDIAGRAM_MUTATION = gql`
+  mutation ValidateDiagram(
+    $content: String!, 
+    $format: DiagramFormat!
   ) {
-    validate_node {
-      valid
+    validate_diagram(content: $content, format: $format) {
+      success
       errors
       warnings
+      message
     }
   }
 `;
-export interface ValidateNodeVariables {
-  input: ValidateNodeInput;
-}export const GETAPIKEY_QUERY = gql`
+export interface ValidateDiagramVariables {
+  content: string;
+  format: DiagramFormat;
+}export const GETACTIVECLISESSION_QUERY = gql`
+  query GetActiveCliSession {
+    active_cli_session {
+      execution_id
+      diagram_name
+      diagram_format
+      started_at
+      is_active
+      diagram_data
+    }
+  }
+`;export const GETAPIKEY_QUERY = gql`
   query GetApiKey(
     $id: ID!
   ) {
-    api_key {
+    api_key(id: $id) {
       id
       label
       service
@@ -381,7 +352,7 @@ export interface GetApiKeyVariables {
   query GetApiKeys(
     $service: String
   ) {
-    api_keys {
+    api_keys(service: $service) {
       id
       label
       service
@@ -396,37 +367,17 @@ export interface GetApiKeysVariables {
     $service: String!, 
     $apiKeyId: ID!
   ) {
-    available_models
+    available_models(service: $service, api_key_id: $apiKeyId)
   }
 `;
 export interface GetAvailableModelsVariables {
   service: string;
   apiKeyId: string;
-}export const GETCONVERSATION_QUERY = gql`
-  query GetConversation(
-    $id: ID!
-  ) {
-    conversation {
-      id
-      title
-      created
-      updated
-      messages {
-        id
-        role
-        content
-        timestamp
-      }
-    }
-  }
-`;
-export interface GetConversationVariables {
-  id: string;
 }export const GETDIAGRAM_QUERY = gql`
   query GetDiagram(
     $id: ID!
   ) {
-    diagram {
+    diagram(id: $id) {
       nodes {
         id
         type
@@ -482,81 +433,70 @@ export interface GetDiagramVariables {
   query GetExecution(
     $id: ID!
   ) {
-    execution {
+    execution(id: $id) {
       id
       status
-      phase
       diagram_id
-      start_time
-      end_time
+      started_at
+      ended_at
       error
-      node_states {
-        node_id
-        status
-        start_time
-        end_time
-        error
-        outputs
-      }
+      node_states
+      node_outputs
+      variables
+      metrics
     }
   }
 `;
 export interface GetExecutionVariables {
   id: string;
-}export const GETFILE_QUERY = gql`
-  query GetFile(
-    $path: String!
+}export const GETEXECUTIONCAPABILITIES_QUERY = gql`
+  query GetExecutionCapabilities {
+    execution_capabilities
+  }
+`;export const GETEXECUTIONHISTORY_QUERY = gql`
+  query GetExecutionHistory(
+    $diagram_id: ID, 
+    $limit: Int, 
+    $include_metrics: Boolean
   ) {
-    file {
-      name
-      path
-      content
-      size
-      modified
+    execution_history {
+      id
+      status
+      diagram_id
+      started_at
+      ended_at
+      error
+      metrics
     }
   }
 `;
-export interface GetFileVariables {
-  path: string;
-}export const GETLLMMODELS_QUERY = gql`
-  query GetLLMModels(
-    $service: String!
+export interface GetExecutionHistoryVariables {
+  diagram_id?: string;
+  limit?: number;
+  include_metrics?: boolean;
+}export const GETEXECUTIONMETRICS_QUERY = gql`
+  query GetExecutionMetrics(
+    $execution_id: ID!
   ) {
-    llm_models
+    execution_metrics(execution_id: $execution_id)
   }
 `;
-export interface GetLLMModelsVariables {
-  service: string;
-}export const GETLLMSERVICES_QUERY = gql`
-  query GetLLMServices {
-    llm_services
-  }
-`;export const GETNODESPECIFICATION_QUERY = gql`
-  query GetNodeSpecification(
-    $type: String!
+export interface GetExecutionMetricsVariables {
+  execution_id: string;
+}export const GETEXECUTIONORDER_QUERY = gql`
+  query GetExecutionOrder(
+    $execution_id: ID!
   ) {
-    node_specification {
-      type
-      label
-      category
-      description
-      input_handles
-      output_handles
-      properties
-    }
+    execution_order(execution_id: $execution_id)
   }
 `;
-export interface GetNodeSpecificationVariables {
-  type: string;
-}export const GETNODETYPES_QUERY = gql`
-  query GetNodeTypes {
-    node_types
-  }
-`;export const GETPERSON_QUERY = gql`
+export interface GetExecutionOrderVariables {
+  execution_id: string;
+}export const GETPERSON_QUERY = gql`
   query GetPerson(
     $id: ID!
   ) {
-    person {
+    person(id: $id) {
       id
       label
       type
@@ -565,90 +505,68 @@ export interface GetNodeSpecificationVariables {
         model
         api_key_id
         system_prompt
-        temperature
       }
     }
   }
 `;
 export interface GetPersonVariables {
   id: string;
-}export const GETPROMPTTEMPLATE_QUERY = gql`
-  query GetPromptTemplate(
-    $id: ID!
+}export const GETPROMPTFILE_QUERY = gql`
+  query GetPromptFile(
+    $filename: String!
   ) {
-    prompt_template {
-      id
-      name
-      category
-      description
-      template
-      variables
-      examples
-    }
+    prompt_file(filename: $filename)
   }
 `;
-export interface GetPromptTemplateVariables {
-  id: string;
-}export const GETPROMPTTEMPLATES_QUERY = gql`
-  query GetPromptTemplates(
-    $category: String
-  ) {
-    prompt_templates {
-      id
-      name
-      category
-      description
-      template
-      variables
-    }
-  }
-`;
-export interface GetPromptTemplatesVariables {
-  category?: string;
+export interface GetPromptFileVariables {
+  filename: string;
 }export const GETSUPPORTEDFORMATS_QUERY = gql`
   query GetSupportedFormats {
-    supported_formats
+    supported_formats {
+      format
+      name
+      description
+      extension
+      supports_import
+      supports_export
+    }
   }
 `;export const GETSYSTEMINFO_QUERY = gql`
   query GetSystemInfo {
-    system_info {
-      version
-      environment
-      api_version
-      uptime
-    }
+    system_info
   }
 `;export const HEALTHCHECK_QUERY = gql`
   query HealthCheck {
-    health {
-      status
-      checks
-    }
+    health
   }
 `;export const LISTCONVERSATIONS_QUERY = gql`
   query ListConversations(
+    $person_id: ID, 
+    $execution_id: ID, 
+    $search: String, 
+    $show_forgotten: Boolean, 
     $limit: Int, 
-    $offset: Int
+    $offset: Int, 
+    $since: DateTime
   ) {
-    conversations {
-      id
-      title
-      created
-      updated
-      message_count
-    }
+    conversations
   }
 `;
 export interface ListConversationsVariables {
+  person_id?: string;
+  execution_id?: string;
+  search?: string;
+  show_forgotten?: boolean;
   limit?: number;
   offset?: number;
+  since?: string;
 }export const LISTDIAGRAMS_QUERY = gql`
   query ListDiagrams(
     $filter: DiagramFilterInput, 
     $limit: Int, 
     $offset: Int
   ) {
-    diagrams {
+    diagrams(filter: $filter, limit: $limit, offset: $offset) {
       metadata {
         id
         name
@@ -669,49 +587,29 @@ export interface ListDiagramsVariables {
   offset?: number;
 }export const LISTEXECUTIONS_QUERY = gql`
   query ListExecutions(
-    $diagram_id: ID, 
-    $status: ExecutionStatus, 
+    $filter: ExecutionFilterInput, 
     $limit: Int, 
     $offset: Int
   ) {
-    executions {
+    executions(filter: $filter, limit: $limit, offset: $offset) {
       id
       status
-      phase
       diagram_id
-      start_time
-      end_time
+      started_at
+      ended_at
       error
     }
   }
 `;
 export interface ListExecutionsVariables {
-  diagram_id?: string;
-  status?: ExecutionStatus;
+  filter?: ExecutionFilterInput;
   limit?: number;
   offset?: number;
-}export const LISTFILES_QUERY = gql`
-  query ListFiles(
-    $path: String
-  ) {
-    files {
-      name
-      path
-      size
-      modified
-      is_directory
-    }
-  }
-`;
-export interface ListFilesVariables {
-  path?: string;
 }export const LISTPERSONS_QUERY = gql`
   query ListPersons(
-    $filter: PersonFilterInput, 
-    $limit: Int, 
-    $offset: Int
+    $limit: Int
   ) {
-    persons {
+    persons(limit: $limit) {
       id
       label
       type
@@ -724,18 +622,19 @@ export interface ListFilesVariables {
   }
 `;
 export interface ListPersonsVariables {
-  filter?: PersonFilterInput;
   limit?: number;
-  offset?: number;
-}export const EXECUTIONUPDATES_SUBSCRIPTION = gql`
+}export const LISTPROMPTFILES_QUERY = gql`
+  query ListPromptFiles {
+    prompt_files
+  }
+`;export const EXECUTIONUPDATES_SUBSCRIPTION = gql`
   subscription ExecutionUpdates(
     $execution_id: ID!
   ) {
-    execution_updates {
+    execution_updates(execution_id: $execution_id) {
       execution_id
-      status
-      phase
-      node_updates
+      event_type
+      data
       timestamp
     }
   }
@@ -743,54 +642,48 @@ export interface ListPersonsVariables {
 export interface ExecutionUpdatesVariables {
   execution_id: string;
 }export const QUERIES = {
+  GETACTIVECLISESSION: GETACTIVECLISESSION_QUERY,
   GETAPIKEY: GETAPIKEY_QUERY,
   GETAPIKEYS: GETAPIKEYS_QUERY,
   GETAVAILABLEMODELS: GETAVAILABLEMODELS_QUERY,
-  GETCONVERSATION: GETCONVERSATION_QUERY,
   GETDIAGRAM: GETDIAGRAM_QUERY,
   GETEXECUTION: GETEXECUTION_QUERY,
-  GETFILE: GETFILE_QUERY,
-  GETLLMMODELS: GETLLMMODELS_QUERY,
-  GETLLMSERVICES: GETLLMSERVICES_QUERY,
-  GETNODESPECIFICATION: GETNODESPECIFICATION_QUERY,
-  GETNODETYPES: GETNODETYPES_QUERY,
+  GETEXECUTIONCAPABILITIES: GETEXECUTIONCAPABILITIES_QUERY,
+  GETEXECUTIONHISTORY: GETEXECUTIONHISTORY_QUERY,
+  GETEXECUTIONMETRICS: GETEXECUTIONMETRICS_QUERY,
+  GETEXECUTIONORDER: GETEXECUTIONORDER_QUERY,
   GETPERSON: GETPERSON_QUERY,
-  GETPROMPTTEMPLATE: GETPROMPTTEMPLATE_QUERY,
-  GETPROMPTTEMPLATES: GETPROMPTTEMPLATES_QUERY,
+  GETPROMPTFILE: GETPROMPTFILE_QUERY,
   GETSUPPORTEDFORMATS: GETSUPPORTEDFORMATS_QUERY,
   GETSYSTEMINFO: GETSYSTEMINFO_QUERY,
   HEALTHCHECK: HEALTHCHECK_QUERY,
   LISTCONVERSATIONS: LISTCONVERSATIONS_QUERY,
   LISTDIAGRAMS: LISTDIAGRAMS_QUERY,
   LISTEXECUTIONS: LISTEXECUTIONS_QUERY,
-  LISTFILES: LISTFILES_QUERY,
-  LISTPERSONS: LISTPERSONS_QUERY
+  LISTPERSONS: LISTPERSONS_QUERY,
+  LISTPROMPTFILES: LISTPROMPTFILES_QUERY
 } as const;
 
 export const MUTATIONS = {
-  ADDMESSAGE: ADDMESSAGE_MUTATION,
-  CANCELEXECUTION: CANCELEXECUTION_MUTATION,
-  CONVERTFORMAT: CONVERTFORMAT_MUTATION,
+  CONTROLEXECUTION: CONTROLEXECUTION_MUTATION,
+  CONVERTDIAGRAMFORMAT: CONVERTDIAGRAMFORMAT_MUTATION,
   CREATEAPIKEY: CREATEAPIKEY_MUTATION,
-  CREATECONVERSATION: CREATECONVERSATION_MUTATION,
   CREATEDIAGRAM: CREATEDIAGRAM_MUTATION,
-  CREATEFILE: CREATEFILE_MUTATION,
+  CREATENODE: CREATENODE_MUTATION,
   CREATEPERSON: CREATEPERSON_MUTATION,
-  CREATEPROMPTTEMPLATE: CREATEPROMPTTEMPLATE_MUTATION,
   DELETEAPIKEY: DELETEAPIKEY_MUTATION,
-  DELETECONVERSATION: DELETECONVERSATION_MUTATION,
   DELETEDIAGRAM: DELETEDIAGRAM_MUTATION,
-  DELETEFILE: DELETEFILE_MUTATION,
+  DELETENODE: DELETENODE_MUTATION,
   DELETEPERSON: DELETEPERSON_MUTATION,
-  DELETEPROMPTTEMPLATE: DELETEPROMPTTEMPLATE_MUTATION,
   EXECUTEDIAGRAM: EXECUTEDIAGRAM_MUTATION,
-  RENDERPROMPT: RENDERPROMPT_MUTATION,
+  SENDINTERACTIVERESPONSE: SENDINTERACTIVERESPONSE_MUTATION,
   TESTAPIKEY: TESTAPIKEY_MUTATION,
-  UPDATEFILE: UPDATEFILE_MUTATION,
+  UPDATENODE: UPDATENODE_MUTATION,
+  UPDATENODESTATE: UPDATENODESTATE_MUTATION,
   UPDATEPERSON: UPDATEPERSON_MUTATION,
-  UPDATEPROMPTTEMPLATE: UPDATEPROMPTTEMPLATE_MUTATION,
-  VALIDATEFORMAT: VALIDATEFORMAT_MUTATION,
-  VALIDATENODE: VALIDATENODE_MUTATION
+  UPLOADDIAGRAM: UPLOADDIAGRAM_MUTATION,
+  UPLOADFILE: UPLOADFILE_MUTATION,
+  VALIDATEDIAGRAM: VALIDATEDIAGRAM_MUTATION
 } as const;
 
 export const SUBSCRIPTIONS = {
@@ -798,21 +691,15 @@ export const SUBSCRIPTIONS = {
 } as const;export type QueryName = keyof typeof QUERIES;
 export type MutationName = keyof typeof MUTATIONS;
 export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION_METADATA = {
-  AddMessage: {
-    type: 'mutation',
-    entity: 'Conversation',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
-  CancelExecution: {
+  ControlExecution: {
     type: 'mutation',
     entity: 'Execution',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  ConvertFormat: {
+  ConvertDiagramFormat: {
     type: 'mutation',
-    entity: 'Format',
+    entity: 'File',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -822,21 +709,15 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  CreateConversation: {
-    type: 'mutation',
-    entity: 'Conversation',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
   CreateDiagram: {
     type: 'mutation',
     entity: 'Diagram',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  CreateFile: {
+  CreateNode: {
     type: 'mutation',
-    entity: 'File',
+    entity: 'Node',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -846,21 +727,9 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  CreatePromptTemplate: {
-    type: 'mutation',
-    entity: 'Prompt',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
   DeleteApiKey: {
     type: 'mutation',
     entity: 'ApiKey',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
-  DeleteConversation: {
-    type: 'mutation',
-    entity: 'Conversation',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -870,9 +739,9 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  DeleteFile: {
+  DeleteNode: {
     type: 'mutation',
-    entity: 'File',
+    entity: 'Node',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -882,21 +751,15 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  DeletePromptTemplate: {
-    type: 'mutation',
-    entity: 'Prompt',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
   ExecuteDiagram: {
     type: 'mutation',
     entity: 'Diagram',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  RenderPrompt: {
+  SendInteractiveResponse: {
     type: 'mutation',
-    entity: 'Prompt',
+    entity: 'Execution',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -906,9 +769,15 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  UpdateFile: {
+  UpdateNode: {
     type: 'mutation',
-    entity: 'File',
+    entity: 'Node',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
+  UpdateNodeState: {
+    type: 'mutation',
+    entity: 'Execution',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -918,21 +787,27 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  UpdatePromptTemplate: {
+  UploadDiagram: {
     type: 'mutation',
-    entity: 'Prompt',
+    entity: 'File',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  ValidateFormat: {
+  UploadFile: {
     type: 'mutation',
-    entity: 'Format',
+    entity: 'File',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  ValidateNode: {
+  ValidateDiagram: {
     type: 'mutation',
-    entity: 'Node',
+    entity: 'File',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
+  GetActiveCliSession: {
+    type: 'query',
+    entity: 'System',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -954,12 +829,6 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  GetConversation: {
-    type: 'query',
-    entity: 'Conversation',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
   GetDiagram: {
     type: 'query',
     entity: 'Diagram',
@@ -972,33 +841,27 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  GetFile: {
-    type: 'query',
-    entity: 'File',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
-  GetLLMModels: {
+  GetExecutionCapabilities: {
     type: 'query',
     entity: 'System',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  GetLLMServices: {
+  GetExecutionHistory: {
     type: 'query',
     entity: 'System',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  GetNodeSpecification: {
+  GetExecutionMetrics: {
     type: 'query',
-    entity: 'Node',
+    entity: 'System',
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  GetNodeTypes: {
+  GetExecutionOrder: {
     type: 'query',
-    entity: 'Node',
+    entity: 'System',
     operation: '',
     fieldPreset: 'STANDARD',
   },
@@ -1008,13 +871,7 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  GetPromptTemplate: {
-    type: 'query',
-    entity: 'Prompt',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
-  GetPromptTemplates: {
+  GetPromptFile: {
     type: 'query',
     entity: 'Prompt',
     operation: '',
@@ -1056,15 +913,15 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
-  ListFiles: {
-    type: 'query',
-    entity: 'File',
-    operation: '',
-    fieldPreset: 'STANDARD',
-  },
   ListPersons: {
     type: 'query',
     entity: 'Person',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
+  ListPromptFiles: {
+    type: 'query',
+    entity: 'Prompt',
     operation: '',
     fieldPreset: 'STANDARD',
   },

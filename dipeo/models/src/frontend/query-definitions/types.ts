@@ -4,8 +4,15 @@
 
 import { QueryOperationType } from '../query-enums';
 
+export interface FieldArgument {
+  name: string;
+  value: string;
+  isVariable?: boolean;
+}
+
 export interface FieldDefinition {
   name: string;
+  args?: FieldArgument[];
   fields?: FieldDefinition[];
 }
 
