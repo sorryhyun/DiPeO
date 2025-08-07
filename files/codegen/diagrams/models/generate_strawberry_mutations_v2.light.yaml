@@ -84,31 +84,21 @@ nodes:
 
 connections:
   # Parse specs first
-  - from: Start
-    to: Parse TypeScript Batch
+  - {from: Start, to: Parse TypeScript Batch}
   
   # Load spec files
-  - from: Parse TypeScript Batch
-    to: Load All Spec Files
+  - {from: Parse TypeScript Batch, to: Load All Spec Files}
   
   # Extract specifications from loaded AST
-  - from: Load All Spec Files
-    to: Extract Node Specs
+  - {from: Load All Spec Files, to: Extract Node Specs}
   
   # Generate types
-  - from: Extract Node Specs
-    to: Generate Strawberry Types
-    label: node_specs
+  - {from: Extract Node Specs, to: Generate Strawberry Types, label: node_specs}
   
   # Generate mutations
-  - from: Generate Strawberry Types
-    to: Generate Node Mutations
-    label: strawberry_types
+  - {from: Generate Strawberry Types, to: Generate Node Mutations, label: strawberry_types}
   
   # Pass mutations data to template renderer
-  - from: Generate Node Mutations
-    to: Render Mutations Template
-    label: mutations  # This becomes available as 'mutations' in template
+  - {from: Generate Node Mutations, to: Render Mutations Template, label: mutations}  # This becomes available as 'mutations' in template
   
-  - from: Render Mutations Template
-    to: End
+  - {from: Render Mutations Template, to: End}

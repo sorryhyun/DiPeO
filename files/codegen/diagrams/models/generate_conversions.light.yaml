@@ -77,34 +77,21 @@ nodes:
 
 connections:
   # Run batch parser first
-  - from: Start
-    to: Parse TypeScript Batch
+  - {from: Start, to: Parse TypeScript Batch}
   
   # Load data after parsing
-  - from: Parse TypeScript Batch
-    to: Load Conversions AST
-  - from: Parse TypeScript Batch
-    to: Load Conversions TS
+  - {from: Parse TypeScript Batch, to: Load Conversions AST}
+  - {from: Parse TypeScript Batch, to: Load Conversions TS}
   
   # Extract raw data using cached AST
-  - from: Load Conversions AST
-    to: Extract Raw Conversions Data
-    label: ast_data
-  - from: Load Conversions TS
-    to: Extract Raw Conversions Data
-    label: source
+  - {from: Load Conversions AST, to: Extract Raw Conversions Data, label: ast_data}
+  - {from: Load Conversions TS, to: Extract Raw Conversions Data, label: source}
   
   # Pass raw extracted data to template renderer
-  - from: Extract Raw Conversions Data
-    to: Render Conversions Enhanced
-    label: conversions_data  # Raw TypeScript data for template to process
+  - {from: Extract Raw Conversions Data, to: Render Conversions Enhanced, label: conversions_data}  # Raw TypeScript data for template to process
   
   # Generate summary
-  - from: Extract Raw Conversions Data
-    to: Generate Summary
-    label: extraction_result
+  - {from: Extract Raw Conversions Data, to: Generate Summary, label: extraction_result}
   
-  - from: Render Conversions Enhanced
-    to: End
-  - from: Generate Summary
-    to: End
+  - {from: Render Conversions Enhanced, to: End}
+  - {from: Generate Summary, to: End}

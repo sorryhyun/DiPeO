@@ -77,28 +77,17 @@ nodes:
       save_to_file: false
 
 connections:
-  - from: Start
-    to: Parse All TypeScript
-  
-  - from: Parse All TypeScript
-    to: Discover Node Specs
-  
-  - from: Discover Node Specs
-    to: Prepare Node List
-  
-  - from: Prepare Node List
-    to: Batch Generate Backend Models
+  - {from: Start, to: Parse All TypeScript}
+  - {from: Parse All TypeScript, to: Discover Node Specs}
+  - {from: Discover Node Specs, to: Prepare Node List}
+  - {from: Prepare Node List, to: Batch Generate Backend Models}
   
   # Also pass specs to prepare init context
-  - from: Discover Node Specs
-    to: Prepare Init Context
+  - {from: Discover Node Specs, to: Prepare Init Context}
   
   # Generate the models __init__.py
-  - from: Prepare Init Context
-    to: Generate Models Init
+  - {from: Prepare Init Context, to: Generate Models Init}
   
   # Both paths complete before ending
-  - from: Batch Generate Backend Models
-    to: End
-  - from: Generate Models Init
-    to: End
+  - {from: Batch Generate Backend Models, to: End}
+  - {from: Generate Models Init, to: End}

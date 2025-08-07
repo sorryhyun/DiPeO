@@ -166,70 +166,35 @@ nodes:
 
 connections:
   # First parse all TypeScript files to create cache
-  - from: Start
-    to: Parse All TypeScript
+  - {from: Start, to: Parse All TypeScript}
   
   # After cache is created, start all generation tasks in parallel
-  - from: Parse All TypeScript
-    to: Generate Python Models
-  - from: Parse All TypeScript
-    to: Generate Enums
-  - from: Parse All TypeScript
-    to: Generate Integrations
-  - from: Parse All TypeScript
-    to: Generate Conversions
-  - from: Parse All TypeScript
-    to: Generate GraphQL Schema
-  - from: Parse All TypeScript
-    to: Generate Static Nodes
-  - from: Parse All TypeScript
-    to: Generate Strawberry Types
-  - from: Parse All TypeScript
-    to: Generate Strawberry Mutations
-  - from: Parse All TypeScript
-    to: Generate Validation Models
-  - from: Parse All TypeScript
-    to: Generate TypeScript Indexes
+  - {from: Parse All TypeScript, to: Generate Python Models}
+  - {from: Parse All TypeScript, to: Generate Enums}
+  - {from: Parse All TypeScript, to: Generate Integrations}
+  - {from: Parse All TypeScript, to: Generate Conversions}
+  - {from: Parse All TypeScript, to: Generate GraphQL Schema}
+  - {from: Parse All TypeScript, to: Generate Static Nodes}
+  - {from: Parse All TypeScript, to: Generate Strawberry Types}
+  - {from: Parse All TypeScript, to: Generate Strawberry Mutations}
+  - {from: Parse All TypeScript, to: Generate Validation Models}
+  - {from: Parse All TypeScript, to: Generate TypeScript Indexes}
   
   # Python generation tasks connect directly to Generate Summary
-  - from: Generate Python Models
-    to: Generate Summary
-    label: python_models
-  - from: Generate Enums
-    to: Generate Summary
-    label: enums
-  - from: Generate Integrations
-    to: Generate Summary
-    label: integrations
-  - from: Generate Conversions
-    to: Generate Summary
-    label: conversions
-  - from: Generate GraphQL Schema
-    to: Generate Summary
-    label: graphql_schema
-  - from: Generate Static Nodes
-    to: Generate Summary
-    label: static_nodes
-  - from: Generate Strawberry Types
-    to: Generate Summary
-    label: strawberry_types
-  - from: Generate Strawberry Mutations
-    to: Generate Summary
-    label: strawberry_mutations
-  - from: Generate Validation Models
-    to: Generate Summary
-    label: validation_models
-  - from: Generate TypeScript Indexes
-    to: Generate Summary
-    label: typescript_indexes
+  - {from: Generate Python Models, to: Generate Summary, label: python_models}
+  - {from: Generate Enums, to: Generate Summary, label: enums}
+  - {from: Generate Integrations, to: Generate Summary, label: integrations}
+  - {from: Generate Conversions, to: Generate Summary, label: conversions}
+  - {from: Generate GraphQL Schema, to: Generate Summary, label: graphql_schema}
+  - {from: Generate Static Nodes, to: Generate Summary, label: static_nodes}
+  - {from: Generate Strawberry Types, to: Generate Summary, label: strawberry_types}
+  - {from: Generate Strawberry Mutations, to: Generate Summary, label: strawberry_mutations}
+  - {from: Generate Validation Models, to: Generate Summary, label: validation_models}
+  - {from: Generate TypeScript Indexes, to: Generate Summary, label: typescript_indexes}
   
   # Build TypeScript after summary
-  - from: Generate Summary
-    to: Build TypeScript Models
+  - {from: Generate Summary, to: Build TypeScript Models}
   
   # Connect build result to End
-  - from: Build TypeScript Models
-    to: End
-    label: build_result
-  - from: Generate Summary
-    to: End
+  - {from: Build TypeScript Models, to: End, label: build_result}
+  - {from: Generate Summary, to: End}

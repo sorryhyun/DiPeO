@@ -106,38 +106,24 @@ nodes:
 
 connections:
   # Parse input
-  - from: Start
-    to: Parse Input
+  - {from: Start, to: Parse Input}
     
   # Pass node_type for template interpolation
-  - from: Parse Input
-    to: Load AST
-    label: node_type
+  - {from: Parse Input, to: Load AST, label: node_type}
     
   # Prepare inputs
-  - from: Load AST
-    to: Prepare Extractor Inputs
-    label: ast_data
-  - from: Parse Input
-    to: Prepare Extractor Inputs
-    label: node_type
+  - {from: Load AST, to: Prepare Extractor Inputs, label: ast_data}
+  - {from: Parse Input, to: Prepare Extractor Inputs, label: node_type}
   
   # Extract all data
-  - from: Prepare Extractor Inputs
-    to: Extract Frontend Data
+  - {from: Prepare Extractor Inputs, to: Extract Frontend Data}
   
   # Pass extracted data directly to template jobs (no label = auto unwrap)
-  - from: Extract Frontend Data
-    to: Generate TypeScript Model
-  - from: Extract Frontend Data
-    to: Generate Node Config
-  - from: Extract Frontend Data
-    to: Generate Field Config
+  - {from: Extract Frontend Data, to: Generate TypeScript Model}
+  - {from: Extract Frontend Data, to: Generate Node Config}
+  - {from: Extract Frontend Data, to: Generate Field Config}
     
   # All complete
-  - from: Generate TypeScript Model
-    to: End
-  - from: Generate Node Config
-    to: End
-  - from: Generate Field Config
-    to: End
+  - {from: Generate TypeScript Model, to: End}
+  - {from: Generate Node Config, to: End}
+  - {from: Generate Field Config, to: End}

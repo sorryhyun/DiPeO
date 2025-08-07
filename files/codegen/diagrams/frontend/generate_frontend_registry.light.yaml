@@ -50,19 +50,8 @@ nodes:
     position: {x: 800, y: 200}
 
 connections:
-  - from: Start
-    to: Discover Node Specs
-  
-  - from: Discover Node Specs
-    to: Extract Node List
-  
-  - from: Extract Node List
-    to: Generate Registry
-    label: node_list
-  
-  - from: Generate Registry
-    to: Write Registry
-    label: generated_code
-  
-  - from: Write Registry
-    to: End
+  - {from: Start, to: Discover Node Specs}
+  - {from: Discover Node Specs, to: Extract Node List}
+  - {from: Extract Node List, to: Generate Registry, label: node_list}
+  - {from: Generate Registry, to: Write Registry, label: generated_code}
+  - {from: Write Registry, to: End}

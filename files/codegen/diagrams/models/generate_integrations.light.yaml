@@ -59,21 +59,15 @@ nodes:
 
 connections:
   # Run batch parser first
-  - from: Start
-    to: Parse TypeScript Batch
+  - {from: Start, to: Parse TypeScript Batch}
     
   # Load cached AST after parsing
-  - from: Parse TypeScript Batch
-    to: Load Integration AST
+  - {from: Parse TypeScript Batch, to: Load Integration AST}
 
   # Extract definitions from cached AST
-  - from: Load Integration AST
-    to: Extract Integrations
+  - {from: Load Integration AST, to: Extract Integrations}
 
   # Pass extracted data to template
-  - from: Extract Integrations
-    to: Render Integrations
-    label: integration_data
+  - {from: Extract Integrations, to: Render Integrations, label: integration_data}
 
-  - from: Render Integrations
-    to: End
+  - {from: Render Integrations, to: End}

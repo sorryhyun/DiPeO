@@ -102,28 +102,21 @@ nodes:
 
 connections:
   # Phase 1: Domain model generation
-  - from: Start
-    to: Generate All Domain Models
+  - {from: Start, to: Generate All Domain Models}
   
   # Phase 2: Backend generation after domain models
-  - from: Generate All Domain Models
-    to: Generate Backend Node Files
+  - {from: Generate All Domain Models, to: Generate Backend Node Files}
   
   # Phase 3: Apply staged changes after backend
-  - from: Generate Backend Node Files
-    to: Apply Staged Changes
+  - {from: Generate Backend Node Files, to: Apply Staged Changes}
   
   # Phase 4: Frontend generation after applying changes
-  - from: Apply Staged Changes
-    to: Generate Frontend Node Files
+  - {from: Apply Staged Changes, to: Generate Frontend Node Files}
   
   # Phase 5: Export GraphQL schema after frontend
-  - from: Generate Frontend Node Files
-    to: Export GraphQL Schema
+  - {from: Generate Frontend Node Files, to: Export GraphQL Schema}
   
   # Summary after all phases complete
-  - from: Export GraphQL Schema
-    to: Summarize Results
+  - {from: Export GraphQL Schema, to: Summarize Results}
   
-  - from: Summarize Results
-    to: End
+  - {from: Summarize Results, to: End}

@@ -116,23 +116,9 @@ nodes:
       save_to_file: false
 
 connections:
-  - from: Start
-    to: Parse TypeScript
-  
-  - from: Parse TypeScript
-    to: Load Query Definitions
-  
-  - from: Load Query Definitions
-    to: Prepare Query Data
-    label: ast_files
-  
-  - from: Prepare Query Data
-    to: Generate Queries
-    label: query_data
-  
-  - from: Prepare Query Data
-    to: Verify Generated Files
-    label: metadata
-  
-  - from: Generate Queries
-    to: End
+  - {from: Start, to: Parse TypeScript}
+  - {from: Parse TypeScript, to: Load Query Definitions}
+  - {from: Load Query Definitions, to: Prepare Query Data, label: ast_files}
+  - {from: Prepare Query Data, to: Generate Queries, label: query_data}
+  - {from: Prepare Query Data, to: Verify Generated Files, label: metadata}
+  - {from: Generate Queries, to: End}

@@ -129,51 +129,31 @@ nodes:
 
 connections:
   # Run batch parser first
-  - from: Start
-    to: Parse TypeScript Batch
+  - {from: Start, to: Parse TypeScript Batch}
   
   # Load cached data after parsing
-  - from: Parse TypeScript Batch
-    to: Load Mappings AST
-  - from: Parse TypeScript Batch
-    to: Load All Node Data AST
-  - from: Parse TypeScript Batch
-    to: Load Diagram AST
+  - {from: Parse TypeScript Batch, to: Load Mappings AST}
+  - {from: Parse TypeScript Batch, to: Load All Node Data AST}
+  - {from: Parse TypeScript Batch, to: Load Diagram AST}
   
   # Extract mappings
-  - from: Load Mappings AST
-    to: Extract Mappings
+  - {from: Load Mappings AST, to: Extract Mappings}
   
   # Extract node data from loaded AST files
-  - from: Load All Node Data AST
-    to: Extract Node Data
+  - {from: Load All Node Data AST, to: Extract Node Data}
   
   # Extract base interface
-  - from: Load Diagram AST
-    to: Extract Base Interface
-    label: diagram_ast
+  - {from: Load Diagram AST, to: Extract Base Interface, label: diagram_ast}
   
   # Generate static nodes with all inputs
-  - from: Extract Node Data
-    to: Generate Static Nodes
-    label: node_data
-  - from: Extract Mappings
-    to: Generate Static Nodes
-    label: mappings
-  - from: Extract Base Interface
-    to: Generate Static Nodes
-    label: base_data
+  - {from: Extract Node Data, to: Generate Static Nodes, label: node_data}
+  - {from: Extract Mappings, to: Generate Static Nodes, label: mappings}
+  - {from: Extract Base Interface, to: Generate Static Nodes, label: base_data}
   
   # Generate Python code
-  - from: Generate Static Nodes
-    to: Generate Python Code
-    label: static_nodes_data
+  - {from: Generate Static Nodes, to: Generate Python Code, label: static_nodes_data}
   
   # Summary and End
-  - from: Generate Static Nodes
-    to: Generate Summary
-    label: static_nodes_data
-  - from: Generate Python Code
-    to: End
-  - from: Generate Summary
-    to: End
+  - {from: Generate Static Nodes, to: Generate Summary, label: static_nodes_data}
+  - {from: Generate Python Code, to: End}
+  - {from: Generate Summary, to: End}

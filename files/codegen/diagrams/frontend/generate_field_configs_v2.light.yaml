@@ -102,48 +102,30 @@ nodes:
 
 connections:
   # Run batch parser first
-  - from: Start
-    to: Parse TypeScript Batch
+  - {from: Start, to: Parse TypeScript Batch}
   
   # Load cached data after parsing
-  - from: Parse TypeScript Batch
-    to: Load All AST Files
+  - {from: Parse TypeScript Batch, to: Load All AST Files}
   
   # Extract mappings from the loaded files
-  - from: Load All AST Files
-    to: Extract Mappings
-    label: default
+  - {from: Load All AST Files, to: Extract Mappings, label: default}
   
   # Pass all AST files to Extract Field Configs
-  - from: Load All AST Files
-    to: Extract Field Configs
-    label: ast_files
-  - from: Extract Mappings
-    to: Extract Field Configs
-    label: mappings
+  - {from: Load All AST Files, to: Extract Field Configs, label: ast_files}
+  - {from: Extract Mappings, to: Extract Field Configs, label: mappings}
   
   # Prepare template data
-  - from: Extract Field Configs
-    to: Prepare Template Data
-    label: node_configs
+  - {from: Extract Field Configs, to: Prepare Template Data, label: node_configs}
   
   # Pass prepared data directly to template - it now handles unwrapping automatically
-  - from: Prepare Template Data
-    to: Render Field Configs Template
+  - {from: Prepare Template Data, to: Render Field Configs Template}
   
   # Also write JSON output
-  - from: Extract Field Configs
-    to: Write Field Configs JSON
-    label: node_configs
+  - {from: Extract Field Configs, to: Write Field Configs JSON, label: node_configs}
   
   # Generate summary
-  - from: Extract Field Configs
-    to: Generate Summary
-    label: node_configs
+  - {from: Extract Field Configs, to: Generate Summary, label: node_configs}
   
-  - from: Render Field Configs Template
-    to: End
-  - from: Write Field Configs JSON
-    to: End
-  - from: Generate Summary
-    to: End
+  - {from: Render Field Configs Template, to: End}
+  - {from: Write Field Configs JSON, to: End}
+  - {from: Generate Summary, to: End}

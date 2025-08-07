@@ -129,38 +129,15 @@ nodes:
       save_to_file: false
 
 connections:
-  - from: Start
-    to: Parse All TypeScript
-  
-  - from: Parse All TypeScript
-    to: Discover Node Specs
-  
-  - from: Discover Node Specs
-    to: Prepare Node List
-  
-  - from: Prepare Node List
-    to: Batch Generate Frontend
-  
-  - from: Batch Generate Frontend
-    to: Process Results
-  
-  - from: Process Results
-    to: Generate Registry
-  
-  - from: Generate Registry
-    to: Generate GraphQL Queries
-  
-  - from: Generate Registry
-    to: Generate Zod Schemas
-  
-  - from: Generate Registry
-    to: Generate Field Configs
-  
-  - from: Generate GraphQL Queries
-    to: End
-  
-  - from: Generate Zod Schemas
-    to: End
-  
-  - from: Generate Field Configs
-    to: End
+  - {from: Start, to: Parse All TypeScript}
+  - {from: Parse All TypeScript, to: Discover Node Specs}
+  - {from: Discover Node Specs, to: Prepare Node List}
+  - {from: Prepare Node List, to: Batch Generate Frontend}
+  - {from: Batch Generate Frontend, to: Process Results}
+  - {from: Process Results, to: Generate Registry}
+  - {from: Generate Registry, to: Generate GraphQL Queries}
+  - {from: Generate Registry, to: Generate Zod Schemas}
+  - {from: Generate Registry, to: Generate Field Configs}
+  - {from: Generate GraphQL Queries, to: End}
+  - {from: Generate Zod Schemas, to: End}
+  - {from: Generate Field Configs, to: End}

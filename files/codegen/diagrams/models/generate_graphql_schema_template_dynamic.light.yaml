@@ -78,28 +78,20 @@ nodes:
 
 connections:
   # Parse specs first
-  - from: Start
-    to: Parse TypeScript Batch
+  - {from: Start, to: Parse TypeScript Batch}
   
   # Load all AST files
-  - from: Parse TypeScript Batch
-    to: Load All AST Files
+  - {from: Parse TypeScript Batch, to: Load All AST Files}
   
   # Prepare GraphQL data
-  - from: Load All AST Files
-    to: Prepare GraphQL Data
+  - {from: Load All AST Files, to: Prepare GraphQL Data}
   
   # Render schema
-  - from: Prepare GraphQL Data
-    to: Render GraphQL Schema
+  - {from: Prepare GraphQL Data, to: Render GraphQL Schema}
   
   # Generate summary
-  - from: Prepare GraphQL Data
-    to: Generate Summary
-    label: graphql_data
+  - {from: Prepare GraphQL Data, to: Generate Summary, label: graphql_data}
   
   # End connections
-  - from: Render GraphQL Schema
-    to: End
-  - from: Generate Summary
-    to: End
+  - {from: Render GraphQL Schema, to: End}
+  - {from: Generate Summary, to: End}

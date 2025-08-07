@@ -157,60 +157,37 @@ nodes:
 
 connections:
   # Parse input first
-  - from: Start
-    to: Parse Input
+  - {from: Start, to: Parse Input}
     
   # Load codegen mappings early (independent of node type)
-  - from: Start
-    to: Load Codegen Mappings
+  - {from: Start, to: Load Codegen Mappings}
     
   # Extract node type
-  - from: Parse Input
-    to: Extract Node Type
-    label: node_spec_path
+  - {from: Parse Input, to: Extract Node Type, label: node_spec_path}
     
   # Load the cached AST
-  - from: Extract Node Type
-    to: Load Cached AST
-    label: node_type
+  - {from: Extract Node Type, to: Load Cached AST, label: node_type}
     
   # Extract specification from AST
-  - from: Load Cached AST
-    to: Extract Specification
-    label: ast_data
+  - {from: Load Cached AST, to: Extract Specification, label: ast_data}
     
   # Pass node_type to Extract Specification
-  - from: Extract Node Type
-    to: Extract Specification
-    label: node_type
+  - {from: Extract Node Type, to: Extract Specification, label: node_type}
     
   # Unwrap the spec data
-  - from: Extract Specification
-    to: Unwrap Spec Data
-    label: spec_data
+  - {from: Extract Specification, to: Unwrap Spec Data, label: spec_data}
     
   # Pass unwrapped spec to extract node naming
-  - from: Unwrap Spec Data
-    to: Extract Node Naming
-    label: spec_data
+  - {from: Unwrap Spec Data, to: Extract Node Naming, label: spec_data}
     
   # Pass mappings from Load Codegen Mappings to Extract Mappings
-  - from: Load Codegen Mappings
-    to: Extract Mappings
+  - {from: Load Codegen Mappings, to: Extract Mappings}
     
   # Prepare template context with all data
-  - from: Unwrap Spec Data
-    to: Prepare Template Context
-    label: spec_data
-  - from: Extract Mappings
-    to: Prepare Template Context
-    label: mappings
-  - from: Extract Node Naming
-    to: Prepare Template Context
-    label: node_naming
+  - {from: Unwrap Spec Data, to: Prepare Template Context, label: spec_data}
+  - {from: Extract Mappings, to: Prepare Template Context, label: mappings}
+  - {from: Extract Node Naming, to: Prepare Template Context, label: node_naming}
   
   # Pass context to template_job nodes (no label = auto unwrap)
-  - from: Prepare Template Context
-    to: Generate Pydantic Model
-  - from: Prepare Template Context
-    to: Generate Static Node
+  - {from: Prepare Template Context, to: Generate Pydantic Model}
+  - {from: Prepare Template Context, to: Generate Static Node}

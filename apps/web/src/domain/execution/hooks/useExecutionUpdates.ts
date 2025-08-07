@@ -139,10 +139,111 @@ export function useExecutionUpdates({
   useEffect(() => {
     if (!executionUpdates) return;
     
-    // Extract status from the data field (GraphQL subscription format)
-    const status = executionUpdates.data?.status || executionUpdates.status;
-    const error = executionUpdates.data?.error || executionUpdates.error;
-    const tokenUsage = executionUpdates.data?.tokenUsage || executionUpdates.tokenUsage;
+    // Log all updates for debugging
+    console.log('[useExecutionUpdates] Received update:', {
+      event_type: executionUpdates.event_type,
+      data: executionUpdates.data,
+      full: executionUpdates
+    });
+    
+    // Check if this is a node event
+    const eventType = executionUpdates.event_type;
+    // Parse the data field if it's a string (JSON)
+    let eventData = executionUpdates.data || {};
+    if (typeof eventData === 'string') {
+      try {
+        eventData = JSON.parse(eventData);
+      } catch (e) {
+        console.error('[useExecutionUpdates] Failed to parse data:', e);
+        eventData = {};
+      }
+    }
+    console.log('[useExecutionUpdates] Parsed eventData:', eventData);
+    
+    // Handle node events
+    if (eventType === 'NODE_STATUS_CHANGED') {
+      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
+      const nodeType = eventData.node_type || eventData.nodeType || '';
+      const nodeStatus = eventData.status || '';
+      
+      console.log('[useExecutionUpdates] NODE_STATUS_CHANGED - Extracting fields:', {
+        nodeIdStr,
+        nodeType,
+        nodeStatus,
+        eventDataKeys: Object.keys(eventData),
+        eventDataType: typeof eventData,
+      });
+      
+      if (nodeIdStr && nodeStatus) {
+        console.log('[useExecutionUpdates] ✅ Node status changed:', { nodeIdStr, nodeType, nodeStatus });
+        
+        if (nodeStatus === 'RUNNING') {
+          handleNodeStart(nodeIdStr, nodeType);
+        } else if (nodeStatus === 'COMPLETED' || nodeStatus === 'MAXITER_REACHED') {
+          const tokenCount = eventData.tokens_used || eventData.metrics?.tokens || undefined;
+          const output = eventData.output || eventData.result || undefined;
+          handleNodeComplete(nodeIdStr, tokenCount, output);
+        } else if (nodeStatus === 'FAILED') {
+          updateNodeState(nodeIdStr, {
+            status: 'error',
+            endTime: new Date(),
+            error: eventData.error || 'Unknown error'
+          });
+          
+          executionActions.updateNodeExecution(nodeId(nodeIdStr), {
+            status: Status.FAILED,
+            timestamp: Date.now(),
+            error: eventData.error ?? undefined
+          });
+          
+          showThrottledToast(`node-error-${nodeIdStr}`, 'error', `Node ${nodeIdStr.slice(0, 8)}... failed: ${eventData.error}`);
+        } else if (nodeStatus === 'SKIPPED') {
+          incrementCompletedNodes();
+          
+          updateNodeState(nodeIdStr, {
+            status: 'skipped',
+            endTime: new Date(),
+          });
+          
+          addSkippedNode(nodeIdStr, 'Skipped');
+          executionActions.updateNodeExecution(nodeId(nodeIdStr), {
+            status: Status.SKIPPED,
+            timestamp: Date.now()
+          });
+        }
+      } else {
+        console.warn('[useExecutionUpdates] NODE_STATUS_CHANGED event missing node_id or status:', eventData);
+      }
+      return;
+    } else if (eventType === 'NODE_STARTED') {
+      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
+      const nodeType = eventData.node_type || eventData.nodeType || '';
+      
+      if (nodeIdStr) {
+        console.log('[useExecutionUpdates] ✅ Node started event:', { nodeIdStr, nodeType });
+        handleNodeStart(nodeIdStr, nodeType);
+      } else {
+        console.warn('[useExecutionUpdates] NODE_STARTED event missing node_id:', eventData);
+      }
+      return;
+    } else if (eventType === 'NODE_COMPLETED') {
+      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
+      const tokenCount = eventData.tokens_used || eventData.metrics?.tokens || undefined;
+      const output = eventData.output || eventData.result || undefined;
+      
+      if (nodeIdStr) {
+        console.log('[useExecutionUpdates] ✅ Node completed event:', { nodeIdStr, tokenCount, output });
+        handleNodeComplete(nodeIdStr, tokenCount, output);
+      } else {
+        console.warn('[useExecutionUpdates] NODE_COMPLETED event missing node_id:', eventData);
+      }
+      return;
+    }
+    
+    // Handle execution-level events
+    const status = eventData.status || executionUpdates.status;
+    const error = eventData.error || executionUpdates.error;
+    const tokenUsage = eventData.tokenUsage || executionUpdates.tokenUsage;
     
     if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
       const totalTokens = tokenUsage ? 
@@ -192,18 +293,23 @@ export function useExecutionUpdates({
         timestamp: new Date().toISOString() 
       });
     }
-  }, [executionUpdates, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef]);
+  }, [executionUpdates, handleNodeStart, handleNodeComplete, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef]);
 
-  // Process node subscription updates
+  // Process node subscription updates - DEPRECATED
+  // Node updates are now handled through executionUpdates with event_type NODE_STARTED/NODE_COMPLETED
   useEffect(() => {
     if (!nodeUpdates) return;
+    
+    // This code path is deprecated - nodeUpdates is always undefined
+    // Node events are now processed in the executionUpdates effect above
+    console.warn('[useExecutionUpdates] Deprecated nodeUpdates path - this should not be reached');
     
     // The nodeUpdates might be the data directly or wrapped in a data field
     const updateData = nodeUpdates.data || nodeUpdates;
     const status = updateData.status || '';
     const nodeIdStr = updateData.node_id || '';
     
-    console.log('[useExecutionUpdates] Node update received:', { status, nodeIdStr, updateData });
+    console.log('[useExecutionUpdates] Node update received (deprecated path):', { status, nodeIdStr, updateData });
 
     if (status === 'RUNNING' && nodeIdStr) {
       handleNodeStart(nodeIdStr, updateData.node_type);

@@ -89,24 +89,9 @@ nodes:
       save_to_file: false
       
 connections:
-  - from: Start
-    to: Extract File Info
-    
-  - from: Extract File Info
-    to: Load TS Source
-    label: info
-    
-  - from: Load TS Source
-    to: Parse TypeScript AST
-    label: source
-    
-  - from: Parse TypeScript AST
-    to: Save Cache
-    label: ast
-    
-  - from: Extract File Info
-    to: Save Cache
-    label: info
-    
-  - from: Save Cache
-    to: End
+  - {from: Start, to: Extract File Info}
+  - {from: Extract File Info, to: Load TS Source, label: info}
+  - {from: Load TS Source, to: Parse TypeScript AST, label: source}
+  - {from: Parse TypeScript AST, to: Save Cache, label: ast}
+  - {from: Extract File Info, to: Save Cache, label: info}
+  - {from: Save Cache, to: End}

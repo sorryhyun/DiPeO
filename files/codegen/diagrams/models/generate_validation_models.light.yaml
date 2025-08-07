@@ -34,13 +34,9 @@ nodes:
       save_to_file: false
 
 connections:
-  - from: Start
-    to: Generate JSON Schemas
+  - {from: Start, to: Generate JSON Schemas}
   
   # Pass JSON schema results to Pydantic generator
-  - from: Generate JSON Schemas
-    to: Generate Pydantic Models
-    label: schemas
+  - {from: Generate JSON Schemas, to: Generate Pydantic Models, label: schemas}
   
-  - from: Generate Pydantic Models
-    to: End
+  - {from: Generate Pydantic Models, to: End}

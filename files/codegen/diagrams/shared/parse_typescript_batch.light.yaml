@@ -82,12 +82,6 @@ nodes:
       save_to_file: false
       
 connections:
-  - from: Start
-    to: Gather TypeScript Files
-    
-  - from: Gather TypeScript Files
-    to: Batch Parse Files
-    label: items
-    
-  - from: Batch Parse Files
-    to: End
+  - {from: Start, to: Gather TypeScript Files}
+  - {from: Gather TypeScript Files, to: Batch Parse Files, label: items}
+  - {from: Batch Parse Files, to: End}

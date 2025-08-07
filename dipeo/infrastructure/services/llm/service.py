@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import logging
 import time
 from typing import Any
 
@@ -34,6 +35,7 @@ class LLMInfraService(BaseService, LLMServicePort):
         self._adapter_cache = SingleFlightCache()  # For deduplicating adapter creation
         self._settings = get_settings()
         self._llm_domain_service = llm_domain_service or LLMDomainService()
+        self.logger = logging.getLogger(__name__)
         self._provider_mapping = {
             "gpt": "openai",
             "o1": "openai",
@@ -177,11 +179,19 @@ class LLMInfraService(BaseService, LLMServicePort):
             messages_list = messages
 
             adapter_kwargs = {**kwargs}
+            
+            # Log the LLM call
+            if hasattr(self, 'logger'):
+                self.logger.info(f"🤖 Making LLM call - Service: {service}, Model: {model}, Messages: {len(messages_list)}")
+                self.logger.debug(f"Messages: {messages_list[:2] if len(messages_list) > 2 else messages_list}")  # Log first 2 messages
 
             try:
-                return await self._call_llm_with_retry(
+                result = await self._call_llm_with_retry(
                     adapter, messages_list, **adapter_kwargs
                 )
+                if hasattr(self, 'logger'):
+                    self.logger.info(f"✅ LLM call completed - Response length: {len(result.text) if result and result.text else 0}")
+                return result
             except Exception as inner_e:
                 if hasattr(self, 'logger'):
                     self.logger.error(f"LLM call failed: {type(inner_e).__name__}: {inner_e!s}")
