@@ -84,6 +84,23 @@ export const dbSpec: NodeSpecification = {
       uiConfig: {
         inputType: "checkbox"
       }
+    },
+    {
+      name: "format",
+      type: "string",
+      required: false,
+      description: "Data format (json, yaml, csv, text, etc.)",
+      defaultValue: "json",
+      uiConfig: {
+        inputType: "select",
+        options: [
+          { value: "json", label: "JSON" },
+          { value: "yaml", label: "YAML" },
+          { value: "csv", label: "CSV" },
+          { value: "text", label: "Text" },
+          { value: "xml", label: "XML" }
+        ]
+      }
     }
   ],
   

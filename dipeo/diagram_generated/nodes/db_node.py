@@ -44,6 +44,7 @@ class DbNode:
     query: str = ""
     data: Dict[str, Any] = field(default_factory=dict)
     serialize_json: bool = False
+    format: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -65,4 +66,5 @@ class DbNode:
         data["query"] = self.query
         data["data"] = self.data
         data["serialize_json"] = self.serialize_json
+        data["format"] = self.format
         return data

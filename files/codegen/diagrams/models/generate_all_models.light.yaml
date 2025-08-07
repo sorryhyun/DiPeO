@@ -66,6 +66,15 @@ nodes:
       diagram_format: light
       passInputData: false
 
+  # Generate backend models (individual model and node files)
+  - label: Generate Backend Models
+    type: sub_diagram
+    position: {x: 400, y: 350}
+    props:
+      diagram_name: codegen/diagrams/models/generate_backend_models
+      diagram_format: light
+      passInputData: false
+
   # Generate static nodes
   - label: Generate Static Nodes
     type: sub_diagram
@@ -173,6 +182,7 @@ connections:
   - {from: Parse All TypeScript, to: Generate Enums}
   - {from: Parse All TypeScript, to: Generate Integrations}
   - {from: Parse All TypeScript, to: Generate Conversions}
+  - {from: Parse All TypeScript, to: Generate Backend Models}
   - {from: Parse All TypeScript, to: Generate GraphQL Schema}
   - {from: Parse All TypeScript, to: Generate Static Nodes}
   - {from: Parse All TypeScript, to: Generate Strawberry Types}
@@ -185,6 +195,7 @@ connections:
   - {from: Generate Enums, to: Generate Summary, label: enums}
   - {from: Generate Integrations, to: Generate Summary, label: integrations}
   - {from: Generate Conversions, to: Generate Summary, label: conversions}
+  - {from: Generate Backend Models, to: Generate Summary, label: backend_models}
   - {from: Generate GraphQL Schema, to: Generate Summary, label: graphql_schema}
   - {from: Generate Static Nodes, to: Generate Summary, label: static_nodes}
   - {from: Generate Strawberry Types, to: Generate Summary, label: strawberry_types}

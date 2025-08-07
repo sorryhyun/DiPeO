@@ -61,6 +61,15 @@ codegen:
 codegen-models:
 	@echo "Running diagram-based model generation for all nodes..."
 	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=40
+	@sleep 1
+	@echo "Applying staged changes to active directory (syntax validation only)..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "Error: No staged directory found. Run 'make codegen-models' first."; \
+		exit 1; \
+	fi
+	@echo "Copying staged files to active directory..."
+	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+	@echo "Staged changes applied successfully!"
 	@echo "Diagram-based code generation completed!"
 
 codegen-frontend:

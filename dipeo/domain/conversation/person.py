@@ -9,10 +9,9 @@ from dipeo.diagram_generated import (
     MemorySettings,
     MemoryView as MemoryViewEnum,
     Message,
-    PersonID,
     PersonLLMConfig,
 )
-
+from dipeo.diagram_generated.domain_models import PersonID
 from .conversation import Conversation, ConversationContext
 from .memory_filters import MemoryFilterFactory, MemoryLimiter, MemoryView
 

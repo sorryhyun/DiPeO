@@ -41,6 +41,7 @@ class PersonJobNode:
     # Optional node-specific fields
     person: str = ""
     default_prompt: str = ""
+    prompt_file: str = ""
     memory_profile: str = None
     tools: List[ToolConfig] = ""
     memory_settings: MemorySettings = field(default_factory=dict)
@@ -61,6 +62,7 @@ class PersonJobNode:
         data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt
         data["default_prompt"] = self.default_prompt
+        data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration
         data["memory_profile"] = self.memory_profile
         data["tools"] = self.tools

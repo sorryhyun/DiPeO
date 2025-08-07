@@ -420,6 +420,7 @@ class DBNodeData(BaseNodeData):
     data: Optional[Dict[str, Any]] = Field(default=None)
     serialize_json: Optional[bool] = Field(default=None)
     glob: Optional[bool] = Field(default=None)
+    format: Optional[str] = Field(default=None)
 
 
 class EndpointNodeData(BaseNodeData):

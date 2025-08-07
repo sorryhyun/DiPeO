@@ -51,6 +51,12 @@ class MessageRouter(MessageRouterPort):
         self._event_buffer: dict[str, list[dict]] = {}
         self._buffer_max_size = 50  # Keep last 50 events per execution
         self._buffer_ttl_seconds = 300  # Keep events for 5 minutes
+        
+        # Event batching for performance
+        self._batch_queue: dict[str, list[dict]] = {}
+        self._batch_tasks: dict[str, asyncio.Task | None] = {}
+        self._batch_interval = 0.05  # 50ms batching window
+        self._batch_max_size = 20  # Max events per batch
 
     async def initialize(self) -> None:
         """Initialize the message router."""
@@ -62,10 +68,21 @@ class MessageRouter(MessageRouterPort):
 
     async def cleanup(self) -> None:
         """Clean up all connections and subscriptions."""
+        # Cancel all pending batch tasks
+        for task in self._batch_tasks.values():
+            if task and not task.done():
+                task.cancel()
+        
+        # Flush any remaining batches
+        for execution_id in list(self._batch_queue.keys()):
+            await self._flush_batch(execution_id)
+        
         self.local_handlers.clear()
         self.execution_subscriptions.clear()
         self.connection_health.clear()
         self._message_queue_size.clear()
+        self._batch_queue.clear()
+        self._batch_tasks.clear()
         self._initialized = False
         logger.info("MessageRouter cleaned up")
 
@@ -168,37 +185,81 @@ class MessageRouter(MessageRouterPort):
             execution_id: Execution identifier
             message: Message to broadcast
         """
-        start_time = time.time()
-        
-        # Buffer the event for late connections
-        await self._buffer_event(execution_id, message)
-
-        # Try to publish to GraphQL subscriptions (if available)
-        try:
-            from dipeo_server.api.graphql.subscriptions import publish_execution_update
-
-            await publish_execution_update(execution_id, message)
-        except ImportError:
-            pass
-        except Exception as e:
-            logger.error(f"Failed to publish to streaming manager: {e}")
-
-        # Get all connections subscribed to this execution
+        # Quick exit if no connections and no need to buffer
         connection_ids = self.execution_subscriptions.get(execution_id, set())
+        if not connection_ids and not self._should_buffer_events(execution_id):
+            return  # Skip all expensive operations
         
+        # Buffer the event for late connections only if needed
+        if self._should_buffer_events(execution_id):
+            await self._buffer_event(execution_id, message)
 
+        # If no active connections, skip broadcasting
         if not connection_ids:
             return
 
+        # Add message to batch queue
+        if execution_id not in self._batch_queue:
+            self._batch_queue[execution_id] = []
+        
+        self._batch_queue[execution_id].append(message)
+        
+        # Check if we should flush immediately (batch full)
+        if len(self._batch_queue[execution_id]) >= self._batch_max_size:
+            await self._flush_batch(execution_id)
+        else:
+            # Schedule batch flush if not already scheduled
+            if execution_id not in self._batch_tasks or self._batch_tasks[execution_id] is None:
+                self._batch_tasks[execution_id] = asyncio.create_task(
+                    self._delayed_flush(execution_id)
+                )
+
+    async def _delayed_flush(self, execution_id: str) -> None:
+        """Flush batch after a delay."""
+        await asyncio.sleep(self._batch_interval)
+        await self._flush_batch(execution_id)
+    
+    async def _flush_batch(self, execution_id: str) -> None:
+        """Flush all batched messages for an execution."""
+        # Get and clear the batch
+        messages = self._batch_queue.pop(execution_id, [])
+        if execution_id in self._batch_tasks:
+            self._batch_tasks[execution_id] = None
+        
+        if not messages:
+            return
+        
+        connection_ids = self.execution_subscriptions.get(execution_id, set())
+        if not connection_ids:
+            return
+        
+        start_time = time.time()
+        
+        # Create a batch message containing all events
+        batch_message = {
+            "type": "BATCH_UPDATE",
+            "execution_id": execution_id,
+            "events": messages,
+            "timestamp": datetime.utcnow().isoformat(),
+            "batch_size": len(messages)
+        }
+        
+        # Try to publish to GraphQL subscriptions (if available)
+        try:
+            from dipeo_server.api.graphql.subscriptions import publish_execution_update
+            await publish_execution_update(execution_id, batch_message)
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.error(f"Failed to publish batch to streaming manager: {e}")
+        
         successful_broadcasts = 0
         failed_broadcasts = 0
-
-        # Use TaskGroup for Python 3.11+ or gather for older versions
+        
+        # Broadcast batch to all connections
         import sys
-
         if sys.version_info >= (3, 11):
             try:
-
                 async def track_broadcast(connection_id: str, msg: dict):
                     broadcast_result = await self._broadcast_with_metrics(connection_id, msg)
                     return connection_id, broadcast_result
@@ -206,7 +267,7 @@ class MessageRouter(MessageRouterPort):
                 results = []
                 async with asyncio.TaskGroup() as tg:
                     for conn_id in list(connection_ids):
-                        task = tg.create_task(track_broadcast(conn_id, message))
+                        task = tg.create_task(track_broadcast(conn_id, batch_message))
                         results.append(task)
 
                 for task in results:
@@ -217,33 +278,37 @@ class MessageRouter(MessageRouterPort):
                         else:
                             failed_broadcasts += 1
                     except Exception as e:
-                        logger.error(f"Broadcast error: {e}")
+                        logger.error(f"Batch broadcast error: {e}")
                         failed_broadcasts += 1
 
             except Exception as e:
-                logger.error(f"TaskGroup error during broadcast: {e}")
+                logger.error(f"TaskGroup error during batch broadcast: {e}")
                 failed_broadcasts = len(connection_ids)
         else:
             tasks = []
             for conn_id in list(connection_ids):
-                tasks.append(self._broadcast_with_metrics(conn_id, message))
+                tasks.append(self._broadcast_with_metrics(conn_id, batch_message))
 
             if tasks:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 for result in results:
                     if isinstance(result, Exception):
-                        logger.error(f"Failed to broadcast to connection: {result}")
+                        logger.error(f"Failed to broadcast batch to connection: {result}")
                         failed_broadcasts += 1
                     elif result:
                         successful_broadcasts += 1
 
-        # Log slow broadcasts
+        # Log performance
         broadcast_time = time.time() - start_time
         if broadcast_time > 0.1:
             logger.warning(
-                f"Slow broadcast to execution {execution_id}: "
-                f"{broadcast_time:.2f}s for {len(connection_ids)} connections "
+                f"Slow batch broadcast to execution {execution_id}: "
+                f"{broadcast_time:.2f}s for {len(messages)} events to {len(connection_ids)} connections "
                 f"(success: {successful_broadcasts}, failed: {failed_broadcasts})"
+            )
+        else:
+            logger.debug(
+                f"Batch broadcast to {execution_id}: {len(messages)} events in {broadcast_time:.3f}s"
             )
 
     async def _broadcast_with_metrics(self, conn_id: str, message: dict) -> bool:
@@ -296,6 +361,18 @@ class MessageRouter(MessageRouterPort):
                 del self.execution_subscriptions[execution_id]
 
 
+    def _should_buffer_events(self, execution_id: str) -> bool:
+        """Check if events should be buffered for an execution.
+        
+        Skip buffering for batch item executions to save memory.
+        """
+        # Don't buffer for batch item executions (they have _batch_ in the ID)
+        if "_batch_" in execution_id:
+            return False
+        
+        # Buffer for normal executions
+        return True
+    
     async def _buffer_event(self, execution_id: str, message: dict) -> None:
         """Buffer an event for late connections.
         

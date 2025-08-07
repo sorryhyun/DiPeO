@@ -72,18 +72,27 @@ class ExecuteDiagramUseCase(BaseService):
         import logging
 
         logger = logging.getLogger(__name__)
+        
+        # Check if this is a batch item execution (lightweight mode)
+        is_batch_item = options.get("is_batch_item", False)
+        
         # If observers are provided (e.g., for sub-diagrams), use them
-        if observers is not None:
+        # Empty list means no observers needed (batch mode optimization)
+        if observers is not None and (observers or not is_batch_item):
             engine_observers = observers
+        elif observers == [] or is_batch_item:
+            # Batch mode: no observers for performance
+            engine_observers = []
+            # Don't log for each batch item to reduce noise
         else:
-            # Create unified observer for real-time updates
+            # Create unified observer for real-time updates (normal mode)
             unified_observer = UnifiedEventObserver(
                 message_router=self.message_router,
                 execution_runtime=typed_diagram,
                 capture_logs=True  # Always enable log capture
             )
             engine_observers = [unified_observer]
-            # logger.debug(f"[ExecuteDiagram] Created UnifiedEventObserver for execution {execution_id}")
+            logger.debug(f"[ExecuteDiagram] Created UnifiedEventObserver for execution {execution_id}")
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.registry.keys import EVENT_BUS

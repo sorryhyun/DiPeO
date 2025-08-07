@@ -11,4 +11,5 @@ export interface DBNodeData extends BaseNodeData {
   data?: Record<string, any>;
   serialize_json?: boolean;
   glob?: boolean;  // Enable glob pattern expansion for file paths
+  format?: string;  // Data format (json, yaml, csv, text, etc.)
 }

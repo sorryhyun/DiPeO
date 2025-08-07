@@ -23,6 +23,7 @@ class PersonJobNodeData(BaseModel):
     person: Optional[str] = Field(description="AI person to use")
     first_only_prompt: str = Field(description="Prompt used only on first execution")
     default_prompt: Optional[str] = Field(description="Default prompt template")
+    prompt_file: Optional[str] = Field(description="Path to prompt file in /files/prompts/")
     max_iteration: int = Field(description="Maximum execution iterations")
     memory_profile: Optional[str] = Field(description="Memory profile for conversation context")
     tools: Optional[List[ToolConfig]] = Field(description="Tools available to the AI agent")

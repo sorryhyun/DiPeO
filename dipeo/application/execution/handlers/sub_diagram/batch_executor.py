@@ -49,6 +49,10 @@ class BatchSubDiagramExecutor:
         # Extract array from inputs
         batch_items = self._extract_batch_items(request.inputs, batch_input_key)
         
+        # Log batch execution start (single message for entire batch)
+        if batch_items:
+            log.debug(f"Starting batch execution for {len(batch_items)} items (parallel={batch_parallel})")
+        
         if not batch_items:
             log.warning(f"Batch mode enabled but no items found for key '{batch_input_key}'")
             return DataOutput(
@@ -82,6 +86,9 @@ class BatchSubDiagramExecutor:
             'results': [r.value if hasattr(r, 'value') else r for r in results],
             'errors': errors if errors else None
         }
+        
+        # Log batch completion
+        log.debug(f"Batch execution completed: {len(results)} successful, {len(errors)} failed")
         
         # Return batch output
         return DataOutput(

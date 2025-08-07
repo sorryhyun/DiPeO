@@ -2,263 +2,408 @@
   "nodes": [
     {
       "id": "node_0",
-      "type": "person_job",
-      "position": {
-        "x": 600,
-        "y": 452
-      },
-      "data": {
-        "label": "optimist",
-        "default_prompt": "Argue against the argument.",
-        "first_only_prompt": "Suggest a reasonable argument: {{topic}}",
-        "flipped": [
-          false,
-          true
-        ],
-        "max_iteration": 2,
-        "memory_profile": "GOLDFISH",
-        "person": "person_optimist",
-        "memory_settings": {
-          "view": "conversation_pairs",
-          "max_messages": 2,
-          "preserve_system": false
-        }
-      }
-    },
-    {
-      "id": "node_1",
-      "type": "endpoint",
-      "position": {
-        "x": 58,
-        "y": 668
-      },
-      "data": {
-        "label": "end",
-        "file_format": "txt",
-        "flipped": [
-          true,
-          false
-        ],
-        "save_to_file": true,
-        "file_name": "files/results/output.txt"
-      }
-    },
-    {
-      "id": "node_2",
-      "type": "db",
-      "position": {
-        "x": 431,
-        "y": 148
-      },
-      "data": {
-        "label": "db",
-        "file": "files/uploads/questions.txt",
-        "operation": "read",
-        "sub_type": "file"
-      }
-    },
-    {
-      "id": "node_3",
-      "type": "person_job",
-      "position": {
-        "x": 899,
-        "y": 380
-      },
-      "data": {
-        "label": "pessimist",
-        "default_prompt": "Argue against the argument.",
-        "first_only_prompt": "Suggest a reasonable argument: {{topic}}",
-        "flipped": [
-          false,
-          true
-        ],
-        "max_iteration": 3,
-        "memory_profile": "GOLDFISH",
-        "person": "person_pessimist",
-        "memory_settings": {
-          "view": "conversation_pairs",
-          "max_messages": 2,
-          "preserve_system": false
-        }
-      }
-    },
-    {
-      "id": "node_4",
       "type": "start",
       "position": {
-        "x": 177,
-        "y": 320
+        "x": 50,
+        "y": 300
       },
       "data": {
         "label": "start",
-        "custom_data": {},
+        "custom_data": {
+          "message": "Starting complete domain model generation pipeline"
+        },
         "output_data_structure": {}
       }
     },
     {
-      "id": "node_5",
-      "type": "person_job",
+      "id": "node_1",
+      "type": "sub_diagram",
       "position": {
-        "x": 439,
-        "y": 663
+        "x": 200,
+        "y": 300
       },
       "data": {
-        "label": "judge panel",
-        "default_prompt": "Judge which panel is more reasonable.",
-        "flipped": true,
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person_judge",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "first_only_prompt": ""
+        "label": "parse all typescript",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/shared/parse_typescript_batch",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 100
+      },
+      "data": {
+        "label": "generate python models",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_python_models_dynamic",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 150
+      },
+      "data": {
+        "label": "generate enums",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_enums",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 200
+      },
+      "data": {
+        "label": "generate integrations",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_integrations",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "label": "generate conversions",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_conversions",
+        "passInputData": false
       }
     },
     {
       "id": "node_6",
-      "type": "condition",
+      "type": "sub_diagram",
       "position": {
-        "x": 785,
-        "y": 647
+        "x": 400,
+        "y": 550
       },
       "data": {
-        "label": "condition",
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
-        ]
+        "label": "generate graphql schema",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_graphql_schema_template_dynamic",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 650
+      },
+      "data": {
+        "label": "generate static nodes",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_static_nodes",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 450
+      },
+      "data": {
+        "label": "generate strawberry types",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_strawberry_types_v2_dynamic",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 500
+      },
+      "data": {
+        "label": "generate strawberry mutations",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_strawberry_mutations_v2",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 250
+      },
+      "data": {
+        "label": "generate validation models",
+        "diagram_format": "light",
+        "diagram_name": "codegen/diagrams/models/generate_validation_models",
+        "passInputData": false
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "code_job",
+      "position": {
+        "x": 400,
+        "y": 375
+      },
+      "data": {
+        "label": "generate typescript indexes",
+        "filePath": "files/codegen/code/models/generate_typescript_indexes.py",
+        "functionName": "main",
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "code_job",
+      "position": {
+        "x": 600,
+        "y": 400
+      },
+      "data": {
+        "label": "build typescript models",
+        "code": "cd dipeo/models && pnpm build\necho \"TypeScript models built successfully\"\n",
+        "language": "bash"
+      }
+    },
+    {
+      "id": "node_13",
+      "type": "code_job",
+      "position": {
+        "x": 800,
+        "y": 400
+      },
+      "data": {
+        "label": "generate summary",
+        "code": "from datetime import datetime\nimport json\n\n# Collect results from all sub-diagrams\npython_models = inputs.get('python_models', {})\nenums = inputs.get('enums', {})\nintegrations = inputs.get('integrations', {})\nconversions = inputs.get('conversions', {})\nfield_configs = inputs.get('field_configs', {})\ngraphql_schema = inputs.get('graphql_schema', {})\nstatic_nodes = inputs.get('static_nodes', {})\nbuild_result = inputs.get('build_result', {})\n\nprint(f\"Model generation complete - 11 artifact types generated - done!\")\n\nresult = {\n    'status': 'success',\n    'message': 'All domain models generated successfully',\n    'artifacts': {\n        'python_models': 'dipeo/diagram_generated_staged/domain_models.py',\n        'enums': 'dipeo/diagram_generated_staged/enums.py',\n        'integrations': 'dipeo/diagram_generated_staged/integrations.py',\n        'conversions': 'dipeo/diagram_generated_staged/conversions.py',\n        'field_configs': 'apps/web/src/__generated__/fields.ts',\n        'zod_schemas': 'apps/web/src/__generated__/schemas.ts',\n        'graphql_schema': 'dipeo/diagram_generated_staged/domain-schema.graphql',\n        'static_nodes': 'dipeo/diagram_generated_staged/generated_nodes.py'\n    }\n}\n",
+        "language": "python"
+      }
+    },
+    {
+      "id": "node_14",
+      "type": "endpoint",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "label": "end",
+        "save_to_file": false
       }
     }
   ],
   "arrows": [
     {
       "id": "arrow_0",
-      "source": "node_2_default_output",
-      "target": "node_0_first_input",
-      "label": "topic",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_1",
-      "source": "node_2_default_output",
-      "target": "node_3_first_input",
-      "label": "topic",
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_2",
-      "source": "node_4_default_output",
-      "target": "node_2_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_3",
-      "source": "node_5_default_output",
+      "source": "node_0_default_output",
       "target": "node_1_default_input",
       "label": null,
       "data": null,
       "content_type": "raw_text"
     },
     {
-      "id": "arrow_4",
-      "source": "node_6_condtrue_output",
-      "target": "node_5_default_input",
+      "id": "arrow_1",
+      "source": "node_1_default_output",
+      "target": "node_2_default_input",
       "label": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "conversation_state"
+      "data": null,
+      "content_type": "raw_text"
     },
     {
-      "id": "arrow_5",
-      "source": "node_0_default_output",
+      "id": "arrow_2",
+      "source": "node_1_default_output",
       "target": "node_3_default_input",
       "label": null,
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "raw_text"
     },
     {
-      "id": "arrow_6",
-      "source": "node_3_default_output",
+      "id": "arrow_3",
+      "source": "node_1_default_output",
+      "target": "node_4_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_1_default_output",
+      "target": "node_5_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_1_default_output",
       "target": "node_6_default_input",
       "label": null,
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_1_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_7",
-      "source": "node_6_condfalse_output",
-      "target": "node_0_default_input",
+      "source": "node_1_default_output",
+      "target": "node_8_default_input",
       "label": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "conversation_state"
-    }
-  ],
-  "persons": [
-    {
-      "id": "person_judge",
-      "label": "judge",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-4.1-nano",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "Say 25 words at most.",
-        "prompt_file": null
-      },
-      "type": "person"
+      "data": null,
+      "content_type": "raw_text"
     },
     {
-      "id": "person_optimist",
-      "label": "optimist",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-4.1-nano",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "Be optimistic and say 25 words at most.",
-        "prompt_file": null
-      },
-      "type": "person"
+      "id": "arrow_8",
+      "source": "node_1_default_output",
+      "target": "node_9_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
     },
     {
-      "id": "person_pessimist",
-      "label": "pessimist",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-4.1-nano-2025-04-14",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "Be pessimistic and say 25 words at most.",
-        "prompt_file": null
-      },
-      "type": "person"
+      "id": "arrow_9",
+      "source": "node_1_default_output",
+      "target": "node_10_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_1_default_output",
+      "target": "node_11_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_2_default_output",
+      "target": "node_13_default_input",
+      "label": "python_models",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_3_default_output",
+      "target": "node_13_default_input",
+      "label": "enums",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_13",
+      "source": "node_4_default_output",
+      "target": "node_13_default_input",
+      "label": "integrations",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_14",
+      "source": "node_5_default_output",
+      "target": "node_13_default_input",
+      "label": "conversions",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_15",
+      "source": "node_6_default_output",
+      "target": "node_13_default_input",
+      "label": "graphql_schema",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_16",
+      "source": "node_7_default_output",
+      "target": "node_13_default_input",
+      "label": "static_nodes",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_17",
+      "source": "node_8_default_output",
+      "target": "node_13_default_input",
+      "label": "strawberry_types",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_18",
+      "source": "node_9_default_output",
+      "target": "node_13_default_input",
+      "label": "strawberry_mutations",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_19",
+      "source": "node_10_default_output",
+      "target": "node_13_default_input",
+      "label": "validation_models",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_20",
+      "source": "node_11_default_output",
+      "target": "node_13_default_input",
+      "label": "typescript_indexes",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_21",
+      "source": "node_13_default_output",
+      "target": "node_12_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_22",
+      "source": "node_12_default_output",
+      "target": "node_14_default_input",
+      "label": "build_result",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_23",
+      "source": "node_13_default_output",
+      "target": "node_14_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
     }
   ],
+  "persons": [],
   "handles": [
-    {
-      "id": "node_0_first_input",
-      "node_id": "node_0",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_0_default_input",
-      "node_id": "node_0",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
     {
       "id": "node_0_default_output",
       "node_id": "node_0",
@@ -274,6 +419,14 @@
       "direction": "input",
       "data_type": "any",
       "position": "left"
+    },
+    {
+      "id": "node_1_default_output",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
     },
     {
       "id": "node_2_default_input",
@@ -292,14 +445,6 @@
       "position": "right"
     },
     {
-      "id": "node_3_first_input",
-      "node_id": "node_3",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
       "id": "node_3_default_input",
       "node_id": "node_3",
       "label": "default",
@@ -316,20 +461,20 @@
       "position": "right"
     },
     {
+      "id": "node_4_default_input",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_4_default_output",
       "node_id": "node_4",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_5_first_input",
-      "node_id": "node_5",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_5_default_input",
@@ -356,20 +501,132 @@
       "position": "left"
     },
     {
-      "id": "node_6_condtrue_output",
+      "id": "node_6_default_output",
       "node_id": "node_6",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_6_condfalse_output",
-      "node_id": "node_6",
-      "label": "condfalse",
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_default_output",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_default_output",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_12_default_output",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_13_default_input",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_13_default_output",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_14_default_input",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -377,8 +634,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-07T13:57:48.479Z",
-    "modified": "2025-08-07T13:57:48.479Z",
+    "created": "2025-08-07T15:34:34.929Z",
+    "modified": "2025-08-07T15:34:34.929Z",
     "version": "1.0.0",
     "id": null
   }
