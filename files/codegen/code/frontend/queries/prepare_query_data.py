@@ -281,6 +281,63 @@ def transform_field_args(args: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return transformed
 
 
+def collect_input_types(query_definitions: List[Dict[str, Any]]) -> List[str]:
+    """
+    Collect all unique input types used in query variables.
+    
+    Args:
+        query_definitions: List of query definitions
+        
+    Returns:
+        List of unique input type names to import
+    """
+    input_types = set()
+    
+    # Common input types that we know are defined in @dipeo/models
+    known_input_types = {
+        'ExecutionControlInput',
+        'DiagramFormat',
+        'CreateApiKeyInput',
+        'CreateDiagramInput',
+        'CreateNodeInput',
+        'CreatePersonInput',
+        'ExecuteDiagramInput',
+        'InteractiveResponseInput',
+        'UpdateNodeInput',
+        'UpdateNodeStateInput',
+        'UpdatePersonInput',
+        'DiagramFilterInput',
+        'ExecutionFilterInput',
+        'Scalars'
+    }
+    
+    for query in query_definitions:
+        # Check variables for input types
+        for var in query.get('variables', []):
+            var_type = var.get('type', '')
+            # Remove array brackets and non-null markers
+            base_type = var_type.replace('[', '').replace(']', '').replace('!', '').strip()
+            
+            # Check if it's a known input type
+            if base_type in known_input_types:
+                input_types.add(base_type)
+            
+            # Special case for Upload which requires Scalars
+            if base_type == 'Upload':
+                input_types.add('Scalars')
+    
+    # Always include Scalars if we have any input types that might need it
+    if input_types and 'Scalars' not in input_types:
+        # Check if any queries use Upload type
+        for query in query_definitions:
+            for var in query.get('variables', []):
+                if 'Upload' in var.get('type', ''):
+                    input_types.add('Scalars')
+                    break
+    
+    return sorted(list(input_types))
+
+
 def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
     """
     Main entry point for preparing query data for the template.
@@ -314,7 +371,7 @@ def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
                 # Use key as-is if it doesn't start with temp/
                 ast_cache[key] = value
     else:
-        return {'queries': [], 'enums': {}, 'metadata': {}}
+        return {'queries': [], 'enums': {}, 'metadata': {}, 'input_types': []}
     
     # Load query definitions
     query_definitions = load_query_definitions(ast_cache)
@@ -322,12 +379,16 @@ def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
     # Load enum values for reference
     enums = load_query_enums(ast_cache)
     
+    # Collect input types for imports
+    input_types = collect_input_types(query_definitions)
+    
     # Sort queries by operation type and name for consistent output
     query_definitions.sort(key=lambda q: (q['operationType'], q['name']))
     
     return {
         'queries': query_definitions,
         'enums': enums,
+        'input_types': input_types,
         'metadata': {
             'total_queries': len([q for q in query_definitions if q['operationType'] == 'query']),
             'total_mutations': len([q for q in query_definitions if q['operationType'] == 'mutation']),

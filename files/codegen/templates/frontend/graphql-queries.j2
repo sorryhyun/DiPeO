@@ -3,6 +3,7 @@
 {%- set queries = query_data.queries if query_data else [] -%}
 {%- set enums = query_data.enums if query_data else {} -%}
 {%- set metadata = query_data.metadata if query_data else {} -%}
+{%- set input_types = query_data.input_types if query_data else [] -%}
 {%- macro render_field(field, indent=0) -%}
 {{ '  ' * indent }}{{ field.name }}
 {%- if field.args and field.args|length > 0 -%}
@@ -22,6 +23,17 @@
 
 {#- Generate imports -#}
 import { gql } from '@apollo/client';
+{%- if input_types and input_types|length > 0 %}
+import type {
+{%- for type in input_types %}
+  {{ type }}{{ ',' if not loop.last else '' }}
+{%- endfor %}
+} from '@dipeo/models';
+{%- endif %}
+{%- if 'Upload' in input_types or 'Scalars' in input_types %}
+
+type Upload = Scalars['Upload']['input'];
+{%- endif %}
 
 {#- Generate each query/mutation/subscription -#}
 {%- for query in queries %}

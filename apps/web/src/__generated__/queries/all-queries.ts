@@ -4,7 +4,25 @@
 
 
 
-import { gql } from '@apollo/client';export const CONTROLEXECUTION_MUTATION = gql`
+import { gql } from '@apollo/client';
+import type {
+  CreateApiKeyInput,
+  CreateDiagramInput,
+  CreateNodeInput,
+  CreatePersonInput,
+  DiagramFilterInput,
+  DiagramFormat,
+  ExecuteDiagramInput,
+  ExecutionControlInput,
+  ExecutionFilterInput,
+  InteractiveResponseInput,
+  Scalars,
+  UpdateNodeInput,
+  UpdateNodeStateInput,
+  UpdatePersonInput
+} from '@dipeo/models';
+
+type Upload = Scalars['Upload']['input'];export const CONTROLEXECUTION_MUTATION = gql`
   mutation ControlExecution(
     $input: ExecutionControlInput!
   ) {

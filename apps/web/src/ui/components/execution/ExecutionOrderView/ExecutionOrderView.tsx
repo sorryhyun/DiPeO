@@ -3,7 +3,7 @@ import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, Refres
 import { useCanvas } from '@/domain/diagram/contexts';
 import { ExecutionID, executionId } from '@/infrastructure/types';
 import { Button } from '@/ui/components/common/forms/buttons';
-import { useExecutionOrderQuery, ExecutionOrderQuery } from '@/__generated__/graphql';
+import { useGetExecutionOrderQuery, GetExecutionOrderQuery } from '@/__generated__/graphql';
 import { Status, isExecutionActive } from '@dipeo/models';
 
 interface ExecutionStep {
@@ -51,11 +51,11 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     return shouldPoll ? 2000 : 0;
   }, [currentExecutionId, shouldPoll]);
   
-  const { data, loading, error, refetch } = useExecutionOrderQuery({
-    variables: { executionId: currentExecutionId! },
+  const { data, loading, error, refetch } = useGetExecutionOrderQuery({
+    variables: { execution_id: currentExecutionId! },
     skip: !currentExecutionId,
     pollInterval,
-    onCompleted: (data: ExecutionOrderQuery) => {
+    onCompleted: (data: GetExecutionOrderQuery) => {
       if (data?.execution_order) {
         // Handle case where data might be a string (JSONScalar)
         const parsedData = typeof data.execution_order === 'string' 
@@ -68,7 +68,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
   
   const refreshExecutionOrder = async () => {
     if (currentExecutionId) {
-      await refetch({ executionId: currentExecutionId });
+      await refetch({ execution_id: currentExecutionId });
     }
   };
 

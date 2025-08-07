@@ -109,8 +109,8 @@ export const FileOperations: React.FC = () => {
       const convertResult = await convertDiagramMutation({
         variables: {
           content: diagramContent,
-          fromFormat: DiagramFormat.NATIVE,
-          toFormat: selectedFormat
+          from_format: DiagramFormat.NATIVE,
+          to_format: selectedFormat
         }
       });
       

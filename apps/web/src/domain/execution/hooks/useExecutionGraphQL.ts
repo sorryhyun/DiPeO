@@ -1,7 +1,5 @@
 import {
   ExecutionUpdatesDocument,
-  NodeUpdatesDocument,
-  InteractivePromptsDocument,
   ExecuteDiagramDocument,
   ControlExecutionDocument,
   SendInteractiveResponseDocument,
@@ -43,18 +41,6 @@ const useExecutionUpdatesSubscription = createEntitySubscription({
   silent: true
 });
 
-const useNodeUpdatesSubscription = createEntitySubscription({
-  entityName: 'Execution',
-  document: NodeUpdatesDocument,
-  silent: true
-});
-
-const useInteractivePromptsSubscription = createEntitySubscription({
-  entityName: 'Execution',
-  document: InteractivePromptsDocument,
-  silent: true
-});
-
 export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionGraphQLProps) {
   // Mutations - using factory-generated hooks
   const [executeDiagramMutation] = useExecuteDiagramMutation();
@@ -67,21 +53,6 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
     { skip: skip || !executionId }
   );
 
-  const { data: nodeData } = useNodeUpdatesSubscription(
-    { executionId: executionId! },
-    { 
-      skip: skip || !executionId,
-      onData: ({ data }) => {
-        console.log('[useExecutionGraphQL] Node subscription data:', data);
-      }
-    }
-  );
-
-  const { data: promptData } = useInteractivePromptsSubscription(
-    { executionId: executionId! },
-    { skip: skip || !executionId }
-  );
-
   return {
     // Mutations
     executeDiagram: executeDiagramMutation,
@@ -90,7 +61,8 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
     
     // Subscription data
     executionUpdates: executionData?.execution_updates,
-    nodeUpdates: nodeData?.node_updates,
-    interactivePrompts: promptData?.interactive_prompts,
+    // TODO: These subscriptions no longer exist separately - data is in executionUpdates
+    nodeUpdates: undefined,
+    interactivePrompts: undefined,
   };
 }

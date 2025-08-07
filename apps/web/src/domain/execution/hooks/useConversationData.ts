@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { GetConversationsDocument } from '@/__generated__/graphql';
+import { ListConversationsDocument } from '@/__generated__/graphql';
 import { createEntityQuery } from '@/lib/graphql/hooks';
 import type { ConversationFilters, UIConversationMessage, UIPersonMemoryState } from '@/infrastructure/types/conversation';
 import { type PersonID, type ExecutionID, type NodeID, Status, isExecutionActive } from '@dipeo/models';
@@ -42,7 +42,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   const useConversationsQuery = useMemo(
     () => createEntityQuery({
       entityName: 'Conversations',
-      document: GetConversationsDocument,
+      document: ListConversationsDocument,
       cacheStrategy: 'cache-and-network',
     }),
     []
