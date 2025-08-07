@@ -7,12 +7,10 @@
 import type { NodeID, DiagramID } from './diagram.js';
 import type { Message } from './conversation.js';
 import { Status, EventType } from './enums/execution.js';
-import type { ExecutionStatus, NodeExecutionStatus } from './enums/execution.js';
 
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
 export { Status, EventType };
-export type { ExecutionStatus, NodeExecutionStatus };
 
 export interface TokenUsage {
   input: number;
@@ -22,7 +20,7 @@ export interface TokenUsage {
 }
 
 export interface NodeState {
-  status: NodeExecutionStatus;
+  status: Status;
   started_at?: string | null;
   ended_at?: string | null;
   error?: string | null;
@@ -61,7 +59,7 @@ export interface ExecutionMetrics {
 
 export interface ExecutionState {
   id: ExecutionID;
-  status: ExecutionStatus;
+  status: Status;
   diagram_id?: DiagramID | null;
   started_at: string;
   ended_at?: string | null;
@@ -105,7 +103,7 @@ export interface ExecutionUpdate {
   type: EventType;
   execution_id: ExecutionID;
   node_id?: NodeID;
-  status?: NodeExecutionStatus;
+  status?: Status;
   result?: any;
   error?: string;
   timestamp?: string;

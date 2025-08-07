@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseService
-from dipeo.diagram_generated.enums import ExecutionStatus
+from dipeo.diagram_generated.enums import Status
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
@@ -174,7 +174,7 @@ class ExecuteDiagramUseCase(BaseService):
                 # Get final state
                 state = await self.state_store.get_state(execution_id)
                 # Only treat FAILED and ABORTED as errors, not PENDING or RUNNING
-                is_error = state and state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
+                is_error = state and state.status in [Status.FAILED, Status.ABORTED]
                 yield {
                     "type": "execution_error" if is_error else "execution_complete",
                     "execution_id": execution_id,
@@ -187,14 +187,14 @@ class ExecuteDiagramUseCase(BaseService):
                 while True:
                     state = await self.state_store.get_state(execution_id)
                     if state and state.status in [
-                        ExecutionStatus.COMPLETED,
-                        ExecutionStatus.FAILED,
-                        ExecutionStatus.ABORTED,
+                        Status.COMPLETED,
+                        Status.FAILED,
+                        Status.ABORTED,
                     ]:
                         break
                     await asyncio.sleep(1)
                 # Only treat FAILED and ABORTED as errors
-                is_error = state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
+                is_error = state.status in [Status.FAILED, Status.ABORTED]
                 yield {
                     "type": "execution_error" if is_error else "execution_complete",
                     "execution_id": execution_id,
@@ -343,12 +343,12 @@ class ExecuteDiagramUseCase(BaseService):
         """Initialize execution state for typed diagram."""
         from datetime import datetime
 
-        from dipeo.diagram_generated import ExecutionState, ExecutionStatus, TokenUsage
+        from dipeo.diagram_generated import ExecutionState, Status, TokenUsage
         
         # Create initial execution state
         initial_state = ExecutionState(
             id=execution_id,
-            status=ExecutionStatus.PENDING,
+            status=Status.PENDING,
             diagram_id=typed_diagram.metadata.get('id') if typed_diagram.metadata else None,
             started_at=datetime.now().isoformat(),
             node_states={},

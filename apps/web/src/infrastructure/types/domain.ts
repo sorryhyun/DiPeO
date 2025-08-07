@@ -25,10 +25,10 @@ export {
   APIServiceType,
   NotionOperation,
   // Execution enums
-  ExecutionStatus,
-  NodeExecutionStatus,
+  Status,
   EventType
 } from '@dipeo/models';
+
 
 // Branded ID Types
 export type {

@@ -4,7 +4,7 @@ import type { HandleLabel } from '@dipeo/models';
 import type { DataType } from '@dipeo/models';
 import type { LLMService } from '@dipeo/models';
 import type { DiagramFormat } from '@dipeo/models';
-import type { ExecutionStatus } from '@dipeo/models';
+import type { Status } from '@dipeo/models';
 import type { ApiKeyID } from '@dipeo/models';
 import type { ArrowID } from '@dipeo/models';
 import type { DiagramID } from '@dipeo/models';
@@ -273,7 +273,7 @@ export type ExecutionFilterInput = {
   diagram_id?: InputMaybe<Scalars['ID']['input']>;
   started_after?: InputMaybe<Scalars['DateTime']['input']>;
   started_before?: InputMaybe<Scalars['DateTime']['input']>;
-  status?: InputMaybe<ExecutionStatus>;
+  status?: InputMaybe<Status>;
 };
 
 export type ExecutionResult = {
@@ -299,12 +299,10 @@ export type ExecutionStateType = {
   node_outputs: Scalars['JSON']['output'];
   node_states: Scalars['JSON']['output'];
   started_at: Scalars['String']['output'];
-  status: ExecutionStatus;
+  status: Status;
   token_usage: TokenUsageType;
   variables?: Maybe<Scalars['JSON']['output']>;
 };
-
-export { ExecutionStatus };
 
 export type ExecutionUpdate = {
   __typename?: 'ExecutionUpdate';
@@ -477,17 +475,6 @@ export type Mutationvalidate_diagramArgs = {
   format: DiagramFormat;
 };
 
-export enum NodeExecutionStatus {
-  ABORTED = 'ABORTED',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  MAXITER_REACHED = 'MAXITER_REACHED',
-  PAUSED = 'PAUSED',
-  PENDING = 'PENDING',
-  RUNNING = 'RUNNING',
-  SKIPPED = 'SKIPPED'
-}
-
 export type NodeResult = {
   __typename?: 'NodeResult';
   error?: Maybe<Scalars['String']['output']>;
@@ -636,6 +623,8 @@ export type RegisterCliSessionInput = {
   execution_id: Scalars['String']['input'];
 };
 
+export { Status };
+
 export type Subscription = {
   __typename?: 'Subscription';
   execution_logs: Scalars['JSON']['output'];
@@ -695,7 +684,7 @@ export type UpdateNodeStateInput = {
   execution_id: Scalars['ID']['input'];
   node_id: Scalars['ID']['input'];
   output?: InputMaybe<Scalars['JSON']['input']>;
-  status: NodeExecutionStatus;
+  status: Status;
 };
 
 export type UpdatePersonInput = {
@@ -812,7 +801,7 @@ export type GetExecutionQueryVariables = Exact<{
 }>;
 
 
-export type GetExecutionQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, diagram_id?: string | null, started_at: string, ended_at?: string | null, node_states: any, node_outputs: any, variables?: any | null, error?: string | null, duration_seconds?: number | null, is_active?: boolean | null, token_usage: { __typename?: 'TokenUsageType', input: number, output: number, cached?: number | null } } | null };
+export type GetExecutionQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, node_states: any, node_outputs: any, variables?: any | null, error?: string | null, duration_seconds?: number | null, is_active?: boolean | null, token_usage: { __typename?: 'TokenUsageType', input: number, output: number, cached?: number | null } } | null };
 
 export type ListExecutionsQueryVariables = Exact<{
   filter?: InputMaybe<ExecutionFilterInput>;
@@ -821,7 +810,7 @@ export type ListExecutionsQueryVariables = Exact<{
 }>;
 
 
-export type ListExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, diagram_id?: string | null, started_at: string, ended_at?: string | null, is_active?: boolean | null, duration_seconds?: number | null }> };
+export type ListExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, is_active?: boolean | null, duration_seconds?: number | null }> };
 
 export type ExecutionOrderQueryVariables = Exact<{
   executionId: Scalars['ID']['input'];
@@ -864,14 +853,14 @@ export type ControlExecutionMutationVariables = Exact<{
 }>;
 
 
-export type ControlExecutionMutation = { __typename?: 'Mutation', control_execution: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus } | null } };
+export type ControlExecutionMutation = { __typename?: 'Mutation', control_execution: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
 
 export type SendInteractiveResponseMutationVariables = Exact<{
   input: InteractiveResponseInput;
 }>;
 
 
-export type SendInteractiveResponseMutation = { __typename?: 'Mutation', send_interactive_response: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: ExecutionStatus, node_states: any } | null } };
+export type SendInteractiveResponseMutation = { __typename?: 'Mutation', send_interactive_response: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status, node_states: any } | null } };
 
 export type UploadFileMutationVariables = Exact<{
   file: Scalars['Upload']['input'];

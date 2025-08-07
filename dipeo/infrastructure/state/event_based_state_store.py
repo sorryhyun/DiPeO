@@ -18,8 +18,7 @@ from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
     ExecutionState,
-    ExecutionStatus,
-    NodeExecutionStatus,
+    Status,
     NodeState,
     TokenUsage,
 )
@@ -251,7 +250,7 @@ class EventBasedStateStore(StateStorePort):
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(exec_id),
-            status=ExecutionStatus.PENDING,
+            status=Status.PENDING,
             diagram_id=diag_id,
             started_at=now,
             ended_at=None,
@@ -360,7 +359,7 @@ class EventBasedStateStore(StateStorePort):
         return ExecutionState(**state_data)
     
     async def update_status(
-        self, execution_id: str, status: ExecutionStatus, error: str | None = None
+        self, execution_id: str, status: Status, error: str | None = None
     ):
         """Update execution status."""
         state = await self.get_state(execution_id)
@@ -370,9 +369,9 @@ class EventBasedStateStore(StateStorePort):
         state.status = status
         state.error = error
         if status in [
-            ExecutionStatus.COMPLETED,
-            ExecutionStatus.FAILED,
-            ExecutionStatus.ABORTED,
+            Status.COMPLETED,
+            Status.FAILED,
+            Status.ABORTED,
         ]:
             state.ended_at = datetime.now().isoformat()
             state.is_active = False
@@ -431,7 +430,7 @@ class EventBasedStateStore(StateStorePort):
         self,
         execution_id: str,
         node_id: str,
-        status: NodeExecutionStatus,
+        status: Status,
         error: str | None = None,
     ):
         """Update node status."""
@@ -449,19 +448,19 @@ class EventBasedStateStore(StateStorePort):
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
-                started_at=now if status == NodeExecutionStatus.RUNNING else None,
+                started_at=now if status == Status.RUNNING else None,
                 ended_at=None,
                 error=None,
                 token_usage=None,
             )
         else:
             state.node_states[node_id].status = status
-            if status == NodeExecutionStatus.RUNNING:
+            if status == Status.RUNNING:
                 state.node_states[node_id].started_at = now
             elif status in [
-                NodeExecutionStatus.COMPLETED,
-                NodeExecutionStatus.FAILED,
-                NodeExecutionStatus.SKIPPED,
+                Status.COMPLETED,
+                Status.FAILED,
+                Status.SKIPPED,
             ]:
                 state.node_states[node_id].ended_at = now
         
@@ -544,7 +543,7 @@ class EventBasedStateStore(StateStorePort):
     async def list_executions(
         self,
         diagram_id: DiagramID | None = None,
-        status: ExecutionStatus | None = None,
+        status: Status | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> list[ExecutionState]:

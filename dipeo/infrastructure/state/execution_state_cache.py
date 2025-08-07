@@ -9,8 +9,7 @@ from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
     ExecutionState,
-    ExecutionStatus,
-    NodeExecutionStatus,
+    Status,
     TokenUsage,
 )
 
@@ -24,7 +23,7 @@ class ExecutionCache:
         self.execution_id = execution_id
         self.state: ExecutionState | None = None
         self.node_outputs: dict[str, Any] = {}
-        self.node_statuses: dict[str, NodeExecutionStatus] = {}
+        self.node_statuses: dict[str, Status] = {}
         self.node_errors: dict[str, str] = {}
         self.variables: dict[str, Any] = {}
         self.token_usage: TokenUsage | None = None
@@ -58,14 +57,14 @@ class ExecutionCache:
             self._last_access = time.time()
             self._dirty = True
     
-    async def get_node_status(self, node_id: str) -> NodeExecutionStatus | None:
+    async def get_node_status(self, node_id: str) -> Status | None:
         """Get status for a specific node."""
         async with self._local_lock:
             self._last_access = time.time()
             return self.node_statuses.get(node_id)
     
     async def set_node_status(
-        self, node_id: str, status: NodeExecutionStatus, error: str | None = None
+        self, node_id: str, status: Status, error: str | None = None
     ) -> None:
         """Set status for a specific node."""
         async with self._local_lock:

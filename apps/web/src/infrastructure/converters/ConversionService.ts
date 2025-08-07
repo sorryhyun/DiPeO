@@ -30,8 +30,7 @@ import {
   type TokenUsage,
   type ExecutionUpdate,
   type ContentType,
-  NodeExecutionStatus,
-  ExecutionStatus,
+  Status,
   HandleDirection,
   HandleLabel,
   DataType,
@@ -418,7 +417,7 @@ export class Converters {
         if (state) {
           const nodeState = state as any;
           nodeStates[nodeId] = {
-            status: nodeState.status as NodeExecutionStatus,
+            status: nodeState.status as Status,
             started_at: nodeState.started_at,
             ended_at: nodeState.ended_at,
             error: nodeState.error,
@@ -430,7 +429,7 @@ export class Converters {
     
     return {
       id: this.toExecutionId(execution.id),
-      status: execution.status as ExecutionStatus,
+      status: execution.status as Status,
       diagram_id: execution.diagram_id ? this.toDiagramId(execution.diagram_id) : null,
       started_at: execution.started_at,
       ended_at: execution.ended_at || null,

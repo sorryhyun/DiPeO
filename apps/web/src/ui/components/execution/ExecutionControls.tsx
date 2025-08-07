@@ -1,13 +1,18 @@
 import React from 'react';
 import { Button } from '@/ui/components/common/forms/buttons';
-import { useExecution, useMonitorMode } from '@/domain/execution/hooks';
+import { useMonitorMode } from '@/domain/execution/hooks';
+import { useCanvas } from '@/domain/diagram/contexts';
 import { useNodesData, useArrowsData, usePersonsData, useDiagramData as useStoreDiagramData } from '@/infrastructure/store/hooks';
 import { nodeId, diagramId, DomainDiagram } from '@/infrastructure/types';
 import { toast } from 'sonner';
 
 const ExecutionControls = () => {
-  const { isMonitorMode, diagramName } = useMonitorMode();
-  const execution = useExecution({ showToasts: false });
+  // Get execution from Canvas context to avoid multiple instances
+  const { operations } = useCanvas();
+  const executionFromContext = operations.executionOps;
+  
+  // Pass the execution from context to useMonitorMode to avoid creating another instance
+  const { isMonitorMode, diagramName, execution } = useMonitorMode({ execution: executionFromContext });
   const nodes = useNodesData();
   const arrows = useArrowsData();
   const persons = usePersonsData();

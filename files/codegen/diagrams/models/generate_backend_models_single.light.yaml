@@ -40,6 +40,7 @@ nodes:
         else:
             node_type = node_spec_path
             
+        # Keep the node type with hyphens for file loading
         # Output just the string node type for typescript_spec_parser
         result = node_type
   
@@ -110,6 +111,8 @@ nodes:
         if not isinstance(spec, dict):
             raise ValueError(f"Expected dict, got {type(spec)}")
             
+        # The spec will have node_type in underscore format (e.g., "api_job")
+        # which is what we want for Python file names
         node_type = spec.get('nodeType', 'unknown')
         node_name = node_type.title().replace('_', '')
         

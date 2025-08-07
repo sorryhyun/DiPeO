@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core.execution.execution_tracker import CompletionStatus
 from dipeo.core.execution.node_output import BaseNodeOutput, ErrorOutput, NodeOutputProtocol
-from dipeo.diagram_generated import NodeExecutionStatus, NodeID, NodeState
+from dipeo.diagram_generated import Status, NodeID, NodeState
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_tracker import ExecutionTracker
@@ -42,10 +42,10 @@ class StateTransitionMixin:
             
             # Update state
             state = self._node_states.get(node_id) or NodeState(
-                status=NodeExecutionStatus.PENDING,
+                status=Status.PENDING,
                 node_id=node_id
             )
-            state.status = NodeExecutionStatus.RUNNING
+            state.status = Status.RUNNING
             state.started_at = datetime.now()
             self._node_states[node_id] = state
             
@@ -63,7 +63,7 @@ class StateTransitionMixin:
         """Transition a node to completed state."""
         self._transition_to_final_state(
             node_id=node_id,
-            status=NodeExecutionStatus.COMPLETED,
+            status=Status.COMPLETED,
             completion_status=CompletionStatus.SUCCESS,
             output=output,
             token_usage=token_usage,
@@ -82,7 +82,7 @@ class StateTransitionMixin:
         
         self._transition_to_final_state(
             node_id=node_id,
-            status=NodeExecutionStatus.FAILED,
+            status=Status.FAILED,
             completion_status=CompletionStatus.FAILED,
             output=error_output,
             error=error,
@@ -105,7 +105,7 @@ class StateTransitionMixin:
         
         self._transition_to_final_state(
             node_id=node_id,
-            status=NodeExecutionStatus.MAXITER_REACHED,
+            status=Status.MAXITER_REACHED,
             completion_status=CompletionStatus.MAX_ITER,
             output=output,
             reset_downstream=False
@@ -122,7 +122,7 @@ class StateTransitionMixin:
         
         self._transition_to_final_state(
             node_id=node_id,
-            status=NodeExecutionStatus.SKIPPED,
+            status=Status.SKIPPED,
             completion_status=CompletionStatus.SKIPPED,
             output=skipped_output,
             reset_downstream=False
@@ -136,10 +136,10 @@ class StateTransitionMixin:
             
             # Update state
             state = self._node_states.get(node_id) or NodeState(
-                status=NodeExecutionStatus.COMPLETED,
+                status=Status.COMPLETED,
                 node_id=node_id
             )
-            state.status = NodeExecutionStatus.PENDING
+            state.status = Status.PENDING
             state.started_at = None
             state.ended_at = None
             state.error = None
@@ -171,7 +171,7 @@ class StateTransitionMixin:
             
             # Update state
             state = self._node_states.get(node_id) or NodeState(
-                status=NodeExecutionStatus.RUNNING,
+                status=Status.RUNNING,
                 node_id=node_id
             )
             state.status = status
@@ -222,7 +222,7 @@ class StateTransitionMixin:
             
             # Check if target was already executed
             target_state = self._node_states.get(target_node.id)
-            if not target_state or target_state.status != NodeExecutionStatus.COMPLETED:
+            if not target_state or target_state.status != Status.COMPLETED:
                 continue
             
             # Check if we can reset this node

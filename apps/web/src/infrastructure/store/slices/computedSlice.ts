@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@dipeo/models';
-import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/models';
+import { NodeType, Status, ArrowID, NodeID, PersonID, Vec2, type NodeExecutionStatus } from '@dipeo/models';
 import { UnifiedStore } from '../types';
 import type { SelectableID } from './ui';
 import type { NodeState } from './execution';
@@ -237,7 +237,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
       const nodeState = state.execution.nodeStates.get(node.id as NodeID);
-      return nodeState?.status === NodeExecutionStatus.COMPLETED;
+      return nodeState?.status === Status.COMPLETED;
     });
   },
   
@@ -245,7 +245,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
       const nodeState = state.execution.nodeStates.get(node.id as NodeID);
-      return nodeState?.status === NodeExecutionStatus.FAILED;
+      return nodeState?.status === Status.FAILED;
     });
   },
   
@@ -375,9 +375,9 @@ export const createComputedSlice: StateCreator<
     const total = state.nodes.size;
     const completed = Array.from(state.execution.nodeStates.values())
       .filter(nodeState => 
-        nodeState.status === NodeExecutionStatus.COMPLETED || 
-        nodeState.status === NodeExecutionStatus.SKIPPED ||
-        nodeState.status === NodeExecutionStatus.FAILED
+        nodeState.status === Status.COMPLETED || 
+        nodeState.status === Status.SKIPPED ||
+        nodeState.status === Status.FAILED
       ).length;
     
     return {

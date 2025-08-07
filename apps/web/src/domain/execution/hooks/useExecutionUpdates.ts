@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { NodeExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/models';
+import { Status, EventType, type ExecutionUpdate } from '@dipeo/models';
 import { nodeId, executionId } from '@/infrastructure/types';
 import { useExecutionState } from './useExecutionState';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
@@ -80,7 +80,7 @@ export function useExecutionUpdates({
     });
     
     executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-      status: NodeExecutionStatus.RUNNING,
+      status: Status.RUNNING,
       timestamp: Date.now()
     });
     
@@ -89,7 +89,7 @@ export function useExecutionUpdates({
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(nodeIdStr),
       node_type: nodeType,
-      status: NodeExecutionStatus.RUNNING, 
+      status: Status.RUNNING, 
       timestamp: new Date().toISOString() 
     });
   }, [setCurrentNode, updateNodeState, executionActions, onUpdate, executionIdRef]);
@@ -118,7 +118,7 @@ export function useExecutionUpdates({
     });
     
     executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-      status: NodeExecutionStatus.COMPLETED,
+      status: Status.COMPLETED,
       timestamp: Date.now()
     });
     
@@ -130,7 +130,7 @@ export function useExecutionUpdates({
       node_id: nodeId(nodeIdStr),
       tokens: tokenCount, 
       result: output, 
-      status: NodeExecutionStatus.COMPLETED, 
+      status: Status.COMPLETED, 
       timestamp: new Date().toISOString() 
     });
   }, [incrementCompletedNodes, setCurrentNode, updateNodeState, executionActions, addToRunContext, onUpdate, executionIdRef, currentRunningNodeRef]);
@@ -237,7 +237,7 @@ export function useExecutionUpdates({
       });
       
       executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-        status: NodeExecutionStatus.FAILED,
+        status: Status.FAILED,
         timestamp: Date.now(),
         error: updateData.error ?? undefined
       });
@@ -249,7 +249,7 @@ export function useExecutionUpdates({
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
         error: updateData.error || undefined, 
-        status: NodeExecutionStatus.FAILED, 
+        status: Status.FAILED, 
         timestamp: new Date().toISOString() 
       });
     } else if (status === 'SKIPPED' && nodeIdStr) {
@@ -262,7 +262,7 @@ export function useExecutionUpdates({
       
       addSkippedNode(nodeIdStr, 'Skipped');
       executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-        status: NodeExecutionStatus.SKIPPED,
+        status: Status.SKIPPED,
         timestamp: Date.now()
       });
       
@@ -270,7 +270,7 @@ export function useExecutionUpdates({
         type: EventType.EXECUTION_UPDATE,
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
-        status: NodeExecutionStatus.SKIPPED, 
+        status: Status.SKIPPED, 
         timestamp: new Date().toISOString() 
       });
     } else if (status === 'PAUSED' && nodeIdStr) {
@@ -282,7 +282,7 @@ export function useExecutionUpdates({
         type: EventType.NODE_STATUS_CHANGED, 
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
-        status: NodeExecutionStatus.PAUSED, 
+        status: Status.PAUSED, 
         timestamp: new Date().toISOString() 
       });
     }
@@ -297,7 +297,7 @@ export function useExecutionUpdates({
         type: EventType.NODE_PROGRESS, 
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
-        status: NodeExecutionStatus.RUNNING, 
+        status: Status.RUNNING, 
         timestamp: new Date().toISOString() 
       });
     }
@@ -318,7 +318,7 @@ export function useExecutionUpdates({
       type: EventType.INTERACTIVE_PROMPT, 
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(interactivePrompts.node_id),
-      status: NodeExecutionStatus.PAUSED, 
+      status: Status.PAUSED, 
       timestamp: new Date().toISOString() 
     });
   }, [interactivePrompts, setInteractivePrompt, onUpdate, executionIdRef]);

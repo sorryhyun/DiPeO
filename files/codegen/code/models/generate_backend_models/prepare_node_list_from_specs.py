@@ -25,9 +25,10 @@ def prepare_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
         if filename == 'default' or not filename.endswith('.spec.ts.json'):
             continue
         
-        # Extract node type from filename (e.g., "api-job.spec.ts.json" -> "api_job")
+        # Extract node type from filename (e.g., "api-job.spec.ts.json" -> "api-job")
+        # Keep the hyphen format to match the actual file names
         base_filename = filename.split('/')[-1]
-        node_type = base_filename.replace('.spec.ts.json', '').replace('-', '_')
+        node_type = base_filename.replace('.spec.ts.json', '')
         
         # Verify the spec file contains valid node specification
         if isinstance(ast_data, dict):

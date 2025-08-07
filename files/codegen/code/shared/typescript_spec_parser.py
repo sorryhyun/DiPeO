@@ -169,11 +169,12 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     ast_data = inputs.get('ast_data', {})
     node_type = inputs.get('node_type', '')
     
-    # Convert node type to spec name (e.g., "person_job" -> "personJobSpec") 
-    # Note: node_type might come with underscores (person_job) or hyphens (person-job)
-    node_type_clean = node_type.replace('-', '_')  # Normalize to underscores
-    spec_name = f"{node_type_clean.replace('_', ' ').title().replace(' ', '')}Spec"
-    spec_name = spec_name[0].lower() + spec_name[1:]  # camelCase
+    # Convert node type to spec name (e.g., "person-job" -> "personJobSpec") 
+    # Note: node_type now comes with hyphens (person-job) to match file names
+    # Convert to camelCase for the spec name
+    parts = node_type.split('-')
+    # First part is lowercase, rest are title case
+    spec_name = parts[0] + ''.join(part.title() for part in parts[1:]) + 'Spec'
     
     # Extract the specification from AST
     spec_data = extract_spec_from_ast(ast_data, spec_name)

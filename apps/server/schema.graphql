@@ -223,7 +223,7 @@ input ExecutionControlInput {
 
 input ExecutionFilterInput {
   diagram_id: ID = null
-  status: ExecutionStatus = null
+  status: Status = null
   started_after: DateTime = null
   started_before: DateTime = null
 }
@@ -246,7 +246,7 @@ type ExecutionStateType {
   exec_counts: JSON!
   metrics: JSON
   id: String!
-  status: ExecutionStatus!
+  status: Status!
   diagram_id: String
   started_at: String!
   ended_at: String
@@ -255,16 +255,6 @@ type ExecutionStateType {
   duration_seconds: Float
   is_active: Boolean
   executed_nodes: [String!]!
-}
-
-enum ExecutionStatus {
-  PENDING
-  RUNNING
-  PAUSED
-  COMPLETED
-  FAILED
-  ABORTED
-  SKIPPED
 }
 
 type ExecutionUpdate {
@@ -351,17 +341,6 @@ type Mutation {
   unregister_cli_session(input: UnregisterCliSessionInput!): CliSessionResult!
 }
 
-enum NodeExecutionStatus {
-  PENDING
-  RUNNING
-  PAUSED
-  COMPLETED
-  FAILED
-  ABORTED
-  SKIPPED
-  MAXITER_REACHED
-}
-
 """Unique identifier for nodes"""
 scalar NodeID
 
@@ -446,6 +425,17 @@ input RegisterCliSessionInput {
   diagram_data: JSON = null
 }
 
+enum Status {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  ABORTED
+  SKIPPED
+  MAXITER_REACHED
+}
+
 type Subscription {
   execution_updates(execution_id: ID!): ExecutionUpdate!
   node_updates(execution_id: ID!, node_id: String = null): JSON!
@@ -482,7 +472,7 @@ input UpdateNodeInput {
 input UpdateNodeStateInput {
   execution_id: ID!
   node_id: ID!
-  status: NodeExecutionStatus!
+  status: Status!
   output: JSON = null
   error: String = null
 }

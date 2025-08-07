@@ -6,7 +6,7 @@ from dipeo.core.execution.node_output import ConditionOutput
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.diagram_generated.generated_nodes import StartNode
-from dipeo.diagram_generated import NodeExecutionStatus, NodeID
+from dipeo.diagram_generated import Status, NodeID
 from dipeo.application.utils.template import TemplateProcessor
 import logging
 
@@ -32,7 +32,7 @@ class NodeReadinessChecker:
     ) -> bool:
         # Not pending? Not ready
         state = node_states.get(node.id)
-        if not state or state.status != NodeExecutionStatus.PENDING:
+        if not state or state.status != Status.PENDING:
             return False
         
         # Start nodes are always ready when pending
@@ -100,14 +100,14 @@ class NodeReadinessChecker:
         
         # For PersonJobNodes that are PENDING but have executed, consider them satisfied
         if (isinstance(dep_node, PersonJobNode) and 
-            dep_state.status == NodeExecutionStatus.PENDING and 
+            dep_state.status == Status.PENDING and 
             dep_exec_count > 0):
             return True
         
         # Accept both COMPLETED and MAXITER_REACHED as valid completion states
         return dep_state.status in (
-            NodeExecutionStatus.COMPLETED, 
-            NodeExecutionStatus.MAXITER_REACHED
+            Status.COMPLETED, 
+            Status.MAXITER_REACHED
         )
     
     def _is_condition_branch_active(self, condition_node_id: NodeID, branch: str) -> bool:

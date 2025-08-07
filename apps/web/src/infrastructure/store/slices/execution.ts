@@ -5,8 +5,9 @@ import {
   type DiagramID,
   type ExecutionID,
   type ExecutionState as CanonicalExecutionState,
-  ExecutionStatus,
-  NodeExecutionStatus,
+  Status,
+  type ExecutionStatus,
+  type NodeExecutionStatus,
   type NodeState as DomainNodeState,
   EventType,
   type ExecutionUpdate,
@@ -76,7 +77,7 @@ const clearRunningNode = (state: UnifiedStore, nodeId: NodeID) => {
 const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: StoreNodeState) => {
   state.execution.nodeStates.set(nodeId, nodeState);
   
-  if (nodeState.status === NodeExecutionStatus.RUNNING) {
+  if (nodeState.status === Status.RUNNING) {
     state.execution.runningNodes.add(nodeId);
   } else {
     clearRunningNode(state, nodeId);
@@ -131,10 +132,10 @@ export const createExecutionSlice: StateCreator<
     // Keep the execution state but pause all running nodes
     state.execution.runningNodes.forEach(nodeId => {
       const nodeState = state.execution.nodeStates.get(nodeId);
-      if (nodeState && nodeState.status === NodeExecutionStatus.RUNNING) {
+      if (nodeState && nodeState.status === Status.RUNNING) {
         state.execution.nodeStates.set(nodeId, {
           ...nodeState,
-          status: NodeExecutionStatus.PAUSED
+          status: Status.PAUSED
         });
       }
     });
@@ -144,10 +145,10 @@ export const createExecutionSlice: StateCreator<
     state.execution.isPaused = false;
     // Resume all paused nodes
     state.execution.nodeStates.forEach((nodeState, nodeId) => {
-      if (nodeState.status === NodeExecutionStatus.PAUSED) {
+      if (nodeState.status === Status.PAUSED) {
         state.execution.nodeStates.set(nodeId, {
           ...nodeState,
-          status: NodeExecutionStatus.RUNNING
+          status: Status.RUNNING
         });
         state.execution.runningNodes.add(nodeId);
       }
@@ -162,7 +163,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeRunning: (nodeId) => set(state => {
     const nodeState: StoreNodeState = {
-      status: NodeExecutionStatus.RUNNING,
+      status: Status.RUNNING,
       timestamp: Date.now()
     };
     updateNodeState(state, nodeId, nodeState);
@@ -170,7 +171,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeCompleted: (nodeId) => set(state => {
     const nodeState: StoreNodeState = {
-      status: NodeExecutionStatus.COMPLETED,
+      status: Status.COMPLETED,
       timestamp: Date.now()
     };
     updateNodeState(state, nodeId, nodeState);
@@ -178,7 +179,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeFailed: (nodeId, error) => set(state => {
     const nodeState: StoreNodeState = {
-      status: NodeExecutionStatus.FAILED,
+      status: Status.FAILED,
       timestamp: Date.now(),
       error
     };
@@ -187,7 +188,7 @@ export const createExecutionSlice: StateCreator<
   
   setNodeSkipped: (nodeId, reason) => set(state => {
     const nodeState: StoreNodeState = {
-      status: NodeExecutionStatus.SKIPPED,
+      status: Status.SKIPPED,
       timestamp: Date.now(),
       skipReason: reason
     };
@@ -222,12 +223,12 @@ export const createExecutionSlice: StateCreator<
     switch (event.type) {
       case EventType.EXECUTION_STATUS_CHANGED:
         // Handle execution-level status changes
-        if (event.data?.status === ExecutionStatus.RUNNING) {
+        if (event.data?.status === Status.RUNNING) {
           state.startExecution(event.execution_id);
-        } else if (event.data?.status === ExecutionStatus.COMPLETED || 
-                   event.data?.status === ExecutionStatus.FAILED) {
+        } else if (event.data?.status === Status.COMPLETED || 
+                   event.data?.status === Status.FAILED) {
           state.stopExecution();
-        } else if (event.data?.status === ExecutionStatus.PAUSED) {
+        } else if (event.data?.status === Status.PAUSED) {
           state.pauseExecution();
         }
         break;

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, Pause, RefreshCw } from 'lucide-react';
-import { useExecution } from '@/domain/execution/hooks';
+import { useCanvas } from '@/domain/diagram/contexts';
 import { NodeExecutionStatus } from '@/domain/execution/types/execution';
 import { ExecutionID, executionId } from '@/infrastructure/types';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useExecutionOrderQuery, ExecutionOrderQuery } from '@/__generated__/graphql';
-import { ExecutionStatus, isExecutionActive } from '@dipeo/models';
+import { Status, isExecutionActive } from '@dipeo/models';
 
 interface ExecutionStep {
   nodeId: string;
@@ -37,12 +37,14 @@ interface ExecutionOrderViewProps {
 }
 
 export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executionId: providedExecutionId }) => {
-  const { execution } = useExecution();
+  // Get execution from Canvas context to avoid multiple instances
+  const { operations } = useCanvas();
+  const { execution } = operations.executionOps;
   const currentExecutionId = providedExecutionId || (execution?.executionId ? executionId(execution.executionId) : undefined);
   const [executionOrder, setExecutionOrder] = useState<ExecutionOrderData | null>(null);
   
   // Determine if we should poll based on execution status
-  const shouldPoll = executionOrder ? isExecutionActive(executionOrder.status as ExecutionStatus) : true;
+  const shouldPoll = executionOrder ? isExecutionActive(executionOrder.status as any) : true;
   
   // Dynamic poll interval based on execution status
   const pollInterval = useMemo(() => {
@@ -73,17 +75,17 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
 
   const getStatusIcon = (status: NodeExecutionStatus) => {
     switch (status) {
-      case NodeExecutionStatus.COMPLETED:
+      case Status.COMPLETED:
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case NodeExecutionStatus.FAILED:
+      case Status.FAILED:
         return <XCircle className="h-5 w-5 text-red-500" />;
-      case NodeExecutionStatus.RUNNING:
+      case Status.RUNNING:
         return <Activity className="h-5 w-5 text-blue-500 animate-pulse" />;
-      case NodeExecutionStatus.PAUSED:
+      case Status.PAUSED:
         return <Pause className="h-5 w-5 text-yellow-500" />;
-      case NodeExecutionStatus.SKIPPED:
+      case Status.SKIPPED:
         return <AlertCircle className="h-5 w-5 text-gray-400" />;
-      case NodeExecutionStatus.MAXITER_REACHED:
+      case Status.MAXITER_REACHED:
         return <RefreshCw className="h-5 w-5 text-orange-500" />;
       default:
         return <Clock className="h-5 w-5 text-gray-400" />;
@@ -92,17 +94,17 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
 
   const getStatusColor = (status: NodeExecutionStatus) => {
     switch (status) {
-      case NodeExecutionStatus.COMPLETED:
+      case Status.COMPLETED:
         return 'bg-green-50 border-green-200';
-      case NodeExecutionStatus.FAILED:
+      case Status.FAILED:
         return 'bg-red-50 border-red-200';
-      case NodeExecutionStatus.RUNNING:
+      case Status.RUNNING:
         return 'bg-blue-50 border-blue-200';
-      case NodeExecutionStatus.PAUSED:
+      case Status.PAUSED:
         return 'bg-yellow-50 border-yellow-200';
-      case NodeExecutionStatus.SKIPPED:
+      case Status.SKIPPED:
         return 'bg-gray-50 border-gray-200';
-      case NodeExecutionStatus.MAXITER_REACHED:
+      case Status.MAXITER_REACHED:
         return 'bg-orange-50 border-orange-200';
       default:
         return 'bg-gray-50 border-gray-200';

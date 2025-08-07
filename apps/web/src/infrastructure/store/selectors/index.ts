@@ -16,8 +16,7 @@ import {
   DomainPerson,
   DomainHandle,
   NodeType,
-  ExecutionStatus,
-  NodeExecutionStatus,
+  Status,
 } from '@dipeo/models';
 
 /**
@@ -136,8 +135,8 @@ export const selectSelectionType: Selector<'node' | 'arrow' | 'person' | null> =
 export const selectIsExecuting: Selector<boolean> = (state) =>
   state.execution.isRunning;
 
-export const selectExecutionStatus: Selector<ExecutionStatus | null> = (state) =>
-  state.execution.isRunning ? ExecutionStatus.RUNNING : null;
+export const selectExecutionStatus: Selector<Status | null> = (state) =>
+  state.execution.isRunning ? Status.RUNNING : null;
 
 export const selectNodeExecutionState: ParameterizedSelector<NodeID, NodeExecutionState | undefined> =
   (nodeId) => (state) => state.execution.nodeStates.get(nodeId);
@@ -146,7 +145,7 @@ export const selectExecutionProgress: Selector<number> = (state) => {
   const nodeStates = state.execution.nodeStates;
   if (!nodeStates.size) return 0;
   const completed = Array.from(nodeStates.values())
-    .filter(s => s.status === NodeExecutionStatus.COMPLETED).length;
+    .filter(s => s.status === Status.COMPLETED).length;
   return (completed / nodeStates.size) * 100;
 };
 
@@ -279,10 +278,10 @@ export const selectExecutionSummary: Selector<{
   
   const totalNodes = nodeStates.size;
   const completedNodes = Array.from(nodeStates.values()).filter(
-    (state: NodeExecutionState) => state.status === NodeExecutionStatus.COMPLETED
+    (state: NodeExecutionState) => state.status === Status.COMPLETED
   ).length;
   const failedNodes = Array.from(nodeStates.values()).filter(
-    (state: NodeExecutionState) => state.status === NodeExecutionStatus.FAILED
+    (state: NodeExecutionState) => state.status === Status.FAILED
   ).length;
 
   return {

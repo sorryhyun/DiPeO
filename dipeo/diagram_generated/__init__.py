@@ -21,9 +21,6 @@ from .enums import (
     ToolType,
 )
 
-# Backward compatibility aliases
-ExecutionStatus = Status
-NodeExecutionStatus = Status
 from .integrations import (
     NotionOperation
 )
@@ -33,6 +30,12 @@ from .domain_models import (
     NodeID,
     HandleID,
     ApiKeyID,
+    PersonID,
+    DiagramID,
+    ExecutionID,
+    ArrowID,
+    HookID,
+    TaskID,
 
     # Domain models
     Vec2,
@@ -90,7 +93,6 @@ __all__ = [
 
     # Enums
     "NodeType",
-    "NodeExecutionStatus",
     "LLMService",
     "ContentType",
     "DataType",
@@ -103,7 +105,7 @@ __all__ = [
     "HttpMethod",
     "HookType",
     "HookTriggerMode",
-    "ExecutionStatus",
+    "Status",
     "EventType",
     "APIServiceType",
     "NotionOperation",

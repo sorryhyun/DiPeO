@@ -27,6 +27,9 @@ from dipeo.diagram_generated.domain_models import (
     ExecutionOptions,
 )
 
+# Import the Status enum for GraphQL type resolution
+from dipeo.diagram_generated.enums import Status
+
 # Import scalar types - this ensures they're registered
 from .scalars import (
     NodeIDScalar,
@@ -65,7 +68,7 @@ class PersonLLMConfigType:
 # NodeState has a Dict field 'output' that needs special handling
 @strawberry.experimental.pydantic.type(NodeState)
 class NodeStateType:
-    status: strawberry.auto
+    status: Status  # Explicitly specify the enum type
     started_at: strawberry.auto
     ended_at: strawberry.auto
     error: strawberry.auto
@@ -135,7 +138,7 @@ class ExecutionOptionsType:
 @strawberry.experimental.pydantic.type(ExecutionState)
 class ExecutionStateType:
     id: strawberry.auto
-    status: strawberry.auto
+    status: Status  # Explicitly specify the enum type
     diagram_id: strawberry.auto
     started_at: strawberry.auto
     ended_at: strawberry.auto

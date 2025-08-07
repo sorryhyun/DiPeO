@@ -10,7 +10,7 @@ from collections import defaultdict
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator as DynamicOrderCalculatorProtocol
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.diagram_generated import NodeID, NodeState, NodeExecutionStatus, NodeType
+from dipeo.diagram_generated import NodeID, NodeState, Status, NodeType
 
 
 class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
@@ -55,7 +55,7 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
                 continue
                 
             # Node is blocked if it's pending but not ready
-            if node_state.status == NodeExecutionStatus.PENDING:
+            if node_state.status == Status.PENDING:
                 if not self._is_node_ready(node, diagram, node_states, context):
                     blocked.append(node)
         
@@ -76,8 +76,8 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         endpoint_nodes = [n for n in diagram.nodes if n.type == NodeType.ENDPOINT]
         if endpoint_nodes:
             all_endpoints_complete = all(
-                node_states.get(n.id, NodeState(status=NodeExecutionStatus.PENDING)).status 
-                in [NodeExecutionStatus.COMPLETED, NodeExecutionStatus.SKIPPED]
+                node_states.get(n.id, NodeState(status=Status.PENDING)).status 
+                in [Status.COMPLETED, Status.SKIPPED]
                 for n in endpoint_nodes
             )
             if all_endpoints_complete:
@@ -134,7 +134,7 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
                 continue
                 
             node_state = node_states.get(node.id)
-            if not node_state or node_state.status != NodeExecutionStatus.COMPLETED:
+            if not node_state or node_state.status != Status.COMPLETED:
                 continue
             
             # Get the condition result
@@ -156,16 +156,16 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
             stats[state.status.value] += 1
         
         total = len(node_states)
-        completed = stats.get(NodeExecutionStatus.COMPLETED.value, 0)
-        completed += stats.get(NodeExecutionStatus.MAXITER_REACHED.value, 0)
+        completed = stats.get(Status.COMPLETED.value, 0)
+        completed += stats.get(Status.MAXITER_REACHED.value, 0)
         
         return {
             "total_nodes": total,
             "completed": completed,
-            "pending": stats.get(NodeExecutionStatus.PENDING.value, 0),
-            "running": stats.get(NodeExecutionStatus.RUNNING.value, 0),
-            "failed": stats.get(NodeExecutionStatus.FAILED.value, 0),
-            "skipped": stats.get(NodeExecutionStatus.SKIPPED.value, 0),
+            "pending": stats.get(Status.PENDING.value, 0),
+            "running": stats.get(Status.RUNNING.value, 0),
+            "failed": stats.get(Status.FAILED.value, 0),
+            "skipped": stats.get(Status.SKIPPED.value, 0),
             "progress_percentage": (completed / total * 100) if total > 0 else 0
         }
     
@@ -182,7 +182,7 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
             return False
         
         # Skip if not pending
-        if node_state.status != NodeExecutionStatus.PENDING:
+        if node_state.status != Status.PENDING:
             return False
         
         # Check loop constraints
@@ -257,8 +257,8 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         
         # Dependency is satisfied if source is completed or reached max iterations
         return source_state.status in [
-            NodeExecutionStatus.COMPLETED,
-            NodeExecutionStatus.MAXITER_REACHED
+            Status.COMPLETED,
+            Status.MAXITER_REACHED
         ]
     
     def _prioritize_nodes(
@@ -318,13 +318,13 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
             
             # Skip nodes on false branch if condition is true
             if condition_result and edge.source_output == "condfalse":
-                if target_state.status == NodeExecutionStatus.PENDING:
+                if target_state.status == Status.PENDING:
                     node_states[edge.target_node_id] = NodeState(
-                        status=NodeExecutionStatus.SKIPPED
+                        status=Status.SKIPPED
                     )
             # Skip nodes on true branch if condition is false
             elif not condition_result and edge.source_output == "condtrue":
-                if target_state.status == NodeExecutionStatus.PENDING:
+                if target_state.status == Status.PENDING:
                     node_states[edge.target_node_id] = NodeState(
-                        status=NodeExecutionStatus.SKIPPED
+                        status=Status.SKIPPED
                     )

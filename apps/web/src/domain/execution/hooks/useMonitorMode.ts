@@ -5,7 +5,7 @@
  * monitors CLI-launched executions.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useContext } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { toast } from 'sonner';
 import { useExecution } from './useExecution';
@@ -29,17 +29,18 @@ const ACTIVE_CLI_SESSION_QUERY = gql`
 
 export interface UseMonitorModeOptions {
   pollCliSessions?: boolean;
+  execution?: ReturnType<typeof useExecution>;
 }
 
 export function useMonitorMode(options: UseMonitorModeOptions = {}) {
-  const { pollCliSessions = true } = options;
+  const { pollCliSessions = true, execution: providedExecution } = options;
   
   // Track if we've already started execution to prevent double-starts
   const hasStartedRef = useRef(false);
   const lastSessionIdRef = useRef<string | null>(null);
   
-  // Get execution hook
-  const execution = useExecution({ showToasts: true });
+  // Get execution hook - use provided one or create own instance
+  const execution = providedExecution || useExecution({ showToasts: true });
   
   // Get diagram loading function
   const { loadDiagramFromData } = useDiagramLoader();

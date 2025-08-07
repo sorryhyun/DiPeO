@@ -10,7 +10,7 @@ from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
 from dipeo.application.execution import ExecuteDiagramUseCase
 from dipeo.core.ports import StateStorePort, MessageRouterPort
-from dipeo.diagram_generated.enums import ExecutionStatus, EventType
+from dipeo.diagram_generated.enums import Status, EventType
 
 from ...types.inputs import (
     ExecuteDiagramInput, UpdateNodeStateInput, 
@@ -161,9 +161,9 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 
                 # Map action to status
                 status_map = {
-                    "pause": ExecutionStatus.PAUSED,
-                    "resume": ExecutionStatus.RUNNING,
-                    "abort": ExecutionStatus.ABORTED,
+                    "pause": Status.PAUSED,
+                    "resume": Status.RUNNING,
+                    "abort": Status.ABORTED,
                 }
                 
                 new_status = status_map.get(input.action)

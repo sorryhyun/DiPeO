@@ -7,8 +7,7 @@ import { useStream, type StreamProtocol } from '@/infrastructure/hooks/core/useS
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { 
   EventType, 
-  ExecutionStatus,
-  NodeExecutionStatus,
+  Status,
   type ExecutionUpdate,
   type DomainDiagram 
 } from '@dipeo/models';
@@ -21,7 +20,7 @@ import { stripTypenames } from '@/lib/utils/graphql';
 
 export interface ExecutionState {
   id: string | null;
-  status: ExecutionStatus | NodeExecutionStatus;
+  status: Status;
   startTime: Date | null;
   endTime: Date | null;
   totalNodes: number;
@@ -32,7 +31,7 @@ export interface ExecutionState {
 
 export interface NodeState {
   nodeId: string;
-  status: NodeExecutionStatus;
+  status: Status;
   startTime: Date | null;
   endTime: Date | null;
   output?: any;
@@ -90,7 +89,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   
   const [execution, setExecution] = useState<ExecutionState>({
     id: null,
-    status: ExecutionStatus.PENDING,
+    status: Status.PENDING,
     startTime: null,
     endTime: null,
     totalNodes: 0,
@@ -137,13 +136,13 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           error: (update as any).error || prev.error
         }));
         
-        if ((update as any).status === ExecutionStatus.COMPLETED) {
+        if ((update as any).status === Status.COMPLETED) {
           setExecution(prev => ({
             ...prev,
             endTime: new Date()
           }));
           store.stopExecution();
-        } else if ((update as any).status === ExecutionStatus.FAILED) {
+        } else if ((update as any).status === Status.FAILED) {
           setExecution(prev => ({
             ...prev,
             endTime: new Date(),
@@ -161,7 +160,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       case EventType.EXECUTION_ERROR:
         setExecution(prev => ({
           ...prev,
-          status: ExecutionStatus.FAILED,
+          status: Status.FAILED,
           endTime: new Date(),
           error: (update as any).error || 'Execution failed'
         }));
@@ -179,7 +178,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     setNodeStates(prev => {
       const existing = prev[nodeId] || {
         nodeId,
-        status: NodeExecutionStatus.PENDING,
+        status: Status.PENDING,
         startTime: null,
         endTime: null,
         output: undefined,
@@ -195,9 +194,9 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         logs: (update as any).log ? [...existing.logs, (update as any).log] : existing.logs
       };
       
-      if ((update as any).status === NodeExecutionStatus.RUNNING && !existing.startTime) {
+      if ((update as any).status === Status.RUNNING && !existing.startTime) {
         newState.startTime = new Date();
-      } else if ([NodeExecutionStatus.COMPLETED, NodeExecutionStatus.FAILED].includes((update as any).status)) {
+      } else if ([Status.COMPLETED, Status.FAILED].includes((update as any).status)) {
         newState.endTime = new Date();
       }
       
@@ -207,19 +206,19 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       };
     });
     
-    if ((update as any).status === NodeExecutionStatus.COMPLETED) {
+    if ((update as any).status === Status.COMPLETED) {
       setExecution(prev => ({
         ...prev,
         completedNodes: prev.completedNodes + 1
       }));
       store.updateNode(nodeId, { data: { ...store.getNode(nodeId)?.data, isRunning: false } });
-    } else if ((update as any).status === NodeExecutionStatus.FAILED) {
+    } else if ((update as any).status === Status.FAILED) {
       setExecution(prev => ({
         ...prev,
         failedNodes: prev.failedNodes + 1
       }));
       store.updateNode(nodeId, { data: { ...store.getNode(nodeId)?.data, isRunning: false, hasError: true } });
-    } else if ((update as any).status === NodeExecutionStatus.RUNNING) {
+    } else if ((update as any).status === Status.RUNNING) {
       store.updateNode(nodeId, { data: { ...store.getNode(nodeId)?.data, isRunning: true } });
     }
   }, [debug, store]);
@@ -250,7 +249,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         
         setExecution({
           id: executionId,
-          status: ExecutionStatus.PENDING,
+          status: Status.PENDING,
           startTime: new Date(),
           endTime: null,
           totalNodes: diagramData.nodes.length,
@@ -270,7 +269,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       console.error('[Execution] Failed to execute:', error);
       setExecution(prev => ({
         ...prev,
-        status: ExecutionStatus.FAILED,
+        status: Status.FAILED,
         error: error instanceof Error ? error.message : 'Failed to execute'
       }));
       throw error;
@@ -303,7 +302,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       stream.disconnect();
       setExecution(prev => ({
         ...prev,
-        status: ExecutionStatus.ABORTED,
+        status: Status.ABORTED,
         endTime: new Date()
       }));
     } catch (error) {
@@ -383,7 +382,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     stream.disconnect();
     setExecution({
       id: null,
-      status: ExecutionStatus.PENDING,
+      status: Status.PENDING,
       startTime: null,
       endTime: null,
       totalNodes: 0,
@@ -395,7 +394,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     store.stopExecution();
   }, [stream, store]);
   
-  const isRunning = execution.status === ExecutionStatus.RUNNING || execution.status === NodeExecutionStatus.RUNNING;
+  const isRunning = execution.status === Status.RUNNING;
   const progress = execution.totalNodes > 0 
     ? (execution.completedNodes / execution.totalNodes) * 100 
     : 0;

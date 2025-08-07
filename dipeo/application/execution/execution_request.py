@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
-from dipeo.diagram_generated import NodeExecutionStatus
+from dipeo.diagram_generated import Status
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
@@ -56,7 +56,7 @@ class ExecutionRequest(Generic[T]):
         return 1
     
     @property
-    def node_status(self) -> Optional[NodeExecutionStatus]:
+    def node_status(self) -> Optional[Status]:
         """Get the current node status."""
         if self.context:
             state = self.context.get_node_state(self.node_id)

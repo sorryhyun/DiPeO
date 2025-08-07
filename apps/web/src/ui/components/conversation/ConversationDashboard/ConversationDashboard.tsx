@@ -12,7 +12,7 @@ import { useUIState } from '@/infrastructure/store/hooks/state';
 import { usePersonsData } from '@/domain/diagram/hooks';
 import { MessageList } from '../MessageList';
 import { ExecutionOrderView, ExecutionLogView } from '@/ui/components/execution';
-import { useExecution } from '@/domain/execution/hooks';
+import { useCanvas } from '@/domain/diagram/contexts';
 import { ConversationFilters, UIConversationMessage } from '@/infrastructure/types/conversation';
 import { PersonID, executionId, personId } from '@/infrastructure/types';
 import { debounce, throttle } from '@/lib/utils/math';
@@ -38,7 +38,9 @@ const ConversationDashboard: React.FC = () => {
 
   const { personsArray, personsMap } = usePersonsData();
   const { selectedId } = useUIState();
-  const { execution } = useExecution();
+  // Get execution from Canvas context to avoid multiple instances
+  const { operations } = useCanvas();
+  const { execution } = operations.executionOps;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Use persons directly from the hook

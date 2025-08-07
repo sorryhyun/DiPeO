@@ -8,7 +8,7 @@ from typing import Any
 
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.core.ports import StateStorePort
-from dipeo.diagram_generated import ExecutionStatus, NodeExecutionStatus
+from dipeo.diagram_generated import Status
 from .execution_state_cache import ExecutionStateCache
 
 logger = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ class AsyncStateManager(EventConsumer):
         # Update status to running
         await self.state_store.update_status(
             execution_id=execution_id,
-            status=ExecutionStatus.RUNNING
+            status=Status.RUNNING
         )
     
     async def _handle_node_started(
@@ -175,7 +175,7 @@ class AsyncStateManager(EventConsumer):
         await self.state_store.update_node_status(
             execution_id=execution_id,
             node_id=node_id,
-            status=NodeExecutionStatus.RUNNING
+            status=Status.RUNNING
         )
     
     async def _handle_node_completed(
@@ -204,13 +204,13 @@ class AsyncStateManager(EventConsumer):
             )
         
         # Update node status in cache
-        await cache.set_node_status(node_id, NodeExecutionStatus.COMPLETED)
+        await cache.set_node_status(node_id, Status.COMPLETED)
         
         # Update node status in store
         await self.state_store.update_node_status(
             execution_id=execution_id,
             node_id=node_id,
-            status=NodeExecutionStatus.COMPLETED
+            status=Status.COMPLETED
         )
     
     async def _handle_node_failed(
@@ -228,7 +228,7 @@ class AsyncStateManager(EventConsumer):
         await self.state_store.update_node_status(
             execution_id=execution_id,
             node_id=node_id,
-            status=NodeExecutionStatus.FAILED,
+            status=Status.FAILED,
             error=error
         )
         
@@ -260,7 +260,7 @@ class AsyncStateManager(EventConsumer):
     ) -> None:
         """Handle execution completed event."""
         data = event.data
-        status = data.get("status", ExecutionStatus.COMPLETED)
+        status = data.get("status", Status.COMPLETED)
         error = data.get("error")
         
         # Update execution status

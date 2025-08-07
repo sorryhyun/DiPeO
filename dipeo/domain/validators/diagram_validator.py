@@ -8,6 +8,8 @@ from dipeo.diagram_generated import (
     DomainDiagram,
     DomainNode,
     NodeType,
+)
+from dipeo.domain.diagram.handle import (
     extract_node_id_from_handle,
     parse_handle_id,
 )

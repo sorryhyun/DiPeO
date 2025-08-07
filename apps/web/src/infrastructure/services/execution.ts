@@ -4,8 +4,9 @@
  */
 
 import {
-  ExecutionStatus,
-  NodeExecutionStatus,
+  Status,
+  type ExecutionStatus,
+  type NodeExecutionStatus,
   EventType,
   type ExecutionID,
   type DiagramID,
@@ -61,7 +62,7 @@ export class ExecutionService {
     this.activeExecutions.set(executionId, {
       id: executionId,
       diagramId,
-      status: ExecutionStatus.PENDING,
+      status: Status.PENDING,
       nodeStates: new Map(),
       startedAt: new Date(),
     });
@@ -128,7 +129,7 @@ export class ExecutionService {
         output: update.result,
         error: update.error,
         started_at: update.timestamp,
-        ended_at: update.status === NodeExecutionStatus.COMPLETED ? update.timestamp : null,
+        ended_at: update.status === Status.COMPLETED ? update.timestamp : null,
       });
     }
     
@@ -138,8 +139,8 @@ export class ExecutionService {
     }
     
     // Check if execution completed
-    if (execution.status === ExecutionStatus.COMPLETED || 
-        execution.status === ExecutionStatus.FAILED) {
+    if (execution.status === Status.COMPLETED || 
+        execution.status === Status.FAILED) {
       execution.endedAt = new Date();
       this.cleanupExecution(executionId);
     }
@@ -184,7 +185,7 @@ export class ExecutionService {
     
     let completed = 0;
     execution.nodeStates.forEach(state => {
-      if (state.status === NodeExecutionStatus.COMPLETED) {
+      if (state.status === Status.COMPLETED) {
         completed++;
       }
     });
@@ -242,7 +243,7 @@ export class ExecutionService {
    * Check if execution can be retried
    */
   static canRetry(execution: ExecutionState): boolean {
-    return execution.status === ExecutionStatus.FAILED;
+    return execution.status === Status.FAILED;
   }
   
   /**

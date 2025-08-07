@@ -17,15 +17,6 @@ export enum Status {
   MAXITER_REACHED = 'MAXITER_REACHED'
 }
 
-/**
- * @deprecated Use Status instead
- */
-export type ExecutionStatus = Status;
-
-/**
- * @deprecated Use Status instead
- */
-export type NodeExecutionStatus = Status;
 
 export enum EventType {
   EXECUTION_STATUS_CHANGED = 'EXECUTION_STATUS_CHANGED',

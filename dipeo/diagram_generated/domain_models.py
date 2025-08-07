@@ -158,7 +158,7 @@ class NodeState(BaseModel):
     """NodeState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    status: NodeExecutionStatus
+    status: Status
     started_at: Optional[str] = Field(default=None)
     ended_at: Optional[str] = Field(default=None)
     error: Optional[str] = Field(default=None)
@@ -200,7 +200,7 @@ class ExecutionState(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     id: ExecutionID
-    status: ExecutionStatus
+    status: Status
     diagram_id: Optional[DiagramID] = Field(default=None)
     started_at: str
     ended_at: Optional[str] = Field(default=None)
@@ -252,7 +252,7 @@ class ExecutionUpdate(BaseModel):
     type: EventType
     execution_id: ExecutionID
     node_id: Optional[NodeID] = Field(default=None)
-    status: Optional[NodeExecutionStatus] = Field(default=None)
+    status: Optional[Status] = Field(default=None)
     result: Optional[Any] = Field(default=None)
     error: Optional[str] = Field(default=None)
     timestamp: Optional[str] = Field(default=None)

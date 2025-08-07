@@ -6,8 +6,7 @@ from datetime import datetime
 from dipeo.core.ports import ExecutionObserver, MessageRouterPort
 from dipeo.diagram_generated import (
     EventType,
-    ExecutionStatus,
-    NodeExecutionStatus,
+    Status,
     NodeState,
 )
 
@@ -54,7 +53,7 @@ class UnifiedEventObserver(ExecutionObserver):
             execution_id,
             EventType.EXECUTION_STATUS_CHANGED,
             {
-                "status": ExecutionStatus.RUNNING.value,
+                "status": Status.RUNNING.value,
                 "diagram_id": diagram_id,
                 "timestamp": datetime.utcnow().isoformat(),
             },
@@ -71,7 +70,7 @@ class UnifiedEventObserver(ExecutionObserver):
             EventType.NODE_STATUS_CHANGED,
             {
                 "node_id": node_id,
-                "status": NodeExecutionStatus.RUNNING.value,
+                "status": Status.RUNNING.value,
                 "node_type": node_type,
                 "timestamp": datetime.utcnow().isoformat(),
             },
@@ -106,7 +105,7 @@ class UnifiedEventObserver(ExecutionObserver):
             EventType.NODE_STATUS_CHANGED,
             {
                 "node_id": node_id,
-                "status": NodeExecutionStatus.FAILED.value,
+                "status": Status.FAILED.value,
                 "node_type": node_type,
                 "error": error,
                 "timestamp": datetime.utcnow().isoformat(),
@@ -119,7 +118,7 @@ class UnifiedEventObserver(ExecutionObserver):
             execution_id,
             EventType.EXECUTION_STATUS_CHANGED,
             {
-                "status": ExecutionStatus.COMPLETED.value,
+                "status": Status.COMPLETED.value,
                 "timestamp": datetime.utcnow().isoformat(),
             },
         )

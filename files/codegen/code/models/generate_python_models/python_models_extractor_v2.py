@@ -74,9 +74,13 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
         
         print(f"AST data: {len(all_interfaces)} interfaces, {len(all_types)} types")
         
+        # Filter out deprecated type aliases
+        deprecated_aliases = ['ExecutionStatus', 'NodeExecutionStatus']
+        filtered_types = [t for t in all_types if t.get('name') not in deprecated_aliases]
+        
         # Extract branded types (simple check for __brand)
         branded_types = []
-        for type_alias in all_types:
+        for type_alias in filtered_types:
             alias_type = type_alias.get('type', '')
             if '& {' in alias_type and '__brand' in alias_type:
                 branded_types.append(type_alias.get('name', ''))
@@ -87,14 +91,14 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
         return {
             # Raw TypeScript data
             'interfaces': all_interfaces,
-            'types': all_types,
+            'types': filtered_types,  # Use filtered types without deprecated aliases
             'enums': all_enums,
             'constants': all_consts,
             'branded_types': sorted(branded_types),
             
             # Counts for summary
             'interfaces_count': len(all_interfaces),
-            'types_count': len(all_types),
+            'types_count': len(filtered_types),  # Count filtered types
             'enums_count': len(all_enums),
             'constants_count': len(all_consts),
             

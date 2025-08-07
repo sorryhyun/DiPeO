@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.core.ports import ExecutionObserver
-from dipeo.diagram_generated.enums import ExecutionStatus
+from dipeo.diagram_generated.enums import Status
 from dipeo.infrastructure.events import AsyncEventBus
 
 if TYPE_CHECKING:
@@ -65,7 +65,7 @@ class ObserverToEventConsumerAdapter(EventConsumer):
             
             elif event.type == EventType.EXECUTION_COMPLETED:
                 # Check if it's an error completion
-                if event.data.get("status") == ExecutionStatus.FAILED:
+                if event.data.get("status") == Status.FAILED:
                     await self.observer.on_execution_error(
                         execution_id=event.execution_id,
                         error=event.data.get("error", "Unknown error")

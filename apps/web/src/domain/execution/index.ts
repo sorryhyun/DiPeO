@@ -83,9 +83,10 @@ export type { UseConversationDataOptions } from './hooks/useConversationData';
 /**
  * Core execution types
  */
+export {
+  Status
+} from './types/execution';
 export type {
-  ExecutionStatus,
-  NodeExecutionStatus,
   TokenUsage,
   InteractivePromptData
 } from './types/execution';

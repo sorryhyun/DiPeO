@@ -25,6 +25,9 @@ class TypeScriptToPythonFilters:
         'bigint': 'int',
         'symbol': 'str',
         'never': 'Any',
+        # Map deprecated execution status types to unified Status enum
+        'ExecutionStatus': 'Status',
+        'NodeExecutionStatus': 'Status',
     }
     
     # Fields that should be integers instead of floats

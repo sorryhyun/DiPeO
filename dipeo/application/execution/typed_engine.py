@@ -154,13 +154,13 @@ class TypedExecutionEngine:
             
         except Exception as e:
             # Emit execution completed with failed status
-            from dipeo.diagram_generated import ExecutionStatus
+            from dipeo.diagram_generated import Status
             
             if context:
                 await context.emit_event(
                     EventType.EXECUTION_COMPLETED,
                     {
-                        "status": ExecutionStatus.FAILED,
+                        "status": Status.FAILED,
                         "error": str(e),
                         "error_type": type(e).__name__
                     }
