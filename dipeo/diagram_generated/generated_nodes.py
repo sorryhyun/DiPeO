@@ -318,7 +318,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
     schema_path: Optional[str] = None
-    schema: Optional[Dict[str, Any]] = None
+    json_schema: Optional[Dict[str, Any]] = None
     data_path: Optional[str] = None
     strict_mode: Optional[bool] = None
     error_on_extra: Optional[bool] = None
@@ -332,7 +332,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["schema_path"] = self.schema_path
-        data["schema"] = self.schema
+        data["json_schema"] = self.json_schema
         data["data_path"] = self.data_path
         data["strict_mode"] = self.strict_mode
         data["error_on_extra"] = self.error_on_extra
@@ -738,7 +738,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             schema_path=data.get("schema_path", None),
-            schema=data.get("schema", None),
+            json_schema=data.get("json_schema", None),
             data_path=data.get("data_path", None),
             strict_mode=data.get("strict_mode", None),
             error_on_extra=data.get("error_on_extra", None),

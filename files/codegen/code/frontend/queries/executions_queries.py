@@ -111,6 +111,11 @@ class ExecutionsQueryGenerator:
   interactive_prompts(execution_id: $executionId)
 }""")
         
+        # ExecutionLogs subscription
+        queries.append("""subscription ExecutionLogs($executionId: ID!) {
+  execution_logs(execution_id: $executionId)
+}""")
+        
         # Add comment
         queries.append("# Execution Mutations")
         

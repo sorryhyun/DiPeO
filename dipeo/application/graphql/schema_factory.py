@@ -16,23 +16,24 @@ from .schema.subscriptions import create_subscription_type
 from .types.scalars import JSONScalar
 
 # Import generated types
-# TODO: Fix import issues before enabling
+# TODO: Fix dict[str, Any] field handling in generated types before enabling
 # from dipeo.diagram_generated.graphql.strawberry_nodes import (
-#     ApiJobNodeDataType,
-#     CodeJobNodeDataType,
-#     ConditionNodeDataType,
-#     DbNodeDataType,
-#     EndpointNodeDataType,
-#     HookNodeDataType,
-#     JsonSchemaValidatorNodeDataType,
-#     NotionNodeDataType,
-#     PersonBatchJobNodeDataType,
-#     PersonJobNodeDataType,
-#     StartNodeDataType,
-#     SubDiagramNodeDataType,
-#     TemplateJobNodeDataType,
-#     TypescriptAstNodeDataType,
-#     UserResponseNodeDataType,
+#     ApiJobDataType,
+#     CodeJobDataType,
+#     ConditionDataType,
+#     DbDataType,
+#     EndpointDataType,
+#     HookDataType,
+#     IntegratedApiDataType,
+#     JsonSchemaValidatorDataType,
+#     NotionDataType,
+#     PersonBatchJobDataType,
+#     PersonJobDataType,
+#     StartDataType,
+#     SubDiagramDataType,
+#     TemplateJobDataType,
+#     TypescriptAstDataType,
+#     UserResponseDataType,
 # )
 # from dipeo.diagram_generated.graphql.node_mutations import NodeMutations
 
@@ -89,23 +90,24 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             TaskIDScalar,
         ],
         # Register concrete types for interface resolution
-        # TODO: Enable when import issues are fixed
+        # TODO: Enable when dict[str, Any] field handling is fixed in generated types
         # types=[
-        #     ApiJobNodeDataType,
-        #     CodeJobNodeDataType,
-        #     ConditionNodeDataType,
-        #     DbNodeDataType,
-        #     EndpointNodeDataType,
-        #     HookNodeDataType,
-        #     JsonSchemaValidatorNodeDataType,
-        #     NotionNodeDataType,
-        #     PersonBatchJobNodeDataType,
-        #     PersonJobNodeDataType,
-        #     StartNodeDataType,
-        #     SubDiagramNodeDataType,
-        #     TemplateJobNodeDataType,
-        #     TypescriptAstNodeDataType,
-        #     UserResponseNodeDataType,
+        #     ApiJobDataType,
+        #     CodeJobDataType,
+        #     ConditionDataType,
+        #     DbDataType,
+        #     EndpointDataType,
+        #     HookDataType,
+        #     IntegratedApiDataType,
+        #     JsonSchemaValidatorDataType,
+        #     NotionDataType,
+        #     PersonBatchJobDataType,
+        #     PersonJobDataType,
+        #     StartDataType,
+        #     SubDiagramDataType,
+        #     TemplateJobDataType,
+        #     TypescriptAstDataType,
+        #     UserResponseDataType,
         # ]
     )
     

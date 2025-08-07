@@ -60,7 +60,6 @@ class AsyncEventBus(EventEmitter):
     async def start(self) -> None:
         """Start the event bus"""
         self._running = True
-        logger.info("AsyncEventBus started")
     
     async def stop(self) -> None:
         """Stop the event bus and clean up resources"""
@@ -78,8 +77,6 @@ class AsyncEventBus(EventEmitter):
         self._tasks.clear()
         self._subscribers.clear()
         self._queues.clear()
-        
-        logger.info("AsyncEventBus stopped")
 
 
 class NullEventBus(EventEmitter):

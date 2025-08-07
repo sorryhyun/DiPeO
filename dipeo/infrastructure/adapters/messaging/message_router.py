@@ -1,7 +1,7 @@
 """Message router implementation for real-time event distribution.
 
 This module provides the central message routing infrastructure that distributes
-execution events to various consumers (SSE, WebSocket, GraphQL subscriptions, etc.)
+execution events to GraphQL subscriptions.
 """
 
 import asyncio
@@ -10,7 +10,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from dipeo.core.ports import MessageRouterPort
 
@@ -30,13 +30,8 @@ class ConnectionHealth:
 class MessageRouter(MessageRouterPort):
     """Central message router implementing the MessageRouterPort protocol.
 
-    This router manages connections and routes execution events to appropriate
-    consumers. It serves as the single source of truth for real-time monitoring,
-    supporting multiple transport mechanisms including:
-    - Server-Sent Events (SSE)
-    - WebSocket connections
-    - GraphQL subscriptions
-    - Future transport mechanisms
+    This router manages connections and routes execution events to GraphQL
+    subscriptions. It serves as the single source of truth for real-time monitoring.
 
     The router includes health monitoring, backpressure handling, and automatic
     cleanup of failed connections.
@@ -51,6 +46,11 @@ class MessageRouter(MessageRouterPort):
         self._message_queue_size: dict[str, int] = {}
         self._queue_lock = threading.Lock()
         self.max_queue_size = 100
+        
+        # Event buffering for late connections
+        self._event_buffer: dict[str, list[dict]] = {}
+        self._buffer_max_size = 50  # Keep last 50 events per execution
+        self._buffer_ttl_seconds = 300  # Keep events for 5 minutes
 
     async def initialize(self) -> None:
         """Initialize the message router."""
@@ -79,7 +79,6 @@ class MessageRouter(MessageRouterPort):
         self.local_handlers[connection_id] = handler
         self.connection_health[connection_id] = ConnectionHealth(last_successful_send=time.time())
         self._message_queue_size[connection_id] = 0
-        logger.debug(f"Registered connection: {connection_id}")
 
     async def unregister_connection(self, connection_id: str) -> None:
         """Unregister a connection and clean up its subscriptions.
@@ -96,8 +95,6 @@ class MessageRouter(MessageRouterPort):
             connections.discard(connection_id)
             if not connections:
                 del self.execution_subscriptions[exec_id]
-
-        logger.debug(f"Unregistered connection: {connection_id}")
 
     async def route_to_connection(self, connection_id: str, message: dict) -> bool:
         """Route a message to a specific connection.
@@ -172,6 +169,9 @@ class MessageRouter(MessageRouterPort):
             message: Message to broadcast
         """
         start_time = time.time()
+        
+        # Buffer the event for late connections
+        await self._buffer_event(execution_id, message)
 
         # Try to publish to GraphQL subscriptions (if available)
         try:
@@ -185,6 +185,7 @@ class MessageRouter(MessageRouterPort):
 
         # Get all connections subscribed to this execution
         connection_ids = self.execution_subscriptions.get(execution_id, set())
+        
 
         if not connection_ids:
             return
@@ -267,11 +268,16 @@ class MessageRouter(MessageRouterPort):
             connection_id: Connection identifier
             execution_id: Execution to subscribe to
         """
+        # logger.debug(f"[MessageRouter] Subscribing connection {connection_id} to execution {execution_id}")
+        
         if execution_id not in self.execution_subscriptions:
             self.execution_subscriptions[execution_id] = set()
 
         self.execution_subscriptions[execution_id].add(connection_id)
-        logger.debug(f"Subscribed {connection_id} to execution {execution_id}")
+        # logger.debug(f"[MessageRouter] Connection subscribed successfully, total subs for {execution_id}: {len(self.execution_subscriptions[execution_id])}")
+        
+        # Replay buffered events to the new connection
+        await self._replay_buffered_events(connection_id, execution_id)
 
     async def unsubscribe_connection_from_execution(
         self, connection_id: str, execution_id: str
@@ -289,7 +295,79 @@ class MessageRouter(MessageRouterPort):
             if not self.execution_subscriptions[execution_id]:
                 del self.execution_subscriptions[execution_id]
 
-        logger.debug(f"Unsubscribed {connection_id} from execution {execution_id}")
+
+    async def _buffer_event(self, execution_id: str, message: dict) -> None:
+        """Buffer an event for late connections.
+        
+        Args:
+            execution_id: Execution identifier
+            message: Event message to buffer
+        """
+        # Initialize buffer if needed
+        if execution_id not in self._event_buffer:
+            self._event_buffer[execution_id] = []
+        
+        # Add timestamp if not present
+        if "timestamp" not in message:
+            message["timestamp"] = datetime.utcnow().isoformat()
+        
+        # Add to buffer
+        self._event_buffer[execution_id].append(message)
+        
+        # Trim buffer if it exceeds max size
+        if len(self._event_buffer[execution_id]) > self._buffer_max_size:
+            self._event_buffer[execution_id] = self._event_buffer[execution_id][-self._buffer_max_size:]
+
+    async def _replay_buffered_events(self, connection_id: str, execution_id: str) -> None:
+        """Replay buffered events to a new connection.
+        
+        Args:
+            connection_id: Connection to send events to
+            execution_id: Execution whose events to replay
+        """
+
+        if execution_id not in self._event_buffer:
+            return
+        
+        buffered_events = self._event_buffer.get(execution_id, [])
+        if not buffered_events:
+            return
+        
+
+        # Send buffered events to the new connection
+        for event in buffered_events:
+            # Skip heartbeat and connection events
+            event_type = event.get("type", "")
+            if event_type in ["HEARTBEAT", "CONNECTION_ESTABLISHED"]:
+                continue
+                
+            # Send the event to the specific connection
+            success = await self.route_to_connection(connection_id, event)
+            if not success:
+                logger.warning(f"[MessageRouter] Failed to replay event to connection {connection_id}")
+                break
+        
+
+    def _cleanup_old_buffers(self) -> None:
+        """Clean up old event buffers based on TTL."""
+        now = time.time()
+        cutoff_time = datetime.utcnow() - timedelta(seconds=self._buffer_ttl_seconds)
+        
+        executions_to_remove = []
+        for execution_id, events in self._event_buffer.items():
+            # Remove old events
+            events[:] = [
+                e for e in events
+                if "timestamp" in e and datetime.fromisoformat(e["timestamp"]) > cutoff_time
+            ]
+            
+            # Mark empty buffers for removal
+            if not events:
+                executions_to_remove.append(execution_id)
+        
+        # Remove empty buffers
+        for execution_id in executions_to_remove:
+            del self._event_buffer[execution_id]
 
     def get_stats(self) -> dict:
         """Get router statistics and health metrics.

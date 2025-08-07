@@ -4,7 +4,7 @@ These utilities help distinguish between LLM and non-LLM services
 """
 
 
-from dipeo.models import APIServiceType, LLMService
+from dipeo.diagram_generated import APIServiceType, LLMService
 
 # Set of APIServiceType values that are LLM services
 LLM_SERVICE_TYPES: set[APIServiceType] = {

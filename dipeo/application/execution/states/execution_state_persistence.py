@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.core.execution.execution_tracker import CompletionStatus
 from dipeo.core.execution.node_output import deserialize_protocol, serialize_protocol
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ExecutionState,
     ExecutionStatus,
     NodeExecutionStatus,

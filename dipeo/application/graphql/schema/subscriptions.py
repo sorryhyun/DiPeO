@@ -230,5 +230,57 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
             except Exception as e:
                 logger.error(f"Error in interactive prompt subscription: {e}")
                 raise
+        
+        @strawberry.subscription
+        async def execution_logs(
+            self, execution_id: strawberry.ID
+        ) -> AsyncGenerator[JSONScalar, None]:
+            """Subscribe to execution log events."""
+            message_router = registry.get(MESSAGE_ROUTER)
+            
+            if not message_router:
+                logger.error("Message router not available for subscriptions")
+                return
+            
+            exec_id = ExecutionID(str(execution_id))
+            
+            try:
+                # Create a queue for receiving events
+                event_queue = asyncio.Queue()
+                connection_id = f"graphql-log-subscription-{id(event_queue)}"
+                
+                # Define handler to put events in queue
+                async def event_handler(message):
+                    # Serialize the entire message to ensure all nested objects are JSON-safe
+                    serialized_message = serialize_for_json(message)
+                    await event_queue.put(serialized_message)
+                
+                # Register connection and subscribe to execution
+                await message_router.register_connection(connection_id, event_handler)
+                await message_router.subscribe_connection_to_execution(connection_id, str(exec_id))
+                
+                try:
+                    # Yield log events from queue
+                    while True:
+                        try:
+                            # Wait for events with timeout
+                            event = await asyncio.wait_for(event_queue.get(), timeout=30.0)
+                            # Filter for execution logs
+                            if event.get("type") == EventType.EXECUTION_LOG.value:
+                                yield serialize_for_json(event.get("data", {}))
+                        except asyncio.TimeoutError:
+                            # Continue waiting for events
+                            continue
+                finally:
+                    # Clean up subscription
+                    await message_router.unsubscribe_connection_from_execution(connection_id, str(exec_id))
+                    await message_router.unregister_connection(connection_id)
+                        
+            except asyncio.CancelledError:
+                logger.info(f"Execution log subscription cancelled: {exec_id}")
+                raise
+            except Exception as e:
+                logger.error(f"Error in execution log subscription: {e}")
+                raise
     
     return Subscription

@@ -87,27 +87,8 @@ class DiagramFormat(str, Enum):
     
 
 
-class ExecutionStatus(str, Enum):
+class Status(str, Enum):
     """Execution and event-related enumerations"""
-    
-    PENDING = "PENDING"
-    
-    RUNNING = "RUNNING"
-    
-    PAUSED = "PAUSED"
-    
-    COMPLETED = "COMPLETED"
-    
-    FAILED = "FAILED"
-    
-    ABORTED = "ABORTED"
-    
-    SKIPPED = "SKIPPED"
-    
-
-
-class NodeExecutionStatus(str, Enum):
-    """NodeExecutionStatus enum values"""
     
     PENDING = "PENDING"
     
@@ -143,6 +124,8 @@ class EventType(str, Enum):
     EXECUTION_ERROR = "EXECUTION_ERROR"
     
     EXECUTION_UPDATE = "EXECUTION_UPDATE"
+    
+    EXECUTION_LOG = "EXECUTION_LOG"
     
 
 
@@ -414,9 +397,7 @@ __all__ = [
     
     "DiagramFormat",
     
-    "ExecutionStatus",
-    
-    "NodeExecutionStatus",
+    "Status",
     
     "EventType",
     

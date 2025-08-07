@@ -14,7 +14,7 @@ from typing import Any, Optional
 from dipeo.core.constants import STATE_DB_PATH
 from dipeo.core.execution.node_output import serialize_protocol
 from dipeo.core.ports import StateStorePort
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
     ExecutionState,
@@ -62,7 +62,6 @@ class EventBasedStateStore(StateStorePort):
             await self._init_schema()
             await self._execution_cache.start()
             self._initialized = True
-            logger.info("EventBasedStateStore initialized")
     
     async def cleanup(self):
         """Cleanup resources."""
@@ -406,7 +405,7 @@ class EventBasedStateStore(StateStorePort):
             serialized_output = output
         else:
             from dipeo.core.execution.node_output import BaseNodeOutput
-            from dipeo.models import NodeID
+            from dipeo.diagram_generated import NodeID
             
             wrapped_output = BaseNodeOutput(
                 value={"default": str(output)} if is_exception else output,

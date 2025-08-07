@@ -6,7 +6,7 @@ from typing import Any
 
 from openai import AsyncOpenAI, OpenAI
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ChatResult,
     ImageGenerationResult,
     LLMRequestOptions,
@@ -27,6 +27,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         super().__init__(model_name, api_key, base_url)
         self.max_retries = 3
         self.retry_delay = 1.0
+        self._async_client = None  # Cache for async client
+        self._client_lock = None  # Will be initialized when needed
 
     def _initialize_client(self) -> OpenAI:
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
@@ -234,7 +236,16 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if is_sync:
             client = self.client
         else:
-            client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+            # Initialize lock if needed (first time)
+            if self._client_lock is None:
+                self._client_lock = asyncio.Lock()
+            
+            # Use cached async client or create one
+            async with self._client_lock:
+                if self._async_client is None:
+                    logger.debug(f"Creating new AsyncOpenAI client for {self.model_name}")
+                    self._async_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+                client = self._async_client
         
         for attempt in range(self.max_retries):
             try:

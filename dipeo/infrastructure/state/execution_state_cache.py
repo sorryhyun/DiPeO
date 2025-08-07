@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Any
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
     ExecutionState,

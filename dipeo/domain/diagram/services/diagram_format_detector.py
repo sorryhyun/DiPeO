@@ -7,7 +7,7 @@ from typing import Any
 import yaml
 
 from dipeo.core import ValidationError
-from dipeo.models import DiagramFormat, HandleLabel
+from dipeo.diagram_generated import DiagramFormat, HandleLabel
 
 
 class DiagramFormatDetector:

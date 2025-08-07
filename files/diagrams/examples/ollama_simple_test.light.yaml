@@ -29,6 +29,6 @@ connections:
 persons:
   assistant:
     service: ollama
-    model: gpt-oss:20b
+    model: llama3.2:1b
     api_key_id: APIKEY_DUMMY  # Ollama doesn't need a real API key
     system_prompt: You are a helpful AI assistant. Be concise and clear.

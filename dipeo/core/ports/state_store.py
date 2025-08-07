@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from dipeo.models import (
+    from dipeo.diagram_generated import (
         DiagramID,
         ExecutionID,
         ExecutionState,

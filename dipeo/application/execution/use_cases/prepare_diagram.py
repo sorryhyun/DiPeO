@@ -13,7 +13,7 @@ from dipeo.domain.diagram.utils import (
     domain_diagram_to_dict,
 )
 from dipeo.domain.validators import DiagramValidator
-from dipeo.models import DiagramMetadata, DomainDiagram
+from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 
 # Compiler imported inline where used
 

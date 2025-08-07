@@ -7,7 +7,7 @@ from typing import Any
 
 import anthropic
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ChatResult,
     ImageGenerationResult,
     LLMRequestOptions,

@@ -69,7 +69,12 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
 
   const { data: nodeData } = useNodeUpdatesSubscription(
     { executionId: executionId! },
-    { skip: skip || !executionId }
+    { 
+      skip: skip || !executionId,
+      onData: ({ data }) => {
+        console.log('[useExecutionGraphQL] Node subscription data:', data);
+      }
+    }
   );
 
   const { data: promptData } = useInteractivePromptsSubscription(

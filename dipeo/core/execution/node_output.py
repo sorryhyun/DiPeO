@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
-    from dipeo.models import Message, NodeID
+    from dipeo.diagram_generated import Message, NodeID
 
 T = TypeVar('T')
 

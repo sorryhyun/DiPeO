@@ -10,7 +10,7 @@ from dipeo.diagram_generated import (
     HandleLabel,
     NodeID,
 )
-from dipeo.models import (
+from dipeo.diagram_generated import (
     MemoryView,
     create_handle_id,
     parse_handle_id

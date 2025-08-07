@@ -80,17 +80,17 @@ connections:
   content_type: conversation_state
 persons:
   judge:
-    service: openai
-    model: gpt-4.1-nano
+    service: ollama
+    model: llama3.2:1b
     system_prompt: Say 25 words at most.
-    api_key_id: APIKEY_52609F
+    api_key_id: APIKEY_DUMMY  # Ollama doesn't need a real API key
   optimist:
-    service: openai
-    model: gpt-4.1-nano
+    service: ollama
+    model: llama3.2:1b
     system_prompt: Be optimistic and say 25 words at most.
-    api_key_id: APIKEY_52609F
+    api_key_id: APIKEY_DUMMY
   pessimist:
-    service: openai
-    model: gpt-4.1-nano-2025-04-14
+    service: ollama
+    model: llama3.2:1b
     system_prompt: Be pessimistic and say 25 words at most.
-    api_key_id: APIKEY_52609F
+    api_key_id: APIKEY_DUMMY

@@ -202,6 +202,8 @@ export function useExecutionUpdates({
     const updateData = nodeUpdates.data || nodeUpdates;
     const status = updateData.status || '';
     const nodeIdStr = updateData.node_id || '';
+    
+    console.log('[useExecutionUpdates] Node update received:', { status, nodeIdStr, updateData });
 
     if (status === 'RUNNING' && nodeIdStr) {
       handleNodeStart(nodeIdStr, updateData.node_type);

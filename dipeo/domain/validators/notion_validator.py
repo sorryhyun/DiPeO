@@ -4,7 +4,7 @@ from typing import Any
 
 from dipeo.core.base.exceptions import ValidationError
 from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
-from dipeo.models import NotionOperation
+from dipeo.diagram_generated import NotionOperation
 
 
 class NotionValidator(BaseValidator):

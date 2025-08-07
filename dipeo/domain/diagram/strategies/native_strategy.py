@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from dipeo.models import DomainDiagram
+from dipeo.diagram_generated import DomainDiagram
 
 from dipeo.domain.diagram.utils import _JsonMixin, build_node
 from .base_strategy import BaseConversionStrategy

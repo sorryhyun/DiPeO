@@ -10,7 +10,7 @@ from dipeo.core import BaseService
 from dipeo.domain.conversation.conversation import Conversation
 from dipeo.domain.conversation.conversation_manager import ConversationManager
 from dipeo.core.utils import is_conversation
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ApiKeyID,
     LLMService,
     Message,

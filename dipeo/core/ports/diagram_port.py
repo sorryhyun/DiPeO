@@ -9,7 +9,7 @@ from typing import (
 
 logger = logging.getLogger(__name__)
 
-from dipeo.models import DiagramFormat, DomainDiagram
+from dipeo.diagram_generated import DiagramFormat, DomainDiagram
 
 
 @runtime_checkable

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from dipeo.core.ports.state_store import StateStorePort
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
     from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
-    from dipeo.models import DomainDiagram
+    from dipeo.diagram_generated import DomainDiagram
 
     from ...registry import ServiceRegistry
     from dipeo.application.bootstrap import Container
@@ -61,7 +61,6 @@ class ExecuteDiagramUseCase(BaseService):
         execution_id: str,
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
-        use_monitoring_stream: bool = False,  # Enable log capture for CLI executions
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
@@ -70,7 +69,9 @@ class ExecuteDiagramUseCase(BaseService):
         
         # Always use unified monitoring
         from dipeo.application.execution.observers.unified_event_observer import UnifiedEventObserver
-        
+        import logging
+
+        logger = logging.getLogger(__name__)
         # If observers are provided (e.g., for sub-diagrams), use them
         if observers is not None:
             engine_observers = observers
@@ -79,9 +80,10 @@ class ExecuteDiagramUseCase(BaseService):
             unified_observer = UnifiedEventObserver(
                 message_router=self.message_router,
                 execution_runtime=typed_diagram,
-                capture_logs=use_monitoring_stream  # Enable log capture for CLI
+                capture_logs=True  # Always enable log capture
             )
             engine_observers = [unified_observer]
+            # logger.debug(f"[ExecuteDiagram] Created UnifiedEventObserver for execution {execution_id}")
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.registry.keys import EVENT_BUS
@@ -92,14 +94,34 @@ class ExecuteDiagramUseCase(BaseService):
         event_bus = None
         if self.service_registry.has(EVENT_BUS):
             event_bus = self.service_registry.resolve(EVENT_BUS)
+            # logger.debug(f"[ExecuteDiagram] Using event bus from registry")
+            
+            # Subscribe unified observer to event bus using adapter
+            if engine_observers:
+                from dipeo.infrastructure.events.observer_adapter import ObserverToEventConsumerAdapter
+                from dipeo.core.events import EventType
+                
+                for observer in engine_observers:
+                    adapter = ObserverToEventConsumerAdapter(observer)
+                    # Subscribe to all relevant event types
+                    event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
+                    event_bus.subscribe(EventType.NODE_STARTED, adapter)
+                    event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
+                    event_bus.subscribe(EventType.NODE_FAILED, adapter)
+                    event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
+                    # logger.debug(f"[ExecuteDiagram] Subscribed observer to event bus")
+        else:
+            # logger.debug(f"[ExecuteDiagram] No event bus in registry, will use observers")
+            pass
         
-        # Create engine with event bus (or observers for backward compatibility)
+        # Create engine with event bus (no need for observers when using event bus)
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             runtime_resolver=runtime_resolver,
             event_bus=event_bus,
             observers=engine_observers if not event_bus else None,
         )
+        # logger.debug(f"[ExecuteDiagram] Created engine with event_bus={bool(event_bus)}, observers={bool(engine_observers if not event_bus else None)}")
 
         # No update iterator needed with unified monitoring
 
@@ -142,7 +164,7 @@ class ExecuteDiagramUseCase(BaseService):
         
         try:
             # Wait for execution completion and yield status
-            if use_monitoring_stream or is_batch_item or is_sub_diagram:
+            if is_batch_item or is_sub_diagram:
                 # Wait for the execution task to complete
                 try:
                     await execution_task
@@ -185,7 +207,7 @@ class ExecuteDiagramUseCase(BaseService):
     
     async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Compile diagram to typed executable format."""
-        from dipeo.models import DomainDiagram
+        from dipeo.diagram_generated import DomainDiagram
         from dipeo.domain.diagram.utils import dict_to_domain_diagram
         from dipeo.infrastructure.services.diagram import DiagramConverterService
         
@@ -310,10 +332,7 @@ class ExecuteDiagramUseCase(BaseService):
                         # we can at least ensure the person memory is created
                         if hasattr(conversation_service, 'get_or_create_person_memory'):
                             conversation_service.get_or_create_person_memory(person_id)
-            
-            # Log person registrations
-            if person_configs:
-                log.debug(f"Registered {len(person_configs)} person configs for execution")
+
     
     async def _initialize_typed_execution_state(
         self,
@@ -324,7 +343,7 @@ class ExecuteDiagramUseCase(BaseService):
         """Initialize execution state for typed diagram."""
         from datetime import datetime
 
-        from dipeo.models import ExecutionState, ExecutionStatus, TokenUsage
+        from dipeo.diagram_generated import ExecutionState, ExecutionStatus, TokenUsage
         
         # Create initial execution state
         initial_state = ExecutionState(

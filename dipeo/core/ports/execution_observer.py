@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from dipeo.models import NodeState
+from dipeo.diagram_generated import NodeState
 
 
 class ExecutionObserver(Protocol):

@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 from dipeo.core.ports import ExecutionObserver, MessageRouterPort
-from dipeo.models import (
+from dipeo.diagram_generated import (
     EventType,
     ExecutionStatus,
     NodeExecutionStatus,
@@ -25,11 +25,8 @@ class UnifiedEventObserver(ExecutionObserver):
     This observer replaces both MonitoringStreamObserver and EventPublishingObserver,
     providing a single source of truth for real-time execution monitoring.
 
-    Events published through MessageRouter can be consumed by:
-    - SSE endpoints (via SSEMessageRouterAdapter)
-    - GraphQL subscriptions
-    - WebSocket connections
-    - Any future real-time transport
+    Events published through MessageRouter are consumed by GraphQL subscriptions
+    for real-time updates to connected clients.
     """
 
     def __init__(
@@ -66,6 +63,8 @@ class UnifiedEventObserver(ExecutionObserver):
     async def on_node_start(self, execution_id: str, node_id: str):
         """Handle node start event."""
         node_type = self._get_node_type(node_id)
+        
+        # logger.debug(f"[UnifiedEventObserver] on_node_start called for node {node_id}, type: {node_type}")
 
         await self._publish_event(
             execution_id,
@@ -153,9 +152,12 @@ class UnifiedEventObserver(ExecutionObserver):
             "timestamp": datetime.utcnow().isoformat(),
         }
 
+        # logger.debug(f"[UnifiedEventObserver] Publishing event: {event_type.value} for execution {execution_id}")
+        
         try:
             # Broadcast to all connections subscribed to this execution
             await self.message_router.broadcast_to_execution(execution_id, event)
+            # logger.debug(f"[UnifiedEventObserver] Event published successfully")
         except Exception as e:
             logger.error(f"Failed to publish event: {e}")
 
@@ -165,7 +167,7 @@ class UnifiedEventObserver(ExecutionObserver):
             return None
 
         try:
-            from dipeo.models import NodeID
+            from dipeo.diagram_generated import NodeID
 
             node = self.execution_runtime.get_node(NodeID(node_id))
             if node:
@@ -193,8 +195,6 @@ class UnifiedEventObserver(ExecutionObserver):
                 if any(
                     skip in msg
                     for skip in [
-                        "SSE connection",
-                        "EventSourceResponse",
                         "APIKeyService",
                         "[ExecutionLogStream]",
                         "POST /graphql",
@@ -213,9 +213,9 @@ class UnifiedEventObserver(ExecutionObserver):
                 # Publish log asynchronously
                 try:
                     loop = asyncio.get_running_loop()
-                    # Use custom event format for logs since EXECUTION_LOG is not in EventType enum
+                    # Use EventType.EXECUTION_LOG enum value
                     log_event = {
-                        "type": "EXECUTION_LOG",
+                        "type": EventType.EXECUTION_LOG.value,
                         "execution_id": self.exec_id,
                         "data": log_entry,
                         "timestamp": datetime.utcnow().isoformat(),

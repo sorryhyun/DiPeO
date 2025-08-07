@@ -11,7 +11,7 @@ from dipeo.diagram_generated.generated_nodes import NotionNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.domain.validators import NotionValidator
 from dipeo.diagram_generated.models.notion_model import NotionNodeData
-from dipeo.models import NotionOperation
+from dipeo.diagram_generated import NotionOperation
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
 
@@ -76,8 +76,8 @@ class NotionNodeHandler(TypedNodeHandler[NotionNode]):
         api_key = notion_key["key"]
         
         # Validate API key
-        api_key_result = self.validator.validate_api_key(api_key)
-        if api_key_result.has_errors():
+        api_key_result = self.validator.validate_api_key(api_key).is_valid
+        if not api_key_result:
             raise ValueError(f"Invalid API key: {api_key_result.errors[0].message}")
         
         # Validate operation configuration

@@ -2,7 +2,7 @@ import ast
 import operator
 from typing import Any
 
-from dipeo.models import DomainDiagram, NodeType
+from dipeo.diagram_generated import DomainDiagram, NodeType
 
 
 class ConditionEvaluator:

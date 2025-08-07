@@ -100,7 +100,6 @@ class ExecuteDiagramInput:
     debug_mode: Optional[bool] = None
     max_iterations: Optional[int] = None
     timeout_seconds: Optional[int] = None
-    use_monitoring_stream: Optional[bool] = None
     use_unified_monitoring: Optional[bool] = None
 
 

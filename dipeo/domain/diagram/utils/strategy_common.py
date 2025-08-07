@@ -14,7 +14,7 @@ from dipeo.diagram_generated import (
     NodeType,
 )
 from dipeo.domain.diagram.handle import create_handle_id
-from dipeo.models import MemoryView
+from dipeo.diagram_generated import MemoryView
 
 log = logging.getLogger(__name__)
 
@@ -295,6 +295,8 @@ class PersonExtractor:
             }
             if "system_prompt" in person_config:
                 llm_config["system_prompt"] = person_config["system_prompt"]
+            if "prompt_file" in person_config:
+                llm_config["prompt_file"] = person_config["prompt_file"]
             
             if is_light_format:
                 # In light format, the key is the label
@@ -341,6 +343,8 @@ class PersonExtractor:
                         }
                         if "system_prompt" in person_config:
                             llm_config["system_prompt"] = person_config["system_prompt"]
+                        if "prompt_file" in person_config:
+                            llm_config["prompt_file"] = person_config["prompt_file"]
                         
                         # Generate a consistent person ID
                         person_id = f"person_{person_name}"

@@ -212,7 +212,6 @@ input ExecuteDiagramInput {
   debug_mode: Boolean = null
   max_iterations: Int = null
   timeout_seconds: Int = null
-  use_monitoring_stream: Boolean = null
   use_unified_monitoring: Boolean = null
 }
 
@@ -407,6 +406,7 @@ type PersonLLMConfigType {
   model: String!
   api_key_id: String!
   system_prompt: String
+  prompt_file: String
 }
 
 type PersonResult {
@@ -450,6 +450,7 @@ type Subscription {
   execution_updates(execution_id: ID!): ExecutionUpdate!
   node_updates(execution_id: ID!, node_id: String = null): JSON!
   interactive_prompts(execution_id: ID!): JSON!
+  execution_logs(execution_id: ID!): JSON!
 }
 
 """Unique identifier for tasks"""

@@ -515,9 +515,9 @@
           "required": false
         },
         {
-          "name": "schema",
+          "name": "json_schema",
           "type": "code",
-          "label": "Schema",
+          "label": "Json Schema",
           "required": false
         },
         {

@@ -62,6 +62,7 @@ export interface PersonLLMConfig {
   model: string;
   api_key_id: ApiKeyID;
   system_prompt?: string | null;
+  prompt_file?: string | null;
 }
 
 export interface DomainPerson {

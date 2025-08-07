@@ -57,6 +57,34 @@ connections:
     label: variable_name    # Variable name in target node
 ```
 
+### Connection Syntax
+
+DiPeO supports two equivalent YAML syntaxes for connections:
+
+**Traditional Multi-line Format:**
+```yaml
+connections:
+  - from: Source Node
+    to: Target Node
+    content_type: raw_text
+    label: variable_name
+```
+
+**Compact Single-line Format:**
+```yaml
+connections:
+  # Simple connection
+  - {from: Source Node, to: Target Node}
+  
+  # With additional properties
+  - {from: Source Node, to: Target Node, content_type: raw_text, label: variable_name}
+```
+
+Both formats are functionally identical. The compact format is useful for:
+- Simple connections without many properties
+- Keeping related connections visually grouped
+- Reducing file length for large diagrams
+
 ### Node Labels and References
 
 - Labels must be unique within a diagram

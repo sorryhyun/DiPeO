@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { executionId } from '@/infrastructure/types';
+import { useExecutionLogsSubscription } from '@/__generated__/graphql';
 
 interface LogEntry {
   level: string;
@@ -9,80 +10,43 @@ interface LogEntry {
   node_id?: string;
 }
 
+/**
+ * Hook for execution log streaming via GraphQL subscription
+ */
 export function useExecutionLogStream(executionIdParam: ReturnType<typeof executionId> | null) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const lastExecutionIdRef = useRef<string | null>(null);
 
   const clearLogs = useCallback(() => {
     setLogs([]);
   }, []);
 
+  // Subscribe to execution logs via GraphQL
+  const { data } = useExecutionLogsSubscription({
+    variables: { executionId: executionIdParam || '' },
+    skip: !executionIdParam,
+  });
+
+  // Append new log entries as they arrive
   useEffect(() => {
-    if (!executionIdParam) return;
-
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+    if (data?.execution_logs) {
+      const logData = data.execution_logs;
+      if (typeof logData === 'object' && logData !== null) {
+        // Convert the log data to LogEntry format
+        const newLog: LogEntry = {
+          level: logData.level || 'INFO',
+          message: logData.message || '',
+          timestamp: logData.timestamp || new Date().toISOString(),
+          logger: logData.logger || '',
+          node_id: logData.node_id,
+        };
+        setLogs(prev => [...prev, newLog]);
+      }
     }
+  }, [data]);
 
-    // Only clear logs when starting a NEW execution (not when reconnecting to same execution)
-    if (lastExecutionIdRef.current && lastExecutionIdRef.current !== executionIdParam) {
-      clearLogs();
-    }
-    lastExecutionIdRef.current = executionIdParam;
-
-    // Create new SSE connection
-    const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/sse/executions/${executionIdParam}`;
-    const eventSource = new EventSource(url);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onopen = () => {
-      console.log('[ExecutionLogStream] SSE connection opened');
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        console.log('[ExecutionLogStream] Received event:', data.type);
-        
-        // Handle execution log events
-        if (data.type === 'EXECUTION_LOG' && data.data) {
-          const logEntry: LogEntry = {
-            level: data.data.level || 'INFO',
-            message: data.data.message || '',
-            timestamp: data.data.timestamp || new Date().toISOString(),
-            logger: data.data.logger || 'unknown',
-            node_id: data.data.node_id,
-          };
-          
-          console.log('[ExecutionLogStream] Adding log entry:', logEntry);
-          setLogs(prev => [...prev, logEntry]);
-        }
-      } catch (error) {
-        console.error('[ExecutionLogStream] Error parsing SSE message:', error);
-      }
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('[ExecutionLogStream] SSE connection error:', error);
-      
-      // If the connection is closed, don't try to reconnect
-      if (eventSource.readyState === EventSource.CLOSED) {
-        console.log('[ExecutionLogStream] SSE connection closed');
-        eventSourceRef.current = null;
-        // Keep the logs even when connection closes
-      }
-    };
-
-    // Cleanup on unmount or execution change
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    };
+  // Clear logs when execution changes
+  useEffect(() => {
+    clearLogs();
   }, [executionIdParam, clearLogs]);
 
   return {

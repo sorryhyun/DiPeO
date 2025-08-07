@@ -259,7 +259,6 @@ export type ExecuteDiagramInput = {
   diagram_id?: InputMaybe<Scalars['ID']['input']>;
   max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
-  use_monitoring_stream?: InputMaybe<Scalars['Boolean']['input']>;
   use_unified_monitoring?: InputMaybe<Scalars['Boolean']['input']>;
   variables?: InputMaybe<Scalars['JSON']['input']>;
 };
@@ -510,6 +509,7 @@ export type PersonLLMConfigType = {
   __typename?: 'PersonLLMConfigType';
   api_key_id: Scalars['String']['output'];
   model: Scalars['String']['output'];
+  prompt_file?: Maybe<Scalars['String']['output']>;
   service: LLMService;
   system_prompt?: Maybe<Scalars['String']['output']>;
 };
@@ -638,9 +638,15 @@ export type RegisterCliSessionInput = {
 
 export type Subscription = {
   __typename?: 'Subscription';
+  execution_logs: Scalars['JSON']['output'];
   execution_updates: ExecutionUpdate;
   interactive_prompts: Scalars['JSON']['output'];
   node_updates: Scalars['JSON']['output'];
+};
+
+
+export type Subscriptionexecution_logsArgs = {
+  execution_id: Scalars['ID']['input'];
 };
 
 
@@ -845,6 +851,13 @@ export type InteractivePromptsSubscriptionVariables = Exact<{
 
 
 export type InteractivePromptsSubscription = { __typename?: 'Subscription', interactive_prompts: any };
+
+export type ExecutionLogsSubscriptionVariables = Exact<{
+  executionId: Scalars['ID']['input'];
+}>;
+
+
+export type ExecutionLogsSubscription = { __typename?: 'Subscription', execution_logs: any };
 
 export type ControlExecutionMutationVariables = Exact<{
   input: ExecutionControlInput;
@@ -1741,6 +1754,34 @@ export function useInteractivePromptsSubscription(baseOptions: Apollo.Subscripti
       }
 export type InteractivePromptsSubscriptionHookResult = ReturnType<typeof useInteractivePromptsSubscription>;
 export type InteractivePromptsSubscriptionResult = Apollo.SubscriptionResult<InteractivePromptsSubscription>;
+export const ExecutionLogsDocument = gql`
+    subscription ExecutionLogs($executionId: ID!) {
+  execution_logs(execution_id: $executionId)
+}
+    `;
+
+/**
+ * __useExecutionLogsSubscription__
+ *
+ * To run a query within a React component, call `useExecutionLogsSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useExecutionLogsSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useExecutionLogsSubscription({
+ *   variables: {
+ *      executionId: // value for 'executionId'
+ *   },
+ * });
+ */
+export function useExecutionLogsSubscription(baseOptions: Apollo.SubscriptionHookOptions<ExecutionLogsSubscription, ExecutionLogsSubscriptionVariables> & ({ variables: ExecutionLogsSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<ExecutionLogsSubscription, ExecutionLogsSubscriptionVariables>(ExecutionLogsDocument, options);
+      }
+export type ExecutionLogsSubscriptionHookResult = ReturnType<typeof useExecutionLogsSubscription>;
+export type ExecutionLogsSubscriptionResult = Apollo.SubscriptionResult<ExecutionLogsSubscription>;
 export const ControlExecutionDocument = gql`
     mutation ControlExecution($input: ExecutionControlInput!) {
   control_execution(input: $input) {

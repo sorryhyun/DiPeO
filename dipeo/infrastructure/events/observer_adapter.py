@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING
 
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.core.ports import ExecutionObserver
+from dipeo.diagram_generated.enums import ExecutionStatus
 from dipeo.infrastructure.events import AsyncEventBus
 
 if TYPE_CHECKING:
-    from dipeo.models import NodeState
+    from dipeo.diagram_generated import NodeState
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,9 @@ class ObserverToEventConsumerAdapter(EventConsumer):
             
             elif event.type == EventType.NODE_STARTED:
                 node_id = event.data.get("node_id")
+                # logger.debug(f"[ObserverAdapter] NODE_STARTED event received for node {node_id}")
                 if node_id:
+                    # logger.debug(f"[ObserverAdapter] Calling observer.on_node_start for node {node_id}")
                     await self.observer.on_node_start(
                         execution_id=event.execution_id,
                         node_id=node_id
@@ -58,6 +61,18 @@ class ObserverToEventConsumerAdapter(EventConsumer):
                         execution_id=event.execution_id,
                         node_id=node_id,
                         error=event.data.get("error", "Unknown error")
+                    )
+            
+            elif event.type == EventType.EXECUTION_COMPLETED:
+                # Check if it's an error completion
+                if event.data.get("status") == ExecutionStatus.FAILED:
+                    await self.observer.on_execution_error(
+                        execution_id=event.execution_id,
+                        error=event.data.get("error", "Unknown error")
+                    )
+                else:
+                    await self.observer.on_execution_complete(
+                        execution_id=event.execution_id
                     )
             
             # Other event types are ignored as they don't map to observer methods

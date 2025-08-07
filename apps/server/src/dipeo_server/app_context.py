@@ -33,11 +33,11 @@ async def create_server_container() -> Container:
         MESSAGE_ROUTER,
         STATE_STORE,
     )
+    from dipeo.infrastructure.config import get_settings
+    from dipeo.infrastructure.events import AsyncEventBus
 
     # Create event bus with configuration
-    from dipeo.infrastructure.events import AsyncEventBus
-    from dipeo.infrastructure.config import get_settings
-    
+
     settings = get_settings()
     event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
     container.registry.register(EVENT_BUS, event_bus)
@@ -69,7 +69,7 @@ async def create_server_container() -> Container:
     # Create streaming monitor for real-time UI updates
     from dipeo.infrastructure.monitoring import StreamingMonitor
     streaming_monitor = StreamingMonitor(message_router, queue_size=settings.monitoring_queue_size)
-    
+
     # Subscribe streaming monitor to all events
     event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)
     event_bus.subscribe(EventType.NODE_STARTED, streaming_monitor)
@@ -81,7 +81,7 @@ async def create_server_container() -> Container:
     # Create metrics observer for performance analysis
     from dipeo.application.execution.observers import MetricsObserver
     metrics_observer = MetricsObserver(event_bus=event_bus)
-    
+
     # Subscribe metrics observer to execution events
     event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
     event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)

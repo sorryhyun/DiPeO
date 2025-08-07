@@ -40,7 +40,7 @@ class DiPeOCLI:
 
     def __init__(self):
         self.server = ServerManager()
-        
+
         # Initialize command handlers
         self.run_command = RunCommand(self.server)
         self.convert_command = ConvertCommand()

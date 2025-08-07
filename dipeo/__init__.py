@@ -6,7 +6,7 @@ It re-exports the core functionality from the various sub-packages for easier im
 
 Usage:
     from dipeo import core, domain, application, infra, container
-    from dipeo.models import (Person, Diagram, NodeType)
+    from dipeo.diagram_generated import (Person, Diagram, NodeType)
 """
 
 import warnings

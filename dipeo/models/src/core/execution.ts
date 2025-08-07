@@ -6,11 +6,13 @@
 
 import type { NodeID, DiagramID } from './diagram.js';
 import type { Message } from './conversation.js';
-import { ExecutionStatus, NodeExecutionStatus, EventType } from './enums/execution.js';
+import { Status, EventType } from './enums/execution.js';
+import type { ExecutionStatus, NodeExecutionStatus } from './enums/execution.js';
 
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
-export { ExecutionStatus, NodeExecutionStatus, EventType };
+export { Status, EventType };
+export type { ExecutionStatus, NodeExecutionStatus };
 
 export interface TokenUsage {
   input: number;
@@ -136,7 +138,7 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
   const now = new Date().toISOString();
   return {
     id: executionId,
-    status: ExecutionStatus.PENDING,
+    status: Status.PENDING,
     diagram_id: diagramId ?? null,
     started_at: now,
     ended_at: null,
@@ -151,19 +153,46 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
   };
 }
 
-export function isExecutionActive(status: ExecutionStatus): boolean {
+/**
+ * Check if a status represents an active execution state
+ */
+export function isStatusActive(status: Status): boolean {
   return [
-    ExecutionStatus.PENDING,
-    ExecutionStatus.RUNNING,
-    ExecutionStatus.PAUSED
+    Status.PENDING,
+    Status.RUNNING,
+    Status.PAUSED
   ].includes(status);
 }
 
-export function isNodeExecutionActive(status: NodeExecutionStatus): boolean {
-  return [
-    NodeExecutionStatus.PENDING,
-    NodeExecutionStatus.RUNNING,
-    NodeExecutionStatus.PAUSED
-  ].includes(status);
+/**
+ * Check if a status is valid for an execution context (excludes MAXITER_REACHED)
+ */
+export function isValidExecutionStatus(status: Status): boolean {
+  return status !== Status.MAXITER_REACHED;
+}
+
+/**
+ * Check if a status represents successful completion
+ * For nodes, both COMPLETED and MAXITER_REACHED are considered successful
+ */
+export function isStatusSuccessful(status: Status, isNode: boolean = false): boolean {
+  if (isNode) {
+    return status === Status.COMPLETED || status === Status.MAXITER_REACHED;
+  }
+  return status === Status.COMPLETED;
+}
+
+/**
+ * @deprecated Use isStatusActive instead
+ */
+export function isExecutionActive(status: Status): boolean {
+  return isStatusActive(status);
+}
+
+/**
+ * @deprecated Use isStatusActive instead
+ */
+export function isNodeExecutionActive(status: Status): boolean {
+  return isStatusActive(status);
 }
 

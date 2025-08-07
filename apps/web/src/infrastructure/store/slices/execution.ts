@@ -156,7 +156,7 @@ export const createExecutionSlice: StateCreator<
   
   // Node state management
   updateNodeExecution: (nodeId, nodeState) => set(state => {
-    // console.log('[ExecutionSlice] Updating node execution:', nodeId, nodeState);
+    console.log('[ExecutionSlice] Updating node execution:', nodeId, nodeState);
     updateNodeState(state, nodeId, nodeState);
   }),
   

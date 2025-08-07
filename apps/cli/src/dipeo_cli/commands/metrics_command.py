@@ -24,10 +24,9 @@ class MetricsCommand:
     ):
         """Display execution metrics."""
         # Ensure server is running
-        if not self.server.is_running():
-            if not self.server.start():
-                print("❌ Failed to start server")
-                return
+        if not self.server.is_running() and not self.server.start():
+            print("❌ Failed to start server")
+            return
 
         try:
             # GraphQL endpoint

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from dipeo.core.execution.node_output import NodeOutputProtocol
-    from dipeo.models import NodeID
+    from dipeo.diagram_generated import NodeID
 
 
 class FlowStatus(Enum):

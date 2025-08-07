@@ -8,7 +8,7 @@ from typing import Any
 
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.core.ports import StateStorePort
-from dipeo.models import ExecutionStatus, NodeExecutionStatus
+from dipeo.diagram_generated import ExecutionStatus, NodeExecutionStatus
 from .execution_state_cache import ExecutionStateCache
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,6 @@ class AsyncStateManager(EventConsumer):
         self._running = True
         await self._execution_cache.start()
         self._write_task = asyncio.create_task(self._write_loop())
-        logger.info("AsyncStateManager started")
     
     async def stop(self) -> None:
         """Stop the async state manager and flush remaining writes."""
@@ -53,8 +52,6 @@ class AsyncStateManager(EventConsumer):
         
         # Stop execution cache
         await self._execution_cache.stop()
-        
-        logger.info("AsyncStateManager stopped")
     
     async def consume(self, event: ExecutionEvent) -> None:
         """Process events asynchronously."""

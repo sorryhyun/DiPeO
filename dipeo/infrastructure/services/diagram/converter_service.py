@@ -11,7 +11,7 @@ from dipeo.domain.diagram.strategies import (
     ReadableYamlStrategy,
     ExecutableJsonStrategy,
 )
-from dipeo.models import DomainDiagram
+from dipeo.diagram_generated import DomainDiagram
 
 logger = logging.getLogger(__name__)
 

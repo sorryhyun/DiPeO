@@ -54,6 +54,10 @@ subscription InteractivePrompts($executionId: ID!) {
   interactive_prompts(execution_id: $executionId)
 }
 
+subscription ExecutionLogs($executionId: ID!) {
+  execution_logs(execution_id: $executionId)
+}
+
 # Execution Mutations
 mutation ControlExecution($input: ExecutionControlInput!) {
   control_execution(input: $input) {

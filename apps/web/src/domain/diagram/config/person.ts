@@ -8,6 +8,7 @@ interface ExtendedPersonData extends Partial<DomainPerson> {
   'llm_config.api_key_id'?: string;
   'llm_config.model'?: string;
   'llm_config.system_prompt'?: string;
+  'llm_config.prompt_file'?: string;
   'llm_config.service'?: string;
 }
 
@@ -112,6 +113,13 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
     label: 'System Prompt',
     placeholder: 'Enter system prompt',
     rows: 4,
+    column: 2
+  },
+  {
+    name: 'llm_config.prompt_file' as keyof ExtendedPersonData & string,
+    type: 'text',
+    label: 'Prompt File Path',
+    placeholder: 'e.g., prompts/my_prompt.txt (relative to DIPEO_BASE_DIR)',
     column: 2
   }
 ];

@@ -1,12 +1,12 @@
 """
 Strawberry GraphQL types for DiPeO domain models.
 
-This module creates Strawberry types from Pydantic domain models
-using the @strawberry.experimental.pydantic.type decorator.
+This module extends generated GraphQL types with custom fields and functionality
+that can't be automatically generated.
 """
 
 import strawberry
-from typing import Optional, List, Dict, Any
+from typing import Optional
 from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
@@ -40,8 +40,15 @@ from .scalars import (
     TaskIDScalar,
 )
 
+# Import generated types - these are the base types we'll extend
+from dipeo.diagram_generated.graphql.strawberry_domain import (
+    MemorySettingsType,
+    ToolConfigType,
+)
+
 # Create Strawberry types from Pydantic models using experimental decorator
 # Order matters - define types that are referenced by others first
+# Note: MemorySettingsType is now imported from generated code
 
 @strawberry.experimental.pydantic.type(Vec2, all_fields=True)
 class Vec2Type:
@@ -49,10 +56,6 @@ class Vec2Type:
 
 @strawberry.experimental.pydantic.type(TokenUsage, all_fields=True)
 class TokenUsageType:
-    pass
-
-@strawberry.experimental.pydantic.type(MemorySettings, all_fields=True)
-class MemorySettingsType:
     pass
 
 @strawberry.experimental.pydantic.type(PersonLLMConfig, all_fields=True)
@@ -187,7 +190,8 @@ __all__ = [
     'DomainNodeType',
     'DomainArrowType',
     'PersonLLMConfigType',
-    'MemorySettingsType',
+    'MemorySettingsType',  # Re-exported from generated code
+    'ToolConfigType',  # Re-exported from generated code
     'DomainPersonType',
     'DomainApiKeyType',
     'DiagramMetadataType',

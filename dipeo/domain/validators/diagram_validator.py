@@ -4,7 +4,7 @@ from typing import Any
 
 from dipeo.core.base.exceptions import ValidationError
 from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DomainDiagram,
     DomainNode,
     NodeType,

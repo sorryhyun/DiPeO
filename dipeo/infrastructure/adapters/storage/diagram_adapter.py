@@ -9,7 +9,7 @@ from dipeo.core import BaseService, StorageError
 from dipeo.domain.ports.storage import DiagramStoragePort, DiagramInfo, FileSystemPort
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.infrastructure.services.diagram import DiagramConverterService
-from dipeo.models import DiagramFormat
+from dipeo.diagram_generated import DiagramFormat
 
 logger = logging.getLogger(__name__)
 

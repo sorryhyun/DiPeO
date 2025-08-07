@@ -2,21 +2,12 @@
 
 import asyncio
 import logging
-from collections import defaultdict
-from typing import Any, Dict, List, Protocol
+from typing import Any
 
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.core.ports import MessageRouterPort
 
 logger = logging.getLogger(__name__)
-
-
-class StreamClient(Protocol):
-    """Protocol for streaming clients."""
-    
-    async def send(self, data: dict[str, Any]) -> None:
-        """Send data to the client."""
-        ...
 
 
 class StreamingMonitor(EventConsumer):
@@ -25,13 +16,12 @@ class StreamingMonitor(EventConsumer):
     This service:
     - Consumes execution events asynchronously
     - Transforms events to UI-friendly format
-    - Manages client subscriptions per execution
+    - Forwards events to GraphQL subscriptions via MessageRouter
     - Provides backpressure to prevent memory issues
     """
     
     def __init__(self, message_router: MessageRouterPort, queue_size: int = 10000):
         self.message_router = message_router
-        self._execution_streams: Dict[str, List[StreamClient]] = defaultdict(list)
         self._event_queue = asyncio.Queue(maxsize=queue_size)  # Bounded queue for backpressure
         self._running = False
         self._process_task: asyncio.Task | None = None
@@ -43,7 +33,6 @@ class StreamingMonitor(EventConsumer):
         
         self._running = True
         self._process_task = asyncio.create_task(self._process_events())
-        logger.info("StreamingMonitor started")
     
     async def stop(self) -> None:
         """Stop the streaming monitor."""
@@ -55,11 +44,6 @@ class StreamingMonitor(EventConsumer):
                 await self._process_task
             except asyncio.CancelledError:
                 pass
-        
-        # Clear all subscriptions
-        self._execution_streams.clear()
-        
-        logger.info("StreamingMonitor stopped")
     
     async def consume(self, event: ExecutionEvent) -> None:
         """Consume events asynchronously without blocking execution."""
@@ -165,7 +149,8 @@ class StreamingMonitor(EventConsumer):
                 "data": event.data,
             }
     
-    def _sanitize_output(self, output: Any) -> Any:
+    @staticmethod
+    def _sanitize_output(output: Any) -> Any:
         """Sanitize output for UI display."""
         if output is None:
             return None
@@ -190,7 +175,8 @@ class StreamingMonitor(EventConsumer):
         
         return output
     
-    def _map_completion_status(self, status: Any) -> str:
+    @staticmethod
+    def _map_completion_status(status: Any) -> str:
         """Map internal status to UI status."""
         if status is None:
             return "completed"
@@ -205,7 +191,8 @@ class StreamingMonitor(EventConsumer):
         else:
             return status_str
     
-    def _map_status(self, event_type: EventType) -> str:
+    @staticmethod
+    def _map_status(event_type: EventType) -> str:
         """Map event type to UI status."""
         if event_type == EventType.EXECUTION_STARTED:
             return "started"

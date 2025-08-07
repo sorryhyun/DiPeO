@@ -154,7 +154,7 @@ class TypedExecutionEngine:
             
         except Exception as e:
             # Emit execution completed with failed status
-            from dipeo.models import ExecutionStatus
+            from dipeo.diagram_generated import ExecutionStatus
             
             if context:
                 await context.emit_event(
@@ -334,6 +334,7 @@ class TypedExecutionEngine:
                     "node_name": getattr(node, 'name', str(node_id)),
                     "status": node_state.status.value if node_state else "unknown",
                     "output": self._serialize_output(output),
+                    "node_state": node_state,  # Include the full node state for observers
                     "metrics": {
                         "duration_ms": duration_ms,
                         "start_time": start_time,

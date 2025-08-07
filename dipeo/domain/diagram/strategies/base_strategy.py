@@ -6,7 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo.models import DomainDiagram
+from dipeo.diagram_generated import DomainDiagram
 
 from dipeo.core.ports import FormatStrategy
 from dipeo.domain.diagram.utils import (
@@ -231,7 +231,7 @@ class BaseConversionStrategy(FormatStrategy, ABC):
     
     def _build_arrows_dict(self, arrows_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Override for custom arrow creation."""
-        from dipeo.models import ContentType
+        from dipeo.diagram_generated import ContentType
         
         arrows_dict = {}
         for i, arrow_data in enumerate(arrows_list):

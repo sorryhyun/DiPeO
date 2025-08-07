@@ -57,7 +57,6 @@ class RunCommand:
             result = self.server.execute_diagram(
                 diagram_data,
                 input_variables,
-                use_monitoring_stream=True,
                 use_unified_monitoring=use_unified,
                 diagram_name=diagram_name or Path(diagram_path).stem,
                 diagram_format=diagram_format,
@@ -111,7 +110,6 @@ class RunCommand:
                 if elapsed > timeout:
                     print(f"⏰ Execution timed out after {timeout} seconds")
                     # Stop the server before returning
-                    print("🛑 Stopping server...")
                     self.server.stop()
                     return False
 
@@ -150,5 +148,4 @@ class RunCommand:
                 self.server.unregister_cli_session(execution_id)
 
             # Always stop server after execution completes
-            print("🛑 Stopping server...")
             self.server.stop()

@@ -95,6 +95,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
           0;
         
+        console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
         execution.connectToExecution(activeSession.execution_id, nodeCount);
         hasStartedRef.current = true;
       }

@@ -115,7 +115,11 @@ class EdgeBuilder:
         
         # Arrow label sets the target_input for labeled connections
         # This allows the receiving node to get the input with the label as the key
+        # But we also preserve the original handle in metadata for special handling
         if arrow.label:
+            # Store the original handle before overriding
+            edge_metadata = edge_metadata or {}
+            edge_metadata['original_target_handle'] = target_input
             target_input = arrow.label
         
         

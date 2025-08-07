@@ -9,7 +9,7 @@ from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.domain.ports.storage import DiagramStoragePort
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.domain.diagram.utils import dict_to_domain_diagram
-from dipeo.models import DiagramFormat, DomainDiagram
+from dipeo.diagram_generated import DiagramFormat, DomainDiagram
 from .converter_service import DiagramConverterService
 
 logger = logging.getLogger(__name__)

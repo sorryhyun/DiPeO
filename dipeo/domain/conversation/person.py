@@ -1,8 +1,10 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ChatResult,
     MemorySettings,
     MemoryView as MemoryViewEnum,
@@ -179,10 +181,38 @@ class Person:
     def _prepare_messages_for_llm(self) -> list[dict[str, str]]:
         llm_messages = []
         
-        if self.llm_config.system_prompt:
+        # Determine system prompt content
+        system_prompt_content = None
+        
+        # First check if prompt_file is specified
+        if self.llm_config.prompt_file:
+            # Resolve path relative to DIPEO_BASE_DIR if not absolute
+            prompt_path = Path(self.llm_config.prompt_file)
+            if not prompt_path.is_absolute():
+                base_dir = os.environ.get('DIPEO_BASE_DIR', os.getcwd())
+                prompt_path = Path(base_dir) / prompt_path
+            
+            # Read prompt from file if it exists
+            if prompt_path.exists():
+                try:
+                    system_prompt_content = prompt_path.read_text(encoding='utf-8')
+                except Exception as e:
+                    # Log error but continue with fallback
+                    print(f"Warning: Could not read prompt file {prompt_path}: {e}")
+                    # Fall back to system_prompt if file reading fails
+                    system_prompt_content = self.llm_config.system_prompt
+            else:
+                print(f"Warning: Prompt file {prompt_path} not found, falling back to system_prompt")
+                system_prompt_content = self.llm_config.system_prompt
+        else:
+            # Use system_prompt if no prompt_file specified
+            system_prompt_content = self.llm_config.system_prompt
+        
+        # Add system prompt if we have content
+        if system_prompt_content:
             llm_messages.append({
                 "role": "system",
-                "content": self.llm_config.system_prompt
+                "content": system_prompt_content
             })
         
         for msg in self.get_messages():

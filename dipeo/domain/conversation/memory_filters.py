@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Protocol
 
-from dipeo.models import Message, PersonID
+from dipeo.diagram_generated import Message, PersonID
 
 
 class MemoryView(Enum):

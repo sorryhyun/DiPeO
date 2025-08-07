@@ -7,7 +7,7 @@ The actual implementation lives in the application layer.
 from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from dipeo.models import DomainDiagram
+    from dipeo.diagram_generated import DomainDiagram
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 

@@ -2,31 +2,113 @@
   "nodes": [
     {
       "id": "node_0",
+      "type": "person_job",
+      "position": {
+        "x": 600,
+        "y": 452
+      },
+      "data": {
+        "label": "optimist",
+        "default_prompt": "Argue against the argument.",
+        "first_only_prompt": "Suggest a reasonable argument: {{topic}}",
+        "flipped": [
+          false,
+          true
+        ],
+        "max_iteration": 2,
+        "memory_profile": "GOLDFISH",
+        "person": "person_optimist",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        }
+      }
+    },
+    {
+      "id": "node_1",
+      "type": "endpoint",
+      "position": {
+        "x": 58,
+        "y": 668
+      },
+      "data": {
+        "label": "end",
+        "file_format": "txt",
+        "flipped": [
+          true,
+          false
+        ],
+        "save_to_file": true,
+        "file_name": "files/results/output.txt"
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "db",
+      "position": {
+        "x": 431,
+        "y": 148
+      },
+      "data": {
+        "label": "db",
+        "file": "files/uploads/questions.txt",
+        "operation": "read",
+        "sub_type": "file"
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "person_job",
+      "position": {
+        "x": 899,
+        "y": 380
+      },
+      "data": {
+        "label": "pessimist",
+        "default_prompt": "Argue against the argument.",
+        "first_only_prompt": "Suggest a reasonable argument: {{topic}}",
+        "flipped": [
+          false,
+          true
+        ],
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "person": "person_pessimist",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        }
+      }
+    },
+    {
+      "id": "node_4",
       "type": "start",
       "position": {
-        "x": 330,
-        "y": 200
+        "x": 177,
+        "y": 320
       },
       "data": {
         "label": "start",
-        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {}
       }
     },
     {
-      "id": "node_1",
+      "id": "node_5",
       "type": "person_job",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 439,
+        "y": 663
       },
       "data": {
-        "label": "printer",
-        "default_prompt": "say hi",
-        "max_iteration": 3,
+        "label": "judge panel",
+        "default_prompt": "Judge which panel is more reasonable.",
+        "flipped": true,
+        "max_iteration": 1,
         "memory_profile": "FULL",
-        "person": "person_person_1",
+        "person": "person_judge",
         "memory_settings": {
           "view": "all_involved",
           "max_messages": null,
@@ -36,11 +118,11 @@
       }
     },
     {
-      "id": "node_2",
+      "id": "node_6",
       "type": "condition",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 785,
+        "y": 647
       },
       "data": {
         "label": "condition",
@@ -50,82 +132,45 @@
           true
         ]
       }
-    },
-    {
-      "id": "node_3",
-      "type": "endpoint",
-      "position": {
-        "x": 0,
-        "y": 437
-      },
-      "data": {
-        "label": "endpoint",
-        "file_format": "txt",
-        "flipped": [
-          true,
-          false
-        ],
-        "save_to_file": true,
-        "file_name": "files/results/total.txt"
-      }
-    },
-    {
-      "id": "node_4",
-      "type": "person_job",
-      "position": {
-        "x": 311,
-        "y": 443
-      },
-      "data": {
-        "label": "ask",
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
-        ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person_person_1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "first_only_prompt": ""
-      }
     }
   ],
   "arrows": [
     {
       "id": "arrow_0",
-      "source": "node_0_default_output",
+      "source": "node_2_default_output",
+      "target": "node_0_first_input",
+      "label": "topic",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_1",
+      "source": "node_2_default_output",
+      "target": "node_3_first_input",
+      "label": "topic",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_4_default_output",
+      "target": "node_2_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_5_default_output",
       "target": "node_1_default_input",
       "label": null,
       "data": null,
       "content_type": "raw_text"
     },
     {
-      "id": "arrow_1",
-      "source": "node_1_default_output",
-      "target": "node_2_default_input",
-      "label": null,
-      "data": null,
-      "content_type": "conversation_state"
-    },
-    {
-      "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
-      "label": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "conversation_state"
-    },
-    {
-      "id": "arrow_3",
-      "source": "node_2_condtrue_output",
-      "target": "node_4_default_input",
+      "id": "arrow_4",
+      "source": "node_6_condtrue_output",
+      "target": "node_5_default_input",
       "label": null,
       "data": {
         "branch": "true"
@@ -133,28 +178,87 @@
       "content_type": "conversation_state"
     },
     {
-      "id": "arrow_4",
-      "source": "node_4_default_output",
+      "id": "arrow_5",
+      "source": "node_0_default_output",
       "target": "node_3_default_input",
       "label": null,
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "conversation_state"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_3_default_output",
+      "target": "node_6_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "conversation_state"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_6_condfalse_output",
+      "target": "node_0_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "conversation_state"
     }
   ],
   "persons": [
     {
-      "id": "person_person_1",
-      "label": "person 1",
+      "id": "person_judge",
+      "label": "judge",
       "llm_config": {
-        "service": "ollama",
-        "model": "gpt-oss:20b",
-        "api_key_id": "APIKEY_21A814",
-        "system_prompt": null
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "Say 25 words at most.",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "person_optimist",
+      "label": "optimist",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "Be optimistic and say 25 words at most.",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "person_pessimist",
+      "label": "pessimist",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano-2025-04-14",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "Be pessimistic and say 25 words at most.",
+        "prompt_file": null
       },
       "type": "person"
     }
   ],
   "handles": [
+    {
+      "id": "node_0_first_input",
+      "node_id": "node_0",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_0_default_input",
+      "node_id": "node_0",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
     {
       "id": "node_0_default_output",
       "node_id": "node_0",
@@ -162,14 +266,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -180,14 +276,6 @@
       "position": "left"
     },
     {
-      "id": "node_1_default_output",
-      "node_id": "node_1",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
@@ -196,20 +284,20 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_3_default_input",
@@ -220,20 +308,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_4_default_input",
-      "node_id": "node_4",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
       "label": "default",
-      "direction": "input",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_output",
@@ -242,6 +322,54 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_first_input",
+      "node_id": "node_5",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_condtrue_output",
+      "node_id": "node_6",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_6_condfalse_output",
+      "node_id": "node_6",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
     }
   ],
   "metadata": {
@@ -249,8 +377,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-06T12:30:55.552Z",
-    "modified": "2025-08-06T12:30:55.552Z",
+    "created": "2025-08-07T05:37:26.558Z",
+    "modified": "2025-08-07T05:37:26.558Z",
     "version": "1.0.0",
     "id": null
   }

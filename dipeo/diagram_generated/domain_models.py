@@ -95,6 +95,7 @@ class PersonLLMConfig(BaseModel):
     model: str
     api_key_id: ApiKeyID
     system_prompt: Optional[str] = Field(default=None)
+    prompt_file: Optional[str] = Field(default=None)
 
 
 class DomainPerson(BaseModel):
@@ -467,7 +468,7 @@ class JsonSchemaValidatorNodeData(BaseNodeData):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     schema_path: Optional[str] = Field(default=None)
-    schema: Optional[Dict[str, Any]] = Field(default=None)
+    json_schema: Optional[Dict[str, Any]] = Field(default=None)
     data_path: Optional[str] = Field(default=None)
     strict_mode: Optional[bool] = Field(default=None)
     error_on_extra: Optional[bool] = Field(default=None)

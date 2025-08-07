@@ -3,7 +3,7 @@
 # Re-export enums
 from .enums import (
     NodeType,
-    NodeExecutionStatus,
+    Status,
     LLMService,
     ContentType,
     DataType,
@@ -16,11 +16,14 @@ from .enums import (
     HttpMethod,
     HookType,
     HookTriggerMode,
-    ExecutionStatus,
     EventType,
     APIServiceType,
     ToolType,
 )
+
+# Backward compatibility aliases
+ExecutionStatus = Status
+NodeExecutionStatus = Status
 from .integrations import (
     NotionOperation
 )

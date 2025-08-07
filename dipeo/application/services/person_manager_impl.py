@@ -3,7 +3,7 @@
 
 from dipeo.domain.conversation.person import Person
 from dipeo.domain.conversation.person_manager import PersonManager
-from dipeo.models import LLMService, PersonID, PersonLLMConfig
+from dipeo.diagram_generated import LLMService, PersonID, PersonLLMConfig
 
 
 class PersonManagerImpl(PersonManager):

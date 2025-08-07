@@ -1,3 +1,7 @@
+/**
+ * @deprecated This hook is no longer used. Use useExecution instead which handles
+ * real-time updates through GraphQL subscriptions.
+ */
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useStream, type StreamProtocol } from '@/infrastructure/hooks/core/useStream';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
