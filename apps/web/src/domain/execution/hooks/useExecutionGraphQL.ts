@@ -48,8 +48,10 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
   const [submitInteractiveResponseMutation] = useSubmitInteractiveResponseMutation();
 
   // Subscriptions - using factory-generated hooks
+  // The subscription variable is 'execution_id' not 'executionId' (underscore not camelCase)
+  // Provide a dummy execution_id when skipping to avoid GraphQL validation errors
   const { data: executionData } = useExecutionUpdatesSubscription(
-    { executionId: executionId! },
+    { execution_id: executionId || 'dummy-id-for-skip' },
     { skip: skip || !executionId }
   );
 

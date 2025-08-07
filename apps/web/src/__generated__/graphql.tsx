@@ -2401,7 +2401,15 @@ export type HealthCheckSuspenseQueryHookResult = ReturnType<typeof useHealthChec
 export type HealthCheckQueryResult = Apollo.QueryResult<HealthCheckQuery, HealthCheckQueryVariables>;
 export const ListConversationsDocument = gql`
     query ListConversations($person_id: ID, $execution_id: ID, $search: String, $show_forgotten: Boolean, $limit: Int, $offset: Int, $since: DateTime) {
-  conversations
+  conversations(
+    person_id: $person_id
+    execution_id: $execution_id
+    search: $search
+    show_forgotten: $show_forgotten
+    limit: $limit
+    offset: $offset
+    since: $since
+  )
 }
     `;
 

@@ -21,8 +21,9 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
   }, []);
 
   // Subscribe to execution logs via GraphQL
+  // Provide a dummy execution_id when skipping to avoid GraphQL validation errors
   const { data } = useExecutionUpdatesSubscription({
-    variables: { execution_id: executionIdParam || '' },
+    variables: { execution_id: executionIdParam || 'dummy-id-for-skip' },
     skip: !executionIdParam,
   });
 

@@ -567,7 +567,7 @@ export interface GetPromptFileVariables {
     $offset: Int, 
     $since: DateTime
   ) {
-    conversations
+    conversations(person_id: $person_id, execution_id: $execution_id, search: $search, show_forgotten: $show_forgotten, limit: $limit, offset: $offset, since: $since)
   }
 `;
 export interface ListConversationsVariables {
