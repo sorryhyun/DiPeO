@@ -11,7 +11,7 @@ from dipeo.diagram_generated.enums import Status
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
-    DIAGRAM_STORAGE_SERVICE,
+    DIAGRAM_SERVICE_NEW,
     API_KEY_SERVICE,
     CONVERSATION_SERVICE,
     CONVERSATION_MANAGER,
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.core.ports.state_store import StateStorePort
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
+    from dipeo.infrastructure.services.diagram import DiagramService
     from dipeo.diagram_generated import DomainDiagram
 
     from ...registry import ServiceRegistry
@@ -37,7 +37,7 @@ class ExecuteDiagramUseCase(BaseService):
         service_registry: "ServiceRegistry",
         state_store: Optional["StateStorePort"] = None,
         message_router: Optional["MessageRouterPort"] = None,
-        diagram_storage_service: Optional["DiagramStorageAdapter"] = None,
+        diagram_service: Optional["DiagramService"] = None,
         container: Optional["Container"] = None,
     ):
         super().__init__()
@@ -46,14 +46,14 @@ class ExecuteDiagramUseCase(BaseService):
         
         self.state_store = state_store or service_registry.resolve(STATE_STORE)
         self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
-        self.diagram_storage_service = diagram_storage_service or service_registry.resolve(DIAGRAM_STORAGE_SERVICE)
+        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_SERVICE_NEW)
         
         if not self.state_store:
             raise ValueError("state_store is required but not found in service registry")
         if not self.message_router:
             raise ValueError("message_router is required but not found in service registry")
-        if not self.diagram_storage_service:
-            raise ValueError("diagram_storage_service is required but not found in service registry")
+        if not self.diagram_service:
+            raise ValueError("diagram_service is required but not found in service registry")
         
         # Get prepare diagram service for clean deserialization -> compilation
         self._prepare_diagram_service = None
@@ -63,7 +63,7 @@ class ExecuteDiagramUseCase(BaseService):
 
     async def execute_diagram(  # type: ignore[override]
         self,
-        diagram: "DomainDiagram | dict[str, Any]",  # Accept DomainDiagram or dict for compatibility
+        diagram: "DomainDiagram",  # Now only accepts DomainDiagram
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable | None = None,
@@ -223,10 +223,9 @@ class ExecuteDiagramUseCase(BaseService):
             # Re-raise any exceptions
             raise
     
-    async def _prepare_and_compile_diagram(self, diagram: "DomainDiagram | dict[str, Any]", options: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
+    async def _prepare_and_compile_diagram(self, diagram: "DomainDiagram", options: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Prepare and compile diagram using the standard flow."""
         from dipeo.diagram_generated import DomainDiagram
-        from dipeo.domain.diagram.models import LightDiagram
         
         # Try to get prepare diagram service from registry
         if not self._prepare_diagram_service:
@@ -244,41 +243,10 @@ class ExecuteDiagramUseCase(BaseService):
             )
         else:
             # Fallback to inline implementation if service not available
-            from dipeo.infrastructure.services.diagram import DiagramConverterService
-            from dipeo.domain.diagram.utils import dict_to_domain_diagram
             from dipeo.application.registry import COMPILATION_SERVICE
             
-            # Check if already a DomainDiagram
-            if isinstance(diagram, DomainDiagram):
-                domain_diagram = diagram
-            elif isinstance(diagram, dict):
-                # Detect format from dict
-                version = diagram.get("version") or diagram.get("format")
-                
-                if version in ["light", "readable"]:
-                    # Light format - parse and convert
-                    light_diagram = LightDiagram.from_dict(diagram)
-                    
-                    # Validate the light diagram
-                    errors = light_diagram.validate()
-                    if errors:
-                        import logging
-                        logger = logging.getLogger(__name__)
-                        for error in errors:
-                            logger.warning(f"Light diagram validation warning: {error}")
-                    
-                    # Convert using existing converter
-                    converter = DiagramConverterService()
-                    await converter.initialize()
-                    
-                    import yaml
-                    yaml_content = yaml.dump(light_diagram.to_dict(), default_flow_style=False, sort_keys=False)
-                    domain_diagram = converter.deserialize(yaml_content, "light")
-                else:
-                    # Native format dict - convert directly
-                    domain_diagram = dict_to_domain_diagram(diagram)
-            else:
-                raise ValueError(f"Unsupported diagram type: {type(diagram)}")
+            # Already have a DomainDiagram, just compile it
+            domain_diagram = diagram
             
             # Compile to ExecutableDiagram
             compiler = self.service_registry.resolve(COMPILATION_SERVICE)

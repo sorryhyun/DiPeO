@@ -95,18 +95,7 @@ class DiagramConverterService(BaseService, DiagramStorageSerializer):
         
         strategy = self.get_strategy(fmt)
         return strategy.deserialize_to_domain(content)
-    
-    # Keep old methods for backward compatibility during migration
-    def serialize(self, diagram: DomainDiagram, format_id: str | None = None) -> str:
-        """DEPRECATED: Use serialize_for_storage() instead."""
-        if not format_id:
-            format_id = self.active_format or "native"
-        return self.serialize_for_storage(diagram, format_id)
-    
-    def deserialize(self, content: str, format_id: str | None = None) -> DomainDiagram:
-        """DEPRECATED: Use deserialize_from_storage() instead."""
-        return self.deserialize_from_storage(content, format_id)
-    
+
     def validate(
         self, content: str, format_id: str | None = None
     ) -> tuple[bool, list[str]]:
@@ -114,7 +103,7 @@ class DiagramConverterService(BaseService, DiagramStorageSerializer):
             return False, ["DiagramConverterService not initialized"]
             
         try:
-            self.deserialize(content, format_id)
+            self.deserialize_from_storage(content, format_id)
             return True, []
         except Exception as e:
             return False, [str(e)]

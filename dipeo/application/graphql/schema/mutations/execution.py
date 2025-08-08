@@ -38,22 +38,49 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 message_router = registry.resolve(MESSAGE_ROUTER)
                 integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
                 
-                # Get diagram data - prefer DomainDiagram model for type safety
-                diagram_data = None
+                # Get diagram data - must be DomainDiagram for type safety
+                from dipeo.diagram_generated import DomainDiagram
+                
+                domain_diagram = None
                 if input.diagram_id:
-                    # Try to get typed model first
+                    # Load diagram model by ID
                     if hasattr(integrated_service, 'get_diagram_model'):
-                        diagram_data = await integrated_service.get_diagram_model(input.diagram_id)
+                        domain_diagram = await integrated_service.get_diagram_model(input.diagram_id)
+                    elif hasattr(integrated_service, 'load_from_file'):
+                        # Try to load from file
+                        domain_diagram = await integrated_service.load_from_file(input.diagram_id)
                     else:
-                        # Fallback to dict
-                        diagram_data = await integrated_service.get_diagram(input.diagram_id)
+                        # Fallback: get dict and convert
+                        diagram_dict = await integrated_service.get_diagram(input.diagram_id)
+                        # Convert dict to DomainDiagram
+                        from dipeo.infrastructure.services.diagram import DiagramConverterService
+                        converter = DiagramConverterService()
+                        await converter.initialize()
+                        import json
+                        json_content = json.dumps(diagram_dict)
+                        domain_diagram = converter.deserialize_from_storage(json_content, "native")
                 elif input.diagram_data:
-                    # Direct dict provided
-                    diagram_data = input.diagram_data
+                    # Direct dict provided - need to convert to DomainDiagram
+                    from dipeo.infrastructure.services.diagram import DiagramConverterService
+                    converter = DiagramConverterService()
+                    await converter.initialize()
+                    
+                    # Detect format from the dict
+                    format_hint = input.diagram_data.get("version") or input.diagram_data.get("format")
+                    if format_hint in ["light", "readable"]:
+                        # Light or readable format - convert to YAML
+                        import yaml
+                        content = yaml.dump(input.diagram_data, default_flow_style=False, sort_keys=False)
+                        domain_diagram = converter.deserialize_from_storage(content, format_hint)
+                    else:
+                        # Native format - convert to JSON
+                        import json
+                        json_content = json.dumps(input.diagram_data)
+                        domain_diagram = converter.deserialize_from_storage(json_content, "native")
                 else:
                     raise ValueError("Either diagram_id or diagram_data must be provided")
                 
-                if not diagram_data:
+                if not domain_diagram:
                     raise ValueError("Diagram not found")
                 
                 # Create execution use case
@@ -81,7 +108,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 
                 async def run_execution():
                     async for update in use_case.execute_diagram(
-                        diagram=diagram_data,
+                        diagram=domain_diagram,
                         options=options,
                         execution_id=str(execution_id),
                     ):

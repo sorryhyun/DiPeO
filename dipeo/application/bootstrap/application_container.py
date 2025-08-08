@@ -13,8 +13,6 @@ from dipeo.application.registry.keys import (
     CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_CONVERTER,
-    DIAGRAM_STORAGE,
-    DIAGRAM_STORAGE_SERVICE,
     DIAGRAM_VALIDATOR,
     EXECUTION_SERVICE,
     FILESYSTEM_ADAPTER,
@@ -100,10 +98,19 @@ class ApplicationContainer:
 
         from dipeo.infrastructure.services.diagram import DiagramService
         from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+        from pathlib import Path
+        from dipeo.core.config import Config
+        
+        # Get filesystem and config
+        filesystem = self.registry.resolve(FILESYSTEM_ADAPTER)
+        config = Config()
+        base_path = Path(config.base_dir) / "files"
+        
         self.registry.register(
             DIAGRAM_SERVICE_NEW,
             lambda: DiagramService(
-                storage=self.registry.resolve(DIAGRAM_STORAGE),
+                filesystem=filesystem,
+                base_path=base_path,
                 converter=None  # Will create default converter
             )
         )
@@ -114,7 +121,7 @@ class ApplicationContainer:
                 service_registry=self.registry,
                 state_store=self.registry.resolve(STATE_STORE),
                 message_router=self.registry.resolve(MESSAGE_ROUTER),
-                diagram_storage_service=self.registry.resolve(DIAGRAM_STORAGE),
+                diagram_service=self.registry.resolve(DIAGRAM_SERVICE_NEW),
             )
         )
         
@@ -122,7 +129,7 @@ class ApplicationContainer:
         self.registry.register(
             PREPARE_DIAGRAM_USE_CASE,
             lambda: PrepareDiagramForExecutionUseCase(
-                storage_service=self.registry.resolve(DIAGRAM_STORAGE),
+                storage_service=None,  # No longer needed, using diagram_service
                 validator=self.registry.resolve(DIAGRAM_VALIDATOR),
                 api_key_service=self.registry.resolve(API_KEY_SERVICE),
                 service_registry=self.registry,

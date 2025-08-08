@@ -27,11 +27,9 @@ if TYPE_CHECKING:
         PersonManagerImpl,
     )
     from dipeo.infrastructure.adapters.storage import (
-        DiagramStorageAdapter,
         BlobStoreAdapter,
         ArtifactStoreAdapter,
     )
-    from dipeo.domain.ports.storage import DiagramStoragePort
     from dipeo.infrastructure.services.diagram import DiagramService, DiagramConverterService
     from dipeo.domain.db.services import DBOperationsDomainService
     from dipeo.core.execution import ExecutionContext
@@ -51,8 +49,6 @@ EVENT_BUS = ServiceKey["EventEmitter"]("event_bus")
 # Storage Services
 BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
 ARTIFACT_STORE = ServiceKey["ArtifactStoreAdapter"]("artifact_store")
-DIAGRAM_STORAGE_SERVICE = ServiceKey["DiagramStorageAdapter"]("diagram_storage_service")
-DIAGRAM_STORAGE = ServiceKey["DiagramStoragePort"]("diagram_storage_adapter")
 FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 
 # Application Services
@@ -122,8 +118,6 @@ __all__ = [
     # Storage
     "BLOB_STORE",
     "ARTIFACT_STORE",
-    "DIAGRAM_STORAGE_SERVICE",
-    "DIAGRAM_STORAGE",
     "FILESYSTEM_ADAPTER",
     
     # Application

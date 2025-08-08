@@ -128,10 +128,3 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
     def quick_match(self, content: str) -> bool:
         return content.lstrip().startswith("{") and '"nodes"' in content
     
-    def parse(self, content: str) -> dict[str, Any]:
-        """Parse JSON content."""
-        return self._parse_json(content)
-    
-    def format(self, data: dict[str, Any]) -> str:
-        """Format data as JSON."""
-        return self._format_json(data)

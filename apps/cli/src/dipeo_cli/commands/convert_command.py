@@ -39,21 +39,28 @@ class ConvertCommand:
             print("✓ Conversion complete")
             return
 
-        # Use the unified converter for format conversion
+        # Use the diagram service for format conversion
         try:
             # Import required modules
-            from dipeo.domain.diagram.unified_converter import UnifiedDiagramConverter
+            from dipeo.infrastructure.services.diagram import DiagramService
+            from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+            from dipeo.core.config import Config
 
-            # Create converter
-            converter = UnifiedDiagramConverter()
+            # Create diagram service
+            config = Config()
+            filesystem = LocalFileSystemAdapter(base_path=Path(config.base_dir))
+            diagram_service = DiagramService(
+                filesystem=filesystem,
+                base_path=Path(config.base_dir) / "files"
+            )
 
             # Load the diagram data
             with Path(input_path).open(encoding="utf-8") as f:
                 content = f.read()
 
             # Convert: deserialize from source format, serialize to target format
-            diagram = converter.deserialize(content, format_id=from_format)
-            output_content = converter.serialize(diagram, format_id=to_format)
+            diagram = diagram_service.deserialize(content, from_format)
+            output_content = diagram_service.serialize(diagram, to_format)
 
             # Save the converted content
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)

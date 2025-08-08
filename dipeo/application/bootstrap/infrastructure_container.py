@@ -8,8 +8,6 @@ from dipeo.application.registry.keys import (
     ARTIFACT_STORE,
     AST_PARSER,
     BLOB_STORE,
-    DIAGRAM_STORAGE,
-    DIAGRAM_STORAGE_SERVICE,
     DIAGRAM_VALIDATOR,
     EXECUTION_SERVICE,
     INTEGRATED_API_SERVICE,
@@ -71,20 +69,10 @@ class InfrastructureContainer:
             APIKeyService(file_path=api_key_path)
         )
 
-        # Diagram storage adapter
-        from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
-        diagram_storage_adapter = DiagramStorageAdapter(
-            filesystem=filesystem_adapter,
-            base_path=Path(self.config.base_dir) / "files"
-        )
-        # Register under both keys for backward compatibility
-        self.registry.register(DIAGRAM_STORAGE, diagram_storage_adapter)
-        self.registry.register(DIAGRAM_STORAGE_SERVICE, diagram_storage_adapter)
-
-        # Artifact store (using existing patterns)
+        # Artifact store - None for now (can be added when needed)
         self.registry.register(
             ARTIFACT_STORE,
-            lambda: self.registry.resolve(DIAGRAM_STORAGE)
+            None  # Will be replaced with proper artifact store when needed
         )
 
     def _setup_llm_adapter(self):
