@@ -10,7 +10,6 @@ import { endpointSpec } from './endpoint.spec.js';
 import { hookSpec } from './hook.spec.js';
 import { integratedApiSpec } from './integrated-api.spec.js';
 import { jsonSchemaValidatorSpec } from './json-schema-validator.spec.js';
-import { notionSpec } from './notion.spec.js';
 import { personBatchJobSpec } from './person-batch-job.spec.js';
 import { personJobSpec } from './person-job.spec.js';
 import { startSpec } from './start.spec.js';
@@ -28,7 +27,6 @@ export {
   hookSpec,
   integratedApiSpec,
   jsonSchemaValidatorSpec,
-  notionSpec,
   personBatchJobSpec,
   personJobSpec,
   startSpec,
@@ -47,7 +45,6 @@ export const nodeSpecificationRegistry: NodeSpecificationRegistry = {
   hook: hookSpec,
   integrated_api: integratedApiSpec,
   json_schema_validator: jsonSchemaValidatorSpec,
-  notion: notionSpec,
   person_batch_job: personBatchJobSpec,
   person_job: personJobSpec,
   start: startSpec,

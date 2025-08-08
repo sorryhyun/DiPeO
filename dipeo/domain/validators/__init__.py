@@ -13,7 +13,6 @@ from .data_validator import DataValidator
 from .diagram_validator import DiagramValidator
 from .execution_validator import ExecutionValidator
 from .file_validator import FileValidator, PathValidator
-from .notion_validator import NotionValidator
 from .validation_rules import (
     ValidationRules,
     ValidationSeverity,
@@ -30,7 +29,6 @@ __all__ = [
     "ExecutionValidator",
     "FileValidator",
     "PathValidator",
-    "NotionValidator",
     "Severity",
     "ValidationResult",
     "ValidationWarning",

@@ -7,7 +7,6 @@ from .db_models import *
 from .endpoint_models import *
 from .hook_models import *
 from .jsonschemavalidator_models import *
-from .notion_models import *
 from .personbatchjob_models import *
 from .personjob_models import *
 from .start_models import *

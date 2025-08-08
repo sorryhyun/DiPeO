@@ -10,7 +10,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-08T17:37:09.198254
+Generated at: 2025-08-08T18:16:56.946989
 """
 
 import strawberry
@@ -75,11 +75,6 @@ class JsonSchemaValidatorDataType:
     """Validate data against JSON schema - Data fields only"""
     pass
 
-
-@strawberry.experimental.pydantic.type(NotionNodeData, all_fields=True)
-class NotionDataType:
-    """Integrate with Notion API to query, create, or update database entries - Data fields only"""
-    pass
 
 
 @strawberry.experimental.pydantic.type(PersonBatchJobNodeData, all_fields=True)
@@ -147,8 +142,6 @@ NodeDataUnion = strawberry.union(
 
         JsonSchemaValidatorDataType,
 
-        NotionDataType,
-
         PersonBatchJobDataType,
 
         PersonJobDataType,
@@ -187,8 +180,6 @@ __all__ = [
     'IntegratedApiDataType',
 
     'JsonSchemaValidatorDataType',
-
-    'NotionDataType',
 
     'PersonBatchJobDataType',
 

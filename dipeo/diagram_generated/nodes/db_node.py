@@ -28,7 +28,7 @@ class DbNode:
     
     # Required node-specific fields
     sub_type: DBBlockSubType
-    operation: NotionOperation
+    operation: Optional[str]
     
     # Optional base fields
     label: str = ""

@@ -10,7 +10,6 @@ export * from './endpoint.data.js';
 export * from './hook.data.js';
 export * from './integrated-api.data.js';
 export * from './json-schema-validator.data.js';
-export * from './notion.data.js';
 export * from './person-batch-job.data.js';
 export * from './person-job.data.js';
 export * from './start.data.js';

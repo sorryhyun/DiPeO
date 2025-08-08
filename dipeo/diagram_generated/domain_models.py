@@ -19,7 +19,6 @@ from typing import *
 from pydantic import *
 
 from .enums import *
-from .integrations import *
 
 
 ApiKeyID = NewType('ApiKeyID', str)
@@ -475,16 +474,6 @@ class JsonSchemaValidatorNodeData(BaseNodeData):
     error_on_extra: Optional[bool] = Field(default=None)
 
 
-class NotionNodeData(BaseNodeData):
-    """NotionNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    api_key: str
-    database_id: str
-    operation: NotionOperation
-    page_id: Optional[str] = Field(default=None)
-
-
 class PersonJobNodeData(BaseNodeData):
     """PersonJobNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -695,9 +684,6 @@ def is_integrated_api_node_data(obj: Any) -> bool:
 def is_json_schema_validator_node_data(obj: Any) -> bool:
     """Check if object is a JsonSchemaValidatorNodeData."""
     return isinstance(obj, JsonSchemaValidatorNodeData)
-def is_notion_node_data(obj: Any) -> bool:
-    """Check if object is a NotionNodeData."""
-    return isinstance(obj, NotionNodeData)
 def is_person_job_node_data(obj: Any) -> bool:
     """Check if object is a PersonJobNodeData."""
     return isinstance(obj, PersonJobNodeData)

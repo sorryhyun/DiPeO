@@ -5,10 +5,9 @@
  */
 
 import { LLMService, APIServiceType, ToolType } from './enums/integrations.js';
-import { NotionOperation } from './enums/node-specific.js';
 import { TokenUsage } from './execution.js';
 
-export { LLMService, APIServiceType, ToolType, NotionOperation };
+export { LLMService, APIServiceType, ToolType };
 
 export interface ToolConfig {
   type: ToolType;

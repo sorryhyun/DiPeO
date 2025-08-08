@@ -2,14 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ApiJobNodeData",
   "definitions": {
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -53,6 +45,14 @@
         "method",
         "url"
       ],
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
       "type": "object"
     },
     "HttpMethod": {

@@ -342,35 +342,6 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 
 
 
-@dataclass(frozen=True)
-class NotionNode(BaseExecutableNode):
-    # Required node-specific fields
-    api_key: str = field()
-    database_id: str = field()
-    operation: NotionOperation = field()
-    # Type field with default
-    type: NodeType = field(default=NodeType.NOTION, init=False)
-    # Base optional fields
-    label: str = ""
-    flipped: bool = False
-    metadata: Optional[Dict[str, Any]] = None
-    # Optional node-specific fields
-    page_id: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
-        data = super().to_dict()
-        data["type"] = self.type.value
-        data["label"] = self.label
-        data["flipped"] = self.flipped
-        if self.metadata:
-            data["metadata"] = self.metadata
-        data["api_key"] = self.api_key
-        data["database_id"] = self.database_id
-        data["operation"] = self.operation.value if self.operation is not None else None
-        data["page_id"] = self.page_id
-        return data
-
 
 
 @dataclass(frozen=True)
@@ -592,7 +563,6 @@ ExecutableNode = Union[
     HookNode,
     IntegratedApiNode,
     JsonSchemaValidatorNode,
-    NotionNode,
     PersonJobNode,
     StartNode,
     SubDiagramNode,
@@ -725,7 +695,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             provider=data.get("provider"),
-            operation=_to_enum(data.get("operation"), NotionOperation),
+            operation=data.get("operation"),
             config=data.get("config", None),
             resource_id=data.get("resource_id", None),
             timeout=data.get("timeout", None),
@@ -748,19 +718,6 @@ def create_executable_node(
         )
     
 
-    if node_type == NodeType.NOTION:
-        return NotionNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            api_key=data.get("api_key"),
-            database_id=data.get("database_id"),
-            operation=_to_enum(data.get("operation"), NotionOperation),
-            page_id=data.get("page_id", None),
-        )
-    
 
     if node_type == NodeType.PERSON_JOB:
         return PersonJobNode(

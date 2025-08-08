@@ -47,11 +47,3 @@ export enum TemplateEngine {
   INTERNAL = 'internal',
   JINJA2 = 'jinja2'
 }
-
-// Notion-specific enum (if needed, could be in a separate file)
-export enum NotionOperation {
-  CREATE_PAGE = 'create_page',
-  UPDATE_PAGE = 'update_page',
-  GET_PAGE = 'get_page',
-  QUERY_DATABASE = 'query_database'
-}

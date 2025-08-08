@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/SubDiagramNodeData",
   "definitions": {
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "SubDiagramNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -46,6 +42,10 @@
       "required": [
         "label"
       ],
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

@@ -10,7 +10,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-08T17:37:09.259492
+Generated at: 2025-08-08T18:16:57.036670
 """
 
 import strawberry
@@ -175,22 +175,6 @@ class UpdateJsonSchemaValidatorInput:
     position: Optional[Vec2Input] = None
 
 
-@strawberry.input
-class CreateNotionInput:
-    """Input for creating a Notion node"""
-    diagram_id: str
-    position: Vec2Input
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: strawberry.scalars.JSON
-
-@strawberry.input  
-class UpdateNotionInput:
-    """Input for updating a Notion node"""
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: Optional[strawberry.scalars.JSON] = None
-    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
@@ -870,72 +854,6 @@ class NodeMutations:
         )
 
 
-    @strawberry.mutation
-    async def create_notion_node(
-        self,
-        info: Info,
-        input: CreateNotionInput
-    ) -> NotionDataType:
-        """Create a Notion node"""
-        registry: ServiceRegistry = info.context["registry"]
-        
-        
-        # Prepare node data
-        node_data = {
-            "type": "notion",
-            "position": input.position,
-            "data": input.data
-        }
-        
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
-        
-        # Create the node
-        domain_node = await integrated_service.create_node(
-            diagram_id=input.diagram_id,
-            node_data=node_data
-        )
-        
-        
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
-
-
-    @strawberry.mutation
-    async def update_notion_node(
-        self,
-        info: Info,
-        id: str, input: UpdateNotionInput
-    ) -> NotionDataType:
-        """Update a Notion node"""
-        registry: ServiceRegistry = info.context["registry"]
-        
-        
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
-        
-        # Update the node
-        domain_node = await integrated_service.update_node(
-            diagram_id=None,  # TODO: Need diagram_id from somewhere
-            node_id=id,
-            data=input.data
-        )
-        
-        
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
 
 
     @strawberry.mutation
@@ -1443,9 +1361,6 @@ __all__ = [
 
     'CreateJsonSchemaValidatorInput',
     'UpdateJsonSchemaValidatorInput',
-
-    'CreateNotionInput',
-    'UpdateNotionInput',
 
     'CreatePersonBatchJobInput',
     'UpdatePersonBatchJobInput',

@@ -333,18 +333,6 @@ class TemplateEngine(str, Enum):
     
 
 
-class NotionOperation(str, Enum):
-    """NotionOperation enum values"""
-    
-    CREATE_PAGE = "create_page"
-    
-    UPDATE_PAGE = "update_page"
-    
-    GET_PAGE = "get_page"
-    
-    QUERY_DATABASE = "query_database"
-    
-
 
 class NodeType(str, Enum):
     """Node type definitions for the DiPeO system"""
@@ -364,8 +352,6 @@ class NodeType(str, Enum):
     DB = "db"
     
     USER_RESPONSE = "user_response"
-    
-    NOTION = "notion"
     
     PERSON_BATCH_JOB = "person_batch_job"
     
@@ -428,8 +414,6 @@ __all__ = [
     "ConditionType",
     
     "TemplateEngine",
-    
-    "NotionOperation",
     
     "NodeType",
     

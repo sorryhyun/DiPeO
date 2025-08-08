@@ -28,7 +28,7 @@ class IntegratedApiNode:
     
     # Required node-specific fields
     provider: Literal["notion", "slack", "github", "jira", "google_search"]
-    operation: NotionOperation
+    operation: str
     
     # Optional base fields
     label: str = ""

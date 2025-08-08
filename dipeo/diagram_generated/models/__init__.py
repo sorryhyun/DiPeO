@@ -19,7 +19,6 @@ from .endpoint_model import EndpointNodeData
 from .hook_model import HookNodeData
 from .integrated_api_model import IntegratedApiNodeData
 from .json_schema_validator_model import JsonSchemaValidatorNodeData
-from .notion_model import NotionNodeData
 from .person_batch_job_model import PersonBatchJobNodeData
 from .person_job_model import PersonJobNodeData
 from .start_model import StartNodeData
@@ -39,7 +38,6 @@ __all__ = [
     "HookNodeData",
     "IntegratedApiNodeData",
     "JsonSchemaValidatorNodeData",
-    "NotionNodeData",
     "PersonBatchJobNodeData",
     "PersonJobNodeData",
     "StartNodeData",

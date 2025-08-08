@@ -4,12 +4,12 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { LLMService, APIServiceType, NotionOperation, ToolConfig } from './integration.js';
+import { LLMService, APIServiceType, ToolConfig } from './integration.js';
 import { NodeType } from './enums/node-types.js';
 import { HandleDirection, HandleLabel, DataType, ContentType } from './enums/data-types.js';
 import { MemoryView } from './enums/memory.js';
 
-export { LLMService, APIServiceType, NotionOperation };
+export { LLMService, APIServiceType };
 export type { ToolConfig };
 export * from './nodes/index.js';
 export * from './enums/index.js';

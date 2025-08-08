@@ -216,6 +216,12 @@
           "label": "Glob",
           "required": false,
           "defaultValue": false
+        },
+        {
+          "name": "format",
+          "type": "text",
+          "label": "Format",
+          "required": false
         }
       ]
     },
@@ -338,35 +344,6 @@
           "min": 0,
           "max": 600,
           "defaultValue": 30
-        }
-      ]
-    },
-    {
-      "nodeType": "notion",
-      "fields": [
-        {
-          "name": "api_key",
-          "type": "text",
-          "label": "Api Key",
-          "required": true
-        },
-        {
-          "name": "database_id",
-          "type": "text",
-          "label": "Database Id",
-          "required": true
-        },
-        {
-          "name": "operation",
-          "type": "select",
-          "label": "Operation",
-          "required": true
-        },
-        {
-          "name": "page_id",
-          "type": "text",
-          "label": "Page Id",
-          "required": false
         }
       ]
     },

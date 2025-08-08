@@ -20,9 +20,6 @@ from .enums import (
     ToolType,
     Status
 )
-from .integrations import (
-    NotionOperation
-)
 # Re-export all domain models
 from .domain_models import (
     # Core types
@@ -104,7 +101,6 @@ __all__ = [
     "HookTriggerMode",
     "EventType",
     "APIServiceType",
-    "NotionOperation",
     "ToolType",
     "Status",
 
