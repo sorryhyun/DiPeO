@@ -18,7 +18,6 @@ from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 from dipeo.diagram_generated.models.db_model import DbNodeData
 from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
-from dipeo.diagram_generated.models.notion_model import NotionNodeData
 from dipeo.diagram_generated.models.hook_model import HookNodeData
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchemaValidatorNodeData
