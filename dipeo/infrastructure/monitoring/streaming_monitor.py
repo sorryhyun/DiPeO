@@ -47,6 +47,12 @@ class StreamingMonitor(EventConsumer):
     
     async def consume(self, event: ExecutionEvent) -> None:
         """Consume events asynchronously without blocking execution."""
+        # Critical events should be processed immediately
+        if event.type == EventType.EXECUTION_COMPLETED:
+            # Process critical events immediately without queueing
+            await self._handle_event(event)
+            return
+        
         try:
             # Non-blocking put to avoid impacting execution
             self._event_queue.put_nowait(event)
@@ -98,42 +104,57 @@ class StreamingMonitor(EventConsumer):
         if event.type == EventType.EXECUTION_STARTED:
             return {
                 **base_event,
-                "status": "started",
-                "diagramId": event.data.get("diagram_id"),
-                "diagramName": event.data.get("diagram_name"),
+                "event_type": "EXECUTION_STATUS_CHANGED",
+                "data": {
+                    "status": "STARTED",
+                    "diagramId": event.data.get("diagram_id"),
+                    "diagramName": event.data.get("diagram_name"),
+                }
             }
         
         elif event.type == EventType.NODE_STARTED:
             return {
                 **base_event,
-                "nodeId": event.data.get("node_id"),
-                "status": "running",
-                "nodeType": event.data.get("node_type"),
+                "event_type": "NODE_STATUS_CHANGED",
+                "data": {
+                    "node_id": event.data.get("node_id"),
+                    "status": "RUNNING",
+                    "node_type": event.data.get("node_type"),
+                }
             }
         
         elif event.type == EventType.NODE_COMPLETED:
             return {
                 **base_event,
-                "nodeId": event.data.get("node_id"),
-                "status": "completed",
-                "output": self._sanitize_output(event.data.get("output")),
-                "metrics": event.data.get("metrics", {}),
+                "event_type": "NODE_STATUS_CHANGED",
+                "data": {
+                    "node_id": event.data.get("node_id"),
+                    "status": "COMPLETED",
+                    "output": self._sanitize_output(event.data.get("output")),
+                    "metrics": event.data.get("metrics", {}),
+                }
             }
         
         elif event.type == EventType.NODE_FAILED:
             return {
                 **base_event,
-                "nodeId": event.data.get("node_id"),
-                "status": "failed",
-                "error": event.data.get("error"),
+                "event_type": "NODE_STATUS_CHANGED",
+                "data": {
+                    "node_id": event.data.get("node_id"),
+                    "status": "FAILED",
+                    "error": event.data.get("error"),
+                }
             }
         
         elif event.type == EventType.EXECUTION_COMPLETED:
             return {
                 **base_event,
-                "status": self._map_completion_status(event.data.get("status")),
-                "error": event.data.get("error"),
-                "summary": event.data.get("summary", {}),
+                "event_type": "EXECUTION_STATUS_CHANGED",
+                "data": {
+                    "status": self._map_completion_status(event.data.get("status")),
+                    "error": event.data.get("error"),
+                    "summary": event.data.get("summary", {}),
+                }
             }
         
         elif event.type == EventType.METRICS_COLLECTED:
@@ -179,15 +200,20 @@ class StreamingMonitor(EventConsumer):
     def _map_completion_status(status: Any) -> str:
         """Map internal status to UI status."""
         if status is None:
-            return "completed"
+            return "COMPLETED"
         
-        status_str = str(status).lower()
-        if "completed" in status_str:
-            return "completed"
-        elif "failed" in status_str:
-            return "failed"
-        elif "abort" in status_str:
-            return "aborted"
+        # Check if it's a Status enum
+        from dipeo.diagram_generated import Status
+        if isinstance(status, Status):
+            return status.value  # This returns the uppercase string like 'COMPLETED', 'FAILED', etc.
+        
+        status_str = str(status).upper()
+        if "COMPLETED" in status_str or "MAXITER" in status_str:
+            return "COMPLETED"
+        elif "FAILED" in status_str:
+            return "FAILED"
+        elif "ABORT" in status_str:
+            return "ABORTED"
         else:
             return status_str
     

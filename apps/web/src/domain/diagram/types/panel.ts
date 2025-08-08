@@ -7,7 +7,6 @@ import type {
   CodeJobFormData,
   ApiJobFormData,
   UserResponseFormData,
-  NotionFormData,
   PersonBatchJobFormData,
   HookFormData,
   DBFormData as BaseDBFormData,
@@ -38,7 +37,6 @@ export type {
   CodeJobFormData,
   ApiJobFormData,
   UserResponseFormData,
-  NotionFormData,
   PersonBatchJobFormData,
   HookFormData
 };

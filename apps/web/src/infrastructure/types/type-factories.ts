@@ -8,7 +8,6 @@ import {
   CodeJobNodeData,
   ApiJobNodeData,
   UserResponseNodeData,
-  NotionNodeData,
   PersonBatchJobNodeData,
   HookNodeData,
   TemplateJobNodeData,
@@ -31,7 +30,6 @@ export interface NodeTypeRegistry {
   code_job: CodeJobNodeData;
   api_job: ApiJobNodeData;
   user_response: UserResponseNodeData;
-  notion: NotionNodeData;
   person_batch_job: PersonBatchJobNodeData;
   hook: HookNodeData;
   template_job: TemplateJobNodeData;
@@ -85,7 +83,7 @@ export type NodeFormData<K extends NodeTypeKey> = NodeFormDataTypes[K];
 export function isNodeTypeKey(key: string): key is NodeTypeKey {
   const validKeys: NodeTypeKey[] = [
     'start', 'condition', 'person_job', 'endpoint', 'db',
-    'code_job', 'api_job', 'user_response', 'notion', 'person_batch_job', 'hook',
+    'code_job', 'api_job', 'user_response', 'person_batch_job', 'hook',
     'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram', 'integrated_api'
   ];
   return validKeys.includes(key as NodeTypeKey);
@@ -95,7 +93,7 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
 // These now include UI properties like 'flipped'
 export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeData,
   DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
-  NotionNodeData, PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
+  PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
   JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData, IntegratedApiNodeData } from './domain';
 
 /**
@@ -109,7 +107,6 @@ export type DBFormData = NodeFormData<'db'>;
 export type CodeJobFormData = NodeFormData<'code_job'>;
 export type ApiJobFormData = NodeFormData<'api_job'>;
 export type UserResponseFormData = NodeFormData<'user_response'>;
-export type NotionFormData = NodeFormData<'notion'>;
 export type PersonBatchJobFormData = NodeFormData<'person_batch_job'>;
 export type HookFormData = NodeFormData<'hook'>;
 export type TemplateJobFormData = NodeFormData<'template_job'>;

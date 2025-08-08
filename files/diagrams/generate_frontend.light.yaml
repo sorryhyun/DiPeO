@@ -1,0 +1,151 @@
+version: light
+
+persons:
+  Frontend Generator:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are an expert frontend developer specializing in modern web applications.
+      Generate complete, production-ready frontend code following best practices.
+      Use Tailwind CSS for styling and ensure responsive design.
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 400}
+    props:
+      trigger_mode: manual
+      custom_data:
+        app_type: landing page
+        theme: modern minimalist  
+        framework: html
+        features: responsive hero section, features grid, contact form
+        output_dir: ./generated_frontend
+
+  - label: Generate Frontend Code
+    type: person_job
+    position: {x: 300, y: 400}
+    props:
+      person: Frontend Generator
+      default_prompt: |
+        Generate a complete HTML frontend application.
+        
+        Application Type: landing page
+        Theme: modern minimalist
+        Features: responsive hero section, features grid, contact form
+        
+        Requirements:
+        - Use Tailwind CSS for styling (inline in <style> tag)
+        - Include modern, responsive design  
+        - Follow accessibility best practices
+        - Add smooth animations where appropriate
+        - Use semantic HTML
+        
+        Generate a single-file HTML application with inline styles and scripts.
+        The code should be complete, functional, and ready to run.
+        Include comments explaining key sections.
+        
+        Return the complete HTML code in a markdown code block.
+      max_iteration: 1
+      memory_profile: MINIMAL
+
+  - label: Extract Code
+    type: code_job
+    position: {x: 550, y: 400}
+    props:
+      language: python
+      code: |
+        import re
+        
+        # Extract code from markdown blocks
+        code_blocks = re.findall(r'```(?:html|jsx|tsx|javascript|typescript)?\n(.*?)```', 
+                                  frontend_code, re.DOTALL)
+        
+        if not code_blocks:
+            # If no code blocks found, assume entire response is code
+            main_code = frontend_code
+        else:
+            main_code = '\n'.join(code_blocks)
+        
+        result = {
+            'code': main_code,
+            'file_name': 'index.html',
+            'framework': 'html',
+            'output_dir': './generated_frontend'
+        }
+
+  - label: Save Frontend Files
+    type: code_job
+    position: {x: 800, y: 400}
+    props:
+      language: python
+      code: |
+        import os
+        from pathlib import Path
+        
+        output_path = Path(file_info['output_dir'])
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Save main file
+        main_file = output_path / file_info['file_name']
+        with open(main_file, 'w', encoding='utf-8') as f:
+            f.write(file_info['code'])
+        
+        result = {
+            'main_file': str(main_file),
+            'output_dir': str(output_path),
+            'framework': file_info['framework'],
+            'files_created': [str(f) for f in output_path.iterdir()]
+        }
+
+  - label: Create Summary
+    type: code_job
+    position: {x: 1050, y: 400}
+    props:
+      language: python
+      code: |
+        summary_lines = [
+            "# Frontend Generation Complete! 🎨",
+            "",
+            "## Generated Application",
+            "- Type: landing page",
+            "- Theme: modern minimalist",
+            "- Framework: HTML",
+            f"- Output Directory: {saved_files['output_dir']}",
+            "",
+            "## Files Created"
+        ]
+        for f in saved_files['files_created']:
+            summary_lines.append(f"- {f}")
+        summary_lines.extend([
+            "",
+            "## How to Run Your Application",
+            f"1. Open {saved_files['main_file']} in your web browser",
+            "2. No installation required - it's a standalone HTML file",
+            "3. To edit: Open in any text editor and refresh browser",
+            "",
+            "## Quick Start",
+            f"Open {saved_files['main_file']} in your browser",
+            "",
+            "---",
+            "Generated with GPT-5-nano via DiPeO 🚀"
+        ])
+        summary = '\n'.join(summary_lines)
+        print(summary)
+        result = summary
+
+  - label: Save Summary
+    type: endpoint
+    position: {x: 1300, y: 400}
+    props:
+      file_format: md
+      save_to_file: true
+      file_path: generated_frontend/README.md
+
+connections:
+  - {from: Start, to: Generate Frontend Code}
+  - {from: Generate Frontend Code, to: Extract Code, label: frontend_code}
+  - {from: Extract Code, to: Save Frontend Files, label: file_info}
+  - {from: Save Frontend Files, to: Create Summary, label: saved_files}
+  - {from: Create Summary, to: Save Summary}

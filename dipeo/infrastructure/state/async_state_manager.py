@@ -57,7 +57,16 @@ class AsyncStateManager(EventConsumer):
         """Process events asynchronously."""
         execution_id = event.execution_id
         
-        # Buffer the event for batched writes
+        # Critical events should be persisted immediately
+        if event.type == EventType.EXECUTION_COMPLETED:
+            # Persist critical events immediately without buffering
+            try:
+                await self._persist_events(execution_id, [event])
+            except Exception as e:
+                logger.error(f"Failed to persist critical event: {e}", exc_info=True)
+            return
+        
+        # Buffer non-critical events for batched writes
         async with self._buffer_lock:
             if execution_id not in self._write_buffer:
                 self._write_buffer[execution_id] = {

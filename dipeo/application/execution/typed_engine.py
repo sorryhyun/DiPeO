@@ -137,10 +137,12 @@ class TypedExecutionEngine:
             
             # Execution complete
             execution_path = [str(node_id) for node_id in context.get_completed_nodes()]
+            from dipeo.diagram_generated import Status
             
             await context.emit_event(
                 EventType.EXECUTION_COMPLETED,
                 {
+                    "status": Status.COMPLETED,
                     "total_steps": step_count,
                     "execution_path": execution_path
                 }

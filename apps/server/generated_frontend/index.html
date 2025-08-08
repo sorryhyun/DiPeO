@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modern Minimalist Landing - Tailwind-inspired UI (Single File)</title>
+
+  <!--
+    Inline Tailwind-inspired CSS (subset)
+    This file uses a small set of utility-like classes and responsive rules
+    implemented directly in this <style> tag to avoid external dependencies.
+    You can treat this as a Tailwind-inspired, self-contained styling layer.
+  -->
+  <style>
+    :root{
+      --bg: #f7f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --accent: #4f46e5;
+      --accent-dark: #4338ca;
+      --ring: rgba(99,102,241,.6);
+      --shadow: 0 6px 20px rgba(0,0,0,.08);
+    }
+
+    /* Page base */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+                   Roboto, "Helvetica Neue", Arial;
+      color: var(--text);
+      background: linear-gradient(#f8f9fb 0%, #f6f7fb 100%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Layout helpers (Tailwind-inspired) */
+    .container {
+      width: 100%;
+      max-width: 1120px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .flex-row { flex-direction: row; }
+
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
+
+    .gap-1 { gap: 0.25rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 0.75rem; }
+    .gap-4 { gap: 1rem; }
+    .gap-6 { gap: 1.5rem; }
+
+    .p-4 { padding: 1rem; }
+    .p-6 { padding: 1.5rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-2 { padding-top: .5rem; padding-bottom: .5rem; }
+    .py-3 { padding-top: .75rem; padding-bottom: .75rem; }
+
+    .rounded { border-radius: .5rem; }
+    .rounded-full { border-radius: 999px; }
+    .rounded-lg { border-radius: 0.75rem; }
+    .shadow { box-shadow: var(--shadow); }
+
+    .bg-white { background: #fff; }
+    .bg-subtle { background: #f7f7fb; }
+    .text-sm { font-size: .875rem; }
+    .text-base { font-size: 1rem; }
+    .text-lg { font-size: 1.125rem; }
+    .text-xl { font-size: 1.25rem; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+
+    .border { border: 1px solid #e5e7eb; }
+
+    /* Layout: header / hero / sections */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: saturate(1.2) blur(6px);
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .site-nav { display: flex; align-items: center; justify-content: space-between; padding: .75rem 0; }
+    .brand { display: inline-flex; align-items: center; gap: .5rem; font-weight: 700; letter-spacing: .2px; }
+    .brand-mark {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      display: inline-block;
+    }
+
+    .nav-links { display: none; gap: 1rem; align-items: center; }
+    @media (min-width: 720px) {
+      .nav-links { display: flex; }
+    }
+    .cta {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .75rem 1rem; border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), #2563eb);
+      color: white; font-weight: 600; border: 0;
+      cursor: pointer;
+      transition: transform .2s ease;
+    }
+    .cta.secondary {
+      background: transparent; color: #374151; border: 1px solid #e5e7eb;
+    }
+    .cta:hover { transform: translateY(-1px); }
+
+    /* Hero section */
+    .hero { padding: 6rem 1rem 3rem; display: flex; flex-direction: column; gap: 2rem; }
+    @media (min-width: 768px) {
+      .hero { flex-direction: row; align-items: center; padding: 6rem 0 2rem; }
+    }
+    .hero-copy { flex: 1; min-width: 0; }
+    .hero-visual { flex: 1; min-width: 0; display: flex; justify-content: center; align-items: center; }
+
+    .hero h1 {
+      font-size: clamp(2rem, 1.5rem + 4vw, 3.5rem);
+      line-height: 1.08;
+      margin: 0 0 .75rem;
+      font-weight: 800;
+    }
+    .lead { color: #495567; font-size: 1.05rem; max-width: 60ch; }
+
+    /* Feature grid */
+    .section { padding: 4rem 1rem; }
+    .section-title { text-align: center; font-size: clamp(1.6rem, 1.1rem + 1.2vw, 2.4rem); font-weight: 700; margin: 0 0 .5rem; }
+    .section-sub { text-align: center; color: var(--muted); margin-bottom: 2rem; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.75rem;
+    }
+    @media (min-width: 768px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      .features-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .card { background: var(--card); border: 1px solid #eef2f7; padding: 1.25rem; border-radius: 12px; min-height: 140px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
+    .card-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+                 border-radius: 10px; background: #eef2ff; color: #374151; margin-bottom: .5rem; }
+
+    .card h3 { font-size: 1.05rem; margin: .25rem 0; }
+    .card p { color: #64748b; font-size: .95rem; margin: 0; }
+
+    /* Contact form */
+    .form { display: grid; gap: .75rem; width: 100%; max-width: 640px; margin: 0 auto; }
+    .group { display: grid; gap: .25rem; }
+    .label { font-size: .92rem; color: #374151; }
+    input, textarea {
+      width: 100%; padding: .75rem .9rem; border-radius: 8px;
+      border: 1px solid #e5e7eb; background: #fff; font: inherit; color: #111827;
+    }
+    input:focus, textarea:focus { outline: 2px solid var(--ring); outline-offset: 2px; border-color: #93c5fd; }
+
+    textarea { resize: vertical; min-height: 120px; }
+
+    .row { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+    @media (min-width: 640px) { .row { grid-template-columns: 1fr 1fr; } }
+
+    .error { color: #991b1b; font-size: .85rem; }
+
+    .success { padding: .75rem 1rem; border-radius: 8px; background: #ecfeff; border: 1px solid #a5f3fc; color: #075985; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { transition: none; animation: none; }
+    }
+
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.is-visible { opacity: 1; transform: none; }
+
+    footer { padding: 2rem 1rem; text-align: center; color: var(--muted); }
+
+  </style>
+</head>
+<body>
+
+  <!-- Accessibility-friendly header with semantic nav -->
+  <header aria-label="Main site header">
+    <div class="container site-nav" role="navigation">
+      <div class="brand" aria-label="Brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>NovaStudio</span>
+      </div>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#hero" class="text-base" style="color:#374151;">Home</a>
+        <a href="#features" class="text-base" style="color:#374151;">Features</a>
+        <a href="#contact" class="text-base" style="color:#374151;">Contact</a>
+      </nav>
+
+      <button class="cta" aria-label="Get started" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+        Get started
+      </button>
+    </div>
+  </header>
+
+  <main id="main" role="main">
+
+    <!-- Hero section: responsive two-column layout with animation -->
+    <section id="hero" class="hero" aria-label="Hero section">
+      <div class="container hero-copy reveal" style="max-width: 640px;">
+        <h1>Modern, minimalist landing pages that work beautifully</h1>
+        <p class="lead">
+          A clean, accessible starting point for your product. Built with a Tailwind-inspired utility approach,
+          responsive by default, and designed for clarity and speed.
+        </p>
+
+        <div class="flex gap-3" style="margin-top:.5rem;">
+          <button class="cta" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+            Start a project
+            <span aria-hidden="true" style="display:inline-block; transform: translateX(2px);">→</span>
+          </button>
+          <a href="#features" class="cta secondary" role="link" aria-label="Learn about features" style="align-items:center; display:inline-flex;">
+            See features
+          </a>
+        </div>
+      </div>
+
+      <div class="container hero-visual reveal" aria-label="Hero illustration" style="min-height:260px;">
+        <!-- Simple inline SVG illustration for a modern feel -->
+        <svg role="img" aria-label="Abstract desk illustration" width="100%" height="260" viewBox="0 0 600 280" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f46e5"/>
+              <stop offset="100%" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="600" height="280" rx="20" fill="#f8fbff"/>
+          <rect x="40" y="140" width="520" height="18" rx="9" fill="url(#grad)" opacity="0.25"/>
+          <rect x="60" y="110" width="300" height="60" rx="8" fill="url(#grad)" opacity="0.25"/>
+          <rect x="380" y="60" width="140" height="60" rx="8" fill="url(#grad)" opacity="0.25"/>
+          <circle cx="520" cy="70" r="28" fill="url(#grad)" opacity="0.7"/>
+          <circle cx="520" cy="70" r="14" fill="#fff" opacity="0.8"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Features section -->
+    <section id="features" class="section" aria-labelledby="features-title">
+      <h2 id="features-title" class="section-title reveal">Core features</h2>
+      <p class="section-sub reveal" aria-label="Section subtitle">A concise grid of capabilities designed for quick scanning and clarity.</p>
+
+      <div class="container" style="padding:0;">
+        <div class="features-grid reveal" aria-label="Features grid">
+          <!-- Feature Card 1 -->
+          <article class="card" aria-label="Feature: Fast performance">
+            <div class="card-icon" aria-hidden="true">
+              <!-- simple icon -->
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12h18" />
+                <path d="M12 3v18" />
+              </svg>
+            </div>
+            <h3>High performance</h3>
+            <p>Lightweight, optimized assets and minimal JS for blazing-fast load times.</p>
+          </article>
+
+          <!-- Feature Card 2 -->
+          <article class="card" aria-label="Feature: Accessible by default">
+            <div class="card-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9" />
+                <path d="M3 12l9-8 9 8-9 8-9-8z" />
+              </svg>
+            </div>
+            <h3>Accessible by default</h3>
+            <p>Semantic HTML, proper ARIA, and keyboard-friendly interactions out of the box.</p>
+          </article>
+
+          <!-- Feature Card 3 -->
+          <article class="card" aria-label="Feature: responsive design">
+            <div class="card-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 9h18" />
+              </svg>
+            </div>
+            <h3>Responsive by default</h3>
+            <p>Fluid layouts adapt gracefully from mobiles to large desktops.</p>
+          </article>
+
+          <!-- Feature Card 4 -->
+          <article class="card" aria-label="Feature: Customizable components">
+            <div class="card-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 7h16" />
+                <path d="M7 12h10" />
+                <path d="M10 17h4" />
+              </svg>
+            </div>
+            <h3>Composable components</h3>
+            <p>Drop-in components that you can customize to fit your brand.</p>
+          </article>
+
+          <!-- Feature Card 5 -->
+          <article class="card" aria-label="Feature: Clear typography">
+            <div class="card-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16" />
+                <path d="M4 12h16" />
+                <path d="M4 18h10" />
+              </svg>
+            </div>
+            <h3>Typography-first</h3>
+            <p>Readable, well-spaced text for optimal comprehension across devices.</p>
+          </article>
+
+          <!-- Feature Card 6 -->
+          <article class="card" aria-label="Feature: Secure by default">
+            <div class="card-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s-8-4-8-12a8 8 0 1 1 16 0c0 8-8 12-8 12z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+            <h3>Secure defaults</h3>
+            <p>Built with safe defaults and progressive enhancement in mind.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact section (form) -->
+    <section id="contact" class="section" aria-labelledby="contact-title">
+      <h2 id="contact-title" class="section-title reveal">Get in touch</h2>
+      <p class="section-sub reveal" aria-label="Contact description">
+        Have a question or want a quote? Send us a message and we’ll respond promptly.
+      </p>
+
+      <form id="contact-form" class="form reveal" aria-label="Contact form" novalidate>
+        <div class="row">
+          <div class="group">
+            <label class="label" for="name">Name</label>
+            <input id="name" name="name" type="text" class="input" required placeholder="Your name" autocomplete="name" />
+            <span id="name-error" class="error" aria-live="polite" style="display:none;">Please enter your name.</span>
+          </div>
+
+          <div class="group">
+            <label class="label" for="email">Email</label>
+            <input id="email" name="email" type="email" class="input" required placeholder="you@example.com" autocomplete="email" />
+            <span id="email-error" class="error" aria-live="polite" style="display:none;">Please enter a valid email address.</span>
+          </div>
+        </div>
+
+        <div class="group">
+          <label class="label" for="message">Message</label>
+          <textarea id="message" name="message" class="input" required placeholder="Tell us a bit about your project..."></textarea>
+          <span id="message-error" class="error" aria-live="polite" style="display:none;">Please include a short message.</span>
+        </div>
+
+        <div class="group" style="display:flex; gap:.75rem; align-items:center; justify-content:flex-end;">
+          <button type="submit" class="cta" aria-label="Send message">Send message</button>
+          <span id="form-status" role="status" aria-live="polite" class="sr-only" style="position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;">
+            <!-- dynamic status will be announced by JS -->
+          </span>
+        </div>
+
+        <div id="success-panel" class="success" role="status" aria-live="polite" style="display:none;">
+          Thanks! Your message has been sent. We will get back to you shortly.
+        </div>
+      </form>
+    </section>
+
+  </main>
+
+  <footer aria-label="Site footer">
+    <p>&copy; 2025 NovaStudio. All rights reserved.</p>
+  </footer>
+
+  <!-- Inline script: accessibility helpers, reveal animations, and form handling -->
+  <script>
+    // Reveal-on-scroll (IntersectionObserver)
+    (function() {
+      const revealElements = document.querySelectorAll('.reveal');
+      const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (isReduced) {
+        // If user prefers reduced motion, reveal instantly
+        revealElements.forEach(el => el.classList.add('is-visible'));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            obs.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+
+      revealElements.forEach(el => observer.observe(el));
+    })();
+
+    // Contact form handling
+    (function() {
+      const form = document.getElementById('contact-form');
+      const nameInput = document.getElementById('name');
+      const emailInput = document.getElementById('email');
+      const messageInput = document.getElementById('message');
+      const nameError = document.getElementById('name-error');
+      const emailError = document.getElementById('email-error');
+      const messageError = document.getElementById('message-error');
+      const successPanel = document.getElementById('success-panel');
+
+      // Simple email validation
+      function validEmail(val) {
+        // Basic RFC-like check; enough for UX
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      }
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        let ok = true;
+
+        // Name validation
+        if (nameInput.value.trim() === '') {
+          nameError.style.display = 'block';
+          nameInput.setAttribute('aria-invalid', 'true');
+          ok = false;
+        } else {
+          nameError.style.display = 'none';
+          nameInput.setAttribute('aria-invalid', 'false');
+        }
+
+        // Email validation
+        if (!validEmail(emailInput.value.trim())) {
+          emailError.style.display = 'block';
+          emailInput.setAttribute('aria-invalid', 'true');
+          ok = false;
+        } else {
+          emailError.style.display = 'none';
+          emailInput.setAttribute('aria-invalid', 'false');
+        }
+
+        // Message validation
+        if (messageInput.value.trim().length < 6) {
+          messageError.style.display = 'block';
+          messageInput.setAttribute('aria-invalid', 'true');
+          ok = false;
+        } else {
+          messageError.style.display = 'none';
+          messageInput.setAttribute('aria-invalid', 'false');
+        }
+
+        // If all good, simulate a submission
+        if (ok) {
+          // Very lightweight "submission"
+          form.style.opacity = '0.6';
+          form.querySelectorAll('input,textarea,button').forEach(el => el.disabled = true);
+
+          // Show status after a tiny delay for UX
+          setTimeout(() => {
+            form.style.opacity = '';
+            form.reset();
+            form.style.display = 'grid';
+            form.querySelectorAll('.error').forEach(el => el.style.display = 'none');
+            successPanel.style.display = 'block';
+            // Move focus to success message for accessibility
+            successPanel.focus?.();
+          }, 600);
+        }
+      });
+
+      // Reset success panel if user starts editing again
+      form.addEventListener('input', () => {
+        if (successPanel.style.display === 'block') {
+          successPanel.style.display = 'none';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

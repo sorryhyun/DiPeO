@@ -135,10 +135,6 @@ export class DiagramService {
         prompt: '',
         timeout: 300,
       },
-      [NodeType.NOTION]: {
-        action: 'read',
-        database_id: '',
-      },
       [NodeType.PERSON_BATCH_JOB]: {
         person: null,
         batch_size: 1,

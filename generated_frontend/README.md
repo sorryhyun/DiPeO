@@ -1,0 +1,3 @@
+{
+  "default": "# Frontend Generation Complete! \ud83c\udfa8\n\n## Generated Application\n- Type: landing page\n- Theme: modern minimalist\n- Framework: HTML\n- Output Directory: generated_frontend\n\n## Files Created\n- generated_frontend/index.html\n\n## How to Run Your Application\n1. Open generated_frontend/index.html in your web browser\n2. No installation required - it's a standalone HTML file\n3. To edit: Open in any text editor and refresh browser\n\n## Quick Start\nOpen generated_frontend/index.html in your browser\n\n---\nGenerated with GPT-5-nano via DiPeO \ud83d\ude80"
+}

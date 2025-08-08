@@ -51,7 +51,7 @@ jobs:
       run: pnpm --filter @dipeo/models build
 
     - name: Generate code
-      run: make codegen
+      run: make codegen-auto
 
     - name: Build frontend
       run: pnpm --filter web build

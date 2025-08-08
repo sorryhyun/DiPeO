@@ -1,30 +1,40 @@
 # DiPeO Makefile
 
-.PHONY: install codegen codegen-node codegen-watch dev-server dev-web dev-all clean help lint format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
+.PHONY: install install-dev codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
 
 # Default target
 help:
 	@echo "DiPeO Commands:"
 	@echo "  make install      - Install all dependencies"
 	@echo "  make install-dev  - Install development dependencies (linters, formatters, etc.)"
-	@echo "  make codegen      - Generate all code using diagram-based approach"
-	@echo "  make codegen-node NODE_SPEC=path/to/spec.json - Generate code for a specific node"
+	@echo ""
+	@echo "Code Generation (Recommended Workflow):"
+	@echo "  make codegen      - Generate all code to staging directory (safe)"
+	@echo "  make diff-staged  - Review changes before applying"
+	@echo "  make apply-syntax-only - Apply staged changes with syntax validation"
+	@echo "  make graphql-schema - Update GraphQL schema and TypeScript types"
+	@echo ""
+	@echo "Code Generation (Quick Commands):"
+	@echo "  make codegen-auto - ⚠️ DANGEROUS: Generate + auto-apply + schema update"
 	@echo "  make codegen-watch - Watch node specifications for changes"
+	@echo "  make codegen-status - Check current code generation state"
+	@echo ""
+	@echo "Development:"
 	@echo "  make dev-all      - Run both backend and frontend servers"
 	@echo "  make dev-server   - Run backend server"
 	@echo "  make dev-web      - Run frontend server"
-	@echo "  make graphql-schema - Export GraphQL schema from server"
+	@echo ""
+	@echo "Quality & Testing:"
 	@echo "  make lint-{server, web, cli} - Run linters"
 	@echo "  make format       - Format all code"
-	@echo "  make clean        - Clean generated files"
 	@echo ""
-	@echo "Staging Commands:"
-	@echo "  make diff-staged  - Show differences between staged and active generated files"
+	@echo "Staging Management:"
 	@echo "  make validate-staged - Validate staged files with mypy type checking"
 	@echo "  make validate-staged-syntax - Validate staged files (syntax only)"
 	@echo "  make apply        - Apply staged changes with full validation"
-	@echo "  make apply-syntax-only - Apply staged changes with syntax validation only"
 	@echo "  make backup-generated - Backup current generated files before applying"
+	@echo "  make clean-staged - Clean staged files only"
+	@echo "  make clean        - Clean all generated files and caches"
 
 # Combined install
 install:
@@ -39,47 +49,85 @@ install-dev: install
 	pip install import-linter black mypy "ruff>=0.8.0" pytest-asyncio pytest-cov isort
 	@echo "Development dependencies installed!"
 
-# Diagram-based code generation (NEW DEFAULT)
+# Primary code generation command (SAFE - stages changes for review)
+codegen:
+	@echo "======================================"
+	@echo "Starting unified code generation..."
+	@echo "======================================"
+	@echo ""
+	@echo "This will generate all code to the staging directory."
+	@echo "You can review changes before applying them."
+	@echo ""
+	dipeo run codegen/diagrams/generate_all --light --debug --timeout=90
+	@echo ""
+	@echo "======================================"
+	@echo "Code generation complete!"
+	@echo "======================================"
+	@echo ""
+	@echo "Generated files are in: dipeo/diagram_generated_staged/"
+	@echo ""
+	@echo "Next steps:"
+	@echo "  1. Review changes:    make diff-staged"
+	@echo "  2. Apply changes:     make apply-syntax-only"
+	@echo "  3. Update GraphQL:    make graphql-schema"
+	@echo ""
+
+# Automatic code generation with auto-apply (DANGEROUS - use with caution!)
 codegen-auto:
-	@echo "Running unified diagram-based code generation..."
-	dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=90
+	@echo "⚠️  WARNING: This command automatically applies all changes!"
+	@echo "Running unified code generation with auto-apply..."
+	@echo ""
+	dipeo run codegen/diagrams/generate_all --light --debug --timeout=90
 	@sleep 1
 	@echo "Applying staged changes to active directory (syntax validation only)..."
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
-		echo "Error: No staged directory found. Run 'make codegen' first."; \
+		echo "Error: No staged directory found."; \
 		exit 1; \
 	fi
 	@echo "Copying staged files to active directory..."
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
 	@echo "Staged changes applied successfully!"
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=60
+	@echo "Exporting GraphQL schema..."
 	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
+	@echo "Generating TypeScript types..."
 	pnpm --filter web codegen
-	@echo "All code generation completed using DiPeO diagrams!"
-
-# Diagram-based code generation for node UI
-codegen-models:
-	@echo "Running diagram-based model generation for all nodes..."
-	dipeo run codegen/diagrams/generate_all --light --debug --timeout=40
-	@echo "Diagram-based code generation completed!"
-
-codegen-frontend:
-	@echo "Generating UI for all node types using diagram..."
-	dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=40
-	@echo "All nodes generated via diagram!"
-
-
-# Register generated nodes separately
-register-nodes:
-	@echo "Registering generated nodes..."
-	@python files/codegen/code/node_registrar.py
-	@echo "Node registration completed!"
+	@echo ""
+	@echo "✓ All code generation and application completed!"
 
 # Watch for changes in node specifications
 codegen-watch:
 	@echo "Starting file watcher for node specifications..."
 	@echo "Press Ctrl+C to stop watching"
 	@python scripts/watch_codegen.py
+
+# Check code generation status
+codegen-status:
+	@echo "======================================"
+	@echo "Code Generation Status"
+	@echo "======================================"
+	@echo ""
+	@if [ -d "dipeo/diagram_generated_staged" ]; then \
+		echo "✓ Staged directory exists"; \
+		echo "  Files: $$(find dipeo/diagram_generated_staged -type f | wc -l)"; \
+		echo "  Last modified: $$(stat -c %y dipeo/diagram_generated_staged 2>/dev/null || stat -f %Sm dipeo/diagram_generated_staged 2>/dev/null)"; \
+	else \
+		echo "✗ No staged directory found"; \
+	fi
+	@echo ""
+	@if [ -d "dipeo/diagram_generated" ]; then \
+		echo "✓ Active generated directory exists"; \
+		echo "  Files: $$(find dipeo/diagram_generated -type f | wc -l)"; \
+		echo "  Last modified: $$(stat -c %y dipeo/diagram_generated 2>/dev/null || stat -f %Sm dipeo/diagram_generated 2>/dev/null)"; \
+	else \
+		echo "✗ No active generated directory found"; \
+	fi
+	@echo ""
+	@if [ -d "temp/codegen" ] || [ -d "temp/core" ] || [ -d "temp/specifications" ]; then \
+		echo "✓ Cached AST files exist"; \
+	else \
+		echo "✗ No cached AST files found"; \
+	fi
+	@echo ""
 
 # Development servers
 dev-server:
@@ -136,10 +184,21 @@ format:
 
 # Staging Commands
 diff-staged:
-	@echo "Showing differences between staged and active generated files..."
+	@echo "======================================"
+	@echo "Comparing staged vs active generated files..."
+	@echo "======================================"
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "No staged directory found. Run 'make codegen' first."; \
+		exit 1; \
+	fi
 	@diff -rq dipeo/diagram_generated dipeo/diagram_generated_staged 2>/dev/null || true
 	@echo ""
-	@echo "For detailed diffs, run: diff -r dipeo/diagram_generated dipeo/diagram_generated_staged"
+	@echo "For detailed diffs, run:"
+	@echo "  diff -r dipeo/diagram_generated dipeo/diagram_generated_staged | less"
+	@echo ""
+	@echo "To apply staged changes, run:"
+	@echo "  make apply-syntax-only  # Quick, syntax check only"
+	@echo "  make apply              # Full validation with mypy"
 
 validate-staged:
 	@echo "Validating staged Python files..."
@@ -197,10 +256,18 @@ backup-generated:
 	@tar -czf .backups/diagram_generated.backup.$$(date +%Y%m%d_%H%M%S).tar.gz dipeo/diagram_generated/
 	@echo "Backup created in .backups/"
 
-# Clean
+# Clean staged files only
+clean-staged:
+	@echo "Cleaning staged generated files..."
+	@rm -rf dipeo/diagram_generated_staged
+	@echo "Staged files cleaned."
+
+# Clean all generated files
 clean:
-	@echo "Cleaning..."
+	@echo "Cleaning all generated files and caches..."
 	find . -type d \( -name "__pycache__" -o -name "*.egg-info" -o -name ".pytest_cache" \
 		-o -name ".ruff_cache" -o -name "__generated__" -o -name "dist" -o -name "build" \) \
 		-exec rm -rf {} + 2>/dev/null || true
 	rm -rf .logs/*.log 2>/dev/null || true
+	rm -rf temp/codegen temp/core temp/specifications 2>/dev/null || true
+	@echo "Clean complete."

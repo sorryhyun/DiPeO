@@ -104,6 +104,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       // CLI session ended
       console.log('[Monitor] CLI session ended');
       lastSessionIdRef.current = null;
+      hasStartedRef.current = false;
       
       // Clear diagram after a short delay
       setTimeout(() => {
@@ -116,6 +117,23 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       }, 1000);
     }
   }, [cliSessionData, cliSessionLoading, cliSessionError, isMonitorMode, pollCliSessions, setActiveCanvas, loadDiagramFromData, execution]);
+  
+  // Monitor execution completion to properly clear status
+  useEffect(() => {
+    if (!isMonitorMode() || !execution) return;
+    
+    // When execution completes but we're still in monitor mode
+    if (!execution.isRunning && hasStartedRef.current) {
+      console.log('[Monitor] Execution completed, clearing status');
+      // Mark that we're no longer tracking an execution
+      hasStartedRef.current = false;
+      
+      // If there's no active session, clear the session ref
+      if (!activeSession?.is_active) {
+        lastSessionIdRef.current = null;
+      }
+    }
+  }, [execution?.isRunning, isMonitorMode, activeSession]);
   
   return {
     isMonitorMode: isMonitorMode(),

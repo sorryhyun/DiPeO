@@ -13,7 +13,6 @@ import {
   type CodeJobNodeData,
   type ApiJobNodeData,
   type UserResponseNodeData,
-  type NotionNodeData,
   type PersonBatchJobNodeData,
   type HookNodeData,
   type WithUI,
@@ -54,10 +53,6 @@ export function isApiJobNode(node: DomainNode): node is DomainNode & { data: Api
 
 export function isUserResponseNode(node: DomainNode): node is DomainNode & { data: UserResponseNodeData } {
   return node.type === NodeType.USER_RESPONSE;
-}
-
-export function isNotionNode(node: DomainNode): node is DomainNode & { data: NotionNodeData } {
-  return node.type === NodeType.NOTION;
 }
 
 export function isPersonBatchJobNode(node: DomainNode): node is DomainNode & { data: PersonBatchJobNodeData } {
@@ -101,5 +96,5 @@ export function hasConditionLogic(node: DomainNode): node is DomainNode & {
 
 // Composite type guard for nodes that interact with external services
 export function isExternalServiceNode(node: DomainNode): boolean {
-  return isApiJobNode(node) || isNotionNode(node) || isDBNode(node) || hasPersonConfig(node);
+  return isApiJobNode(node) || isDBNode(node) || hasPersonConfig(node);
 }

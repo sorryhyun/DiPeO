@@ -125,10 +125,7 @@ jobs:
           Write-Host "Running unified diagram-based code generation..."
           
           # Generate models
-          dipeo run codegen/diagrams/models/generate_all_models --light --debug --timeout=30
-          
-          # Generate backend
-          dipeo run codegen/diagrams/backend/generate_backend --light --debug --timeout=30
+          dipeo run codegen/diagrams/generate_all --light --debug --timeout=30
           
           # Apply staged changes (copy files)
           if (Test-Path "dipeo/diagram_generated_staged") {
@@ -136,9 +133,6 @@ jobs:
             Copy-Item -Path "dipeo/diagram_generated_staged/*" -Destination "dipeo/diagram_generated/" -Recurse -Force
             Write-Host "Staged changes applied successfully!"
           }
-          
-          # Generate frontend
-          dipeo run codegen/diagrams/frontend/generate_frontend --light --debug --timeout=30
           
           # Export GraphQL schema
           Write-Host "Exporting GraphQL schema from application layer..."

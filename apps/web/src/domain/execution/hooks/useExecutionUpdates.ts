@@ -160,7 +160,61 @@ export function useExecutionUpdates({
     }
     console.log('[useExecutionUpdates] Parsed eventData:', eventData);
     
-    // Handle node events
+    // Check for critical execution-level events FIRST (no throttling for these)
+    const status = eventData.status || executionUpdates.status;
+    const error = eventData.error || executionUpdates.error;
+    const tokenUsage = eventData.tokenUsage || executionUpdates.tokenUsage;
+    
+    // Handle EXECUTION completion events immediately (bypass throttling)
+    if (eventType === 'EXECUTION_STATUS_CHANGED' || eventType === 'EXECUTION_COMPLETED') {
+      if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
+        const totalTokens = tokenUsage ? 
+          (tokenUsage.input + tokenUsage.output + (tokenUsage.cached || 0)) : 
+          undefined;
+        
+        completeExecution();
+        executionActions.stopExecution();
+        
+        const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
+        const statusMsg = status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
+        showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
+        
+        onUpdate?.({ 
+          type: EventType.EXECUTION_STATUS_CHANGED, 
+          execution_id: executionId(executionIdRef.current!),
+          total_tokens: totalTokens,
+          timestamp: new Date().toISOString() 
+        });
+        return; // Don't process further
+      } else if (status === 'FAILED' && error) {
+        errorExecution(error);
+        executionActions.stopExecution();
+        
+        showThrottledToast('execution-error', 'error', `Execution failed: ${error}`);
+        
+        onUpdate?.({ 
+          type: EventType.EXECUTION_ERROR, 
+          execution_id: executionId(executionIdRef.current!),
+          error, 
+          timestamp: new Date().toISOString() 
+        });
+        return; // Don't process further
+      } else if (status === 'ABORTED') {
+        errorExecution('Execution aborted');
+        executionActions.stopExecution();
+        
+        showThrottledToast('execution-aborted', 'error', 'Execution aborted');
+        
+        onUpdate?.({ 
+          type: EventType.EXECUTION_STATUS_CHANGED, 
+          execution_id: executionId(executionIdRef.current!),
+          timestamp: new Date().toISOString() 
+        });
+        return; // Don't process further
+      }
+    }
+    
+    // Handle node events (with throttling)
     if (eventType === 'NODE_STATUS_CHANGED') {
       const nodeIdStr = eventData.node_id || eventData.nodeId || '';
       const nodeType = eventData.node_type || eventData.nodeType || '';
@@ -239,61 +293,7 @@ export function useExecutionUpdates({
       }
       return;
     }
-    
-    // Handle execution-level events
-    const status = eventData.status || executionUpdates.status;
-    const error = eventData.error || executionUpdates.error;
-    const tokenUsage = eventData.tokenUsage || executionUpdates.tokenUsage;
-    
-    if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
-      const totalTokens = tokenUsage ? 
-        (tokenUsage.input + tokenUsage.output + (tokenUsage.cached || 0)) : 
-        undefined;
-      
-      completeExecution();
-      executionActions.stopExecution();
-      
-      const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
-      const statusMsg = status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
-      showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
-      
-      // Auto-exit is now handled by useMonitorMode
-      // No need to check URL params here
-      
-      onUpdate?.({ 
-        type: EventType.EXECUTION_STATUS_CHANGED, 
-        execution_id: executionId(executionIdRef.current!),
-        total_tokens: totalTokens,
-        timestamp: new Date().toISOString() 
-      });
-    } else if (status === 'FAILED' && error) {
-      errorExecution(error);
-      executionActions.stopExecution();
-      
-      showThrottledToast('execution-error', 'error', `Execution failed: ${error}`);
-      
-      onUpdate?.({ 
-        type: EventType.EXECUTION_ERROR, 
-        execution_id: executionId(executionIdRef.current!),
-        error, 
-        timestamp: new Date().toISOString() 
-      });
-      
-      // Auto-exit is now handled by useMonitorMode
-      // No need to check URL params here
-    } else if (status === 'ABORTED') {
-      errorExecution('Execution aborted');
-      executionActions.stopExecution();
-      
-      showThrottledToast('execution-aborted', 'error', 'Execution aborted');
-      
-      onUpdate?.({ 
-        type: EventType.EXECUTION_STATUS_CHANGED, 
-        execution_id: executionId(executionIdRef.current!),
-        timestamp: new Date().toISOString() 
-      });
-    }
-  }, [executionUpdates, handleNodeStart, handleNodeComplete, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef]);
+  }, [executionUpdates, handleNodeStart, handleNodeComplete, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef, updateNodeState, addSkippedNode, incrementCompletedNodes, setCurrentNode]);
 
   // Process node subscription updates - DEPRECATED
   // Node updates are now handled through executionUpdates with event_type NODE_STARTED/NODE_COMPLETED

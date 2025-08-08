@@ -42,7 +42,8 @@ export enum EventType {
 Regenerate backend models:
 ```bash
 cd /dipeo/models && pnpm build
-make codegen-models
+dipeo run codegen/diagrams/generate_all --light --debug
+make apply-syntax-only
 ```
 
 ### Step 2: Create GraphQL Subscription
@@ -110,9 +111,9 @@ queries.append("""subscription YourNewSubscription($executionId: ID!) {
 
 Regenerate frontend queries:
 ```bash
-make codegen-frontend
+dipeo run codegen/diagrams/generate_all --light --debug
+make apply-syntax-only
 make graphql-schema
-cd apps/web && pnpm codegen
 ```
 
 ### Step 4: Create Frontend Hook

@@ -83,9 +83,6 @@ function cleanNodeData(node: DomainNode): DomainNode {
       nodeData.prompt = nodeData.prompt || '';
       nodeData.timeout = nodeData.timeout || 60;
       break;
-    case NodeType.NOTION:
-      nodeData.operation = nodeData.operation || 'get_page';
-      break;
   }
   
   return {
