@@ -30,6 +30,7 @@ nodes:
       operation: read
       sub_type: file
       glob: true  # Enable glob pattern expansion
+      format: json
       source_details:
         # Core domain model files
         - temp/core/diagram.ts.json

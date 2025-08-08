@@ -29,7 +29,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      serialize_json: true  # Parse JSON files automatically
+      format: json  # Parse JSON files automatically
       glob: true  # Enable glob pattern expansion
       source_details:
         # Dynamically discover all node spec files

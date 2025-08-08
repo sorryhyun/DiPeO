@@ -69,4 +69,19 @@ export const dbFields: UnifiedFieldDefinition[] = [
     defaultValue: false,
     description: 'Serialize structured data to JSON string (for backward compatibility)',
   },
+  {
+    name: 'format',
+    type: 'select',
+    label: 'Format',
+    required: false,
+    defaultValue: "json",
+    description: 'Data format (json, yaml, csv, text, etc.)',
+    options: [
+      { value: 'json', label: 'JSON' },
+      { value: 'yaml', label: 'YAML' },
+      { value: 'csv', label: 'CSV' },
+      { value: 'text', label: 'Text' },
+      { value: 'xml', label: 'XML' },
+    ],
+  },
 ];

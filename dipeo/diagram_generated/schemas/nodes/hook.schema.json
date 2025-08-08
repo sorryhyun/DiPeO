@@ -6,6 +6,15 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "HookType": {
+      "enum": [
+        "shell",
+        "webhook",
+        "python",
+        "file"
+      ],
+      "type": "string"
+    },
     "HookNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -81,15 +90,6 @@
         "label"
       ],
       "type": "object"
-    },
-    "HookType": {
-      "enum": [
-        "shell",
-        "webhook",
-        "python",
-        "file"
-      ],
-      "type": "string"
     }
   }
 }

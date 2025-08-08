@@ -52,7 +52,7 @@ nodes:
       operation: read
       sub_type: file
       source_details: temp/specifications/nodes/{node_type}.spec.ts.json
-      serialize_json: true
+      format: json
       
   # Load codegen mappings
   - label: Load Codegen Mappings
@@ -62,7 +62,7 @@ nodes:
       operation: read
       sub_type: file
       source_details: temp/codegen/mappings.ts.json
-      serialize_json: true
+      format: json
       
   # Extract mappings
   - label: Extract Mappings

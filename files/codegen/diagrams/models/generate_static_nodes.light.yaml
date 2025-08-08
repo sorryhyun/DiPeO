@@ -47,7 +47,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      serialize_json: true
+      format: json
       glob: true  # Enable glob pattern expansion
       source_details:
         # Dynamically discover all node data files

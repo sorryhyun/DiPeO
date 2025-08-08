@@ -16,7 +16,7 @@ export const hookConfig: UnifiedNodeConfig = {
   icon: '🪝',
   color: '#9333ea',
   nodeType: NodeType.HOOK,
-  category: 'control',
+  category: 'compute',
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },

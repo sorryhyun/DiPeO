@@ -5,7 +5,7 @@ import { NodeSpecification } from '../types.js';
 export const dbSpec: NodeSpecification = {
   nodeType: NodeType.DB,
   displayName: "Database",
-  category: "data",
+  category: "integration",
   icon: "🗄️",
   color: "#795548",
   description: "Database operations",

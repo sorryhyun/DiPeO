@@ -79,7 +79,7 @@ nodes:
       sub_type: file
       source_details: "{info.cache_path}"
       data: "{ast}"
-      serialize_json: true
+      format: json
       
   # End with parsed data
   - label: End

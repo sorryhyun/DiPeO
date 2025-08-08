@@ -12,7 +12,7 @@ from datetime import datetime, UTC
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
-from dipeo.diagram_generated import ExecutionState, Status, NodeState, NodeID, DomainDiagram
+from dipeo.diagram_generated import ExecutionState, Status, NodeState, NodeID, DomainDiagram, TokenUsage, ExecutionID
 from dipeo.infrastructure.events import NullEventBus
 from dipeo.application.registry.keys import PREPARE_DIAGRAM_USE_CASE
 
@@ -205,9 +205,7 @@ class LightweightSubDiagramExecutor:
         node_states = {}
         for node in diagram.nodes:
             node_state = NodeState(
-                id=node.id,
                 status=Status.PENDING,
-                execution_count=0,
                 started_at=None,
                 ended_at=None,
                 output=None,
@@ -218,17 +216,16 @@ class LightweightSubDiagramExecutor:
         
         # Create execution state
         execution_state = ExecutionState(
-            id=f"lightweight_{uuid.uuid4().hex[:8]}",
+            id=ExecutionID(f"lightweight_{uuid.uuid4().hex[:8]}"),
             diagram_id=diagram.id if hasattr(diagram, 'id') else "unknown",
             status=Status.PENDING,
+            started_at=datetime.now(UTC).isoformat(),
             node_states=node_states,
-            variables=inputs,
-            metadata={
-                "is_lightweight": True,
-                "created_at": datetime.now(UTC).isoformat()
-            },
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC)
+            node_outputs={},  # Initialize empty
+            token_usage=TokenUsage(input=0, output=0, total=0),
+            exec_counts={},  # Initialize empty
+            executed_nodes=[],  # Initialize empty
+            variables=inputs
         )
         
         return execution_state

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import glob
+import json
 import logging
 import os
 from typing import TYPE_CHECKING, Any
 
+import yaml
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
@@ -86,6 +88,43 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         
         return expanded_paths
 
+    @staticmethod
+    def _serialize_data(data: Any, format_type: str | None) -> str:
+        """Serialize data according to the specified format."""
+        if format_type == 'json':
+            return json.dumps(data, indent=2)
+        elif format_type == 'yaml':
+            return yaml.dump(data, default_flow_style=False)
+        elif format_type == 'text' or format_type is None:
+            return str(data)
+        else:
+            logger.warning(f"Unknown format '{format_type}', using text format")
+            return str(data)
+
+    @staticmethod
+    def _deserialize_data(content: str, format_type: str | None) -> Any:
+        """Deserialize data according to the specified format."""
+        if not content:
+            return content
+            
+        if format_type == 'json':
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON: {e}")
+                return content
+        elif format_type == 'yaml':
+            try:
+                return yaml.safe_load(content)
+            except yaml.YAMLError as e:
+                logger.warning(f"Failed to parse YAML: {e}")
+                return content
+        elif format_type == 'text' or format_type is None:
+            return content
+        else:
+            logger.warning(f"Unknown format '{format_type}', returning as text")
+            return content
+
     async def execute_request(self, request: ExecutionRequest[DBNode]) -> NodeOutputProtocol:
         # Extract properties from request
         node = request.node
@@ -119,6 +158,23 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
             processed_paths.append(file_path)
         
+        # Get format from node properties
+        format_type = getattr(node, 'format', None)
+        
+        # Adjust file extensions based on format if needed
+        if format_type and node.operation == "write":
+            adjusted_paths = []
+            for path in processed_paths:
+                # Only adjust if no extension or wrong extension
+                if format_type == 'yaml' and not path.endswith(('.yaml', '.yml')):
+                    if '.' not in os.path.basename(path):
+                        path = f"{path}.yaml"
+                elif format_type == 'json' and not path.endswith('.json'):
+                    if '.' not in os.path.basename(path):
+                        path = f"{path}.json"
+                adjusted_paths.append(path)
+            processed_paths = adjusted_paths
+        
         # Get base directory for relative path resolution
         base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
         
@@ -132,6 +188,15 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 actual_content = input_val.get('generated_code') or input_val.get('content') or input_val.get('value')
                 if actual_content is not None:
                     input_val = actual_content
+            
+            # Only serialize for YAML format or text format
+            # JSON serialization is handled by db_adapter for consistency
+            if node.operation == "write" and format_type == 'yaml' and input_val is not None:
+                if isinstance(input_val, (dict, list)):
+                    input_val = self._serialize_data(input_val, 'yaml')
+            elif node.operation == "write" and format_type == 'text' and input_val is not None:
+                if not isinstance(input_val, str):
+                    input_val = str(input_val)
         else:
             input_val = self._first_non_empty(inputs)
 
@@ -148,13 +213,16 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                         )
                         file_content = result["value"]
                         
-                        # Parse JSON if serialize_json is true
-                        if serialize_json and isinstance(file_content, str):
-                            import json
-                            try:
-                                file_content = json.loads(file_content)
-                            except json.JSONDecodeError:
-                                logger.warning(f"Failed to parse JSON from {file_path}")
+                        # Deserialize based on format or serialize_json flag
+                        if isinstance(file_content, str):
+                            if format_type:
+                                file_content = self._deserialize_data(file_content, format_type)
+                            elif serialize_json:
+                                # Legacy support for serialize_json flag
+                                try:
+                                    file_content = json.loads(file_content)
+                                except json.JSONDecodeError:
+                                    logger.warning(f"Failed to parse JSON from {file_path}")
                         
                         results[file_path] = file_content
                     except Exception as e:
@@ -167,6 +235,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     metadata={
                         "multiple_files": True, 
                         "file_count": len(processed_paths), 
+                        "format": format_type,
                         "serialize_json": serialize_json,
                         "glob": getattr(node, 'glob', False)
                     }
@@ -182,6 +251,15 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
                 if node.operation == "read":
                     output_value = result["value"]
+                    # Deserialize based on format
+                    if isinstance(output_value, str) and format_type:
+                        output_value = self._deserialize_data(output_value, format_type)
+                    # Legacy support for serialize_json flag
+                    elif isinstance(output_value, str) and getattr(node, 'serialize_json', False):
+                        try:
+                            output_value = json.loads(output_value)
+                        except json.JSONDecodeError:
+                            logger.warning(f"Failed to parse JSON from {file_path}")
                 else:
                     meta = result["metadata"]
                     output_value = (
@@ -189,13 +267,14 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                         f"{meta['file_path']} ({meta.get('size', 0)} bytes)"
                     )
 
+                # Return appropriate output type based on the value
                 serialize_json = getattr(node, 'serialize_json', False)
-                if isinstance(output_value, (dict, list)) and serialize_json:
-                    import json
+                if isinstance(output_value, (dict, list)) and serialize_json and not format_type:
+                    # Legacy behavior: serialize to JSON text when serialize_json is true
                     return TextOutput(
                         value=json.dumps(output_value),
                         node_id=node.id,
-                        metadata={"serialized": True, "original_type": type(output_value).__name__}
+                        metadata={"serialized": True, "original_type": type(output_value).__name__, "format": format_type}
                     )
                 elif isinstance(output_value, dict):
                     return DataOutput(

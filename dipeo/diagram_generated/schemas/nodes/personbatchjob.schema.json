@@ -2,6 +2,31 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonBatchJobNodeData",
   "definitions": {
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
+    "MemoryView": {
+      "description": "Memory management enumerations",
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
+      ],
+      "type": "string"
+    },
     "MemorySettings": {
       "additionalProperties": false,
       "properties": {
@@ -20,31 +45,6 @@
       },
       "required": [
         "view"
-      ],
-      "type": "object"
-    },
-    "MemoryView": {
-      "description": "Memory management enumerations",
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
       ],
       "type": "object"
     },

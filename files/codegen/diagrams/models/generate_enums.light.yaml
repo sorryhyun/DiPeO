@@ -28,6 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
+      format: json
       glob: true
       source_details:
         - "temp/core/enums/*.ts.json"

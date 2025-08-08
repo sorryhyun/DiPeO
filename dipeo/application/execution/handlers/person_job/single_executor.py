@@ -180,6 +180,9 @@ class SinglePersonJobExecutor:
             
         result = await person.complete(**complete_kwargs)
         
+        # Log the response from the person
+        logger.info(f"PersonJob '{node.label or node.id}' response: {result.text}")
+        
         # Build and return output
         return self._build_node_output(
             result=result,

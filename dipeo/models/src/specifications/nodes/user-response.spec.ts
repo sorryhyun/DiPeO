@@ -5,7 +5,7 @@ import { NodeSpecification } from '../types.js';
 export const userResponseSpec: NodeSpecification = {
   nodeType: NodeType.USER_RESPONSE,
   displayName: "User Response",
-  category: "interaction",
+  category: "integration",
   icon: "💬",
   color: "#E91E63",
   description: "Collect user input",

@@ -8,7 +8,7 @@ import { NodeSpecification } from '../types.js';
 export const subDiagramSpec: NodeSpecification = {
   nodeType: NodeType.SUB_DIAGRAM,
   displayName: "Sub-Diagram",
-  category: "control",
+  category: "compute",
   icon: "📊",
   color: "#8B5CF6",
   description: "Execute another diagram as a node within the current diagram",

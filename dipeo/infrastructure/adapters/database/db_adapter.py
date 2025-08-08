@@ -87,7 +87,7 @@ class DBOperationsAdapter:
     async def _write_db(self, file_path: Path, value: Any) -> dict[str, Any]:
         try:
             # Check if this is a code file (non-JSON) and value is already a string
-            is_code_file = any(str(file_path).endswith(ext) for ext in ['.ts', '.tsx', '.js', '.jsx', '.py', '.graphql', '.md', '.txt'])
+            is_code_file = any(str(file_path).endswith(ext) for ext in ['.ts', '.tsx', '.js', '.jsx', '.py', '.graphql', '.md', '.txt', '.yaml', '.yml'])
             
             if is_code_file and isinstance(value, str):
                 content = value

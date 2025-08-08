@@ -188,6 +188,12 @@ class LLMInfraService(BaseService, LLMServicePort):
                 result = await self._call_llm_with_retry(
                     adapter, messages_list, **adapter_kwargs
                 )
+                
+                # Log the LLM response
+                if hasattr(self, 'logger') and result:
+                    response_text = getattr(result, 'text', str(result))[:200]  # Limit to 200 chars
+                    self.logger.debug(f"LLM response: {response_text}")
+                
                 return result
             except Exception as inner_e:
                 if hasattr(self, 'logger'):

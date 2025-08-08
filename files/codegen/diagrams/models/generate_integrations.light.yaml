@@ -28,6 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
+      format: json
       source_details: temp/core/integration.ts.json
 
   # Extract integration-specific definitions
