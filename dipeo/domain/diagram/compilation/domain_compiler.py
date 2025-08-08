@@ -296,6 +296,24 @@ class DomainDiagramCompiler(DiagramCompiler):
             # Don't create diagram if there are errors
             return
         
+        # Extract persons data from domain diagram
+        persons_metadata = {}
+        if context.domain_diagram.persons:
+            for person in context.domain_diagram.persons:
+                person_data = {
+                    'name': person.label,
+                    'service': person.llm_config.service.value if hasattr(person.llm_config.service, 'value') else person.llm_config.service,
+                    'model': person.llm_config.model,
+                    'api_key_id': person.llm_config.api_key_id.value if hasattr(person.llm_config.api_key_id, 'value') else person.llm_config.api_key_id,
+                }
+                if hasattr(person.llm_config, 'temperature'):
+                    person_data['temperature'] = person.llm_config.temperature
+                if hasattr(person.llm_config, 'max_tokens'):
+                    person_data['max_tokens'] = person.llm_config.max_tokens
+                if hasattr(person.llm_config, 'system_prompt'):
+                    person_data['system_prompt'] = person.llm_config.system_prompt
+                persons_metadata[person.label] = person_data
+        
         # Create metadata
         metadata = {
             "name": context.domain_diagram.metadata.name if context.domain_diagram.metadata else None,
@@ -303,6 +321,7 @@ class DomainDiagramCompiler(DiagramCompiler):
             "start_nodes": list(context.start_nodes),
             "person_nodes": context.person_nodes,
             "node_dependencies": {k: list(v) for k, v in context.node_dependencies.items()},
+            "persons": persons_metadata,  # Add persons metadata
             **context.result.metadata
         }
         

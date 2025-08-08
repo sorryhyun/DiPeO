@@ -300,7 +300,8 @@ class PersonExtractor:
             
             if is_light_format:
                 # In light format, the key is the label
-                person_id = person_config.get("id", f"person_{person_key.replace(' ', '_')}")
+                # Use the label directly as the person_id (no prefix needed)
+                person_id = person_config.get("id", person_key)
                 person_dict = {
                     "id": person_id,
                     "label": person_key,

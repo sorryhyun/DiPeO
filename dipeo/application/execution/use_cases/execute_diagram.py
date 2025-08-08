@@ -1,6 +1,7 @@
 
 import asyncio
 import json
+import logging
 from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
@@ -26,6 +27,8 @@ if TYPE_CHECKING:
 
     from ...registry import ServiceRegistry
     from dipeo.application.bootstrap import Container
+
+logger = logging.getLogger(__name__)
 
 class ExecuteDiagramUseCase(BaseService):
 
@@ -340,6 +343,7 @@ class ExecuteDiagramUseCase(BaseService):
                 if isinstance(node, PersonJobNode) and node.person:
                     # Use the actual person_id from the node, not the node ID
                     person_id = str(node.person)
+                    logger.debug(f"Processing PersonJobNode: node.person={node.person}, person_id={person_id}")
                     # For PersonJobNode, we need to get person config from metadata or defaults
                     # The node itself only has person_id reference
                     config = {
@@ -353,8 +357,10 @@ class ExecuteDiagramUseCase(BaseService):
                     # Try to get person config from diagram metadata if available
                     if typed_diagram.metadata and 'persons' in typed_diagram.metadata:
                         persons_metadata = typed_diagram.metadata['persons']
+                        logger.debug(f"Found persons metadata: {persons_metadata}")
                         if person_id in persons_metadata:
                             person_data = persons_metadata[person_id]
+                            logger.debug(f"Found person data for {person_id}: {person_data}")
                             config.update({
                                 'name': person_data.get('name', person_id),
                                 'system_prompt': person_data.get('system_prompt', ''),
@@ -364,12 +370,17 @@ class ExecuteDiagramUseCase(BaseService):
                                 'max_tokens': person_data.get('max_tokens'),
                                 'api_key_id': person_data.get('api_key_id', ''),
                             })
+                            logger.debug(f"Updated config for {person_id}: {config}")
+                    else:
+                        logger.debug(f"No persons metadata found in diagram. metadata: {typed_diagram.metadata}")
                     
                     person_configs[person_id] = config
                     
                     # Register person if conversation service supports it
                     if hasattr(conversation_service, 'register_person'):
+                        logger.debug(f"Registering person {person_id} with config: {config}")
                         conversation_service.register_person(person_id, config)
+                        logger.debug(f"Successfully registered person {person_id}")
                     else:
                         # For services that don't have register_person, 
                         # we can at least ensure the person memory is created
