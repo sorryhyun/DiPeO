@@ -56,7 +56,7 @@ class CliSessionService:
                     
                     # Convert to YAML string then deserialize to DomainDiagram
                     yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-                    domain_diagram = converter.deserialize(yaml_content, format_id="light")
+                    domain_diagram = converter.deserialize_from_storage(yaml_content, format="light")
                     
                     # Convert to frontend-compatible format (arrays, not objects)
                     converted_data = {

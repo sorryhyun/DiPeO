@@ -269,6 +269,14 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     def is_execution_complete(self) -> bool:
         """Check if execution is complete."""
+        # Check if any endpoint nodes have been reached
+        from dipeo.diagram_generated.generated_nodes import NodeType
+        for node in self.diagram.nodes:
+            if node.type == NodeType.ENDPOINT.value:
+                node_state = self.get_node_state(node.id)
+                if node_state and node_state.status in [Status.COMPLETED, Status.MAXITER_REACHED]:
+                    return True
+        
         # Check if any nodes are running
         if any(state.status == Status.RUNNING for state in self._node_states.values()):
             return False

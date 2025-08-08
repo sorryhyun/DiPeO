@@ -129,10 +129,9 @@ class ApplicationContainer:
         self.registry.register(
             PREPARE_DIAGRAM_USE_CASE,
             lambda: PrepareDiagramForExecutionUseCase(
-                storage_service=None,  # No longer needed, using diagram_service
+                diagram_service=self.registry.resolve(DIAGRAM_SERVICE_NEW),
                 validator=self.registry.resolve(DIAGRAM_VALIDATOR),
                 api_key_service=self.registry.resolve(API_KEY_SERVICE),
                 service_registry=self.registry,
-                diagram_service=self.registry.resolve(DIAGRAM_SERVICE_NEW),
             )
         )

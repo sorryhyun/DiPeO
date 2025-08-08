@@ -32,7 +32,6 @@ from .domain_models import (
     PersonID,
     DiagramID,
     ExecutionID,
-    ArrowID,
     # Domain models
     Vec2,
     DomainHandle,
