@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 
 from dipeo.core import BaseService
-from dipeo.core.ports import DiagramConverter, FormatStrategy
+from dipeo.core.ports import DiagramStorageSerializer, FormatStrategy
 from dipeo.domain.diagram.strategies import (
     LightYamlStrategy,
     NativeJsonStrategy,
@@ -16,7 +16,7 @@ from dipeo.diagram_generated import DomainDiagram
 logger = logging.getLogger(__name__)
 
 
-class DiagramConverterService(BaseService, DiagramConverter):
+class DiagramConverterService(BaseService, DiagramStorageSerializer):
     """Converts diagrams between different formats using pluggable strategies."""
     
     def __init__(self):
@@ -57,22 +57,36 @@ class DiagramConverterService(BaseService, DiagramConverter):
         
         return strategy
     
-    def serialize(self, diagram: DomainDiagram, format_id: str | None = None) -> str:
+    def serialize_for_storage(self, diagram: DomainDiagram, format: str) -> str:
+        """Serialize a DomainDiagram to string for file storage.
+        
+        Args:
+            diagram: The DomainDiagram to serialize
+            format: Target format ('native', 'light', 'readable')
+            
+        Returns:
+            String representation for file storage
+        """
         if not self._initialized:
             raise RuntimeError("DiagramConverterService not initialized")
             
-        fmt = format_id or self.active_format
-        if not fmt:
-            raise ValueError("No format specified for serialization")
-        
-        strategy = self.get_strategy(fmt)
+        strategy = self.get_strategy(format)
         return strategy.serialize_from_domain(diagram)
     
-    def deserialize(self, content: str, format_id: str | None = None) -> DomainDiagram:
+    def deserialize_from_storage(self, content: str, format: str | None = None) -> DomainDiagram:
+        """Deserialize file content to DomainDiagram.
+        
+        Args:
+            content: String content from file
+            format: Optional format hint, will auto-detect if not provided
+            
+        Returns:
+            DomainDiagram instance
+        """
         if not self._initialized:
             raise RuntimeError("DiagramConverterService not initialized")
             
-        fmt = format_id or self.active_format
+        fmt = format
         
         if not fmt:
             fmt = self.detect_format(content)
@@ -81,6 +95,17 @@ class DiagramConverterService(BaseService, DiagramConverter):
         
         strategy = self.get_strategy(fmt)
         return strategy.deserialize_to_domain(content)
+    
+    # Keep old methods for backward compatibility during migration
+    def serialize(self, diagram: DomainDiagram, format_id: str | None = None) -> str:
+        """DEPRECATED: Use serialize_for_storage() instead."""
+        if not format_id:
+            format_id = self.active_format or "native"
+        return self.serialize_for_storage(diagram, format_id)
+    
+    def deserialize(self, content: str, format_id: str | None = None) -> DomainDiagram:
+        """DEPRECATED: Use deserialize_from_storage() instead."""
+        return self.deserialize_from_storage(content, format_id)
     
     def validate(
         self, content: str, format_id: str | None = None

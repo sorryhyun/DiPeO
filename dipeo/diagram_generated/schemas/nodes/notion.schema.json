@@ -2,15 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/NotionNodeData",
   "definitions": {
-    "NotionOperation": {
-      "enum": [
-        "create_page",
-        "update_page",
-        "get_page",
-        "query_database"
-      ],
-      "type": "string"
-    },
     "NotionNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -40,6 +31,15 @@
         "operation"
       ],
       "type": "object"
+    },
+    "NotionOperation": {
+      "enum": [
+        "create_page",
+        "update_page",
+        "get_page",
+        "query_database"
+      ],
+      "type": "string"
     }
   }
 }

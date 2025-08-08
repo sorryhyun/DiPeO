@@ -6,7 +6,7 @@ They enable the core and domain layers to depend on abstractions rather than con
 """
 
 from .apikey_port import APIKeyPort
-from .diagram_converter import DiagramConverter, FormatStrategy
+from .diagram_converter import DiagramConverter, DiagramStorageSerializer, FormatStrategy
 from .diagram_compiler import DiagramCompiler
 from .execution_observer import ExecutionObserver
 from .file_service import FileServicePort
@@ -22,6 +22,7 @@ __all__ = [
     "DiagramCompiler",
     "DiagramConverter",
     "DiagramPort",
+    "DiagramStorageSerializer",
     "ExecutionObserver",
     "FileServicePort",
     "FormatStrategy",

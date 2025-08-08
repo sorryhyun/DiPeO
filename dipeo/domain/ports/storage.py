@@ -173,7 +173,18 @@ class DiagramStoragePort(Protocol):
         ...
     
     async def load_diagram(self, diagram_id: str) -> tuple[str, str]:
-        """Load diagram content and return (content, format)."""
+        """Load diagram content and return (content, format).
+        
+        Note: This returns raw content. Use load_diagram_model() for typed models.
+        """
+        ...
+    
+    async def load_diagram_model(self, diagram_id: str):
+        """Load diagram and return as DomainDiagram model.
+        
+        This is the preferred method for type-safe diagram loading.
+        Returns DomainDiagram (avoiding circular import with type annotation).
+        """
         ...
     
     async def exists(self, diagram_id: str) -> bool:

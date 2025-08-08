@@ -38,11 +38,17 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 message_router = registry.resolve(MESSAGE_ROUTER)
                 integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
                 
-                # Get diagram data
+                # Get diagram data - prefer DomainDiagram model for type safety
                 diagram_data = None
                 if input.diagram_id:
-                    diagram_data = await integrated_service.get_diagram(input.diagram_id)
+                    # Try to get typed model first
+                    if hasattr(integrated_service, 'get_diagram_model'):
+                        diagram_data = await integrated_service.get_diagram_model(input.diagram_id)
+                    else:
+                        # Fallback to dict
+                        diagram_data = await integrated_service.get_diagram(input.diagram_id)
                 elif input.diagram_data:
+                    # Direct dict provided
                     diagram_data = input.diagram_data
                 else:
                     raise ValueError("Either diagram_id or diagram_data must be provided")

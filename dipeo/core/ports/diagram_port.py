@@ -36,31 +36,39 @@ class DiagramPort(Protocol):
     async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
         ...
         
-    async def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
+    async def save_diagram(self, diagram_id: str, diagram: DomainDiagram) -> None:
+        """Save a DomainDiagram to storage."""
         ...
         
     async def create_diagram(
-        self, name: str, diagram: dict[str, Any], format: str = "json"
+        self, name: str, diagram: DomainDiagram, format: str = "native"
     ) -> str: 
-        """Create a new diagram with a unique filename."""
+        """Create a new diagram with a unique ID.
+        
+        Args:
+            name: Base name for the diagram
+            diagram: The DomainDiagram to save
+            format: Storage format (native, light, readable)
+            
+        Returns:
+            The unique diagram ID assigned
+        """
         ...
         
-    async def update_diagram(self, path: str, diagram: dict[str, Any]) -> None: 
+    async def update_diagram(self, diagram_id: str, diagram: DomainDiagram) -> None: 
         """Update an existing diagram."""
         ...
         
-    async def delete_diagram(self, path: str) -> None: 
-        """Delete a diagram file."""
+    async def delete_diagram(self, diagram_id: str) -> None: 
+        """Delete a diagram from storage."""
         ...
         
-    async def save_diagram_with_id(
-        self, diagram_dict: dict[str, Any], filename: str
-    ) -> str: 
-        """Save a diagram ensuring it has an ID."""
-        ...
+    async def get_diagram(self, diagram_id: str) -> DomainDiagram | None: 
+        """Get a diagram by its ID.
         
-    async def get_diagram(self, diagram_id: str) -> dict[str, Any] | None: 
-        """Get a diagram by its ID."""
+        Returns:
+            DomainDiagram if found, None otherwise
+        """
         ...
 
 

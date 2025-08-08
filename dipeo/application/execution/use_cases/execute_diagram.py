@@ -14,6 +14,7 @@ from dipeo.application.registry import (
     API_KEY_SERVICE,
     CONVERSATION_SERVICE,
     CONVERSATION_MANAGER,
+    PREPARE_DIAGRAM_USE_CASE,
 )
 
 if TYPE_CHECKING:
@@ -50,13 +51,16 @@ class ExecuteDiagramUseCase(BaseService):
             raise ValueError("message_router is required but not found in service registry")
         if not self.diagram_storage_service:
             raise ValueError("diagram_storage_service is required but not found in service registry")
+        
+        # Get prepare diagram service for clean deserialization -> compilation
+        self._prepare_diagram_service = None
 
     async def initialize(self):
         pass
 
     async def execute_diagram(  # type: ignore[override]
         self,
-        diagram: dict[str, Any],
+        diagram: "DomainDiagram | dict[str, Any]",  # Accept DomainDiagram or dict for compatibility
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable | None = None,
@@ -64,7 +68,8 @@ class ExecuteDiagramUseCase(BaseService):
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
-        typed_diagram = await self._compile_typed_diagram(diagram)
+        # Use prepare diagram service for clean deserialization -> compilation
+        typed_diagram = await self._prepare_and_compile_diagram(diagram, options)
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
         
         # Always use unified monitoring
@@ -89,7 +94,8 @@ class ExecuteDiagramUseCase(BaseService):
             unified_observer = UnifiedEventObserver(
                 message_router=self.message_router,
                 execution_runtime=typed_diagram,
-                capture_logs=True  # Always enable log capture
+                capture_logs=True,  # Always enable log capture
+                propagate_to_sub=False  # Don't track sub-diagram nodes by default
             )
             engine_observers = [unified_observer]
             logger.debug(f"[ExecuteDiagram] Created UnifiedEventObserver for execution {execution_id}")
@@ -214,69 +220,97 @@ class ExecuteDiagramUseCase(BaseService):
             # Re-raise any exceptions
             raise
     
-    async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
-        """Compile diagram to typed executable format."""
+    async def _prepare_and_compile_diagram(self, diagram: "DomainDiagram | dict[str, Any]", options: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
+        """Prepare and compile diagram using the standard flow."""
         from dipeo.diagram_generated import DomainDiagram
-        from dipeo.domain.diagram.utils import dict_to_domain_diagram
-        from dipeo.infrastructure.services.diagram import DiagramConverterService
+        from dipeo.domain.diagram.models import LightDiagram
         
-        if isinstance(diagram, dict):
-            version = diagram.get("version")
-            format_type = diagram.get("format")
-            
-            if version in ["light", "readable"] or format_type in ["light", "readable"]:
-                converter = DiagramConverterService()
-                await converter.initialize()
-                
-                import yaml
-                yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
-                
-                format_id = version or format_type
-                domain_diagram = converter.deserialize(yaml_content, format_id)
-            else:
-                domain_diagram = dict_to_domain_diagram(diagram)
-        elif isinstance(diagram, DomainDiagram):
-            domain_diagram = diagram
+        # Try to get prepare diagram service from registry
+        if not self._prepare_diagram_service:
+            try:
+                self._prepare_diagram_service = self.service_registry.resolve(PREPARE_DIAGRAM_USE_CASE)
+            except:
+                pass
+        
+        # If we have the prepare service, use it for clean deserialization -> compilation
+        if self._prepare_diagram_service:
+            # Prepare diagram handles all format conversion and compilation
+            executable_diagram = await self._prepare_diagram_service.prepare_for_execution(
+                diagram=diagram,
+                validate=False  # Skip validation for now as mentioned in TODO
+            )
         else:
-            raise ValueError(f"Unsupported diagram type: {type(diagram)}")
-        
-        # TODO: Add updated validation logic if needed
-        # Validation has been temporarily removed while updating the flow validation system
-        
-        # Get compilation service from registry
-        from dipeo.application.registry import COMPILATION_SERVICE
-        compiler = self.service_registry.resolve(COMPILATION_SERVICE)
-        if not compiler:
-            raise RuntimeError("CompilationService not found in registry")
-        
-        api_keys = None
-        if hasattr(self.service_registry, 'resolve'):
+            # Fallback to inline implementation if service not available
+            from dipeo.infrastructure.services.diagram import DiagramConverterService
+            from dipeo.domain.diagram.utils import dict_to_domain_diagram
+            from dipeo.application.registry import COMPILATION_SERVICE
+            
+            # Check if already a DomainDiagram
+            if isinstance(diagram, DomainDiagram):
+                domain_diagram = diagram
+            elif isinstance(diagram, dict):
+                # Detect format from dict
+                version = diagram.get("version") or diagram.get("format")
+                
+                if version in ["light", "readable"]:
+                    # Light format - parse and convert
+                    light_diagram = LightDiagram.from_dict(diagram)
+                    
+                    # Validate the light diagram
+                    errors = light_diagram.validate()
+                    if errors:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        for error in errors:
+                            logger.warning(f"Light diagram validation warning: {error}")
+                    
+                    # Convert using existing converter
+                    converter = DiagramConverterService()
+                    await converter.initialize()
+                    
+                    import yaml
+                    yaml_content = yaml.dump(light_diagram.to_dict(), default_flow_style=False, sort_keys=False)
+                    domain_diagram = converter.deserialize(yaml_content, "light")
+                else:
+                    # Native format dict - convert directly
+                    domain_diagram = dict_to_domain_diagram(diagram)
+            else:
+                raise ValueError(f"Unsupported diagram type: {type(diagram)}")
+            
+            # Compile to ExecutableDiagram
+            compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+            if not compiler:
+                raise RuntimeError("CompilationService not found in registry")
+            
+            executable_diagram = compiler.compile(domain_diagram)
+            
+            # Add API keys
             api_key_service = self.service_registry.resolve(API_KEY_SERVICE)
             if api_key_service:
                 api_keys = self._extract_api_keys_for_typed_diagram(domain_diagram, api_key_service)
-        
-        executable_diagram = compiler.compile(domain_diagram)
-        if api_keys:
-            executable_diagram.metadata["api_keys"] = api_keys
-        
-        if domain_diagram.metadata:
-            executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
-        
-        if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
-            persons_dict = {}
-            persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
-            for person in persons_list:
-                person_id = str(person.id)
-                persons_dict[person_id] = {
-                    'name': person.label,
-                    'service': person.llm_config.service.value if hasattr(person.llm_config.service, 'value') else person.llm_config.service,
-                    'model': person.llm_config.model,
-                    'api_key_id': str(person.llm_config.api_key_id),
-                    'system_prompt': person.llm_config.system_prompt or '',
-                    'temperature': getattr(person.llm_config, 'temperature', 0.7),
-                    'max_tokens': getattr(person.llm_config, 'max_tokens', None),
-                }
-            executable_diagram.metadata['persons'] = persons_dict
+                if api_keys:
+                    executable_diagram.metadata["api_keys"] = api_keys
+            
+            # Add metadata
+            if domain_diagram.metadata:
+                executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
+            
+            # Add persons metadata
+            if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
+                persons_dict = {}
+                persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
+                for person in persons_list:
+                    person_id = str(person.id)
+                    persons_dict[person_id] = {
+                        'name': person.label,
+                        'service': person.llm_config.service.value if hasattr(person.llm_config.service, 'value') else person.llm_config.service,
+                        'model': person.llm_config.model,
+                        'api_key_id': str(person.llm_config.api_key_id),
+                        'system_prompt': person.llm_config.system_prompt or '',
+                        'temperature': getattr(person.llm_config, 'temperature', 0.7),
+                        'max_tokens': getattr(person.llm_config, 'max_tokens', None),
+                    }
+                executable_diagram.metadata['persons'] = persons_dict
         
         await self._register_typed_person_configs(executable_diagram)
         

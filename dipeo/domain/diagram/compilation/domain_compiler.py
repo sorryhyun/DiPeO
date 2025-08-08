@@ -395,47 +395,125 @@ class DomainDiagramCompiler(DiagramCompiler):
     def decompile(self, executable_diagram: ExecutableDiagram) -> DomainDiagram:
         """Convert executable diagram back to domain representation."""
         from dipeo.diagram_generated.generated_nodes import PersonJobNode
+        from dipeo.diagram_generated import (
+            DomainNode, DomainArrow, DomainHandle, DomainPerson,
+            Vec2, PersonLLMConfig, LLMService,
+            HandleID, ArrowID, HandleLabel, HandleDirection, DataType, ApiKeyID,
+            DiagramMetadata
+        )
         
         # Convert typed nodes back to domain nodes
         domain_nodes = []
         for node in executable_diagram.nodes:
-            domain_node = {
-                "id": node.id,
-                "type": node.type.value if hasattr(node.type, 'value') else node.type,
-                "position": {"x": node.position.x, "y": node.position.y},
-                "data": node.to_dict()
-            }
+            # Create data dict from node attributes
+            data = {}
+            exclude_fields = {"id", "type", "position", "label", "flipped", "metadata"}
+            for attr_name in dir(node):
+                if not attr_name.startswith("_") and attr_name not in exclude_fields:
+                    attr_value = getattr(node, attr_name, None)
+                    if attr_value is not None and not callable(attr_value):
+                        # Convert enums to their values for data field
+                        if hasattr(attr_value, 'value'):
+                            data[attr_name] = attr_value.value
+                        elif hasattr(attr_value, 'model_dump'):
+                            data[attr_name] = attr_value.model_dump()
+                        else:
+                            data[attr_name] = attr_value
+            
+            domain_node = DomainNode(
+                id=node.id,
+                type=node.type,
+                position=Vec2(x=node.position.x, y=node.position.y),
+                data=data
+            )
             domain_nodes.append(domain_node)
         
-        # Convert edges back to arrows
+        # Convert edges back to arrows with proper handle IDs
         arrows = []
-        for edge in executable_diagram.edges:
-            arrow = {
-                "id": edge.id,
-                "source": edge.source_node_id,
-                "target": edge.target_node_id,
-                "sourceHandle": edge.source_output,
-                "targetHandle": edge.target_input,
-                "metadata": getattr(edge, 'metadata', {})
-            }
-            arrows.append(arrow)
-        
-        # Extract handles from nodes
         handles = []
+        handle_id_counter = 0
+        
+        # Create handles for each edge connection
+        for edge in executable_diagram.edges:
+            # Create source handle ID
+            source_handle_id = HandleID(f"handle_{handle_id_counter}")
+            handle_id_counter += 1
+            
+            # Create target handle ID
+            target_handle_id = HandleID(f"handle_{handle_id_counter}")
+            handle_id_counter += 1
+            
+            # Create handles
+            source_handle = DomainHandle(
+                id=source_handle_id,
+                node_id=edge.source_node_id,
+                label=HandleLabel(edge.source_output),
+                direction=HandleDirection.OUTPUT,
+                data_type=DataType.ANY
+            )
+            handles.append(source_handle)
+            
+            target_handle = DomainHandle(
+                id=target_handle_id,
+                node_id=edge.target_node_id,
+                label=HandleLabel(edge.target_input),
+                direction=HandleDirection.INPUT,
+                data_type=DataType.ANY
+            )
+            handles.append(target_handle)
+            
+            # Create arrow
+            arrow = DomainArrow(
+                id=ArrowID(edge.id),
+                source=source_handle_id,
+                target=target_handle_id,
+                content_type=edge.content_type,
+                data={"metadata": edge.metadata} if edge.metadata else None
+            )
+            arrows.append(arrow)
         
         # Extract persons from PersonJobNodes
         persons = []
+        person_ids_seen = set()
         for node in executable_diagram.nodes:
-            if isinstance(node, PersonJobNode) and node.person:
-                persons.append({
-                    "id": node.person,
-                    "name": node.person.capitalize()
-                })
+            if isinstance(node, PersonJobNode) and hasattr(node, 'person_id'):
+                person_id = node.person_id
+                if person_id and person_id not in person_ids_seen:
+                    person_ids_seen.add(person_id)
+                    # Create a minimal person config for decompiled diagrams
+                    persons.append(DomainPerson(
+                        id=person_id,
+                        label=person_id.capitalize(),
+                        type="person",
+                        llm_config=PersonLLMConfig(
+                            service=LLMService.OPENAI,
+                            model="gpt-5-nano-2025-08-07",
+                            api_key_id=ApiKeyID("default")
+                        )
+                    ))
+        
+        # Convert metadata if it exists and is a dict
+        metadata = None
+        if executable_diagram.metadata:
+            if isinstance(executable_diagram.metadata, DiagramMetadata):
+                metadata = executable_diagram.metadata
+            elif isinstance(executable_diagram.metadata, dict):
+                # Create DiagramMetadata from dict if needed
+                metadata = DiagramMetadata(
+                    name=executable_diagram.metadata.get("name"),
+                    description=executable_diagram.metadata.get("description"),
+                    version=executable_diagram.metadata.get("version", "1.0"),
+                    created=executable_diagram.metadata.get("created", ""),
+                    modified=executable_diagram.metadata.get("modified", ""),
+                    author=executable_diagram.metadata.get("author"),
+                    tags=executable_diagram.metadata.get("tags"),
+                    format=executable_diagram.metadata.get("format")
+                )
         
         return DomainDiagram(
             nodes=domain_nodes,
             arrows=arrows,
             handles=handles,
             persons=persons,
-            metadata=executable_diagram.metadata
+            metadata=metadata
         )

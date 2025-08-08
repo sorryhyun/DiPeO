@@ -2,7 +2,7 @@
 
 import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Optional, TYPE_CHECKING
 
 from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
 from dipeo.core import BaseService, ValidationError
@@ -14,6 +14,10 @@ from dipeo.domain.diagram.utils import (
 )
 from dipeo.domain.validators import DiagramValidator
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
+
+if TYPE_CHECKING:
+    from dipeo.application.registry import ServiceRegistry
+    from dipeo.infrastructure.services.diagram import DiagramService
 
 # Compiler imported inline where used
 
@@ -28,14 +32,32 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         storage_service: DiagramStorageDomainService,
         validator: DiagramValidator,
         api_key_service: APIKeyDomainService,
+        service_registry: Optional["ServiceRegistry"] = None,
+        diagram_service: Optional["DiagramService"] = None,
     ):
         super().__init__()
         self.storage = storage_service
         self.validator = validator
         self.api_key_service = api_key_service
+        self.service_registry = service_registry
+        self.diagram_service = diagram_service
 
     async def initialize(self) -> None:
-        await self.storage.initialize()
+        # Initialize storage if it has an initialize method
+        if hasattr(self.storage, 'initialize'):
+            await self.storage.initialize()
+        
+        # Initialize diagram service if not provided and available in registry
+        if not self.diagram_service and self.service_registry:
+            from dipeo.application.registry import DIAGRAM_SERVICE_NEW
+            try:
+                self.diagram_service = self.service_registry.resolve(DIAGRAM_SERVICE_NEW)
+            except:
+                pass
+        
+        # Initialize diagram service if available
+        if self.diagram_service and hasattr(self.diagram_service, 'initialize'):
+            await self.diagram_service.initialize()
 
     async def prepare_for_execution(
         self,
@@ -48,7 +70,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         Args:
             diagram: Can be:
                 - str: diagram ID to load from storage
-                - Dict: raw diagram data (backend or domain format)
+                - Dict: raw diagram data (light, readable, native, or domain format)
                 - DomainDiagram: already parsed domain model
             diagram_id: Optional ID to use (for in-memory diagrams)
             validate: Whether to validate the diagram
@@ -58,24 +80,35 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         """
         # Step 1: Get the domain diagram
         if isinstance(diagram, str):
-            # Load from storage
-            diagram_id = diagram
-            backend_data = await self._load_from_storage(diagram_id)
-            # Convert to domain model
-            if self._is_backend_format(backend_data):
-                domain_diagram = dict_to_domain_diagram(backend_data)
+            # Load from storage using diagram service if available
+            if self.diagram_service:
+                # Ensure diagram service is initialized
+                if hasattr(self.diagram_service, 'initialize'):
+                    await self.diagram_service.initialize()
+                try:
+                    domain_diagram = await self.diagram_service.load_from_file(diagram)
+                except FileNotFoundError:
+                    # Fallback to storage service for diagram ID
+                    diagram_data = await self._load_from_storage(diagram)
+                    domain_diagram = await self._convert_to_domain_diagram(diagram_data)
             else:
-                domain_diagram = DomainDiagram.model_validate(backend_data)
+                diagram_data = await self._load_from_storage(diagram)
+                domain_diagram = await self._convert_to_domain_diagram(diagram_data)
         elif isinstance(diagram, DomainDiagram):
             # Already have domain model
             domain_diagram = diagram
         elif isinstance(diagram, dict):
-            # Raw dict - could be backend or domain format
-            if self._is_backend_format(diagram):
-                domain_diagram = dict_to_domain_diagram(diagram)
+            # Convert dict to domain diagram using diagram service if available
+            if self.diagram_service:
+                # Ensure diagram service is initialized
+                if hasattr(self.diagram_service, 'initialize'):
+                    await self.diagram_service.initialize()
+                # Convert dict to YAML string for diagram service
+                import yaml
+                yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
+                domain_diagram = self.diagram_service.load_diagram(yaml_content)
             else:
-                # Domain format dict
-                domain_diagram = DomainDiagram.model_validate(diagram)
+                domain_diagram = await self._convert_to_domain_diagram(diagram)
         else:
             raise ValueError(f"Unsupported diagram type: {type(diagram)}")
 
@@ -121,10 +154,19 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         logger.info("Compiling diagram with CompilationService")
         import time
         start_time = time.time()
-        from dipeo.application.registry import COMPILATION_SERVICE
-        compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+        
+        # Try to get compiler from service registry if available
+        compiler = None
+        if self.service_registry:
+            from dipeo.application.registry import COMPILATION_SERVICE
+            compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+        
+        # Fallback to creating compiler directly if not in registry
         if not compiler:
-            raise RuntimeError("CompilationService not found in registry")
+            from dipeo.infrastructure.services.diagram.compilation_service import CompilationService
+            compiler = CompilationService()
+            await compiler.initialize()
+        
         executable_diagram = compiler.compile(domain_diagram)
         # Add API keys to metadata
         executable_diagram.metadata["api_keys"] = api_keys
@@ -152,15 +194,36 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         logger.debug(f"Loading diagram from {path}")
         return await self.storage.read_file(path)
 
-    def _is_backend_format(self, data: dict[str, Any]) -> bool:
-        """Check if data is in backend format (dict-based nodes)."""
-        if "nodes" in data and isinstance(data["nodes"], dict):
-            first_node = (
-                next(iter(data["nodes"].values()), None) if data["nodes"] else None
-            )
-            if first_node and isinstance(first_node, dict):
-                return True
-        return False
+    async def _convert_to_domain_diagram(self, data: dict[str, Any]) -> DomainDiagram:
+        """Convert diagram data to DomainDiagram.
+        
+        This is a fallback method when DiagramService is not available.
+        When DiagramService is available, it handles all format conversions.
+        """
+        # If we have diagram service, use it
+        if self.diagram_service:
+            import yaml
+            yaml_content = yaml.dump(data, default_flow_style=False, sort_keys=False)
+            return self.diagram_service.load_diagram(yaml_content)
+        
+        # Otherwise, fallback to basic conversion
+        # Check for format indicators
+        version = data.get("version")
+        format_type = data.get("format")
+        
+        # For light/readable formats, we need the converter service
+        if version in ["light", "readable"] or format_type in ["light", "readable"]:
+            from dipeo.infrastructure.services.diagram import DiagramConverterService
+            converter = DiagramConverterService()
+            await converter.initialize()
+            
+            import yaml
+            yaml_content = yaml.dump(data, default_flow_style=False, sort_keys=False)
+            format_id = version or format_type
+            return converter.deserialize(yaml_content, format_id)
+        
+        # For other formats, use dict_to_domain_diagram
+        return dict_to_domain_diagram(data)
 
     def _fix_api_key_references(self, diagram: dict[str, Any]) -> dict[str, Any]:
         """Fix invalid API key references in diagram."""

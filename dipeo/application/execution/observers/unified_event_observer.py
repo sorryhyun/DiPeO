@@ -29,7 +29,8 @@ class UnifiedEventObserver(ExecutionObserver):
     """
 
     def __init__(
-        self, message_router: MessageRouterPort, execution_runtime=None, capture_logs: bool = True
+        self, message_router: MessageRouterPort, execution_runtime=None, capture_logs: bool = True,
+        propagate_to_sub: bool = False
     ):
         self.message_router = message_router
         self.execution_runtime = execution_runtime
@@ -38,7 +39,7 @@ class UnifiedEventObserver(ExecutionObserver):
 
         # Configure metadata for sub-diagram propagation
         self.metadata = ObserverMetadata(
-            propagate_to_sub=True,
+            propagate_to_sub=propagate_to_sub,
             scope_to_execution=False,
             filter_events=None,  # Publish all events
         )

@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from dipeo.core.execution import ExecutionContext
     from dipeo.domain.diagram.models import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService
+    from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
     from typing import Any, Dict
 
 
@@ -84,6 +85,7 @@ NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts")
 DIAGRAM_SERVICE = ServiceKey["DiagramPort"]("diagram_service")
 EXECUTION_SERVICE = ServiceKey["ExecutionService"]("execution_service")
 COMPILATION_SERVICE = ServiceKey["CompilationService"]("compilation_service")
+PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prepare_diagram_use_case")
 
 # Infrastructure Adapters
 DATABASE = ServiceKey["DatabasePort"]("database")
@@ -154,6 +156,7 @@ __all__ = [
     "DIAGRAM_SERVICE",
     "EXECUTION_SERVICE",
     "COMPILATION_SERVICE",
+    "PREPARE_DIAGRAM_USE_CASE",
     
     # Infrastructure
     "DATABASE",

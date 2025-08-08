@@ -24,6 +24,7 @@ from dipeo.application.registry.keys import (
     MESSAGE_ROUTER,
     DIAGRAM_SERVICE_NEW,
     DIAGRAM_STORAGE_SERVICE,
+    PREPARE_DIAGRAM_USE_CASE,
 )
 
 if TYPE_CHECKING:
@@ -61,9 +62,11 @@ class BatchSubDiagramExecutor:
                 metadata={'batch_mode': True, 'batch_parallel': batch_parallel, 'status': 'completed'}
             )
         
-        # Load diagram once for all batch items
+        # Load and prepare diagram once for all batch items
+        # For now, use the old implementation until ExecuteDiagramUseCase is updated
+        # to work with ExecutableDiagram directly
         diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
-        diagram_data = await self._load_diagram(node, diagram_service)
+        diagram_data = await self._load_diagram_fallback(node, diagram_service)
         
         # Prepare base execution context
         base_context = await self._prepare_base_context(request)
@@ -347,8 +350,54 @@ class BatchSubDiagramExecutor:
         
         return execution_results, execution_error
     
-    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> dict[str, Any]:
-        """Load the diagram to execute (cached for batch execution)."""
+    async def _get_diagram_input(self, node: SubDiagramNode, request: ExecutionRequest[SubDiagramNode]) -> Any:
+        """Get the diagram input for preparation.
+        
+        Returns either diagram_data dict, a DomainDiagram, or a string ID/path.
+        """
+        # If diagram_data is provided directly, return it
+        if node.diagram_data:
+            return node.diagram_data
+        
+        # Otherwise, construct the diagram path/ID
+        if not node.diagram_name:
+            raise ValueError("No diagram specified for execution")
+        
+        diagram_name = node.diagram_name
+        format_suffix = ".light.yaml"  # Default format
+        
+        if node.diagram_format:
+            format_map = {
+                'light': '.light.yaml',
+                'native': '.native.json',
+                'readable': '.readable.yaml'
+            }
+            format_suffix = format_map.get(node.diagram_format, '.light.yaml')
+        
+        # Construct full file path
+        if diagram_name.startswith('codegen/'):
+            file_path = f"files/{diagram_name}{format_suffix}"
+        else:
+            file_path = f"files/diagrams/{diagram_name}{format_suffix}"
+        
+        # Load the diagram using the diagram service if available
+        diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
+        
+        if not diagram_service:
+            # Return the path and let the prepare use case handle loading
+            return file_path
+        
+        try:
+            # Load the diagram - this returns a DomainDiagram
+            diagram = await diagram_service.load_from_file(file_path)
+            return diagram
+        except Exception as e:
+            log.error(f"Error loading diagram from '{file_path}': {str(e)}")
+            # Return the path and let prepare use case try to load it
+            return file_path
+    
+    async def _load_diagram_fallback(self, node: SubDiagramNode, diagram_service: Any) -> dict[str, Any]:
+        """Fallback diagram loading (old implementation)."""
         # If diagram_data is provided directly, use it
         if node.diagram_data:
             return node.diagram_data

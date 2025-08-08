@@ -9,7 +9,7 @@ from dipeo.core import BaseService, StorageError
 from dipeo.domain.ports.storage import DiagramStoragePort, DiagramInfo, FileSystemPort
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.infrastructure.services.diagram import DiagramConverterService
-from dipeo.diagram_generated import DiagramFormat
+from dipeo.diagram_generated import DiagramFormat, DomainDiagram
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,8 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             return format_enum.value
         return "native"
     
-    async def save_diagram(self, diagram_id: str, content: str, format: str) -> DiagramInfo:
+    async def save_diagram_string(self, diagram_id: str, content: str, format: str) -> DiagramInfo:
+        """Save diagram from string content (internal use)."""
         if not self._initialized:
             await self.initialize()
             
@@ -116,7 +117,55 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
         except Exception as e:
             raise StorageError(f"Failed to save diagram {diagram_id}: {e}")
     
+    async def save_diagram_model(self, diagram_id: str, diagram: DomainDiagram, format: str | None = None) -> DiagramInfo:
+        """Save DomainDiagram model to storage.
+        
+        This is the preferred method for type-safe diagram saving.
+        """
+        if not self._initialized:
+            await self.initialize()
+            
+        try:
+            # Determine format if not provided
+            if not format:
+                # Try to infer from existing file or use native as default
+                if await self.exists(diagram_id):
+                    info = await self.get_info(diagram_id)
+                    format = info.format if info else "native"
+                else:
+                    format = "native"
+            
+            # Serialize the DomainDiagram to string
+            content = self.converter.serialize_for_storage(diagram, format)
+            
+            # Save using the internal string method
+            return await self.save_diagram_string(diagram_id, content, format)
+            
+        except Exception as e:
+            raise StorageError(f"Failed to save diagram model {diagram_id}: {e}")
+    
+    # Update save_diagram to accept DomainDiagram
+    async def save_diagram(self, diagram_id: str, content: str | DomainDiagram, format: str) -> DiagramInfo:
+        """Save diagram to storage.
+        
+        Args:
+            diagram_id: Unique identifier for the diagram
+            content: Either a string (for backward compatibility) or DomainDiagram
+            format: Storage format ('native', 'light', 'readable')
+        """
+        if isinstance(content, str):
+            # Backward compatibility: string content
+            return await self.save_diagram_string(diagram_id, content, format)
+        else:
+            # New behavior: DomainDiagram model
+            return await self.save_diagram_model(diagram_id, content, format)
+    
     async def load_diagram(self, diagram_id: str) -> tuple[str, str]:
+        """Load diagram and return raw content and format.
+        
+        Note: This returns raw content for backward compatibility.
+        Use load_diagram_model() for typed domain model.
+        """
         if not self._initialized:
             await self.initialize()
             
@@ -137,6 +186,29 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
             if isinstance(e, StorageError):
                 raise
             raise StorageError(f"Failed to load diagram {diagram_id}: {e}")
+    
+    async def load_diagram_model(self, diagram_id: str) -> DomainDiagram:
+        """Load diagram and return as DomainDiagram model.
+        
+        This is the preferred method for type-safe diagram loading.
+        """
+        
+        if not self._initialized:
+            await self.initialize()
+            
+        try:
+            # Load raw content
+            content, format = await self.load_diagram(diagram_id)
+            
+            # Convert to DomainDiagram using new method
+            domain_diagram = self.converter.deserialize_from_storage(content, format)
+            
+            return domain_diagram
+            
+        except Exception as e:
+            if isinstance(e, StorageError):
+                raise
+            raise StorageError(f"Failed to load diagram model {diagram_id}: {e}")
     
     async def exists(self, diagram_id: str) -> bool:
         if not self._initialized:
@@ -262,13 +334,13 @@ class DiagramStorageAdapter(BaseService, DiagramStoragePort):
                     return info
                 raise StorageError(f"Failed to get info for diagram {diagram_id}")
             
-            diagram = self.converter.deserialize(content, current_format)
+            diagram = self.converter.deserialize_from_storage(content, current_format)
             
-            new_content = self.converter.serialize(diagram, target_format)
+            new_content = self.converter.serialize_for_storage(diagram, target_format)
             
             await self.delete(diagram_id)
             
-            return await self.save_diagram(diagram_id, new_content, target_format)
+            return await self.save_diagram_string(diagram_id, new_content, target_format)
             
         except Exception as e:
             raise StorageError(f"Failed to convert diagram {diagram_id} to {target_format}: {e}")

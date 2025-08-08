@@ -85,6 +85,15 @@ class SingleSubDiagramExecutor:
             # Get parent observers if available
             parent_observers = options.get("observers", [])
             
+            # Filter observers based on their propagation settings
+            from dipeo.application.execution.observers.scoped_observer import create_scoped_observers
+            filtered_observers = create_scoped_observers(
+                observers=parent_observers,
+                parent_execution_id=request.execution_id,
+                sub_execution_id=sub_execution_id,
+                inherit_all=False  # Only inherit observers with propagate_to_sub=True
+            )
+            
             # Log sub-diagram execution start
             if request.metadata:
                 request.add_metadata("sub_execution_id", sub_execution_id)
@@ -95,7 +104,7 @@ class SingleSubDiagramExecutor:
                 diagram_data=diagram_data,
                 options=options,
                 sub_execution_id=sub_execution_id,
-                parent_observers=parent_observers
+                parent_observers=filtered_observers
             )
             
             # Handle execution error

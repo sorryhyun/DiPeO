@@ -21,6 +21,7 @@ from dipeo.application.registry.keys import (
     LLM_SERVICE,
     MESSAGE_ROUTER,
     PERSON_MANAGER,
+    PREPARE_DIAGRAM_USE_CASE,
     PROMPT_BUILDER,
     STATE_STORE,
 )
@@ -106,7 +107,7 @@ class ApplicationContainer:
                 converter=None  # Will create default converter
             )
         )
-        from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
+        from dipeo.application.execution.use_cases import ExecuteDiagramUseCase, PrepareDiagramForExecutionUseCase
         self.registry.register(
             EXECUTION_SERVICE,
             lambda: ExecuteDiagramUseCase(
@@ -114,5 +115,17 @@ class ApplicationContainer:
                 state_store=self.registry.resolve(STATE_STORE),
                 message_router=self.registry.resolve(MESSAGE_ROUTER),
                 diagram_storage_service=self.registry.resolve(DIAGRAM_STORAGE),
+            )
+        )
+        
+        # Register PrepareDiagramForExecutionUseCase
+        self.registry.register(
+            PREPARE_DIAGRAM_USE_CASE,
+            lambda: PrepareDiagramForExecutionUseCase(
+                storage_service=self.registry.resolve(DIAGRAM_STORAGE),
+                validator=self.registry.resolve(DIAGRAM_VALIDATOR),
+                api_key_service=self.registry.resolve(API_KEY_SERVICE),
+                service_registry=self.registry,
+                diagram_service=self.registry.resolve(DIAGRAM_SERVICE_NEW),
             )
         )

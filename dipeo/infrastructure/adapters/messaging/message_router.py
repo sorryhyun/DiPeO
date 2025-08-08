@@ -307,9 +307,7 @@ class MessageRouter(MessageRouterPort):
                 f"(success: {successful_broadcasts}, failed: {failed_broadcasts})"
             )
         else:
-            logger.debug(
-                f"Batch broadcast to {execution_id}: {len(messages)} events in {broadcast_time:.3f}s"
-            )
+            pass
 
     async def _broadcast_with_metrics(self, conn_id: str, message: dict) -> bool:
         """Helper method to broadcast with metrics tracking.

@@ -82,9 +82,13 @@ def dict_to_domain_diagram(diagram_dict: dict[str, Any]) -> DomainDiagram:
         "arrows": list(arrows_map.values()),
         "handles": list(handles_map.values()),
         "persons": list(persons_map.values()),
-        "metadata": diagram_dict.get("metadata"),
     }
-
+    
+    # Only include metadata if it's not empty and has required fields
+    metadata = diagram_dict.get("metadata")
+    if metadata and isinstance(metadata, dict) and metadata.get("version"):
+        result_dict["metadata"] = metadata
+    
     result_dict = {k: v for k, v in result_dict.items() if v is not None}
 
     return DomainDiagram(**result_dict)
@@ -99,12 +103,15 @@ def domain_diagram_to_dict(domain_diagram: DomainDiagram) -> dict[str, Any]:
     Returns:
         Dict with keys as IDs for efficient lookups
     """
-    maps_dict = diagram_arrays_to_maps(
-        nodes=domain_diagram.nodes or [],
-        arrows=domain_diagram.arrows or [],
-        handles=domain_diagram.handles or [],
-        persons=domain_diagram.persons or []
-    )
+    # Convert the domain diagram to a dict format first
+    # Need to serialize domain objects to dicts
+    diagram_dict = {
+        "nodes": [n.model_dump() if hasattr(n, 'model_dump') else n for n in (domain_diagram.nodes or [])],
+        "arrows": [a.model_dump() if hasattr(a, 'model_dump') else a for a in (domain_diagram.arrows or [])],
+        "handles": [h.model_dump() if hasattr(h, 'model_dump') else h for h in (domain_diagram.handles or [])],
+        "persons": [p.model_dump() if hasattr(p, 'model_dump') else p for p in (domain_diagram.persons or [])]
+    }
+    maps_dict = diagram_arrays_to_maps(diagram_dict)
 
     result = {
         "nodes": maps_dict["nodes"],

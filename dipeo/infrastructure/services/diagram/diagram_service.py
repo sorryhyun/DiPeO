@@ -8,7 +8,6 @@ from dipeo.core import BaseService
 from dipeo.core.ports.diagram_port import DiagramPort
 from dipeo.domain.ports.storage import DiagramStoragePort
 from dipeo.domain.diagram.services import DiagramFormatDetector
-from dipeo.domain.diagram.utils import dict_to_domain_diagram
 from dipeo.diagram_generated import DiagramFormat, DomainDiagram
 from .converter_service import DiagramConverterService
 
@@ -118,7 +117,7 @@ class DiagramService(BaseService, DiagramPort):
         
         return diagrams
     
-    async def save_diagram(self, path: str, diagram: dict[str, Any]) -> None:
+    async def save_diagram(self, path: str, diagram: DomainDiagram) -> None:
         if not self._initialized:
             await self.initialize()
             
@@ -130,26 +129,27 @@ class DiagramService(BaseService, DiagramPort):
                 diagram_id = diagram_id[:-len(suffix)]
                 break
         
-        format = self.format_detector.detect_format_from_filename(path)
-        if not format:
-            format = DiagramFormat.NATIVE
+        format_enum = self.format_detector.detect_format_from_filename(path)
+        if not format_enum:
+            format_enum = DiagramFormat.NATIVE
         
-        domain_diagram = dict_to_domain_diagram(diagram)
-        content = self.converter.serialize(domain_diagram, format.value)
-        await self.storage.save_diagram(diagram_id, content, format.value)
+        content = self.converter.serialize(diagram, format_enum.value)
+        await self.storage.save_diagram(diagram_id, content, format_enum.value)
     
     async def create_diagram(
-        self, name: str, diagram: dict[str, Any], format: str = "json"
+        self, name: str, diagram: DomainDiagram, format_str: str = "native"
     ) -> str:
         if not self._initialized:
             await self.initialize()
             
-        if format == "json":
+        if format_str == "native" or format_str == "json":
             diagram_format = DiagramFormat.NATIVE
-        elif diagram.get("format") == "readable" or diagram.get("version") == "readable":
+        elif format_str == "readable":
             diagram_format = DiagramFormat.READABLE
-        else:
+        elif format_str == "light":
             diagram_format = DiagramFormat.LIGHT
+        else:
+            diagram_format = DiagramFormat.NATIVE
         
         diagram_id = name
         counter = 1
@@ -157,16 +157,12 @@ class DiagramService(BaseService, DiagramPort):
             diagram_id = f"{name}_{counter}"
             counter += 1
         
-        domain_diagram = dict_to_domain_diagram(diagram)
-        content = self.converter.serialize(domain_diagram, diagram_format.value)
+        content = self.converter.serialize(diagram, diagram_format.value)
         await self.storage.save_diagram(diagram_id, content, diagram_format.value)
         
         return diagram_id
     
-    async def update_diagram(self, path: str, diagram: dict[str, Any]) -> None:
-        await self.save_diagram(path, diagram)
-    
-    async def update_diagram_by_id(self, diagram_id: str, diagram: dict[str, Any]) -> None:
+    async def update_diagram(self, diagram_id: str, diagram: DomainDiagram) -> None:
         if not self._initialized:
             await self.initialize()
             
@@ -177,9 +173,9 @@ class DiagramService(BaseService, DiagramPort):
         if not info:
             raise FileNotFoundError(f"Diagram not found: {diagram_id}")
         
-        domain_diagram = dict_to_domain_diagram(diagram)
-        content = self.converter.serialize(domain_diagram, info.format)
+        content = self.converter.serialize(diagram, info.format)
         await self.storage.save_diagram(diagram_id, content, info.format)
+    
     
     async def delete_diagram(self, path: str) -> None:
         if not self._initialized:
@@ -195,35 +191,24 @@ class DiagramService(BaseService, DiagramPort):
         
         await self.storage.delete(diagram_id)
     
-    async def save_diagram_with_id(
-        self, diagram_dict: dict[str, Any], filename: str
-    ) -> str:
-        if not self._initialized:
-            await self.initialize()
-            
-        path_obj = Path(filename)
-        diagram_id = path_obj.stem
-        
-        for suffix in [".native", ".light", ".readable"]:
-            if diagram_id.endswith(suffix):
-                diagram_id = diagram_id[:-len(suffix)]
-                break
-        
-        if "id" not in diagram_dict:
-            diagram_dict["id"] = diagram_id
-        
-        await self.save_diagram(filename, diagram_dict)
-        
-        return diagram_dict.get("id", diagram_id)
     
-    async def get_diagram(self, diagram_id: str) -> dict[str, Any] | None:
+    async def get_diagram(self, diagram_id: str) -> DomainDiagram | None:
+        """Get diagram by its ID.
+        
+        Returns:
+            DomainDiagram if found, None otherwise
+        """
         if not self._initialized:
             await self.initialize()
             
         try:
-            content, format_str = await self.storage.load_diagram(diagram_id)
-            diagram = self.converter.deserialize(content, format_str)
-            return diagram.model_dump(by_alias=True)
+            # Use the new typed method if available
+            if hasattr(self.storage, 'load_diagram_model'):
+                return await self.storage.load_diagram_model(diagram_id)
+            else:
+                # Fallback to deserializing from content
+                content, format_str = await self.storage.load_diagram(diagram_id)
+                return self.converter.deserialize(content, format_str)
         except Exception as e:
             logger.warning(f"Failed to get diagram {diagram_id}: {e}")
             return None
