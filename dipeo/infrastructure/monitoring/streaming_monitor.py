@@ -70,7 +70,7 @@ class StreamingMonitor(EventConsumer):
             except asyncio.TimeoutError:
                 continue
             except asyncio.CancelledError:
-                logger.info("Event processing cancelled")
+                logger.debug("Event processing cancelled")
                 break
             except Exception as e:
                 logger.error(f"Error processing event: {e}", exc_info=True)

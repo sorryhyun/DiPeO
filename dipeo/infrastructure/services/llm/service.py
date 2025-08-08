@@ -182,7 +182,7 @@ class LLMInfraService(BaseService, LLMServicePort):
             
             # Log the LLM call
             if hasattr(self, 'logger'):
-                self.logger.info(f"🤖 Making LLM call - Service: {service}, Model: {model}, Messages: {len(messages_list)}")
+                self.logger.debug(f"🤖 Making LLM call - Service: {service}, Model: {model}, Messages: {len(messages_list)}")
                 self.logger.debug(f"Messages: {messages_list[:2] if len(messages_list) > 2 else messages_list}")  # Log first 2 messages
 
             try:
@@ -190,7 +190,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                     adapter, messages_list, **adapter_kwargs
                 )
                 if hasattr(self, 'logger'):
-                    self.logger.info(f"✅ LLM call completed - Response length: {len(result.text) if result and result.text else 0}")
+                    self.logger.debug(f"✅ LLM call completed - Response length: {len(result.text) if result and result.text else 0}")
                 return result
             except Exception as inner_e:
                 if hasattr(self, 'logger'):

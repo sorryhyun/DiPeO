@@ -189,7 +189,7 @@ class ExecutionStateCache:
                 await asyncio.sleep(cleanup_interval)
                 await self._cleanup_expired_caches()
             except asyncio.CancelledError:
-                logger.info("Cleanup loop cancelled")
+                logger.debug("Cleanup loop cancelled")
                 break
             except Exception as e:
                 logger.error(f"Error in cleanup loop: {e}", exc_info=True)

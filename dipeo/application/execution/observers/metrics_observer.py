@@ -83,7 +83,7 @@ class MetricsObserver(EventConsumer):
         
         self._running = True
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
-        logger.info("MetricsObserver started")
+        logger.debug("MetricsObserver started")
     
     async def stop(self) -> None:
         """Stop the metrics observer."""

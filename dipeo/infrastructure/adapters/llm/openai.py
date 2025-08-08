@@ -39,6 +39,11 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def supports_response_api(self) -> bool:
         return 'gpt-4o-mini' in self.model_name or 'gpt-4.1' in self.model_name
+    
+    def _is_temperature_unsupported_model(self) -> bool:
+        """Check if the model doesn't support temperature parameter."""
+        # gpt-5-nano models don't support temperature
+        return 'gpt-5-nano' in self.model_name
 
     def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
         """Prepare common API request parameters for both sync and async calls."""
@@ -78,7 +83,11 @@ class ChatGPTAdapter(BaseLLMAdapter):
         
         # Use base method to extract allowed parameters
         # Note: responses API doesn't support max_tokens parameter
-        api_params = self._extract_api_params(kwargs, ["temperature"])
+        # Some models (like gpt-5-nano) don't support temperature
+        allowed_params = []
+        if not self._is_temperature_unsupported_model():
+            allowed_params.append("temperature")
+        api_params = self._extract_api_params(kwargs, allowed_params)
         
         return input_messages, api_tools, api_params
     

@@ -1,12 +1,11 @@
 """Main diagram service orchestrating storage and conversion operations."""
 
 import logging
-from typing import Any
 from pathlib import Path
 
 from dipeo.core import BaseService
 from dipeo.core.ports.diagram_port import DiagramPort
-from dipeo.domain.ports.storage import DiagramStoragePort
+from dipeo.domain.ports.storage import DiagramStoragePort, DiagramInfo
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.diagram_generated import DiagramFormat, DomainDiagram
 from .converter_service import DiagramConverterService
@@ -95,27 +94,12 @@ class DiagramService(BaseService, DiagramPort):
     ) -> DomainDiagram:
         return self.load_diagram(content, format)
     
-    async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
+    async def list_diagrams(self, directory: str | None = None) -> list[DiagramInfo]:
         if not self._initialized:
             await self.initialize()
             
-        diagram_infos = await self.storage.list_diagrams()
-        
-        diagrams = []
-        for info in diagram_infos:
-            name = Path(info.id).name if info.id else "unknown"
-            
-            diagrams.append({
-                "id": info.id,
-                "path": str(info.path),
-                "name": name,
-                "format": info.format,
-                "size": info.size,
-                "modified": info.modified.isoformat() if info.modified else None,
-                "created": info.created.isoformat() if info.created else None,
-            })
-        
-        return diagrams
+        # Return metadata only for efficient listing
+        return await self.storage.list_diagrams()
     
     async def save_diagram(self, path: str, diagram: DomainDiagram) -> None:
         if not self._initialized:

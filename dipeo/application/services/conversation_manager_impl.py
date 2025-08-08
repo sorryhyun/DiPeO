@@ -82,17 +82,17 @@ class ConversationManagerImpl(BaseService, ConversationManager):
     def register_person(self, person_id: str, config: dict[str, Any]) -> None:
         import logging
         logger = logging.getLogger(__name__)
-        logger.debug(f"ConversationManager.register_person called for {person_id} with config: {config}")
+        # logger.debug(f"ConversationManager.register_person called for {person_id} with config: {config}")
         person_id_obj = PersonID(person_id)
         if not self.person_manager.person_exists(person_id_obj):
             api_key_id_value = config.get('api_key_id', 'default')
-            logger.debug(f"Creating PersonLLMConfig with api_key_id: {api_key_id_value}")
+            # logger.debug(f"Creating PersonLLMConfig with api_key_id: {api_key_id_value}")
             llm_config = PersonLLMConfig(
                 service=LLMService(config.get('service', 'openai')),
                 model=config.get('model', 'gpt-4'),
                 api_key_id=ApiKeyID(api_key_id_value)
             )
-            logger.debug(f"Created PersonLLMConfig: service={llm_config.service}, model={llm_config.model}, api_key_id={llm_config.api_key_id}")
+            # logger.debug(f"Created PersonLLMConfig: service={llm_config.service}, model={llm_config.model}, api_key_id={llm_config.api_key_id}")
             # Use create_person method instead of accessing _persons directly
             person = self.person_manager.create_person(
                 person_id=person_id_obj,
@@ -101,9 +101,10 @@ class ConversationManagerImpl(BaseService, ConversationManager):
             )
             # Set conversation manager on the newly created person
             person._conversation_manager = self
-            logger.debug(f"Person {person_id} created successfully")
+            # logger.debug(f"Person {person_id} created successfully")
         else:
-            logger.debug(f"Person {person_id} already exists, skipping creation")
+            pass
+            # logger.debug(f"Person {person_id} already exists, skipping creation")
     
     def get_person_config(self, person_id: str) -> PersonLLMConfig | None:
         person_id_obj = PersonID(person_id)

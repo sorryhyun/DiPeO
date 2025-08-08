@@ -44,7 +44,7 @@ class CompilationService(BaseService, DiagramCompiler):
         if self._initialized:
             return
         
-        logger.info("Initializing CompilationService")
+        logger.debug("Initializing CompilationService")
         self._initialized = True
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:

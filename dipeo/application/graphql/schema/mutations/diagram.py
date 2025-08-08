@@ -8,7 +8,6 @@ import strawberry
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
-from dipeo.domain.diagram.utils import domain_diagram_to_dict
 
 from dipeo.diagram_generated.domain_models import DiagramID
 from ...types.inputs import CreateDiagramInput
@@ -25,7 +24,7 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
         @strawberry.mutation
         async def create_diagram(self, input: CreateDiagramInput) -> DiagramResult:
             try:
-                integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+                diagram_service = registry.resolve(DIAGRAM_SERVICE_NEW)
                 
                 # Create metadata from input
                 metadata = DiagramMetadata(
@@ -47,10 +46,9 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
                     metadata=metadata,
                 )
                 
-                # Convert to storage format and save
-                storage_dict = domain_diagram_to_dict(diagram_model)
-                filename = await integrated_service.create_diagram(
-                    input.name, storage_dict, "json"
+                # Save the typed model directly
+                filename = await diagram_service.create_diagram(
+                    input.name, diagram_model, "json"
                 )
                 
                 return DiagramResult(
@@ -72,18 +70,18 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
         async def delete_diagram(self, id: strawberry.ID) -> DeleteResult:
             try:
                 diagram_id = DiagramID(str(id))
-                integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+                diagram_service = registry.resolve(DIAGRAM_SERVICE_NEW)
                 
                 # Get diagram to verify it exists
-                diagram_data = await integrated_service.get_diagram(diagram_id)
+                diagram_data = await diagram_service.get_diagram(diagram_id)
                 if not diagram_data:
                     raise FileNotFoundError(f"Diagram not found: {id}")
                 
                 # Find the path for deletion
-                file_repo = integrated_service.file_repository
+                file_repo = diagram_service.file_repository
                 path = await file_repo.find_by_id(id)
                 if path:
-                    await integrated_service.delete_diagram(path)
+                    await diagram_service.delete_diagram(path)
                 else:
                     raise FileNotFoundError(f"Diagram path not found: {id}")
                 

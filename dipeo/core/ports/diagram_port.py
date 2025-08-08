@@ -2,7 +2,6 @@
 
 import logging
 from typing import (
-    Any,
     Protocol,
     runtime_checkable,
 )
@@ -10,6 +9,7 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 from dipeo.diagram_generated import DiagramFormat, DomainDiagram
+from dipeo.domain.ports.storage import DiagramInfo
 
 
 @runtime_checkable
@@ -33,7 +33,7 @@ class DiagramPort(Protocol):
     ) -> DomainDiagram:
         ...
         
-    async def list_diagrams(self, directory: str | None = None) -> list[dict[str, Any]]:
+    async def list_diagrams(self, directory: str | None = None) -> list[DiagramInfo]:
         ...
         
     async def save_diagram(self, diagram_id: str, diagram: DomainDiagram) -> None:

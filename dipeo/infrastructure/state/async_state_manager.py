@@ -76,7 +76,7 @@ class AsyncStateManager(EventConsumer):
                 await asyncio.sleep(self._write_interval)
                 await self._flush_buffer()
             except asyncio.CancelledError:
-                logger.info("Write loop cancelled")
+                logger.debug("Write loop cancelled")
                 break
             except Exception as e:
                 logger.error(f"Error in write loop: {e}", exc_info=True)

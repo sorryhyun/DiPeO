@@ -49,7 +49,7 @@ class AsyncEventBus(EventEmitter):
                 event = await queue.get()
                 await consumer.consume(event)
             except asyncio.CancelledError:
-                logger.info(f"Consumer loop cancelled for {consumer.__class__.__name__}")
+                logger.debug(f"Consumer loop cancelled for {consumer.__class__.__name__}")
                 break
             except Exception as e:
                 logger.error(
