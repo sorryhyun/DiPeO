@@ -100,7 +100,6 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         ('EndpointNodeData', 'src/core/nodes/endpoint.data.ts'),
         ('DBNodeData', 'src/core/nodes/db.data.ts'),
         ('UserResponseNodeData', 'src/core/nodes/user-response.data.ts'),
-        ('NotionNodeData', 'src/core/nodes/notion.data.ts'),
         ('PersonBatchJobNodeData', 'src/core/nodes/person-batch-job.data.ts'),
         ('HookNodeData', 'src/core/nodes/hook.data.ts'),
         ('TemplateJobNodeData', 'src/core/nodes/template-job.data.ts'),

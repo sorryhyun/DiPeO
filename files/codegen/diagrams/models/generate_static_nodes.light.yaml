@@ -106,7 +106,6 @@ nodes:
           language: SupportedLanguage
           sub_type: DBBlockSubType
           hook_type: HookType
-          operation: NotionOperation
           trigger_mode: HookTriggerMode
           diagram_format: DiagramFormat
           memory_profile: MemoryProfile

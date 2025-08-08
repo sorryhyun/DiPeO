@@ -1,93 +1,189 @@
 # Unified Code Generation Pipeline
-# Generates all code from TypeScript sources - both domain models and node UI
+# Generates all code from TypeScript sources - models, backend, and frontend in parallel
 
 version: light
 
 nodes:
   - label: Start
     type: start
-    position: {x: 50, y: 300}
+    position: {x: 50, y: 400}
     props:
       custom_data:
-        message: Starting unified code generation from TypeScript sources
+        message: Starting complete code generation from TypeScript sources
 
-  # Phase 1: Domain Model Generation (replacement for legacy make codegen)
-  - label: Generate All Domain Models
+  # Parse all TypeScript files once
+  - label: Parse All TypeScript
     type: sub_diagram
-    position: {x: 250, y: 350}
+    position: {x: 200, y: 400}
     props:
-      diagram_name: codegen/diagrams/models/generate_all_models
+      diagram_name: codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
+      passInputData: false
 
-  # Phase 2: Backend Generation
-  - label: Generate Backend Node Files
+  # ===== Domain Model Generation (from generate_all_models) =====
+  - label: Generate Python Models
     type: sub_diagram
-    position: {x: 450, y: 350}
+    position: {x: 400, y: 100}
     props:
-      diagram_name: codegen/diagrams/backend/generate_backend
+      diagram_name: codegen/diagrams/models/generate_python_models_dynamic
       diagram_format: light
+      passInputData: false
 
-  # Phase 3: Apply Staged Changes
-  - label: Apply Staged Changes
+  - label: Generate Enums
+    type: sub_diagram
+    position: {x: 400, y: 150}
+    props:
+      diagram_name: codegen/diagrams/models/generate_enums
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Integrations
+    type: sub_diagram
+    position: {x: 400, y: 200}
+    props:
+      diagram_name: codegen/diagrams/models/generate_integrations
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Conversions
+    type: sub_diagram
+    position: {x: 400, y: 250}
+    props:
+      diagram_name: codegen/diagrams/models/generate_conversions
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Backend Models
+    type: sub_diagram
+    position: {x: 400, y: 300}
+    props:
+      diagram_name: codegen/diagrams/models/generate_backend_models
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate GraphQL Schema
+    type: sub_diagram
+    position: {x: 400, y: 350}
+    props:
+      diagram_name: codegen/diagrams/models/generate_graphql_schema_template_dynamic
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Static Nodes
+    type: sub_diagram
+    position: {x: 400, y: 400}
+    props:
+      diagram_name: codegen/diagrams/models/generate_static_nodes
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Strawberry Types
+    type: sub_diagram
+    position: {x: 400, y: 450}
+    props:
+      diagram_name: codegen/diagrams/models/generate_strawberry_types_v2_dynamic
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Strawberry Mutations
+    type: sub_diagram
+    position: {x: 400, y: 500}
+    props:
+      diagram_name: codegen/diagrams/models/generate_strawberry_mutations_v2
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Validation Models
+    type: sub_diagram
+    position: {x: 400, y: 550}
+    props:
+      diagram_name: codegen/diagrams/models/generate_validation_models
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate TypeScript Indexes
     type: code_job
-    position: {x: 650, y: 350}
+    position: {x: 400, y: 600}
     props:
-      language: bash
-      code: |
-        # Apply staged domain model changes to active directory
-        if [ -d "dipeo/diagram_generated_staged" ]; then
-          echo "Applying staged changes..."
-          make apply
-          echo "✓ Staged changes applied successfully"
-        else
-          echo "⚠️ No staged directory found"
-        fi
+      language: python
+      filePath: files/codegen/code/models/generate_typescript_indexes.py
+      functionName: main
 
-  # Phase 4: Frontend Generation (depends on applied changes)
-  - label: Generate Frontend Node Files
-    type: sub_diagram
-    position: {x: 850, y: 350}
+  # ===== Frontend Generation (from generate_frontend) =====
+  - label: Discover Node Specs
+    type: db
+    position: {x: 400, y: 650}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_frontend
-      diagram_format: light
+      operation: read
+      sub_type: file
+      format: json
+      glob: true
+      source_details:
+        - "temp/specifications/nodes/*.spec.ts.json"
 
-  # Phase 5: Export GraphQL Schema
-  - label: Export GraphQL Schema
+  - label: Prepare Node List
     type: code_job
-    position: {x: 1050, y: 350}
+    position: {x: 600, y: 650}
     props:
-      language: bash
-      code: |
-        # Export the GraphQL schema for frontend consumption
-        echo "Exporting GraphQL schema..."
-        cd /home/soryhyun/DiPeO
-        make graphql-schema
-        echo "✓ GraphQL schema exported to apps/server/schema.graphql"
+      language: python
+      filePath: files/codegen/code/frontend/prepare_node_list_from_specs.py
+      functionName: prepare_node_list_from_specs
 
+  - label: Batch Generate Frontend
+    type: sub_diagram
+    position: {x: 800, y: 650}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_frontend_single
+      diagram_format: light
+      batch: true
+      batch_input_key: items
+      batch_parallel: true
+
+  - label: Generate Frontend Registry
+    type: sub_diagram
+    position: {x: 400, y: 700}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_frontend_registry
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate GraphQL Queries
+    type: sub_diagram
+    position: {x: 400, y: 750}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_graphql_queries
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Zod Schemas
+    type: sub_diagram
+    position: {x: 400, y: 800}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_zod_schemas_v2
+      diagram_format: light
+      passInputData: false
+
+  - label: Generate Field Configs
+    type: sub_diagram
+    position: {x: 400, y: 850}
+    props:
+      diagram_name: codegen/diagrams/frontend/generate_field_configs_v2
+      diagram_format: light
+      passInputData: false
 
   # Summary
   - label: Summarize Results
     type: code_job
-    position: {x: 1250, y: 350}
+    position: {x: 1000, y: 400}
     props:
       language: python
       code: |
-        print("\n=== Unified Code Generation Complete ===")
-        print("\nPhase 1 - Domain Models:")
-        print("✓ All domain models generated to staged directory")
-        
-        print("\nPhase 2 - Backend:")
-        print("✓ Backend node files generated from TypeScript specs")
-        
-        print("\nPhase 3 - Apply:")
-        print("✓ Staged changes applied to active directory")
-        
-        print("\nPhase 4 - Frontend:")
-        print("✓ Frontend node files generated from TypeScript specs")
-        print("✓ Node registry generated (included in frontend batch)")
-        
-        print("\nPhase 5 - GraphQL Schema:")
-        print("✓ GraphQL schema exported for frontend codegen")
+        print("\n=== Complete Code Generation Summary ===")
+        print("\n✓ TypeScript parsing completed")
+        print("✓ All domain models generated (11 artifact types)")
+        print("✓ Frontend components generated")
+        print("\nGenerated files are in dipeo/diagram_generated_staged/")
+        print("Run 'make apply' to apply the staged changes")
         
         result = {
             'status': 'success',
@@ -96,27 +192,54 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1450, y: 350}
+    position: {x: 1200, y: 400}
     props:
       save_to_file: false
 
 connections:
-  # Phase 1: Domain model generation
-  - {from: Start, to: Generate All Domain Models}
+  # First parse all TypeScript files
+  - {from: Start, to: Parse All TypeScript}
   
-  # Phase 2: Backend generation after domain models
-  - {from: Generate All Domain Models, to: Generate Backend Node Files}
+  # After parsing, start all model generation tasks in parallel
+  - {from: Parse All TypeScript, to: Generate Python Models}
+  - {from: Parse All TypeScript, to: Generate Enums}
+  - {from: Parse All TypeScript, to: Generate Integrations}
+  - {from: Parse All TypeScript, to: Generate Conversions}
+  - {from: Parse All TypeScript, to: Generate Backend Models}
+  - {from: Parse All TypeScript, to: Generate GraphQL Schema}
+  - {from: Parse All TypeScript, to: Generate Static Nodes}
+  - {from: Parse All TypeScript, to: Generate Strawberry Types}
+  - {from: Parse All TypeScript, to: Generate Strawberry Mutations}
+  - {from: Parse All TypeScript, to: Generate Validation Models}
+  - {from: Parse All TypeScript, to: Generate TypeScript Indexes}
   
-  # Phase 3: Apply staged changes after backend
-  - {from: Generate Backend Node Files, to: Apply Staged Changes}
+  # Start frontend generation in parallel
+  - {from: Parse All TypeScript, to: Discover Node Specs}
+  - {from: Parse All TypeScript, to: Generate Frontend Registry}
+  - {from: Parse All TypeScript, to: Generate GraphQL Queries}
+  - {from: Parse All TypeScript, to: Generate Zod Schemas}
+  - {from: Parse All TypeScript, to: Generate Field Configs}
   
-  # Phase 4: Frontend generation after applying changes
-  - {from: Apply Staged Changes, to: Generate Frontend Node Files}
+  # Frontend batch processing chain
+  - {from: Discover Node Specs, to: Prepare Node List}
+  - {from: Prepare Node List, to: Batch Generate Frontend}
   
-  # Phase 5: Export GraphQL schema after frontend
-  - {from: Generate Frontend Node Files, to: Export GraphQL Schema}
-  
-  # Summary after all phases complete
-  - {from: Export GraphQL Schema, to: Summarize Results}
+  # All generation tasks converge to Summarize Results
+  - {from: Generate Python Models, to: Summarize Results}
+  - {from: Generate Enums, to: Summarize Results}
+  - {from: Generate Integrations, to: Summarize Results}
+  - {from: Generate Conversions, to: Summarize Results}
+  - {from: Generate Backend Models, to: Summarize Results}
+  - {from: Generate GraphQL Schema, to: Summarize Results}
+  - {from: Generate Static Nodes, to: Summarize Results}
+  - {from: Generate Strawberry Types, to: Summarize Results}
+  - {from: Generate Strawberry Mutations, to: Summarize Results}
+  - {from: Generate Validation Models, to: Summarize Results}
+  - {from: Generate TypeScript Indexes, to: Summarize Results}
+  - {from: Batch Generate Frontend, to: Summarize Results}
+  - {from: Generate Frontend Registry, to: Summarize Results}
+  - {from: Generate GraphQL Queries, to: Summarize Results}
+  - {from: Generate Zod Schemas, to: Summarize Results}
+  - {from: Generate Field Configs, to: Summarize Results}
   
   - {from: Summarize Results, to: End}

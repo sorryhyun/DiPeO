@@ -98,6 +98,11 @@ def main(inputs: dict) -> dict:
         # Multiple files from glob operation
         print(f"Processing {len(ast_data)} AST files")
         for file_path, file_content in ast_data.items():
+            # Skip invalid entries (strings or None)
+            if not isinstance(file_content, dict):
+                print(f"  Skipping {file_path}: Invalid content type {type(file_content).__name__}")
+                continue
+                
             file_enums = extract_enums(file_content)
             all_enums.extend(file_enums)
             if file_enums:

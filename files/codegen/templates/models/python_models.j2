@@ -83,7 +83,7 @@ class {{ model_name }}({{ base_class }}):
 
 {# ============ Enums ============ #}
 {%- for enum in model_data.enums -%}
-{%- if enum.name not in ['NodeType', 'HandleDirection', 'HandleLabel', 'DataType', 'MemoryView', 'DiagramFormat', 'DBBlockSubType', 'ContentType', 'SupportedLanguage', 'HttpMethod', 'HookType', 'HookTriggerMode', 'ExecutionStatus', 'NodeExecutionStatus', 'EventType', 'LLMService', 'APIServiceType', 'NotionOperation', 'ToolType'] %}
+{%- if enum.name not in ['NodeType', 'HandleDirection', 'HandleLabel', 'DataType', 'MemoryView', 'DiagramFormat', 'DBBlockSubType', 'ContentType', 'SupportedLanguage', 'HttpMethod', 'HookType', 'HookTriggerMode', 'ExecutionStatus', 'NodeExecutionStatus', 'EventType', 'LLMService', 'APIServiceType', 'ToolType'] %}
 
 class {{ enum.name }}(str, Enum):
     """{{ enum.description or enum.name + ' enumeration' }}"""

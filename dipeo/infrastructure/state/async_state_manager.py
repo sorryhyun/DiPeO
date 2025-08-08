@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AsyncStateManager(EventConsumer):
     """Processes execution events asynchronously to update state."""
     
-    def __init__(self, state_store: StateStorePort, write_interval: float = 0.1):
+    def __init__(self, state_store: StateStorePort, write_interval: float = 0.05):
         self.state_store = state_store
         self._write_buffer: dict[str, dict[str, Any]] = {}
         self._write_interval = write_interval

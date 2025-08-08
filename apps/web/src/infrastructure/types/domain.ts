@@ -23,7 +23,6 @@ export {
   // Integration enums
   LLMService,
   APIServiceType,
-  NotionOperation,
   // Execution enums
   Status,
   EventType
@@ -70,7 +69,6 @@ export type {
   CodeJobNodeData,
   ApiJobNodeData,
   UserResponseNodeData,
-  NotionNodeData,
   PersonBatchJobNodeData,
   HookNodeData,
   TemplateJobNodeData,

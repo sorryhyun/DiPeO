@@ -209,10 +209,6 @@ def extract_mappings(ast_data: dict) -> dict:
             if 'sub_type' in mappings['field_special_handling']['db']:
                 mappings['field_special_handling']['db']['sub_type'] = {'default': 'field(default=DBBlockSubType.fixed_prompt)'}
         
-        if 'notion' in mappings['field_special_handling']:
-            if 'operation' in mappings['field_special_handling']['notion']:
-                mappings['field_special_handling']['notion']['operation'] = {'default': 'field(default=NotionOperation.read_page)'}
-        
         if 'hook' in mappings['field_special_handling']:
             if 'hook_type' in mappings['field_special_handling']['hook']:
                 mappings['field_special_handling']['hook']['hook_type'] = {'default': 'field(default=HookType.shell)'}

@@ -34,7 +34,7 @@ class BatchSubDiagramExecutor:
     """Executor for batch sub-diagram execution with optimizations for parallel processing."""
     
     # Default configuration for batch execution
-    DEFAULT_MAX_CONCURRENT = 20  # Maximum concurrent executions
+    DEFAULT_MAX_CONCURRENT = 10  # Maximum concurrent executions (reduced from 20 to prevent queue overflow)
     DEFAULT_BATCH_SIZE = 100     # Maximum items to process in one batch
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:

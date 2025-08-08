@@ -24,7 +24,6 @@ export const TS_TO_PY_TYPE: Record<string, string> = {
   'SupportedLanguage': 'SupportedLanguage',
   'HttpMethod': 'HttpMethod',
   'DBBlockSubType': 'DBBlockSubType',
-  'NotionOperation': 'NotionOperation',
   'HookType': 'HookType',
   'DiagramFormat': 'DiagramFormat',
   'ContentType': 'ContentType',
@@ -43,7 +42,6 @@ export const TYPE_TO_FIELD: Record<string, string> = {
   'HttpMethod': 'select',
   'DBBlockSubType': 'select',
   'HookType': 'select',
-  'NotionOperation': 'select',
   'HookTriggerMode': 'select',
   'ContentType': 'select',
   'MemoryView': 'select',
@@ -66,7 +64,6 @@ export const TYPE_TO_ZOD: Record<string, string> = {
   'HttpMethod': 'z.nativeEnum(HttpMethod)',
   'DBBlockSubType': 'z.nativeEnum(DBBlockSubType)',
   'HookType': 'z.nativeEnum(HookType)',
-  'NotionOperation': 'z.nativeEnum(NotionOperation)',
   'HookTriggerMode': 'z.nativeEnum(HookTriggerMode)',
   'ContentType': 'z.nativeEnum(ContentType)',
   'NodeType': 'z.nativeEnum(NodeType)',
@@ -80,8 +77,7 @@ export const TYPE_TO_ZOD: Record<string, string> = {
 export const BRANDED_TYPES = [
   'PersonID', 'NodeID', 'HandleID', 'ArrowID', 'NodeType',
   'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 
-  'HookType', 'NotionOperation',
-  'HookTriggerMode', 'ContentType', 'MemoryView',
+  'HookType', 'HookTriggerMode', 'ContentType', 'MemoryView',
   'MemoryProfile', 'ToolSelection', 'APIServiceType'
 ];
 
@@ -120,9 +116,6 @@ export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
   'user_response': {
     'prompt': { default: '""' },
     'timeout': { default: '60' }
-  },
-  'notion': {
-    'operation': { default: 'field(default=NotionOperation.read_page)' }
   },
   'hook': {
     'hook_type': { default: 'field(default=HookType.shell)' },
