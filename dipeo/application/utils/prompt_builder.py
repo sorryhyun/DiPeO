@@ -25,6 +25,11 @@ class PromptBuilder:
     ) -> str:
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
         
+        # Handle None prompt - return empty string
+        if selected_prompt is None:
+            logger.warning("No prompt provided to PromptBuilder - returning empty string")
+            return ""
+        
         if template_values is None:
             if raw_inputs is None:
                 template_values = {}
@@ -95,6 +100,18 @@ class PromptBuilder:
                 
                 template_values['person_conversations'] = person_conversations
         
+        # Special handling for 'default' and 'first' inputs - flatten their properties to root context
+        # This allows templates to access {{property}} instead of {{default.property}} or {{first.property}}
+        for special_key in ['default', 'first']:
+            if special_key in unwrapped_inputs and isinstance(unwrapped_inputs[special_key], dict):
+                special_value = unwrapped_inputs[special_key]
+                # First, add all properties from the special input to the root context
+                for prop_key, prop_value in special_value.items():
+                    if prop_key not in template_values:  # Don't overwrite existing values
+                        template_values[prop_key] = prop_value
+                # Also keep the special object itself for backward compatibility
+                template_values[special_key] = special_value
+        
         for key, value in unwrapped_inputs.items():
             if isinstance(value, (str, int, float, bool, type(None))):
                 template_values[key] = value
@@ -164,6 +181,12 @@ class PromptBuilder:
         execution_count: int = 0,
     ) -> str:
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
+        
+        # Handle None prompt - return empty string
+        if selected_prompt is None:
+            logger.warning("No prompt provided to build_with_context - returning empty string")
+            return ""
+            
         result = self._processor.process(selected_prompt, context)
         
         if result.errors:
@@ -179,6 +202,10 @@ class PromptBuilder:
         return result.content
     
     def _prepend_conversation_context(self, prompt: str, template_values: dict[str, Any]) -> str:
+        # Check if prompt is None
+        if prompt is None:
+            return prompt
+            
         # Check if conversation data is available
         if 'global_conversation' not in template_values:
             return prompt

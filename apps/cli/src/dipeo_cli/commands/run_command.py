@@ -32,9 +32,6 @@ class RunCommand:
         diagram_path = self.loader.resolve_diagram_path(diagram, format_type)
         print(f"📄 Loading diagram: {diagram_path}")
 
-        # Load diagram
-        diagram_data = self.loader.load_diagram(diagram_path)
-
         # Ensure server is running
         if not self.server.start(debug):
             print("❌ Failed to start server")
@@ -55,8 +52,8 @@ class RunCommand:
             print(f"📥 With input variables: {json.dumps(input_variables, indent=2)}")
         try:
             result = self.server.execute_diagram(
-                diagram_data,
-                input_variables,
+                diagram_id=diagram_path,  # Pass file path as diagram_id
+                input_variables=input_variables,
                 use_unified_monitoring=use_unified,
                 diagram_name=diagram_name or Path(diagram_path).stem,
                 diagram_format=diagram_format,

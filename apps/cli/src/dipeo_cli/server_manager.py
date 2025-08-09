@@ -84,7 +84,8 @@ class ServerManager:
 
     def execute_diagram(
         self,
-        diagram_data: dict[str, Any],
+        diagram_data: dict[str, Any] | None = None,
+        diagram_id: str | None = None,
         input_variables: dict[str, Any] | None = None,
         use_unified_monitoring: bool = False,
         diagram_name: str | None = None,
@@ -92,8 +93,9 @@ class ServerManager:
     ) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
-        mutation ExecuteDiagram($diagramData: JSON, $variables: JSON, $useUnifiedMonitoring: Boolean) {
+        mutation ExecuteDiagram($diagramId: ID, $diagramData: JSON, $variables: JSON, $useUnifiedMonitoring: Boolean) {
             execute_diagram(input: {
+                diagram_id: $diagramId,
                 diagram_data: $diagramData,
                 variables: $variables,
                 use_unified_monitoring: $useUnifiedMonitoring
@@ -110,6 +112,7 @@ class ServerManager:
             json={
                 "query": query,
                 "variables": {
+                    "diagramId": diagram_id,
                     "diagramData": diagram_data,
                     "variables": input_variables,
                     "useUnifiedMonitoring": use_unified_monitoring,
@@ -132,7 +135,7 @@ class ServerManager:
                 execution_id=execution_result["execution_id"],
                 diagram_name=diagram_name or "unknown",
                 diagram_format=diagram_format or "native",
-                diagram_data=diagram_data,
+                diagram_data=None,  # Not needed when using diagram_id
             )
 
         return execution_result
