@@ -111,10 +111,21 @@ nodes:
         if not isinstance(spec, dict):
             raise ValueError(f"Expected dict, got {type(spec)}")
             
-        # The spec will have node_type in underscore format (e.g., "api_job")
-        # which is what we want for Python file names
-        node_type = spec.get('nodeType', 'unknown')
-        node_name = node_type.title().replace('_', '')
+        # The nodeType comes as "NodeType.PERSON_JOB" format from TypeScript
+        # We need to extract just the enum value and convert to snake_case
+        node_type_raw = spec.get('nodeType', 'unknown')
+        
+        # Remove "NodeType." prefix if present
+        if node_type_raw.startswith('NodeType.'):
+            node_type_enum = node_type_raw.replace('NodeType.', '')
+        else:
+            node_type_enum = node_type_raw
+            
+        # Convert from UPPER_SNAKE_CASE to lower_snake_case
+        node_type = node_type_enum.lower()
+        
+        # Create node_name in PascalCase for class names
+        node_name = ''.join(word.title() for word in node_type.split('_'))
         
         result = {
             'node_type': node_type,

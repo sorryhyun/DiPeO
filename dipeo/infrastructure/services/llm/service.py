@@ -90,7 +90,6 @@ class LLMInfraService(BaseService, LLMServicePort):
 
         cache_key = self._create_cache_key(provider, model, api_key_id)
 
-        # First check the adapter pool for existing adapter
         async with self._adapter_pool_lock:
             if cache_key in self._adapter_pool:
                 entry = self._adapter_pool[cache_key]
@@ -98,20 +97,15 @@ class LLMInfraService(BaseService, LLMServicePort):
                     return entry["adapter"]
                 else:
                     del self._adapter_pool[cache_key]
-        
-        # Use SingleFlightCache to deduplicate concurrent adapter creation
         async def create_new_adapter():
-            # Special handling for Ollama - it doesn't require an API key
             if provider == "ollama":
-                raw_key = ""  # Ollama doesn't need an API key
-                # Get Ollama host from environment or use default
+                raw_key = ""
                 base_url = self._settings.ollama_host if hasattr(self._settings, 'ollama_host') else None
                 adapter = create_adapter(provider, model, raw_key, base_url=base_url)
             else:
                 raw_key = self._get_api_key(api_key_id)
                 adapter = create_adapter(provider, model, raw_key)
             
-            # Store in adapter pool
             async with self._adapter_pool_lock:
                 self._adapter_pool[cache_key] = {
                     "adapter": adapter,
@@ -119,12 +113,10 @@ class LLMInfraService(BaseService, LLMServicePort):
                 }
             
             return adapter
-        
-        # Get or create adapter using single-flight cache
         return await self._adapter_cache.get_or_create(
             cache_key,
             create_new_adapter,
-            cache_result=False  # We manage caching in _adapter_pool
+            cache_result=False
         )
 
     async def _call_llm_with_retry(
@@ -148,10 +140,8 @@ class LLMInfraService(BaseService, LLMServicePort):
             if messages is None:
                 messages = []
             
-            # Use explicitly passed service if available, otherwise infer from model
             service = kwargs.pop('service', None)
             if service:
-                # Normalize the service name if it's an enum or has a value attribute
                 if hasattr(service, 'value'):
                     service = service.value
                 service = normalize_service_name(str(service))
@@ -180,18 +170,16 @@ class LLMInfraService(BaseService, LLMServicePort):
 
             adapter_kwargs = {**kwargs}
             
-            # Log the LLM call
             if hasattr(self, 'logger'):
-                self.logger.debug(f"Messages: {messages_list[:2] if len(messages_list) > 2 else messages_list}")  # Log first 2 messages
+                self.logger.debug(f"Messages: {messages_list[:2] if len(messages_list) > 2 else messages_list}")
 
             try:
                 result = await self._call_llm_with_retry(
                     adapter, messages_list, **adapter_kwargs
                 )
                 
-                # Log the LLM response
                 if hasattr(self, 'logger') and result:
-                    response_text = getattr(result, 'text', str(result))[:200]  # Limit to 200 chars
+                    response_text = getattr(result, 'text', str(result))[:200]
                     self.logger.debug(f"LLM response: {response_text}")
                 
                 return result
@@ -216,12 +204,8 @@ class LLMInfraService(BaseService, LLMServicePort):
         try:
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             service = api_key_data["service"]
-            
-            # Get an adapter for the service
-            # Use a dummy model name since we just need the adapter to list models
             adapter = await self._get_client(service, "dummy", api_key_id)
             
-            # Delegate to the adapter's get_available_models method
             return await adapter.get_available_models()
             
         except Exception as e:
@@ -230,11 +214,7 @@ class LLMInfraService(BaseService, LLMServicePort):
             )
 
     def get_token_counts(self, client_name: str, usage: Any) -> Any:
-        """Extract token usage information from provider response.
-        
-        This is typically handled by the adapters themselves,
-        but this method provides a consistent interface.
-        """
+        """Extract token usage information from provider response."""
         if hasattr(usage, 'tokenUsage'):
             return usage.tokenUsage
         elif hasattr(usage, 'token_usage'):

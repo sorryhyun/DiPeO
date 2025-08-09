@@ -3,66 +3,27 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List
 
+# Import type transformer from infrastructure
+import sys
+import os
+sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
+from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
+
 
 def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str:
-    """Convert TypeScript type to Python type"""
+    """Convert TypeScript type to Python type using infrastructure's type transformer"""
     # Clean type
     clean_type = ts_type.replace(' | null', '').replace(' | undefined', '').strip()
     
-    # Handle Record types first (before checking for unions)
-    if clean_type.startswith('Record<'):
-        # Extract the value type from Record<key, value>
-        # Find the matching closing bracket
-        bracket_count = 0
-        value_start = -1
-        for i, char in enumerate(clean_type):
-            if char == '<':
-                bracket_count += 1
-                if bracket_count == 1:
-                    value_start = i + 1
-            elif char == '>':
-                bracket_count -= 1
-                if bracket_count == 0:
-                    # Extract the content between brackets
-                    record_content = clean_type[value_start:i]
-                    # Split by comma to get key and value types
-                    parts = record_content.split(',', 1)
-                    if len(parts) == 2:
-                        value_type = parts[1].strip()
-                        # Convert the value type
-                        if '|' in value_type:
-                            # Handle union value types
-                            value_parts = [p.strip() for p in value_type.split('|')]
-                            py_value_parts = []
-                            for vp in value_parts:
-                                py_vp = get_python_type(vp, False, ts_to_py_type)
-                                py_value_parts.append(py_vp)
-                            py_value_type = f"Union[{', '.join(py_value_parts)}]"
-                        else:
-                            py_value_type = get_python_type(value_type, False, ts_to_py_type)
-                        dict_type = f"Dict[str, {py_value_type}]"
-                        return f"Optional[{dict_type}]" if is_optional else dict_type
-                    break
-        # Fallback for simple Record types
-        return 'Dict[str, Any]'
+    # Check custom mapping first (for project-specific types)
+    if clean_type in ts_to_py_type:
+        mapped_type = ts_to_py_type[clean_type]
+        # Handle optional wrapping for mapped types
+        if is_optional and not mapped_type.startswith('Optional['):
+            return f"Optional[{mapped_type}]"
+        return mapped_type
     
-    # Handle union types like "string | string[]"
-    if '|' in clean_type and not (("'" in clean_type or '"' in clean_type)):
-        # Split union types
-        union_parts = [part.strip() for part in clean_type.split('|')]
-        # Convert each part
-        py_parts = []
-        for part in union_parts:
-            py_part = get_python_type(part, False, ts_to_py_type)
-            py_parts.append(py_part)
-        # Create union type
-        if len(py_parts) == 2 and 'None' in py_parts:
-            # Handle Optional case
-            other_type = [p for p in py_parts if p != 'None'][0]
-            return f"Optional[{other_type}]"
-        else:
-            union_type = f"Union[{', '.join(py_parts)}]"
-            return f"Optional[{union_type}]" if is_optional else union_type
+    # Handle special cases that need custom processing
     
     # Handle string literal unions
     if ("'" in clean_type or '"' in clean_type) and '|' in clean_type:
@@ -73,58 +34,38 @@ def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str
         literal_type = f"Literal[{', '.join(literals)}]"
         return f"Optional[{literal_type}]" if is_optional else literal_type
     
-    # Check mapping first
-    if clean_type in ts_to_py_type:
-        mapped_type = ts_to_py_type[clean_type]
-        # Handle optional wrapping for mapped types
-        if is_optional and not mapped_type.startswith('Optional['):
-            return f"Optional[{mapped_type}]"
-        return mapped_type
-    
-    # Basic TypeScript to Python type mappings
-    basic_type_map = {
-        'string': 'str',
-        'number': 'int',  # Default to int, not float
-        'boolean': 'bool',
-        'any': 'Any',
-        'object': 'Dict[str, Any]',
-        'null': 'None',
-        'undefined': 'None',
-        'void': 'None'
-    }
-    
-    # Check basic type mappings
-    if clean_type in basic_type_map:
-        py_type = basic_type_map[clean_type]
-        return f"Optional[{py_type}]" if is_optional and py_type != 'None' else py_type
-    
-    # Handle arrays
-    if clean_type.endswith('[]'):
-        inner_type = clean_type[:-2]
-        inner_py = get_python_type(inner_type, False, ts_to_py_type)
-        list_type = f"List[{inner_py}]"
-        return f"Optional[{list_type}]" if is_optional else list_type
-    
-    # Handle Record types
-    if clean_type.startswith('Record<'):
-        return 'Dict[str, Any]'
-    
-    # Handle object literal types (e.g., { field: type; ... })
-    # Enhanced detection to handle multi-line object types with comments
-    if clean_type.startswith('{'):
-        # Check if it looks like an object type by looking for common patterns
-        # This handles both single-line and multi-line object definitions
-        if (':' in clean_type or '?' in clean_type or ';' in clean_type or 
-            '//' in clean_type or '/*' in clean_type):
-            dict_type = 'Dict[str, Any]'
-            return f"Optional[{dict_type}]" if is_optional else dict_type
-    
-    # If nothing matched, return the original type (might be a custom type)
-    # Handle optional wrapping
-    if is_optional and not clean_type.startswith('Optional['):
-        return f"Optional[{clean_type}]"
-    
-    return clean_type
+    # Use infrastructure's type transformer for standard types
+    try:
+        python_type = map_ts_type_to_python(clean_type)
+        
+        # Special handling for 'number' type - default to int for DiPeO
+        if clean_type == 'number':
+            python_type = 'int'
+        
+        # Handle optional wrapping
+        if is_optional and python_type != 'None':
+            # Check if already wrapped in Optional or Union
+            if not (python_type.startswith('Optional[') or python_type.startswith('Union[')):
+                return f"Optional[{python_type}]"
+        
+        return python_type
+    except Exception:
+        # Fallback for complex types the infrastructure can't handle
+        
+        # Handle object literal types (e.g., { field: type; ... })
+        if clean_type.startswith('{'):
+            # Check if it looks like an object type by looking for common patterns
+            if (':' in clean_type or '?' in clean_type or ';' in clean_type or 
+                '//' in clean_type or '/*' in clean_type):
+                dict_type = 'Dict[str, Any]'
+                return f"Optional[{dict_type}]" if is_optional else dict_type
+        
+        # If nothing matched, return the original type (might be a custom type)
+        # Handle optional wrapping
+        if is_optional and not clean_type.startswith('Optional['):
+            return f"Optional[{clean_type}]"
+        
+        return clean_type
 
 
 def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:

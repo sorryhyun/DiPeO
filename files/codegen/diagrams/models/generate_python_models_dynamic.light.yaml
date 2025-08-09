@@ -49,7 +49,7 @@ nodes:
     position: {x: 600, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_python_models/python_models_extractor_v2.py
+      filePath: files/codegen/code/models/python_models_extractor_v2.py
       functionName: extract_models
 
   # Use template_job with enhanced template for rendering
@@ -70,7 +70,7 @@ nodes:
     position: {x: 1000, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_python_models/python_models_extractor_v2.py
+      filePath: files/codegen/code/models/python_models_extractor_v2.py
       functionName: generate_summary
 
   - label: End

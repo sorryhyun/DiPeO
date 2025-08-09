@@ -45,7 +45,7 @@ nodes:
     position: {x: 600, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
+      filePath: files/codegen/code/models/graphql_schema_generator.py
       functionName: prepare_graphql_data_for_template
 
   # Render GraphQL schema with template job
@@ -67,7 +67,7 @@ nodes:
     position: {x: 1000, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_graphql_schema/graphql_schema_generator.py
+      filePath: files/codegen/code/models/graphql_schema_generator.py
       functionName: generate_summary
 
   - label: End

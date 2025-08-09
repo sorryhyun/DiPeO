@@ -36,7 +36,7 @@ type Upload = Scalars['Upload']['input'];
 {%- endif %}
 
 {#- Generate each query/mutation/subscription -#}
-{%- for query in queries %}
+{% for query in queries %}
 
 {#- Generate the GraphQL document -#}
 export const {{ query.name | upper }}_{{ query.operationType | upper }} = gql`

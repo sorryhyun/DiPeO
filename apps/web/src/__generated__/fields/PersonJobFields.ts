@@ -127,10 +127,10 @@ export const personJobFields: UnifiedFieldDefinition[] = [
         uiConfig: {
           inputType: 'select',
           options: [
-            { value: 'full_conversation', label: 'Full Conversation' },
-            { value: 'related_conversation_pairs', label: 'Related Conversation Pairs' },
-            { value: 'direct_messages', label: 'Direct Messages' },
-            { value: 'system_and_direct', label: 'System and Direct' },
+            { value: 'FULL_CONVERSATION', label: 'Full Conversation' },
+            { value: 'RELATED_CONVERSATION_PAIRS', label: 'Related Conversation Pairs' },
+            { value: 'DIRECT_MESSAGES', label: 'Direct Messages' },
+            { value: 'SYSTEM_AND_DIRECT', label: 'System and Direct' },
           ],
         },
       },

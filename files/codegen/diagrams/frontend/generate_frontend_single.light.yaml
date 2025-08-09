@@ -70,7 +70,7 @@ nodes:
     position: {x: 700, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/frontend/extractors/frontend_node_extractor.py
+      filePath: files/codegen/code/frontend/frontend_node_extractor.py
       functionName: main
 
   # Generate all three files using template_job

@@ -8,6 +8,12 @@ import json
 from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 
+# Import type transformer from infrastructure
+import sys
+import os
+sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
+from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
+
 
 def load_query_definitions(ast_cache: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
@@ -163,28 +169,30 @@ def extract_operation(query_def: Dict[str, Any]) -> str:
 def graphql_to_typescript_type(graphql_type: str) -> str:
     """
     Convert GraphQL type to TypeScript type.
+    
+    Note: GraphQL to TypeScript is the reverse of our usual flow,
+    so we need a dedicated mapping for this specific case.
     """
     # Remove array and non-null markers for base type mapping
     base_type = graphql_type.replace('[', '').replace(']', '').replace('!', '').strip()
     
-    # Basic scalar mappings
-    type_map = {
+    # GraphQL to TypeScript scalar mappings
+    # This is specific to GraphQL->TS conversion and can't reuse the TS->Python transformer
+    graphql_to_ts_map = {
         'ID': 'string',
         'String': 'string',
         'Int': 'number',
         'Float': 'number',
         'Boolean': 'boolean',
         'JSON': 'any',
+        'JSONScalar': 'any',
         'DateTime': 'string',
         'Date': 'string',
+        'Void': 'void'
     }
     
     # Check if it's a known scalar
-    if base_type in type_map:
-        ts_type = type_map[base_type]
-    else:
-        # Keep complex types as-is (e.g., AddMessageInput, CreateDiagramInput)
-        ts_type = base_type
+    ts_type = graphql_to_ts_map.get(base_type, base_type)
     
     # Handle arrays
     if '[' in graphql_type:

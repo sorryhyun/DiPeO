@@ -51,10 +51,6 @@
       ],
       "type": "object"
     },
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "HttpMethod": {
       "enum": [
         "GET",
@@ -64,6 +60,10 @@
         "PATCH"
       ],
       "type": "string"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
+      "type": "object"
     }
   }
 }

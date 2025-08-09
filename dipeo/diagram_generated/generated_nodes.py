@@ -166,7 +166,7 @@ class DBNode(BaseExecutableNode):
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    file: Optional[Union[str, Optional[List[str]]]] = None
+    file: Optional[List[Union[str, str]]] = None
     collection: Optional[str] = None
     query: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
@@ -406,7 +406,7 @@ class StartNode(BaseExecutableNode):
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    custom_data: Optional[Dict[str, Union[str, int, bool]]] = None
+    custom_data: Optional[Dict[str, Union[str, float, bool]]] = None
     output_data_structure: Optional[Dict[str, str]] = None
     hook_event: Optional[str] = None
     hook_filters: Optional[Dict[str, Any]] = None

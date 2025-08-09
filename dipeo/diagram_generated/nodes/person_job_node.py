@@ -40,6 +40,7 @@ class PersonJobNode:
     
     # Optional node-specific fields
     person: str = ""
+    first_prompt_file: str = ""
     default_prompt: str = ""
     prompt_file: str = ""
     memory_profile: str = None
@@ -62,6 +63,7 @@ class PersonJobNode:
         # Add node-specific fields
         data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt
+        data["first_prompt_file"] = self.first_prompt_file
         data["default_prompt"] = self.default_prompt
         data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration

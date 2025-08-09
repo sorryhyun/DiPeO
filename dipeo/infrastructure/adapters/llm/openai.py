@@ -27,8 +27,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         super().__init__(model_name, api_key, base_url)
         self.max_retries = 3
         self.retry_delay = 1.0
-        self._async_client = None  # Cache for async client
-        self._client_lock = None  # Will be initialized when needed
+        self._async_client = None
+        self._client_lock = None
 
     def _initialize_client(self) -> OpenAI:
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
@@ -42,7 +42,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def _is_temperature_unsupported_model(self) -> bool:
         """Check if the model doesn't support temperature parameter."""
-        # gpt-5-nano models don't support temperature
         return 'gpt-5-nano' in self.model_name
 
     def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
@@ -57,7 +56,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
 
         system_prompt, processed_messages = self._extract_system_and_messages(messages)
         
-        # Use system_prompt from kwargs if provided, otherwise use extracted one
         if system_prompt_kwarg:
             system_prompt = system_prompt_kwarg
         
@@ -65,7 +63,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if system_prompt:
             input_messages.append({"role": "developer", "content": system_prompt})
         
-        # Add other messages
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
 
@@ -82,22 +79,15 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if api_tools:
             logger.debug(f"API tools: {api_tools}")
         
-        # Use base method to extract allowed parameters
-        # Note: responses API doesn't support max_tokens parameter
-        # Some models (like gpt-5-nano) don't support temperature
         allowed_params = []
         if not self._is_temperature_unsupported_model():
             allowed_params.append("temperature")
         api_params = self._extract_api_params(kwargs, allowed_params)
         
-        # Handle text_format for structured outputs (Pydantic models only)
         if text_format:
             from pydantic import BaseModel
             
-            # Only support Pydantic BaseModel classes
             if isinstance(text_format, type) and issubclass(text_format, BaseModel):
-                # For Pydantic models, we'll pass it directly to responses.parse()
-                # Store it for later use in the API call
                 api_params["_pydantic_model"] = text_format
                 logger.debug(f"Using Pydantic model for structured output: {text_format.__name__}")
             else:
@@ -107,15 +97,12 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def _process_api_response(self, response: Any) -> tuple[str, list[ToolOutput] | None, dict]:
         """Process API response to extract text, tool outputs, and token usage."""
-        # Check if this is a parsed response (from responses.parse())
         if hasattr(response, 'output_parsed'):
-            # For structured outputs, the parsed JSON is in response.output_parsed
             import json
             from pydantic import BaseModel
             
             parsed_output = response.output_parsed
             if parsed_output:
-                # If it's a Pydantic model, convert to dict first
                 if isinstance(parsed_output, BaseModel):
                     text = json.dumps(parsed_output.model_dump())
                 else:
@@ -124,13 +111,11 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 text = ''
             logger.debug(f"Parsed structured output: {text}")
         elif hasattr(response, 'parsed'):
-            # Alternative attribute name for parsed output
             import json
             from pydantic import BaseModel
             
             parsed_output = response.parsed
             if parsed_output:
-                # If it's a Pydantic model, convert to dict first
                 if isinstance(parsed_output, BaseModel):
                     text = json.dumps(parsed_output.model_dump())
                 else:
@@ -139,7 +124,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 text = ''
             logger.debug(f"Parsed structured output: {text}")
         else:
-            # Regular response from responses.create()
             text = getattr(response, 'output_text', '')
             logger.debug(f"Output text: {text}")
         
@@ -147,7 +131,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if hasattr(response, 'output') and response.output:
             for output in response.output:
                 if output.type == 'web_search_call' and hasattr(output, 'result'):
-                    # Parse web search results
                     search_results = []
                     for result in output.result:
                         search_results.append(WebSearchResult(
@@ -162,13 +145,12 @@ class ChatGPTAdapter(BaseLLMAdapter):
                         raw_response=output.result
                     ))
                 elif output.type == 'image_generation_call' and hasattr(output, 'result'):
-                    # Handle image generation result
                     tool_outputs.append(ToolOutput(
                         type=ToolType.IMAGE_GENERATION,
                         result=ImageGenerationResult(
                             image_data=output.result,  # Base64 encoded
                             format='png',
-                            width=1024,  # Default values, could be extracted from metadata
+                            width=1024,
                             height=1024
                         ),
                         raw_response=output.result

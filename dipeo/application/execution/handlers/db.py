@@ -61,36 +61,29 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
     @staticmethod
     def _expand_glob_patterns(file_paths: list[str], base_dir: str | None = None) -> list[str]:
-        """Expand glob patterns in file paths."""
         expanded_paths = []
         
         for path in file_paths:
-            # Check if path contains glob characters
             if any(char in path for char in ['*', '?', '[', ']']):
-                # Handle relative paths with base_dir
                 if base_dir and not os.path.isabs(path):
                     pattern = os.path.join(base_dir, path)
                 else:
                     pattern = path
                 
-                # Expand glob pattern
                 matches = glob.glob(pattern)
                 if matches:
-                    # If base_dir was used, convert back to relative paths
                     if base_dir and not os.path.isabs(path):
                         matches = [os.path.relpath(m, base_dir) for m in matches]
                     expanded_paths.extend(sorted(matches))
                 else:
                     logger.warning(f"Glob pattern '{path}' matched no files")
             else:
-                # Not a glob pattern, add as-is
                 expanded_paths.append(path)
         
         return expanded_paths
 
     @staticmethod
     def _serialize_data(data: Any, format_type: str | None) -> str:
-        """Serialize data according to the specified format."""
         if format_type == 'json':
             return json.dumps(data, indent=2)
         elif format_type == 'yaml':
@@ -103,7 +96,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
     @staticmethod
     def _deserialize_data(content: str, format_type: str | None) -> Any:
-        """Deserialize data according to the specified format."""
         if not content:
             return content
             
@@ -126,18 +118,15 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             return content
 
     async def execute_request(self, request: ExecutionRequest[DBNode]) -> NodeOutputProtocol:
-        # Extract properties from request
         node = request.node
         context = request.context
         inputs = request.inputs
         
-        # Get service from ServiceRegistry
         db_service = request.services.resolve(DB_OPERATIONS_SERVICE)
         
         if db_service is None:
             raise RuntimeError("db_operations_service not available")
         
-        # Handle file or list of files
         file_paths = node.file
 
         if isinstance(file_paths, str):
@@ -158,14 +147,11 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
             processed_paths.append(file_path)
         
-        # Get format from node properties
         format_type = getattr(node, 'format', None)
         
-        # Adjust file extensions based on format if needed
         if format_type and node.operation == "write":
             adjusted_paths = []
             for path in processed_paths:
-                # Only adjust if no extension or wrong extension
                 if format_type == 'yaml' and not path.endswith(('.yaml', '.yml')):
                     if '.' not in os.path.basename(path):
                         path = f"{path}.yaml"
@@ -175,10 +161,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 adjusted_paths.append(path)
             processed_paths = adjusted_paths
         
-        # Get base directory for relative path resolution
         base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
         
-        # Expand glob patterns only if glob flag is true
         if getattr(node, 'glob', False):
             processed_paths = self._expand_glob_patterns(processed_paths, base_dir)
 
@@ -189,8 +173,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 if actual_content is not None:
                     input_val = actual_content
             
-            # Only serialize for YAML format or text format
-            # JSON serialization is handled by db_adapter for consistency
+            # Only serialize for YAML format or text format 
+            # JSON serialization is handled by db_adapter
             if node.operation == "write" and format_type == 'yaml' and input_val is not None:
                 if isinstance(input_val, (dict, list)):
                     input_val = self._serialize_data(input_val, 'yaml')
@@ -213,12 +197,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                         )
                         file_content = result["value"]
                         
-                        # Deserialize based on format or serialize_json flag
                         if isinstance(file_content, str):
                             if format_type:
                                 file_content = self._deserialize_data(file_content, format_type)
                             elif serialize_json:
-                                # Legacy support for serialize_json flag
                                 try:
                                     file_content = json.loads(file_content)
                                 except json.JSONDecodeError:
@@ -251,10 +233,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
                 if node.operation == "read":
                     output_value = result["value"]
-                    # Deserialize based on format
                     if isinstance(output_value, str) and format_type:
                         output_value = self._deserialize_data(output_value, format_type)
-                    # Legacy support for serialize_json flag
                     elif isinstance(output_value, str) and getattr(node, 'serialize_json', False):
                         try:
                             output_value = json.loads(output_value)
@@ -267,10 +247,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                         f"{meta['file_path']} ({meta.get('size', 0)} bytes)"
                     )
 
-                # Return appropriate output type based on the value
                 serialize_json = getattr(node, 'serialize_json', False)
                 if isinstance(output_value, (dict, list)) and serialize_json and not format_type:
-                    # Legacy behavior: serialize to JSON text when serialize_json is true
                     return TextOutput(
                         value=json.dumps(output_value),
                         node_id=node.id,

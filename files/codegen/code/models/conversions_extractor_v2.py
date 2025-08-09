@@ -9,48 +9,52 @@ from typing import Dict, Any
 
 
 def extract_conversions_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract raw conversions data from TypeScript without any conversion.
+    """Extract raw conversions data from TypeScript using parsed AST data.
     
-    This simplified version just extracts the NODE_TYPE_MAP data,
-    leaving all code generation to the template.
+    Uses the modern parser infrastructure that provides structured data
+    instead of regex-based extraction.
     """
     try:
         ast_data = inputs.get('ast_data', {})
-        ts_content = inputs.get('source', '')
         
-        # Extract NODE_TYPE_MAP entries
+        # Extract NODE_TYPE_MAP entries from parsed AST
         node_type_map = {}
         
-        # First try from AST data
+        # Get constants from parsed AST data
         constants = ast_data.get('constants', [])
-        # print(f"Found {len(constants)} constants in AST")
         
         for const in constants:
             if const.get('name') == 'NODE_TYPE_MAP':
-                # print(f"Found NODE_TYPE_MAP constant in AST")
-                # The initializer should contain the object literal
-                initializer = const.get('value', const.get('initializer', ''))
+                # The parser should provide the parsed object as value
+                value = const.get('value')
                 
-                # Extract key-value pairs using regex
-                pattern = r"'([^']+)':\s*NodeType\.([A-Z_]+)"
-                matches = re.findall(pattern, str(initializer))
-                for key, value in matches:
-                    node_type_map[key] = value
+                if isinstance(value, dict):
+                    # The value should be a dictionary with the mappings
+                    # Convert enum references to their values
+                    for key, enum_ref in value.items():
+                        # Handle "NodeType.PERSON_JOB" -> "PERSON_JOB"
+                        if isinstance(enum_ref, str):
+                            if '.' in enum_ref:
+                                enum_value = enum_ref.split('.')[-1]
+                            else:
+                                enum_value = enum_ref
+                            node_type_map[key] = enum_value
+                elif isinstance(value, str):
+                    # Fallback: If parser returns string representation
+                    # This should not happen with modern parser
+                    import json
+                    try:
+                        # Try to parse as JSON
+                        parsed = json.loads(value.replace("'", '"'))
+                        if isinstance(parsed, dict):
+                            node_type_map = parsed
+                    except:
+                        # Last resort: regex extraction
+                        pattern = r"'([^']+)':\s*(?:NodeType\.)?([A-Z_]+)"
+                        matches = re.findall(pattern, str(value))
+                        for key, enum_value in matches:
+                            node_type_map[key] = enum_value
                 break
-        
-        # If not found in AST, try parsing the raw TypeScript
-        if not node_type_map and ts_content:
-            # print("Parsing from raw TypeScript source...")
-            # Find NODE_TYPE_MAP definition
-            map_match = re.search(r'export\s+const\s+NODE_TYPE_MAP[^{]*\{([^}]+)\}', ts_content, re.DOTALL)
-            if map_match:
-                map_content = map_match.group(1)
-                pattern = r"'([^']+)':\s*NodeType\.([A-Z_]+)"
-                matches = re.findall(pattern, map_content)
-                for key, value in matches:
-                    node_type_map[key] = value
-        
-        # print(f"\nExtracted {len(node_type_map)} node type mappings")
         
         # Return raw data for template processing
         return {

@@ -69,7 +69,7 @@ nodes:
     position: {x: 600, y: 450}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_static_nodes/extract_base_interface.py
+      filePath: files/codegen/code/models/extract_base_interface.py
       functionName: extract_base_interface
 
   # Extract node data from AST files
@@ -78,7 +78,7 @@ nodes:
     position: {x: 600, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_static_nodes/extract_node_data_from_ast.py
+      filePath: files/codegen/code/models/extract_node_data_from_ast.py
       functionName: extract_node_data_from_ast
 
   # Generate static nodes from all parsed data
@@ -87,7 +87,7 @@ nodes:
     position: {x: 800, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_static_nodes/generate_static_nodes.py
+      filePath: files/codegen/code/models/generate_static_nodes.py
       functionName: generate_static_nodes
 
   # Generate Python code using template

@@ -22,6 +22,7 @@ class PersonJobNodeData(BaseModel):
     """Data model for Person Job node."""
     person: Optional[str] = Field(description="AI person to use")
     first_only_prompt: str = Field(description="Prompt used only on first execution")
+    first_prompt_file: Optional[str] = Field(description="External prompt file for first iteration only")
     default_prompt: Optional[str] = Field(description="Default prompt template")
     prompt_file: Optional[str] = Field(description="Path to prompt file in /files/prompts/")
     max_iteration: int = Field(description="Maximum execution iterations")

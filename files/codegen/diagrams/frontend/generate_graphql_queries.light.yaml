@@ -42,7 +42,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/frontend/queries/prepare_query_data.py
+      filePath: files/codegen/code/frontend/prepare_query_data.py
       functionName: prepare_query_data_for_template
       
   # Generate queries using template

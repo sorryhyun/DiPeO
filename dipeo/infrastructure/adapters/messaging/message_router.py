@@ -63,14 +63,14 @@ class MessageRouter(MessageRouterPort):
         self._batch_max_size = settings.batch_max_size
 
     async def initialize(self) -> None:
-            if self._initialized:
+        if self._initialized:
             return
 
         self._initialized = True
         logger.info("MessageRouter initialized")
 
     async def cleanup(self) -> None:
-            # Cancel pending batch tasks and flush remaining batches
+        # Cancel pending batch tasks and flush remaining batches
         for task in self._batch_tasks.values():
             if task and not task.done():
                 task.cancel()
@@ -206,11 +206,11 @@ class MessageRouter(MessageRouterPort):
                 )
 
     async def _delayed_flush(self, execution_id: str) -> None:
-            await asyncio.sleep(self._batch_interval)
+        await asyncio.sleep(self._batch_interval)
         await self._flush_batch(execution_id)
     
     async def _flush_batch(self, execution_id: str) -> None:
-            # Get batch and clear task reference
+        # Get batch and clear task reference
         messages = self._batch_queue.pop(execution_id, [])
         if execution_id in self._batch_tasks:
             self._batch_tasks[execution_id] = None
@@ -322,9 +322,7 @@ class MessageRouter(MessageRouterPort):
             self.execution_subscriptions[execution_id] = set()
 
         self.execution_subscriptions[execution_id].add(connection_id)
-        # logger.debug(f"[MessageRouter] Connection subscribed successfully, total subs for {execution_id}: {len(self.execution_subscriptions[execution_id])}")
         
-        # Replay buffered events to the new connection
         await self._replay_buffered_events(connection_id, execution_id)
 
     async def unsubscribe_connection_from_execution(
@@ -362,18 +360,14 @@ class MessageRouter(MessageRouterPort):
             execution_id: Execution identifier
             message: Event message to buffer
         """
-        # Initialize buffer if needed
         if execution_id not in self._event_buffer:
             self._event_buffer[execution_id] = []
         
-        # Add timestamp if not present
         if "timestamp" not in message:
             message["timestamp"] = datetime.utcnow().isoformat()
         
-        # Add to buffer
         self._event_buffer[execution_id].append(message)
         
-        # Trim buffer if it exceeds max size
         if len(self._event_buffer[execution_id]) > self._buffer_max_size:
             self._event_buffer[execution_id] = self._event_buffer[execution_id][-self._buffer_max_size:]
 
@@ -393,14 +387,11 @@ class MessageRouter(MessageRouterPort):
             return
         
 
-        # Send buffered events to the new connection
         for event in buffered_events:
-            # Skip heartbeat and connection events
             event_type = event.get("type", "")
             if event_type in ["HEARTBEAT", "CONNECTION_ESTABLISHED"]:
                 continue
                 
-            # Send the event to the specific connection
             success = await self.route_to_connection(connection_id, event)
             if not success:
                 logger.warning(f"[MessageRouter] Failed to replay event to connection {connection_id}")
@@ -414,17 +405,14 @@ class MessageRouter(MessageRouterPort):
         
         executions_to_remove = []
         for execution_id, events in self._event_buffer.items():
-            # Remove old events
             events[:] = [
                 e for e in events
                 if "timestamp" in e and datetime.fromisoformat(e["timestamp"]) > cutoff_time
             ]
             
-            # Mark empty buffers for removal
             if not events:
                 executions_to_remove.append(execution_id)
         
-        # Remove empty buffers
         for execution_id in executions_to_remove:
             del self._event_buffer[execution_id]
 
@@ -468,5 +456,4 @@ class MessageRouter(MessageRouterPort):
         }
 
 
-# Singleton instance for backward compatibility
 message_router = MessageRouter()

@@ -55,7 +55,7 @@ nodes:
     position: {x: 700, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_field_configs/field_configs_generator.py
+      filePath: files/codegen/code/models/field_configs_generator.py
       functionName: extract_field_configs
 
   # Prepare template data
@@ -64,7 +64,7 @@ nodes:
     position: {x: 900, y: 350}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_field_configs/field_configs_generator.py
+      filePath: files/codegen/code/models/field_configs_generator.py
       functionName: prepare_template_data
   
   # Use template_job for rendering - it now automatically unwraps default inputs

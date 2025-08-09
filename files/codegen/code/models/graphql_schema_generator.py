@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Dict, List, Set, Any
 from jinja2 import Template, StrictUndefined
 
+# Import type transformer from infrastructure
+import sys
+sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
+from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
+
 
 # ============================================================================
 # Node Data AST Combination
@@ -71,15 +76,7 @@ def combine_node_data_ast(inputs):
 # ============================================================================
 
 def ts_to_graphql_type(ts_type: str, enums: list, scalars: list, missing_enums: set) -> str:
-    """Map TypeScript types to GraphQL types"""
-    type_map = {
-        'string': 'String',
-        'number': 'Float', 
-        'boolean': 'Boolean',
-        'any': 'JSONScalar',
-        'unknown': 'JSONScalar',
-        'void': 'Boolean'  # GraphQL doesn't have void
-    }
+    """Map TypeScript types to GraphQL types using centralized type mapping"""
     
     # Clean type
     clean_type = ts_type.replace(' | null', '').replace(' | undefined', '').strip()
@@ -116,9 +113,36 @@ def ts_to_graphql_type(ts_type: str, enums: list, scalars: list, missing_enums: 
         # Check if it's a mix of types
         return 'String'  # Fallback to String for any union
     
-    # Check mapping
-    if clean_type in type_map:
-        return type_map[clean_type]
+    # Use infrastructure's type transformer for consistency
+    python_type = map_ts_type_to_python(clean_type)
+    
+    # Map Python types to GraphQL types
+    python_to_graphql = {
+        'str': 'String',
+        'float': 'Float',
+        'int': 'Int',
+        'bool': 'Boolean',
+        'Any': 'JSONScalar',
+        'Dict[str, Any]': 'JSONScalar',
+        'datetime': 'DateTime',
+        'None': 'Boolean'  # GraphQL doesn't have void/null as type
+    }
+    
+    # Check Python type mappings
+    for py_type, gql_type in python_to_graphql.items():
+        if py_type in python_type:
+            return gql_type
+    
+    # Check if List type
+    if python_type.startswith('List['):
+        inner = python_type[5:-1]
+        # Map inner type recursively
+        inner_gql = 'JSONScalar'  # Default for complex types
+        for py_type, gql_type in python_to_graphql.items():
+            if py_type in inner:
+                inner_gql = gql_type
+                break
+        return f"[{inner_gql}]"
     
     # Check if it's a known type/enum/scalar
     if any(e['name'] == clean_type for e in enums):

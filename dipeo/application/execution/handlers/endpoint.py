@@ -64,7 +64,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                 "filename": node.file_name or f"output_{node.id}.json"
             })
         
-        # Get filesystem adapter from ServiceRegistry
         from dipeo.application.registry import ServiceKey
         fs_key = ServiceKey("filesystem_adapter")
         filesystem_adapter = self.filesystem_adapter or services.get(fs_key)
@@ -78,7 +77,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             file_name = node.metadata.get('file_path')
         
         if not file_name:
-            # Get typed node from ServiceRegistry if available
             from dipeo.application.registry import ServiceKey
             typed_node_key = ServiceKey("typed_node")
             if services.has(typed_node_key):

@@ -206,6 +206,20 @@ export interface DeletePersonVariables {
 `;
 export interface ExecuteDiagramVariables {
   input: ExecuteDiagramInput;
+}export const REGISTERCLISESSION_MUTATION = gql`
+  mutation RegisterCliSession(
+    $input: RegisterCliSessionInput!
+  ) {
+    register_cli_session(input: $input) {
+      success
+      session_id
+      message
+      error
+    }
+  }
+`;
+export interface RegisterCliSessionVariables {
+  input: RegisterCliSessionInput;
 }export const SENDINTERACTIVERESPONSE_MUTATION = gql`
   mutation SendInteractiveResponse(
     $input: InteractiveResponseInput!
@@ -233,6 +247,19 @@ export interface SendInteractiveResponseVariables {
 `;
 export interface TestApiKeyVariables {
   id: string;
+}export const UNREGISTERCLISESSION_MUTATION = gql`
+  mutation UnregisterCliSession(
+    $input: UnregisterCliSessionInput!
+  ) {
+    unregister_cli_session(input: $input) {
+      success
+      message
+      error
+    }
+  }
+`;
+export interface UnregisterCliSessionVariables {
+  input: UnregisterCliSessionInput;
 }export const UPDATENODE_MUTATION = gql`
   mutation UpdateNode(
     $diagram_id: ID!, 
@@ -694,8 +721,10 @@ export const MUTATIONS = {
   DELETENODE: DELETENODE_MUTATION,
   DELETEPERSON: DELETEPERSON_MUTATION,
   EXECUTEDIAGRAM: EXECUTEDIAGRAM_MUTATION,
+  REGISTERCLISESSION: REGISTERCLISESSION_MUTATION,
   SENDINTERACTIVERESPONSE: SENDINTERACTIVERESPONSE_MUTATION,
   TESTAPIKEY: TESTAPIKEY_MUTATION,
+  UNREGISTERCLISESSION: UNREGISTERCLISESSION_MUTATION,
   UPDATENODE: UPDATENODE_MUTATION,
   UPDATENODESTATE: UPDATENODESTATE_MUTATION,
   UPDATEPERSON: UPDATEPERSON_MUTATION,
@@ -775,6 +804,12 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
+  RegisterCliSession: {
+    type: 'mutation',
+    entity: 'CliSession',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
   SendInteractiveResponse: {
     type: 'mutation',
     entity: 'Execution',
@@ -784,6 +819,12 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
   TestApiKey: {
     type: 'mutation',
     entity: 'ApiKey',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
+  UnregisterCliSession: {
+    type: 'mutation',
+    entity: 'CliSession',
     operation: '',
     fieldPreset: 'STANDARD',
   },
