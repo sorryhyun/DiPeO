@@ -21,33 +21,19 @@ def load_query_definitions(ast_cache: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     query_definitions = []
     
-    # Look for query definition files in the AST cache
-    query_files = [
-        'diagrams.ts',
-        'persons.ts',
-        'executions.ts',
-        'api-keys.ts',
-        'conversations.ts',
-        'system.ts',
-        'files.ts',
-        'nodes.ts',
-        'formats.ts',
-        'prompts.ts'
-    ]
+    # Dynamically find all query definition files in the AST cache
+    query_definition_keys = []
     
-    for file_name in query_files:
-        # Try different key formats
-        possible_keys = [
-            f'frontend/query-definitions/{file_name}',
-            f'dipeo/models/src/frontend/query-definitions/{file_name}',
-            f'temp/frontend/query-definitions/{file_name}.json'
-        ]
-        
-        file_data = None
-        for key in possible_keys:
-            if key in ast_cache:
-                file_data = ast_cache[key]
-                break
+    for key in ast_cache.keys():
+        # Look for keys that match query definition patterns
+        if 'query-definitions/' in key and key.endswith('.ts'):
+            query_definition_keys.append(key)
+        elif 'query-definitions/' in key and key.endswith('.ts.json'):
+            query_definition_keys.append(key)
+    
+    # Process each found query definition file
+    for key in query_definition_keys:
+        file_data = ast_cache[key]
         
         if file_data:
             # Extract constants that contain query definitions
@@ -77,8 +63,14 @@ def load_query_enums(ast_cache: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
     """
     enums = {}
     
-    enum_file_key = 'dipeo/models/src/frontend/query-enums.ts'
-    if enum_file_key in ast_cache:
+    # Look for query-enums file dynamically
+    enum_file_key = None
+    for key in ast_cache.keys():
+        if 'query-enums.ts' in key:
+            enum_file_key = key
+            break
+    
+    if enum_file_key and enum_file_key in ast_cache:
         file_data = ast_cache[enum_file_key]
         if 'enums' in file_data:
             for enum in file_data['enums']:

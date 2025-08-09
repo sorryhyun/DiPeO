@@ -185,7 +185,6 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
                             schema['definitions'] = filtered_definitions
                         
                         schemas[key] = schema
-                        print(f"✓ Generated schema for {interface_name}")
                     except json.JSONDecodeError:
                         print(f"✗ Failed to parse schema for {interface_name}")
                 else:
@@ -221,8 +220,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
                             "$ref": f"#/definitions/{interface_name}",
                             "definitions": schema_definitions
                         }
-                        print(f"✓ Extracted schema for {interface_name}")
-                
+
                 # Clean up combined file
                 os.unlink(all_schemas_path)
     
@@ -240,7 +238,6 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         schema_file = output_dir / f"{key}.schema.json"
         with open(schema_file, 'w') as f:
             json.dump(schema, f, indent=2)
-        print(f"Saved {key} schema to {schema_file}")
         saved_count += 1
     
     print(f"\n✓ Generated and saved {saved_count} JSON schemas")

@@ -218,15 +218,12 @@ def extract_mappings(ast_data: dict) -> dict:
 
 def main(inputs: dict) -> dict:
     """Main entry point for mappings extraction."""
-    # Debug logging
-    print(f"extract_mappings received input keys: {list(inputs.keys())}")
     
     # Check if we have multi-file input (new format)
     if 'default' in inputs and isinstance(inputs['default'], dict):
         # Check if it's a multi-file result
         default_data = inputs['default']
-        print(f"Default data keys: {list(default_data.keys())}")
-        
+
         # If it has file paths as keys, find the codegen-mappings.ts.json
         if any(key.endswith('.json') for key in default_data.keys()):
             # Multi-file format
@@ -272,7 +269,6 @@ def main(inputs: dict) -> dict:
                 }
         else:
             # Single AST data
-            print("Processing as single AST data")
             return extract_mappings(default_data)
     else:
         # Legacy format

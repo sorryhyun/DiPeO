@@ -36,7 +36,7 @@ def combine_node_data_ast(inputs):
         # Fallback: discover files dynamically
         if cache_dir.exists():
             node_data_files = [f.name for f in cache_dir.glob('*_data_ast.json')]
-            print(f"Discovered {len(node_data_files)} node data files")
+            # print(f"Discovered {len(node_data_files)} node data files")
     
     # Look for cache files
     
@@ -274,9 +274,9 @@ def extract_graphql_types_core(diagram_ast: dict, execution_ast: dict, conversat
     type_results = extract_types_from_interfaces(all_interfaces, enums, scalars)
     
     # Extraction complete
-    print(f"  - {len(type_results['types'])} types")
-    print(f"  - {len(type_results['input_types'])} input types")
-    print(f"  - {len(type_results['node_types'])} node data types: {type_results['node_types']}")
+    # print(f"  - {len(type_results['types'])} types")
+    # print(f"  - {len(type_results['input_types'])} input types")
+    # print(f"  - {len(type_results['node_types'])} node data types: {type_results['node_types']}")
     
     # Add JSONScalar if not already in scalars
     if not any(s['name'] == 'JSONScalar' for s in scalars):
@@ -355,7 +355,7 @@ def render_graphql_schema(inputs):
     except Exception as e:
         import traceback
         error_msg = f"Template rendering error: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
+        # print(error_msg)
         # Return the error as the generated content so we can see it
         result = {'generated_code': error_msg}
     
@@ -367,10 +367,10 @@ def generate_summary(inputs):
     # The connection is labeled 'graphql_data' in the diagram
     graphql_types = inputs.get('graphql_data', inputs.get('graphql_types', inputs.get('default', {})))
     
-    print(f"GraphQL schema: {len(graphql_types.get('scalars', []))} scalars, {len(graphql_types.get('enums', []))} enums - done!") 
-    print(f"Generated {len(graphql_types.get('types', []))} types")
-    print(f"Generated {len(graphql_types.get('input_types', []))} input types")
-    print(f"\nOutput written to: dipeo/diagram_generated_staged/domain-schema.graphql")
+    # print(f"GraphQL schema: {len(graphql_types.get('scalars', []))} scalars, {len(graphql_types.get('enums', []))} enums - done!") 
+    # print(f"Generated {len(graphql_types.get('types', []))} types")
+    # print(f"Generated {len(graphql_types.get('input_types', []))} input types")
+    # print(f"\nOutput written to: dipeo/diagram_generated_staged/domain-schema.graphql")
     
     result = {
         'status': 'success',

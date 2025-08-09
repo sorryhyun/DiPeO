@@ -17,13 +17,10 @@ def extract_node_specs_from_ast(inputs: Dict[str, Any]) -> Dict[str, Any]:
     node_specs = []
     
     # Debug: Print all input keys
-    print(f"Input keys: {list(inputs.keys())}")
-    
     # Handle case where db node passes data as 'default'
     if 'default' in inputs and len(inputs) == 1:
         inputs = inputs['default']
-        print(f"Unwrapped default key, new keys: {list(inputs.keys())}")
-    
+
     # Check for consolidated cache file in inputs
     if 'all_node_specs_ast.json' in inputs:
         try:
@@ -50,10 +47,10 @@ def extract_node_specs_from_ast(inputs: Dict[str, Any]) -> Dict[str, Any]:
                                         'description': spec_value.get('description'),
                                         'fields': spec_value.get('fields', [])
                                     })
-            print(f"Found {len(node_specs)} specs from consolidated cache")
             return {'node_specs': node_specs}
         except Exception as e:
-            print(f"Error reading consolidated cache: {e}")
+            pass
+            # print(f"Error reading consolidated cache: {e}")
     
     # Process individual spec files
     for filename, ast_data in inputs.items():
@@ -81,10 +78,10 @@ def extract_node_specs_from_ast(inputs: Dict[str, Any]) -> Dict[str, Any]:
                             'description': spec_value.get('description'),
                             'fields': spec_value.get('fields', [])
                         })
-                        print(f"Found spec for {node_type} in {filename}")
         except Exception as e:
-            print(f"Error processing {filename}: {e}")
+            pass
+            # print(f"Error processing {filename}: {e}")
     
-    print(f"Found {len(node_specs)} specs total")
-    
+    # print(f"Found {len(node_specs)} specs total")
+
     return {'node_specs': node_specs}

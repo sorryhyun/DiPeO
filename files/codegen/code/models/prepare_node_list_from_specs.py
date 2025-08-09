@@ -43,9 +43,11 @@ def prepare_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
     if not node_types:
         raise ValueError("No node types found in spec files")
     
-    print(f"Generating backend files for {len(node_types)} nodes from TypeScript specifications:")
-    for nt in sorted(node_types):
-        print(f"  - {nt}")
+    # Verbose logging removed - generating backend files for {len(node_types)} nodes
+    # Uncomment below for debugging:
+    # print(f"Generating backend files for {len(node_types)} nodes from TypeScript specifications:")
+    # for nt in sorted(node_types):
+    #     print(f"  - {nt}")
     
     # Create array of inputs for batch processing
     # Add 'default' wrapper to prevent unwrapping by runtime resolver

@@ -53,9 +53,7 @@ class TypedExecutionEngine:
         self._settings = get_settings()
         self._managed_event_bus = False
         
-        # Handle observers and event bus
         if observers and not event_bus:
-            # Create event bus from observers for backward compatibility
             from dipeo.infrastructure.events.observer_adapter import create_event_bus_with_observers
             self.event_bus = create_event_bus_with_observers(observers)
             self._managed_event_bus = True
@@ -244,7 +242,7 @@ class TypedExecutionEngine:
         context: TypedExecutionContext
     ) -> dict[str, dict[str, Any]]:
         """Execute nodes with optional parallelization."""
-        max_concurrent = 20  # Default concurrency limit
+        max_concurrent = 20
         
         # Single node - execute directly
         if len(nodes) == 1:

@@ -55,7 +55,7 @@ nodes:
                 'file_path': file_path
             })
         
-        print(f"Found {len(items)} TypeScript files to parse")
+        # Found {len(items)} TypeScript files to parse (logging removed for less verbosity)
         
         # Wrap items for batch processing
         result = {

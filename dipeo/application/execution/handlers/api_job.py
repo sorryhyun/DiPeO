@@ -44,12 +44,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         return "Makes HTTP requests to external APIs with authentication support"
 
     async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> NodeOutputProtocol:
-        """Execute the API request."""
         node = request.node
         context = request.context
         inputs = request.inputs
         services = request.services
-        # Use injected service or get from services
         api_service = self.api_service or request.get_service(API_SERVICE.name)
             
         if not api_service:
@@ -59,7 +57,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 error_type="ServiceNotAvailableError"
             )
         
-        # Direct typed access to node properties
         url = node.url
         method = node.method
         headers = node.headers or {}
@@ -69,7 +66,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         auth_type = node.auth_type or "none"
         auth_config = node.auth_config or {}
         
-        # Debug logging
         print(f"[ApiJobNode] URL: {url}")
         print(f"[ApiJobNode] Method type: {type(method)}, value: {method}")
         print(f"[ApiJobNode] Headers: {headers}")

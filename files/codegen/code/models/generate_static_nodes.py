@@ -234,22 +234,16 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
     
     # Debug logging - always print this
-    print(f"[generate_static_nodes] ENTRY - Called with inputs keys: {list(inputs.keys())}")
-    
     # Warning for empty inputs (import-time call issue)
     if not inputs:
-        print("[generate_static_nodes] WARNING: Called with empty inputs - possible timing issue!")
+        # print("[generate_static_nodes] WARNING: Called with empty inputs - possible timing issue!")
         return {'node_classes': [], 'now': datetime.now().isoformat()}
     
     # In DiPeO, labeled connections come directly at the top level
     mappings = inputs.get('mappings', {})
     node_data = inputs.get('node_data', {})
     base_data = inputs.get('base_data', {})
-    
-    print(f"[generate_static_nodes] mappings keys: {list(mappings.keys()) if mappings else 'None'}")
-    print(f"[generate_static_nodes] node_data keys: {list(node_data.keys()) if node_data else 'None'}")
-    print(f"[generate_static_nodes] base_data keys: {list(base_data.keys()) if base_data else 'None'}")
-    
+
     # Extract base interface
     base_interface = base_data.get('base_interface')
     
@@ -262,8 +256,7 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
                 'interface_name': data['interface'].get('name'),
                 'interface': data['interface']
             })
-    print(f"[generate_static_nodes] Found {len(parsed_nodes)} parsed nodes")
-    
+
     # Combine all interfaces
     all_interfaces: List[Dict[str, Any]] = []
     node_interface_map = mappings.get('node_interface_map', {})
@@ -292,14 +285,4 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Run the static nodes extractor
     result = extract_static_nodes_data(combined_ast, mappings)
-    
-    print(f"[generate_static_nodes] Returning result with keys: {list(result.keys())}")
-    if 'node_classes' in result:
-        print(f"[generate_static_nodes] Generated {len(result['node_classes'])} node classes")
-        if result['node_classes']:
-            print(f"[generate_static_nodes] First node class: {result['node_classes'][0].get('class_name', 'Unknown')}")
-            # Print all node classes for debugging
-            for i, nc in enumerate(result['node_classes']):
-                print(f"  [{i}] {nc.get('class_name', 'Unknown')}")
-    
     return result

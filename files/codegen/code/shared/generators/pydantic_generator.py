@@ -21,7 +21,10 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dictionary with generated Pydantic models
     """
-    base_dir = Path(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
+    base_dir_env = os.environ.get('DIPEO_BASE_DIR')
+    if not base_dir_env:
+        raise ValueError("DIPEO_BASE_DIR environment variable is not set")
+    base_dir = Path(base_dir_env)
     
     # Input schemas directory
     schemas_dir = base_dir / 'dipeo' / 'diagram_generated_staged' / 'schemas' / 'nodes'

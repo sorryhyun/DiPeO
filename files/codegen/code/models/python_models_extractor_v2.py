@@ -98,7 +98,7 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
                     all_enums.extend(ast.get('enums', []))
                     all_consts.extend(ast.get('consts', []) or ast.get('constants', []))
         
-        print(f"AST data: {len(all_interfaces)} interfaces, {len(all_types)} types")
+        # print(f"AST data: {len(all_interfaces)} interfaces, {len(all_types)} types")
         
         # Filter out deprecated type aliases
         deprecated_aliases = ['ExecutionStatus', 'NodeExecutionStatus']
@@ -139,7 +139,7 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         import traceback
         error_msg = f"Error extracting model data: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
+        # print(error_msg)
         return {
             'error': str(e),
             'interfaces': [],
@@ -155,11 +155,11 @@ def generate_summary(inputs):
     """Generate summary of Python models generation."""
     generation_result = inputs.get('generation_result', {})
 
-    print(f"\n=== Python Domain Models Generation Complete ===")
-    print(f"Generated {generation_result.get('interfaces_count', 0)} models")
-    print(f"Generated {generation_result.get('enums_count', 0)} enums")
-    print(f"Generated {generation_result.get('types_count', 0)} type aliases")
-    print(f"\nOutput written to: dipeo/diagram_generated_staged/domain_models.py")
+    # print(f"\n=== Python Domain Models Generation Complete ===")
+    # print(f"Generated {generation_result.get('interfaces_count', 0)} models")
+    # print(f"Generated {generation_result.get('enums_count', 0)} enums")
+    # print(f"Generated {generation_result.get('types_count', 0)} type aliases")
+    # print(f"\nOutput written to: dipeo/diagram_generated_staged/domain_models.py")
 
     result = {
         'status': 'success',

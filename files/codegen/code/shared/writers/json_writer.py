@@ -7,7 +7,9 @@ import os
 def write_field_configs_json(node_configs: list, base_dir: str = None) -> dict:
     """Write field configurations to JSON file."""
     if base_dir is None:
-        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        base_dir = os.environ.get('DIPEO_BASE_DIR')
+        if not base_dir:
+            raise ValueError("DIPEO_BASE_DIR environment variable is not set")
     
     # Create output directory
     output_dir = os.path.join(base_dir, 'dipeo/diagram_generated_staged')

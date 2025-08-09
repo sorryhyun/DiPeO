@@ -43,16 +43,13 @@ class ApplicationContainer:
         self._setup_application_services()
 
     def _setup_application_services(self):
-        """Register application-level services with dependencies."""
         from dipeo.infrastructure.services.diagram import DiagramConverterService, CompilationService
         
-        # Register diagram converter service
         self.registry.register(
             DIAGRAM_CONVERTER,
             DiagramConverterService()
         )
         
-        # Register compilation service
         self.registry.register(
             COMPILATION_SERVICE,
             CompilationService()
@@ -61,14 +58,11 @@ class ApplicationContainer:
         self._setup_app_services()
 
     def _setup_app_services(self):
-        """Set up application-level services."""
         from dipeo.infrastructure.services.database.service import DBOperationsDomainService
         from dipeo.domain.validators import DataValidator
         
-        # Get file system from registry (should be registered by infrastructure container)
         file_system = self.registry.resolve(FILESYSTEM_ADAPTER)
         if not file_system:
-            # Fallback to creating a new one if not found
             from dipeo.infrastructure.adapters.storage import FilesystemAdapter
             file_system = FilesystemAdapter()
         
@@ -101,7 +95,6 @@ class ApplicationContainer:
         from pathlib import Path
         from dipeo.core.config import Config
         
-        # Get filesystem and config
         filesystem = self.registry.resolve(FILESYSTEM_ADAPTER)
         config = Config()
         base_path = Path(config.base_dir) / "files"
@@ -111,7 +104,7 @@ class ApplicationContainer:
             lambda: DiagramService(
                 filesystem=filesystem,
                 base_path=base_path,
-                converter=None  # Will create default converter
+                converter=None
             )
         )
         from dipeo.application.execution.use_cases import ExecuteDiagramUseCase, PrepareDiagramForExecutionUseCase
@@ -124,8 +117,6 @@ class ApplicationContainer:
                 diagram_service=self.registry.resolve(DIAGRAM_SERVICE_NEW),
             )
         )
-        
-        # Register PrepareDiagramForExecutionUseCase
         self.registry.register(
             PREPARE_DIAGRAM_USE_CASE,
             lambda: PrepareDiagramForExecutionUseCase(

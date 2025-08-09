@@ -43,10 +43,11 @@ def extract_node_specs(inputs: dict) -> dict:
                                             'description': spec_value.get('description'),
                                             'fields': spec_value.get('fields', [])
                                         })
-                print(f"Found {len(node_specs)} specs")
+                # print(f"Found {len(node_specs)} specs")
                 return {'node_specs': node_specs}
         except Exception as e:
-            print(f"Error reading consolidated cache: {e}")
+            pass
+            # print(f"Error reading consolidated cache: {e}")
     
     # Get spec files from input or discover dynamically
     spec_files = inputs.get('spec_files', [])
@@ -55,7 +56,7 @@ def extract_node_specs(inputs: dict) -> dict:
         # Discover files dynamically
         if cache_dir.exists():
             spec_files = [f.name for f in cache_dir.glob('*.spec.ts.json')]
-            print(f"Discovered {len(spec_files)} spec files")
+            # print(f"Discovered {len(spec_files)} spec files")
     
     for filename in spec_files:
         file_path = cache_dir / filename
@@ -80,7 +81,8 @@ def extract_node_specs(inputs: dict) -> dict:
                                     'fields': spec_value.get('fields', [])
                                 })
             except Exception as e:
-                print(f"  Error reading {filename}: {e}")
+                pass
+                # print(f"  Error reading {filename}: {e}")
     
     print(f"Found {len(node_specs)} specs")
     

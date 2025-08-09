@@ -47,7 +47,7 @@ nodes:
     position: {x: 600, y: 250}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_conversions/conversions_extractor_v2.py
+      filePath: files/codegen/code/models/conversions_extractor_v2.py
       functionName: extract_conversions_data
 
   # Use template_job with enhanced template for rendering
@@ -68,7 +68,7 @@ nodes:
     position: {x: 1000, y: 250}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_conversions/conversions_extractor_v2.py
+      filePath: files/codegen/code/models/conversions_extractor_v2.py
       functionName: generate_summary
 
   - label: End

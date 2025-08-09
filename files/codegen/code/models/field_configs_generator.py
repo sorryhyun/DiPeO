@@ -20,7 +20,7 @@ def extract_mappings_from_ast(mappings_ast: dict) -> dict:
     """Extract mappings from codegen mappings AST"""
     # This should not be used anymore since mappings are extracted by the Extract Mappings node
     # Return minimal defaults if called
-    print("WARNING: extract_mappings_from_ast called - should use mappings from Extract Mappings node")
+    # print("WARNING: extract_mappings_from_ast called - should use mappings from Extract Mappings node")
     return {
         'node_interface_map': {},
         'base_fields': ['label', 'flipped'],
@@ -170,7 +170,7 @@ def extract_field_configs_core(ast_data: dict, mappings: dict) -> dict:
                 break
         
         if not interface_data:
-            print(f"Warning: Interface {interface_name} not found")
+            # print(f"Warning: Interface {interface_name} not found")
             continue
         
         # Extract fields
@@ -202,7 +202,7 @@ def extract_field_configs_core(ast_data: dict, mappings: dict) -> dict:
             'fields': fields
         })
     
-    print(f"Generated field configs for {len(node_configs)} node types")
+    # print(f"Generated field configs for {len(node_configs)} node types")
     
     return {
         'node_configs': node_configs,
@@ -278,10 +278,6 @@ def prepare_template_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     else:
         node_configs = field_configs_data
     
-    print(f"Preparing template data with {len(node_configs)} node configs")
-    if node_configs:
-        print(f"First node config keys: {list(node_configs[0].keys()) if node_configs else []}")
-    
     result = {
         'node_configs': node_configs,
         'now': datetime.now().isoformat()
@@ -298,21 +294,21 @@ def render_field_configs(inputs: Dict[str, Any]) -> str:
     # Get prepared data
     template_data = inputs.get('default', {})
     
-    print(f"Template data keys: {list(template_data.keys())}")
-    print(f"Node configs count: {len(template_data.get('node_configs', []))}")
+    # print(f"Template data keys: {list(template_data.keys())}")
+    # print(f"Node configs count: {len(template_data.get('node_configs', []))}")
     
     try:
         # Render template
         jinja_template = Template(template_content, undefined=StrictUndefined)
         rendered = jinja_template.render(**template_data)
         
-        print(f"Successfully rendered template, length: {len(rendered)}")
+        # print(f"Successfully rendered template, length: {len(rendered)}")
         
         # DB write node expects the string directly as 'default' input
         return rendered
     except Exception as e:
-        print(f"Template rendering error: {e}")
-        print(traceback.format_exc())
+        # print(f"Template rendering error: {e}")
+        # print(traceback.format_exc())
         # Return error as content so we can see it
         return f"/* Template rendering error: {e} */\n"
 

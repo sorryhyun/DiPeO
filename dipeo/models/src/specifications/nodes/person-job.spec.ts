@@ -37,6 +37,17 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
+      name: "first_prompt_file",
+      type: "string",
+      required: false,
+      description: "External prompt file for first iteration only",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "example_first.txt",
+        column: 2
+      }
+    },
+    {
       name: "default_prompt",
       type: "string",
       required: false,

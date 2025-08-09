@@ -39,7 +39,7 @@ def prepare_init_context_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
                     node_types.append(node_type)
                     break
     
-    print(f"Preparing to generate __init__.py for {len(node_types)} models")
+    # print(f"Preparing to generate __init__.py for {len(node_types)} models")
     
     # Sort for consistent output
     node_types.sort()

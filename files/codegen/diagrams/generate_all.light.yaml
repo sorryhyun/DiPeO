@@ -178,16 +178,16 @@ nodes:
     props:
       language: python
       code: |
-        print("\n=== Complete Code Generation Summary ===")
-        print("\n✓ TypeScript parsing completed")
-        print("✓ All domain models generated (11 artifact types)")
-        print("✓ Frontend components generated")
-        print("\nGenerated files are in dipeo/diagram_generated_staged/")
-        print("Run 'make apply' to apply the staged changes")
-        
+        # Summary - prints removed to reduce verbosity
         result = {
             'status': 'success',
-            'message': 'All code generation completed successfully'
+            'message': 'All code generation completed successfully',
+            'summary': {
+                'typescript_parsing': 'completed',
+                'domain_models': 'generated (11 artifact types)',
+                'frontend_components': 'generated',
+                'output_location': 'dipeo/diagram_generated_staged/'
+            }
         }
 
   - label: End

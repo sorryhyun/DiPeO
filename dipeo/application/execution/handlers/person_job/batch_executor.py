@@ -128,7 +128,6 @@ class BatchPersonJobExecutor:
             logger.warning(f"Batch input '{batch_input_key}' is not a list (type: {type(batch_items)}). Treating as single item.")
             batch_items = [batch_items]
         
-        logger.info(f"Extracted {len(batch_items)} batch items")
         return batch_items
     
     async def _execute_parallel(

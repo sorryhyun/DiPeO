@@ -16,9 +16,7 @@ def extract_node_data_from_ast(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # The db node with glob returns a dict with filenames as keys
     node_data_by_type = {}
-    
-    print(f"[extract_node_data_from_ast] inputs keys: {list(inputs.keys())}")
-    print(f"[extract_node_data_from_ast] inputs type: {type(inputs)}")
+
     
     # Handle wrapped inputs (runtime resolver may wrap in 'default')
     if 'default' in inputs and isinstance(inputs['default'], dict):
@@ -57,8 +55,5 @@ def extract_node_data_from_ast(inputs: Dict[str, Any]) -> Dict[str, Any]:
                     'interface': data_interface,
                     'properties': data_interface.get('properties', [])
                 }
-                print(f"Found data interface for {node_type}: {data_interface.get('name', '')}")
-    
-    print(f"Extracted data for {len(node_data_by_type)} node types")
-    
+
     return {'node_data': node_data_by_type}

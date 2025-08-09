@@ -18,7 +18,6 @@ from dipeo.application.registry.keys import (
     STATE_STORE,
 )
 
-# Define additional service keys that aren't in the main registry yet
 TEMPLATE_PROCESSOR = ServiceKey("template_processor")
 NODE_REGISTRY = ServiceKey("node_registry")
 DOMAIN_SERVICE_REGISTRY = ServiceKey("domain_service_registry")
@@ -40,28 +39,15 @@ class InfrastructureContainer:
         self._setup_adapters()
 
     def _setup_adapters(self):
-        """Register infrastructure adapters based on configuration."""
-        # Storage adapters
         self._setup_storage_adapters()
-
-        # LLM service
         self._setup_llm_adapter()
-
-        # Additional infrastructure services
         self._setup_infrastructure_services()
 
     def _setup_storage_adapters(self):
-        """Configure storage adapters based on environment."""
-        # Use existing infrastructure implementations
         from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
 
-        # Create filesystem adapter (always needed)
         filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
-
-        # API key storage - APIKeyService handles its own file storage
-
-        # API key service with file-based storage
         from dipeo.application.services.apikey_service import APIKeyService
         api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
         self.registry.register(
@@ -69,25 +55,17 @@ class InfrastructureContainer:
             APIKeyService(file_path=api_key_path)
         )
 
-        # Artifact store - None for now (can be added when needed)
         self.registry.register(
             ARTIFACT_STORE,
-            None  # Will be replaced with proper artifact store when needed
+            None
         )
 
     def _setup_llm_adapter(self):
-        """Configure LLM service based on environment."""
-        # Use existing LLM infrastructure service
         from dipeo.infrastructure.services.llm.service import LLMInfraService
         from dipeo.domain.llm import LLMDomainService
 
-        # Get API key service from registry
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
-
-        # Create LLM domain service
         llm_domain_service = LLMDomainService()
-
-        # Create and register LLM infrastructure service
         self.registry.register(
             LLM_SERVICE,
             LLMInfraService(
@@ -97,22 +75,16 @@ class InfrastructureContainer:
         )
 
     def _setup_infrastructure_services(self):
-        """Set up additional infrastructure services."""
-        # State store - use None for CLI, server should override
-        # For server usage, this should be overridden with EventBasedStateStore
         self.registry.register(
             STATE_STORE,
-            None  # Server must override this
+            None
         )
 
-        # Message router - use None for CLI, server should override
-        # For server usage, this should be overridden with MessageRouter
         self.registry.register(
             MESSAGE_ROUTER,
-            None  # Server must override this
+            None
         )
 
-        # Blob store
         from dipeo.infrastructure.adapters.storage import LocalBlobAdapter
         self.registry.register(
             BLOB_STORE,
@@ -121,29 +93,23 @@ class InfrastructureContainer:
             )
         )
 
-        # API service - None for now, can be added when needed
         self.registry.register(
             API_SERVICE,
-            None  # Override when API calls are needed
+            None
         )
 
-        # Integrated API service
         from dipeo.infrastructure.services.integrated_api import IntegratedApiService
         from dipeo.infrastructure.adapters.http.api_service import APIService
         from dipeo.domain.api.services import APIBusinessLogic
         
-        # Create API service for providers that need it
         api_business_logic = APIBusinessLogic()
         api_service = APIService(api_business_logic)
-        
-        # Create and register integrated API service
         integrated_api_service = IntegratedApiService(api_service=api_service)
         self.registry.register(
             INTEGRATED_API_SERVICE,
             integrated_api_service
         )
 
-        # Generic AST parser service (supports multiple languages)
         from dipeo.infrastructure.services.parser import get_parser_service
         parser_service = get_parser_service(
             default_language="typescript",

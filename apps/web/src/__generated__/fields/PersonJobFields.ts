@@ -34,8 +34,8 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: 'First Prompt File',
     required: false,
-    placeholder: 'first_example.txt',
-    description: 'Path to first prompt file in /files/prompts/',
+    placeholder: 'example_first.txt',
+    description: 'External prompt file for first iteration only',
     column: 2,
   },
   {

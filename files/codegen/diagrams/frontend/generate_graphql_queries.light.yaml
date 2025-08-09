@@ -72,8 +72,9 @@ nodes:
         
         if file_exists:
             file_size = Path(output_file).stat().st_size
-            print(f"✓ Generated query file: {output_file}")
-            print(f"  File size: {file_size:,} bytes")
+            # Verbose logging removed - uncomment for debugging
+            # print(f"✓ Generated query file: {output_file}")
+            # print(f"  File size: {file_size:,} bytes")
             
             # Count queries in the file
             with open(output_file, 'r') as f:
@@ -81,10 +82,11 @@ nodes:
                 query_count = content.count('export const')
                 gql_count = content.count('gql`')
             
-            print(f"  Exported constants: {query_count}")
-            print(f"  GraphQL documents: {gql_count}")
+            # print(f"  Exported constants: {query_count}")
+            # print(f"  GraphQL documents: {gql_count}")
         else:
-            print(f"✗ Failed to generate: {output_file}")
+            # print(f"✗ Failed to generate: {output_file}")
+            pass
         
         # Check metadata from input - handle different input formats
         input_data = inputs.get('default', {})
@@ -95,13 +97,15 @@ nodes:
             metadata = input_data.get('metadata', {})
         elif isinstance(input_data, str):
             # Input might be a string, just note it
-            print(f"Debug: Input is string type")
+            # print(f"Debug: Input is string type")
+            pass
         
-        if metadata:
-            print(f"\nQuery statistics:")
-            print(f"  Queries: {metadata.get('total_queries', 0)}")
-            print(f"  Mutations: {metadata.get('total_mutations', 0)}")
-            print(f"  Subscriptions: {metadata.get('total_subscriptions', 0)}")
+        # Verbose logging removed - uncomment for debugging
+        # if metadata:
+        #     print(f"\nQuery statistics:")
+        #     print(f"  Queries: {metadata.get('total_queries', 0)}")
+        #     print(f"  Mutations: {metadata.get('total_mutations', 0)}")
+        #     print(f"  Subscriptions: {metadata.get('total_subscriptions', 0)}")
         
         result = {
             'success': file_exists,

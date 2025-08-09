@@ -159,12 +159,5 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Combine results
     results = {**data_results, **specs_results}
-    
-    # Print summary
-    if 'data_count' in data_results:
-        print(f"Generated {data_results['data_output_path']} with {data_results['data_count']} node data exports")
-    
-    if 'spec_count' in specs_results:
-        print(f"Generated {specs_results['specs_output_path']} with {specs_results['spec_count']} node specifications")
-    
+
     return results

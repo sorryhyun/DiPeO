@@ -40,11 +40,11 @@ def extract_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
                     node_types.append(node_type)
                     break
     
-    print(f"Found {len(node_types)} node types: {node_types}")
+    # print(f"Found {len(node_types)} node types: {node_types}")
     
     # Sort for consistent output
     node_types.sort()
     
-    print(f"Nodes to register: {node_types}")
+    # print(f"Nodes to register: {node_types}")
     
     return {'node_list': node_types}

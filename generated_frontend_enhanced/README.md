@@ -1,3 +1,0 @@
-{
-  "default": "string indices must be integers, not 'str'"
-}

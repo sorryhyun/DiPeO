@@ -12,6 +12,7 @@ import { z } from 'zod';
 export interface PersonJobNodeData {
   person?: string;
   first_only_prompt: string;
+  first_prompt_file?: string;
   default_prompt?: string;
   prompt_file?: string;
   max_iteration: number;
@@ -25,6 +26,7 @@ export interface PersonJobNodeData {
 export const PersonJobNodeDataSchema = z.object({
   person: z.string().optional(),
   first_only_prompt: z.string(),
+  first_prompt_file: z.string().optional(),
   default_prompt: z.string().optional(),
   prompt_file: z.string().optional(),
   max_iteration: z.number(),

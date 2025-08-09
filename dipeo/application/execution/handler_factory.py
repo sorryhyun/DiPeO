@@ -1,4 +1,3 @@
-# Handler registry, base classes, and factory for DiPeO
 
 import inspect
 import logging
@@ -24,12 +23,9 @@ class HandlerRegistry:
         self._service_registry: ServiceRegistry | None = None
 
     def set_service_registry(self, service_registry: ServiceRegistry) -> None:
-        # Set the service registry for dependency injection.
         self._service_registry = service_registry
 
     def register_class(self, handler_class: type[TypedNodeHandler]) -> None:
-        # Register a handler class for later instantiation.
-        # Create a temporary instance to get the node_type
         temp_instance = handler_class()
         node_type = temp_instance.node_type
         self._handler_classes[node_type] = handler_class
@@ -62,7 +58,6 @@ class HandlerRegistry:
             if param_name == 'self':
                 continue
             
-            # Skip *args and **kwargs parameters
             if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
                 continue
 
@@ -73,14 +68,12 @@ class HandlerRegistry:
             elif service_name == 'conversation_service':
                 service_name = 'conversation_service'
 
-            # Try to get the service
             key = ServiceKey(service_name)
             service = self._service_registry.get(key)
             
             if service is not None:
                 kwargs[param_name] = service
             else:
-                # If service not found, try alternative name
                 if service_name.endswith('_service'):
                     alt_name = service_name[:-8]
                     alt_key = ServiceKey(alt_name)
@@ -89,34 +82,28 @@ class HandlerRegistry:
                         kwargs[param_name] = service
                         continue
                 
-                # If parameter has no default, it's required
                 if param.default is inspect.Parameter.empty:
                     raise ValueError(f"Required service '{service_name}' not found for handler {handler_class.__name__}")
 
         return handler_class(**kwargs)
 
 
-# Global registry instance
 _global_registry = HandlerRegistry()
 
 
 def register_handler(handler_class: type[TypedNodeHandler]) -> type[TypedNodeHandler]:
-    # Decorator to register a handler class.
     _global_registry.register_class(handler_class)
     return handler_class
 
 
 def get_global_registry() -> HandlerRegistry:
-    # Get the global handler registry.
     return _global_registry
 
 
 class HandlerFactory:
-    # Factory class for creating handlers with dependency injection.
 
     def __init__(self, service_registry: ServiceRegistry):
         self.service_registry = service_registry
-        # Set the service registry on the global registry
         _global_registry.set_service_registry(service_registry)
 
     def register_handler_class(self, handler_class: type[TypedNodeHandler]) -> None:
@@ -127,7 +114,6 @@ class HandlerFactory:
 
 
 def create_handler_factory_provider():
-    # Provider function for DI container.
     def factory(service_registry: ServiceRegistry) -> HandlerFactory:
         return HandlerFactory(service_registry)
     return factory

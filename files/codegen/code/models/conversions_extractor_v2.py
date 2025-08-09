@@ -23,11 +23,11 @@ def extract_conversions_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         
         # First try from AST data
         constants = ast_data.get('constants', [])
-        print(f"Found {len(constants)} constants in AST")
+        # print(f"Found {len(constants)} constants in AST")
         
         for const in constants:
             if const.get('name') == 'NODE_TYPE_MAP':
-                print(f"Found NODE_TYPE_MAP constant in AST")
+                # print(f"Found NODE_TYPE_MAP constant in AST")
                 # The initializer should contain the object literal
                 initializer = const.get('value', const.get('initializer', ''))
                 
@@ -40,7 +40,7 @@ def extract_conversions_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         
         # If not found in AST, try parsing the raw TypeScript
         if not node_type_map and ts_content:
-            print("Parsing from raw TypeScript source...")
+            # print("Parsing from raw TypeScript source...")
             # Find NODE_TYPE_MAP definition
             map_match = re.search(r'export\s+const\s+NODE_TYPE_MAP[^{]*\{([^}]+)\}', ts_content, re.DOTALL)
             if map_match:
@@ -50,7 +50,7 @@ def extract_conversions_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
                 for key, value in matches:
                     node_type_map[key] = value
         
-        print(f"\nExtracted {len(node_type_map)} node type mappings")
+        # print(f"\nExtracted {len(node_type_map)} node type mappings")
         
         # Return raw data for template processing
         return {
@@ -65,7 +65,7 @@ def extract_conversions_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         import traceback
         error_msg = f"Error extracting conversions data: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
+        # print(error_msg)
         return {
             'error': str(e),
             'node_type_map': {},
@@ -78,9 +78,9 @@ def generate_summary(inputs):
     """Generate summary of conversions generation."""
     extraction_result = inputs.get('extraction_result', {})
     
-    print(f"\n=== Conversions Generation Complete ===")
-    print(f"Generated mappings for {extraction_result.get('entries_count', 0)} node types")
-    print(f"\nOutput written to: dipeo/diagram_generated_staged/conversions.py")
+    # print(f"\n=== Conversions Generation Complete ===")
+    # print(f"Generated mappings for {extraction_result.get('entries_count', 0)} node types")
+    # print(f"\nOutput written to: dipeo/diagram_generated_staged/conversions.py")
     
     result = {
         'status': 'success',

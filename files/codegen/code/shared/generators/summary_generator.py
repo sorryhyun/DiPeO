@@ -5,12 +5,13 @@ from datetime import datetime
 
 def generate_field_configs_summary(node_configs: list) -> dict:
     """Generate summary for field configurations generation"""
-    print(f"\n=== Field Configurations Generation Complete ===")
-    print(f"Generated field configs for {len(node_configs)} node types")
-    print(f"Output written to:")
-    print(f"  - apps/web/src/__generated__/fields.ts")
-    print(f"  - dipeo/diagram_generated_staged/field-configs.json")
-    print(f"Timestamp: {datetime.now().isoformat()}")
+    # Verbose logging removed - uncomment if needed for debugging
+    # print(f"\n=== Field Configurations Generation Complete ===")
+    # print(f"Generated field configs for {len(node_configs)} node types")
+    # print(f"Output written to:")
+    # print(f"  - apps/web/src/__generated__/fields.ts")
+    # print(f"  - dipeo/diagram_generated_staged/field-configs.json")
+    # print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {
         'status': 'success',
@@ -21,14 +22,15 @@ def generate_field_configs_summary(node_configs: list) -> dict:
 
 def generate_graphql_schema_summary(graphql_types: dict) -> dict:
     """Generate summary for GraphQL schema generation"""
-    print(f"\n=== GraphQL Schema Generation Complete ===")
-    print(f"Generated:")
-    print(f"  - {len(graphql_types.get('scalars', []))} scalars")
-    print(f"  - {len(graphql_types.get('enums', []))} enums")
-    print(f"  - {len(graphql_types.get('types', []))} types")
-    print(f"  - {len(graphql_types.get('input_types', []))} input types")
-    print(f"Output written to: dipeo/diagram_generated_staged/domain-schema.graphql")
-    print(f"Timestamp: {datetime.now().isoformat()}")
+    # Verbose logging removed - uncomment if needed for debugging
+    # print(f"\n=== GraphQL Schema Generation Complete ===")
+    # print(f"Generated:")
+    # print(f"  - {len(graphql_types.get('scalars', []))} scalars")
+    # print(f"  - {len(graphql_types.get('enums', []))} enums")
+    # print(f"  - {len(graphql_types.get('types', []))} types")
+    # print(f"  - {len(graphql_types.get('input_types', []))} input types")
+    # print(f"Output written to: dipeo/diagram_generated_staged/domain-schema.graphql")
+    # print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {
         'status': 'success',
@@ -38,11 +40,12 @@ def generate_graphql_schema_summary(graphql_types: dict) -> dict:
 
 def generate_python_models_summary(generation_result: dict) -> dict:
     """Generate summary for Python models generation"""
-    print(f"\n=== Python Domain Models Generation Complete ===")
-    print(f"Generated {generation_result.get('models_count', 0)} models")
-    print(f"Generated {generation_result.get('enums_count', 0)} enums")
-    print(f"Generated {generation_result.get('type_aliases_count', 0)} type aliases")
-    print(f"\nOutput written to: dipeo/models/models.py")
+    # Verbose logging removed - uncomment if needed for debugging
+    # print(f"\n=== Python Domain Models Generation Complete ===")
+    # print(f"Generated {generation_result.get('models_count', 0)} models")
+    # print(f"Generated {generation_result.get('enums_count', 0)} enums")
+    # print(f"Generated {generation_result.get('type_aliases_count', 0)} type aliases")
+    # print(f"\nOutput written to: dipeo/models/models.py")
     
     return {
         'status': 'success',
@@ -53,10 +56,11 @@ def generate_python_models_summary(generation_result: dict) -> dict:
 
 def generate_conversions_summary(node_type_map: dict) -> dict:
     """Generate summary for conversions generation"""
-    print(f"\n=== Domain Model Conversions Generation Complete ===")
-    print(f"Generated mappings for {len(node_type_map)} node types")
-    print(f"Output written to: dipeo/models/conversions.py")
-    print(f"Timestamp: {datetime.now().isoformat()}")
+    # Verbose logging removed - uncomment if needed for debugging
+    # print(f"\n=== Domain Model Conversions Generation Complete ===")
+    # print(f"Generated mappings for {len(node_type_map)} node types")
+    # print(f"Output written to: dipeo/models/conversions.py")
+    # print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {
         'status': 'success',
@@ -69,12 +73,13 @@ def generate_static_nodes_summary(static_nodes_data: dict) -> dict:
     """Generate summary for static nodes generation"""
     node_classes = static_nodes_data.get('node_classes', [])
     
-    print(f"\n=== Static Nodes Generation Complete ===")
-    print(f"Generated {len(node_classes)} node classes:")
-    for nc in node_classes:
-        print(f"  - {nc['class_name']}")
-    print(f"\nOutput written to: dipeo/diagram_generated_staged/generated_nodes.py")
-    print(f"Timestamp: {datetime.now().isoformat()}")
+    # Verbose logging removed - uncomment if needed for debugging
+    # print(f"\n=== Static Nodes Generation Complete ===")
+    # print(f"Generated {len(node_classes)} node classes:")
+    # for nc in node_classes:
+    #     print(f"  - {nc['class_name']}")
+    # print(f"\nOutput written to: dipeo/diagram_generated_staged/generated_nodes.py")
+    # print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {
         'status': 'success',
@@ -85,11 +90,12 @@ def generate_static_nodes_summary(static_nodes_data: dict) -> dict:
 
 def generate_zod_schemas_summary(schemas: list, enum_schemas: dict) -> dict:
     """Generate summary for Zod schemas generation"""
-    print(f"\n=== Zod Schemas Generation Complete ===")
-    print(f"Generated schemas for {len(schemas)} node types")
-    print(f"Generated {len(enum_schemas)} enum schemas")
-    print(f"Output written to: apps/web/src/__generated__/schemas.ts")
-    print(f"Timestamp: {datetime.now().isoformat()}")
+    # Verbose logging removed - uncomment if needed for debugging
+    # print(f"\n=== Zod Schemas Generation Complete ===")
+    # print(f"Generated schemas for {len(schemas)} node types")
+    # print(f"Generated {len(enum_schemas)} enum schemas")
+    # print(f"Output written to: apps/web/src/__generated__/schemas.ts")
+    # print(f"Timestamp: {datetime.now().isoformat()}")
     
     return {
         'status': 'success',

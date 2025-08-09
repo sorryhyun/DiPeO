@@ -40,7 +40,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_backend_models/prepare_node_list_from_specs.py
+      filePath: files/codegen/code/models/prepare_node_list_from_specs.py
       functionName: prepare_node_list_from_specs
 
   - label: Batch Generate Backend Models
@@ -59,7 +59,7 @@ nodes:
     position: {x: 900, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_backend_models/prepare_init_context_from_specs.py
+      filePath: files/codegen/code/models/prepare_init_context_from_specs.py
       functionName: prepare_init_context_from_specs
 
   - label: Generate Models Init

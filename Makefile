@@ -51,48 +51,23 @@ install-dev: install
 
 # Primary code generation command (SAFE - stages changes for review)
 codegen:
-	@echo "======================================"
-	@echo "Starting unified code generation..."
-	@echo "======================================"
-	@echo ""
-	@echo "This will generate all code to the staging directory."
-	@echo "You can review changes before applying them."
-	@echo ""
-	dipeo run codegen/diagrams/generate_all --light --debug --timeout=90
-	@echo ""
-	@echo "======================================"
-	@echo "Code generation complete!"
-	@echo "======================================"
-	@echo ""
-	@echo "Generated files are in: dipeo/diagram_generated_staged/"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  1. Review changes:    make diff-staged"
-	@echo "  2. Apply changes:     make apply-syntax-only"
-	@echo "  3. Update GraphQL:    make graphql-schema"
-	@echo ""
+	@echo "Starting code generation..."
+	dipeo run codegen/diagrams/generate_all --light --timeout=90
+	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
 codegen-auto:
-	@echo "⚠️  WARNING: This command automatically applies all changes!"
-	@echo "Running unified code generation with auto-apply..."
-	@echo ""
-	dipeo run codegen/diagrams/generate_all --light --debug --timeout=90
+	@echo "⚠️  WARNING: Auto-applying all changes!"
+	dipeo run codegen/diagrams/generate_all --light --timeout=90
 	@sleep 1
-	@echo "Applying staged changes to active directory (syntax validation only)..."
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
 		echo "Error: No staged directory found."; \
 		exit 1; \
 	fi
-	@echo "Copying staged files to active directory..."
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
-	@echo "Staged changes applied successfully!"
-	@echo "Exporting GraphQL schema..."
 	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
-	@echo "Generating TypeScript types..."
 	pnpm --filter web codegen
-	@echo ""
-	@echo "✓ All code generation and application completed!"
+	@echo "✓ Code generation and application completed!"
 
 # Watch for changes in node specifications
 codegen-watch:

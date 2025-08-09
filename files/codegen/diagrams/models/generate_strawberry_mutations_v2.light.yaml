@@ -42,7 +42,7 @@ nodes:
     position: {x: 500, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_strawberry_types/extract_node_specs_from_ast.py
+      filePath: files/codegen/code/models/extract_node_specs_from_ast.py
       functionName: extract_node_specs_from_ast
 
   # Generate Strawberry types (needed for mutations)
@@ -51,7 +51,7 @@ nodes:
     position: {x: 700, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_strawberry_types/strawberry_types_generator_v2.py
+      filePath: files/codegen/code/models/strawberry_types_generator_v2.py
       functionName: generate_strawberry_types
 
   # Generate mutations
@@ -60,7 +60,7 @@ nodes:
     position: {x: 900, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_strawberry_types/strawberry_types_generator_v2.py
+      filePath: files/codegen/code/models/strawberry_types_generator_v2.py
       functionName: generate_node_mutations
 
   # NEW: Use template_job for rendering with automatic enhancements

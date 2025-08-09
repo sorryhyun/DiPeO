@@ -13,13 +13,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from dipeo.core.ports import MessageRouterPort
+from dipeo.infrastructure.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ConnectionHealth:
-    """Health metrics for a connection."""
 
     last_successful_send: float
     failed_attempts: int = 0
@@ -55,25 +55,26 @@ class MessageRouter(MessageRouterPort):
         # Event batching for performance
         self._batch_queue: dict[str, list[dict]] = {}
         self._batch_tasks: dict[str, asyncio.Task | None] = {}
-        self._batch_interval = 0.05  # 50ms batching window
-        self._batch_max_size = 20  # Max events per batch
+        
+        # Load configuration
+        settings = get_settings()
+        self._batch_broadcast_warning_threshold = settings.batch_broadcast_warning_threshold
+        self._batch_interval = settings.batch_interval
+        self._batch_max_size = settings.batch_max_size
 
     async def initialize(self) -> None:
-        """Initialize the message router."""
-        if self._initialized:
+            if self._initialized:
             return
 
         self._initialized = True
         logger.info("MessageRouter initialized")
 
     async def cleanup(self) -> None:
-        """Clean up all connections and subscriptions."""
-        # Cancel all pending batch tasks
+            # Cancel pending batch tasks and flush remaining batches
         for task in self._batch_tasks.values():
             if task and not task.done():
                 task.cancel()
         
-        # Flush any remaining batches
         for execution_id in list(self._batch_queue.keys()):
             await self._flush_batch(execution_id)
         
@@ -107,7 +108,6 @@ class MessageRouter(MessageRouterPort):
         self.connection_health.pop(connection_id, None)
         self._message_queue_size.pop(connection_id, None)
 
-        # Remove from all execution subscriptions
         for exec_id, connections in list(self.execution_subscriptions.items()):
             connections.discard(connection_id)
             if not connections:
@@ -128,7 +128,6 @@ class MessageRouter(MessageRouterPort):
             logger.warning(f"No handler for connection {connection_id}")
             return False
 
-        # Check queue size for backpressure
         with self._queue_lock:
             queue_size = self._message_queue_size.get(connection_id, 0)
             if queue_size > self.max_queue_size:
@@ -143,7 +142,6 @@ class MessageRouter(MessageRouterPort):
         try:
             await handler(message)
 
-            # Update health metrics
             latency = time.time() - start_time
             health = self.connection_health.get(connection_id)
             if health:
@@ -159,7 +157,6 @@ class MessageRouter(MessageRouterPort):
         except Exception as e:
             logger.error(f"Error delivering message to {connection_id}: {e}")
 
-            # Update failure metrics
             health = self.connection_health.get(connection_id)
             if health:
                 health.failed_attempts += 1
@@ -172,7 +169,6 @@ class MessageRouter(MessageRouterPort):
             return False
 
         finally:
-            # Update queue size
             with self._queue_lock:
                 self._message_queue_size[connection_id] = max(
                     0, self._message_queue_size.get(connection_id, 1) - 1
@@ -190,38 +186,31 @@ class MessageRouter(MessageRouterPort):
         if not connection_ids and not self._should_buffer_events(execution_id):
             return  # Skip all expensive operations
         
-        # Buffer the event for late connections only if needed
         if self._should_buffer_events(execution_id):
             await self._buffer_event(execution_id, message)
 
-        # If no active connections, skip broadcasting
         if not connection_ids:
             return
 
-        # Add message to batch queue
         if execution_id not in self._batch_queue:
             self._batch_queue[execution_id] = []
         
         self._batch_queue[execution_id].append(message)
         
-        # Check if we should flush immediately (batch full)
         if len(self._batch_queue[execution_id]) >= self._batch_max_size:
             await self._flush_batch(execution_id)
         else:
-            # Schedule batch flush if not already scheduled
             if execution_id not in self._batch_tasks or self._batch_tasks[execution_id] is None:
                 self._batch_tasks[execution_id] = asyncio.create_task(
                     self._delayed_flush(execution_id)
                 )
 
     async def _delayed_flush(self, execution_id: str) -> None:
-        """Flush batch after a delay."""
-        await asyncio.sleep(self._batch_interval)
+            await asyncio.sleep(self._batch_interval)
         await self._flush_batch(execution_id)
     
     async def _flush_batch(self, execution_id: str) -> None:
-        """Flush all batched messages for an execution."""
-        # Get and clear the batch
+            # Get batch and clear task reference
         messages = self._batch_queue.pop(execution_id, [])
         if execution_id in self._batch_tasks:
             self._batch_tasks[execution_id] = None
@@ -235,7 +224,6 @@ class MessageRouter(MessageRouterPort):
         
         start_time = time.time()
         
-        # Create a batch message containing all events
         batch_message = {
             "type": "BATCH_UPDATE",
             "execution_id": execution_id,
@@ -244,7 +232,7 @@ class MessageRouter(MessageRouterPort):
             "batch_size": len(messages)
         }
         
-        # Try to publish to GraphQL subscriptions (if available)
+        # Publish to GraphQL streaming if available
         try:
             from dipeo_server.api.graphql.subscriptions import publish_execution_update
             await publish_execution_update(execution_id, batch_message)
@@ -256,7 +244,6 @@ class MessageRouter(MessageRouterPort):
         successful_broadcasts = 0
         failed_broadcasts = 0
         
-        # Broadcast batch to all connections
         import sys
         if sys.version_info >= (3, 11):
             try:
@@ -298,9 +285,8 @@ class MessageRouter(MessageRouterPort):
                     elif result:
                         successful_broadcasts += 1
 
-        # Log performance
         broadcast_time = time.time() - start_time
-        if broadcast_time > 0.1:
+        if broadcast_time > self._batch_broadcast_warning_threshold:
             logger.warning(
                 f"Slow batch broadcast to execution {execution_id}: "
                 f"{broadcast_time:.2f}s for {len(messages)} events to {len(connection_ids)} connections "
@@ -331,7 +317,6 @@ class MessageRouter(MessageRouterPort):
             connection_id: Connection identifier
             execution_id: Execution to subscribe to
         """
-        # logger.debug(f"[MessageRouter] Subscribing connection {connection_id} to execution {execution_id}")
         
         if execution_id not in self.execution_subscriptions:
             self.execution_subscriptions[execution_id] = set()
@@ -354,7 +339,6 @@ class MessageRouter(MessageRouterPort):
         if execution_id in self.execution_subscriptions:
             self.execution_subscriptions[execution_id].discard(connection_id)
 
-            # Clean up empty subscription sets
             if not self.execution_subscriptions[execution_id]:
                 del self.execution_subscriptions[execution_id]
 
