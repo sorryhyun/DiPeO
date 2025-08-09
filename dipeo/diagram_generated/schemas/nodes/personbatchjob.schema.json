@@ -2,30 +2,26 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonBatchJobNodeData",
   "definitions": {
-    "PersonID": {
+    "MemorySettings": {
       "additionalProperties": false,
       "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
+        "max_messages": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "preserve_system": {
+          "type": "boolean"
+        },
+        "view": {
+          "$ref": "#/definitions/MemoryView"
         }
       },
       "required": [
-        "__brand"
+        "view"
       ],
       "type": "object"
-    },
-    "MemoryView": {
-      "description": "Memory management enumerations",
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
     },
     "PersonBatchJobNodeData": {
       "additionalProperties": false,
@@ -49,6 +45,10 @@
         },
         "first_only_prompt": {
           "description": "Special prompt for first iteration only, supports {{variable}} syntax",
+          "type": "string"
+        },
+        "first_prompt_file": {
+          "description": "External prompt file for first iteration only (overrides first_only_prompt)",
           "type": "string"
         },
         "flipped": {
@@ -120,26 +120,30 @@
       ],
       "type": "object"
     },
-    "MemorySettings": {
+    "PersonID": {
       "additionalProperties": false,
       "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
         }
       },
       "required": [
-        "view"
+        "__brand"
       ],
       "type": "object"
+    },
+    "MemoryView": {
+      "description": "Memory management enumerations",
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
+      ],
+      "type": "string"
     }
   }
 }

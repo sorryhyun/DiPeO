@@ -176,7 +176,6 @@ class LightweightSubDiagramExecutor:
     async def _compile_diagram_fallback(self, diagram_data: Any) -> "ExecutableDiagram":
         """Fallback diagram compilation (old implementation)."""
         from dipeo.diagram_generated import DomainDiagram
-        from dipeo.domain.diagram.utils import dict_to_domain_diagram
         from dipeo.infrastructure.services.diagram.compilation_service import CompilationService
         
         # Check if already a DomainDiagram
@@ -184,7 +183,7 @@ class LightweightSubDiagramExecutor:
             domain_diagram = diagram_data
         # Convert dict to domain diagram
         elif isinstance(diagram_data, dict):
-            domain_diagram = dict_to_domain_diagram(diagram_data)
+            domain_diagram = DomainDiagram.model_validate(diagram_data)
         else:
             raise ValueError(f"Unsupported diagram type: {type(diagram_data)}")
         

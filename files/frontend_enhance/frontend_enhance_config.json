@@ -1,0 +1,16 @@
+{
+  "app_type": "dashboard",
+  "framework": "react",
+  "styling_approach": "tailwind",
+  "features": [
+    "responsive navigation",
+    "data visualization charts",
+    "real-time updates",
+    "dark mode toggle",
+    "user authentication UI"
+  ],
+  "target_audience": "business analysts",
+  "target_score": 85,
+  "max_iterations": 3,
+  "output_dir": "./generated_frontend_enhanced"
+}

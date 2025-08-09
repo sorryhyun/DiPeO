@@ -355,6 +355,7 @@ class PersonJobNode(BaseExecutableNode):
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
     person: Optional[PersonID] = None
+    first_prompt_file: Optional[str] = None
     default_prompt: Optional[str] = None
     prompt_file: Optional[str] = None
     memory_profile: Optional[MemoryProfile] = None
@@ -377,6 +378,7 @@ class PersonJobNode(BaseExecutableNode):
             data["metadata"] = self.metadata
         data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt
+        data["first_prompt_file"] = self.first_prompt_file
         data["default_prompt"] = self.default_prompt
         data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration
@@ -729,6 +731,7 @@ def create_executable_node(
             metadata=metadata,
             person=data.get("person", None),
             first_only_prompt=data.get("first_only_prompt"),
+            first_prompt_file=data.get("first_prompt_file", None),
             default_prompt=data.get("default_prompt", None),
             prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),
@@ -826,6 +829,7 @@ def create_executable_node(
             metadata=metadata,
             person=data.get("person", None),
             first_only_prompt=data.get("first_only_prompt"),
+            first_prompt_file=data.get("first_prompt_file", None),
             default_prompt=data.get("default_prompt", None),
             prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),

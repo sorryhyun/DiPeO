@@ -6,10 +6,6 @@
       "additionalProperties": false,
       "type": "object"
     },
-    "Record<string,string|number|boolean>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "HookTriggerMode": {
       "enum": [
         "none",
@@ -51,6 +47,10 @@
         "label",
         "trigger_mode"
       ],
+      "type": "object"
+    },
+    "Record<string,string|number|boolean>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

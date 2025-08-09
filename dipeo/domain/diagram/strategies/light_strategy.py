@@ -20,13 +20,12 @@ from dipeo.domain.diagram.handle import (
     create_handle_id,
     parse_handle_id
 )
-from dipeo.diagram_generated.conversions import node_kind_to_domain_type
+from dipeo.diagram_generated.conversions import node_kind_to_domain_type, diagram_maps_to_arrays
 
 from dipeo.domain.diagram.utils import (
     _node_id_map, 
     _YamlMixin, 
     build_node, 
-    dict_to_domain_diagram,
     NodeFieldMapper,
     HandleParser,
     PersonExtractor,
@@ -68,8 +67,15 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         # Apply format-specific transformations
         diagram_dict = self._apply_format_transformations(diagram_dict, data)
         
+        # Convert map-based dict to array-based for DomainDiagram
+        array_based_dict = diagram_maps_to_arrays(diagram_dict)
+        
+        # Add metadata if present
+        if 'metadata' in diagram_dict:
+            array_based_dict['metadata'] = diagram_dict['metadata']
+        
         # Convert to DomainDiagram
-        return dict_to_domain_diagram(diagram_dict)
+        return DomainDiagram.model_validate(array_based_dict)
     
     def _parse_to_light_diagram(self, data: dict[str, Any]) -> LightDiagram:
         """Parse dict data into typed LightDiagram model."""
@@ -238,6 +244,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             
             # Create arrow with data
             arrow_data_copy = arrow_data.copy() if arrow_data else {}
+            
+            # If the destination handle was "_first", mark this edge as requiring first execution
+            # This is used by PersonJob nodes to determine whether to use first_prompt vs default_prompt
+            if dst_handle_from_split == "_first":
+                arrow_data_copy["requires_first_execution"] = True
             
             # Add branch data if this is from a condition handle and not already present
             if src_handle in ["condtrue", "condfalse"] and "branch" not in arrow_data_copy:

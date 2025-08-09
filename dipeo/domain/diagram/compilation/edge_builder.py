@@ -98,6 +98,13 @@ class EdgeBuilder:
             "label": getattr(arrow, 'label', None)
         }
         
+        # Check if arrow data indicates this is for first execution only
+        # This is set by the light strategy when it detects a _first suffix
+        is_first_execution = False
+        if arrow.data and arrow.data.get('requires_first_execution'):
+            is_first_execution = True
+            edge_metadata['is_first_execution'] = True
+        
         # Get handle label values - handle both enum and string cases
         source_output = None
         if connection.source_handle_label:

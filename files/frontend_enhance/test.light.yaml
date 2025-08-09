@@ -39,7 +39,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: files/config/frontend_enhance_config.json
+      source_details: files/frontend_enhance/frontend_enhance_config.json
 
   - label: Initialize State
     type: code_job
@@ -79,7 +79,8 @@ nodes:
     position: {x: 600, y: 400}
     props:
       person: Frontend Generator
-      prompt_file: frontend_generator.txt
+      first_prompt_file: frontend_enhance/frontend_generator.txt
+      prompt_file: frontend_enhance/frontend_generator.txt
       max_iteration: 3
       memory_profile: FOCUSED
 
@@ -88,7 +89,7 @@ nodes:
     position: {x: 1000, y: 400}
     props:
       person: Code Judge
-      prompt_file: frontend_judge.txt
+      prompt_file: frontend_enhance/frontend_judge.txt
       max_iteration: 1
       memory_profile: MINIMAL
 
@@ -226,7 +227,7 @@ connections:
   # Initial flow
   - {from: Start, to: Load Config}
   - {from: Load Config, to: Initialize State, label: config}
-  - {from: Initialize State, to: Generate Frontend, label: first}
+  - {from: Initialize State, to: Generate Frontend_first}
   
   # Generation and assessment  
   - {from: Generate Frontend, to: Judge Code Quality, label: generated_code}

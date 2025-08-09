@@ -57,3 +57,7 @@ dipeo run files/diagrams/examples/simple_iter.light.yaml --light --debug
 - Node.js 22+ with pnpm 10+
 - Python 3.13+
 - tmux (optional, for better parallel execution)
+
+- 0.4.0 Release will include
+  - Light formatted diagram Pydantic model for automatic diagram generation
+  - Example diagram for self-evolving LLMs

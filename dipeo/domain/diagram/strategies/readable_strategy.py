@@ -19,7 +19,6 @@ from dipeo.domain.diagram.utils import (
     _node_id_map, 
     _YamlMixin, 
     build_node,
-    dict_to_domain_diagram,
     NodeFieldMapper,
     HandleParser,
     PersonExtractor,
@@ -61,8 +60,15 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         # Apply format-specific transformations
         diagram_dict = self._apply_format_transformations(diagram_dict, data)
         
+        # Convert map-based dict to array-based for DomainDiagram
+        array_based_dict = diagram_maps_to_arrays(diagram_dict)
+        
+        # Add metadata if present
+        if 'metadata' in diagram_dict:
+            array_based_dict['metadata'] = diagram_dict['metadata']
+        
         # Convert to DomainDiagram
-        return dict_to_domain_diagram(diagram_dict)
+        return DomainDiagram.model_validate(array_based_dict)
     
     def _parse_to_readable_diagram(self, data: dict[str, Any]) -> ReadableDiagram:
         """Parse dict data into typed ReadableDiagram model."""
@@ -236,7 +242,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
     # ---- Helper methods for backward compatibility ------------------------ #
     def _build_nodes_dict(self, nodes_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Build nodes dict from list."""
-        from dipeo.diagram_generated.conversions import node_kind_to_domain_type
+        from dipeo.diagram_generated.conversions import node_kind_to_domain_type, diagram_maps_to_arrays
         from dipeo.domain.diagram.utils.shared_components import PositionCalculator
         
         position_calculator = PositionCalculator()

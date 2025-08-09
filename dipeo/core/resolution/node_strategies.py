@@ -110,37 +110,20 @@ class PersonJobStrategy(ApplicationNodeStrategy):
         if hasattr(edge, 'transform_rules') and edge.transform_rules and edge.transform_rules.get('content_type') == 'conversation_state':
             return True
         
-        # Check if this edge targets a "first" handle
+        # Check if this edge is marked for first execution only
+        # This is set during compilation when the _first suffix is detected
         is_first_edge = False
-        
-        # Check target input patterns
-        target_input = str(edge.target_input or "")
-        if target_input == "first" or target_input.endswith("_first") or target_input == "HandleLabel.FIRST":
+        if edge.metadata and edge.metadata.get('is_first_execution'):
             is_first_edge = True
-        
-        # Check original handle in metadata (for labeled connections)
-        if edge.metadata and edge.metadata.get('original_target_handle'):
-            original_handle = str(edge.metadata['original_target_handle'])
-            if original_handle == "first" or original_handle.endswith("_first") or original_handle == "HandleLabel.FIRST":
-                is_first_edge = True
-        
-        # Also check edge ID pattern
-        if not is_first_edge and hasattr(edge, 'id') and edge.id and '->' in edge.id:
-            # Parse the edge ID to get target handle info
-            target_handle_part = edge.id.split('->')[1] if '->' in edge.id else ""
-            if '_first_' in target_handle_part or target_handle_part.endswith('_first'):
-                is_first_edge = True
         
         # On first execution (execution count is 1 when we're executing for the first time)
         if node_exec_count == 1:
-            if has_special_inputs:
-                # Process edges that target "first" handles (even if they have labels)
-                return is_first_edge
-            else:
-                # Only process default inputs
-                return not edge.target_input or target_input == "default" or target_input == "HandleLabel.DEFAULT"
+            # On first execution, process all edges including those marked for first execution
+            # The _first suffix just means "use this input for first execution"
+            # It doesn't mean "only process first edges on first execution"
+            return True
         else:
-            # After first execution, skip "first" inputs
+            # After first execution, skip edges marked for first execution only
             return not is_first_edge
     
     def transform_input(
@@ -154,18 +137,12 @@ class PersonJobStrategy(ApplicationNodeStrategy):
         return value
     
     def has_first_inputs(self, edges: list[ExecutableEdgeV2]) -> bool:
-        """Check if any edges target "first" inputs."""
+        """Check if any edges are marked for first execution only."""
         for edge in edges:
-            # Check target_input
-            target_input = str(edge.target_input or "")
-            if target_input == "first" or target_input.endswith("_first") or target_input == "HandleLabel.FIRST":
+            # Check if edge has the is_first_execution flag in metadata
+            # This is set during compilation when _first suffix is detected
+            if edge.metadata and edge.metadata.get('is_first_execution'):
                 return True
-            
-            # Check original handle in metadata (for labeled connections)
-            if edge.metadata and edge.metadata.get('original_target_handle'):
-                original_handle = str(edge.metadata['original_target_handle'])
-                if original_handle == "first" or original_handle.endswith("_first") or original_handle == "HandleLabel.FIRST":
-                    return True
         
         return False
 

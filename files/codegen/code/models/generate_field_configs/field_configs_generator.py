@@ -44,6 +44,14 @@ def generate_label(name: str) -> str:
 def get_field_type(name: str, type_text: str, type_to_field: dict) -> str:
     """Determine the appropriate field type - must match FIELD_TYPES from panel.ts"""
     # Special handling for specific field names
+    # Check for file fields first (before checking for 'prompt' keyword)
+    if name == 'filePath' or name == 'file_path' or name == 'path':
+        return 'filepath'
+    
+    # File fields that contain 'prompt' should be text fields, not variableTextArea
+    if 'file' in name.lower() and 'prompt' in name.lower():
+        return 'text'
+    
     if any(keyword in name for keyword in ['prompt', 'expression', 'query']):
         return 'variableTextArea'
     
@@ -52,9 +60,6 @@ def get_field_type(name: str, type_text: str, type_to_field: dict) -> str:
     
     if name == 'url':
         return 'url'
-    
-    if name == 'filePath' or name == 'file_path' or name == 'path':
-        return 'filepath'
     
     if name == 'max_iteration':
         return 'maxIteration'

@@ -53,6 +53,14 @@
           "rows": 6
         },
         {
+          "name": "first_prompt_file",
+          "type": "text",
+          "label": "First Prompt File",
+          "required": false,
+          "placeholder": "Enter prompt. Use {{variable_name}} for variables.",
+          "rows": 6
+        },
+        {
           "name": "default_prompt",
           "type": "variableTextArea",
           "label": "Default Prompt",
@@ -62,7 +70,7 @@
         },
         {
           "name": "prompt_file",
-          "type": "variableTextArea",
+          "type": "text",
           "label": "Prompt File",
           "required": false,
           "placeholder": "Enter prompt. Use {{variable_name}} for variables.",

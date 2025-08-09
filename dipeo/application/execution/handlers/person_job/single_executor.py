@@ -116,6 +116,31 @@ class SinglePersonJobExecutor:
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
         
+        # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
+        if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+            filesystem = request.get_service("filesystem_adapter")
+            if filesystem:
+                try:
+                    # Construct path to first prompt file
+                    import os
+                    from pathlib import Path
+                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+                    first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
+                    
+                    # Read the first prompt file content
+                    if filesystem.exists(first_prompt_path):
+                        with filesystem.open(first_prompt_path, 'rb') as f:
+                            file_content = f.read().decode('utf-8')
+                            # Use file content as first only prompt
+                            first_only_content = file_content
+                            logger.info(f"[PersonJob {node.label or node.id}] Loaded first prompt from file: {node.first_prompt_file} ({len(file_content)} chars)")
+                            logger.debug(f"[PersonJob {node.label or node.id}] First prompt content preview: {file_content[:200]}...")
+                    else:
+                        logger.warning(f"[PersonJob {node.label or node.id}] First prompt file not found: {node.first_prompt_file}")
+                except Exception as e:
+                    logger.error(f"Error loading first prompt file {node.first_prompt_file}: {e}")
+        
+        # Load prompt_file if specified (for default prompt)
         if hasattr(node, 'prompt_file') and node.prompt_file:
             filesystem = request.get_service("filesystem_adapter")
             if filesystem:

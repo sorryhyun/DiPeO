@@ -147,7 +147,8 @@ class HandleParser:
     ) -> str:
         """Determine the handle name from split or arrow data."""
         if handle_from_split:
-            # Convert "_first" to "first" for proper HandleLabel enum mapping
+            # Keep the "_first" as "first" for handle ID creation
+            # The handle needs to distinguish between default and first inputs
             if handle_from_split == "_first":
                 return "first"
             return handle_from_split

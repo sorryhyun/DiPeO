@@ -30,6 +30,15 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     showPromptFileButton: true,
   },
   {
+    name: 'first_prompt_file',
+    type: 'text',
+    label: 'First Prompt File',
+    required: false,
+    placeholder: 'first_example.txt',
+    description: 'Path to first prompt file in /files/prompts/',
+    column: 2,
+  },
+  {
     name: 'default_prompt',
     type: 'textarea',
     label: 'Default Prompt',

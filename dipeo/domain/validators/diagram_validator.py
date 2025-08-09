@@ -23,26 +23,17 @@ class DiagramValidator(BaseValidator):
     
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:
         """Perform diagram validation."""
-        if isinstance(target, dict):
-            # Handle both backend format and frontend format
-            if self._is_backend_format(target):
-                self._validate_backend_format(target, result)
-            else:
-                try:
-                    diagram = DomainDiagram.model_validate(target)
-                    self._validate_diagram(diagram, result)
-                except Exception as e:
-                    result.add_error(ValidationError(f"Invalid diagram format: {e!s}"))
-        elif isinstance(target, DomainDiagram):
+        if isinstance(target, DomainDiagram):
             self._validate_diagram(target, result)
+        elif isinstance(target, dict):
+            try:
+                # Convert dict to DomainDiagram for validation
+                diagram = DomainDiagram.model_validate(target)
+                self._validate_diagram(diagram, result)
+            except Exception as e:
+                result.add_error(ValidationError(f"Invalid diagram format: {e!s}"))
         else:
             result.add_error(ValidationError("Target must be a DomainDiagram or dict"))
-    
-    def _is_backend_format(self, data: dict[str, Any]) -> bool:
-        """Check if the data is in backend format (nodes/arrows as dicts)."""
-        nodes = data.get("nodes", {})
-        arrows = data.get("arrows", {})
-        return isinstance(nodes, dict) or isinstance(arrows, dict)
     
     def _validate_diagram(self, diagram: DomainDiagram, result: ValidationResult) -> None:
         """Validate a DomainDiagram object."""
@@ -113,70 +104,6 @@ class DiagramValidator(BaseValidator):
                     result.add_error(ValidationError(
                         f"Person '{person.id}' references non-existent API key '{person.api_key_id}'"
                     ))
-    
-    def _validate_backend_format(self, data: dict[str, Any], result: ValidationResult) -> None:
-        """Validate backend format diagram."""
-        nodes = data.get("nodes", {})
-        if not nodes:
-            result.add_error(ValidationError("Diagram must have at least one node"))
-            return
-        
-        if not isinstance(nodes, dict):
-            result.add_error(ValidationError("Nodes must be a dictionary with node IDs as keys"))
-            return
-        
-        node_ids = set(nodes.keys())
-        
-        # Check for start nodes
-        start_nodes = [
-            nid for nid, node in nodes.items()
-            if node.get("type") == "start" or node.get("data", {}).get("type") == "start"
-        ]
-        if not start_nodes:
-            result.add_error(ValidationError("Diagram must have at least one 'start' node"))
-        
-        # Validate arrows
-        arrows = data.get("arrows", {})
-        if isinstance(arrows, dict):
-            for arrow_id, arrow in arrows.items():
-                source = arrow.get("source", "")
-                source_node_id = source.split(":", 1)[0] if ":" in source else source
-                
-                target = arrow.get("target", "")
-                target_node_id = target.split(":", 1)[0] if ":" in target else target
-                
-                if source_node_id not in node_ids:
-                    result.add_error(ValidationError(
-                        f"Arrow '{arrow_id}' references non-existent source node '{source_node_id}'"
-                    ))
-                if target_node_id not in node_ids:
-                    result.add_error(ValidationError(
-                        f"Arrow '{arrow_id}' references non-existent target node '{target_node_id}'"
-                    ))
-        
-        # Validate person references
-        persons = data.get("persons", {})
-        if isinstance(persons, dict):
-            person_ids = set(persons.keys())
-            
-            for node_id, node in nodes.items():
-                node_type = node.get("type", "")
-                if node_type in ["person_job", "person_batch_job", "personJobNode", "personBatchJobNode"]:
-                    node_data = node.get("data", {})
-                    person_id = node_data.get("personId")
-                    if person_id and person_id not in person_ids:
-                        result.add_error(ValidationError(
-                            f"Node '{node_id}' references non-existent person '{person_id}'"
-                        ))
-            
-            # Validate API keys
-            if self.api_key_service:
-                for person_id, person in persons.items():
-                    api_key_id = person.get("apiKeyId") or person.get("api_key_id")
-                    if api_key_id and not self.api_key_service.get_api_key(api_key_id):
-                        result.add_error(ValidationError(
-                            f"Person '{person_id}' references non-existent API key '{api_key_id}'"
-                        ))
     
     def _validate_node_connections(self, node: DomainNode, diagram: DomainDiagram, result: ValidationResult) -> None:
         """Validate connections for a specific node."""

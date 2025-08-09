@@ -12,6 +12,8 @@ export interface PersonJobNodeData extends BaseNodeData {
   person?: PersonID;
   /** Special prompt for first iteration only, supports {{variable}} syntax */
   first_only_prompt: string;
+  /** External prompt file for first iteration only (overrides first_only_prompt) */
+  first_prompt_file?: string;
   /** Prompt template using {{variable}} syntax for subsequent iterations */
   default_prompt?: string;
   /** External prompt file in files/prompts/ (overrides inline prompts) */

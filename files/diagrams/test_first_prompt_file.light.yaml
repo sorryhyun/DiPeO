@@ -1,0 +1,38 @@
+# Test diagram for first_prompt_file feature
+# This diagram tests loading the first prompt from a file
+
+version: light
+
+persons:
+  - id: test_person
+    name: Test Assistant
+    role: Assistant for testing
+    model: gpt-5-nano-2025-08-07
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 100, y: 200}
+    props:
+      custom_data:
+        timestamp: "2025-08-09T16:55:00Z"
+        
+  - label: Test PersonJob
+    type: person_job
+    position: {x: 300, y: 200}
+    props:
+      person: test_person
+      first_only_prompt: "This inline prompt should be overridden by the file"
+      first_prompt_file: test_first_prompt.txt
+      default_prompt: "This is the default prompt for iterations 2+"
+      max_iteration: 2
+      
+  - label: End
+    type: endpoint
+    position: {x: 500, y: 200}
+    props:
+      save_to_file: false
+      
+connections:
+  - {from: Start, to: Test PersonJob}
+  - {from: Test PersonJob, to: End}
