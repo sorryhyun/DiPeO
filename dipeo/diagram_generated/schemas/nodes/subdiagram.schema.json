@@ -2,27 +2,28 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/SubDiagramNodeData",
   "definitions": {
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "SubDiagramNodeData": {
       "additionalProperties": false,
+      "description": "Configuration data for SubDiagram nodes that execute other diagrams",
       "properties": {
         "batch": {
+          "description": "Enable batch processing for arrays",
           "type": "boolean"
         },
         "batch_input_key": {
+          "description": "Array variable name for batch processing",
           "type": "string"
         },
         "batch_parallel": {
+          "description": "Execute batch items in parallel",
           "type": "boolean"
         },
         "diagram_data": {
-          "$ref": "#/definitions/Record<string,any>"
+          "$ref": "#/definitions/Record<string,any>",
+          "description": "Pass all current variables to sub-diagram"
         },
         "diagram_format": {
-          "description": "Diagram format enumeration",
+          "description": "Diagram format: light or native (default: light)",
           "enum": [
             "light",
             "native",
@@ -31,12 +32,14 @@
           "type": "string"
         },
         "diagram_name": {
+          "description": "Path to sub-diagram file",
           "type": "string"
         },
         "flipped": {
           "type": "boolean"
         },
         "ignoreIfSub": {
+          "description": "Skip if already running as sub-diagram",
           "type": "boolean"
         },
         "label": {
@@ -46,6 +49,10 @@
       "required": [
         "label"
       ],
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

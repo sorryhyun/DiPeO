@@ -17,6 +17,7 @@ export interface PersonJobNodeData {
   max_iteration: number;
   memory_profile?: 'FULL' | 'FOCUSED' | 'MINIMAL' | 'GOLDFISH' | 'CUSTOM';
   tools?: string;
+  text_format?: string;
   memory_settings?: Record<string, any>;
 }
 
@@ -29,5 +30,6 @@ export const PersonJobNodeDataSchema = z.object({
   max_iteration: z.number(),
   memory_profile: z.enum(["FULL", "FOCUSED", "MINIMAL", "GOLDFISH", "CUSTOM"]).optional(),
   tools: z.string().optional(),
+  text_format: z.string().optional(),
   memory_settings: z.record(z.any()).optional(),
 });

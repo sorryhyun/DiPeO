@@ -28,7 +28,7 @@ class DbNode:
     
     # Required node-specific fields
     sub_type: DBBlockSubType
-    operation: Optional[str]
+    operation: str
     
     # Optional base fields
     label: str = ""

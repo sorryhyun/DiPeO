@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/TemplateJobNodeData",
   "definitions": {
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "TemplateJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -38,6 +34,10 @@
       "required": [
         "label"
       ],
+      "type": "object"
+    },
+    "Record<string,any>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

@@ -17,7 +17,13 @@ from pydantic import BaseModel, Field
 
 # Import from other generated modules
 from .enums import *
-from .domain_models import *
+# Import TokenUsage from domain_models (needed for ChatResult)
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .domain_models import TokenUsage
+else:
+    # Forward reference for runtime
+    TokenUsage = 'TokenUsage'
 
 
 
@@ -93,11 +99,11 @@ class ChatResult(BaseModel):
     
     text: str
     
-    token_usage: Optional[Optional[TokenUsage]] = None
+    token_usage: Optional[TokenUsage] = None
     
-    raw_response: Optional[Optional[Any]] = None
+    raw_response: Optional[Any] = None
     
-    tool_outputs: Optional[Optional[List[ToolOutput]]] = None
+    tool_outputs: Optional[List[ToolOutput]] = None
     
 
     class Config:

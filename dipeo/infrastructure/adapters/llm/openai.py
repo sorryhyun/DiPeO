@@ -49,6 +49,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
         """Prepare common API request parameters for both sync and async calls."""
         tools = kwargs.pop('tools', [])
         system_prompt_kwarg = kwargs.pop('system_prompt', None)
+        text_format = kwargs.pop('text_format', None)
 
         if not messages:
             logger.warning("No messages provided to OpenAI API call")
@@ -89,12 +90,58 @@ class ChatGPTAdapter(BaseLLMAdapter):
             allowed_params.append("temperature")
         api_params = self._extract_api_params(kwargs, allowed_params)
         
+        # Handle text_format for structured outputs (Pydantic models only)
+        if text_format:
+            from pydantic import BaseModel
+            
+            # Only support Pydantic BaseModel classes
+            if isinstance(text_format, type) and issubclass(text_format, BaseModel):
+                # For Pydantic models, we'll pass it directly to responses.parse()
+                # Store it for later use in the API call
+                api_params["_pydantic_model"] = text_format
+                logger.debug(f"Using Pydantic model for structured output: {text_format.__name__}")
+            else:
+                logger.warning(f"text_format must be a Pydantic BaseModel class, got {type(text_format)}")
+        
         return input_messages, api_tools, api_params
     
     def _process_api_response(self, response: Any) -> tuple[str, list[ToolOutput] | None, dict]:
         """Process API response to extract text, tool outputs, and token usage."""
-        text = getattr(response, 'output_text', '')
-        logger.debug(f"Output text: {text}")
+        # Check if this is a parsed response (from responses.parse())
+        if hasattr(response, 'output_parsed'):
+            # For structured outputs, the parsed JSON is in response.output_parsed
+            import json
+            from pydantic import BaseModel
+            
+            parsed_output = response.output_parsed
+            if parsed_output:
+                # If it's a Pydantic model, convert to dict first
+                if isinstance(parsed_output, BaseModel):
+                    text = json.dumps(parsed_output.model_dump())
+                else:
+                    text = json.dumps(parsed_output)
+            else:
+                text = ''
+            logger.debug(f"Parsed structured output: {text}")
+        elif hasattr(response, 'parsed'):
+            # Alternative attribute name for parsed output
+            import json
+            from pydantic import BaseModel
+            
+            parsed_output = response.parsed
+            if parsed_output:
+                # If it's a Pydantic model, convert to dict first
+                if isinstance(parsed_output, BaseModel):
+                    text = json.dumps(parsed_output.model_dump())
+                else:
+                    text = json.dumps(parsed_output)
+            else:
+                text = ''
+            logger.debug(f"Parsed structured output: {text}")
+        else:
+            # Regular response from responses.create()
+            text = getattr(response, 'output_text', '')
+            logger.debug(f"Output text: {text}")
         
         tool_outputs = []
         if hasattr(response, 'output') and response.output:
@@ -258,6 +305,9 @@ class ChatGPTAdapter(BaseLLMAdapter):
         
         for attempt in range(self.max_retries):
             try:
+                # Check if we have a Pydantic model for structured output
+                pydantic_model = api_params.pop('_pydantic_model', None)
+                
                 # Build API call parameters
                 create_params = {
                     "model": self.model_name,
@@ -272,9 +322,21 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 
                 # Try to make the API call
                 if is_sync:
-                    return client.responses.create(**create_params)
+                    if pydantic_model:
+                        logger.debug(f"Using responses.parse() with Pydantic model: {pydantic_model.__name__}")
+                        # For Pydantic models, pass the model class directly
+                        create_params['text_format'] = pydantic_model
+                        return client.responses.parse(**create_params)
+                    else:
+                        return client.responses.create(**create_params)
                 else:
-                    return await client.responses.create(**create_params)
+                    if pydantic_model:
+                        logger.debug(f"Using responses.parse() with Pydantic model: {pydantic_model.__name__}")
+                        # For Pydantic models, pass the model class directly
+                        create_params['text_format'] = pydantic_model
+                        return await client.responses.parse(**create_params)
+                    else:
+                        return await client.responses.create(**create_params)
                 
             except Exception as e:
                 last_exception = e

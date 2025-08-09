@@ -52,7 +52,7 @@ class BaseExecutableNode:
 # Available variables: now not defined
 # static_nodes_data exists: yes
 # static_nodes_data keys: ['node_classes', 'now']
-# Number of classes: 15
+# Number of classes: 14
 
 @dataclass(frozen=True)
 class ApiJobNode(BaseExecutableNode):
@@ -301,7 +301,7 @@ class IntegratedApiNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["provider"] = self.provider
-        data["operation"] = self.operation.value if self.operation is not None else None
+        data["operation"] = self.operation
         data["config"] = self.config
         data["resource_id"] = self.resource_id
         data["timeout"] = self.timeout
@@ -342,8 +342,6 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
 
 
 
-
-
 @dataclass(frozen=True)
 class PersonJobNode(BaseExecutableNode):
     # Required node-specific fields
@@ -362,6 +360,8 @@ class PersonJobNode(BaseExecutableNode):
     memory_profile: Optional[MemoryProfile] = None
     memory_settings: Optional[MemorySettings] = None
     tools: Optional[ToolSelection] = None
+    text_format: Optional[str] = None
+    text_format_file: Optional[str] = None
     batch: Optional[bool] = None
     batch_input_key: Optional[str] = None
     batch_parallel: Optional[bool] = None
@@ -383,6 +383,8 @@ class PersonJobNode(BaseExecutableNode):
         data["memory_profile"] = self.memory_profile.value if self.memory_profile is not None else None
         data["memory_settings"] = self.memory_settings
         data["tools"] = self.tools.value if self.tools is not None else None
+        data["text_format"] = self.text_format
+        data["text_format_file"] = self.text_format_file
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key
         data["batch_parallel"] = self.batch_parallel
@@ -718,7 +720,6 @@ def create_executable_node(
         )
     
 
-
     if node_type == NodeType.PERSON_JOB:
         return PersonJobNode(
             id=node_id,
@@ -734,6 +735,8 @@ def create_executable_node(
             memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
             memory_settings=data.get("memory_settings", None),
             tools=_to_enum(data.get("tools", None), ToolSelection),
+            text_format=data.get("text_format", None),
+            text_format_file=data.get("text_format_file", None),
             batch=data.get("batch", None),
             batch_input_key=data.get("batch_input_key", None),
             batch_parallel=data.get("batch_parallel", None),
@@ -829,6 +832,8 @@ def create_executable_node(
             memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
             memory_settings=data.get("memory_settings", None),
             tools=_to_enum(data.get("tools", None), ToolSelection),
+            text_format=data.get("text_format", None),
+            text_format_file=data.get("text_format_file", None),
             batch=data.get("batch", None),
             batch_input_key=data.get("batch_input_key", None),
             batch_parallel=data.get("batch_parallel", None),

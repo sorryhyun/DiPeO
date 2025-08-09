@@ -4,8 +4,10 @@
   "definitions": {
     "ConditionNodeData": {
       "additionalProperties": false,
+      "description": "Configuration data for Condition nodes that handle conditional branching",
       "properties": {
         "condition_type": {
+          "description": "Condition type: detect_max_iterations, nodes_executed, or custom",
           "enum": [
             "check_nodes_executed",
             "custom",
@@ -14,6 +16,7 @@
           "type": "string"
         },
         "expression": {
+          "description": "Python expression for custom type (access to all variables)",
           "type": "string"
         },
         "flipped": {
@@ -23,6 +26,7 @@
           "type": "string"
         },
         "node_indices": {
+          "description": "List of node indices for nodes_executed condition type",
           "items": {
             "type": "string"
           },

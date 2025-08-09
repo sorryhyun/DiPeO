@@ -13,26 +13,32 @@
     },
     "CodeJobNodeData": {
       "additionalProperties": false,
+      "description": "Configuration data for CodeJob nodes that execute code",
       "properties": {
         "code": {
+          "description": "Inline code or path to external file",
           "type": "string"
         },
         "filePath": {
+          "description": "External code file path (e.g., 'files/code/processor.py')",
           "type": "string"
         },
         "flipped": {
           "type": "boolean"
         },
         "functionName": {
+          "description": "Function to call in external file (required with filePath)",
           "type": "string"
         },
         "label": {
           "type": "string"
         },
         "language": {
-          "$ref": "#/definitions/SupportedLanguage"
+          "$ref": "#/definitions/SupportedLanguage",
+          "description": "Programming language: python, typescript, bash, or shell"
         },
         "timeout": {
+          "description": "Execution timeout in seconds (default: 60)",
           "type": "number"
         }
       },

@@ -27,6 +27,7 @@ class PersonJobNodeData(BaseModel):
     max_iteration: int = Field(description="Maximum execution iterations")
     memory_profile: Optional[str] = Field(description="Memory profile for conversation context")
     tools: Optional[List[ToolConfig]] = Field(description="Tools available to the AI agent")
+    text_format: Optional[str] = Field(description="JSON schema or response format for structured outputs")
     memory_settings: Optional[MemorySettings] = Field(description="Custom memory settings (when memory_profile is CUSTOM)")
 
     class Config:

@@ -44,7 +44,7 @@ class LLMDomainService:
     # Provider-specific validation rules
     _PROVIDER_RULES = {
         LLMService.OPENAI.value: {
-            "allowed_params": ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty", "stop", "tools"],
+            "allowed_params": ["temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty", "stop", "tools", "text_format"],
             "temperature_range": (0, 2),
             "requires_api_key": True,
         },

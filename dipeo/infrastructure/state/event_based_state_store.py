@@ -384,7 +384,7 @@ class EventBasedStateStore(StateStorePort):
         node_id: str,
         output: Any,
         is_exception: bool = False,
-        token_usage: TokenUsage | None = None,
+        token_usage: TokenUsage | dict | None = None,
     ) -> None:
         """Update node output."""
         # Get from cache for fast update
@@ -512,8 +512,17 @@ class EventBasedStateStore(StateStorePort):
         state.metrics = metrics
         await self.save_state(state)
     
-    async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
+    async def add_token_usage(self, execution_id: str, tokens: TokenUsage | dict):
         """Add token usage."""
+        # Convert dict to TokenUsage if needed
+        if isinstance(tokens, dict):
+            tokens = TokenUsage(
+                input=tokens.get('input', 0),
+                output=tokens.get('output', 0),
+                cached=tokens.get('cached'),
+                total=tokens.get('total', 0)
+            )
+        
         cache = await self._execution_cache.get_cache(execution_id)
         await cache.add_token_usage(tokens)
         

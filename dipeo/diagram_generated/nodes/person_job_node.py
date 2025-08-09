@@ -44,6 +44,7 @@ class PersonJobNode:
     prompt_file: str = ""
     memory_profile: str = None
     tools: List[ToolConfig] = ""
+    text_format: str = ""
     memory_settings: MemorySettings = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -66,5 +67,6 @@ class PersonJobNode:
         data["max_iteration"] = self.max_iteration
         data["memory_profile"] = self.memory_profile
         data["tools"] = self.tools
+        data["text_format"] = self.text_format
         data["memory_settings"] = self.memory_settings
         return data

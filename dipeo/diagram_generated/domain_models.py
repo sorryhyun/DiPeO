@@ -19,6 +19,7 @@ from typing import *
 from pydantic import *
 
 from .enums import *
+from .integrations import *
 
 
 ApiKeyID = NewType('ApiKeyID', str)
@@ -273,7 +274,8 @@ class NodeDefinition(BaseModel):
 
 
 class Message(BaseModel):
-    """Message model"""
+    """Base message interface for conversations
+Used by both execution (PersonMemory) and person domains"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     id: Optional[str] = Field(default=None)
@@ -366,7 +368,7 @@ class LLMRequestOptions(BaseModel):
 
 
 class BaseNodeData(BaseModel):
-    """BaseNodeData model"""
+    """Base node data interface that all node types extend"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     label: str
@@ -388,38 +390,38 @@ class ApiJobNodeData(BaseNodeData):
 
 
 class CodeJobNodeData(BaseNodeData):
-    """CodeJobNodeData model"""
+    """Configuration data for CodeJob nodes that execute code"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    language: SupportedLanguage
-    filePath: Optional[str] = Field(default=None)
-    code: Optional[str] = Field(default=None)
-    functionName: Optional[str] = Field(default=None)
-    timeout: Optional[int] = Field(default=None)
+    language: SupportedLanguage = Field(description="Programming language: python, typescript, bash, or shell")
+    filePath: Optional[str] = Field(default=None, description="External code file path (e.g., 'files/code/processor.py')")
+    code: Optional[str] = Field(default=None, description="Inline code or path to external file")
+    functionName: Optional[str] = Field(default=None, description="Function to call in external file (required with filePath)")
+    timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds (default: 60)")
 
 
 class ConditionNodeData(BaseNodeData):
-    """ConditionNodeData model"""
+    """Configuration data for Condition nodes that handle conditional branching"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    condition_type: Optional[ConditionType] = Field(default=None)
-    expression: Optional[str] = Field(default=None)
-    node_indices: Optional[List[str]] = Field(default=None)
+    condition_type: Optional[ConditionType] = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, or custom")
+    expression: Optional[str] = Field(default=None, description="Python expression for custom type (access to all variables)")
+    node_indices: Optional[List[str]] = Field(default=None, description="List of node indices for nodes_executed condition type")
 
 
 class DBNodeData(BaseNodeData):
-    """DBNodeData model"""
+    """Configuration data for DB nodes that handle file system operations"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    file: Optional[List[Union[str]]] = Field(default=None)
-    collection: Optional[str] = Field(default=None)
-    sub_type: DBBlockSubType
-    operation: str
-    query: Optional[str] = Field(default=None)
-    data: Optional[Dict[str, Any]] = Field(default=None)
-    serialize_json: Optional[bool] = Field(default=None)
-    glob: Optional[bool] = Field(default=None)
-    format: Optional[str] = Field(default=None)
+    file: Optional[List[Union[str]]] = Field(default=None, description="File path(s) - single string or list for multiple files")
+    collection: Optional[str] = Field(default=None, description="Database collection name (for database operations)")
+    sub_type: DBBlockSubType = Field(description="Storage type: file or database")
+    operation: str = Field(description="Operation type: read or write")
+    query: Optional[str] = Field(default=None, description="Database query (for database operations)")
+    data: Optional[Dict[str, Any]] = Field(default=None, description="Data to write (for write operations)")
+    serialize_json: Optional[bool] = Field(default=None, description="Auto-parse JSON files when reading (default: false)")
+    glob: Optional[bool] = Field(default=None, description="Enable glob pattern expansion for paths (default: false)")
+    format: Optional[str] = Field(default=None, description="Data format: json, yaml, csv, text, etc.")
 
 
 class EndpointNodeData(BaseNodeData):
@@ -455,12 +457,12 @@ class IntegratedApiNodeData(BaseNodeData):
     """IntegratedApiNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    provider: APIServiceType
-    operation: str
-    config: Optional[Dict[str, Any]] = Field(default=None)
-    resource_id: Optional[str] = Field(default=None)
-    timeout: Optional[int] = Field(default=None)
-    max_retries: Optional[float] = Field(default=None)
+    provider: APIServiceType = Field(description="The API provider to use (e.g., notion, slack, github)")
+    operation: str = Field(description="The operation to perform (provider-specific). This is a string to allow dynamic operations per provider")
+    config: Optional[Dict[str, Any]] = Field(default=None, description="Provider-specific configuration. Structure depends on the selected provider and operation")
+    resource_id: Optional[str] = Field(default=None, description="Optional resource ID (e.g., page_id for Notion, channel_id for Slack)")
+    timeout: Optional[int] = Field(default=None, description="Request timeout in seconds")
+    max_retries: Optional[float] = Field(default=None, description="Maximum number of retries for failed requests")
 
 
 class JsonSchemaValidatorNodeData(BaseNodeData):
@@ -475,21 +477,23 @@ class JsonSchemaValidatorNodeData(BaseNodeData):
 
 
 class PersonJobNodeData(BaseNodeData):
-    """PersonJobNodeData model"""
+    """Configuration data for PersonJob nodes that execute LLM agents"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    person: Optional[PersonID] = Field(default=None)
-    first_only_prompt: str
-    default_prompt: Optional[str] = Field(default=None)
-    prompt_file: Optional[str] = Field(default=None)
-    max_iteration: float
-    memory_profile: Optional[MemoryProfile] = Field(default=None)
-    memory_settings: Optional[MemorySettings] = Field(default=None)
-    tools: Optional[ToolSelection] = Field(default=None)
-    batch: Optional[bool] = Field(default=None)
-    batch_input_key: Optional[str] = Field(default=None)
-    batch_parallel: Optional[bool] = Field(default=None)
-    max_concurrent: Optional[float] = Field(default=None)
+    person: Optional[PersonID] = Field(default=None, description="Reference to agent defined in 'persons' section")
+    first_only_prompt: str = Field(description="Special prompt for first iteration only, supports {{variable}} syntax")
+    default_prompt: Optional[str] = Field(default=None, description="Prompt template using {{variable}} syntax for subsequent iterations")
+    prompt_file: Optional[str] = Field(default=None, description="External prompt file in files/prompts/ (overrides inline prompts)")
+    max_iteration: float = Field(description="Maximum conversation turns (default: 1)")
+    memory_profile: Optional[MemoryProfile] = Field(default=None, description="Memory profile: GOLDFISH (2 msgs), MINIMAL (5), FOCUSED (20), FULL (all)")
+    memory_settings: Optional[MemorySettings] = Field(default=None, description="Advanced memory configuration when memory_profile is CUSTOM")
+    tools: Optional[ToolSelection] = Field(default=None, description="LLM tools to enable (web_search_preview, etc.)")
+    text_format: Optional[str] = Field(default=None, description="Pydantic model name for structured output")
+    text_format_file: Optional[str] = Field(default=None, description="External Python file with Pydantic models (overrides text_format)")
+    batch: Optional[bool] = Field(default=None, description="Enable batch processing for arrays")
+    batch_input_key: Optional[str] = Field(default=None, description="Array variable name for batch processing")
+    batch_parallel: Optional[bool] = Field(default=None, description="Execute batch items in parallel")
+    max_concurrent: Optional[float] = Field(default=None, description="Maximum concurrent batch executions")
 
 
 class StartNodeData(BaseNodeData):
@@ -504,16 +508,16 @@ class StartNodeData(BaseNodeData):
 
 
 class SubDiagramNodeData(BaseNodeData):
-    """SubDiagramNodeData model"""
+    """Configuration data for SubDiagram nodes that execute other diagrams"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    diagram_name: Optional[str] = Field(default=None)
-    diagram_format: Optional[DiagramFormat] = Field(default=None)
-    diagram_data: Optional[Dict[str, Any]] = Field(default=None)
-    batch: Optional[bool] = Field(default=None)
-    batch_input_key: Optional[str] = Field(default=None)
-    batch_parallel: Optional[bool] = Field(default=None)
-    ignoreIfSub: Optional[bool] = Field(default=None)
+    diagram_name: Optional[str] = Field(default=None, description="Path to sub-diagram file")
+    diagram_format: Optional[DiagramFormat] = Field(default=None, description="Diagram format: light or native (default: light)")
+    diagram_data: Optional[Dict[str, Any]] = Field(default=None, description="Pass all current variables to sub-diagram")
+    batch: Optional[bool] = Field(default=None, description="Enable batch processing for arrays")
+    batch_input_key: Optional[str] = Field(default=None, description="Array variable name for batch processing")
+    batch_parallel: Optional[bool] = Field(default=None, description="Execute batch items in parallel")
+    ignoreIfSub: Optional[bool] = Field(default=None, description="Skip if already running as sub-diagram")
 
 
 class TemplateJobNodeData(BaseNodeData):

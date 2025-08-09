@@ -10,7 +10,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-08T18:16:57.036670
+Generated at: 2025-08-09T15:01:32.269043
 """
 
 import strawberry
@@ -173,8 +173,6 @@ class UpdateJsonSchemaValidatorInput:
     # For now, we accept a generic data dict that will be validated
     data: Optional[strawberry.scalars.JSON] = None
     position: Optional[Vec2Input] = None
-
-
 
 
 @strawberry.input
@@ -852,8 +850,6 @@ class NodeMutations:
             position=domain_node.position,
             data=domain_node.data
         )
-
-
 
 
     @strawberry.mutation

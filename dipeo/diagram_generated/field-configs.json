@@ -96,6 +96,18 @@
           "required": false
         },
         {
+          "name": "text_format",
+          "type": "text",
+          "label": "Text Format",
+          "required": false
+        },
+        {
+          "name": "text_format_file",
+          "type": "text",
+          "label": "Text Format File",
+          "required": false
+        },
+        {
           "name": "batch",
           "type": "checkbox",
           "label": "Batch",

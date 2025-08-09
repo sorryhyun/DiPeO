@@ -1,0 +1,247 @@
+version: light
+
+persons:
+  Frontend Generator:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are an expert frontend developer specializing in modern web applications.
+      Generate clean, performant, and accessible code following industry best practices.
+      
+  Code Judge:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are a senior frontend architect and code quality assessor.
+      Evaluate code with precision and provide actionable feedback.
+      
+  Code Improver:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are a frontend optimization specialist.
+      Enhance code based on feedback to achieve production-ready quality.
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 400}
+    props:
+      trigger_mode: manual
+
+  - label: Load Config
+    type: db
+    position: {x: 200, y: 400}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: files/config/frontend_enhance_config.json
+
+  - label: Initialize State
+    type: code_job
+    position: {x: 400, y: 400}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Parse the loaded config
+        if isinstance(config, str):
+            config_data = json.loads(config)
+        else:
+            config_data = config
+        
+        iteration_count = 0
+        current_score = 0
+        improvements_history = []
+        
+        result = {
+            "iteration": iteration_count,
+            "score": current_score,
+            "history": improvements_history,
+            "config": config_data,
+            "app_type": config_data["app_type"],
+            "framework": config_data["framework"],
+            "styling_approach": config_data["styling_approach"],
+            "features": config_data["features"],
+            "target_audience": config_data["target_audience"],
+            "target_score": config_data["target_score"],
+            "max_iterations": config_data["max_iterations"],
+            "code": ""  # Initialize empty code
+        }
+
+  - label: Generate Frontend
+    type: person_job
+    position: {x: 600, y: 400}
+    props:
+      person: Frontend Generator
+      prompt_file: frontend_generator.txt
+      max_iteration: 3
+      memory_profile: FOCUSED
+
+  - label: Judge Code Quality
+    type: person_job
+    position: {x: 1000, y: 400}
+    props:
+      person: Code Judge
+      prompt_file: frontend_judge.txt
+      max_iteration: 1
+      memory_profile: MINIMAL
+
+  - label: Check Score
+    type: code_job
+    position: {x: 1200, y: 400}
+    props:
+      language: python
+      code: |
+        import re
+        # Extract score from assessment text
+        score_match = re.search(r'Score:\s*(\d+)', assessment, re.IGNORECASE)
+        if score_match:
+            score = int(score_match.group(1))
+        else:
+            score = 70  # Default score
+        
+        # Check if ready for production
+        ready = "production ready" in assessment.lower() or score >= config["target_score"]
+        
+        result = {
+            "score": score,
+            "ready_for_production": ready,
+            "code": generated_code,
+            "config": config,
+            "assessment": assessment
+        }
+
+  - label: Check Quality Target
+    type: condition
+    position: {x: 1400, y: 400}
+    props:
+      condition_type: custom
+      expression: |
+        checked["score"] >= checked["config"]["target_score"] or 
+        checked["ready_for_production"]
+
+  - label: Detect Max Iterations
+    type: condition
+    position: {x: 1200, y: 600}
+    props:
+      condition_type: detect_max_iterations
+
+  - label: Stop if Max Iterations
+    type: endpoint
+    position: {x: 1000, y: 700}
+    props:
+      file_format: txt
+      save_to_file: false
+
+  - label: Save Final Code
+    type: code_job
+    position: {x: 1600, y: 400}
+    props:
+      language: python
+      code: |
+        import os
+        from pathlib import Path
+        import json
+        
+        output_path = Path("./generated_frontend_enhanced")
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Determine file extension based on framework
+        framework = checked["config"]["framework"]
+        extensions = {
+            "react": "jsx",
+            "vue": "vue",
+            "angular": "ts",
+            "svelte": "svelte",
+            "html": "html"
+        }
+        ext = extensions.get(framework, "jsx")
+        
+        # Save main code file
+        main_file = output_path / f"App.{ext}"
+        with open(main_file, 'w', encoding='utf-8') as f:
+            f.write(checked["code"])
+        
+        # Save assessment report
+        report_file = output_path / "quality_report.txt"
+        with open(report_file, 'w', encoding='utf-8') as f:
+            f.write(checked["assessment"])
+        
+        result = {
+            "main_file": str(main_file),
+            "output_dir": str(output_path),
+            "final_score": checked["score"],
+            "framework": framework,
+            "ready_for_production": checked["ready_for_production"],
+            "config": checked["config"]
+        }
+
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1800, y: 400}
+    props:
+      language: python
+      code: |
+        config = saved_code['config']
+        target_score = config['target_score']
+        features = config['features']
+        
+        summary_lines = [
+            "# Frontend Generation Complete!",
+            "",
+            "## Results",
+            f"- Final Score: {saved_code['final_score']}/100",
+            f"- Production Ready: {'Yes' if saved_code['ready_for_production'] else 'Needs Review'}",
+            f"- Framework: {saved_code['framework']}",
+            "",
+            "## Generated Files",
+            f"- Main Application: {saved_code['main_file']}",
+            f"- Quality Report: {saved_code['output_dir']}/quality_report.txt",
+            "",
+            "## Features:",
+        ]
+        
+        for feature in features:
+            summary_lines.append(f"- {feature}")
+        
+        summary = '\n'.join(summary_lines)
+        print(summary)
+        result = summary
+
+  - label: Save Summary
+    type: endpoint
+    position: {x: 2000, y: 400}
+    props:
+      file_format: md
+      save_to_file: true
+      file_path: generated_frontend_enhanced/README.md
+
+connections:
+  # Initial flow
+  - {from: Start, to: Load Config}
+  - {from: Load Config, to: Initialize State, label: config}
+  - {from: Initialize State, to: Generate Frontend, label: first}
+  
+  # Generation and assessment  
+  - {from: Generate Frontend, to: Judge Code Quality, label: generated_code}
+  - {from: Judge Code Quality, to: Check Score, label: assessment}
+  - {from: Generate Frontend, to: Check Score, label: generated_code}
+  - {from: Initialize State, to: Check Score, label: config}
+  - {from: Check Score, to: Check Quality Target, label: checked}
+  
+  # Success path (quality target met)
+  - {from: Check Quality Target_condtrue, to: Save Final Code, label: checked}
+  - {from: Save Final Code, to: Generate Summary, label: saved_code}
+  - {from: Generate Summary, to: Save Summary}
+  
+  # Check if max iterations reached
+  - {from: Check Quality Target_condfalse, to: Detect Max Iterations}
+  - {from: Detect Max Iterations_condtrue, to: Stop if Max Iterations}
+  - {from: Detect Max Iterations_condfalse, to: Generate Frontend}
+

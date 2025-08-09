@@ -10,7 +10,6 @@ from .db_models import Model as DbNodeData
 from .endpoint_models import Model as EndpointNodeData
 from .hook_models import Model as HookNodeData
 from .jsonschemavalidator_models import Model as JsonschemavalidatorNodeData
-from .notion_models import Model as NotionNodeData
 from .personbatchjob_models import Model as PersonbatchjobNodeData
 from .personjob_models import Model as PersonjobNodeData
 from .start_models import Model as StartNodeData
@@ -28,7 +27,6 @@ NODE_VALIDATORS: Dict[str, Type[BaseModel]] = {
     "endpoint": EndpointNodeData,
     "hook": HookNodeData,
     "jsonschemavalidator": JsonschemavalidatorNodeData,
-    "notion": NotionNodeData,
     "personbatchjob": PersonbatchjobNodeData,
     "personjob": PersonjobNodeData,
     "start": StartNodeData,

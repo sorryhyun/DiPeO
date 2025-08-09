@@ -109,6 +109,19 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
+      name: "text_format",
+      type: "string",
+      required: false,
+      description: "JSON schema or response format for structured outputs",
+      uiConfig: {
+        inputType: "textarea",
+        placeholder: '{"type": "object", "properties": {...}}',
+        column: 2,
+        rows: 6,
+        adjustable: true
+      }
+    },
+    {
       name: "memory_settings",
       type: "object",
       required: false,

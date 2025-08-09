@@ -98,9 +98,10 @@ class ExecutionCache:
             else:
                 # Add token counts
                 self.token_usage = TokenUsage(
-                    prompt_tokens=self.token_usage.prompt_tokens + tokens.prompt_tokens,
-                    completion_tokens=self.token_usage.completion_tokens + tokens.completion_tokens,
-                    total_tokens=self.token_usage.total_tokens + tokens.total_tokens,
+                    input=self.token_usage.input + tokens.input,
+                    output=self.token_usage.output + tokens.output,
+                    cached=(self.token_usage.cached or 0) + (tokens.cached or 0) if tokens.cached else self.token_usage.cached,
+                    total=self.token_usage.input + tokens.input + self.token_usage.output + tokens.output,
                 )
             self._last_access = time.time()
             self._dirty = True

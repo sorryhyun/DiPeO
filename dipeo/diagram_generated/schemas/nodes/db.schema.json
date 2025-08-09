@@ -4,12 +4,15 @@
   "definitions": {
     "DBNodeData": {
       "additionalProperties": false,
+      "description": "Configuration data for DB nodes that handle file system operations",
       "properties": {
         "collection": {
+          "description": "Database collection name (for database operations)",
           "type": "string"
         },
         "data": {
-          "$ref": "#/definitions/Record<string,any>"
+          "$ref": "#/definitions/Record<string,any>",
+          "description": "Data to write (for write operations)"
         },
         "file": {
           "anyOf": [
@@ -22,31 +25,38 @@
             {
               "type": "string"
             }
-          ]
+          ],
+          "description": "File path(s) - single string or list for multiple files"
         },
         "flipped": {
           "type": "boolean"
         },
         "format": {
+          "description": "Data format: json, yaml, csv, text, etc.",
           "type": "string"
         },
         "glob": {
+          "description": "Enable glob pattern expansion for paths (default: false)",
           "type": "boolean"
         },
         "label": {
           "type": "string"
         },
         "operation": {
+          "description": "Operation type: read or write",
           "type": "string"
         },
         "query": {
+          "description": "Database query (for database operations)",
           "type": "string"
         },
         "serialize_json": {
+          "description": "Auto-parse JSON files when reading (default: false)",
           "type": "boolean"
         },
         "sub_type": {
-          "$ref": "#/definitions/DBBlockSubType"
+          "$ref": "#/definitions/DBBlockSubType",
+          "description": "Storage type: file or database"
         }
       },
       "required": [

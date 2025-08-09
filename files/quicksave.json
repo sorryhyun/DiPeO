@@ -8,89 +8,170 @@
         "y": 400
       },
       "data": {
-        "custom_data": {
-          "app_type": "landing page",
-          "features": "responsive hero section, features grid, contact form",
-          "framework": "html",
-          "output_dir": "./generated_frontend",
-          "theme": "modern minimalist"
-        },
         "trigger_mode": "manual",
+        "custom_data": {},
         "output_data_structure": {},
         "label": "start"
       }
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "db",
       "position": {
-        "x": 300,
+        "x": 200,
         "y": 400
       },
       "data": {
-        "default_prompt": "Generate a complete HTML frontend application.\n\nApplication Type: landing page\nTheme: modern minimalist\nFeatures: responsive hero section, features grid, contact form\n\nRequirements:\n- Use Tailwind CSS for styling (inline in <style> tag)\n- Include modern, responsive design  \n- Follow accessibility best practices\n- Add smooth animations where appropriate\n- Use semantic HTML\n\nGenerate a single-file HTML application with inline styles and scripts.\nThe code should be complete, functional, and ready to run.\nInclude comments explaining key sections.\n\nReturn the complete HTML code in a markdown code block.\n",
-        "max_iteration": 1,
-        "memory_profile": "MINIMAL",
-        "person": "Frontend Generator",
-        "memory_settings": {
-          "view": "system_and_me",
-          "max_messages": 5,
-          "preserve_system": true
-        },
-        "label": "generate frontend code",
-        "first_only_prompt": ""
+        "format": "json",
+        "operation": "read",
+        "sub_type": "file",
+        "file": "files/config/frontend_enhance_config.json",
+        "label": "load config"
       }
     },
     {
       "id": "node_2",
       "type": "code_job",
       "position": {
-        "x": 550,
+        "x": 400,
         "y": 400
       },
       "data": {
-        "code": "import re\n\n# Extract code from markdown blocks\ncode_blocks = re.findall(r'```(?:html|jsx|tsx|javascript|typescript)?\\n(.*?)```', \n                          frontend_code, re.DOTALL)\n\nif not code_blocks:\n    # If no code blocks found, assume entire response is code\n    main_code = frontend_code\nelse:\n    main_code = '\\n'.join(code_blocks)\n\nresult = {\n    'code': main_code,\n    'file_name': 'index.html',\n    'framework': 'html',\n    'output_dir': './generated_frontend'\n}\n",
+        "code": "import json\n\n# Parse the loaded config\nif isinstance(config, str):\n    config_data = json.loads(config)\nelse:\n    config_data = config\n\niteration_count = 0\ncurrent_score = 0\nimprovements_history = []\n\nresult = {\n    \"iteration\": iteration_count,\n    \"score\": current_score,\n    \"history\": improvements_history,\n    \"config\": config_data,\n    \"app_type\": config_data[\"app_type\"],\n    \"framework\": config_data[\"framework\"],\n    \"styling_approach\": config_data[\"styling_approach\"],\n    \"features\": config_data[\"features\"],\n    \"target_audience\": config_data[\"target_audience\"],\n    \"target_score\": config_data[\"target_score\"],\n    \"max_iterations\": config_data[\"max_iterations\"],\n    \"code\": \"\"  # Initialize empty code\n}\n",
         "language": "python",
-        "label": "extract code"
+        "label": "initialize state"
       }
     },
     {
       "id": "node_3",
-      "type": "code_job",
+      "type": "person_job",
       "position": {
-        "x": 800,
+        "x": 600,
         "y": 400
       },
       "data": {
-        "code": "import os\nfrom pathlib import Path\n\noutput_path = Path(file_info['output_dir'])\noutput_path.mkdir(parents=True, exist_ok=True)\n\n# Save main file\nmain_file = output_path / file_info['file_name']\nwith open(main_file, 'w', encoding='utf-8') as f:\n    f.write(file_info['code'])\n\nresult = {\n    'main_file': str(main_file),\n    'output_dir': str(output_path),\n    'framework': file_info['framework'],\n    'files_created': [str(f) for f in output_path.iterdir()]\n}\n",
-        "language": "python",
-        "label": "save frontend files"
+        "max_iteration": 3,
+        "memory_profile": "FOCUSED",
+        "person": "Frontend Generator",
+        "prompt_file": "frontend_generator.txt",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 20,
+          "preserve_system": true
+        },
+        "label": "generate frontend",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_4",
-      "type": "code_job",
+      "type": "person_job",
       "position": {
-        "x": 1050,
+        "x": 1000,
         "y": 400
       },
       "data": {
-        "code": "summary_lines = [\n    \"# Frontend Generation Complete! 🎨\",\n    \"\",\n    \"## Generated Application\",\n    \"- Type: landing page\",\n    \"- Theme: modern minimalist\",\n    \"- Framework: HTML\",\n    f\"- Output Directory: {saved_files['output_dir']}\",\n    \"\",\n    \"## Files Created\"\n]\nfor f in saved_files['files_created']:\n    summary_lines.append(f\"- {f}\")\nsummary_lines.extend([\n    \"\",\n    \"## How to Run Your Application\",\n    f\"1. Open {saved_files['main_file']} in your web browser\",\n    \"2. No installation required - it's a standalone HTML file\",\n    \"3. To edit: Open in any text editor and refresh browser\",\n    \"\",\n    \"## Quick Start\",\n    f\"Open {saved_files['main_file']} in your browser\",\n    \"\",\n    \"---\",\n    \"Generated with GPT-5-nano via DiPeO 🚀\"\n])\nsummary = '\\n'.join(summary_lines)\nprint(summary)\nresult = summary\n",
-        "language": "python",
-        "label": "create summary"
+        "max_iteration": 1,
+        "memory_profile": "MINIMAL",
+        "person": "Code Judge",
+        "prompt_file": "frontend_judge.txt",
+        "memory_settings": {
+          "view": "system_and_me",
+          "max_messages": 5,
+          "preserve_system": true
+        },
+        "label": "judge code quality",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_5",
+      "type": "code_job",
+      "position": {
+        "x": 1200,
+        "y": 400
+      },
+      "data": {
+        "code": "import re\n# Extract score from assessment text\nscore_match = re.search(r'Score:\\s*(\\d+)', assessment, re.IGNORECASE)\nif score_match:\n    score = int(score_match.group(1))\nelse:\n    score = 70  # Default score\n\n# Check if ready for production\nready = \"production ready\" in assessment.lower() or score >= config[\"target_score\"]\n\nresult = {\n    \"score\": score,\n    \"ready_for_production\": ready,\n    \"code\": generated_code,\n    \"config\": config,\n    \"assessment\": assessment\n}\n",
+        "language": "python",
+        "label": "check score"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "condition",
+      "position": {
+        "x": 1400,
+        "y": 400
+      },
+      "data": {
+        "condition_type": "custom",
+        "expression": "checked[\"score\"] >= checked[\"config\"][\"target_score\"] or \nchecked[\"ready_for_production\"]\n",
+        "label": "check quality target"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "condition",
+      "position": {
+        "x": 1200,
+        "y": 600
+      },
+      "data": {
+        "condition_type": "detect_max_iterations",
+        "label": "detect max iterations"
+      }
+    },
+    {
+      "id": "node_8",
       "type": "endpoint",
       "position": {
-        "x": 1300,
+        "x": 1000,
+        "y": 700
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": false,
+        "label": "stop if max iterations"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "code_job",
+      "position": {
+        "x": 1600,
+        "y": 400
+      },
+      "data": {
+        "code": "import os\nfrom pathlib import Path\nimport json\n\noutput_path = Path(\"./generated_frontend_enhanced\")\noutput_path.mkdir(parents=True, exist_ok=True)\n\n# Determine file extension based on framework\nframework = checked[\"config\"][\"framework\"]\nextensions = {\n    \"react\": \"jsx\",\n    \"vue\": \"vue\",\n    \"angular\": \"ts\",\n    \"svelte\": \"svelte\",\n    \"html\": \"html\"\n}\next = extensions.get(framework, \"jsx\")\n\n# Save main code file\nmain_file = output_path / f\"App.{ext}\"\nwith open(main_file, 'w', encoding='utf-8') as f:\n    f.write(checked[\"code\"])\n\n# Save assessment report\nreport_file = output_path / \"quality_report.txt\"\nwith open(report_file, 'w', encoding='utf-8') as f:\n    f.write(checked[\"assessment\"])\n\nresult = {\n    \"main_file\": str(main_file),\n    \"output_dir\": str(output_path),\n    \"final_score\": checked[\"score\"],\n    \"framework\": framework,\n    \"ready_for_production\": checked[\"ready_for_production\"],\n    \"config\": checked[\"config\"]\n}\n",
+        "language": "python",
+        "label": "save final code"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "code_job",
+      "position": {
+        "x": 1800,
+        "y": 400
+      },
+      "data": {
+        "code": "config = saved_code['config']\ntarget_score = config['target_score']\nfeatures = config['features']\n\nsummary_lines = [\n    \"# Frontend Generation Complete!\",\n    \"\",\n    \"## Results\",\n    f\"- Final Score: {saved_code['final_score']}/100\",\n    f\"- Production Ready: {'Yes' if saved_code['ready_for_production'] else 'Needs Review'}\",\n    f\"- Framework: {saved_code['framework']}\",\n    \"\",\n    \"## Generated Files\",\n    f\"- Main Application: {saved_code['main_file']}\",\n    f\"- Quality Report: {saved_code['output_dir']}/quality_report.txt\",\n    \"\",\n    \"## Features:\",\n]\n\nfor feature in features:\n    summary_lines.append(f\"- {feature}\")\n\nsummary = '\\n'.join(summary_lines)\nprint(summary)\nresult = summary\n",
+        "language": "python",
+        "label": "generate summary"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "endpoint",
+      "position": {
+        "x": 2000,
         "y": 400
       },
       "data": {
         "file_format": "md",
         "save_to_file": true,
-        "file_name": "generated_frontend/README.md",
+        "file_name": "generated_frontend_enhanced/README.md",
         "label": "save summary"
       }
     }
@@ -108,7 +189,7 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": "frontend_code",
+      "label": "config",
       "data": null,
       "content_type": "raw_text"
     },
@@ -116,7 +197,7 @@
       "id": "arrow_2",
       "source": "node_2_default_output",
       "target": "node_3_default_input",
-      "label": "file_info",
+      "label": "initial_state",
       "data": null,
       "content_type": "raw_text"
     },
@@ -124,7 +205,7 @@
       "id": "arrow_3",
       "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "label": "saved_files",
+      "label": "generated_code",
       "data": null,
       "content_type": "raw_text"
     },
@@ -132,12 +213,116 @@
       "id": "arrow_4",
       "source": "node_4_default_output",
       "target": "node_5_default_input",
+      "label": "assessment",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_3_default_output",
+      "target": "node_5_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_2_default_output",
+      "target": "node_5_default_input",
+      "label": "config",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
+      "label": "checked",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_6_condtrue_output",
+      "target": "node_9_default_input",
+      "label": "checked",
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_9_default_output",
+      "target": "node_10_default_input",
+      "label": "saved_code",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_10_default_output",
+      "target": "node_11_default_input",
       "label": null,
       "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_6_condfalse_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_7_condtrue_output",
+      "target": "node_8_default_input",
+      "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_13",
+      "source": "node_7_condfalse_output",
+      "target": "node_3_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
       "content_type": "raw_text"
     }
   ],
   "persons": [
+    {
+      "id": "Code Improver",
+      "label": "code improver",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a frontend optimization specialist.\nEnhance code based on feedback to achieve production-ready quality.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Code Judge",
+      "label": "code judge",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a senior frontend architect and code quality assessor.\nEvaluate code with precision and provide actionable feedback.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
     {
       "id": "Frontend Generator",
       "label": "frontend generator",
@@ -145,7 +330,7 @@
         "service": "openai",
         "model": "gpt-5-nano-2025-08-07",
         "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert frontend developer specializing in modern web applications.\nGenerate complete, production-ready frontend code following best practices.\nUse Tailwind CSS for styling and ensure responsive design.\n",
+        "system_prompt": "You are an expert frontend developer specializing in modern web applications.\nGenerate clean, performant, and accessible code following industry best practices.\n",
         "prompt_file": null
       },
       "type": "person"
@@ -159,14 +344,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -201,6 +378,14 @@
       "position": "right"
     },
     {
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_3_default_input",
       "node_id": "node_3",
       "label": "default",
@@ -215,6 +400,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_4_default_input",
@@ -239,6 +432,110 @@
       "direction": "input",
       "data_type": "any",
       "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_condtrue_output",
+      "node_id": "node_6",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_6_condfalse_output",
+      "node_id": "node_6",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_condtrue_output",
+      "node_id": "node_7",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_7_condfalse_output",
+      "node_id": "node_7",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_default_output",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -246,8 +543,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-08T11:22:36.352Z",
-    "modified": "2025-08-08T11:22:36.352Z",
+    "created": "2025-08-09T07:22:23.061Z",
+    "modified": "2025-08-09T07:22:23.061Z",
     "version": "1.0.0",
     "id": null
   }

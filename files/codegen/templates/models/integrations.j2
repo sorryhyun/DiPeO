@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field
 
 # Import from other generated modules
 from .enums import *
-from .domain_models import *
+# Note: Not importing domain_models to avoid circular dependency
+# TokenUsage is forward-referenced in ChatResult
 
 {% if integration_data.enums %}
 # Integration-specific enums

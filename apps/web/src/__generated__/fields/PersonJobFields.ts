@@ -92,6 +92,17 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     ],
   },
   {
+    name: 'text_format',
+    type: 'textarea',
+    label: 'Text Format',
+    required: false,
+    placeholder: '{\"type\": \"object\", \"properties\": {...}}',
+    description: 'JSON schema or response format for structured outputs',
+    rows: 6,
+    column: 2,
+    adjustable: true,
+  },
+  {
     name: 'memory_settings',
     type: 'group',
     label: 'Memory Settings',

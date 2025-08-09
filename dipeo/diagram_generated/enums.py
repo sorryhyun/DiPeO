@@ -333,7 +333,6 @@ class TemplateEngine(str, Enum):
     
 
 
-
 class NodeType(str, Enum):
     """Node type definitions for the DiPeO system"""
     

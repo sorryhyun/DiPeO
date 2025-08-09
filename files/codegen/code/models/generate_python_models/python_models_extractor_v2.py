@@ -52,7 +52,20 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
             
             for ast in parsed_asts:
                 if isinstance(ast, dict):
-                    all_interfaces.extend(ast.get('interfaces', []))
+                    # Process interfaces and map jsDoc to description
+                    interfaces = ast.get('interfaces', [])
+                    for interface in interfaces:
+                        # Map jsDoc to description for the interface itself
+                        if 'jsDoc' in interface and interface['jsDoc']:
+                            interface['description'] = interface['jsDoc']
+                        
+                        # Map jsDoc to description for each property
+                        if 'properties' in interface:
+                            for prop in interface['properties']:
+                                if 'jsDoc' in prop and prop['jsDoc']:
+                                    prop['description'] = prop['jsDoc']
+                    
+                    all_interfaces.extend(interfaces)
                     all_types.extend(ast.get('types', []))
                     all_enums.extend(ast.get('enums', []))
                     all_consts.extend(ast.get('consts', []) or ast.get('constants', []))
@@ -67,7 +80,20 @@ def extract_models(inputs: Dict[str, Any]) -> Dict[str, Any]:
                         'utils_ast', 'integration_ast', 'node_data_ast']:
                 ast = parse_ast_data(inputs.get(key, {}))
                 if isinstance(ast, dict):
-                    all_interfaces.extend(ast.get('interfaces', []))
+                    # Process interfaces and map jsDoc to description
+                    interfaces = ast.get('interfaces', [])
+                    for interface in interfaces:
+                        # Map jsDoc to description for the interface itself
+                        if 'jsDoc' in interface and interface['jsDoc']:
+                            interface['description'] = interface['jsDoc']
+                        
+                        # Map jsDoc to description for each property
+                        if 'properties' in interface:
+                            for prop in interface['properties']:
+                                if 'jsDoc' in prop and prop['jsDoc']:
+                                    prop['description'] = prop['jsDoc']
+                    
+                    all_interfaces.extend(interfaces)
                     all_types.extend(ast.get('types', []))
                     all_enums.extend(ast.get('enums', []))
                     all_consts.extend(ast.get('consts', []) or ast.get('constants', []))

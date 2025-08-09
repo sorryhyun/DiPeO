@@ -326,25 +326,33 @@ class TypedExecutionEngine:
             end_time = time.time()
             duration_ms = (end_time - start_time) * 1000
             
+            # Extract token usage from output metadata if available
+            token_usage = None
+            if hasattr(output, 'metadata') and output.metadata and 'token_usage' in output.metadata:
+                token_usage = output.metadata['token_usage']
+            
             # Emit node completed event
             node_state = context.get_node_state(node_id)
-            await context.emit_event(
-                EventType.NODE_COMPLETED,
-                {
-                    "node_id": str(node_id),
-                    "node_type": node.type,
-                    "node_name": getattr(node, 'name', str(node_id)),
-                    "status": node_state.status.value if node_state else "unknown",
-                    "output": self._serialize_output(output),
-                    "node_state": node_state,  # Include the full node state for observers
-                    "metrics": {
-                        "duration_ms": duration_ms,
-                        "start_time": start_time,
-                        "end_time": end_time,
-                        "execution_count": exec_count
-                    }
+            event_data = {
+                "node_id": str(node_id),
+                "node_type": node.type,
+                "node_name": getattr(node, 'name', str(node_id)),
+                "status": node_state.status.value if node_state else "unknown",
+                "output": self._serialize_output(output),
+                "node_state": node_state,  # Include the full node state for observers
+                "metrics": {
+                    "duration_ms": duration_ms,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "execution_count": exec_count
                 }
-            )
+            }
+            
+            # Add token usage to metrics if available
+            if token_usage:
+                event_data["metrics"]["token_usage"] = token_usage
+            
+            await context.emit_event(EventType.NODE_COMPLETED, event_data)
             
             # Return result
             if hasattr(output, 'to_dict'):
