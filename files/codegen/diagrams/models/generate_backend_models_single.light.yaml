@@ -141,8 +141,21 @@ nodes:
       code: |
         # Combine all data needed for templates
         # Keep node_naming as nested object for path interpolation
+        
+        # Clean up nodeType by removing "NodeType." prefix and convert to lowercase
+        cleaned_spec_data = dict(spec_data)
+        if 'nodeType' in cleaned_spec_data:
+            node_type_raw = cleaned_spec_data['nodeType']
+            # Remove "NodeType." prefix if present
+            if node_type_raw.startswith('NodeType.'):
+                node_type_enum = node_type_raw.replace('NodeType.', '')
+            else:
+                node_type_enum = node_type_raw
+            # Convert UPPER_SNAKE_CASE to lower_snake_case for filters to work properly
+            cleaned_spec_data['nodeType'] = node_type_enum.lower()
+        
         context = {
-            **spec_data,  # All spec fields (nodeType, displayName, fields, etc.)
+            **cleaned_spec_data,  # All spec fields with cleaned nodeType
             'mappings': mappings,  # Type mappings for python_type_with_context filter
             'node_naming': node_naming,  # Keep as nested object for {node_naming.node_type} interpolation
         }

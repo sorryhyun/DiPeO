@@ -18,7 +18,6 @@ export const cliSessionQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { name: 'session_id' },
             { name: 'message' },
             { name: 'error' }
           ]

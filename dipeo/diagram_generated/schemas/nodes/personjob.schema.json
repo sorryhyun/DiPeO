@@ -35,6 +35,19 @@
       ],
       "type": "string"
     },
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
     "PersonJobNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for PersonJob nodes that execute LLM agents",
@@ -129,19 +142,6 @@
         "first_only_prompt",
         "label",
         "max_iteration"
-      ],
-      "type": "object"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
       ],
       "type": "object"
     }

@@ -784,6 +784,13 @@ export type ExecuteDiagramMutationVariables = Exact<{
 
 export type ExecuteDiagramMutation = { __typename?: 'Mutation', execute_diagram: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string } | null } };
 
+export type RegisterCliSessionMutationVariables = Exact<{
+  input: RegisterCliSessionInput;
+}>;
+
+
+export type RegisterCliSessionMutation = { __typename?: 'Mutation', register_cli_session: { __typename?: 'CliSessionResult', success: boolean, message?: string | null, error?: string | null } };
+
 export type SendInteractiveResponseMutationVariables = Exact<{
   input: InteractiveResponseInput;
 }>;
@@ -797,6 +804,13 @@ export type TestApiKeyMutationVariables = Exact<{
 
 
 export type TestApiKeyMutation = { __typename?: 'Mutation', test_api_key: { __typename?: 'TestApiKeyResult', success: boolean, message?: string | null, error?: string | null } };
+
+export type UnregisterCliSessionMutationVariables = Exact<{
+  input: UnregisterCliSessionInput;
+}>;
+
+
+export type UnregisterCliSessionMutation = { __typename?: 'Mutation', unregister_cli_session: { __typename?: 'CliSessionResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type UpdateNodeMutationVariables = Exact<{
   diagram_id: Scalars['ID']['input'];
@@ -1426,6 +1440,41 @@ export function useExecuteDiagramMutation(baseOptions?: Apollo.MutationHookOptio
 export type ExecuteDiagramMutationHookResult = ReturnType<typeof useExecuteDiagramMutation>;
 export type ExecuteDiagramMutationResult = Apollo.MutationResult<ExecuteDiagramMutation>;
 export type ExecuteDiagramMutationOptions = Apollo.BaseMutationOptions<ExecuteDiagramMutation, ExecuteDiagramMutationVariables>;
+export const RegisterCliSessionDocument = gql`
+    mutation RegisterCliSession($input: RegisterCliSessionInput!) {
+  register_cli_session(input: $input) {
+    success
+    message
+    error
+  }
+}
+    `;
+export type RegisterCliSessionMutationFn = Apollo.MutationFunction<RegisterCliSessionMutation, RegisterCliSessionMutationVariables>;
+
+/**
+ * __useRegisterCliSessionMutation__
+ *
+ * To run a mutation, you first call `useRegisterCliSessionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRegisterCliSessionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [registerCliSessionMutation, { data, loading, error }] = useRegisterCliSessionMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useRegisterCliSessionMutation(baseOptions?: Apollo.MutationHookOptions<RegisterCliSessionMutation, RegisterCliSessionMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RegisterCliSessionMutation, RegisterCliSessionMutationVariables>(RegisterCliSessionDocument, options);
+      }
+export type RegisterCliSessionMutationHookResult = ReturnType<typeof useRegisterCliSessionMutation>;
+export type RegisterCliSessionMutationResult = Apollo.MutationResult<RegisterCliSessionMutation>;
+export type RegisterCliSessionMutationOptions = Apollo.BaseMutationOptions<RegisterCliSessionMutation, RegisterCliSessionMutationVariables>;
 export const SendInteractiveResponseDocument = gql`
     mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
   send_interactive_response(input: $input) {
@@ -1497,6 +1546,41 @@ export function useTestApiKeyMutation(baseOptions?: Apollo.MutationHookOptions<T
 export type TestApiKeyMutationHookResult = ReturnType<typeof useTestApiKeyMutation>;
 export type TestApiKeyMutationResult = Apollo.MutationResult<TestApiKeyMutation>;
 export type TestApiKeyMutationOptions = Apollo.BaseMutationOptions<TestApiKeyMutation, TestApiKeyMutationVariables>;
+export const UnregisterCliSessionDocument = gql`
+    mutation UnregisterCliSession($input: UnregisterCliSessionInput!) {
+  unregister_cli_session(input: $input) {
+    success
+    message
+    error
+  }
+}
+    `;
+export type UnregisterCliSessionMutationFn = Apollo.MutationFunction<UnregisterCliSessionMutation, UnregisterCliSessionMutationVariables>;
+
+/**
+ * __useUnregisterCliSessionMutation__
+ *
+ * To run a mutation, you first call `useUnregisterCliSessionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUnregisterCliSessionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [unregisterCliSessionMutation, { data, loading, error }] = useUnregisterCliSessionMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUnregisterCliSessionMutation(baseOptions?: Apollo.MutationHookOptions<UnregisterCliSessionMutation, UnregisterCliSessionMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UnregisterCliSessionMutation, UnregisterCliSessionMutationVariables>(UnregisterCliSessionDocument, options);
+      }
+export type UnregisterCliSessionMutationHookResult = ReturnType<typeof useUnregisterCliSessionMutation>;
+export type UnregisterCliSessionMutationResult = Apollo.MutationResult<UnregisterCliSessionMutation>;
+export type UnregisterCliSessionMutationOptions = Apollo.BaseMutationOptions<UnregisterCliSessionMutation, UnregisterCliSessionMutationVariables>;
 export const UpdateNodeDocument = gql`
     mutation UpdateNode($diagram_id: ID!, $node_id: ID!, $input: UpdateNodeInput!) {
   update_node(diagram_id: $diagram_id, node_id: $node_id, input: $input) {

@@ -157,3 +157,15 @@ export type InteractiveResponseInput = {
   node_id: Scalars['ID']['input'];
   response: Scalars['String']['input'];
 };
+
+// CLI Session inputs
+export type RegisterCliSessionInput = {
+  execution_id: Scalars['ID']['input'];
+  diagram_name: Scalars['String']['input'];
+  diagram_format: DiagramFormat;
+  diagram_data?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type UnregisterCliSessionInput = {
+  execution_id: Scalars['ID']['input'];
+};

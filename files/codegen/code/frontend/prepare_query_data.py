@@ -303,6 +303,8 @@ def collect_input_types(query_definitions: List[Dict[str, Any]]) -> List[str]:
         'CreatePersonInput',
         'ExecuteDiagramInput',
         'InteractiveResponseInput',
+        'RegisterCliSessionInput',
+        'UnregisterCliSessionInput',
         'UpdateNodeInput',
         'UpdateNodeStateInput',
         'UpdatePersonInput',

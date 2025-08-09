@@ -33,11 +33,13 @@ import type {
 {%- if 'Upload' in input_types or 'Scalars' in input_types %}
 
 type Upload = Scalars['Upload']['input'];
+
 {%- endif %}
-
 {#- Generate each query/mutation/subscription -#}
-{% for query in queries %}
+{%- for query in queries %}
+{%- if not loop.first %}
 
+{% endif -%}
 {#- Generate the GraphQL document -#}
 export const {{ query.name | upper }}_{{ query.operationType | upper }} = gql`
   {{ query.operationType | lower }} {{ query.name }}
@@ -56,15 +58,16 @@ export const {{ query.name | upper }}_{{ query.operationType | upper }} = gql`
 
 {#- Generate TypeScript type for variables if present -#}
 {%- if query.variables and query.variables|length > 0 %}
+
 export interface {{ query.name | pascal_case }}Variables {
 {%- for var in query.variables %}
   {{ var.name }}{{ '?' if not var.required else '' }}: {{ var.tsType | default('any') }};
 {%- endfor %}
 }
 {%- endif %}
-
 {#- Generate TypeScript type for response if fields are defined -#}
 {%- if query.responseType %}
+
 export interface {{ query.name | pascal_case }}Response {
   {{ query.name }}: {{ query.responseType }};
 }
@@ -91,11 +94,13 @@ export const SUBSCRIPTIONS = {
 } as const;
 
 {#- Generate helper types -#}
+
 export type QueryName = keyof typeof QUERIES;
 export type MutationName = keyof typeof MUTATIONS;
 export type SubscriptionName = keyof typeof SUBSCRIPTIONS;
 
 {#- Generate operation metadata -#}
+
 export const OPERATION_METADATA = {
 {%- for query in queries %}
   {{ query.name }}: {
