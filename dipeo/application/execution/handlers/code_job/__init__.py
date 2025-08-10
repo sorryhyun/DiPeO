@@ -187,5 +187,5 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             value=f"Code execution failed: {error!s}",
             node_id=request.node.id,
             error_type=type(error).__name__,
-            metadata={"language": language}
+            metadata=json.dumps({"language": language})
         )

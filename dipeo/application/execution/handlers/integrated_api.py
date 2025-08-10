@@ -148,11 +148,11 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
             return DataOutput(
                 value={"default": result},
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "provider": provider,
                     "operation": operation,
                     "success": True
-                }
+                })
             )
             
         except ValueError as e:
@@ -162,10 +162,10 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 value=str(e),
                 node_id=node.id,
                 error_type="ValidationError",
-                metadata={
+                metadata=json.dumps({
                     "provider": provider,
                     "operation": operation
-                }
+                })
             )
             
         except Exception as e:
@@ -175,8 +175,8 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 value=str(e),
                 node_id=node.id,
                 error_type=type(e).__name__,
-                metadata={
+                metadata=json.dumps({
                     "provider": provider,
                     "operation": operation
-                }
+                })
             )

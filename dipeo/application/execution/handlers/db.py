@@ -214,13 +214,13 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 return DataOutput(
                     value=results,
                     node_id=node.id,
-                    metadata={
+                    metadata=json.dumps({
                         "multiple_files": True, 
                         "file_count": len(processed_paths), 
                         "format": format_type,
                         "serialize_json": serialize_json,
                         "glob": getattr(node, 'glob', False)
-                    }
+                    })
                 )
             
             elif len(processed_paths) == 1:
@@ -252,25 +252,25 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     return TextOutput(
                         value=json.dumps(output_value),
                         node_id=node.id,
-                        metadata={"serialized": True, "original_type": type(output_value).__name__, "format": format_type}
+                        metadata=json.dumps({"serialized": True, "original_type": type(output_value).__name__, "format": format_type})
                     )
                 elif isinstance(output_value, dict):
                     return DataOutput(
                         value=output_value,
                         node_id=node.id,
-                        metadata={}
+                        metadata=json.dumps({})
                     )
                 elif isinstance(output_value, list):
                     return DataOutput(
                         value={"default": output_value},
                         node_id=node.id,
-                        metadata={"wrapped_list": True}
+                        metadata=json.dumps({"wrapped_list": True})
                     )
                 else:
                     return TextOutput(
                         value=str(output_value),
                         node_id=node.id,
-                        metadata={}
+                        metadata=json.dumps({})
                     )
             
             else:

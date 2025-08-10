@@ -160,7 +160,7 @@ class ConversationOutput(BaseNodeOutput[list['Message']]):
         if not isinstance(self.value, list):
             raise TypeError(f"ConversationOutput value must be list, got {type(self.value)}")
     
-    def get_last_message(self) -> 'Message' | None:
+    def get_last_message(self) -> "Message" | None:
         return self.value[-1] if self.value else None
     
     def get_messages_by_role(self, role: str) -> list['Message']:

@@ -196,6 +196,33 @@ class ExecutionMetrics(BaseModel):
     bottlenecks: Optional[List[Dict[str, Any]]] = Field(default=None)
 
 
+class SerializedNodeOutput(BaseModel):
+    """SerializedNodeOutput model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    type: str = Field(description="Output type like PersonJobOutput, ConditionOutput, etc.", alias="_type")
+    value: Any
+    node_id: str
+    metadata: str = Field(description="JSON string")
+    timestamp: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
+    execution_time: Optional[float] = Field(default=None)
+    retry_count: Optional[int] = Field(default=None)
+    person_id: Optional[str] = Field(default=None)
+    conversation_id: Optional[str] = Field(default=None)
+    language: Optional[str] = Field(default=None)
+    stdout: Optional[str] = Field(default=None)
+    stderr: Optional[str] = Field(default=None)
+    success: Optional[bool] = Field(default=None)
+    status_code: Optional[int] = Field(default=None)
+    headers: Optional[Dict[str, str]] = Field(default=None)
+    response_time: Optional[float] = Field(default=None)
+    true_output: Optional[Any] = Field(default=None)
+    false_output: Optional[Any] = Field(default=None)
+    error_type: Optional[str] = Field(default=None)
+
+
 class ExecutionState(BaseModel):
     """ExecutionState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -206,7 +233,7 @@ class ExecutionState(BaseModel):
     started_at: str
     ended_at: Optional[str] = Field(default=None)
     node_states: Dict[str, NodeState]
-    node_outputs: Dict[str, JsonDict]
+    node_outputs: Dict[str, SerializedNodeOutput]
     token_usage: TokenUsage
     error: Optional[str] = Field(default=None)
     variables: Optional[JsonDict] = Field(default=None)

@@ -1,5 +1,6 @@
 """Evaluator for max iterations condition."""
 
+import json
 import logging
 from typing import Any
 

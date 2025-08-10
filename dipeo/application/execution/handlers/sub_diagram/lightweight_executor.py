@@ -5,6 +5,7 @@ without creating separate execution contexts or state persistence.
 """
 
 from typing import TYPE_CHECKING, Any, Optional
+import json
 import logging
 import uuid
 from datetime import datetime, UTC
@@ -66,10 +67,10 @@ class LightweightSubDiagramExecutor:
             return DataOutput(
                 value=output_value,
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "execution_mode": "lightweight",
                     "status": "completed"
-                }
+                })
             )
             
         except Exception as e:
@@ -77,11 +78,11 @@ class LightweightSubDiagramExecutor:
             return DataOutput(
                 value={"error": str(e)},
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "execution_mode": "lightweight",
                     "status": "error",
                     "error": str(e)
-                }
+                })
             )
     
     async def _get_diagram_input(self, node: SubDiagramNode, request: ExecutionRequest) -> Any:

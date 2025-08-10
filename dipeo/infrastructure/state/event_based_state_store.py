@@ -338,6 +338,23 @@ class EventBasedStateStore(StateStorePort):
         if not row:
             return None
         
+        from dipeo.diagram_generated import SerializedNodeOutput
+        
+        # Parse node_outputs and convert to SerializedNodeOutput objects
+        raw_outputs = json.loads(row[6]) if row[6] else {}
+        node_outputs = {}
+        for node_id, output_data in raw_outputs.items():
+            if isinstance(output_data, dict):
+                # Map _protocol_type to type field (using alias)
+                if "_protocol_type" in output_data:
+                    output_data["_type"] = output_data.pop("_protocol_type")
+                node_outputs[node_id] = SerializedNodeOutput(**output_data)
+            else:
+                # Fallback for unexpected data
+                node_outputs[node_id] = SerializedNodeOutput(
+                    **{"_type": "Unknown", "value": output_data, "node_id": node_id, "metadata": "{}"}
+                )
+        
         state_data = {
             "id": row[0],
             "status": row[1],
@@ -345,7 +362,7 @@ class EventBasedStateStore(StateStorePort):
             "started_at": row[3],
             "ended_at": row[4],
             "node_states": json.loads(row[5]) if row[5] else {},
-            "node_outputs": json.loads(row[6]) if row[6] else {},
+            "node_outputs": node_outputs,
             "token_usage": json.loads(row[7])
             if row[7]
             else {"input": 0, "output": 0, "cached": None, "total": 0},
@@ -413,11 +430,21 @@ class EventBasedStateStore(StateStorePort):
             )
             serialized_output = serialize_protocol(wrapped_output)
         
+        # Convert to SerializedNodeOutput if needed
+        from dipeo.diagram_generated import SerializedNodeOutput
+        if isinstance(serialized_output, dict):
+            # Map _protocol_type to _type for the alias
+            if "_protocol_type" in serialized_output:
+                serialized_output["_type"] = serialized_output.pop("_protocol_type")
+            serialized_node_output = SerializedNodeOutput(**serialized_output)
+        else:
+            serialized_node_output = serialized_output
+        
         # Update cache immediately
         await cache.set_node_output(node_id, serialized_output)
         
         # Update state
-        state.node_outputs[node_id] = serialized_output
+        state.node_outputs[node_id] = serialized_node_output
         
         # Update token usage if provided
         if token_usage:
@@ -581,8 +608,28 @@ class EventBasedStateStore(StateStorePort):
             self._executor, cursor.fetchall
         )
         
+        from dipeo.diagram_generated import SerializedNodeOutput
+        
         executions = []
         for row in rows:
+            # Parse node_outputs and convert to SerializedNodeOutput objects
+            raw_outputs = json.loads(row[6]) if row[6] else {}
+            node_outputs = {}
+            for node_id, output_data in raw_outputs.items():
+                if isinstance(output_data, dict):
+                    # Ensure _protocol_type is preserved as _type
+                    if "_protocol_type" in output_data and "_type" not in output_data:
+                        output_data["_type"] = output_data["_protocol_type"]
+                    node_outputs[node_id] = SerializedNodeOutput(**output_data)
+                else:
+                    # Fallback for unexpected data
+                    node_outputs[node_id] = SerializedNodeOutput(
+                        _type="Unknown",
+                        value=output_data,
+                        node_id=node_id,
+                        metadata="{}"
+                    )
+            
             state_data = {
                 "id": row[0],
                 "status": row[1],
@@ -590,7 +637,7 @@ class EventBasedStateStore(StateStorePort):
                 "started_at": row[3],
                 "ended_at": row[4],
                 "node_states": json.loads(row[5]) if row[5] else {},
-                "node_outputs": json.loads(row[6]) if row[6] else {},
+                "node_outputs": node_outputs,
                 "token_usage": json.loads(row[7])
                 if row[7]
                 else {"input": 0, "output": 0, "cached": None, "total": 0},

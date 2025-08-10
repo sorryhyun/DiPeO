@@ -99,17 +99,7 @@ nodes:
       template_path: files/codegen/templates/models/static_nodes_all.j2
       output_path: dipeo/diagram_generated_staged/generated_nodes.py
       # Template will automatically receive inputs from connections
-      variables:
-        # Define enum fields mapping
-        enum_fields:
-          method: HttpMethod
-          language: SupportedLanguage
-          sub_type: DBBlockSubType
-          hook_type: HookType
-          trigger_mode: HookTriggerMode
-          diagram_format: DiagramFormat
-          memory_profile: MemoryProfile
-          tools: ToolSelection
+      # Enum fields mapping will be passed via input connections instead
 
   # Generate success summary
   - label: Generate Summary

@@ -1,5 +1,6 @@
 """Evaluator for custom expression conditions."""
 
+import json
 import logging
 from typing import Any
 

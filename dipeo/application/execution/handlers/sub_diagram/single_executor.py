@@ -1,6 +1,7 @@
 """Single sub-diagram executor - handles execution of individual sub-diagrams."""
 
 from typing import TYPE_CHECKING, Any, Optional
+import json
 import logging
 import uuid
 
@@ -111,11 +112,11 @@ class SingleSubDiagramExecutor:
                 return DataOutput(
                     value={"error": execution_error},
                     node_id=node.id,
-                    metadata={
+                    metadata=json.dumps({
                         "sub_execution_id": sub_execution_id,
                         "status": "failed",
                         "error": execution_error
-                    }
+                    })
                 )
             
             # Process output mapping
@@ -125,11 +126,11 @@ class SingleSubDiagramExecutor:
             return DataOutput(
                 value=output_value,
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "sub_execution_id": sub_execution_id,
                     "status": "completed",
                     "execution_results": execution_results
-                }
+                })
             )
             
         except Exception as e:
@@ -137,10 +138,10 @@ class SingleSubDiagramExecutor:
             return DataOutput(
                 value={"error": str(e)},
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "status": "error",
                     "error": str(e)
-                }
+                })
             )
     
     def _is_sub_diagram_context(self, request: ExecutionRequest[SubDiagramNode]) -> bool:

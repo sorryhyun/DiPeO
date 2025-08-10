@@ -1,5 +1,6 @@
 """State transition mixin for execution contexts."""
 
+import json
 import threading
 from datetime import datetime
 from enum import Enum
@@ -100,7 +101,7 @@ class StateTransitionMixin:
             output = BaseNodeOutput(
                 value="Maximum iterations reached",
                 node_id=node_id,
-                metadata={"reason": "max_iterations"}
+                metadata=json.dumps({"reason": "max_iterations"})
             )
         
         self._transition_to_final_state(
@@ -117,7 +118,7 @@ class StateTransitionMixin:
         skipped_output = BaseNodeOutput(
             value="Node skipped",
             node_id=node_id,
-            metadata={"reason": "branch_not_taken"}
+            metadata=json.dumps({"reason": "branch_not_taken"})
         )
         
         self._transition_to_final_state(
@@ -200,7 +201,7 @@ class StateTransitionMixin:
         return BaseNodeOutput(
             value=output,
             node_id=node_id,
-            metadata={}
+            metadata=json.dumps({})
         )
     
     def _reset_downstream_nodes_if_needed(self, node_id: NodeID) -> None:

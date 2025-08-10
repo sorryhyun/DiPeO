@@ -58,6 +58,6 @@ dipeo run files/diagrams/examples/simple_iter.light.yaml --light --debug
 - Python 3.13+
 - tmux (optional, for better parallel execution)
 
-- 0.4.0 Release will include
+- 0.3.0 Release will include
   - Light formatted diagram Pydantic model for automatic diagram generation
   - Example diagram for self-evolving LLMs

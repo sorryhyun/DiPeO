@@ -168,7 +168,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                 return DataOutput(
                     value={"default": data_to_validate},
                     node_id=node.id,
-                    metadata={
+                    metadata=json.dumps({
                         "success": True,
                         "strict_mode": node.strict_mode or False,
                         "validation_passed": True,
@@ -176,7 +176,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                         "message": "Validation successful",
                         "schema_path": node.schema_path,
                         "data_path": node.data_path
-                    }
+                    })
                 )
             else:
                 # Log failure
@@ -198,11 +198,11 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     value=error_message,
                     node_id=node.id,
                     error_type="ValidationError",
-                    metadata={
+                    metadata=json.dumps({
                         "errors": validation_result["errors"],
                         "strict_mode": node.strict_mode or False,
                         "validation_passed": False
-                    }
+                    })
                 )
         
         except Exception as e:

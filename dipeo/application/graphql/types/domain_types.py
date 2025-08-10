@@ -25,6 +25,7 @@ from dipeo.diagram_generated.domain_models import (
     MemorySettings,
     Vec2,
     ExecutionOptions,
+    SerializedNodeOutput,
 )
 
 # Import the Status enum for GraphQL type resolution
@@ -77,6 +78,31 @@ class NodeStateType:
     @strawberry.field
     def output(self) -> Optional[JSONScalar]:
         return self.output if hasattr(self, 'output') else None
+
+@strawberry.experimental.pydantic.type(SerializedNodeOutput)
+class SerializedNodeOutputType:
+    type: str  # Will be exposed as 'type' in GraphQL
+    value: JSONScalar
+    node_id: str
+    metadata: str
+    timestamp: Optional[str]
+    error: Optional[str]
+    token_usage: Optional[TokenUsageType]
+    execution_time: Optional[float]
+    retry_count: Optional[int]
+    # Node-specific fields
+    person_id: Optional[str]
+    conversation_id: Optional[str]
+    language: Optional[str]
+    stdout: Optional[str]
+    stderr: Optional[str]
+    success: Optional[bool]
+    status_code: Optional[int]
+    headers: Optional[JSONScalar]
+    response_time: Optional[float]
+    true_output: Optional[JSONScalar]
+    false_output: Optional[JSONScalar]
+    error_type: Optional[str]
 
 @strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
 class DomainHandleType:
@@ -158,7 +184,16 @@ class ExecutionStateType:
     
     @strawberry.field
     def node_outputs(self) -> JSONScalar:
-        return self.node_outputs if hasattr(self, 'node_outputs') else {}
+        if hasattr(self, 'node_outputs') and self.node_outputs:
+            # Convert SerializedNodeOutput objects to dicts for GraphQL
+            result = {}
+            for key, output in self.node_outputs.items():
+                if hasattr(output, 'model_dump'):
+                    result[key] = output.model_dump()
+                else:
+                    result[key] = output
+            return result
+        return {}
     
     @strawberry.field
     def variables(self) -> Optional[JSONScalar]:
@@ -189,6 +224,7 @@ __all__ = [
     'Vec2Type',
     'TokenUsageType',
     'NodeStateType',
+    'SerializedNodeOutputType',
     'DomainHandleType',
     'DomainNodeType',
     'DomainArrowType',

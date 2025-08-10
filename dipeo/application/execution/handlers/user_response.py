@@ -1,4 +1,5 @@
 
+import json
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -72,10 +73,10 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
             return TextOutput(
                 value=response,
                 node_id=node.id,
-                metadata={"user_response": response}
+                metadata=json.dumps({"user_response": response})
             )
         return TextOutput(
             value="",
             node_id=node.id,
-            metadata={"warning": "No interactive handler available", "user_response": ""}
+            metadata=json.dumps({"warning": "No interactive handler available", "user_response": ""})
         )

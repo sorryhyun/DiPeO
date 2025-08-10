@@ -58,6 +58,32 @@ export interface ExecutionMetrics {
 }
 
 
+export interface SerializedNodeOutput {
+  _type: string;  // "PersonJobOutput", "ConditionOutput", etc.
+  value: any;
+  node_id: string;
+  metadata: string;  // JSON string
+  timestamp?: string;
+  error?: string | null;
+  // Typed fields based on _type
+  token_usage?: TokenUsage | null;
+  execution_time?: number | null;
+  retry_count?: number;
+  // Node-specific fields
+  person_id?: string | null;
+  conversation_id?: string | null;
+  language?: string | null;
+  stdout?: string | null;
+  stderr?: string | null;
+  success?: boolean;
+  status_code?: number | null;
+  headers?: Record<string, string> | null;
+  response_time?: number | null;
+  true_output?: any;
+  false_output?: any;
+  error_type?: string | null;
+}
+
 export interface ExecutionState {
   id: ExecutionID;
   status: Status;
@@ -65,7 +91,7 @@ export interface ExecutionState {
   started_at: string;
   ended_at?: string | null;
   node_states: Record<string, NodeState>;
-  node_outputs: Record<string, JsonDict>;
+  node_outputs: Record<string, SerializedNodeOutput>;
   token_usage: TokenUsage;
   error?: string | null;
   variables?: JsonDict;

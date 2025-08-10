@@ -9,6 +9,7 @@ This executor implements optimizations for batch parallel execution:
 
 from typing import TYPE_CHECKING, Any, Optional
 import asyncio
+import json
 import logging
 import uuid
 from dataclasses import replace
@@ -54,7 +55,7 @@ class BatchSubDiagramExecutor:
             return DataOutput(
                 value={'total_items': 0, 'successful': 0, 'failed': 0, 'results': [], 'errors': None},
                 node_id=node.id,
-                metadata={'batch_mode': True, 'batch_parallel': batch_parallel, 'status': 'completed'}
+                metadata=json.dumps({'batch_mode': True, 'batch_parallel': batch_parallel, 'status': 'completed'})
             )
         
         # Load and prepare diagram once for all batch items
@@ -87,11 +88,11 @@ class BatchSubDiagramExecutor:
         return DataOutput(
             value=batch_output,
             node_id=node.id,
-            metadata={
+            metadata=json.dumps({
                 'batch_mode': True,
                 'batch_parallel': batch_parallel,
                 'status': 'completed' if not errors else 'partial_failure'
-            }
+            })
         )
     
     def _extract_batch_items(self, inputs: Optional[dict[str, Any]], batch_input_key: str) -> list[Any]:
@@ -278,11 +279,11 @@ class BatchSubDiagramExecutor:
         return DataOutput(
             value=output_value,
             node_id=f"{original_request.node.id}_batch_{index}",
-            metadata={
+            metadata=json.dumps({
                 "batch_index": index,
                 "sub_execution_id": sub_execution_id,
                 "status": "completed"
-            }
+            })
         )
     
     async def _execute_optimized(

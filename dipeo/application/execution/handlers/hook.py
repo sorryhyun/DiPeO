@@ -70,7 +70,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             return TextOutput(
                 value=str(result),
                 node_id=node.id,
-                metadata={"hook_type": node.hook_type}
+                metadata=json.dumps({"hook_type": node.hook_type})
             )
         except Exception as e:
             raise NodeExecutionError(f"Hook execution failed: {e!s}") from e
@@ -79,13 +79,13 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 delattr(self, '_temp_filesystem_adapter')
     
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        if node.hook_type == HookType.shell:
+        if node.hook_type == HookType.SHELL:
             return await self._execute_shell_hook(node, inputs)
-        elif node.hook_type == HookType.webhook:
+        elif node.hook_type == HookType.WEBHOOK:
             return await self._execute_webhook_hook(node, inputs)
-        elif node.hook_type == HookType.python:
+        elif node.hook_type == HookType.PYTHON:
             return await self._execute_python_hook(node, inputs)
-        elif node.hook_type == HookType.file:
+        elif node.hook_type == HookType.FILE:
             return await self._execute_file_hook(node, inputs)
         else:
             raise InvalidDiagramError(f"Unknown hook type: {node.hook_type}")
