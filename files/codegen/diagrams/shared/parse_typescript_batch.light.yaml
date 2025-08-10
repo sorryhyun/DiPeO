@@ -48,18 +48,8 @@ nodes:
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', 'query-definitions', '*.ts')))
         
-        # Create items for batch processing
-        items = []
-        for file_path in ts_files:
-            items.append({
-                'file_path': file_path
-            })
-        
-        # Found {len(items)} TypeScript files to parse (logging removed for less verbosity)
-        
-        # Wrap items for batch processing
         result = {
-            'items': items
+            'items': ts_files
         }
     
   # Batch parse files using sub_diagram
@@ -83,5 +73,5 @@ nodes:
       
 connections:
   - {from: Start, to: Gather TypeScript Files}
-  - {from: Gather TypeScript Files, to: Batch Parse Files, label: items}
+  - {from: Gather TypeScript Files, to: Batch Parse Files}
   - {from: Batch Parse Files, to: End}

@@ -46,7 +46,7 @@ class BatchSubDiagramExecutor:
         batch_input_key = getattr(node, 'batch_input_key', 'items')
         batch_parallel = getattr(node, 'batch_parallel', True)
         max_concurrent = getattr(node, 'max_concurrent', self.DEFAULT_MAX_CONCURRENT)
-        
+
         # Extract array from inputs
         batch_items = self._extract_batch_items(request.inputs, batch_input_key)
 
@@ -99,7 +99,7 @@ class BatchSubDiagramExecutor:
         """Extract batch items from inputs."""
         if not inputs:
             return []
-        
+
         # Check if batch_input_key is in the root level or in 'default'
         if batch_input_key in inputs:
             batch_items = inputs.get(batch_input_key, [])
@@ -107,7 +107,7 @@ class BatchSubDiagramExecutor:
             batch_items = inputs['default'].get(batch_input_key, [])
         else:
             batch_items = []
-        
+        print(inputs['default'][batch_input_key])
         if not isinstance(batch_items, list):
             log.warning(f"Batch input '{batch_input_key}' is not a list. Treating as single item.")
             batch_items = [batch_items]

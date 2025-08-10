@@ -78,6 +78,18 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
     ts_to_py_type = mappings.get('ts_to_py_type', {})
     field_special_handling = mappings.get('field_special_handling', {})
     
+    # Define enum fields mapping for the template
+    enum_fields = {
+        'method': 'HttpMethod',
+        'language': 'SupportedLanguage',
+        'sub_type': 'DBBlockSubType',
+        'hook_type': 'HookType',
+        'trigger_mode': 'HookTriggerMode',
+        'diagram_format': 'DiagramFormat',
+        'memory_profile': 'MemoryProfile',
+        'tools': 'ToolSelection'
+    }
+    
     # Generate node classes data
     node_classes = []
     
@@ -159,6 +171,7 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
     
     return {
         'node_classes': node_classes,
+        'enum_fields': enum_fields,
         'now': datetime.now().isoformat()
     }
 

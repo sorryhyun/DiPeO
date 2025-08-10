@@ -120,7 +120,8 @@ class BatchPersonJobExecutor:
                     batch_items = value
                     logger.debug(f"Found batch items in default dict at key '{key}': {type(batch_items)}")
                     break
-        
+
+        print(inputs)
         if batch_items is None:
             batch_items = []
             logger.warning(f"No batch items found for key '{batch_input_key}'")
