@@ -9,7 +9,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.utils.template import TemplateProcessor
-from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol, TextOutput
+from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol, TextOutput, CodeJobOutput
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
 from dipeo.domain.ports.storage import FileSystemPort
@@ -123,6 +123,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 result = await executor.execute_file(file_path, inputs, timeout, function_name)
         
         except TimeoutError:
+            # Still use ErrorOutput for errors, but with typed fields
             output = ErrorOutput(
                 value=f"Code execution timed out after {timeout} seconds",
                 node_id=node.id,
@@ -140,18 +141,25 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             output.metadata = json.dumps({"language": language})
             return output
 
+        # Use CodeJobOutput for successful executions
         if isinstance(result, dict):
-            return DataOutput(
-                value=result,
+            # For dict results, convert to string representation
+            output_str = json.dumps(result, indent=2)
+            return CodeJobOutput(
+                value=output_str,
                 node_id=node.id,
-                metadata=json.dumps({"language": language, "success": True})
+                language=language,
+                success=True,
+                metadata=json.dumps({"result_type": "dict"})
             )
         else:
             output = str(result)
-            return TextOutput(
+            return CodeJobOutput(
                 value=output,
                 node_id=node.id,
-                metadata=json.dumps({"language": language, "success": True})
+                language=language,
+                success=True,
+                metadata=json.dumps({"result_type": "string"})
             )
     
     def post_execute(

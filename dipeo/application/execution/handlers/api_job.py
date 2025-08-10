@@ -9,7 +9,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_SERVICE
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, APIJobOutput
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
 if TYPE_CHECKING:
@@ -120,11 +120,16 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 expected_status_codes=list(range(200, 300))
             )
             
-            output_value = json.dumps(response_data) if isinstance(response_data, dict) else str(response_data)
+            # Convert response to dict format for APIJobOutput
+            response_dict = response_data if isinstance(response_data, dict) else {"result": str(response_data)}
             
-            return TextOutput(
-                value=output_value,
+            # Note: In a real implementation, we'd get status_code and headers from the actual HTTP response
+            # For now, we'll use defaults since the api_service abstraction doesn't provide these
+            return APIJobOutput(
+                value=response_dict,
                 node_id=node.id,
+                status_code=200,  # Default success code
+                headers={},  # Would be populated from actual response
                 metadata=json.dumps({
                     "success": True,
                     "url": url,

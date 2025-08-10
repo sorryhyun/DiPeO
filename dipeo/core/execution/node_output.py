@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
-    from dipeo.diagram_generated import Message, NodeID
+    from dipeo.diagram_generated import Message, NodeID, TokenUsage
 
 T = TypeVar('T')
 
@@ -28,6 +28,11 @@ class NodeOutputProtocol(Protocol[T]):
     node_id: NodeID
     
     timestamp: datetime
+    
+    # Phase 2: Promoted typed fields
+    token_usage: 'TokenUsage | None'
+    execution_time: float | None
+    retry_count: int
     
     def get_output(self, key: str, default: Any = None) -> Any:
         ...
@@ -54,6 +59,11 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
     timestamp: datetime = field(default_factory=datetime.now)
     error: str | None = None
     
+    # Phase 2: Promoted typed fields
+    token_usage: 'TokenUsage | None' = None
+    execution_time: float | None = None
+    retry_count: int = 0
+    
     def get_metadata_dict(self) -> dict[str, Any]:
         """Get metadata as a dictionary (creates friction for discovery)."""
         return json.loads(self.metadata) if self.metadata else {}
@@ -77,16 +87,33 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
         return self.error is not None
     
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "value": self.value,
             "node_id": self.node_id,
             "metadata": self.metadata,  # Keep as JSON string
             "timestamp": self.timestamp.isoformat(),
-            "error": self.error
+            "error": self.error,
+            "execution_time": self.execution_time,
+            "retry_count": self.retry_count
         }
+        
+        # Include token_usage if present
+        if self.token_usage:
+            result["token_usage"] = {
+                "input": self.token_usage.input,
+                "output": self.token_usage.output,
+                "cached": self.token_usage.cached,
+                "total": self.token_usage.total
+            }
+        else:
+            result["token_usage"] = None
+            
+        return result
     
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> BaseNodeOutput:
+        from dipeo.diagram_generated import TokenUsage
+        
         timestamp_str = data.get("timestamp")
         timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.now()
         
@@ -95,12 +122,26 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
         if isinstance(metadata, dict):
             metadata = json.dumps(metadata)
         
+        # Handle token_usage
+        token_usage = None
+        if "token_usage" in data and data["token_usage"]:
+            token_data = data["token_usage"]
+            token_usage = TokenUsage(
+                input=token_data["input"],
+                output=token_data["output"],
+                cached=token_data.get("cached"),
+                total=token_data.get("total")
+            )
+        
         return cls(
             value=data["value"],
             node_id=data["node_id"],
             metadata=metadata,
             timestamp=timestamp,
-            error=data.get("error")
+            error=data.get("error"),
+            token_usage=token_usage,
+            execution_time=data.get("execution_time"),
+            retry_count=data.get("retry_count", 0)
         )
 
 
@@ -187,6 +228,55 @@ class ErrorOutput(BaseNodeOutput[str]):
         return True
 
 
+# Phase 2: Specialized output classes for high-usage nodes
+
+@dataclass
+class PersonJobOutput(ConversationOutput):
+    """Specialized output for PersonJob nodes with required token usage."""
+    
+    person_id: str | None = None
+    conversation_id: str | None = None
+    
+    def __post_init__(self):
+        super().__post_init__()
+        # PersonJob nodes should always have token usage
+        if self.token_usage is None:
+            # Initialize with zeros if not provided
+            from dipeo.diagram_generated import TokenUsage
+            self.token_usage = TokenUsage(input=0, output=0, total=0)
+
+
+@dataclass
+class CodeJobOutput(TextOutput):
+    """Specialized output for CodeJob nodes with execution details."""
+    
+    language: str | None = None
+    stdout: str | None = None
+    stderr: str | None = None
+    success: bool = True  # Indicates if code execution was successful
+    
+    def __post_init__(self):
+        super().__post_init__()
+        # Code execution should track execution time
+        if self.execution_time is None:
+            self.execution_time = 0.0
+
+
+@dataclass
+class APIJobOutput(DataOutput):
+    """Specialized output for APIJob nodes with HTTP details."""
+    
+    status_code: int | None = None
+    headers: dict[str, str] | None = None
+    response_time: float | None = None
+    
+    def __post_init__(self):
+        super().__post_init__()
+        # Use response_time to populate execution_time
+        if self.response_time is not None and self.execution_time is None:
+            self.execution_time = self.response_time
+
+
 
 
 
@@ -197,8 +287,21 @@ def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
         "_protocol_type": output.__class__.__name__,
         "value": output.value,
         "metadata": output.metadata,  # Already a JSON string
-        "node_id": str(output.node_id)
+        "node_id": str(output.node_id),
+        "execution_time": output.execution_time,
+        "retry_count": output.retry_count
     }
+    
+    # Include token_usage if present
+    if output.token_usage:
+        base_dict["token_usage"] = {
+            "input": output.token_usage.input,
+            "output": output.token_usage.output,
+            "cached": output.token_usage.cached,
+            "total": output.token_usage.total
+        }
+    else:
+        base_dict["token_usage"] = None
     
     if isinstance(output, ConditionOutput):
         base_dict["true_output"] = output.true_output
@@ -206,6 +309,18 @@ def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
     elif isinstance(output, ErrorOutput):
         base_dict["error"] = output.error
         base_dict["error_type"] = output.error_type
+    elif isinstance(output, PersonJobOutput):
+        base_dict["person_id"] = output.person_id
+        base_dict["conversation_id"] = output.conversation_id
+    elif isinstance(output, CodeJobOutput):
+        base_dict["language"] = output.language
+        base_dict["stdout"] = output.stdout
+        base_dict["stderr"] = output.stderr
+        base_dict["success"] = output.success
+    elif isinstance(output, APIJobOutput):
+        base_dict["status_code"] = output.status_code
+        base_dict["headers"] = output.headers
+        base_dict["response_time"] = output.response_time
     elif isinstance(output, DataOutput):
         pass
     elif isinstance(output, TextOutput):
@@ -216,6 +331,8 @@ def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
 
 def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
     """Reconstruct protocol output from stored data with type information."""
+    from dipeo.diagram_generated import TokenUsage
+    
     protocol_type = data.get("_protocol_type", "BaseNodeOutput")
     node_id = NodeID(data["node_id"])
     value = data["value"]
@@ -225,37 +342,74 @@ def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
     if isinstance(metadata, dict):
         metadata = json.dumps(metadata)
     
+    # Handle token_usage
+    token_usage = None
+    if "token_usage" in data and data["token_usage"]:
+        token_data = data["token_usage"]
+        token_usage = TokenUsage(
+            input=token_data["input"],
+            output=token_data["output"],
+            cached=token_data.get("cached"),
+            total=token_data.get("total")
+        )
+    
+    # Common fields for all outputs
+    common_kwargs = {
+        "value": value,
+        "node_id": node_id,
+        "metadata": metadata,
+        "token_usage": token_usage,
+        "execution_time": data.get("execution_time"),
+        "retry_count": data.get("retry_count", 0)
+    }
+    
     if protocol_type == "ConditionOutput":
         return ConditionOutput(
+            **common_kwargs,
             value=bool(value),
-            node_id=node_id,
-            metadata=metadata,
             true_output=data.get("true_output"),
             false_output=data.get("false_output")
         )
     elif protocol_type == "ErrorOutput":
         return ErrorOutput(
+            **common_kwargs,
             value=str(value),
-            node_id=node_id,
-            metadata=metadata,
             error=data.get("error", str(value)),
             error_type=data.get("error_type", "UnknownError")
         )
+    elif protocol_type == "PersonJobOutput":
+        return PersonJobOutput(
+            **common_kwargs,
+            value=value,  # Should be list of Messages
+            person_id=data.get("person_id"),
+            conversation_id=data.get("conversation_id")
+        )
+    elif protocol_type == "CodeJobOutput":
+        return CodeJobOutput(
+            **common_kwargs,
+            value=str(value),
+            language=data.get("language"),
+            stdout=data.get("stdout"),
+            stderr=data.get("stderr"),
+            success=data.get("success", True)
+        )
+    elif protocol_type == "APIJobOutput":
+        return APIJobOutput(
+            **common_kwargs,
+            value=dict(value) if not isinstance(value, dict) else value,
+            status_code=data.get("status_code"),
+            headers=data.get("headers"),
+            response_time=data.get("response_time")
+        )
     elif protocol_type == "TextOutput":
         return TextOutput(
-            value=str(value),
-            node_id=node_id,
-            metadata=metadata
+            **common_kwargs,
+            value=str(value)
         )
     elif protocol_type == "DataOutput":
         return DataOutput(
-            value=dict(value) if not isinstance(value, dict) else value,
-            node_id=node_id,
-            metadata=metadata
+            **common_kwargs,
+            value=dict(value) if not isinstance(value, dict) else value
         )
     else:
-        return BaseNodeOutput(
-            value=value,
-            node_id=node_id,
-            metadata=metadata
-        )
+        return BaseNodeOutput(**common_kwargs)

@@ -14,7 +14,7 @@ from dipeo.application.registry import (
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, PersonJobOutput
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
@@ -372,37 +372,49 @@ class SinglePersonJobExecutor:
         return False
     
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
-        # Build metadata
+        from dipeo.diagram_generated import TokenUsage
+        
+        # Build metadata for model (non-token info)
         metadata = {"model": model}
-        
-        # Include token usage if available
-        if hasattr(result, 'token_usage') and result.token_usage:
-            metadata['token_usage'] = {
-                'input': result.token_usage.input,
-                'output': result.token_usage.output,
-                'cached': result.token_usage.cached,
-                'total': result.token_usage.total
-            }
-        
-        # Convert metadata to JSON string for intentional friction
         metadata_json = json.dumps(metadata)
+        
+        # Extract token usage as typed field
+        token_usage = None
+        if hasattr(result, 'token_usage') and result.token_usage:
+            token_usage = TokenUsage(
+                input=result.token_usage.input,
+                output=result.token_usage.output,
+                cached=result.token_usage.cached if hasattr(result.token_usage, 'cached') else None,
+                total=result.token_usage.total if hasattr(result.token_usage, 'total') else None
+            )
+        
+        # Get person and conversation IDs
+        person_id = str(person.id) if person.id else None
+        conversation_id = None  # Person doesn't directly store conversation_id
         
         # Check if conversation output is needed
         if self._needs_conversation_output(str(node.id), diagram):
-            # Return ConversationOutput with messages
+            # Return PersonJobOutput with messages
             messages = []
             for msg in person.get_messages():
                 messages.append(msg)
             
-            return ConversationOutput(
+            return PersonJobOutput(
                 value=messages,
                 node_id=node.id,
-                metadata=metadata_json
+                metadata=metadata_json,
+                token_usage=token_usage,
+                person_id=person_id,
+                conversation_id=conversation_id
             )
         else:
-            # Return TextOutput with just the text
-            return TextOutput(
-                value=result.text,
+            # For text-only output, still use PersonJobOutput but with text wrapped in a message
+            # This maintains consistency for PersonJob nodes
+            return PersonJobOutput(
+                value=[],  # Empty messages list for text-only
                 node_id=node.id,
-                metadata=metadata_json
+                metadata=metadata_json,
+                token_usage=token_usage,
+                person_id=person_id,
+                conversation_id=conversation_id
             )
