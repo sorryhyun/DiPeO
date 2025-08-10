@@ -7,6 +7,7 @@
 import type { NodeID, DiagramID } from './diagram.js';
 import type { Message } from './conversation.js';
 import { Status, EventType } from './enums/execution.js';
+import { JsonValue, JsonDict } from './types/json.js';
 
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
@@ -64,10 +65,10 @@ export interface ExecutionState {
   started_at: string;
   ended_at?: string | null;
   node_states: Record<string, NodeState>;
-  node_outputs: Record<string, Record<string, any>>;
+  node_outputs: Record<string, JsonDict>;
   token_usage: TokenUsage;
   error?: string | null;
-  variables?: Record<string, any>;
+  variables?: JsonDict;
   duration_seconds?: number | null;
   is_active?: boolean;
   exec_counts: Record<string, number>;
@@ -80,7 +81,7 @@ export interface ExecutionState {
 export interface ExecutionOptions {
   mode?: 'normal' | 'debug' | 'monitor';
   timeout?: number;
-  variables?: Record<string, any>;
+  variables?: JsonDict;
   debug?: boolean;
 }
 
@@ -104,7 +105,7 @@ export interface ExecutionUpdate {
   execution_id: ExecutionID;
   node_id?: NodeID;
   status?: Status;
-  result?: any;
+  result?: JsonValue;
   error?: string;
   timestamp?: string;
   total_tokens?: number;

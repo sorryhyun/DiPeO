@@ -67,8 +67,8 @@ class ApiJobNode(BaseExecutableNode):
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
     headers: Optional[Dict[str, str]] = None
-    params: Optional[Dict[str, Any]] = None
-    body: Optional[Any] = None
+    params: Optional[JsonDict] = None
+    body: Optional[JsonValue] = None
     timeout: Optional[int] = None
     auth_type: Optional[AuthType] = None
     auth_config: Optional[Dict[str, str]] = None
@@ -169,7 +169,7 @@ class DBNode(BaseExecutableNode):
     file: Optional[List[Union[str, str]]] = None
     collection: Optional[str] = None
     query: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[JsonDict] = None
     serialize_json: Optional[bool] = None
     glob: Optional[bool] = None
     format: Optional[str] = None
@@ -287,7 +287,7 @@ class IntegratedApiNode(BaseExecutableNode):
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    config: Optional[Dict[str, Any]] = None
+    config: Optional[JsonDict] = None
     resource_id: Optional[str] = None
     timeout: Optional[int] = None
     max_retries: Optional[int] = None
@@ -320,7 +320,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
     schema_path: Optional[str] = None
-    json_schema: Optional[Dict[str, Any]] = None
+    json_schema: Optional[JsonDict] = None
     data_path: Optional[str] = None
     strict_mode: Optional[bool] = None
     error_on_extra: Optional[bool] = None
@@ -409,7 +409,7 @@ class StartNode(BaseExecutableNode):
     custom_data: Optional[Dict[str, Union[str, float, bool]]] = None
     output_data_structure: Optional[Dict[str, str]] = None
     hook_event: Optional[str] = None
-    hook_filters: Optional[Dict[str, Any]] = None
+    hook_filters: Optional[JsonDict] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -439,7 +439,7 @@ class SubDiagramNode(BaseExecutableNode):
     # Optional node-specific fields
     diagram_name: Optional[str] = None
     diagram_format: Optional[DiagramFormat] = None
-    diagram_data: Optional[Dict[str, Any]] = None
+    diagram_data: Optional[JsonDict] = None
     batch: Optional[bool] = None
     batch_input_key: Optional[str] = None
     batch_parallel: Optional[bool] = None
@@ -476,7 +476,7 @@ class TemplateJobNode(BaseExecutableNode):
     template_path: Optional[str] = None
     template_content: Optional[str] = None
     output_path: Optional[str] = None
-    variables: Optional[Dict[str, Any]] = None
+    variables: Optional[JsonDict] = None
     engine: Optional[TemplateEngine] = None
 
     def to_dict(self) -> Dict[str, Any]:

@@ -125,23 +125,24 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             return TextOutput(
                 value=output_value,
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "success": True,
                     "url": url,
                     "method": method_value
-                }
+                })
             )
 
         except Exception as e:
-            return ErrorOutput(
+            output = ErrorOutput(
                 value=str(e),
                 node_id=node.id,
-                error_type=type(e).__name__,
-                metadata={
-                    "url": url,
-                    "method": method.value if hasattr(method, 'value') else str(method)
-                }
+                error_type=type(e).__name__
             )
+            output.metadata = json.dumps({
+                "url": url,
+                "method": method.value if hasattr(method, 'value') else str(method)
+            })
+            return output
 
     def _parse_json_inputs(
         self, headers: Any, params: Any, body: Any, auth_config: Any
@@ -244,12 +245,13 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         url = request.metadata.get("url", "unknown")
         method = request.metadata.get("method", "unknown")
         
-        return ErrorOutput(
+        output = ErrorOutput(
             value=f"API request failed: {str(error)}",
             node_id=request.node.id,
-            error_type=type(error).__name__,
-            metadata={
-                "url": url,
-                "method": method
-            }
+            error_type=type(error).__name__
         )
+        output.metadata = json.dumps({
+            "url": url,
+            "method": method
+        })
+        return output

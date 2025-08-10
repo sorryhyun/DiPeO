@@ -1,6 +1,7 @@
 """Batch person job executor - handles parallel execution of person jobs for batch operations."""
 
 import asyncio
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 from dataclasses import replace
@@ -50,7 +51,7 @@ class BatchPersonJobExecutor:
             return DataOutput(
                 value={'total_items': 0, 'successful': 0, 'failed': 0, 'results': [], 'errors': None},
                 node_id=node.id,
-                metadata={'batch_mode': True, 'batch_parallel': batch_parallel, 'status': 'completed'}
+                metadata=json.dumps({'batch_mode': True, 'batch_parallel': batch_parallel, 'status': 'completed'})
             )
         
         logger.info(f"Processing batch of {len(batch_items)} items for person {node.person}")
@@ -78,12 +79,12 @@ class BatchPersonJobExecutor:
         return DataOutput(
             value=batch_output,
             node_id=node.id,
-            metadata={
+            metadata=json.dumps({
                 'batch_mode': True,
                 'batch_parallel': batch_parallel,
                 'status': 'completed' if not errors else 'partial_failure',
                 'person': node.person
-            }
+            })
         )
     
     def _extract_batch_items(self, inputs: Optional[dict[str, Any]], batch_input_key: str) -> list[Any]:

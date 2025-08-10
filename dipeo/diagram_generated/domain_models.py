@@ -18,6 +18,7 @@ from enum import Enum, auto
 from typing import Any, Dict, List, Literal, Optional, Union, NewType
 from pydantic import BaseModel, Field, ConfigDict
 
+from dipeo.core.type_defs import JsonValue, JsonDict, JsonList, JsonPrimitive
 from .enums import *
 from .integrations import *
 
@@ -63,7 +64,7 @@ class DomainNode(BaseModel):
     id: NodeID
     type: NodeType
     position: Vec2
-    data: Dict[str, Any]
+    data: JsonDict
 
 
 class DomainArrow(BaseModel):
@@ -205,10 +206,10 @@ class ExecutionState(BaseModel):
     started_at: str
     ended_at: Optional[str] = Field(default=None)
     node_states: Dict[str, NodeState]
-    node_outputs: Dict[str, Dict[str, Any]]
+    node_outputs: Dict[str, JsonDict]
     token_usage: TokenUsage
     error: Optional[str] = Field(default=None)
-    variables: Optional[Dict[str, Any]] = Field(default=None)
+    variables: Optional[JsonDict] = Field(default=None)
     duration_seconds: Optional[float] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
     exec_counts: Dict[str, float]
@@ -222,7 +223,7 @@ class ExecutionOptions(BaseModel):
     
     mode: Optional[Literal["normal", "debug", "monitor"]] = Field(default=None)
     timeout: Optional[int] = Field(default=None)
-    variables: Optional[Dict[str, Any]] = Field(default=None)
+    variables: Optional[JsonDict] = Field(default=None)
     debug: Optional[bool] = Field(default=None)
 
 
@@ -253,7 +254,7 @@ class ExecutionUpdate(BaseModel):
     execution_id: ExecutionID
     node_id: Optional[NodeID] = Field(default=None)
     status: Optional[Status] = Field(default=None)
-    result: Optional[Any] = Field(default=None)
+    result: Optional[JsonValue] = Field(default=None)
     error: Optional[str] = Field(default=None)
     timestamp: Optional[str] = Field(default=None)
     total_tokens: Optional[float] = Field(default=None)
@@ -285,7 +286,7 @@ Used by both execution (PersonMemory) and person domains"""
     timestamp: Optional[str] = Field(default=None)
     token_count: Optional[float] = Field(default=None)
     message_type: Literal["person_to_person", "system_to_person", "person_to_system"]
-    metadata: Optional[Dict[str, Any]] = Field(default=None)
+    metadata: Optional[JsonDict] = Field(default=None)
 
 
 class ConversationMetadata(BaseModel):
@@ -382,8 +383,8 @@ class ApiJobNodeData(BaseNodeData):
     url: str
     method: HttpMethod
     headers: Optional[Dict[str, str]] = Field(default=None)
-    params: Optional[Dict[str, Any]] = Field(default=None)
-    body: Optional[Any] = Field(default=None)
+    params: Optional[JsonDict] = Field(default=None)
+    body: Optional[JsonValue] = Field(default=None)
     timeout: Optional[int] = Field(default=None)
     auth_type: Optional[AuthType] = Field(default=None)
     auth_config: Optional[Dict[str, str]] = Field(default=None)
@@ -418,7 +419,7 @@ class DBNodeData(BaseNodeData):
     sub_type: DBBlockSubType = Field(description="Storage type: file or database")
     operation: str = Field(description="Operation type: read or write")
     query: Optional[str] = Field(default=None, description="Database query (for database operations)")
-    data: Optional[Dict[str, Any]] = Field(default=None, description="Data to write (for write operations)")
+    data: Optional[JsonDict] = Field(default=None, description="Data to write (for write operations)")
     serialize_json: Optional[bool] = Field(default=None, description="Auto-parse JSON files when reading (default: false)")
     glob: Optional[bool] = Field(default=None, description="Enable glob pattern expansion for paths (default: false)")
     format: Optional[str] = Field(default=None, description="Data format: json, yaml, csv, text, etc.")
@@ -459,7 +460,7 @@ class IntegratedApiNodeData(BaseNodeData):
     
     provider: APIServiceType = Field(description="The API provider to use (e.g., notion, slack, github)")
     operation: str = Field(description="The operation to perform (provider-specific)\nThis is a string to allow dynamic operations per provider")
-    config: Optional[Dict[str, Any]] = Field(default=None, description="Provider-specific configuration\nStructure depends on the selected provider and operation")
+    config: Optional[JsonDict] = Field(default=None, description="Provider-specific configuration\nStructure depends on the selected provider and operation")
     resource_id: Optional[str] = Field(default=None, description="Optional resource ID (e.g., page_id for Notion, channel_id for Slack)")
     timeout: Optional[int] = Field(default=None, description="Request timeout in seconds")
     max_retries: Optional[float] = Field(default=None, description="Maximum number of retries for failed requests")
@@ -470,7 +471,7 @@ class JsonSchemaValidatorNodeData(BaseNodeData):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     schema_path: Optional[str] = Field(default=None)
-    json_schema: Optional[Dict[str, Any]] = Field(default=None)
+    json_schema: Optional[JsonDict] = Field(default=None)
     data_path: Optional[str] = Field(default=None)
     strict_mode: Optional[bool] = Field(default=None)
     error_on_extra: Optional[bool] = Field(default=None)
@@ -505,7 +506,7 @@ class StartNodeData(BaseNodeData):
     custom_data: Optional[Dict[str, Union[str, float, bool]]] = Field(default=None)
     output_data_structure: Optional[Dict[str, str]] = Field(default=None)
     hook_event: Optional[str] = Field(default=None)
-    hook_filters: Optional[Dict[str, Any]] = Field(default=None)
+    hook_filters: Optional[JsonDict] = Field(default=None)
 
 
 class SubDiagramNodeData(BaseNodeData):
@@ -514,7 +515,7 @@ class SubDiagramNodeData(BaseNodeData):
     
     diagram_name: Optional[str] = Field(default=None, description="Path to sub-diagram file")
     diagram_format: Optional[DiagramFormat] = Field(default=None, description="Diagram format: light or native (default: light)")
-    diagram_data: Optional[Dict[str, Any]] = Field(default=None, description="Pass all current variables to sub-diagram")
+    diagram_data: Optional[JsonDict] = Field(default=None, description="Pass all current variables to sub-diagram")
     batch: Optional[bool] = Field(default=None, description="Enable batch processing for arrays")
     batch_input_key: Optional[str] = Field(default=None, description="Array variable name for batch processing")
     batch_parallel: Optional[bool] = Field(default=None, description="Execute batch items in parallel")
@@ -528,7 +529,7 @@ class TemplateJobNodeData(BaseNodeData):
     template_path: Optional[str] = Field(default=None)
     template_content: Optional[str] = Field(default=None)
     output_path: Optional[str] = Field(default=None)
-    variables: Optional[Dict[str, Any]] = Field(default=None)
+    variables: Optional[JsonDict] = Field(default=None)
     engine: Optional[TemplateEngine] = Field(default=None)
 
 

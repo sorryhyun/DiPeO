@@ -2,6 +2,14 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/StartNodeData",
   "definitions": {
+    "HookTriggerMode": {
+      "enum": [
+        "none",
+        "manual",
+        "hook"
+      ],
+      "type": "string"
+    },
     "StartNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -15,7 +23,7 @@
           "type": "string"
         },
         "hook_filters": {
-          "$ref": "#/definitions/Record<string,any>"
+          "$ref": "#/definitions/JsonDict"
         },
         "label": {
           "type": "string"
@@ -33,23 +41,15 @@
       ],
       "type": "object"
     },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "Record<string,string|number|boolean>": {
       "additionalProperties": false,
       "type": "object"
     },
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "HookTriggerMode": {
-      "enum": [
-        "none",
-        "manual",
-        "hook"
-      ],
-      "type": "string"
-    },
-    "Record<string,string>": {
+    "JsonDict": {
       "additionalProperties": false,
       "type": "object"
     }

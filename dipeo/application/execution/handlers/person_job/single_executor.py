@@ -1,5 +1,6 @@
 """Single person job executor - handles execution for a single person."""
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -98,20 +99,11 @@ class SinglePersonJobExecutor:
             self._rebuild_conversation(person, transformed_inputs)
 
         # Build prompt BEFORE applying memory management
-        logger.info(f"[PersonJob {node.label or node.id}] Raw inputs: {list(request.inputs.keys())}")
-        logger.info(f"[PersonJob {node.label or node.id}] Transformed inputs: {list(transformed_inputs.keys())}")
-        logger.debug(f"[PersonJob {node.label or node.id}] Transformed inputs detail: {transformed_inputs}")
-        
         template_values = prompt_builder.prepare_template_values(
             transformed_inputs, 
             conversation_manager=conversation_manager,
             person_id=person_id
         )
-        
-        # Log template values for debugging
-        logger.info(f"[PersonJob {node.label or node.id}] Template values: {list(template_values.keys())}")
-        logger.debug(f"[PersonJob {node.label or node.id}] Template values detail: {template_values}")
-        
         # Check if prompt_file is specified and load the prompt from file
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
@@ -187,7 +179,7 @@ class SinglePersonJobExecutor:
             return TextOutput(
                 value="",
                 node_id=node.id,
-                metadata={"skipped": True, "reason": "No prompt available"}
+                metadata=json.dumps({"skipped": True, "reason": "No prompt available"})
             )
         
         # Execute LLM call
@@ -392,6 +384,9 @@ class SinglePersonJobExecutor:
                 'total': result.token_usage.total
             }
         
+        # Convert metadata to JSON string for intentional friction
+        metadata_json = json.dumps(metadata)
+        
         # Check if conversation output is needed
         if self._needs_conversation_output(str(node.id), diagram):
             # Return ConversationOutput with messages
@@ -402,12 +397,12 @@ class SinglePersonJobExecutor:
             return ConversationOutput(
                 value=messages,
                 node_id=node.id,
-                metadata=metadata
+                metadata=metadata_json
             )
         else:
             # Return TextOutput with just the text
             return TextOutput(
                 value=result.text,
                 node_id=node.id,
-                metadata=metadata
+                metadata=metadata_json
             )

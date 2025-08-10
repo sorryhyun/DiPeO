@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
@@ -78,14 +79,14 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                 return DataOutput(
                     value=input_variables,
                     node_id=node.id,
-                    metadata={"message": "Simple start point"}
+                    metadata=json.dumps({"message": "Simple start point"})
                 )
             else:
                 output_data = input_variables if input_variables else {}
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
-                    metadata={"message": "Simple start point"}
+                    metadata=json.dumps({"message": "Simple start point"})
                 )
         
         elif trigger_mode == HookTriggerMode.MANUAL:
@@ -94,7 +95,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
             return DataOutput(
                 value={"default": output_data},
                 node_id=node.id,
-                metadata={"message": "Manual execution started"}
+                metadata=json.dumps({"message": "Manual execution started"})
             )
         
         elif trigger_mode == HookTriggerMode.HOOK:
@@ -105,14 +106,14 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
-                    metadata={"message": f"Triggered by hook event: {node.hook_event}"}
+                    metadata=json.dumps({"message": f"Triggered by hook event: {node.hook_event}"})
                 )
             else:
                 output_data = {**input_variables, **(node.custom_data or {})}
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
-                    metadata={"message": "Hook trigger mode but no event data available"}
+                    metadata=json.dumps({"message": "Hook trigger mode but no event data available"})
                 )
     
     async def _get_hook_event_data(

@@ -316,18 +316,21 @@ class TypedExecutionEngine:
                 
                 # Execute handler
                 output = await handler.execute_request(request)
-                
-                # Handle node completion based on type
-                await self._handle_node_completion(node, output, context)
             
             # Calculate execution metrics
             end_time = time.time()
             duration_ms = (end_time - start_time) * 1000
             
-            # Extract token usage from output metadata if available
+            # Extract token usage from output metadata if available (do this BEFORE marking node as completed)
             token_usage = None
-            if hasattr(output, 'metadata') and output.metadata and 'token_usage' in output.metadata:
-                token_usage = output.metadata['token_usage']
+            if hasattr(output, 'metadata') and output.metadata:
+                # Use get_metadata_dict() to parse JSON metadata
+                if hasattr(output, 'get_metadata_dict'):
+                    metadata_dict = output.get_metadata_dict()
+                    token_usage = metadata_dict.get('token_usage')
+            
+            # Handle node completion based on type (this marks node as completed)
+            await self._handle_node_completion(node, output, context)
             
             # Emit node completed event
             node_state = context.get_node_state(node_id)

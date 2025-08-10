@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/JsonSchemaValidatorNodeData",
   "definitions": {
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "JsonSchemaValidatorNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -19,7 +15,7 @@
           "type": "boolean"
         },
         "json_schema": {
-          "$ref": "#/definitions/Record<string,any>"
+          "$ref": "#/definitions/JsonDict"
         },
         "label": {
           "type": "string"
@@ -34,6 +30,10 @@
       "required": [
         "label"
       ],
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

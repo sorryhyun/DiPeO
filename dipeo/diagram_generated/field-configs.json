@@ -29,7 +29,7 @@
         },
         {
           "name": "hook_filters",
-          "type": "code",
+          "type": "text",
           "label": "Hook Filters",
           "required": false
         }
@@ -219,7 +219,7 @@
         },
         {
           "name": "data",
-          "type": "code",
+          "type": "text",
           "label": "Data",
           "required": false
         },
@@ -310,7 +310,7 @@
         },
         {
           "name": "params",
-          "type": "code",
+          "type": "text",
           "label": "Params",
           "required": false
         },
@@ -490,7 +490,7 @@
         },
         {
           "name": "variables",
-          "type": "code",
+          "type": "text",
           "label": "Variables",
           "required": false
         },
@@ -513,7 +513,7 @@
         },
         {
           "name": "json_schema",
-          "type": "code",
+          "type": "text",
           "label": "Json Schema",
           "required": false
         },
@@ -586,7 +586,7 @@
         },
         {
           "name": "diagram_data",
-          "type": "code",
+          "type": "text",
           "label": "Diagram Data",
           "required": false
         },
@@ -636,7 +636,7 @@
         },
         {
           "name": "config",
-          "type": "code",
+          "type": "text",
           "label": "Config",
           "required": false
         },

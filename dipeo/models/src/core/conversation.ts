@@ -1,4 +1,5 @@
 import { PersonID } from "./diagram.js";
+import { JsonDict } from "./types/json.js";
 
 /**
  * Base message interface for conversations
@@ -12,7 +13,7 @@ export interface Message {
   timestamp?: string;
   token_count?: number;
   message_type: 'person_to_person' | 'system_to_person' | 'person_to_system';
-  metadata?: Record<string, any>;
+  metadata?: JsonDict;
 }
 
 export interface ConversationMetadata {

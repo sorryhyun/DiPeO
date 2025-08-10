@@ -1,5 +1,6 @@
 """Refactored condition node handler using evaluator pattern."""
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -108,16 +109,18 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             f"has_false_output={false_output is not None}"
         )
         
-        return ConditionOutput(
+        output = ConditionOutput(
             value=result,
             node_id=node.id,
             true_output=true_output,
-            false_output=false_output,
-            metadata={
-                "condition_type": condition_type,
-                "evaluation_metadata": request.metadata.get("evaluation_metadata", {})
-            }
+            false_output=false_output
         )
+        # Set metadata as JSON string
+        output.metadata = json.dumps({
+            "condition_type": condition_type,
+            "evaluation_metadata": request.metadata.get("evaluation_metadata", {})
+        })
+        return output
     
     def post_execute(
         self,
@@ -142,14 +145,16 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     ) -> NodeOutputProtocol | None:
         condition_type = request.node.condition_type
         
-        return ConditionOutput(
+        output = ConditionOutput(
             value=False,
             node_id=request.node.id,
             true_output=None,
-            false_output=request.inputs if request.inputs else {},
-            metadata={
-                "condition_type": condition_type,
-                "error": str(error),
-                "error_type": type(error).__name__
-            }
+            false_output=request.inputs if request.inputs else {}
         )
+        # Set metadata as JSON string
+        output.metadata = json.dumps({
+            "condition_type": condition_type,
+            "error": str(error),
+            "error_type": type(error).__name__
+        })
+        return output

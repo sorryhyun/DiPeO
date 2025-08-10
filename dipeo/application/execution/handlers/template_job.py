@@ -160,12 +160,13 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                         error_type="UnsupportedEngineError"
                     )
             except Exception as render_error:
-                return ErrorOutput(
+                output = ErrorOutput(
                     value=f"Template rendering failed: {str(render_error)}",
                     node_id=node.id,
-                    error_type="RenderError",
-                    metadata={"engine": engine}
+                    error_type="RenderError"
                 )
+                output.metadata = json.dumps({"engine": engine})
+                return output
             
             # Write to file if output_path is specified
             if node.output_path:
@@ -192,20 +193,21 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             return TextOutput(
                 value=rendered,
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "engine": engine,
                     "output_path": node.output_path,
                     "success": True
-                }
+                })
             )
         
         except Exception as e:
-            return ErrorOutput(
+            output = ErrorOutput(
                 value=str(e),
                 node_id=node.id,
-                error_type=type(e).__name__,
-                metadata={"engine": node.engine or "internal"}
+                error_type=type(e).__name__
             )
+            output.metadata = json.dumps({"engine": node.engine or "internal"})
+            return output
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2."""

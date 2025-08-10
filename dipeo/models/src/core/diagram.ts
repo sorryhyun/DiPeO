@@ -8,6 +8,7 @@ import { LLMService, APIServiceType, ToolConfig } from './integration.js';
 import { NodeType } from './enums/node-types.js';
 import { HandleDirection, HandleLabel, DataType, ContentType } from './enums/data-types.js';
 import { MemoryView } from './enums/memory.js';
+import { JsonDict } from './types/json.js';
 
 export { LLMService, APIServiceType };
 export type { ToolConfig };
@@ -39,7 +40,7 @@ export interface DomainNode {
   id: NodeID;
   type: NodeType;
   position: Vec2;
-  data: Record<string, any>;
+  data: JsonDict;
 }
 
 export interface DomainArrow {

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from pathlib import Path
@@ -122,33 +123,35 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 result = await executor.execute_file(file_path, inputs, timeout, function_name)
         
         except TimeoutError:
-            return ErrorOutput(
+            output = ErrorOutput(
                 value=f"Code execution timed out after {timeout} seconds",
                 node_id=node.id,
-                error_type="TimeoutError",
-                metadata={"language": language}
+                error_type="TimeoutError"
             )
+            output.metadata = json.dumps({"language": language})
+            return output
         except Exception as e:
             logger.error(f"Code execution failed: {e}")
-            return ErrorOutput(
+            output = ErrorOutput(
                 value=str(e),
                 node_id=node.id,
-                error_type=type(e).__name__,
-                metadata={"language": language}
+                error_type=type(e).__name__
             )
+            output.metadata = json.dumps({"language": language})
+            return output
 
         if isinstance(result, dict):
             return DataOutput(
                 value=result,
                 node_id=node.id,
-                metadata={"language": language, "success": True}
+                metadata=json.dumps({"language": language, "success": True})
             )
         else:
             output = str(result)
             return TextOutput(
                 value=output,
                 node_id=node.id,
-                metadata={"language": language, "success": True}
+                metadata=json.dumps({"language": language, "success": True})
             )
     
     def post_execute(

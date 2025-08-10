@@ -171,7 +171,7 @@ class LLMInfraService(BaseService, LLMServicePort):
             adapter_kwargs = {**kwargs}
             
             if hasattr(self, 'logger'):
-                self.logger.debug(f"Messages: {messages_list[:2] if len(messages_list) > 2 else messages_list}")
+                self.logger.debug(f"Messages: {len(messages_list)}")
 
             try:
                 result = await self._call_llm_with_retry(
@@ -179,7 +179,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                 )
                 
                 if hasattr(self, 'logger') and result:
-                    response_text = getattr(result, 'text', str(result))[:200]
+                    response_text = getattr(result, 'text', str(result))[:50]
                     self.logger.debug(f"LLM response: {response_text}")
                 
                 return result

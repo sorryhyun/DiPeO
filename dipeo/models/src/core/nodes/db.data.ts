@@ -1,6 +1,7 @@
 
 import { BaseNodeData } from './base.js';
 import { DBBlockSubType } from '../enums/node-specific.js';
+import { JsonDict } from '../types/json.js';
 
 /**
  * Configuration data for DB nodes that handle file system operations
@@ -17,7 +18,7 @@ export interface DBNodeData extends BaseNodeData {
   /** Database query (for database operations) */
   query?: string;
   /** Data to write (for write operations) */
-  data?: Record<string, any>;
+  data?: JsonDict;
   /** Auto-parse JSON files when reading (default: false) */
   serialize_json?: boolean;
   /** Enable glob pattern expansion for paths (default: false) */

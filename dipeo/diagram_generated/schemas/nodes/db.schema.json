@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/DBNodeData",
   "definitions": {
-    "Record<string,any>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "DBNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for DB nodes that handle file system operations",
@@ -15,7 +11,7 @@
           "type": "string"
         },
         "data": {
-          "$ref": "#/definitions/Record<string,any>",
+          "$ref": "#/definitions/JsonDict",
           "description": "Data to write (for write operations)"
         },
         "file": {
@@ -79,6 +75,10 @@
         "api_tool"
       ],
       "type": "string"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
     }
   }
 }

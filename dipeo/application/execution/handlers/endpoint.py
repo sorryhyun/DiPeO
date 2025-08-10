@@ -103,19 +103,19 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                 return DataOutput(
                     value={"default": result_data},
                     node_id=node.id,
-                    metadata={"saved_to": file_name}
+                    metadata=json.dumps({"saved_to": file_name})
                 )
             except Exception as exc:
                 return DataOutput(
                     value={"default": result_data},
                     node_id=node.id,
-                    metadata={"save_error": str(exc)}
+                    metadata=json.dumps({"save_error": str(exc)})
                 )
 
         return DataOutput(
             value={"default": result_data},
             node_id=node.id,
-            metadata={}
+            metadata="{}"
         )
     
     def post_execute(

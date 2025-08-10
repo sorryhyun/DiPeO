@@ -6,6 +6,7 @@ clear contracts, and specialized output types for different node categories.
 
 from __future__ import annotations
 
+import json
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -22,7 +23,7 @@ class NodeOutputProtocol(Protocol[T]):
     
     value: T
     
-    metadata: dict[str, Any]
+    metadata: str  # JSON string for intentional friction
     
     node_id: NodeID
     
@@ -36,6 +37,12 @@ class NodeOutputProtocol(Protocol[T]):
     
     def to_dict(self) -> dict[str, Any]:
         ...
+    
+    def get_metadata_dict(self) -> dict[str, Any]:
+        ...
+    
+    def set_metadata_dict(self, data: dict[str, Any]) -> None:
+        ...
 
 
 @dataclass
@@ -43,9 +50,17 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
     
     value: T
     node_id: NodeID
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: str = "{}"  # JSON string, requires json.loads() to access
     timestamp: datetime = field(default_factory=datetime.now)
     error: str | None = None
+    
+    def get_metadata_dict(self) -> dict[str, Any]:
+        """Get metadata as a dictionary (creates friction for discovery)."""
+        return json.loads(self.metadata) if self.metadata else {}
+    
+    def set_metadata_dict(self, data: dict[str, Any]) -> None:
+        """Set metadata from a dictionary (creates friction for discovery)."""
+        self.metadata = json.dumps(data)
     
     def get_output(self, key: str, default: Any = None) -> Any:
         if hasattr(self.value, '__getitem__'):
@@ -54,7 +69,9 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
             except (KeyError, TypeError):
                 pass
         
-        return self.metadata.get(key, default)
+        # Parse metadata to check for key
+        metadata_dict = self.get_metadata_dict()
+        return metadata_dict.get(key, default)
     
     def has_error(self) -> bool:
         return self.error is not None
@@ -63,7 +80,7 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
         return {
             "value": self.value,
             "node_id": self.node_id,
-            "metadata": self.metadata,
+            "metadata": self.metadata,  # Keep as JSON string
             "timestamp": self.timestamp.isoformat(),
             "error": self.error
         }
@@ -73,10 +90,15 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
         timestamp_str = data.get("timestamp")
         timestamp = datetime.fromisoformat(timestamp_str) if timestamp_str else datetime.now()
         
+        # Handle both old dict format and new string format for backwards compatibility
+        metadata = data.get("metadata", "{}")
+        if isinstance(metadata, dict):
+            metadata = json.dumps(metadata)
+        
         return cls(
             value=data["value"],
             node_id=data["node_id"],
-            metadata=data.get("metadata", {}),
+            metadata=metadata,
             timestamp=timestamp,
             error=data.get("error")
         )
@@ -114,7 +136,8 @@ class ConditionOutput(BaseNodeOutput[bool]):
         if not isinstance(self.value, bool):
             raise TypeError(f"ConditionOutput value must be bool, got {type(self.value)}")
         
-        self.metadata.update({
+        # Use set_metadata_dict to maintain JSON string format
+        self.set_metadata_dict({
             "condtrue": self.true_output,
             "condfalse": self.false_output,
             "active_branch": "condtrue" if self.value else "condfalse"
@@ -128,7 +151,8 @@ class ConditionOutput(BaseNodeOutput[bool]):
     
     def get_output(self, key: str, default: Any = None) -> Any:
         if key in ["condtrue", "condfalse", "active_branch"]:
-            return self.metadata.get(key, default)
+            metadata_dict = self.get_metadata_dict()
+            return metadata_dict.get(key, default)
         return super().get_output(key, default)
 
 
@@ -153,7 +177,8 @@ class ErrorOutput(BaseNodeOutput[str]):
             raise TypeError(f"ErrorOutput value must be str, got {type(self.value)}")
         
         self.error = self.value
-        self.metadata.update({
+        # Use set_metadata_dict to maintain JSON string format
+        self.set_metadata_dict({
             "error_type": self.error_type,
             "is_error": True
         })
@@ -171,7 +196,7 @@ def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
     base_dict = {
         "_protocol_type": output.__class__.__name__,
         "value": output.value,
-        "metadata": output.metadata,
+        "metadata": output.metadata,  # Already a JSON string
         "node_id": str(output.node_id)
     }
     
@@ -194,7 +219,11 @@ def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
     protocol_type = data.get("_protocol_type", "BaseNodeOutput")
     node_id = NodeID(data["node_id"])
     value = data["value"]
-    metadata = data.get("metadata", {})
+    
+    # Handle both old dict format and new string format for backwards compatibility
+    metadata = data.get("metadata", "{}")
+    if isinstance(metadata, dict):
+        metadata = json.dumps(metadata)
     
     if protocol_type == "ConditionOutput":
         return ConditionOutput(

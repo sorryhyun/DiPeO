@@ -19,7 +19,7 @@
           "type": "boolean"
         },
         "diagram_data": {
-          "$ref": "#/definitions/Record<string,any>",
+          "$ref": "#/definitions/JsonDict",
           "description": "Pass all current variables to sub-diagram"
         },
         "diagram_format": {
@@ -51,7 +51,7 @@
       ],
       "type": "object"
     },
-    "Record<string,any>": {
+    "JsonDict": {
       "additionalProperties": false,
       "type": "object"
     }
