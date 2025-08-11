@@ -42,14 +42,13 @@ from .domain_models import (
     # Execution models
     NodeState,
     ExecutionState,
-    SerializedNodeOutput,
     ExecutionOptions,
     TokenUsage,
 
     # Configuration models
     MemorySettings,
     PersonLLMConfig,
-
+    SerializedNodeOutput,
     # Other models
     BaseNodeData,
     InteractivePromptData,
@@ -113,7 +112,6 @@ __all__ = [
     "DomainPerson",
     "DomainApiKey",
     "DomainDiagram",
-    "SerializedNodeOutput",
     "DiagramMetadata",
 
     # Execution models
@@ -121,6 +119,7 @@ __all__ = [
     "ExecutionState",
     "ExecutionOptions",
     "TokenUsage",
+    "SerializedNodeOutput",
 
     # Configuration models
     "MemorySettings",

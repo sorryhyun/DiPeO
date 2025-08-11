@@ -10,7 +10,7 @@ import json
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated import Message, NodeID, TokenUsage
@@ -160,7 +160,7 @@ class ConversationOutput(BaseNodeOutput[list['Message']]):
         if not isinstance(self.value, list):
             raise TypeError(f"ConversationOutput value must be list, got {type(self.value)}")
     
-    def get_last_message(self) -> "Message" | None:
+    def get_last_message(self) -> Optional["Message"]:
         return self.value[-1] if self.value else None
     
     def get_messages_by_role(self, role: str) -> list['Message']:
@@ -236,6 +236,7 @@ class PersonJobOutput(ConversationOutput):
     
     person_id: str | None = None
     conversation_id: str | None = None
+    model: str | None = None  # LLM model used for this execution
     
     def __post_init__(self):
         super().__post_init__()
@@ -253,7 +254,7 @@ class CodeJobOutput(TextOutput):
     language: str | None = None
     stdout: str | None = None
     stderr: str | None = None
-    success: bool = True  # Indicates if code execution was successful
+    result_type: str | None = None  # Type of result (dict, string, etc.)
     
     def __post_init__(self):
         super().__post_init__()
@@ -269,6 +270,8 @@ class APIJobOutput(DataOutput):
     status_code: int | None = None
     headers: dict[str, str] | None = None
     response_time: float | None = None
+    url: str | None = None  # The URL that was called
+    method: str | None = None  # HTTP method used
     
     def __post_init__(self):
         super().__post_init__()
@@ -277,8 +280,19 @@ class APIJobOutput(DataOutput):
             self.execution_time = self.response_time
 
 
-
-
+@dataclass
+class TemplateJobOutput(TextOutput):
+    """Specialized output for TemplateJob nodes with rendering details."""
+    
+    engine: str | None = None  # Template engine used (jinja2, internal, etc.)
+    template_path: str | None = None  # Path to template file if used
+    output_path: str | None = None  # Path where output was written if applicable
+    
+    def __post_init__(self):
+        super().__post_init__()
+        # Template rendering should track execution time
+        if self.execution_time is None:
+            self.execution_time = 0.0
 
 
 def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
@@ -312,15 +326,22 @@ def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
     elif isinstance(output, PersonJobOutput):
         base_dict["person_id"] = output.person_id
         base_dict["conversation_id"] = output.conversation_id
+        base_dict["model"] = output.model
     elif isinstance(output, CodeJobOutput):
         base_dict["language"] = output.language
         base_dict["stdout"] = output.stdout
         base_dict["stderr"] = output.stderr
-        base_dict["success"] = output.success
+        base_dict["result_type"] = output.result_type
     elif isinstance(output, APIJobOutput):
         base_dict["status_code"] = output.status_code
         base_dict["headers"] = output.headers
         base_dict["response_time"] = output.response_time
+        base_dict["url"] = output.url
+        base_dict["method"] = output.method
+    elif isinstance(output, TemplateJobOutput):
+        base_dict["engine"] = output.engine
+        base_dict["template_path"] = output.template_path
+        base_dict["output_path"] = output.output_path
     elif isinstance(output, DataOutput):
         pass
     elif isinstance(output, TextOutput):
@@ -382,7 +403,8 @@ def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
             **common_kwargs,
             value=value,  # Should be list of Messages
             person_id=data.get("person_id"),
-            conversation_id=data.get("conversation_id")
+            conversation_id=data.get("conversation_id"),
+            model=data.get("model")
         )
     elif protocol_type == "CodeJobOutput":
         return CodeJobOutput(
@@ -391,7 +413,7 @@ def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
             language=data.get("language"),
             stdout=data.get("stdout"),
             stderr=data.get("stderr"),
-            success=data.get("success", True)
+            result_type=data.get("result_type")
         )
     elif protocol_type == "APIJobOutput":
         return APIJobOutput(
@@ -399,7 +421,17 @@ def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
             value=dict(value) if not isinstance(value, dict) else value,
             status_code=data.get("status_code"),
             headers=data.get("headers"),
-            response_time=data.get("response_time")
+            response_time=data.get("response_time"),
+            url=data.get("url"),
+            method=data.get("method")
+        )
+    elif protocol_type == "TemplateJobOutput":
+        return TemplateJobOutput(
+            **common_kwargs,
+            value=str(value),
+            engine=data.get("engine"),
+            template_path=data.get("template_path"),
+            output_path=data.get("output_path")
         )
     elif protocol_type == "TextOutput":
         return TextOutput(

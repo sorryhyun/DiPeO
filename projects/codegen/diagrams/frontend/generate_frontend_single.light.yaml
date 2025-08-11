@@ -70,7 +70,7 @@ nodes:
     position: {x: 700, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/frontend/frontend_node_extractor.py
+      filePath: projects/codegen/code/frontend/frontend_node_extractor.py
       functionName: main
 
   # Generate all three files using template_job
@@ -79,7 +79,7 @@ nodes:
     position: {x: 800, y: 100}
     props:
       engine: jinja2
-      template_path: files/codegen/templates/frontend/typescript_model.j2
+      template_path: projects/codegen/templates/frontend/typescript_model.j2
       output_path: apps/web/src/__generated__/models/{node_naming.node_name}Node.ts
 
   - label: Generate Node Config
@@ -87,7 +87,7 @@ nodes:
     position: {x: 800, y: 200}
     props:
       engine: jinja2
-      template_path: files/codegen/templates/frontend/node_config.j2
+      template_path: projects/codegen/templates/frontend/node_config.j2
       output_path: apps/web/src/__generated__/nodes/{node_naming.node_name}Config.ts
 
   - label: Generate Field Config
@@ -95,7 +95,7 @@ nodes:
     position: {x: 800, y: 300}
     props:
       engine: jinja2
-      template_path: files/codegen/templates/frontend/field_config.j2
+      template_path: projects/codegen/templates/frontend/field_config.j2
       output_path: apps/web/src/__generated__/fields/{node_naming.node_name}Fields.ts
 
   - label: End

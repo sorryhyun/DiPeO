@@ -106,7 +106,7 @@ nodes:
     position: {x: 400, y: 600}
     props:
       language: python
-      filePath: files/codegen/code/models/generate_typescript_indexes.py
+      filePath: projects/codegen/code/models/generate_typescript_indexes.py
       functionName: main
 
   # ===== Frontend Generation (from generate_frontend) =====
@@ -126,7 +126,7 @@ nodes:
     position: {x: 600, y: 650}
     props:
       language: python
-      filePath: files/codegen/code/frontend/prepare_node_list_from_specs.py
+      filePath: projects/codegen/code/frontend/prepare_node_list_from_specs.py
       functionName: prepare_node_list_from_specs
 
   - label: Batch Generate Frontend

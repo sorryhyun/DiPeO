@@ -71,9 +71,7 @@ codegen-auto:
 
 # Watch for changes in node specifications
 codegen-watch:
-	@echo "Starting file watcher for node specifications..."
-	@echo "Press Ctrl+C to stop watching"
-	@python scripts/watch_codegen.py
+	@echo "Watch mode is no longer supported (watch_codegen.py has been removed)"
 
 # Check code generation status
 codegen-status:

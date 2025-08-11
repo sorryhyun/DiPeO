@@ -123,23 +123,21 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 result = await executor.execute_file(file_path, inputs, timeout, function_name)
         
         except TimeoutError:
-            # Still use ErrorOutput for errors, but with typed fields
-            output = ErrorOutput(
+            # Still use ErrorOutput for errors
+            return ErrorOutput(
                 value=f"Code execution timed out after {timeout} seconds",
                 node_id=node.id,
-                error_type="TimeoutError"
+                error_type="TimeoutError",
+                metadata="{}"  # Empty metadata
             )
-            output.metadata = json.dumps({"language": language})
-            return output
         except Exception as e:
             logger.error(f"Code execution failed: {e}")
-            output = ErrorOutput(
+            return ErrorOutput(
                 value=str(e),
                 node_id=node.id,
-                error_type=type(e).__name__
+                error_type=type(e).__name__,
+                metadata="{}"  # Empty metadata
             )
-            output.metadata = json.dumps({"language": language})
-            return output
 
         # Use CodeJobOutput for successful executions
         if isinstance(result, dict):
@@ -149,8 +147,8 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 value=output_str,
                 node_id=node.id,
                 language=language,
-                success=True,
-                metadata=json.dumps({"result_type": "dict"})
+                result_type="dict",  # Use typed field
+                metadata="{}"  # Empty metadata
             )
         else:
             output = str(result)
@@ -158,8 +156,8 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 value=output,
                 node_id=node.id,
                 language=language,
-                success=True,
-                metadata=json.dumps({"result_type": "string"})
+                result_type="string",  # Use typed field
+                metadata="{}"  # Empty metadata
             )
     
     def post_execute(
@@ -181,11 +179,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         request: ExecutionRequest[CodeJobNode],
         error: Exception
     ) -> NodeOutputProtocol | None:
-        language = request.metadata.get("language", "unknown")
-        
         return ErrorOutput(
             value=f"Code execution failed: {error!s}",
             node_id=request.node.id,
             error_type=type(error).__name__,
-            metadata=json.dumps({"language": language})
+            metadata="{}"  # Empty metadata
         )

@@ -372,11 +372,19 @@ dipeo run my_diagram --native  # Looks for my_diagram.native.json
 
 ### Search Paths
 
+The CLI searches for diagrams in the following order:
+
 1. Exact path if exists
-2. `files/diagrams/{name}`
-3. `files/diagrams/{name}.{format}.{ext}`
-4. `files/codegen/diagrams/{name}`
-5. Current directory
+2. `projects/` directory (default, searched first)
+3. `files/` directory (backward compatibility, searched second)
+
+When no prefix is provided:
+- `dipeo run codegen/diagrams/my_diagram` → searches `projects/codegen/diagrams/my_diagram` first
+- Falls back to `files/codegen/diagrams/my_diagram` if not found
+
+With explicit prefix:
+- `dipeo run projects/...` → searches only in `projects/`
+- `dipeo run files/...` → searches only in `files/`
 
 ## Server Integration
 

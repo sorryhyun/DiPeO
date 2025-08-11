@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/DBNodeData",
   "definitions": {
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "DBBlockSubType": {
       "description": "Node-specific enumerations",
       "enum": [
@@ -78,6 +74,10 @@
         "operation",
         "sub_type"
       ],
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

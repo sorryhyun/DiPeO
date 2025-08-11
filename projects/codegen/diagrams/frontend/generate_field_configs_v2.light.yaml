@@ -46,7 +46,7 @@ nodes:
     position: {x: 600, y: 150}
     props:
       language: python
-      filePath: files/codegen/code/shared/extract_mappings.py
+      filePath: projects/codegen/code/shared/extract_mappings.py
       functionName: main
 
   # Extract field configurations
@@ -55,7 +55,7 @@ nodes:
     position: {x: 700, y: 300}
     props:
       language: python
-      filePath: files/codegen/code/models/field_configs_generator.py
+      filePath: projects/codegen/code/models/field_configs_generator.py
       functionName: extract_field_configs
 
   # Prepare template data
@@ -64,7 +64,7 @@ nodes:
     position: {x: 900, y: 350}
     props:
       language: python
-      filePath: files/codegen/code/models/field_configs_generator.py
+      filePath: projects/codegen/code/models/field_configs_generator.py
       functionName: prepare_template_data
   
   # Use template_job for rendering - it now automatically unwraps default inputs
@@ -73,7 +73,7 @@ nodes:
     position: {x: 1100, y: 400}
     props:
       engine: jinja2
-      template_path: files/codegen/templates/frontend/field_configs.j2
+      template_path: projects/codegen/templates/frontend/field_configs.j2
       output_path: apps/web/src/__generated__/fields.ts
 
   # Also write JSON output
@@ -82,7 +82,7 @@ nodes:
     position: {x: 1100, y: 500}
     props:
       language: python
-      filePath: files/codegen/code/shared/writers/json_writer.py
+      filePath: projects/codegen/code/shared/writers/json_writer.py
       functionName: main
 
   # Generate success summary
@@ -91,7 +91,7 @@ nodes:
     position: {x: 1300, y: 450}
     props:
       language: python
-      filePath: files/codegen/code/shared/generators/summary_generator.py
+      filePath: projects/codegen/code/shared/generators/summary_generator.py
       functionName: main
 
   - label: End

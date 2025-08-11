@@ -200,7 +200,7 @@ class SerializedNodeOutput(BaseModel):
     """SerializedNodeOutput model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    _type: str
+    type: str = Field(alias='_type')
     value: Any
     node_id: str
     metadata: str

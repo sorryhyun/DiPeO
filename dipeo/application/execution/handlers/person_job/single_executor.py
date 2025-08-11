@@ -179,7 +179,7 @@ class SinglePersonJobExecutor:
             return TextOutput(
                 value="",
                 node_id=node.id,
-                metadata=json.dumps({"skipped": True, "reason": "No prompt available"})
+                metadata="{}"  # Empty metadata - skipped status handled by empty value
             )
         
         # Execute LLM call
@@ -374,10 +374,6 @@ class SinglePersonJobExecutor:
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
         from dipeo.diagram_generated import TokenUsage
         
-        # Build metadata for model (non-token info)
-        metadata = {"model": model}
-        metadata_json = json.dumps(metadata)
-        
         # Extract token usage as typed field
         token_usage = None
         if hasattr(result, 'token_usage') and result.token_usage:
@@ -402,10 +398,11 @@ class SinglePersonJobExecutor:
             return PersonJobOutput(
                 value=messages,
                 node_id=node.id,
-                metadata=metadata_json,
+                metadata="{}",  # Empty metadata - model is now a typed field
                 token_usage=token_usage,
                 person_id=person_id,
-                conversation_id=conversation_id
+                conversation_id=conversation_id,
+                model=model  # Use typed field for model
             )
         else:
             # For text-only output, still use PersonJobOutput but with text wrapped in a message
@@ -413,8 +410,9 @@ class SinglePersonJobExecutor:
             return PersonJobOutput(
                 value=[],  # Empty messages list for text-only
                 node_id=node.id,
-                metadata=metadata_json,
+                metadata="{}",  # Empty metadata - model is now a typed field
                 token_usage=token_usage,
                 person_id=person_id,
-                conversation_id=conversation_id
+                conversation_id=conversation_id,
+                model=model  # Use typed field for model
             )

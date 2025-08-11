@@ -347,13 +347,22 @@ class EventBasedStateStore(StateStorePort):
             if isinstance(output_data, dict):
                 # Map _protocol_type to type field (using alias)
                 if "_protocol_type" in output_data:
-                    output_data["_type"] = output_data.pop("_protocol_type")
-                node_outputs[node_id] = SerializedNodeOutput(**output_data)
+                    protocol_type = output_data.pop("_protocol_type")
+                    # Map BaseNodeOutput to a valid type for SerializedNodeOutput
+                    if protocol_type == "BaseNodeOutput":
+                        output_data["_type"] = "TextOutput"  # Default fallback type
+                    else:
+                        output_data["_type"] = protocol_type
+                # Skip SerializedNodeOutput conversion due to Pydantic _type field issue
+                node_outputs[node_id] = output_data
             else:
-                # Fallback for unexpected data
-                node_outputs[node_id] = SerializedNodeOutput(
-                    **{"_type": "Unknown", "value": output_data, "node_id": node_id, "metadata": "{}"}
-                )
+                # Fallback for unexpected data - use dict instead of SerializedNodeOutput
+                node_outputs[node_id] = {
+                    "_type": "Unknown",
+                    "value": output_data,
+                    "node_id": node_id,
+                    "metadata": "{}"
+                }
         
         state_data = {
             "id": row[0],
@@ -433,10 +442,9 @@ class EventBasedStateStore(StateStorePort):
         # Convert to SerializedNodeOutput if needed
         from dipeo.diagram_generated import SerializedNodeOutput
         if isinstance(serialized_output, dict):
-            # Map _protocol_type to _type for the alias
-            if "_protocol_type" in serialized_output:
-                serialized_output["_type"] = serialized_output.pop("_protocol_type")
-            serialized_node_output = SerializedNodeOutput(**serialized_output)
+            # Skip SerializedNodeOutput conversion for now due to Pydantic _type field issue
+            # Just use the dict directly which has all the needed fields
+            serialized_node_output = serialized_output
         else:
             serialized_node_output = serialized_output
         
@@ -619,16 +627,22 @@ class EventBasedStateStore(StateStorePort):
                 if isinstance(output_data, dict):
                     # Ensure _protocol_type is preserved as _type
                     if "_protocol_type" in output_data and "_type" not in output_data:
-                        output_data["_type"] = output_data["_protocol_type"]
-                    node_outputs[node_id] = SerializedNodeOutput(**output_data)
+                        protocol_type = output_data["_protocol_type"]
+                        # Map BaseNodeOutput to a valid type for SerializedNodeOutput
+                        if protocol_type == "BaseNodeOutput":
+                            output_data["_type"] = "TextOutput"  # Default fallback type
+                        else:
+                            output_data["_type"] = protocol_type
+                    # Skip SerializedNodeOutput conversion due to Pydantic _type field issue
+                    node_outputs[node_id] = output_data
                 else:
-                    # Fallback for unexpected data
-                    node_outputs[node_id] = SerializedNodeOutput(
-                        _type="Unknown",
-                        value=output_data,
-                        node_id=node_id,
-                        metadata="{}"
-                    )
+                    # Fallback for unexpected data - use dict instead of SerializedNodeOutput
+                    node_outputs[node_id] = {
+                        "_protocol_type": "Unknown",
+                        "value": output_data,
+                        "node_id": node_id,
+                        "metadata": "{}"
+                    }
             
             state_data = {
                 "id": row[0],

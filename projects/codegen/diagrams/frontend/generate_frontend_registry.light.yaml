@@ -26,7 +26,7 @@ nodes:
     position: {x: 350, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/frontend/extract_node_list_from_specs.py
+      filePath: projects/codegen/code/frontend/extract_node_list_from_specs.py
       functionName: extract_node_list_from_specs
 
   - label: Generate Registry
@@ -34,7 +34,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/frontend/simple_registry.py
+      filePath: projects/codegen/code/frontend/simple_registry.py
       functionName: main
 
   - label: Write Registry

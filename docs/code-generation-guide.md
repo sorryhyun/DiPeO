@@ -27,7 +27,7 @@ DiPeO uses a diagram-driven, multi-stage code generation pipeline that "dog-food
 - **Unified Generation**: Single `generate_all` diagram handles both models and frontend in parallel
 - **Staging Directory**: Changes preview in `/dipeo/diagram_generated_staged/` before applying
 - **Dynamic Discovery**: Automatically finds all TypeScript files using glob patterns
-- **External Code**: All generation logic in `files/codegen/code/` for reusability
+- **External Code**: All generation logic in `projects/codegen/code/` for reusability
 - **Syntax Validation**: Default validation ensures generated code is syntactically correct
 
 ### Stage 1: TypeScript Parsing & Caching
@@ -198,7 +198,7 @@ dipeo run codegen/diagrams/models/generate_backend_models_single --light \
 
 1. **For existing entities**, modify the query generator:
    ```python
-   # /files/codegen/code/frontend/generators/query_generator_dipeo.py
+   # /projects/codegen/code/frontend/generators/query_generator_dipeo.py
    # In generate_diagram_queries() or similar method
    
    queries.append("""query MyNewQuery($id: ID!) {
@@ -210,7 +210,7 @@ dipeo run codegen/diagrams/models/generate_backend_models_single --light \
 
 2. **For new entities**, create a new query generator:
    ```python
-   # /files/codegen/code/frontend/queries/my_entity_queries.py
+   # /projects/codegen/code/frontend/queries/my_entity_queries.py
    class MyEntityQueryGenerator:
        def generate(self) -> List[str]:
            return [
@@ -274,14 +274,14 @@ dipeo run codegen/diagrams/models/generate_backend_models_single --light \
   - `/codegen/` - Code generation mappings
 
 ### Code Generation System
-- `/files/codegen/diagrams/` - DiPeO diagrams orchestrating generation
+- `/projects/codegen/diagrams/` - DiPeO diagrams orchestrating generation
   - `/models/` - Domain model generation diagrams
   - `/frontend/` - Frontend generation diagrams
   - `/shared/` - Shared parsing and utilities
-- `/files/codegen/code/` - External Python code for diagrams
+- `/projects/codegen/code/` - External Python code for diagrams
   - Organized to match diagram structure
   - All generation logic externalized for testing
-- `/files/codegen/templates/` - Jinja2 templates
+- `/projects/codegen/templates/` - Jinja2 templates
   - `/models/` - Python model templates
   - `/frontend/` - TypeScript/React templates
 
@@ -357,7 +357,7 @@ The current generation system uses "v2" diagrams with key improvements:
 
 1. **Template Job Nodes**: Direct template rendering without intermediate steps
 2. **Dynamic Discovery**: Glob patterns find all files automatically
-3. **External Code**: All logic in `files/codegen/code/` for reusability
+3. **External Code**: All logic in `projects/codegen/code/` for reusability
 4. **Batch Processing**: Parallel generation of multiple nodes
 5. **Better Error Handling**: Graceful degradation in batch operations
 
@@ -366,7 +366,7 @@ Example v2 pattern:
 - label: Generate Field Configs
   type: template_job
   props:
-    template_path: files/codegen/templates/frontend/field_config_v2.jinja2
+    template_path: projects/codegen/templates/frontend/field_config_v2.jinja2
     output_path: "{{ output_dir }}/fields/{{ node_type_pascal }}Fields.ts"
     context:
       node_type: "{{ node_type }}"
@@ -402,4 +402,4 @@ All generation logic lives in external Python files:
 - Matches diagram structure for discoverability
 - Enables unit testing of generation logic
 - Supports code reuse across diagrams
-- Example: `parse_typescript_single.light.yaml` uses functions from `files/codegen/code/shared/typescript_spec_parser.py`
+- Example: `parse_typescript_single.light.yaml` uses functions from `projects/codegen/code/shared/typescript_spec_parser.py`

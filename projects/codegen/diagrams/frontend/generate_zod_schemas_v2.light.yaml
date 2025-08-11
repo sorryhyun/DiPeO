@@ -35,7 +35,7 @@ nodes:
   position: {x: 509, y: -9}
   props:
     language: python
-    filePath: files/codegen/code/shared/extract_mappings.py
+    filePath: projects/codegen/code/shared/extract_mappings.py
     functionName: main
     code_type: python
 - label: generate zod schemas
@@ -43,7 +43,7 @@ nodes:
   position: {x: 785, y: 220}
   props:
     language: python
-    filePath: files/codegen/code/shared/extractors/zod_schemas_extractor.py
+    filePath: projects/codegen/code/shared/extractors/zod_schemas_extractor.py
     functionName: main
     code_type: python
 - label: render zod schemas template
@@ -51,7 +51,7 @@ nodes:
   position: {x: 1061, y: 62}
   props:
     engine: jinja2
-    template_path: files/codegen/templates/frontend/zod_schemas.j2
+    template_path: projects/codegen/templates/frontend/zod_schemas.j2
     output_path: apps/web/src/__generated__/schemas.ts
     variables:
       module_name: schemas

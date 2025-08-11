@@ -169,10 +169,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     value={"default": data_to_validate},
                     node_id=node.id,
                     metadata=json.dumps({
-                        "success": True,
                         "strict_mode": node.strict_mode or False,
-                        "validation_passed": True,
-                        "valid": True,
                         "message": "Validation successful",
                         "schema_path": node.schema_path,
                         "data_path": node.data_path

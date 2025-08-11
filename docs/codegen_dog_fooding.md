@@ -130,8 +130,8 @@ DiPeO diagrams can be represented as:
 * `get_graphql_type`, `get_zod_type` - Framework-specific types
 
 **Key generators**:
-* `/files/codegen/code/models/` - Python model generation
-* `/files/codegen/code/frontend/` - React/TypeScript generation
+* `/projects/codegen/code/models/` - Python model generation
+* `/projects/codegen/code/frontend/` - React/TypeScript generation
 * All use external files for testability and reuse
 
 **Result**: **Single source of truth** (TS definitions) generating:
@@ -143,10 +143,10 @@ DiPeO diagrams can be represented as:
 ### Dog‑fooding via Diagram‑Driven Codegen
 
 * **All code generation is orchestrated through DiPeO diagrams** - no traditional code generators
-* Located in `/files/codegen/diagrams/` with sub-folders for models, frontend, and shared utilities
+* Located in `/projects/codegen/diagrams/` with sub-folders for models, frontend, and shared utilities
 * **Direct execution**: `make codegen` runs `dipeo run codegen/diagrams/models/generate_all_models --light`
 * **Staging approach**: Generated code goes to `/dipeo/diagram_generated_staged/` for validation before applying
-* **External code**: All generation logic in `/files/codegen/code/` matching diagram structure
+* **External code**: All generation logic in `/projects/codegen/code/` matching diagram structure
 * DiPeO's execution engine generates its own code—true *dog‑fooding* in action
 
 ### Extensible Node Specifications

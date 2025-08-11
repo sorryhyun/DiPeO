@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/StartNodeData",
   "definitions": {
-    "JsonDict": {
+    "Record<string,string|number|boolean>": {
       "additionalProperties": false,
       "type": "object"
     },
@@ -18,7 +18,7 @@
       ],
       "type": "string"
     },
-    "Record<string,string|number|boolean>": {
+    "JsonDict": {
       "additionalProperties": false,
       "type": "object"
     },

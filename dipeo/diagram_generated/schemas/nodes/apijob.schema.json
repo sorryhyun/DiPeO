@@ -10,11 +10,26 @@
       "additionalProperties": false,
       "type": "object"
     },
-    "JsonObject": {
-      "additionalProperties": {
-        "$ref": "#/definitions/JsonValue"
-      },
-      "type": "object"
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JsonObject"
+        },
+        {
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "type": [
+            "null",
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      ]
     },
     "ApiJobNodeData": {
       "additionalProperties": false,
@@ -81,6 +96,12 @@
       ],
       "type": "object"
     },
+    "JsonObject": {
+      "additionalProperties": {
+        "$ref": "#/definitions/JsonValue"
+      },
+      "type": "object"
+    },
     "HttpMethod": {
       "enum": [
         "GET",
@@ -90,27 +111,6 @@
         "PATCH"
       ],
       "type": "string"
-    },
-    "JsonValue": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/JsonObject"
-        },
-        {
-          "items": {
-            "$ref": "#/definitions/JsonValue"
-          },
-          "type": "array"
-        },
-        {
-          "type": [
-            "null",
-            "string",
-            "number",
-            "boolean"
-          ]
-        }
-      ]
     }
   }
 }

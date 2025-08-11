@@ -40,7 +40,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/models/prepare_node_list_from_specs.py
+      filePath: projects/codegen/code/models/prepare_node_list_from_specs.py
       functionName: prepare_node_list_from_specs
 
   - label: Batch Generate Backend Models
@@ -59,7 +59,7 @@ nodes:
     position: {x: 900, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/models/prepare_init_context_from_specs.py
+      filePath: projects/codegen/code/models/prepare_init_context_from_specs.py
       functionName: prepare_init_context_from_specs
 
   - label: Generate Models Init
@@ -67,7 +67,7 @@ nodes:
     position: {x: 1100, y: 200}
     props:
       engine: jinja2
-      template_path: files/codegen/templates/backend/models_init.j2
+      template_path: projects/codegen/templates/backend/models_init.j2
       output_path: dipeo/diagram_generated_staged/models/__init__.py
 
   - label: End

@@ -1,7 +1,7 @@
 """Extract frontend node data from TypeScript AST in a single pass."""
 
 from typing import Dict, List, Any
-from files.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast
+from projects.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast
 from dipeo.infrastructure.services.jinja_template.filters.base_filters import BaseFilters
 
 

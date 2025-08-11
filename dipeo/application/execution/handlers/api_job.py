@@ -130,24 +130,18 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 node_id=node.id,
                 status_code=200,  # Default success code
                 headers={},  # Would be populated from actual response
-                metadata=json.dumps({
-                    "success": True,
-                    "url": url,
-                    "method": method_value
-                })
+                metadata="{}",  # Empty metadata - url and method are now typed fields
+                url=url,  # Use typed field
+                method=method_value  # Use typed field
             )
 
         except Exception as e:
-            output = ErrorOutput(
+            return ErrorOutput(
                 value=str(e),
                 node_id=node.id,
-                error_type=type(e).__name__
+                error_type=type(e).__name__,
+                metadata="{}"  # Empty metadata - error details in value and error_type
             )
-            output.metadata = json.dumps({
-                "url": url,
-                "method": method.value if hasattr(method, 'value') else str(method)
-            })
-            return output
 
     def _parse_json_inputs(
         self, headers: Any, params: Any, body: Any, auth_config: Any

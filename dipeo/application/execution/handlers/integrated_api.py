@@ -150,8 +150,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 node_id=node.id,
                 metadata=json.dumps({
                     "provider": provider,
-                    "operation": operation,
-                    "success": True
+                    "operation": operation
                 })
             )
             

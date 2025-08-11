@@ -37,7 +37,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
-      filePath: files/codegen/code/shared/extract_integrations.py
+      filePath: projects/codegen/code/shared/extract_integrations.py
       functionName: main
 
   # Render integrations template
@@ -46,7 +46,7 @@ nodes:
     position: {x: 700, y: 200}
     props:
       engine: jinja2
-      template_path: files/codegen/templates/models/integrations.j2
+      template_path: projects/codegen/templates/models/integrations.j2
       output_path: dipeo/diagram_generated_staged/integrations.py
       variables:
         module_name: "integrations"
