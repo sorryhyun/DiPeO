@@ -1,0 +1,141 @@
+version: light
+name: csv_processing_pipeline
+description: 'Data processing pipeline: load CSVs, validate, parallel processing,
+  aggregate, and save to JSON'
+nodes:
+- label: start
+  type: start
+  position:
+    x: 100
+    y: 200
+  props:
+    trigger_mode: none
+- label: load_files
+  type: db
+  position:
+    x: 350
+    y: 200
+  props:
+    file:
+    - files/data/input/*.csv
+    sub_type: file
+    operation: read
+    serialize_json: false
+    glob: true
+- label: validate_data
+  type: code_job
+  position:
+    x: 620
+    y: 200
+  props:
+    language: python
+    code: "validation_result = {\"valid\": True, \"errors\": []}\nif not isinstance(raw_data,\
+      \ list):\n    validation_result[\"valid\"] = False\n    validation_result[\"\
+      errors\"].append({\"error\": \"raw_data_not_list\"})\nelse:\n    errors = []\n\
+      \    for idx, item in enumerate(raw_data):\n        if isinstance(item, str):\n\
+      \            if (\",\" not in item) and (\"\\t\" not in item):\n           \
+      \     validation_result[\"valid\"] = False\n                errors.append({\"\
+      index\": idx, \"error\": \"invalid_csv_format\"})\n        else:\n         \
+      \   validation_result[\"valid\"] = False\n            errors.append({\"index\"\
+      : idx, \"error\": \"not_string\"})\n    if errors:\n        validation_result[\"\
+      errors\"] = errors\n# Expose\nvalidation_result = validation_result"
+    timeout: 60
+- label: validation_check
+  type: condition
+  position:
+    x: 900
+    y: 200
+  props:
+    condition_type: custom
+    expression: validation_result['valid']
+- label: prepare_batch
+  type: code_job
+  position:
+    x: 1150
+    y: 200
+  props:
+    language: python
+    code: "items = []\nif isinstance(validation_result, dict) and validation_result.get(\"\
+      valid\"):\n    if isinstance(raw_data, list):\n        items = raw_data\n  \
+      \  else:\n        items = [raw_data]\nelse:\n    items = []\n# Expose batch\
+      \ data\n# Data flowing to the parallel processor is via 'items'\n"
+    timeout: 60
+- label: process_batch
+  type: sub_diagram
+  position:
+    x: 1400
+    y: 200
+  props:
+    diagram_name: processors/parallel_item
+    batch: true
+    batch_input_key: items
+    batch_parallel: true
+    ignoreIfSub: false
+- label: aggregate_results
+  type: code_job
+  position:
+    x: 1650
+    y: 200
+  props:
+    language: python
+    code: 'processed = processed_items if isinstance(processed_items, list) else []
+
+      final_results = {"summary": {"processed_count": len(processed)}, "items": processed}
+
+      # Expose final results
+
+      final_results = final_results'
+    timeout: 60
+- label: log_errors
+  type: code_job
+  position:
+    x: 1000
+    y: 200
+  props:
+    language: python
+    code: "error_list = []\nif isinstance(validation_result, dict):\n    error_list\
+      \ = validation_result.get(\"errors\", [])\nfinal_results = {\"status\": \"validation_failed\"\
+      , \"errors\": error_list}\n"
+    timeout: 60
+- label: save_results_endpoint
+  type: endpoint
+  position:
+    x: 1900
+    y: 200
+  props:
+    save_to_file: true
+    file_name: files/output/results.json
+connections:
+- from: start
+  to: load_files
+  content_type: object
+- from: load_files
+  to: validate_data
+  label: raw_data
+  content_type: object
+- from: validate_data
+  to: validation_check
+  label: validation_result
+  content_type: object
+- from: validation_check
+  to: prepare_batch
+  label: validation_result
+  content_type: object
+- from: validation_check
+  to: log_errors
+  label: validation_result
+  content_type: object
+- from: prepare_batch
+  to: process_batch
+  label: items
+- from: process_batch
+  to: aggregate_results
+  label: processed_items
+- from: aggregate_results
+  to: save_results_endpoint
+  label: final_results
+  content_type: object
+- from: log_errors
+  to: save_results_endpoint
+  label: final_results
+  content_type: object

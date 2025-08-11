@@ -8,7 +8,7 @@ from typing import Any
 import ollama
 from ollama import ResponseError
 
-from dipeo.models import ChatResult, LLMRequestOptions, TokenUsage
+from dipeo.diagram_generated import ChatResult, LLMRequestOptions, TokenUsage
 
 from ...services.llm.base import BaseLLMAdapter
 
@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 
 class OllamaAdapter(BaseLLMAdapter):
     """Adapter for Ollama local LLM models."""
+    
+    # Class-level cache for model availability to avoid repeated checks
+    _model_availability_cache: dict[str, bool] = {}
+    _cache_lock: asyncio.Lock | None = None
     
     def __init__(self, model_name: str, api_key: str | None = None, base_url: str | None = None):
         """Initialize Ollama adapter.
@@ -52,23 +56,47 @@ class OllamaAdapter(BaseLLMAdapter):
         Returns:
             True if model is available or successfully pulled
         """
-        try:
-            # Check if model exists
-            models_list = await asyncio.to_thread(self.client.list)
-            available_models = [m.get("name", "").split(":")[0] for m in models_list.get("models", [])]
+        # Check class-level cache first
+        cache_key = f"{self.base_url}:{model}"
+        if cache_key in OllamaAdapter._model_availability_cache:
+            logger.debug(f"Model {model} availability cached: True")
+            return OllamaAdapter._model_availability_cache[cache_key]
+        
+        # Use lock to prevent concurrent checks for the same model
+        if OllamaAdapter._cache_lock is None:
+            OllamaAdapter._cache_lock = asyncio.Lock()
+        
+        async with OllamaAdapter._cache_lock:
+            # Double-check cache after acquiring lock
+            if cache_key in OllamaAdapter._model_availability_cache:
+                logger.debug(f"Model {model} availability cached (after lock): True")
+                return OllamaAdapter._model_availability_cache[cache_key]
             
-            if model.split(":")[0] in available_models:
+            try:
+                # Check if model exists
+                models_list = await asyncio.to_thread(self.client.list)
+                available_models = [m.get("name", "").split(":")[0] for m in models_list.get("models", [])]
+                
+                # Also check with full model name (including tag)
+                full_model_names = [m.get("name", "") for m in models_list.get("models", [])]
+                
+                # Check both base name and full name
+                model_base = model.split(":")[0]
+                if model_base in available_models or model in full_model_names:
+                    logger.debug(f"Model {model} already available locally")
+                    OllamaAdapter._model_availability_cache[cache_key] = True
+                    return True
+                
+                # Try to pull the model
+                logger.info(f"Model {model} not found locally, attempting to pull...")
+                await asyncio.to_thread(self.client.pull, model)
+                logger.info(f"Successfully pulled model {model}")
+                OllamaAdapter._model_availability_cache[cache_key] = True
                 return True
-            
-            # Try to pull the model
-            logger.info(f"Model {model} not found locally, attempting to pull...")
-            await asyncio.to_thread(self.client.pull, model)
-            logger.info(f"Successfully pulled model {model}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to ensure model {model} is available: {e}")
-            return False
+                
+            except Exception as e:
+                logger.error(f"Failed to ensure model {model} is available: {e}")
+                return False
     
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
         """Make synchronous API call to Ollama."""
@@ -148,7 +176,7 @@ class OllamaAdapter(BaseLLMAdapter):
                         output=response.get("eval_count", 0),
                         total=response.get("prompt_eval_count", 0) + response.get("eval_count", 0)
                     )
-                
+                logger.debug(f"Output text: {text}")
                 return ChatResult(
                     text=text,
                     token_usage=token_usage,

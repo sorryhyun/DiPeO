@@ -65,9 +65,7 @@ connections:
 - from: start
   to: db
   content_type: raw_text
-- from: judge panel
-  to: end
-  content_type: raw_text
+- {from: judge panel, to: end, content_type: raw_text}
 - from: condition_condtrue
   to: judge panel
   content_type: conversation_state

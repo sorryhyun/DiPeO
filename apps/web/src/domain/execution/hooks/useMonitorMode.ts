@@ -5,7 +5,7 @@
  * monitors CLI-launched executions.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useContext } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { toast } from 'sonner';
 import { useExecution } from './useExecution';
@@ -29,17 +29,18 @@ const ACTIVE_CLI_SESSION_QUERY = gql`
 
 export interface UseMonitorModeOptions {
   pollCliSessions?: boolean;
+  execution?: ReturnType<typeof useExecution>;
 }
 
 export function useMonitorMode(options: UseMonitorModeOptions = {}) {
-  const { pollCliSessions = true } = options;
+  const { pollCliSessions = true, execution: providedExecution } = options;
   
   // Track if we've already started execution to prevent double-starts
   const hasStartedRef = useRef(false);
   const lastSessionIdRef = useRef<string | null>(null);
   
-  // Get execution hook
-  const execution = useExecution({ showToasts: true });
+  // Get execution hook - use provided one or create own instance
+  const execution = providedExecution || useExecution({ showToasts: true });
   
   // Get diagram loading function
   const { loadDiagramFromData } = useDiagramLoader();
@@ -95,6 +96,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
           0;
         
+        console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
         execution.connectToExecution(activeSession.execution_id, nodeCount);
         hasStartedRef.current = true;
       }
@@ -102,6 +104,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       // CLI session ended
       console.log('[Monitor] CLI session ended');
       lastSessionIdRef.current = null;
+      hasStartedRef.current = false;
       
       // Clear diagram after a short delay
       setTimeout(() => {
@@ -114,6 +117,23 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       }, 1000);
     }
   }, [cliSessionData, cliSessionLoading, cliSessionError, isMonitorMode, pollCliSessions, setActiveCanvas, loadDiagramFromData, execution]);
+  
+  // Monitor execution completion to properly clear status
+  useEffect(() => {
+    if (!isMonitorMode() || !execution) return;
+    
+    // When execution completes but we're still in monitor mode
+    if (!execution.isRunning && hasStartedRef.current) {
+      console.log('[Monitor] Execution completed, clearing status');
+      // Mark that we're no longer tracking an execution
+      hasStartedRef.current = false;
+      
+      // If there's no active session, clear the session ref
+      if (!activeSession?.is_active) {
+        lastSessionIdRef.current = null;
+      }
+    }
+  }, [execution?.isRunning, isMonitorMode, activeSession]);
   
   return {
     isMonitorMode: isMonitorMode(),

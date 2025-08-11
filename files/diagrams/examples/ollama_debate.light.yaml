@@ -1,0 +1,96 @@
+version: light
+nodes:
+- label: optimist
+  type: person_job
+  position: {x: 600, y: 452}
+  props:
+    default_prompt: Argue against the argument.
+    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
+    max_iteration: 2
+    memory_profile: GOLDFISH
+    person: optimist
+    flipped: [false, true]
+- label: end
+  type: endpoint
+  position: {x: 58, y: 668}
+  props:
+    file_format: txt
+    save_to_file: true
+    flipped: [true, false]
+    file_path: files/results/output.txt
+- label: db
+  type: db
+  position: {x: 431, y: 148}
+  props:
+    operation: read
+    sub_type: file
+    file: files/uploads/questions.txt
+- label: pessimist
+  type: person_job
+  position: {x: 899, y: 380}
+  props:
+    default_prompt: Argue against the argument.
+    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
+    max_iteration: 3
+    memory_profile: GOLDFISH
+    person: pessimist
+    flipped: [false, true]
+- label: start
+  type: start
+  position: {x: 177, y: 320}
+- label: judge panel
+  type: person_job
+  position: {x: 439, y: 663}
+  props:
+    default_prompt: Judge which panel is more reasonable.
+    flipped: true
+    max_iteration: 1
+    memory_profile: FULL
+    person: judge
+- label: condition
+  type: condition
+  position: {x: 785, y: 647}
+  props:
+    condition_type: detect_max_iterations
+    flipped: [true, true]
+connections:
+- from: db
+  to: optimist_first
+  content_type: raw_text
+  label: topic
+- from: db
+  to: pessimist_first
+  content_type: raw_text
+  label: topic
+- from: start
+  to: db
+  content_type: raw_text
+- {from: judge panel, to: end, content_type: raw_text}
+- from: condition_condtrue
+  to: judge panel
+  content_type: conversation_state
+- from: optimist
+  to: pessimist
+  content_type: conversation_state
+- from: pessimist
+  to: condition
+  content_type: conversation_state
+- from: condition_condfalse
+  to: optimist
+  content_type: conversation_state
+persons:
+  judge:
+    service: ollama
+    model: llama3.2:1b
+    system_prompt: Say 25 words at most.
+    api_key_id: APIKEY_DUMMY  # Ollama doesn't need a real API key
+  optimist:
+    service: ollama
+    model: llama3.2:1b
+    system_prompt: Be optimistic and say 25 words at most.
+    api_key_id: APIKEY_DUMMY
+  pessimist:
+    service: ollama
+    model: llama3.2:1b
+    system_prompt: Be pessimistic and say 25 words at most.
+    api_key_id: APIKEY_DUMMY

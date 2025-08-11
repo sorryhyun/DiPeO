@@ -8,7 +8,7 @@ from typing import Any
 from google import genai
 from google.genai import types
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ChatResult,
     ImageGenerationResult,
     LLMRequestOptions,

@@ -1,12 +1,12 @@
 """
 Strawberry GraphQL types for DiPeO domain models.
 
-This module creates Strawberry types from Pydantic domain models
-using the @strawberry.experimental.pydantic.type decorator.
+This module extends generated GraphQL types with custom fields and functionality
+that can't be automatically generated.
 """
 
 import strawberry
-from typing import Optional, List, Dict, Any
+from typing import Optional
 from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
@@ -25,7 +25,11 @@ from dipeo.diagram_generated.domain_models import (
     MemorySettings,
     Vec2,
     ExecutionOptions,
+    SerializedNodeOutput,
 )
+
+# Import the Status enum for GraphQL type resolution
+from dipeo.diagram_generated.enums import Status
 
 # Import scalar types - this ensures they're registered
 from .scalars import (
@@ -40,8 +44,15 @@ from .scalars import (
     TaskIDScalar,
 )
 
+# Import generated types - these are the base types we'll extend
+from dipeo.diagram_generated.graphql.strawberry_domain import (
+    MemorySettingsType,
+    ToolConfigType,
+)
+
 # Create Strawberry types from Pydantic models using experimental decorator
 # Order matters - define types that are referenced by others first
+# Note: MemorySettingsType is now imported from generated code
 
 @strawberry.experimental.pydantic.type(Vec2, all_fields=True)
 class Vec2Type:
@@ -51,10 +62,6 @@ class Vec2Type:
 class TokenUsageType:
     pass
 
-@strawberry.experimental.pydantic.type(MemorySettings, all_fields=True)
-class MemorySettingsType:
-    pass
-
 @strawberry.experimental.pydantic.type(PersonLLMConfig, all_fields=True)
 class PersonLLMConfigType:
     pass
@@ -62,7 +69,7 @@ class PersonLLMConfigType:
 # NodeState has a Dict field 'output' that needs special handling
 @strawberry.experimental.pydantic.type(NodeState)
 class NodeStateType:
-    status: strawberry.auto
+    status: Status  # Explicitly specify the enum type
     started_at: strawberry.auto
     ended_at: strawberry.auto
     error: strawberry.auto
@@ -71,6 +78,31 @@ class NodeStateType:
     @strawberry.field
     def output(self) -> Optional[JSONScalar]:
         return self.output if hasattr(self, 'output') else None
+
+@strawberry.experimental.pydantic.type(SerializedNodeOutput)
+class SerializedNodeOutputType:
+    type: str  # Will be exposed as 'type' in GraphQL
+    value: JSONScalar
+    node_id: str
+    metadata: str
+    timestamp: Optional[str]
+    error: Optional[str]
+    token_usage: Optional[TokenUsageType]
+    execution_time: Optional[float]
+    retry_count: Optional[int]
+    # Node-specific fields
+    person_id: Optional[str]
+    conversation_id: Optional[str]
+    language: Optional[str]
+    stdout: Optional[str]
+    stderr: Optional[str]
+    success: Optional[bool]
+    status_code: Optional[int]
+    headers: Optional[JSONScalar]
+    response_time: Optional[float]
+    true_output: Optional[JSONScalar]
+    false_output: Optional[JSONScalar]
+    error_type: Optional[str]
 
 @strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
 class DomainHandleType:
@@ -132,7 +164,7 @@ class ExecutionOptionsType:
 @strawberry.experimental.pydantic.type(ExecutionState)
 class ExecutionStateType:
     id: strawberry.auto
-    status: strawberry.auto
+    status: Status  # Explicitly specify the enum type
     diagram_id: strawberry.auto
     started_at: strawberry.auto
     ended_at: strawberry.auto
@@ -152,7 +184,16 @@ class ExecutionStateType:
     
     @strawberry.field
     def node_outputs(self) -> JSONScalar:
-        return self.node_outputs if hasattr(self, 'node_outputs') else {}
+        if hasattr(self, 'node_outputs') and self.node_outputs:
+            # Convert SerializedNodeOutput objects to dicts for GraphQL
+            result = {}
+            for key, output in self.node_outputs.items():
+                if hasattr(output, 'model_dump'):
+                    result[key] = output.model_dump()
+                else:
+                    result[key] = output
+            return result
+        return {}
     
     @strawberry.field
     def variables(self) -> Optional[JSONScalar]:
@@ -183,11 +224,13 @@ __all__ = [
     'Vec2Type',
     'TokenUsageType',
     'NodeStateType',
+    'SerializedNodeOutputType',
     'DomainHandleType',
     'DomainNodeType',
     'DomainArrowType',
     'PersonLLMConfigType',
-    'MemorySettingsType',
+    'MemorySettingsType',  # Re-exported from generated code
+    'ToolConfigType',  # Re-exported from generated code
     'DomainPersonType',
     'DomainApiKeyType',
     'DiagramMetadataType',

@@ -1,10 +1,9 @@
-import { StateCreator } from 'zustand';
 import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@dipeo/models';
-import { NodeType, NodeExecutionStatus, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/models';
-import { UnifiedStore } from '../types';
+import { NodeType, Status, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/models';
 import type { SelectableID } from './ui';
 import type { NodeState } from './execution';
 import { createComputedGetters } from '../helpers/computedGetters';
+import type { UnifiedStore } from '../types';
 
 export interface ComputedSlice {
   // Array versions of Maps (maintained for React components)
@@ -69,12 +68,11 @@ export interface ComputedSlice {
   getExecutionProgress: () => { completed: number; total: number; percentage: number };
 }
 
-export const createComputedSlice: StateCreator<
-  UnifiedStore,
-  [['zustand/immer', never]],
-  [],
-  ComputedSlice
-> = (set, get) => ({
+export const createComputedSlice = (
+  _set: (fn: (state: UnifiedStore) => void) => void,
+  get: () => UnifiedStore,
+  _api: any
+): ComputedSlice => ({
   // Array versions of Maps - initialized as empty arrays
   nodesArray: [],
   arrowsArray: [],
@@ -94,13 +92,13 @@ export const createComputedSlice: StateCreator<
   
   getNodesByType: (type) => {
     const state = get();
-    return Array.from(state.nodes.values()).filter(node => node.type === type);
+    return Array.from(state.nodes.values()).filter((node): node is DomainNode => node.type === type);
   },
   
   getNodesByPerson: (personId) => {
     const state = get();
     return Array.from(state.nodes.values()).filter(
-      node => node.type === NodeType.PERSON_JOB && node.data.personId === personId
+      (node): node is DomainNode => node.type === NodeType.PERSON_JOB && node.data.personId === personId
     );
   },
   
@@ -108,28 +106,28 @@ export const createComputedSlice: StateCreator<
   getConnectedArrows: (nodeId) => {
     const state = get();
     return Array.from(state.arrows.values()).filter(
-      arrow => arrow.source.includes(nodeId) || arrow.target.includes(nodeId)
+      (arrow): arrow is DomainArrow => arrow.source.includes(nodeId) || arrow.target.includes(nodeId)
     );
   },
   
   getOutgoingArrows: (nodeId) => {
     const state = get();
     return Array.from(state.arrows.values()).filter(
-      arrow => arrow.source.includes(nodeId)
+      (arrow): arrow is DomainArrow => arrow.source.includes(nodeId)
     );
   },
   
   getIncomingArrows: (nodeId) => {
     const state = get();
     return Array.from(state.arrows.values()).filter(
-      arrow => arrow.target.includes(nodeId)
+      (arrow): arrow is DomainArrow => arrow.target.includes(nodeId)
     );
   },
   
   getArrowsBetween: (sourceId, targetId) => {
     const state = get();
     return Array.from(state.arrows.values()).filter(
-      arrow => arrow.source.includes(sourceId) && arrow.target.includes(targetId)
+      (arrow): arrow is DomainArrow => arrow.source.includes(sourceId) && arrow.target.includes(targetId)
     );
   },
   
@@ -145,7 +143,7 @@ export const createComputedSlice: StateCreator<
     // O(1) node lookup then O(m) handle search where m is handles per node (typically small)
     const nodeHandles = state.handleIndex.get(nodeId);
     if (!nodeHandles) return undefined;
-    return nodeHandles.find(h => h.label === handleName);
+    return nodeHandles.find((h: DomainHandle) => h.label === handleName);
   },
   
   // Graph analysis
@@ -154,7 +152,7 @@ export const createComputedSlice: StateCreator<
     const dependencies = new Set<NodeID>();
     
     // Find all nodes that this node depends on (incoming connections)
-    state.arrows.forEach(arrow => {
+    state.arrows.forEach((arrow: DomainArrow) => {
       if (arrow.target.includes(nodeId)) {
         const sourceNodeId = arrow.source.split('_')[0] as NodeID;
         dependencies.add(sourceNodeId);
@@ -169,7 +167,7 @@ export const createComputedSlice: StateCreator<
     const dependents = new Set<NodeID>();
     
     // Find all nodes that depend on this node (outgoing connections)
-    state.arrows.forEach(arrow => {
+    state.arrows.forEach((arrow: DomainArrow) => {
       if (arrow.source.includes(nodeId)) {
         const targetNodeId = arrow.target.split('_')[0] as NodeID;
         dependents.add(targetNodeId);
@@ -181,7 +179,7 @@ export const createComputedSlice: StateCreator<
   
   getStartNodes: () => {
     const state = get();
-    return Array.from(state.nodes.values()).filter(node => node.type === NodeType.START);
+    return Array.from(state.nodes.values()).filter((node): node is DomainNode => node.type === NodeType.START);
   },
   
   getEndNodes: () => {
@@ -189,14 +187,14 @@ export const createComputedSlice: StateCreator<
     const nodesWithOutgoing = new Set<NodeID>();
     const nodesWithIncoming = new Set<NodeID>();
     
-    state.arrows.forEach(arrow => {
+    state.arrows.forEach((arrow: DomainArrow) => {
       nodesWithOutgoing.add(arrow.source.split('_')[0] as NodeID);
       nodesWithIncoming.add(arrow.target.split('_')[0] as NodeID);
     });
     
     // End nodes are nodes with incoming connections but no outgoing connections
     return Array.from(state.nodes.values()).filter(
-      node => nodesWithIncoming.has(node.id as NodeID) && !nodesWithOutgoing.has(node.id as NodeID)
+      (node): node is DomainNode => nodesWithIncoming.has(node.id as NodeID) && !nodesWithOutgoing.has(node.id as NodeID)
     );
   },
   
@@ -237,7 +235,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
       const nodeState = state.execution.nodeStates.get(node.id as NodeID);
-      return nodeState?.status === NodeExecutionStatus.COMPLETED;
+      return nodeState?.status === Status.COMPLETED;
     });
   },
   
@@ -245,7 +243,7 @@ export const createComputedSlice: StateCreator<
     const state = get();
     return Array.from(state.nodes.values()).filter(node => {
       const nodeState = state.execution.nodeStates.get(node.id as NodeID);
-      return nodeState?.status === NodeExecutionStatus.FAILED;
+      return nodeState?.status === Status.FAILED;
     });
   },
   
@@ -260,7 +258,7 @@ export const createComputedSlice: StateCreator<
     
     // Find unconnected nodes
     const connectedNodes = new Set<string>();
-    state.arrows.forEach(arrow => {
+    state.arrows.forEach((arrow: DomainArrow) => {
       const sourceNodeId = arrow.source.split('_')[0];
       const targetNodeId = arrow.target.split('_')[0];
       if (sourceNodeId) connectedNodes.add(sourceNodeId);
@@ -303,7 +301,7 @@ export const createComputedSlice: StateCreator<
     
     state.nodes.forEach(node => {
       if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id) {
-        usedPersonIds.add(node.data.person_id);
+        usedPersonIds.add(node.data.person_id as PersonID);
       }
     });
     
@@ -375,9 +373,9 @@ export const createComputedSlice: StateCreator<
     const total = state.nodes.size;
     const completed = Array.from(state.execution.nodeStates.values())
       .filter(nodeState => 
-        nodeState.status === NodeExecutionStatus.COMPLETED || 
-        nodeState.status === NodeExecutionStatus.SKIPPED ||
-        nodeState.status === NodeExecutionStatus.FAILED
+        nodeState.status === Status.COMPLETED || 
+        nodeState.status === Status.SKIPPED ||
+        nodeState.status === Status.FAILED
       ).length;
     
     return {

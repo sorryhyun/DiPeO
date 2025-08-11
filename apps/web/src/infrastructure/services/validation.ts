@@ -128,7 +128,9 @@ export class ValidationService {
         
       case NodeType.SUB_DIAGRAM:
         // Check if diagram exists
-        if (node.data.diagram_name && !this.diagramExists(node.data.diagram_name)) {
+        if (node.data.diagram_name && 
+            typeof node.data.diagram_name === 'string' && 
+            !this.diagramExists(node.data.diagram_name)) {
           errors.push({
             field: 'diagram_name',
             message: 'Referenced diagram does not exist',
@@ -139,7 +141,7 @@ export class ValidationService {
         
       case NodeType.ENDPOINT:
         // Warn about insecure URLs
-        if (node.data.url?.startsWith('http://')) {
+        if (typeof node.data.url === 'string' && node.data.url.startsWith('http://')) {
           warnings.push({
             field: 'url',
             message: 'Using insecure HTTP connection',

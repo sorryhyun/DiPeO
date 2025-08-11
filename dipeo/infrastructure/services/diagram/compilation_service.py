@@ -43,8 +43,7 @@ class CompilationService(BaseService, DiagramCompiler):
         """Initialize the compilation service."""
         if self._initialized:
             return
-        
-        logger.info("Initializing CompilationService")
+
         self._initialized = True
     
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
@@ -157,8 +156,7 @@ class CompilationService(BaseService, DiagramCompiler):
         """
         if not self._initialized:
             raise RuntimeError("CompilationService not initialized")
-        
-        logger.debug("Decompiling executable diagram")
+
         return self._domain_compiler.decompile(executable_diagram)
     
     def get_metrics(self) -> dict:

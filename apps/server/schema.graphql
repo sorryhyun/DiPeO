@@ -212,7 +212,6 @@ input ExecuteDiagramInput {
   debug_mode: Boolean = null
   max_iterations: Int = null
   timeout_seconds: Int = null
-  use_monitoring_stream: Boolean = null
   use_unified_monitoring: Boolean = null
 }
 
@@ -224,7 +223,7 @@ input ExecutionControlInput {
 
 input ExecutionFilterInput {
   diagram_id: ID = null
-  status: ExecutionStatus = null
+  status: Status = null
   started_after: DateTime = null
   started_before: DateTime = null
 }
@@ -247,7 +246,7 @@ type ExecutionStateType {
   exec_counts: JSON!
   metrics: JSON
   id: String!
-  status: ExecutionStatus!
+  status: Status!
   diagram_id: String
   started_at: String!
   ended_at: String
@@ -256,16 +255,6 @@ type ExecutionStateType {
   duration_seconds: Float
   is_active: Boolean
   executed_nodes: [String!]!
-}
-
-enum ExecutionStatus {
-  PENDING
-  RUNNING
-  PAUSED
-  COMPLETED
-  FAILED
-  ABORTED
-  SKIPPED
 }
 
 type ExecutionUpdate {
@@ -352,17 +341,6 @@ type Mutation {
   unregister_cli_session(input: UnregisterCliSessionInput!): CliSessionResult!
 }
 
-enum NodeExecutionStatus {
-  PENDING
-  RUNNING
-  PAUSED
-  COMPLETED
-  FAILED
-  ABORTED
-  SKIPPED
-  MAXITER_REACHED
-}
-
 """Unique identifier for nodes"""
 scalar NodeID
 
@@ -382,7 +360,6 @@ enum NodeType {
   ENDPOINT
   DB
   USER_RESPONSE
-  NOTION
   PERSON_BATCH_JOB
   HOOK
   TEMPLATE_JOB
@@ -407,6 +384,7 @@ type PersonLLMConfigType {
   model: String!
   api_key_id: String!
   system_prompt: String
+  prompt_file: String
 }
 
 type PersonResult {
@@ -444,12 +422,25 @@ input RegisterCliSessionInput {
   diagram_name: String!
   diagram_format: String!
   diagram_data: JSON = null
+  diagram_path: String = null
+}
+
+enum Status {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  ABORTED
+  SKIPPED
+  MAXITER_REACHED
 }
 
 type Subscription {
   execution_updates(execution_id: ID!): ExecutionUpdate!
   node_updates(execution_id: ID!, node_id: String = null): JSON!
   interactive_prompts(execution_id: ID!): JSON!
+  execution_logs(execution_id: ID!): JSON!
 }
 
 """Unique identifier for tasks"""
@@ -465,7 +456,7 @@ type TestApiKeyResult {
 type TokenUsageType {
   input: Int!
   output: Int!
-  cached: Int
+  cached: Float
   total: Int
 }
 
@@ -481,7 +472,7 @@ input UpdateNodeInput {
 input UpdateNodeStateInput {
   execution_id: ID!
   node_id: ID!
-  status: NodeExecutionStatus!
+  status: Status!
   output: JSON = null
   error: String = null
 }

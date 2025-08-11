@@ -67,8 +67,24 @@ class StandardRuntimeResolver(RuntimeResolver):
             if transformed_value is None:
                 continue
 
-            # Get input key from edge
-            input_key = edge.target_input or 'default'
+            # For PersonJob nodes with edges marked for first execution,
+            # we need to map the input to the correct template variable name
+            if node.type == NodeType.PERSON_JOB and edge.metadata and edge.metadata.get('is_first_execution'):
+                # This edge was marked with _first suffix during compilation
+                # The handle ID uses "first" to distinguish it from default input
+                # But the template variable should be "default" (or a labeled name if provided)
+                
+                # Check if there's a label on the arrow (stored in metadata)
+                if edge.metadata.get('label'):
+                    # Use the arrow label as the template variable name
+                    input_key = edge.metadata['label']
+                else:
+                    # No label, so use "default" as the template variable name
+                    input_key = 'default'
+            else:
+                # Get input key from edge for non-PersonJob first execution cases
+                input_key = edge.target_input or 'default'
+            
             inputs[input_key] = transformed_value
             
         

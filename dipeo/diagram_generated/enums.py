@@ -87,27 +87,8 @@ class DiagramFormat(str, Enum):
     
 
 
-class ExecutionStatus(str, Enum):
+class Status(str, Enum):
     """Execution and event-related enumerations"""
-    
-    PENDING = "PENDING"
-    
-    RUNNING = "RUNNING"
-    
-    PAUSED = "PAUSED"
-    
-    COMPLETED = "COMPLETED"
-    
-    FAILED = "FAILED"
-    
-    ABORTED = "ABORTED"
-    
-    SKIPPED = "SKIPPED"
-    
-
-
-class NodeExecutionStatus(str, Enum):
-    """NodeExecutionStatus enum values"""
     
     PENDING = "PENDING"
     
@@ -143,6 +124,8 @@ class EventType(str, Enum):
     EXECUTION_ERROR = "EXECUTION_ERROR"
     
     EXECUTION_UPDATE = "EXECUTION_UPDATE"
+    
+    EXECUTION_LOG = "EXECUTION_LOG"
     
 
 
@@ -350,19 +333,6 @@ class TemplateEngine(str, Enum):
     
 
 
-class NotionOperation(str, Enum):
-    """NotionOperation enum values"""
-    
-    CREATE_PAGE = "create_page"
-    
-    UPDATE_PAGE = "update_page"
-    
-    GET_PAGE = "get_page"
-    
-    QUERY_DATABASE = "query_database"
-    
-
-
 class NodeType(str, Enum):
     """Node type definitions for the DiPeO system"""
     
@@ -381,8 +351,6 @@ class NodeType(str, Enum):
     DB = "db"
     
     USER_RESPONSE = "user_response"
-    
-    NOTION = "notion"
     
     PERSON_BATCH_JOB = "person_batch_job"
     
@@ -414,9 +382,7 @@ __all__ = [
     
     "DiagramFormat",
     
-    "ExecutionStatus",
-    
-    "NodeExecutionStatus",
+    "Status",
     
     "EventType",
     
@@ -447,8 +413,6 @@ __all__ = [
     "ConditionType",
     
     "TemplateEngine",
-    
-    "NotionOperation",
     
     "NodeType",
     

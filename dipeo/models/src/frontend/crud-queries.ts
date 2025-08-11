@@ -1,14 +1,20 @@
-import { QuerySpecification } from './query-specifications';
+import { QuerySpecification, QueryField } from './query-specifications';
+import { QueryOperationType, CrudOperation, QueryEntity } from './query-enums';
+import { buildQueryName, getOperationType, getStandardVariables, getReturnType } from './query-builder';
 
+/**
+ * Create a GET query specification
+ * @deprecated Use buildQuerySpecification from query-builder instead
+ */
 export const createGetQuerySpec = (entity: string, fields: string[]): QuerySpecification => ({
-  name: `get${entity}`,
-  operation: 'query',
+  name: `Get${entity}`,
+  operation: QueryOperationType.QUERY,
   entityType: entity,
   description: `Get a single ${entity} by ID`,
   variables: [
     {
       name: 'id',
-      type: 'ID!',
+      type: 'ID',
       required: true
     }
   ],
@@ -16,9 +22,13 @@ export const createGetQuerySpec = (entity: string, fields: string[]): QuerySpeci
   fields: fields.map(f => ({ name: f, required: true }))
 });
 
+/**
+ * Create a LIST query specification
+ * @deprecated Use buildQuerySpecification from query-builder instead
+ */
 export const createListQuerySpec = (entity: string, fields: string[]): QuerySpecification => ({
-  name: `list${entity}s`,
-  operation: 'query',
+  name: `List${entity}s`,
+  operation: QueryOperationType.QUERY,
   entityType: entity,
   description: `List all ${entity}s with optional filtering`,
   variables: [
@@ -42,15 +52,19 @@ export const createListQuerySpec = (entity: string, fields: string[]): QuerySpec
   fields: fields.map(f => ({ name: f, required: true }))
 });
 
+/**
+ * Create a CREATE mutation specification
+ * @deprecated Use buildQuerySpecification from query-builder instead
+ */
 export const createCreateMutationSpec = (entity: string, inputFields: string[]): QuerySpecification => ({
-  name: `create${entity}`,
-  operation: 'mutation',
+  name: `Create${entity}`,
+  operation: QueryOperationType.MUTATION,
   entityType: entity,
   description: `Create a new ${entity}`,
   variables: [
     {
       name: 'input',
-      type: `Create${entity}Input!`,
+      type: `Create${entity}Input`,
       required: true
     }
   ],
@@ -58,20 +72,24 @@ export const createCreateMutationSpec = (entity: string, inputFields: string[]):
   fields: inputFields.map(f => ({ name: f, required: true }))
 });
 
+/**
+ * Create an UPDATE mutation specification
+ * @deprecated Use buildQuerySpecification from query-builder instead
+ */
 export const createUpdateMutationSpec = (entity: string, fields: string[]): QuerySpecification => ({
-  name: `update${entity}`,
-  operation: 'mutation',
+  name: `Update${entity}`,
+  operation: QueryOperationType.MUTATION,
   entityType: entity,
   description: `Update an existing ${entity}`,
   variables: [
     {
       name: 'id',
-      type: 'ID!',
+      type: 'ID',
       required: true
     },
     {
       name: 'input',
-      type: `Update${entity}Input!`,
+      type: `Update${entity}Input`,
       required: true
     }
   ],
@@ -79,15 +97,19 @@ export const createUpdateMutationSpec = (entity: string, fields: string[]): Quer
   fields: fields.map(f => ({ name: f, required: true }))
 });
 
+/**
+ * Create a DELETE mutation specification
+ * @deprecated Use buildQuerySpecification from query-builder instead
+ */
 export const createDeleteMutationSpec = (entity: string): QuerySpecification => ({
-  name: `delete${entity}`,
-  operation: 'mutation',
+  name: `Delete${entity}`,
+  operation: QueryOperationType.MUTATION,
   entityType: entity,
   description: `Delete a ${entity}`,
   variables: [
     {
       name: 'id',
-      type: 'ID!',
+      type: 'ID',
       required: true
     }
   ],

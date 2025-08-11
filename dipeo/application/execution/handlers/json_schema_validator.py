@@ -46,8 +46,8 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     
     def validate(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> Optional[str]:
         node = request.node
-        if not node.schema_path and not node.schema:
-            return "Either schema_path or schema must be provided"
+        if not node.schema_path and not node.json_schema:
+            return "Either schema_path or json_schema must be provided"
         
         if node.schema_path:
             schema_path = Path(node.schema_path)
@@ -78,8 +78,8 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
             request.add_metadata("schema_path", node.schema_path)
         
         try:
-            if node.schema:
-                schema = node.schema
+            if node.json_schema:
+                schema = node.json_schema
             else:
                 schema_path = Path(node.schema_path)
                 if not schema_path.is_absolute():
@@ -168,15 +168,12 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                 return DataOutput(
                     value={"default": data_to_validate},
                     node_id=node.id,
-                    metadata={
-                        "success": True,
+                    metadata=json.dumps({
                         "strict_mode": node.strict_mode or False,
-                        "validation_passed": True,
-                        "valid": True,
                         "message": "Validation successful",
                         "schema_path": node.schema_path,
                         "data_path": node.data_path
-                    }
+                    })
                 )
             else:
                 # Log failure
@@ -198,11 +195,11 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     value=error_message,
                     node_id=node.id,
                     error_type="ValidationError",
-                    metadata={
+                    metadata=json.dumps({
                         "errors": validation_result["errors"],
                         "strict_mode": node.strict_mode or False,
                         "validation_passed": False
-                    }
+                    })
                 )
         
         except Exception as e:

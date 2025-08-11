@@ -53,9 +53,7 @@ class TypedExecutionEngine:
         self._settings = get_settings()
         self._managed_event_bus = False
         
-        # Handle observers and event bus
         if observers and not event_bus:
-            # Create event bus from observers for backward compatibility
             from dipeo.infrastructure.events.observer_adapter import create_event_bus_with_observers
             self.event_bus = create_event_bus_with_observers(observers)
             self._managed_event_bus = True
@@ -137,10 +135,12 @@ class TypedExecutionEngine:
             
             # Execution complete
             execution_path = [str(node_id) for node_id in context.get_completed_nodes()]
+            from dipeo.diagram_generated import Status
             
             await context.emit_event(
                 EventType.EXECUTION_COMPLETED,
                 {
+                    "status": Status.COMPLETED,
                     "total_steps": step_count,
                     "execution_path": execution_path
                 }
@@ -154,13 +154,13 @@ class TypedExecutionEngine:
             
         except Exception as e:
             # Emit execution completed with failed status
-            from dipeo.models import ExecutionStatus
+            from dipeo.diagram_generated import Status
             
             if context:
                 await context.emit_event(
                     EventType.EXECUTION_COMPLETED,
                     {
-                        "status": ExecutionStatus.FAILED,
+                        "status": Status.FAILED,
                         "error": str(e),
                         "error_type": type(e).__name__
                     }
@@ -242,7 +242,7 @@ class TypedExecutionEngine:
         context: TypedExecutionContext
     ) -> dict[str, dict[str, Any]]:
         """Execute nodes with optional parallelization."""
-        max_concurrent = 20  # Default concurrency limit
+        max_concurrent = 20
         
         # Single node - execute directly
         if len(nodes) == 1:
@@ -316,32 +316,44 @@ class TypedExecutionEngine:
                 
                 # Execute handler
                 output = await handler.execute_request(request)
-                
-                # Handle node completion based on type
-                await self._handle_node_completion(node, output, context)
             
             # Calculate execution metrics
             end_time = time.time()
             duration_ms = (end_time - start_time) * 1000
             
+            # Extract token usage from output metadata if available (do this BEFORE marking node as completed)
+            token_usage = None
+            if hasattr(output, 'metadata') and output.metadata:
+                # Use get_metadata_dict() to parse JSON metadata
+                if hasattr(output, 'get_metadata_dict'):
+                    metadata_dict = output.get_metadata_dict()
+                    token_usage = metadata_dict.get('token_usage')
+            
+            # Handle node completion based on type (this marks node as completed)
+            await self._handle_node_completion(node, output, context)
+            
             # Emit node completed event
             node_state = context.get_node_state(node_id)
-            await context.emit_event(
-                EventType.NODE_COMPLETED,
-                {
-                    "node_id": str(node_id),
-                    "node_type": node.type,
-                    "node_name": getattr(node, 'name', str(node_id)),
-                    "status": node_state.status.value if node_state else "unknown",
-                    "output": self._serialize_output(output),
-                    "metrics": {
-                        "duration_ms": duration_ms,
-                        "start_time": start_time,
-                        "end_time": end_time,
-                        "execution_count": exec_count
-                    }
+            event_data = {
+                "node_id": str(node_id),
+                "node_type": node.type,
+                "node_name": getattr(node, 'name', str(node_id)),
+                "status": node_state.status.value if node_state else "unknown",
+                "output": self._serialize_output(output),
+                "node_state": node_state,  # Include the full node state for observers
+                "metrics": {
+                    "duration_ms": duration_ms,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "execution_count": exec_count
                 }
-            )
+            }
+            
+            # Add token usage to metrics if available
+            if token_usage:
+                event_data["metrics"]["token_usage"] = token_usage
+            
+            await context.emit_event(EventType.NODE_COMPLETED, event_data)
             
             # Return result
             if hasattr(output, 'to_dict'):

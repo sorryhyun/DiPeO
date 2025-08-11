@@ -16,7 +16,7 @@ export const userResponseConfig: UnifiedNodeConfig = {
   icon: '💬',
   color: '#E91E63',
   nodeType: NodeType.USER_RESPONSE,
-  category: 'interaction',
+  category: 'integration',
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },

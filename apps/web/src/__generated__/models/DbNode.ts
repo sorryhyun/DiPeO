@@ -17,6 +17,7 @@ export interface DbNodeData {
   query?: string;
   data?: Record<string, any>;
   serialize_json?: boolean;
+  format?: string;
 }
 
 // Zod schema for validation
@@ -28,4 +29,5 @@ export const DbNodeDataSchema = z.object({
   query: z.string().optional(),
   data: z.record(z.any()).optional(),
   serialize_json: z.boolean().optional(),
+  format: z.string().optional(),
 });

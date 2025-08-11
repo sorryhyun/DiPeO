@@ -1,0 +1,132 @@
+version: light
+
+name: text_format_pydantic_demo
+description: Demonstrate using Pydantic models for structured outputs with PersonJob node
+
+persons:
+  default:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+
+nodes:
+  - label: start
+    type: start
+    position: {x: 100, y: 100}
+    
+  - label: extract_person_info
+    type: person_job
+    position: {x: 300, y: 100}
+    props:
+      person: default
+      first_only_prompt: |
+        Extract the person's information from the following text:
+        
+        "John Doe is a 35-year-old software engineer living in San Francisco. 
+        He has been working at TechCorp for 5 years and specializes in Python and JavaScript.
+        His hobbies include hiking, photography, and playing guitar."
+      max_iteration: 1
+      text_format: |
+        class PersonInfo(BaseModel):
+            name: str
+            age: int
+            occupation: str
+            location: str
+            company: Optional[str] = None
+            years_at_company: Optional[int] = None
+            skills: List[str] = []
+            hobbies: List[str] = []
+        
+        class Response(BaseModel):
+            person: PersonInfo
+      
+  - label: display_result
+    type: code_job
+    position: {x: 500, y: 100}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Get the person_data - it should be a JSON string with the parsed result
+        person_data = inputs.get('person_data', '{}')
+        
+        # Parse if it's a string, otherwise use as-is
+        if isinstance(person_data, str):
+            result = json.loads(person_data)
+        else:
+            result = person_data
+        
+        # Extract the person object if it exists
+        if 'person' in result:
+            person = result['person']
+        else:
+            person = result
+        
+        print("=== Extracted Person Information ===")
+        print(f"Name: {person.get('name', 'N/A')}")
+        print(f"Age: {person.get('age', 'N/A')}")
+        print(f"Occupation: {person.get('occupation', 'N/A')}")
+        print(f"Location: {person.get('location', 'N/A')}")
+        print(f"Company: {person.get('company', 'N/A')}")
+        print(f"Years at Company: {person.get('years_at_company', 'N/A')}")
+        print(f"Skills: {', '.join(person.get('skills', []))}")
+        print(f"Hobbies: {', '.join(person.get('hobbies', []))}")
+        print("\n=== Raw JSON ===")
+        print(json.dumps(result, indent=2))
+        
+        return result
+      
+  - label: generate_ui_example
+    type: person_job
+    position: {x: 300, y: 250}
+    props:
+      person: default
+      first_only_prompt: |
+        Generate a user profile card UI component structure for:
+        Name: John Doe
+        Role: Software Engineer
+        Company: TechCorp
+      max_iteration: 1
+      text_format: |
+        class UIType(str, Enum):
+            div = "div"
+            button = "button"
+            header = "header"
+            section = "section"
+            field = "field"
+            form = "form"
+            h1 = "h1"
+            h2 = "h2"
+            h3 = "h3"
+            p = "p"
+            span = "span"
+            img = "img"
+            card = "card"
+        
+        class Attribute(BaseModel):
+            name: str
+            value: str
+        
+        class UIComponent(BaseModel):
+            type: UIType
+            className: Optional[str] = None
+            content: Optional[str] = None
+            children: List["UIComponent"] = []
+            attributes: List[Attribute] = []
+        
+        UIComponent.model_rebuild()  # Enable recursive types
+        
+        class Response(BaseModel):
+            component: UIComponent
+      
+  - label: endpoint
+    type: endpoint
+    position: {x: 700, y: 100}
+
+connections:
+  - {from: start, to: extract_person_info}
+  - {from: extract_person_info, to: display_result, label: person_data}
+  - {from: start, to: generate_ui_example}
+  - {from: display_result, to: endpoint}
+  - {from: generate_ui_example, to: endpoint}

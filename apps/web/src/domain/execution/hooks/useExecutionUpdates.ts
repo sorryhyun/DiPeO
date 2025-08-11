@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { NodeExecutionStatus, EventType, type ExecutionUpdate } from '@dipeo/models';
+import { Status, EventType, type ExecutionUpdate, JsonValue } from '@dipeo/models';
 import { nodeId, executionId } from '@/infrastructure/types';
 import { useExecutionState } from './useExecutionState';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
@@ -80,7 +80,7 @@ export function useExecutionUpdates({
     });
     
     executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-      status: NodeExecutionStatus.RUNNING,
+      status: Status.RUNNING,
       timestamp: Date.now()
     });
     
@@ -89,7 +89,7 @@ export function useExecutionUpdates({
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(nodeIdStr),
       node_type: nodeType,
-      status: NodeExecutionStatus.RUNNING, 
+      status: Status.RUNNING, 
       timestamp: new Date().toISOString() 
     });
   }, [setCurrentNode, updateNodeState, executionActions, onUpdate, executionIdRef]);
@@ -118,7 +118,7 @@ export function useExecutionUpdates({
     });
     
     executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-      status: NodeExecutionStatus.COMPLETED,
+      status: Status.COMPLETED,
       timestamp: Date.now()
     });
     
@@ -129,8 +129,8 @@ export function useExecutionUpdates({
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(nodeIdStr),
       tokens: tokenCount, 
-      result: output, 
-      status: NodeExecutionStatus.COMPLETED, 
+      result: output as JsonValue | undefined, 
+      status: Status.COMPLETED, 
       timestamp: new Date().toISOString() 
     });
   }, [incrementCompletedNodes, setCurrentNode, updateNodeState, executionActions, addToRunContext, onUpdate, executionIdRef, currentRunningNodeRef]);
@@ -139,69 +139,177 @@ export function useExecutionUpdates({
   useEffect(() => {
     if (!executionUpdates) return;
     
-    // Extract status from the data field (GraphQL subscription format)
-    const status = executionUpdates.data?.status || executionUpdates.status;
-    const error = executionUpdates.data?.error || executionUpdates.error;
-    const tokenUsage = executionUpdates.data?.tokenUsage || executionUpdates.tokenUsage;
+    // Log all updates for debugging
+    console.log('[useExecutionUpdates] Received update:', {
+      event_type: executionUpdates.event_type,
+      data: executionUpdates.data,
+      full: executionUpdates
+    });
     
-    if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
-      const totalTokens = tokenUsage ? 
-        (tokenUsage.input + tokenUsage.output + (tokenUsage.cached || 0)) : 
-        undefined;
-      
-      completeExecution();
-      executionActions.stopExecution();
-      
-      const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
-      const statusMsg = status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
-      showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
-      
-      // Auto-exit is now handled by useMonitorMode
-      // No need to check URL params here
-      
-      onUpdate?.({ 
-        type: EventType.EXECUTION_STATUS_CHANGED, 
-        execution_id: executionId(executionIdRef.current!),
-        total_tokens: totalTokens,
-        timestamp: new Date().toISOString() 
-      });
-    } else if (status === 'FAILED' && error) {
-      errorExecution(error);
-      executionActions.stopExecution();
-      
-      showThrottledToast('execution-error', 'error', `Execution failed: ${error}`);
-      
-      onUpdate?.({ 
-        type: EventType.EXECUTION_ERROR, 
-        execution_id: executionId(executionIdRef.current!),
-        error, 
-        timestamp: new Date().toISOString() 
-      });
-      
-      // Auto-exit is now handled by useMonitorMode
-      // No need to check URL params here
-    } else if (status === 'ABORTED') {
-      errorExecution('Execution aborted');
-      executionActions.stopExecution();
-      
-      showThrottledToast('execution-aborted', 'error', 'Execution aborted');
-      
-      onUpdate?.({ 
-        type: EventType.EXECUTION_STATUS_CHANGED, 
-        execution_id: executionId(executionIdRef.current!),
-        timestamp: new Date().toISOString() 
-      });
+    // Check if this is a node event
+    const eventType = executionUpdates.event_type;
+    // Parse the data field if it's a string (JSON)
+    let eventData = executionUpdates.data || {};
+    if (typeof eventData === 'string') {
+      try {
+        eventData = JSON.parse(eventData);
+      } catch (e) {
+        console.error('[useExecutionUpdates] Failed to parse data:', e);
+        eventData = {};
+      }
     }
-  }, [executionUpdates, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef]);
+    console.log('[useExecutionUpdates] Parsed eventData:', eventData);
+    
+    // Check for critical execution-level events FIRST (no throttling for these)
+    const status = eventData.status || executionUpdates.status;
+    const error = eventData.error || executionUpdates.error;
+    const tokenUsage = eventData.tokenUsage || executionUpdates.tokenUsage;
+    
+    // Handle EXECUTION completion events immediately (bypass throttling)
+    if (eventType === 'EXECUTION_STATUS_CHANGED' || eventType === 'EXECUTION_COMPLETED') {
+      if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
+        const totalTokens = tokenUsage ? 
+          (tokenUsage.input + tokenUsage.output + (tokenUsage.cached || 0)) : 
+          undefined;
+        
+        completeExecution();
+        executionActions.stopExecution();
+        
+        const tokensMsg = totalTokens ? ` (${totalTokens.toLocaleString()} tokens)` : '';
+        const statusMsg = status === 'MAXITER_REACHED' ? 'reached max iterations' : 'completed';
+        showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
+        
+        onUpdate?.({ 
+          type: EventType.EXECUTION_STATUS_CHANGED, 
+          execution_id: executionId(executionIdRef.current!),
+          total_tokens: totalTokens,
+          timestamp: new Date().toISOString() 
+        });
+        return; // Don't process further
+      } else if (status === 'FAILED' && error) {
+        errorExecution(error);
+        executionActions.stopExecution();
+        
+        showThrottledToast('execution-error', 'error', `Execution failed: ${error}`);
+        
+        onUpdate?.({ 
+          type: EventType.EXECUTION_ERROR, 
+          execution_id: executionId(executionIdRef.current!),
+          error, 
+          timestamp: new Date().toISOString() 
+        });
+        return; // Don't process further
+      } else if (status === 'ABORTED') {
+        errorExecution('Execution aborted');
+        executionActions.stopExecution();
+        
+        showThrottledToast('execution-aborted', 'error', 'Execution aborted');
+        
+        onUpdate?.({ 
+          type: EventType.EXECUTION_STATUS_CHANGED, 
+          execution_id: executionId(executionIdRef.current!),
+          timestamp: new Date().toISOString() 
+        });
+        return; // Don't process further
+      }
+    }
+    
+    // Handle node events (with throttling)
+    if (eventType === 'NODE_STATUS_CHANGED') {
+      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
+      const nodeType = eventData.node_type || eventData.nodeType || '';
+      const nodeStatus = eventData.status || '';
+      
+      console.log('[useExecutionUpdates] NODE_STATUS_CHANGED - Extracting fields:', {
+        nodeIdStr,
+        nodeType,
+        nodeStatus,
+        eventDataKeys: Object.keys(eventData),
+        eventDataType: typeof eventData,
+      });
+      
+      if (nodeIdStr && nodeStatus) {
+        console.log('[useExecutionUpdates] ✅ Node status changed:', { nodeIdStr, nodeType, nodeStatus });
+        
+        if (nodeStatus === 'RUNNING') {
+          handleNodeStart(nodeIdStr, nodeType);
+        } else if (nodeStatus === 'COMPLETED' || nodeStatus === 'MAXITER_REACHED') {
+          const tokenCount = eventData.tokens_used || eventData.metrics?.tokens || undefined;
+          const output = eventData.output || eventData.result || undefined;
+          handleNodeComplete(nodeIdStr, tokenCount, output);
+        } else if (nodeStatus === 'FAILED') {
+          updateNodeState(nodeIdStr, {
+            status: 'error',
+            endTime: new Date(),
+            error: eventData.error || 'Unknown error'
+          });
+          
+          executionActions.updateNodeExecution(nodeId(nodeIdStr), {
+            status: Status.FAILED,
+            timestamp: Date.now(),
+            error: eventData.error ?? undefined
+          });
+          
+          showThrottledToast(`node-error-${nodeIdStr}`, 'error', `Node ${nodeIdStr.slice(0, 8)}... failed: ${eventData.error}`);
+        } else if (nodeStatus === 'SKIPPED') {
+          incrementCompletedNodes();
+          
+          updateNodeState(nodeIdStr, {
+            status: 'skipped',
+            endTime: new Date(),
+          });
+          
+          addSkippedNode(nodeIdStr, 'Skipped');
+          executionActions.updateNodeExecution(nodeId(nodeIdStr), {
+            status: Status.SKIPPED,
+            timestamp: Date.now()
+          });
+        }
+      } else {
+        console.warn('[useExecutionUpdates] NODE_STATUS_CHANGED event missing node_id or status:', eventData);
+      }
+      return;
+    } else if (eventType === 'NODE_STARTED') {
+      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
+      const nodeType = eventData.node_type || eventData.nodeType || '';
+      
+      if (nodeIdStr) {
+        console.log('[useExecutionUpdates] ✅ Node started event:', { nodeIdStr, nodeType });
+        handleNodeStart(nodeIdStr, nodeType);
+      } else {
+        console.warn('[useExecutionUpdates] NODE_STARTED event missing node_id:', eventData);
+      }
+      return;
+    } else if (eventType === 'NODE_COMPLETED') {
+      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
+      const tokenCount = eventData.tokens_used || eventData.metrics?.tokens || undefined;
+      const output = eventData.output || eventData.result || undefined;
+      
+      if (nodeIdStr) {
+        console.log('[useExecutionUpdates] ✅ Node completed event:', { nodeIdStr, tokenCount, output });
+        handleNodeComplete(nodeIdStr, tokenCount, output);
+      } else {
+        console.warn('[useExecutionUpdates] NODE_COMPLETED event missing node_id:', eventData);
+      }
+      return;
+    }
+  }, [executionUpdates, handleNodeStart, handleNodeComplete, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef, updateNodeState, addSkippedNode, incrementCompletedNodes, setCurrentNode]);
 
-  // Process node subscription updates
+  // Process node subscription updates - DEPRECATED
+  // Node updates are now handled through executionUpdates with event_type NODE_STARTED/NODE_COMPLETED
   useEffect(() => {
     if (!nodeUpdates) return;
+    
+    // This code path is deprecated - nodeUpdates is always undefined
+    // Node events are now processed in the executionUpdates effect above
+    console.warn('[useExecutionUpdates] Deprecated nodeUpdates path - this should not be reached');
     
     // The nodeUpdates might be the data directly or wrapped in a data field
     const updateData = nodeUpdates.data || nodeUpdates;
     const status = updateData.status || '';
     const nodeIdStr = updateData.node_id || '';
+    
+    console.log('[useExecutionUpdates] Node update received (deprecated path):', { status, nodeIdStr, updateData });
 
     if (status === 'RUNNING' && nodeIdStr) {
       handleNodeStart(nodeIdStr, updateData.node_type);
@@ -235,7 +343,7 @@ export function useExecutionUpdates({
       });
       
       executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-        status: NodeExecutionStatus.FAILED,
+        status: Status.FAILED,
         timestamp: Date.now(),
         error: updateData.error ?? undefined
       });
@@ -247,7 +355,7 @@ export function useExecutionUpdates({
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
         error: updateData.error || undefined, 
-        status: NodeExecutionStatus.FAILED, 
+        status: Status.FAILED, 
         timestamp: new Date().toISOString() 
       });
     } else if (status === 'SKIPPED' && nodeIdStr) {
@@ -260,7 +368,7 @@ export function useExecutionUpdates({
       
       addSkippedNode(nodeIdStr, 'Skipped');
       executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-        status: NodeExecutionStatus.SKIPPED,
+        status: Status.SKIPPED,
         timestamp: Date.now()
       });
       
@@ -268,7 +376,7 @@ export function useExecutionUpdates({
         type: EventType.EXECUTION_UPDATE,
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
-        status: NodeExecutionStatus.SKIPPED, 
+        status: Status.SKIPPED, 
         timestamp: new Date().toISOString() 
       });
     } else if (status === 'PAUSED' && nodeIdStr) {
@@ -280,7 +388,7 @@ export function useExecutionUpdates({
         type: EventType.NODE_STATUS_CHANGED, 
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
-        status: NodeExecutionStatus.PAUSED, 
+        status: Status.PAUSED, 
         timestamp: new Date().toISOString() 
       });
     }
@@ -295,7 +403,7 @@ export function useExecutionUpdates({
         type: EventType.NODE_PROGRESS, 
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
-        status: NodeExecutionStatus.RUNNING, 
+        status: Status.RUNNING, 
         timestamp: new Date().toISOString() 
       });
     }
@@ -316,7 +424,7 @@ export function useExecutionUpdates({
       type: EventType.INTERACTIVE_PROMPT, 
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(interactivePrompts.node_id),
-      status: NodeExecutionStatus.PAUSED, 
+      status: Status.PAUSED, 
       timestamp: new Date().toISOString() 
     });
   }, [interactivePrompts, setInteractivePrompt, onUpdate, executionIdRef]);

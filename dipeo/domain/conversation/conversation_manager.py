@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from typing import Any, Protocol, runtime_checkable
 
-from dipeo.models import Message
+from dipeo.diagram_generated import Message
 
 from .conversation import Conversation
 

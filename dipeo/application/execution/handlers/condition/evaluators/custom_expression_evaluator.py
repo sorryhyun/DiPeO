@@ -1,5 +1,6 @@
 """Evaluator for custom expression conditions."""
 
+import json
 import logging
 from typing import Any
 
@@ -26,7 +27,6 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
         diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
-        """Evaluate custom expression with given context."""
         expression = node.expression or ""
         
         if not expression:
@@ -36,16 +36,13 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
                 output_data={"condfalse": inputs if inputs else {}}
             )
         
-        # Use inputs as evaluation context
         eval_context = inputs.copy() if inputs else {}
         
-        # Evaluate the expression
         result = self._expression_evaluator.evaluate_custom_expression(
             expression=expression,
             context_values=eval_context
         )
         
-        # Prepare output data based on result
         if result:
             output_data = {"condtrue": inputs if inputs else {}}
         else:

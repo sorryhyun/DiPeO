@@ -1,0 +1,110 @@
+version: light
+
+name: llm_diagram_generator
+description: Generate DiPeO light diagrams using LLM with structured Pydantic output
+
+persons:
+  diagram_designer:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are an expert DiPeO diagram designer. You create well-structured light format diagrams
+      that follow best practices for modularity, error handling, and performance.
+      Always ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.
+
+nodes:
+  - label: start
+    type: start
+    position: {x: 100, y: 200}
+    
+  - label: load_request
+    type: db
+    position: {x: 300, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: projects/dipeodipeo/request.txt
+      format: text
+
+  - label: generate_diagram
+    type: person_job
+    position: {x: 600, y: 200}
+    props:
+      person: diagram_designer
+      prompt_file: diagram_generator.txt
+      max_iteration: 1
+      text_format_file: projects/dipeodipeo/light_diagram_models.py
+      
+  - label: format_yaml
+    type: code_job
+    position: {x: 700, y: 200}
+    props:
+      language: python
+      code: |
+        import yaml
+        from datetime import datetime
+
+        # Extract the complete diagram YAML string from response
+        diagram_yaml_string = generated_diagram['output'][1]['content'][0]['text']
+        
+        # Parse the YAML string to extract metadata
+        diagram_dict = yaml.safe_load(diagram_yaml_string)
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        diagram_name = diagram_dict.get('name', 'data_pipeline')
+        filename = f"projects/dipeodipeo/generated/{diagram_name}_{timestamp}.light.yaml"
+        
+        # Count nodes and connections for info display
+        node_count = len(diagram_dict.get('nodes', []))
+        connection_count = len(diagram_dict.get('connections', []))
+        
+        result = {
+            "yaml_content": diagram_yaml_string,  # The raw YAML string to save
+            "filename": filename,
+            "diagram_info": {
+                "name": diagram_name,
+                "description": diagram_dict.get('description', 'Generated pipeline'),
+                "node_count": node_count,
+                "connection_count": connection_count
+            }
+        }
+  
+  - label: save_diagram
+    type: db
+    position: {x: 1000, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      format: text
+      source_details: "{{diagram_output.filename}}"
+  
+  - label: display_info
+    type: code_job
+    position: {x: 700, y: 400}
+    props:
+      language: python
+      code: |       
+        print("=" * 60)
+        print("DIAGRAM GENERATED SUCCESSFULLY!")
+        print("=" * 60)
+        info = diagram_output['diagram_info']
+        print(f"Name: {info['name']}")
+        print(f"Description: {info['description']}")
+        print(f"Nodes: {info['node_count']}")
+        print(f"Connections: {info['connection_count']}")
+        print(f"Saved to: {diagram_output['filename']}")
+        print("=" * 60)
+        print("\nTo run the generated diagram:")
+        print(f"dipeo run {diagram_output['filename']} --light --debug")
+        print("=" * 60)
+        
+        result = info
+
+connections:
+  - {from: start, to: load_request}
+  - {from: load_request, to: generate_diagram, label: workflow_description}
+  - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: object}
+  - {from: format_yaml, to: save_diagram, label: diagram_output, content_type: raw_text}
+  - {from: format_yaml, to: display_info, label: diagram_output}

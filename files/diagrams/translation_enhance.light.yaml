@@ -1,0 +1,166 @@
+# Translate, verify, and prompt-optimize (iterative)
+# DiPeO runnable diagram in light.yaml format using person_job nodes
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      trigger_mode: manual
+      custom_data:
+        message: Begin iterative translation & prompt optimization
+
+  # Load source texts (*.txt) as items
+  - label: Load Source Texts
+    type: db
+    position: {x: 200, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      file: files/uploads/Metamorphosis_test2.txt
+
+  # Initial translation
+  - label: Translator
+    type: person_job
+    position: {x: 400, y: 300}
+    props:
+      person: translator
+      first_only_prompt: |
+        Translate the following text to Korean. 
+        Preserve facts and numbers exactly.
+        Keep style concise and natural.
+        
+        TEXT:
+        {{text}}
+      default_prompt: |
+        Improve the previous translation based on the feedback.
+        Original text: {{text}}
+        Previous feedback: {{feedback}}
+        
+        Provide an improved Korean translation.
+      max_iteration: 2
+      memory_profile: FULL
+
+  # Back-translate to check quality
+  - label: Back Translator
+    type: person_job
+    position: {x: 600, y: 300}
+    props:
+      person: backtranslator
+      default_prompt: |
+        Translate the following Korean text back to English:
+        {{translation}}
+      max_iteration: 2
+      memory_profile: GOLDFISH
+
+  # Judge translation quality
+  - label: Quality Judge
+    type: person_job
+    position: {x: 800, y: 300}
+    props:
+      person: judge
+      first_only_prompt: |
+        You will evaluate translation quality. Store this original text for comparison:
+        {{original_text}}
+      default_prompt: |
+        Compare the stored original with this back-translation:
+        {{backtranslation}}
+        
+        Rate the translation quality:
+        1. Adequacy (40%): Does it preserve all information?
+        2. Fluency (20%): Is it natural Korean?
+        3. Terminology (25%): Are technical terms correct?
+        4. Style (15%): Does it match the original tone?
+        
+        Provide:
+        - Overall score (0-100)
+        - Specific feedback for improvement
+        - CONTINUE or STOP recommendation
+      max_iteration: 2
+      memory_profile: FULL
+
+  # Prompt optimizer
+  - label: Prompt Optimizer
+    type: person_job
+    position: {x: 600, y: 500}
+    props:
+      person: optimizer
+      default_prompt: |
+        Based on the translation quality feedback:
+        {{feedback}}
+        
+        Suggest improvements to the translation prompt to address the issues.
+        Keep suggestions specific and actionable.
+      max_iteration: 2
+      memory_profile: FULL
+
+  # Check iteration condition
+  - label: Check Iterations
+    type: condition
+    position: {x: 800, y: 500}
+    props:
+      condition_type: detect_max_iterations
+      flipped: [true, true]
+
+  # Save best translation
+  - label: Save Translation
+    type: db
+    position: {x: 1000, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      file: files/results/best_translation.txt
+
+  - label: End
+    type: endpoint
+    position: {x: 1200, y: 300}
+    props:
+      save_to_file: true
+      file_path: files/results/translation_history.txt
+
+connections:
+  # Initial flow
+  - {from: Start, to: Load Source Texts, content_type: raw_text}
+  - {from: Load Source Texts, to: Translator_first, content_type: raw_text, label: text}
+
+  # Translation loop
+  - {from: Translator, to: Back Translator, content_type: raw_text, label: translation}
+  - {from: Load Source Texts, to: Quality Judge_first, content_type: raw_text, label: original_text}
+  - {from: Back Translator, to: Quality Judge, content_type: raw_text, label: backtranslation}
+  - {from: Quality Judge, to: Prompt Optimizer, content_type: raw_text, label: feedback}
+  - {from: Prompt Optimizer, to: Check Iterations, content_type: conversation_state}
+
+  # Iteration control
+  - {from: Check Iterations_condfalse, to: Translator, content_type: raw_text, label: feedback}
+  - {from: Check Iterations_condtrue, to: Save Translation, content_type: conversation_state}
+  
+  # Final output
+  - {from: Translator, to: Save Translation, content_type: raw_text, label: final_translation}
+  - {from: Save Translation, to: End, content_type: raw_text}
+
+persons:
+  translator:
+    service: openai
+    model: gpt-4.1-nano
+    prompt_file: files/prompts/translator.txt
+    api_key_id: APIKEY_52609F
+    
+  backtranslator:
+    service: openai
+    model: gpt-4.1-nano
+    prompt_file: files/prompts/backtranslator.txt
+    api_key_id: APIKEY_52609F
+    
+  judge:
+    service: openai
+    model: gpt-4.1-nano
+    prompt_file: files/prompts/judge.txt
+    api_key_id: APIKEY_52609F
+    
+  optimizer:
+    service: openai
+    model: gpt-4.1-nano
+    prompt_file: files/prompts/optimizer.txt
+    api_key_id: APIKEY_52609F

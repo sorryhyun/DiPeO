@@ -41,7 +41,9 @@ class DBOperationsDomainService:
 
         safe_db_name = db_name.replace("/", "_").replace("\\", "_")
 
-        if not safe_db_name.endswith(".json"):
+        # Only append .json if the file doesn't have any extension
+        import os
+        if '.' not in os.path.basename(safe_db_name):
             safe_db_name += ".json"
 
         return f"dbs/{safe_db_name}"

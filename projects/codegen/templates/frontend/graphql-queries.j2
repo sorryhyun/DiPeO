@@ -1,0 +1,113 @@
+{#- GraphQL Query Generation Template -#}
+{#- Data comes from 'query_data' connection -#}
+{%- set queries = query_data.queries if query_data else [] -%}
+{%- set enums = query_data.enums if query_data else {} -%}
+{%- set metadata = query_data.metadata if query_data else {} -%}
+{%- set input_types = query_data.input_types if query_data else [] -%}
+{%- macro render_field(field, indent=0) -%}
+{{ '  ' * indent }}{{ field.name }}
+{%- if field.args and field.args|length > 0 -%}
+(
+{%- for arg in field.args -%}
+{{ arg.name }}: {{ '$' if arg.isVariable else '' }}{{ arg.value }}{{ ', ' if not loop.last else '' }}
+{%- endfor -%}
+)
+{%- endif -%}
+{%- if field.fields and field.fields|length > 0 %} {
+{%- for subfield in field.fields %}
+{{ render_field(subfield, indent + 1) }}
+{%- endfor %}
+{{ '  ' * indent }}}
+{%- endif -%}
+{%- endmacro -%}
+
+{#- Generate imports -#}
+import { gql } from '@apollo/client';
+{%- if input_types and input_types|length > 0 %}
+import type {
+{%- for type in input_types %}
+  {{ type }}{{ ',' if not loop.last else '' }}
+{%- endfor %}
+} from '@dipeo/models';
+{%- endif %}
+{%- if 'Upload' in input_types or 'Scalars' in input_types %}
+
+type Upload = Scalars['Upload']['input'];
+
+{%- endif %}
+{#- Generate each query/mutation/subscription -#}
+{%- for query in queries %}
+{%- if not loop.first %}
+
+{% endif -%}
+{#- Generate the GraphQL document -#}
+export const {{ query.name | upper }}_{{ query.operationType | upper }} = gql`
+  {{ query.operationType | lower }} {{ query.name }}
+{%- if query.variables and query.variables|length > 0 -%}
+(
+{%- for var in query.variables %}
+    ${{ var.name }}: {{ var.type }}{{ '!' if var.required else '' }}{{ ', ' if not loop.last else '' }}
+{%- endfor %}
+  )
+{%- endif %} {
+{%- for field in query.fields %}
+{{ render_field(field, 2) }}
+{%- endfor %}
+  }
+`;
+
+{#- Generate TypeScript type for variables if present -#}
+{%- if query.variables and query.variables|length > 0 %}
+
+export interface {{ query.name | pascal_case }}Variables {
+{%- for var in query.variables %}
+  {{ var.name }}{{ '?' if not var.required else '' }}: {{ var.tsType | default('any') }};
+{%- endfor %}
+}
+{%- endif %}
+{#- Generate TypeScript type for response if fields are defined -#}
+{%- if query.responseType %}
+
+export interface {{ query.name | pascal_case }}Response {
+  {{ query.name }}: {{ query.responseType }};
+}
+{%- endif %}
+{%- endfor %}
+
+{#- Generate query map for runtime lookup -#}
+export const QUERIES = {
+{%- for query in queries if query.operationType == 'query' %}
+  {{ query.name | upper }}: {{ query.name | upper }}_QUERY{{ ',' if not loop.last else '' }}
+{%- endfor %}
+} as const;
+
+export const MUTATIONS = {
+{%- for query in queries if query.operationType == 'mutation' %}
+  {{ query.name | upper }}: {{ query.name | upper }}_MUTATION{{ ',' if not loop.last else '' }}
+{%- endfor %}
+} as const;
+
+export const SUBSCRIPTIONS = {
+{%- for query in queries if query.operationType == 'subscription' %}
+  {{ query.name | upper }}: {{ query.name | upper }}_SUBSCRIPTION{{ ',' if not loop.last else '' }}
+{%- endfor %}
+} as const;
+
+{#- Generate helper types -#}
+
+export type QueryName = keyof typeof QUERIES;
+export type MutationName = keyof typeof MUTATIONS;
+export type SubscriptionName = keyof typeof SUBSCRIPTIONS;
+
+{#- Generate operation metadata -#}
+
+export const OPERATION_METADATA = {
+{%- for query in queries %}
+  {{ query.name }}: {
+    type: '{{ query.operationType }}',
+    entity: '{{ query.entity | default('unknown') }}',
+    operation: '{{ query.operation | default('unknown') }}',
+    fieldPreset: '{{ query.fieldPreset | default('STANDARD') }}',
+  },
+{%- endfor %}
+} as const;

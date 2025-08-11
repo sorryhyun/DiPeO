@@ -1,8 +1,7 @@
 import {
   type ExecutionOptions as CanonicalExecutionOptions,
-  ExecutionStatus,
+  Status,
   EventType,
-  NodeExecutionStatus,
 } from '@dipeo/models';
 
 // Re-export canonical types that don't need adaptation
@@ -11,8 +10,8 @@ export type {
   TokenUsage,
 } from '@dipeo/models';
 
-// Export the already imported enums
-export { ExecutionStatus, NodeExecutionStatus, EventType };
+// Export the already imported enums and types
+export { Status, EventType };
 
 // Re-export from message for convenience
 export type { InteractivePromptData } from './message';

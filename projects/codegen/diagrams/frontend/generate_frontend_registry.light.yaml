@@ -1,0 +1,57 @@
+# Generate Frontend Node Registry
+# Creates the nodeRegistry.ts file that imports and registers all node configs
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+
+  # NEW: Discover node spec files dynamically using glob patterns
+  - label: Discover Node Specs
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      format: json  # Parse JSON files automatically
+      glob: true  # Enable glob pattern expansion
+      source_details:
+        # Dynamically discover all node spec files
+        - "temp/specifications/nodes/*.spec.ts.json"
+
+  - label: Extract Node List
+    type: code_job
+    position: {x: 350, y: 200}
+    props:
+      language: python
+      filePath: projects/codegen/code/frontend/extract_node_list_from_specs.py
+      functionName: extract_node_list_from_specs
+
+  - label: Generate Registry
+    type: code_job
+    position: {x: 500, y: 200}
+    props:
+      language: python
+      filePath: projects/codegen/code/frontend/simple_registry.py
+      functionName: main
+
+  - label: Write Registry
+    type: db
+    position: {x: 650, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      source_details: apps/web/src/__generated__/nodeRegistry.ts
+
+  - label: End
+    type: endpoint
+    position: {x: 800, y: 200}
+
+connections:
+  - {from: Start, to: Discover Node Specs}
+  - {from: Discover Node Specs, to: Extract Node List, content_type: object}
+  - {from: Extract Node List, to: Generate Registry, label: node_list}
+  - {from: Generate Registry, to: Write Registry, label: generated_code, content_type: object}
+  - {from: Write Registry, to: End}

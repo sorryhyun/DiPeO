@@ -1,6 +1,7 @@
 """Single sub-diagram executor - handles execution of individual sub-diagrams."""
 
 from typing import TYPE_CHECKING, Any, Optional
+import json
 import logging
 import uuid
 
@@ -12,7 +13,6 @@ from dipeo.application.registry.keys import (
     STATE_STORE,
     MESSAGE_ROUTER,
     DIAGRAM_SERVICE_NEW,
-    DIAGRAM_STORAGE_SERVICE,
 )
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ class SingleSubDiagramExecutor:
                 raise ValueError("Required services not available")
             
             # Load the diagram to execute
-            diagram_data = await self._load_diagram(node, diagram_service)
+            domain_diagram = await self._load_diagram(node, diagram_service)
             
             # Prepare execution options
             options = {
@@ -78,12 +78,21 @@ class SingleSubDiagramExecutor:
                 service_registry=service_registry,
                 state_store=state_store,
                 message_router=message_router,
-                diagram_storage_service=request.services.resolve(DIAGRAM_STORAGE_SERVICE),
+                diagram_service=diagram_service,
                 container=container
             )
             
             # Get parent observers if available
             parent_observers = options.get("observers", [])
+            
+            # Filter observers based on their propagation settings
+            from dipeo.application.execution.observers.scoped_observer import create_scoped_observers
+            filtered_observers = create_scoped_observers(
+                observers=parent_observers,
+                parent_execution_id=request.execution_id,
+                sub_execution_id=sub_execution_id,
+                inherit_all=False  # Only inherit observers with propagate_to_sub=True
+            )
             
             # Log sub-diagram execution start
             if request.metadata:
@@ -92,10 +101,10 @@ class SingleSubDiagramExecutor:
             # Execute the sub-diagram and collect results
             execution_results, execution_error = await self._execute_sub_diagram(
                 execute_use_case=execute_use_case,
-                diagram_data=diagram_data,
+                domain_diagram=domain_diagram,
                 options=options,
                 sub_execution_id=sub_execution_id,
-                parent_observers=parent_observers
+                parent_observers=filtered_observers
             )
             
             # Handle execution error
@@ -103,11 +112,11 @@ class SingleSubDiagramExecutor:
                 return DataOutput(
                     value={"error": execution_error},
                     node_id=node.id,
-                    metadata={
+                    metadata=json.dumps({
                         "sub_execution_id": sub_execution_id,
                         "status": "failed",
                         "error": execution_error
-                    }
+                    })
                 )
             
             # Process output mapping
@@ -117,11 +126,11 @@ class SingleSubDiagramExecutor:
             return DataOutput(
                 value=output_value,
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "sub_execution_id": sub_execution_id,
                     "status": "completed",
                     "execution_results": execution_results
-                }
+                })
             )
             
         except Exception as e:
@@ -129,10 +138,10 @@ class SingleSubDiagramExecutor:
             return DataOutput(
                 value={"error": str(e)},
                 node_id=node.id,
-                metadata={
+                metadata=json.dumps({
                     "status": "error",
                     "error": str(e)
-                }
+                })
             )
     
     def _is_sub_diagram_context(self, request: ExecutionRequest[SubDiagramNode]) -> bool:
@@ -155,11 +164,18 @@ class SingleSubDiagramExecutor:
         
         return is_sub_diagram
     
-    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> dict[str, Any]:
-        """Load the diagram to execute."""
-        # If diagram_data is provided directly, use it
+    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> Any:
+        """Load the diagram to execute as DomainDiagram."""
+        # If diagram_data is provided directly, convert it to DomainDiagram
         if node.diagram_data:
-            return node.diagram_data
+            # diagram_data is a dict that needs conversion
+            # Use the diagram service to convert it
+            if diagram_service:
+                import yaml
+                yaml_content = yaml.dump(node.diagram_data, default_flow_style=False, sort_keys=False)
+                return diagram_service.load_diagram(yaml_content)
+            else:
+                raise ValueError("Diagram service not available for conversion")
         
         # Otherwise, load by name from storage
         if not node.diagram_name:
@@ -181,13 +197,15 @@ class SingleSubDiagramExecutor:
             format_suffix = format_map.get(node.diagram_format, '.light.yaml')
         
         # Construct full file path
-        if diagram_name.startswith('codegen/'):
+        if diagram_name.startswith('projects/'):
+            file_path = f"{diagram_name}{format_suffix}"
+        elif diagram_name.startswith('codegen/'):
             file_path = f"files/{diagram_name}{format_suffix}"
         else:
             file_path = f"files/diagrams/{diagram_name}{format_suffix}"
         
         try:
-            # Use diagram service to load the diagram
+            # Use diagram service to load the diagram - returns DomainDiagram
             diagram = await diagram_service.load_from_file(file_path)
             return diagram
             
@@ -224,7 +242,7 @@ class SingleSubDiagramExecutor:
     async def _execute_sub_diagram(
         self,
         execute_use_case: "ExecuteDiagramUseCase",
-        diagram_data: dict[str, Any],
+        domain_diagram: Any,  # DomainDiagram
         options: dict[str, Any],
         sub_execution_id: str,
         parent_observers: list[Any]
@@ -236,7 +254,7 @@ class SingleSubDiagramExecutor:
         update_count = 0
         
         async for update in execute_use_case.execute_diagram(
-            diagram=diagram_data,
+            diagram=domain_diagram,
             options=options,
             execution_id=sub_execution_id,
             interactive_handler=None,

@@ -17,19 +17,53 @@ from dipeo.diagram_generated.enums import EventType
 logger = logging.getLogger(__name__)
 
 
-def serialize_for_json(obj: Any) -> Any:
-    """Recursively serialize objects for JSON encoding."""
+def serialize_for_json(obj: Any, seen: set = None, max_depth: int = 10) -> Any:
+    """Recursively serialize objects for JSON encoding with circular reference protection."""
+    import types
+    
+    if seen is None:
+        seen = set()
+    
+    # Check recursion depth
+    if max_depth <= 0:
+        return str(obj)  # Fallback to string representation
+    
+    # Check for circular references
+    obj_id = id(obj)
+    if obj_id in seen:
+        return f"<circular reference to {type(obj).__name__}>"
+    
+    # Handle basic types that don't need recursion
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    
     if isinstance(obj, datetime):
         return obj.isoformat()
-    elif isinstance(obj, dict):
-        return {k: serialize_for_json(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [serialize_for_json(item) for item in obj]
-    elif hasattr(obj, "__dict__"):
-        # Handle Pydantic models or other objects with __dict__
-        return serialize_for_json(obj.__dict__)
-    else:
-        return obj
+    
+    # Add to seen set for complex objects
+    seen.add(obj_id)
+    
+    try:
+        if isinstance(obj, types.MappingProxyType):
+            # Convert mappingproxy to regular dict
+            return {k: serialize_for_json(v, seen, max_depth - 1) for k, v in obj.items()}
+        elif isinstance(obj, dict):
+            return {k: serialize_for_json(v, seen, max_depth - 1) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [serialize_for_json(item, seen, max_depth - 1) for item in obj]
+        elif isinstance(obj, (set, frozenset)):
+            return [serialize_for_json(item, seen, max_depth - 1) for item in obj]
+        elif hasattr(obj, "__dict__"):
+            # Handle Pydantic models or other objects with __dict__
+            # Skip private attributes to avoid internal state
+            return {k: serialize_for_json(v, seen, max_depth - 1) 
+                   for k, v in obj.__dict__.items() 
+                   if not k.startswith('_')}
+        else:
+            return str(obj)  # Fallback to string representation
+    finally:
+        # Remove from seen set when done
+        seen.discard(obj_id)
 
 # Service keys
 MESSAGE_ROUTER = ServiceKey[MessageRouterPort]("message_router")
@@ -98,10 +132,34 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                             elif isinstance(timestamp, datetime):
                                 timestamp = timestamp.isoformat()
                             
+                            # Extract the event type
+                            event_type = event.get("type", "unknown")
+                            
+                            # For node events, restructure the data to match frontend expectations
+                            if event_type in ["NODE_STARTED", "NODE_COMPLETED", "NODE_FAILED"]:
+                                # Extract node-specific fields and rename to snake_case
+                                data = {
+                                    "node_id": event.get("nodeId"),
+                                    "node_type": event.get("nodeType"),
+                                    "status": event.get("status"),
+                                    "output": event.get("output"),
+                                    "metrics": event.get("metrics"),
+                                    "error": event.get("error"),
+                                }
+                                # Remove None values
+                                data = {k: v for k, v in data.items() if v is not None}
+                            elif event_type == "NODE_STATUS_CHANGED":
+                                # Handle NODE_STATUS_CHANGED events from UnifiedEventObserver
+                                # The data is already in the correct format
+                                data = event.get("data", {})
+                            else:
+                                # For other events, pass through the data as-is
+                                data = {k: v for k, v in event.items() if k not in ["type", "timestamp", "executionId"]}
+                            
                             yield ExecutionUpdate(
                                 execution_id=str(exec_id),
-                                event_type=event.get("type", "unknown"),
-                                data=serialize_for_json(event.get("data", {})),
+                                event_type=event_type,
+                                data=serialize_for_json(data),
                                 timestamp=str(timestamp),
                             )
                         except asyncio.TimeoutError:
@@ -229,6 +287,58 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                 raise
             except Exception as e:
                 logger.error(f"Error in interactive prompt subscription: {e}")
+                raise
+        
+        @strawberry.subscription
+        async def execution_logs(
+            self, execution_id: strawberry.ID
+        ) -> AsyncGenerator[JSONScalar, None]:
+            """Subscribe to execution log events."""
+            message_router = registry.get(MESSAGE_ROUTER)
+            
+            if not message_router:
+                logger.error("Message router not available for subscriptions")
+                return
+            
+            exec_id = ExecutionID(str(execution_id))
+            
+            try:
+                # Create a queue for receiving events
+                event_queue = asyncio.Queue()
+                connection_id = f"graphql-log-subscription-{id(event_queue)}"
+                
+                # Define handler to put events in queue
+                async def event_handler(message):
+                    # Serialize the entire message to ensure all nested objects are JSON-safe
+                    serialized_message = serialize_for_json(message)
+                    await event_queue.put(serialized_message)
+                
+                # Register connection and subscribe to execution
+                await message_router.register_connection(connection_id, event_handler)
+                await message_router.subscribe_connection_to_execution(connection_id, str(exec_id))
+                
+                try:
+                    # Yield log events from queue
+                    while True:
+                        try:
+                            # Wait for events with timeout
+                            event = await asyncio.wait_for(event_queue.get(), timeout=30.0)
+                            # Filter for execution logs
+                            if event.get("type") == EventType.EXECUTION_LOG.value:
+                                yield serialize_for_json(event.get("data", {}))
+                        except asyncio.TimeoutError:
+                            # Continue waiting for events
+                            continue
+                finally:
+                    # Clean up subscription
+                    await message_router.unsubscribe_connection_from_execution(connection_id, str(exec_id))
+                    await message_router.unregister_connection(connection_id)
+                        
+            except asyncio.CancelledError:
+                logger.info(f"Execution log subscription cancelled: {exec_id}")
+                raise
+            except Exception as e:
+                logger.error(f"Error in execution log subscription: {e}")
                 raise
     
     return Subscription

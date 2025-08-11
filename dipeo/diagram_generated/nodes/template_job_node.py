@@ -41,7 +41,7 @@ class TemplateJobNode:
     template_content: str = ""
     output_path: str = ""
     variables: Dict[str, Any] = field(default_factory=dict)
-    engine: Literal["internal", "jinja2", "handlebars"] = None
+    engine: Literal["internal", "jinja2"] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""

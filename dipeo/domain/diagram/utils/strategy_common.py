@@ -14,7 +14,7 @@ from dipeo.diagram_generated import (
     NodeType,
 )
 from dipeo.domain.diagram.handle import create_handle_id
-from dipeo.models import MemoryView
+from dipeo.diagram_generated import MemoryView
 
 log = logging.getLogger(__name__)
 
@@ -147,7 +147,8 @@ class HandleParser:
     ) -> str:
         """Determine the handle name from split or arrow data."""
         if handle_from_split:
-            # Convert "_first" to "first" for proper HandleLabel enum mapping
+            # Keep the "_first" as "first" for handle ID creation
+            # The handle needs to distinguish between default and first inputs
             if handle_from_split == "_first":
                 return "first"
             return handle_from_split
@@ -295,10 +296,13 @@ class PersonExtractor:
             }
             if "system_prompt" in person_config:
                 llm_config["system_prompt"] = person_config["system_prompt"]
+            if "prompt_file" in person_config:
+                llm_config["prompt_file"] = person_config["prompt_file"]
             
             if is_light_format:
                 # In light format, the key is the label
-                person_id = person_config.get("id", f"person_{person_key.replace(' ', '_')}")
+                # Use the label directly as the person_id (no prefix needed)
+                person_id = person_config.get("id", person_key)
                 person_dict = {
                     "id": person_id,
                     "label": person_key,
@@ -341,6 +345,8 @@ class PersonExtractor:
                         }
                         if "system_prompt" in person_config:
                             llm_config["system_prompt"] = person_config["system_prompt"]
+                        if "prompt_file" in person_config:
+                            llm_config["prompt_file"] = person_config["prompt_file"]
                         
                         # Generate a consistent person ID
                         person_id = f"person_{person_name}"

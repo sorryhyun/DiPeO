@@ -12,7 +12,6 @@ const specFieldImports: Record<string, () => Promise<{ default?: UnifiedFieldDef
   'endpoint': () => import('@/__generated__/fields/EndpointFields').then(m => m.endpointFields),
   'hook': () => import('@/__generated__/fields/HookFields').then(m => m.hookFields),
   'json_schema_validator': () => import('@/__generated__/fields/JsonSchemaValidatorFields').then(m => m.jsonSchemaValidatorFields),
-  'notion': () => import('@/__generated__/fields/NotionFields').then(m => m.notionFields),
   'person_batch_job': () => import('@/__generated__/fields/PersonBatchJobFields').then(m => m.personBatchJobFields),
   'person_job': () => import('@/__generated__/fields/PersonJobFields').then(m => m.personJobFields),
   'start': () => import('@/__generated__/fields/StartFields').then(m => m.startFields),

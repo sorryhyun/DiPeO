@@ -46,9 +46,15 @@ class CliSessionService:
                 logger.warning(f"Ending previous CLI session {self._active_session.execution_id}")
                 self._active_session.is_active = False
             
-            # Convert diagram data to frontend-compatible format if it's in light format
+            # Check if diagram data needs conversion or is already in frontend format
             converted_data = diagram_data
-            if diagram_data and diagram_format == "light":
+            
+            # If diagram_data has 'nodes' as a list, it's already in frontend format
+            if diagram_data and isinstance(diagram_data.get('nodes'), list):
+                # Already in frontend-compatible format, no conversion needed
+                converted_data = diagram_data
+            elif diagram_data and diagram_format == "light":
+                # Only convert if it's actually in light format (not already converted)
                 try:
                     # Create converter service
                     converter = DiagramConverterService()
@@ -56,7 +62,7 @@ class CliSessionService:
                     
                     # Convert to YAML string then deserialize to DomainDiagram
                     yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-                    domain_diagram = converter.deserialize(yaml_content, format_id="light")
+                    domain_diagram = converter.deserialize_from_storage(yaml_content, format="light")
                     
                     # Convert to frontend-compatible format (arrays, not objects)
                     converted_data = {

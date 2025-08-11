@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Info, AlertCircle, AlertTriangle, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useExecutionLogStream } from '@/domain/execution/hooks/useExecutionLogStream';
-import { useExecution } from '@/domain/execution/hooks';
+import { useCanvas } from '@/domain/diagram/contexts';
 import { formatTimestamp } from '@/lib/utils/date';
 import { executionId } from '@/infrastructure/types';
 
@@ -45,7 +45,9 @@ const getLogLevelColor = (level: string): string => {
 };
 
 export const ExecutionLogView: React.FC = () => {
-  const { execution, isRunning } = useExecution();
+  // Get execution from Canvas context to avoid multiple instances
+  const { operations } = useCanvas();
+  const { execution, isRunning } = operations.executionOps;
   const { logs, clearLogs } = useExecutionLogStream(execution.executionId ? executionId(execution.executionId) : null);
   const [filter, setFilter] = useState<string>('');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');

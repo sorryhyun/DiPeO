@@ -7,7 +7,7 @@ from typing import Any
 import yaml
 
 from dipeo.core import ValidationError
-from dipeo.models import DiagramFormat, HandleLabel
+from dipeo.diagram_generated import DiagramFormat, DomainDiagram, HandleLabel
 
 
 class DiagramFormatDetector:
@@ -73,10 +73,13 @@ class DiagramFormatDetector:
         except Exception as e:
             raise ValueError(f"Invalid {format.value} format: {e!s}")
 
-    def validate_diagram_structure(self, data: dict[str, Any], format: DiagramFormat | None = None) -> None:
+    def validate_diagram_structure(self, data: DomainDiagram | dict[str, Any], format: DiagramFormat | None = None) -> None:
         """Validate diagram data structure based on format."""
-        if not isinstance(data, dict):
-            raise ValidationError("Diagram data must be a dictionary")
+        # Convert DomainDiagram to dict for validation
+        if isinstance(data, DomainDiagram):
+            data = data.model_dump()
+        elif not isinstance(data, dict):
+            raise ValidationError("Diagram data must be a DomainDiagram or dictionary")
         
         # Auto-detect format if not provided
         if format is None:
@@ -204,10 +207,14 @@ class DiagramFormatDetector:
 
     def transform_for_export(
         self,
-        diagram: dict[str, Any],
+        diagram: DomainDiagram | dict[str, Any],
         target_format: DiagramFormat
     ) -> dict[str, Any]:
         """Transform diagram data for export to specific format."""
+        # Convert DomainDiagram to dict if needed
+        if isinstance(diagram, DomainDiagram):
+            diagram = diagram.model_dump()
+        
         cleaned = self._clean_enum_values(diagram)
         
         if target_format == DiagramFormat.LIGHT:

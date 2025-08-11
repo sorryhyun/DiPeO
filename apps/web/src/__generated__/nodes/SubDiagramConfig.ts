@@ -16,7 +16,7 @@ export const subDiagramConfig: UnifiedNodeConfig = {
   icon: '📊',
   color: '#8B5CF6',
   nodeType: NodeType.SUB_DIAGRAM,
-  category: 'control',
+  category: 'compute',
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },

@@ -152,8 +152,18 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   
   // Get data from hooks
   const diagramData = useDiagramData();
-  const execution = useExecution({ showToasts: false });
   const personsArray = usePersonsData();
+  
+  // Get operation hooks (called once)
+  const canvasHandlers = useCanvasBase();
+  const interactions = useCanvasInteractions();
+  const nodeOps = useNodeOperations();
+  const arrowOps = useArrowOperations();
+  const personOps = usePersonOperations();
+  const executionOps = useExecution({ showToasts: false });
+  
+  // Use the same execution instance for both operations and state
+  const execution = executionOps;
   
   // Memoize Map creations to prevent recreating on every render
   const nodesMap = useMemo(() => 
@@ -195,14 +205,6 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       nodeCount: usageMap.get(person.id as PersonID) || 0
     }));
   }, [nodesMap, personsArray]);
-  
-  // Get operation hooks
-  const canvasHandlers = useCanvasBase();
-  const interactions = useCanvasInteractions();
-  const nodeOps = useNodeOperations();
-  const arrowOps = useArrowOperations();
-  const personOps = usePersonOperations();
-  const executionOps = useExecution();
   
   // Create selection operations
   const selectionOps = useMemo(() => ({

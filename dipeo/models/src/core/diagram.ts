@@ -4,12 +4,13 @@
  * Used by both frontend (TypeScript) and backend (Python via code generation)
  */
 
-import { LLMService, APIServiceType, NotionOperation, ToolConfig } from './integration.js';
+import { LLMService, APIServiceType, ToolConfig } from './integration.js';
 import { NodeType } from './enums/node-types.js';
 import { HandleDirection, HandleLabel, DataType, ContentType } from './enums/data-types.js';
 import { MemoryView } from './enums/memory.js';
+import { JsonDict } from './types/json.js';
 
-export { LLMService, APIServiceType, NotionOperation };
+export { LLMService, APIServiceType };
 export type { ToolConfig };
 export * from './nodes/index.js';
 export * from './enums/index.js';
@@ -39,7 +40,7 @@ export interface DomainNode {
   id: NodeID;
   type: NodeType;
   position: Vec2;
-  data: Record<string, any>;
+  data: JsonDict;
 }
 
 export interface DomainArrow {
@@ -62,6 +63,7 @@ export interface PersonLLMConfig {
   model: string;
   api_key_id: ApiKeyID;
   system_prompt?: string | null;
+  prompt_file?: string | null;
 }
 
 export interface DomainPerson {

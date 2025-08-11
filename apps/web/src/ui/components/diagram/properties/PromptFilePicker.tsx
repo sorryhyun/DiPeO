@@ -3,7 +3,7 @@ import { Modal } from '@/ui/components/common/feedback';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { Loader2, FileText, FileCode, File } from 'lucide-react';
 import { useQuery, useLazyQuery } from '@apollo/client';
-import { GetPromptFilesDocument, GetPromptFileDocument } from '@/__generated__/graphql';
+import { ListPromptFilesDocument, GetPromptFileDocument } from '@/__generated__/graphql';
 import { format } from 'date-fns';
 
 interface PromptFile {
@@ -25,7 +25,7 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
   const [previewContent, setPreviewContent] = useState<string>('');
   
   // Query to get list of prompt files
-  const { data, loading, error } = useQuery(GetPromptFilesDocument, {
+  const { data, loading, error } = useQuery(ListPromptFilesDocument, {
     skip: !open,
   });
   

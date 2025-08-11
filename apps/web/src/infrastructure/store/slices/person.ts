@@ -1,9 +1,8 @@
-import { StateCreator } from 'zustand';
 import { DomainPerson, PersonID, apiKeyId } from '@/infrastructure/types';
 import { generatePersonId } from '@/infrastructure/types/utilities';
 import { LLMService } from '@dipeo/models';
-import { UnifiedStore } from '@/infrastructure/store/types';
 import { Converters } from '@/infrastructure/services';
+import type { UnifiedStore } from '../types';
 
 export interface PersonSlice {
   // Core data
@@ -27,12 +26,11 @@ export interface PersonSlice {
 
 
 
-export const createPersonSlice: StateCreator<
-  UnifiedStore,
-  [['zustand/immer', never]],
-  [],
-  PersonSlice
-> = (set, _get) => ({
+export const createPersonSlice = (
+  set: (fn: (state: UnifiedStore) => void) => void,
+  _get: () => UnifiedStore,
+  _api: any
+): PersonSlice => ({
     // Initialize data
     persons: new Map(),
   
@@ -50,7 +48,7 @@ export const createPersonSlice: StateCreator<
         type: 'person'
       };
       
-      set(state => {
+      set((state: UnifiedStore) => {
         state.persons.set(person.id as PersonID, person);
         // Update personsArray directly in the same transaction
         state.personsArray = Array.from(state.persons.values());
@@ -60,7 +58,7 @@ export const createPersonSlice: StateCreator<
       return person.id as PersonID;
     },
   
-    updatePerson: (id, updates) => set(state => {
+    updatePerson: (id, updates) => set((state: UnifiedStore) => {
       const person = state.persons.get(id);
       if (person) {
         // Handle nested llm_config updates
@@ -97,7 +95,7 @@ export const createPersonSlice: StateCreator<
       }
     }),
     
-    deletePerson: (id) => set(state => {
+    deletePerson: (id) => set((state: UnifiedStore) => {
       state.persons.delete(id);
       // Update personsArray directly in the same transaction
       state.personsArray = Array.from(state.persons.values());
@@ -105,7 +103,7 @@ export const createPersonSlice: StateCreator<
     }),
   
     // Batch operations
-    batchUpdatePersons: (updates) => set(state => {
+    batchUpdatePersons: (updates) => set((state: UnifiedStore) => {
       updates.forEach(({ id, updates: personUpdates }) => {
         const person = state.persons.get(id);
         if (person) {
@@ -117,7 +115,7 @@ export const createPersonSlice: StateCreator<
       state.dataVersion += 1;
     }),
     
-    importPersons: (persons) => set(state => {
+    importPersons: (persons) => set((state: UnifiedStore) => {
       persons.forEach(person => {
         state.persons.set(person.id as PersonID, person);
       });
@@ -126,7 +124,7 @@ export const createPersonSlice: StateCreator<
       state.dataVersion += 1;
     }),
     
-    importPersonsFromGraphQL: (graphqlPersons) => set(state => {
+    importPersonsFromGraphQL: (graphqlPersons) => set((state: UnifiedStore) => {
       // Use Converters to convert GraphQL persons to domain format
       graphqlPersons.forEach(graphqlPerson => {
         try {
@@ -142,21 +140,21 @@ export const createPersonSlice: StateCreator<
     }),
     
     // Clear and restore operations
-    clearPersons: () => set(state => {
+    clearPersons: () => set((state: UnifiedStore) => {
       state.persons.clear();
       // Update personsArray directly in the same transaction
       state.personsArray = [];
       state.dataVersion += 1;
     }),
     
-    restorePersons: (persons) => set(state => {
+    restorePersons: (persons) => set((state: UnifiedStore) => {
       state.persons = new Map(persons);
       // Update personsArray directly in the same transaction
       state.personsArray = Array.from(state.persons.values());
       state.dataVersion += 1;
     }),
     
-    restorePersonsSilently: (persons) => set(state => {
+    restorePersonsSilently: (persons) => set((state: UnifiedStore) => {
       state.persons = new Map(persons);
       // Update personsArray but don't increment dataVersion
       state.personsArray = Array.from(state.persons.values());

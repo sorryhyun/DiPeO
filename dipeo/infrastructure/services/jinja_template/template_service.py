@@ -129,10 +129,10 @@ class TemplateService:
     
     def _create_base_environment(self) -> Environment:
         template_dirs = [
-            Path('files/codegen/templates'),
-            Path('files/codegen/templates/models'),
-            Path('files/codegen/templates/backend'),
-            Path('files/codegen/templates/frontend'),
+            Path('projects/codegen/templates'),
+            Path('projects/codegen/templates/models'),
+            Path('projects/codegen/templates/backend'),
+            Path('projects/codegen/templates/frontend'),
         ]
         
         file_loaders = [FileSystemLoader(str(d)) for d in template_dirs if d.exists()]

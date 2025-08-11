@@ -135,7 +135,7 @@ make apply    # 스테이징된 변경사항 적용
 
 1. **기존 엔티티의 경우**, 쿼리 생성기 수정:
    ```python
-   # /files/codegen/code/frontend/generators/query_generator_dipeo.py
+   # /projects/codegen/code/frontend/generators/query_generator_dipeo.py
    # generate_diagram_queries() 또는 유사한 메서드에서
    
    queries.append("""query MyNewQuery($id: ID!) {
@@ -147,7 +147,7 @@ make apply    # 스테이징된 변경사항 적용
 
 2. **새 엔티티의 경우**, 새 쿼리 생성기 생성:
    ```python
-   # /files/codegen/code/frontend/queries/my_entity_queries.py
+   # /projects/codegen/code/frontend/queries/my_entity_queries.py
    class MyEntityQueryGenerator:
        def generate(self) -> List[str]:
            return [
@@ -206,8 +206,8 @@ make apply    # 스테이징된 변경사항 적용
 
 ### 코드 생성
 - `/dipeo/models/src/node-specs/` - 노드 명세 (진실의 원천)
-- `/files/codegen/code/frontend/generators/` - 쿼리 생성기
-- `/files/codegen/diagrams/` - 코드젠 오케스트레이션 다이어그램
+- `/projects/codegen/code/frontend/generators/` - 쿼리 생성기
+- `/projects/codegen/diagrams/` - 코드젠 오케스트레이션 다이어그램
 
 ### 생성된 파일 (편집 금지)
 - `/dipeo/diagram_generated/` - Python 모델 및 스키마

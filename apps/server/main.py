@@ -33,8 +33,15 @@ logging.getLogger("openai._base_client").setLevel(logging.WARNING)
 logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
 logging.getLogger("multipart").setLevel(logging.WARNING)
 logging.getLogger("python_multipart").setLevel(logging.WARNING)
-logging.getLogger("sse_starlette").setLevel(logging.WARNING)
-logging.getLogger("sse_starlette.sse").setLevel(logging.WARNING)
+
+# Reduce verbose debug logging from execution components
+logging.getLogger("dipeo.application.execution.observers.unified_event_observer").setLevel(logging.INFO)
+logging.getLogger("dipeo.infrastructure.events.observer_adapter").setLevel(logging.INFO)
+logging.getLogger("dipeo.infrastructure.utils.single_flight_cache").setLevel(logging.WARNING)
+logging.getLogger("dipeo.infrastructure.adapters.llm.openai").setLevel(logging.INFO)
+logging.getLogger("dipeo.application.execution.states.node_readiness_checker").setLevel(logging.INFO)
+logging.getLogger("dipeo.application.execution.handlers.person_job.single_executor").setLevel(logging.INFO)
+logging.getLogger("dipeo.application.execution.handlers.condition.evaluators").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 

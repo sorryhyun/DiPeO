@@ -35,11 +35,6 @@ class ParserService(BaseService, ASTParserPort):
         self._default_language = self.get_config_value("default_language", "typescript")
         self._project_root = self.get_config_value("project_root")
         self._cache_enabled = self.get_config_value("cache_enabled", True)
-        
-        logger.debug(
-            f"ParserService initialized with default language: {self._default_language}, "
-            f"cache: {self._cache_enabled}"
-        )
     
     async def initialize(self) -> None:
         """Initialize the service and pre-load default parser.

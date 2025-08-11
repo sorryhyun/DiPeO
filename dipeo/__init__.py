@@ -6,7 +6,7 @@ It re-exports the core functionality from the various sub-packages for easier im
 
 Usage:
     from dipeo import core, domain, application, infra, container
-    from dipeo.models import (Person, Diagram, NodeType)
+    from dipeo.diagram_generated import (Person, Diagram, NodeType)
 """
 
 import warnings
@@ -67,14 +67,12 @@ try:
 except ImportError as e:
     warnings.warn(f"Could not import some domain items: {e}", ImportWarning)
 
-# For convenience, re-export commonly used items from core ports and domain utils
+# For convenience, re-export commonly used items from core ports
 try:
     from .core.ports import DiagramConverter, FormatStrategy
-    from .domain.diagram.utils import dict_to_domain_diagram, domain_diagram_to_dict
     
     _imported_modules.extend([
-        "DiagramConverter", "FormatStrategy",
-        "dict_to_domain_diagram", "domain_diagram_to_dict"
+        "DiagramConverter", "FormatStrategy"
     ])
 except ImportError as e:
     warnings.warn(f"Could not import some diagram items: {e}", ImportWarning)

@@ -47,7 +47,6 @@ files/results
 files/config
 files/conversation_logs
 files/hooks
-files/prompts
 files/apikeys.json
 *.bak
 dipeo/models/__generated__
@@ -135,6 +134,7 @@ server.log
 
 # Testing
 coverage/
+.coverage
 .nyc_output/
 *.lcov
 

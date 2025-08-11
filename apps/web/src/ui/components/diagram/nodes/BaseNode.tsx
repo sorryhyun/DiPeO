@@ -7,7 +7,7 @@ import { FlowHandle } from '@/ui/components/diagram/controls';
 import { useCanvasOperations } from '@/domain/diagram/contexts';
 import { useUIState } from '@/infrastructure/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/infrastructure/store/hooks';
-import { NodeType, NodeExecutionStatus, nodeId, personId } from '@/infrastructure/types';
+import { NodeType, Status, nodeId, personId } from '@/infrastructure/types';
 import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import './BaseNode.css';
 
@@ -28,32 +28,37 @@ function useNodeStatus(nodeIdStr: string) {
   const operations = useCanvasOperations();
   const hookNodeState = operations.executionOps.getNodeExecutionState(nodeId(nodeIdStr));
   
+  // Debug logging
+  if (nodeExecutionState?.status) {
+    console.log('[BaseNode] Node status for', nodeIdStr, ':', nodeExecutionState?.status, 'hookState:', hookNodeState);
+  }
+  
   return useMemo(() => {
     // Check both enum values and string values for compatibility
     const isRunning = 
-      nodeExecutionState?.status === NodeExecutionStatus.RUNNING || 
+      nodeExecutionState?.status === Status.RUNNING || 
       nodeExecutionState?.status === 'RUNNING' as any ||
       hookNodeState?.status === 'running';
     
     const isSkipped = 
-      nodeExecutionState?.status === NodeExecutionStatus.SKIPPED || 
+      nodeExecutionState?.status === Status.SKIPPED || 
       nodeExecutionState?.status === 'SKIPPED' as any ||
       hookNodeState?.status === 'skipped';
     
     const isCompleted = 
-      nodeExecutionState?.status === NodeExecutionStatus.COMPLETED || 
-      nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED ||
+      nodeExecutionState?.status === Status.COMPLETED || 
+      nodeExecutionState?.status === Status.MAXITER_REACHED ||
       nodeExecutionState?.status === 'COMPLETED' as any ||
       nodeExecutionState?.status === 'MAXITER_REACHED' as any ||
       hookNodeState?.status === 'completed';
     
     const hasError = 
-      nodeExecutionState?.status === NodeExecutionStatus.FAILED || 
+      nodeExecutionState?.status === Status.FAILED || 
       nodeExecutionState?.status === 'FAILED' as any ||
       hookNodeState?.status === 'error';
     
     const isMaxIterReached = 
-      nodeExecutionState?.status === NodeExecutionStatus.MAXITER_REACHED ||
+      nodeExecutionState?.status === Status.MAXITER_REACHED ||
       nodeExecutionState?.status === 'MAXITER_REACHED' as any;
     
     return {

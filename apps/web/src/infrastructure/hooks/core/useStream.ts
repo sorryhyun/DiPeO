@@ -1,3 +1,7 @@
+/**
+ * @deprecated This hook is no longer used. Real-time updates are now handled through GraphQL subscriptions.
+ * See useExecution and useExecutionStreaming for the current implementation.
+ */
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ApolloError, FetchResult, Observable, SubscriptionOptions } from '@apollo/client';
 import type { Subscription } from 'zen-observable-ts';

@@ -110,20 +110,21 @@ class PersonJobStrategy(ApplicationNodeStrategy):
         if hasattr(edge, 'transform_rules') and edge.transform_rules and edge.transform_rules.get('content_type') == 'conversation_state':
             return True
         
+        # Check if this edge is marked for first execution only
+        # This is set during compilation when the _first suffix is detected
+        is_first_edge = False
+        if edge.metadata and edge.metadata.get('is_first_execution'):
+            is_first_edge = True
+        
         # On first execution (execution count is 1 when we're executing for the first time)
         if node_exec_count == 1:
-            if has_special_inputs:
-                # Only process "first" inputs
-                target_input = str(edge.target_input or "")
-                return target_input == "first" or target_input.endswith("_first") or target_input == "HandleLabel.FIRST"
-            else:
-                # Only process default inputs
-                target_input = str(edge.target_input or "")
-                return not edge.target_input or target_input == "default" or target_input == "HandleLabel.DEFAULT"
+            # On first execution, process all edges including those marked for first execution
+            # The _first suffix just means "use this input for first execution"
+            # It doesn't mean "only process first edges on first execution"
+            return True
         else:
-            # After first execution, skip "first" inputs
-            target_input = str(edge.target_input or "")
-            return not (target_input == "first" or target_input.endswith("_first") or target_input == "HandleLabel.FIRST")
+            # After first execution, skip edges marked for first execution only
+            return not is_first_edge
     
     def transform_input(
         self,
@@ -136,15 +137,14 @@ class PersonJobStrategy(ApplicationNodeStrategy):
         return value
     
     def has_first_inputs(self, edges: list[ExecutableEdgeV2]) -> bool:
-        """Check if any edges target "first" inputs."""
-        return any(
-            edge.target_input and (
-                str(edge.target_input) == "first" or 
-                str(edge.target_input).endswith("_first") or 
-                str(edge.target_input) == "HandleLabel.FIRST"
-            )
-            for edge in edges
-        )
+        """Check if any edges are marked for first execution only."""
+        for edge in edges:
+            # Check if edge has the is_first_execution flag in metadata
+            # This is set during compilation when _first suffix is detected
+            if edge.metadata and edge.metadata.get('is_first_execution'):
+                return True
+        
+        return False
 
 
 class ConditionStrategy(ApplicationNodeStrategy):

@@ -22,6 +22,7 @@ export interface UseDiagramManagerOptions {
   autoSaveInterval?: number;
   confirmOnNew?: boolean;
   confirmOnLoad?: boolean;
+  execution?: ReturnType<typeof useExecution>;
 }
 
 export interface UseDiagramManagerReturn {
@@ -70,11 +71,13 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     autoSave = false,
     autoSaveInterval = 30000,
     confirmOnNew = true,
-    confirmOnLoad = true
+    confirmOnLoad = true,
+    execution: providedExecution
   } = options;
   
   const canvas = useCanvas({ readOnly: false });
-  const execution = useExecution({ showToasts: false });
+  // Use provided execution or create new instance
+  const execution = providedExecution || useExecution({ showToasts: false });
   const fileOps = useFileOperations();
   
   const storeOps = useUnifiedStore(

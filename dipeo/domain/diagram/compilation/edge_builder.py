@@ -98,6 +98,13 @@ class EdgeBuilder:
             "label": getattr(arrow, 'label', None)
         }
         
+        # Check if arrow data indicates this is for first execution only
+        # This is set by the light strategy when it detects a _first suffix
+        is_first_execution = False
+        if arrow.data and arrow.data.get('requires_first_execution'):
+            is_first_execution = True
+            edge_metadata['is_first_execution'] = True
+        
         # Get handle label values - handle both enum and string cases
         source_output = None
         if connection.source_handle_label:
@@ -115,7 +122,11 @@ class EdgeBuilder:
         
         # Arrow label sets the target_input for labeled connections
         # This allows the receiving node to get the input with the label as the key
+        # But we also preserve the original handle in metadata for special handling
         if arrow.label:
+            # Store the original handle before overriding
+            edge_metadata = edge_metadata or {}
+            edge_metadata['original_target_handle'] = target_input
             target_input = arrow.label
         
         
@@ -188,6 +199,11 @@ class EdgeBuilder:
     ) -> dict[str, Any]:
         """Extract transformation rules from arrow and node types."""
         rules = {}
+        
+        # Add content_type to transformation rules for the transformation engine
+        content_type = self._determine_content_type(source_node, arrow)
+        if content_type:
+            rules["content_type"] = content_type.value if hasattr(content_type, 'value') else content_type
         
         # Extract from arrow data
         if arrow.data:

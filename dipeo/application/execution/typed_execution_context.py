@@ -22,7 +22,7 @@ from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.diagram_generated import (
     ExecutionState,
-    NodeExecutionStatus,
+    Status,
     NodeID,
     NodeState,
 )
@@ -110,7 +110,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         with self._state_lock:
             return [
                 node_id for node_id, state in self._node_states.items()
-                if state.status == NodeExecutionStatus.COMPLETED
+                if state.status == Status.COMPLETED
             ]
     
     def get_ready_nodes(self) -> list[NodeID]:
@@ -126,7 +126,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         with self._state_lock:
             return [
                 node_id for node_id, state in self._node_states.items()
-                if state.status == NodeExecutionStatus.RUNNING
+                if state.status == Status.RUNNING
             ]
     
     def get_failed_nodes(self) -> list[NodeID]:
@@ -134,7 +134,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         with self._state_lock:
             return [
                 node_id for node_id, state in self._node_states.items()
-                if state.status == NodeExecutionStatus.FAILED
+                if state.status == Status.FAILED
             ]
     
     def get_node_execution_count(self, node_id: NodeID) -> int:
@@ -146,14 +146,14 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def transition_node_to_running(self, node_id: NodeID) -> int:
         """Transition a node to running state. Returns execution count."""
         with self._state_lock:
-            self._node_states[node_id] = NodeState(status=NodeExecutionStatus.RUNNING)
+            self._node_states[node_id] = NodeState(status=Status.RUNNING)
             self._tracker.start_execution(node_id)
             return self._tracker.get_execution_count(node_id)
     
     def transition_node_to_completed(self, node_id: NodeID, output: Any = None, token_usage: dict[str, int] | None = None) -> None:
         """Transition a node to completed state with output."""
         with self._state_lock:
-            self._node_states[node_id] = NodeState(status=NodeExecutionStatus.COMPLETED)
+            self._node_states[node_id] = NodeState(status=Status.COMPLETED)
             self._tracker.complete_execution(
                 node_id, 
                 CompletionStatus.SUCCESS, 
@@ -165,7 +165,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Transition a node to failed state with error message."""
         with self._state_lock:
             self._node_states[node_id] = NodeState(
-                status=NodeExecutionStatus.FAILED,
+                status=Status.FAILED,
                 error=error
             )
             self._tracker.complete_execution(
@@ -177,7 +177,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
         """Transition a node to max iterations state."""
         with self._state_lock:
-            self._node_states[node_id] = NodeState(status=NodeExecutionStatus.MAXITER_REACHED)
+            self._node_states[node_id] = NodeState(status=Status.MAXITER_REACHED)
             self._tracker.complete_execution(
                 node_id,
                 CompletionStatus.MAX_ITER,
@@ -187,7 +187,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def transition_node_to_skipped(self, node_id: NodeID) -> None:
         """Transition a node to skipped state."""
         with self._state_lock:
-            self._node_states[node_id] = NodeState(status=NodeExecutionStatus.SKIPPED)
+            self._node_states[node_id] = NodeState(status=Status.SKIPPED)
             self._tracker.complete_execution(
                 node_id,
                 CompletionStatus.SKIPPED
@@ -196,7 +196,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def reset_node(self, node_id: NodeID) -> None:
         """Reset a node to initial state."""
         with self._state_lock:
-            self._node_states[node_id] = NodeState(status=NodeExecutionStatus.PENDING)
+            self._node_states[node_id] = NodeState(status=Status.PENDING)
     
     # ========== Runtime Context ==========
     
@@ -269,8 +269,16 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     def is_execution_complete(self) -> bool:
         """Check if execution is complete."""
+        # Check if any endpoint nodes have been reached
+        from dipeo.diagram_generated.generated_nodes import NodeType
+        for node in self.diagram.nodes:
+            if node.type == NodeType.ENDPOINT.value:
+                node_state = self.get_node_state(node.id)
+                if node_state and node_state.status in [Status.COMPLETED, Status.MAXITER_REACHED]:
+                    return True
+        
         # Check if any nodes are running
-        if any(state.status == NodeExecutionStatus.RUNNING for state in self._node_states.values()):
+        if any(state.status == Status.RUNNING for state in self._node_states.values()):
             return False
         
         # Check if any nodes are ready
@@ -289,7 +297,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         total = len(self._node_states)
         completed = sum(
             1 for state in self._node_states.values()
-            if state.status in [NodeExecutionStatus.COMPLETED, NodeExecutionStatus.MAXITER_REACHED]
+            if state.status in [Status.COMPLETED, Status.MAXITER_REACHED]
         )
         
         return {
@@ -409,7 +417,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         for node in diagram.nodes:
             if node.id not in context._node_states:
                 context._node_states[node.id] = NodeState(
-                    status=NodeExecutionStatus.PENDING
+                    status=Status.PENDING
                 )
         
         # Load variables (metadata is not persisted in ExecutionState)
@@ -426,7 +434,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     def count_nodes_by_status(self, statuses: list[str]) -> int:
         """Count nodes by status."""
-        status_enums = [NodeExecutionStatus[status] for status in statuses]
+        status_enums = [Status[status] for status in statuses]
         with self._state_lock:
             return sum(
                 1 for state in self._node_states.values()

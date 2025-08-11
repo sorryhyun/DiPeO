@@ -51,8 +51,8 @@ class BaseExecutableNode:
 # Debug: Show all available variables
 # Available variables: now not defined
 # static_nodes_data exists: yes
-# static_nodes_data keys: ['node_classes', 'now']
-# Number of classes: 15
+# static_nodes_data keys: ['node_classes', 'enum_fields', 'now']
+# Number of classes: 14
 
 @dataclass(frozen=True)
 class ApiJobNode(BaseExecutableNode):
@@ -67,8 +67,8 @@ class ApiJobNode(BaseExecutableNode):
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
     headers: Optional[Dict[str, str]] = None
-    params: Optional[Dict[str, Any]] = None
-    body: Optional[Any] = None
+    params: Optional[JsonDict] = None
+    body: Optional[JsonValue] = None
     timeout: Optional[int] = None
     auth_type: Optional[AuthType] = None
     auth_config: Optional[Dict[str, str]] = None
@@ -82,7 +82,7 @@ class ApiJobNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["url"] = self.url
-        data["method"] = self.method.value if self.method is not None else None
+        data["method"] = self.method
         data["headers"] = self.headers
         data["params"] = self.params
         data["body"] = self.body
@@ -117,7 +117,7 @@ class CodeJobNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["language"] = self.language.value if self.language is not None else None
+        data["language"] = self.language
         data["filePath"] = self.filePath
         data["code"] = self.code
         data["functionName"] = self.functionName
@@ -166,12 +166,13 @@ class DBNode(BaseExecutableNode):
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    file: Optional[Union[str, Optional[List[str]]]] = None
+    file: Optional[List[Union[str, str]]] = None
     collection: Optional[str] = None
     query: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[JsonDict] = None
     serialize_json: Optional[bool] = None
     glob: Optional[bool] = None
+    format: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -183,12 +184,13 @@ class DBNode(BaseExecutableNode):
             data["metadata"] = self.metadata
         data["file"] = self.file
         data["collection"] = self.collection
-        data["sub_type"] = self.sub_type.value if self.sub_type is not None else None
+        data["sub_type"] = self.sub_type
         data["operation"] = self.operation
         data["query"] = self.query
         data["data"] = self.data
         data["serialize_json"] = self.serialize_json
         data["glob"] = self.glob
+        data["format"] = self.format
         return data
 
 
@@ -254,13 +256,13 @@ class HookNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["hook_type"] = self.hook_type.value if self.hook_type is not None else None
+        data["hook_type"] = self.hook_type
         data["command"] = self.command
         data["args"] = self.args
         data["env"] = self.env
         data["cwd"] = self.cwd
         data["url"] = self.url
-        data["method"] = self.method.value if self.method is not None else None
+        data["method"] = self.method
         data["headers"] = self.headers
         data["script"] = self.script
         data["function_name"] = self.function_name
@@ -285,7 +287,7 @@ class IntegratedApiNode(BaseExecutableNode):
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    config: Optional[Dict[str, Any]] = None
+    config: Optional[JsonDict] = None
     resource_id: Optional[str] = None
     timeout: Optional[int] = None
     max_retries: Optional[int] = None
@@ -299,7 +301,7 @@ class IntegratedApiNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["provider"] = self.provider
-        data["operation"] = self.operation.value if self.operation is not None else None
+        data["operation"] = self.operation
         data["config"] = self.config
         data["resource_id"] = self.resource_id
         data["timeout"] = self.timeout
@@ -318,7 +320,7 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
     schema_path: Optional[str] = None
-    schema: Optional[Dict[str, Any]] = None
+    json_schema: Optional[JsonDict] = None
     data_path: Optional[str] = None
     strict_mode: Optional[bool] = None
     error_on_extra: Optional[bool] = None
@@ -332,41 +334,10 @@ class JsonSchemaValidatorNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["schema_path"] = self.schema_path
-        data["schema"] = self.schema
+        data["json_schema"] = self.json_schema
         data["data_path"] = self.data_path
         data["strict_mode"] = self.strict_mode
         data["error_on_extra"] = self.error_on_extra
-        return data
-
-
-
-@dataclass(frozen=True)
-class NotionNode(BaseExecutableNode):
-    # Required node-specific fields
-    api_key: str = field()
-    database_id: str = field()
-    operation: NotionOperation = field()
-    # Type field with default
-    type: NodeType = field(default=NodeType.NOTION, init=False)
-    # Base optional fields
-    label: str = ""
-    flipped: bool = False
-    metadata: Optional[Dict[str, Any]] = None
-    # Optional node-specific fields
-    page_id: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert node to dictionary representation."""
-        data = super().to_dict()
-        data["type"] = self.type.value
-        data["label"] = self.label
-        data["flipped"] = self.flipped
-        if self.metadata:
-            data["metadata"] = self.metadata
-        data["api_key"] = self.api_key
-        data["database_id"] = self.database_id
-        data["operation"] = self.operation.value if self.operation is not None else None
-        data["page_id"] = self.page_id
         return data
 
 
@@ -384,11 +355,14 @@ class PersonJobNode(BaseExecutableNode):
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
     person: Optional[PersonID] = None
+    first_prompt_file: Optional[str] = None
     default_prompt: Optional[str] = None
     prompt_file: Optional[str] = None
     memory_profile: Optional[MemoryProfile] = None
     memory_settings: Optional[MemorySettings] = None
     tools: Optional[ToolSelection] = None
+    text_format: Optional[str] = None
+    text_format_file: Optional[str] = None
     batch: Optional[bool] = None
     batch_input_key: Optional[str] = None
     batch_parallel: Optional[bool] = None
@@ -404,12 +378,15 @@ class PersonJobNode(BaseExecutableNode):
             data["metadata"] = self.metadata
         data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt
+        data["first_prompt_file"] = self.first_prompt_file
         data["default_prompt"] = self.default_prompt
         data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration
-        data["memory_profile"] = self.memory_profile.value if self.memory_profile is not None else None
+        data["memory_profile"] = self.memory_profile
         data["memory_settings"] = self.memory_settings
-        data["tools"] = self.tools.value if self.tools is not None else None
+        data["tools"] = self.tools
+        data["text_format"] = self.text_format
+        data["text_format_file"] = self.text_format_file
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key
         data["batch_parallel"] = self.batch_parallel
@@ -429,10 +406,10 @@ class StartNode(BaseExecutableNode):
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
     # Optional node-specific fields
-    custom_data: Optional[Dict[str, Union[str, int, bool]]] = None
+    custom_data: Optional[Dict[str, Union[str, float, bool]]] = None
     output_data_structure: Optional[Dict[str, str]] = None
     hook_event: Optional[str] = None
-    hook_filters: Optional[Dict[str, Any]] = None
+    hook_filters: Optional[JsonDict] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -442,7 +419,7 @@ class StartNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["trigger_mode"] = self.trigger_mode.value if self.trigger_mode is not None else None
+        data["trigger_mode"] = self.trigger_mode
         data["custom_data"] = self.custom_data
         data["output_data_structure"] = self.output_data_structure
         data["hook_event"] = self.hook_event
@@ -462,7 +439,7 @@ class SubDiagramNode(BaseExecutableNode):
     # Optional node-specific fields
     diagram_name: Optional[str] = None
     diagram_format: Optional[DiagramFormat] = None
-    diagram_data: Optional[Dict[str, Any]] = None
+    diagram_data: Optional[JsonDict] = None
     batch: Optional[bool] = None
     batch_input_key: Optional[str] = None
     batch_parallel: Optional[bool] = None
@@ -477,7 +454,7 @@ class SubDiagramNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["diagram_name"] = self.diagram_name
-        data["diagram_format"] = self.diagram_format.value if self.diagram_format is not None else None
+        data["diagram_format"] = self.diagram_format
         data["diagram_data"] = self.diagram_data
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key
@@ -499,7 +476,7 @@ class TemplateJobNode(BaseExecutableNode):
     template_path: Optional[str] = None
     template_content: Optional[str] = None
     output_path: Optional[str] = None
-    variables: Optional[Dict[str, Any]] = None
+    variables: Optional[JsonDict] = None
     engine: Optional[TemplateEngine] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -590,7 +567,6 @@ ExecutableNode = Union[
     HookNode,
     IntegratedApiNode,
     JsonSchemaValidatorNode,
-    NotionNode,
     PersonJobNode,
     StartNode,
     SubDiagramNode,
@@ -621,7 +597,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             url=data.get("url"),
-            method=_to_enum(data.get("method"), HttpMethod),
+            method=data.get("method"),
             headers=data.get("headers", None),
             params=data.get("params", None),
             body=data.get("body", None),
@@ -638,7 +614,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            language=_to_enum(data.get("language"), SupportedLanguage),
+            language=data.get("language"),
             filePath=data.get("filePath", None),
             code=data.get("code", None),
             functionName=data.get("functionName", None),
@@ -668,12 +644,13 @@ def create_executable_node(
             metadata=metadata,
             file=data.get("file", None),
             collection=data.get("collection", None),
-            sub_type=_to_enum(data.get("sub_type"), DBBlockSubType),
+            sub_type=data.get("sub_type"),
             operation=data.get("operation"),
             query=data.get("query", None),
             data=data.get("data", None),
             serialize_json=data.get("serialize_json", None),
             glob=data.get("glob", None),
+            format=data.get("format", None),
         )
     
 
@@ -696,13 +673,13 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            hook_type=_to_enum(data.get("hook_type"), HookType),
+            hook_type=data.get("hook_type"),
             command=data.get("command", None),
             args=data.get("args", None),
             env=data.get("env", None),
             cwd=data.get("cwd", None),
             url=data.get("url", None),
-            method=_to_enum(data.get("method", None), HttpMethod),
+            method=data.get("method", None),
             headers=data.get("headers", None),
             script=data.get("script", None),
             function_name=data.get("function_name", None),
@@ -722,7 +699,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             provider=data.get("provider"),
-            operation=_to_enum(data.get("operation"), NotionOperation),
+            operation=data.get("operation"),
             config=data.get("config", None),
             resource_id=data.get("resource_id", None),
             timeout=data.get("timeout", None),
@@ -738,24 +715,10 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             schema_path=data.get("schema_path", None),
-            schema=data.get("schema", None),
+            json_schema=data.get("json_schema", None),
             data_path=data.get("data_path", None),
             strict_mode=data.get("strict_mode", None),
             error_on_extra=data.get("error_on_extra", None),
-        )
-    
-
-    if node_type == NodeType.NOTION:
-        return NotionNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            api_key=data.get("api_key"),
-            database_id=data.get("database_id"),
-            operation=_to_enum(data.get("operation"), NotionOperation),
-            page_id=data.get("page_id", None),
         )
     
 
@@ -768,12 +731,15 @@ def create_executable_node(
             metadata=metadata,
             person=data.get("person", None),
             first_only_prompt=data.get("first_only_prompt"),
+            first_prompt_file=data.get("first_prompt_file", None),
             default_prompt=data.get("default_prompt", None),
             prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),
-            memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
+            memory_profile=data.get("memory_profile", None),
             memory_settings=data.get("memory_settings", None),
-            tools=_to_enum(data.get("tools", None), ToolSelection),
+            tools=data.get("tools", None),
+            text_format=data.get("text_format", None),
+            text_format_file=data.get("text_format_file", None),
             batch=data.get("batch", None),
             batch_input_key=data.get("batch_input_key", None),
             batch_parallel=data.get("batch_parallel", None),
@@ -788,7 +754,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            trigger_mode=_to_enum(data.get("trigger_mode"), HookTriggerMode),
+            trigger_mode=data.get("trigger_mode"),
             custom_data=data.get("custom_data", None),
             output_data_structure=data.get("output_data_structure", None),
             hook_event=data.get("hook_event", None),
@@ -804,7 +770,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             diagram_name=data.get("diagram_name", None),
-            diagram_format=_to_enum(data.get("diagram_format", None), DiagramFormat),
+            diagram_format=data.get("diagram_format", None),
             diagram_data=data.get("diagram_data", None),
             batch=data.get("batch", None),
             batch_input_key=data.get("batch_input_key", None),
@@ -863,12 +829,15 @@ def create_executable_node(
             metadata=metadata,
             person=data.get("person", None),
             first_only_prompt=data.get("first_only_prompt"),
+            first_prompt_file=data.get("first_prompt_file", None),
             default_prompt=data.get("default_prompt", None),
             prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),
-            memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
+            memory_profile=data.get("memory_profile", None),
             memory_settings=data.get("memory_settings", None),
-            tools=_to_enum(data.get("tools", None), ToolSelection),
+            tools=data.get("tools", None),
+            text_format=data.get("text_format", None),
+            text_format_file=data.get("text_format_file", None),
             batch=data.get("batch", None),
             batch_input_key=data.get("batch_input_key", None),
             batch_parallel=data.get("batch_parallel", None),

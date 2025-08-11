@@ -5,7 +5,7 @@ import { NodeSpecification } from '../types.js';
 export const hookSpec: NodeSpecification = {
   nodeType: NodeType.HOOK,
   displayName: "Hook",
-  category: "control",
+  category: "compute",
   icon: "🪝",
   color: "#9333ea",
   description: "Executes hooks at specific points in the diagram execution",

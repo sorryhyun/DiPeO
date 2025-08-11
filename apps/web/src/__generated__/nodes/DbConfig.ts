@@ -16,7 +16,7 @@ export const dbConfig: UnifiedNodeConfig = {
   icon: '🗄️',
   color: '#795548',
   nodeType: NodeType.DB,
-  category: 'data',
+  category: 'integration',
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
@@ -27,6 +27,7 @@ export const dbConfig: UnifiedNodeConfig = {
   },
   defaults: {
     serialize_json: false,
+    format: 'json',
   },
   customFields: dbFields,
   primaryDisplayField: 'operation',

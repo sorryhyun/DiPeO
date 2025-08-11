@@ -118,7 +118,7 @@ export const usePersonOperations = createStoreOperationHook<DomainPerson, [strin
         if (node.data?.person === id) {
           // Remove person reference from node
           state.updateNode(node.id as NodeID, { 
-            data: { ...node.data, person: undefined } 
+            data: { ...node.data, person: null } 
           });
         }
       });

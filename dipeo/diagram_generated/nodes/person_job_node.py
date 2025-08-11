@@ -40,9 +40,12 @@ class PersonJobNode:
     
     # Optional node-specific fields
     person: str = ""
+    first_prompt_file: str = ""
     default_prompt: str = ""
+    prompt_file: str = ""
     memory_profile: str = None
     tools: List[ToolConfig] = ""
+    text_format: str = ""
     memory_settings: MemorySettings = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -60,9 +63,12 @@ class PersonJobNode:
         # Add node-specific fields
         data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt
+        data["first_prompt_file"] = self.first_prompt_file
         data["default_prompt"] = self.default_prompt
+        data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration
         data["memory_profile"] = self.memory_profile
         data["tools"] = self.tools
+        data["text_format"] = self.text_format
         data["memory_settings"] = self.memory_settings
         return data

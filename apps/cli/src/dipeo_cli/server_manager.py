@@ -69,33 +69,35 @@ class ServerManager:
         """Stop the server if we started it."""
         if self.process:
             print("🛑 Stopping server...")
-            self.process.terminate()
+            process = self.process
+            self.process = None  # Mark as stopped immediately to prevent double-stop
+            
+            process.terminate()
             try:
                 # Wait up to 5 seconds for graceful shutdown
-                self.process.wait(timeout=5)
+                process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 # Force kill if graceful shutdown fails
                 print("⚠️  Server didn't stop gracefully, forcing shutdown...")
-                self.process.kill()
-                self.process.wait()
-            self.process = None
+                process.kill()
+                process.wait()
 
     def execute_diagram(
         self,
-        diagram_data: dict[str, Any],
+        diagram_data: dict[str, Any] | None = None,
+        diagram_id: str | None = None,
         input_variables: dict[str, Any] | None = None,
-        use_monitoring_stream: bool = True,
         use_unified_monitoring: bool = False,
         diagram_name: str | None = None,
         diagram_format: str | None = None,
     ) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
         query = """
-        mutation ExecuteDiagram($diagramData: JSON, $variables: JSON, $useMonitoringStream: Boolean, $useUnifiedMonitoring: Boolean) {
+        mutation ExecuteDiagram($diagramId: ID, $diagramData: JSON, $variables: JSON, $useUnifiedMonitoring: Boolean) {
             execute_diagram(input: {
+                diagram_id: $diagramId,
                 diagram_data: $diagramData,
                 variables: $variables,
-                use_monitoring_stream: $useMonitoringStream,
                 use_unified_monitoring: $useUnifiedMonitoring
             }) {
                 success
@@ -110,9 +112,9 @@ class ServerManager:
             json={
                 "query": query,
                 "variables": {
+                    "diagramId": diagram_id,
                     "diagramData": diagram_data,
                     "variables": input_variables,
-                    "useMonitoringStream": use_monitoring_stream,
                     "useUnifiedMonitoring": use_unified_monitoring,
                 },
             },
@@ -133,7 +135,8 @@ class ServerManager:
                 execution_id=execution_result["execution_id"],
                 diagram_name=diagram_name or "unknown",
                 diagram_format=diagram_format or "native",
-                diagram_data=diagram_data,
+                diagram_data=None,  # Not needed when using diagram_id
+                diagram_path=diagram_id,  # Pass the file path
             )
 
         return execution_result
@@ -185,15 +188,17 @@ class ServerManager:
         diagram_name: str,
         diagram_format: str,
         diagram_data: dict[str, Any] | None = None,
+        diagram_path: str | None = None,
     ) -> bool:
         """Register a CLI execution session with the server."""
         mutation = """
-        mutation RegisterCliSession($executionId: String!, $diagramName: String!, $diagramFormat: String!, $diagramData: JSON) {
+        mutation RegisterCliSession($executionId: String!, $diagramName: String!, $diagramFormat: String!, $diagramData: JSON, $diagramPath: String) {
             register_cli_session(input: {
                 execution_id: $executionId,
                 diagram_name: $diagramName,
                 diagram_format: $diagramFormat,
-                diagram_data: $diagramData
+                diagram_data: $diagramData,
+                diagram_path: $diagramPath
             }) {
                 success
                 error
@@ -211,6 +216,7 @@ class ServerManager:
                         "diagramName": diagram_name,
                         "diagramFormat": diagram_format,
                         "diagramData": diagram_data,
+                        "diagramPath": diagram_path,
                     },
                 },
                 timeout=5,

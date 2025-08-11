@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo.models import ChatResult, LLMRequestOptions, TokenUsage
+from dipeo.diagram_generated import ChatResult, LLMRequestOptions, TokenUsage
 
 
 class BaseLLMAdapter(ABC):
@@ -12,7 +12,14 @@ class BaseLLMAdapter(ABC):
         self.model_name = model_name
         self.api_key = api_key
         self.base_url = base_url
-        self.client = self._initialize_client()
+        self._client = None  # Lazy initialization
+    
+    @property
+    def client(self):
+        """Lazy initialization of client."""
+        if self._client is None:
+            self._client = self._initialize_client()
+        return self._client
 
     @abstractmethod
     def _initialize_client(self) -> Any:

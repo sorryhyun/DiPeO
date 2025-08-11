@@ -1,4 +1,5 @@
 import { QuerySpecification } from './query-specifications';
+import { QueryOperationType } from './query-enums';
 
 export const createSubscriptionSpec = (
   entity: string, 
@@ -6,7 +7,7 @@ export const createSubscriptionSpec = (
   fields: string[]
 ): QuerySpecification => ({
   name: `on${entity}${event}`,
-  operation: 'subscription',
+  operation: QueryOperationType.SUBSCRIPTION,
   entityType: entity,
   description: `Subscribe to ${entity} ${event} events`,
   variables: [
@@ -22,7 +23,7 @@ export const createSubscriptionSpec = (
 
 export const createExecutionSubscriptionSpec = (): QuerySpecification => ({
   name: 'onExecutionUpdate',
-  operation: 'subscription',
+  operation: QueryOperationType.SUBSCRIPTION,
   entityType: 'Execution',
   description: 'Subscribe to execution status updates',
   variables: [

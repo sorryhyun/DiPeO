@@ -39,18 +39,12 @@ class TypedNodeHandler(ABC, Generic[T]):
     def description(self) -> str:
         return f"Typed handler for {self.node_type} nodes"
     
-    # Note: This method has a default implementation below that creates an ExecutionRequest.
-    # Subclasses can override either execute() or execute_request() as needed.
     
     def validate(self, request: "ExecutionRequest[T]") -> Optional[str]:
         return None
     
     @abstractmethod
     async def execute_request(self, request: "ExecutionRequest[T]") -> NodeOutputProtocol:
-        """Execute the node with the unified request object.
-        
-        This is the main method that handlers must implement.
-        """
         ...
     
     def post_execute(
@@ -69,5 +63,5 @@ class TypedNodeHandler(ABC, Generic[T]):
     
 
 
-# Backward compatibility alias
+
 TypedNodeHandlerBase = TypedNodeHandler

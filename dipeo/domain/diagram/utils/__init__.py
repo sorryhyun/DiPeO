@@ -4,8 +4,6 @@ from .conversion_utils import (
     _JsonMixin,
     _YamlMixin,
     _node_id_map,
-    dict_to_domain_diagram,
-    domain_diagram_to_dict,
 )
 from .graph_utils import (
     find_edges_from,
@@ -34,8 +32,6 @@ __all__ = [
     "_JsonMixin",
     "_YamlMixin",
     "_node_id_map",
-    "dict_to_domain_diagram",
-    "domain_diagram_to_dict",
     # graph_utils
     "find_edges_from",
     "find_edges_to",

@@ -75,12 +75,10 @@ const categorizeNodes = () => {
     control: { name: 'Control Flow', icon: '🎯', order: 1 },
     ai: { name: 'AI & Language Models', icon: '🤖', order: 2 },
     compute: { name: 'Compute & Processing', icon: '⚡', order: 3 },
-    data: { name: 'Data Sources', icon: '📊', order: 4 },
-    integration: { name: 'Integrations', icon: '🔌', order: 5 },
-    interaction: { name: 'User Interaction', icon: '💬', order: 6 },
-    codegen: { name: 'Code Generation', icon: '🏗️', order: 7 },
-    validation: { name: 'Validation', icon: '✅', order: 8 },
-    utility: { name: 'Utilities', icon: '🛠️', order: 9 },
+    integration: { name: 'Integrations', icon: '🔌', order: 4 },
+    codegen: { name: 'Code Generation', icon: '🏗️', order: 5 },
+    validation: { name: 'Validation', icon: '✅', order: 6 },
+    utility: { name: 'Utilities', icon: '🛠️', order: 7 },
   };
   
   // Group nodes by category
@@ -107,7 +105,19 @@ const categorizeNodes = () => {
     .map(([category, nodes]) => ({
       category,
       meta: categoryMeta[category] || { name: category, icon: '📦', order: 999 },
-      nodes: nodes.sort((a, b) => a.label.localeCompare(b.label)) // Sort nodes alphabetically
+      nodes: category === 'control' 
+        ? nodes.sort((a, b) => {
+            // Custom sorting for control flow: start, condition, endpoint
+            const controlOrder: Record<string, number> = {
+              'start': 1,
+              'condition': 2,
+              'endpoint': 3,
+            };
+            const orderA = controlOrder[a.type] || 999;
+            const orderB = controlOrder[b.type] || 999;
+            return orderA - orderB;
+          })
+        : nodes.sort((a, b) => a.label.localeCompare(b.label)) // Sort other categories alphabetically
     }));
   
   return sortedCategories;

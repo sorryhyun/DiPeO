@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Any
 
@@ -10,13 +11,15 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, TemplateJobOutput
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.services.jinja_template.template_integration import get_enhanced_template_service
 from dipeo.application.utils.template import TemplateProcessor
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
+
+logger = logging.getLogger(__name__)
 
 
 @register_handler
@@ -71,7 +74,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         inputs = request.inputs
         services = request.services
 
-        
         # Get filesystem adapter from services or use injected one
         filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
         if not filesystem_adapter:
@@ -81,12 +83,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 error_type="ServiceError"
             )
 
-        # Store execution metadata
-        request.add_metadata("engine", node.engine or "internal")
-        if node.template_path:
-            request.add_metadata("template_path", node.template_path)
-        if node.output_path:
-            request.add_metadata("output_path", node.output_path)
+        # Get engine for later use
+        engine = node.engine or "internal"
         
         try:
             # Prepare template variables first
@@ -134,9 +132,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 with filesystem_adapter.open(template_path, 'rb') as f:
                     template_content = f.read().decode('utf-8')
             
-            # Choose template engine
-            engine = node.engine or "internal"
-
             try:
                 if engine == "internal":
                     # Use built-in template service
@@ -148,11 +143,11 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                         template_service = self._get_template_service()
                         rendered = template_service.render_string(template_content, **template_vars)
                         # print(f"[DEBUG] Jinja2 rendering complete")
-                        request.add_metadata("enhanced_rendering", True)
                     except Exception as e:
                         # Fall back to standard Jinja2
                         rendered = await self._render_jinja2(template_content, template_vars)
-                        request.add_metadata("enhancement_fallback", str(e))
+                        # Log the fallback but don't store in metadata
+                        logger.debug(f"Enhancement fallback: {e}")
                 else:
                     return ErrorOutput(
                         value=f"Unsupported template engine: {engine}",
@@ -164,7 +159,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                     value=f"Template rendering failed: {str(render_error)}",
                     node_id=node.id,
                     error_type="RenderError",
-                    metadata={"engine": engine}
+                    metadata="{}"  # Empty metadata
                 )
             
             # Write to file if output_path is specified
@@ -186,26 +181,24 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 
                 with filesystem_adapter.open(output_path, 'wb') as f:
                     f.write(rendered.encode('utf-8'))
-                
-                request.add_metadata("output_written", str(output_path))
             
-            return TextOutput(
+            return TemplateJobOutput(
                 value=rendered,
                 node_id=node.id,
-                metadata={
-                    "engine": engine,
-                    "output_path": node.output_path,
-                    "success": True
-                }
+                metadata="{}",  # Empty metadata
+                engine=engine,  # Use typed field
+                template_path=node.template_path,  # Use typed field
+                output_path=str(output_path) if node.output_path else None  # Use typed field
             )
         
         except Exception as e:
-            return ErrorOutput(
+            output = ErrorOutput(
                 value=str(e),
                 node_id=node.id,
-                error_type=type(e).__name__,
-                metadata={"engine": node.engine or "internal"}
+                error_type=type(e).__name__
             )
+            output.metadata = json.dumps({"engine": node.engine or "internal"})
+            return output
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2."""

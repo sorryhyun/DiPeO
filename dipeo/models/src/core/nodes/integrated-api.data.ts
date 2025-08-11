@@ -5,6 +5,7 @@
 
 import { BaseNodeData } from './base.js';
 import { APIServiceType } from '../enums/integrations.js';
+import { JsonDict } from '../types/json.js';
 
 export interface IntegratedApiNodeData extends BaseNodeData {
   /**
@@ -22,7 +23,7 @@ export interface IntegratedApiNodeData extends BaseNodeData {
    * Provider-specific configuration
    * Structure depends on the selected provider and operation
    */
-  config?: Record<string, any>;
+  config?: JsonDict;
   
   /**
    * Optional resource ID (e.g., page_id for Notion, channel_id for Slack)

@@ -5,7 +5,7 @@ from typing import Optional, List
 import logging
 
 from dipeo.core.ports.execution_observer import ExecutionObserver
-from dipeo.models import NodeState
+from dipeo.diagram_generated import NodeState
 
 logger = logging.getLogger(__name__)
 

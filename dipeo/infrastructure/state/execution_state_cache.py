@@ -5,12 +5,11 @@ import logging
 import time
 from typing import Any
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
     ExecutionState,
-    ExecutionStatus,
-    NodeExecutionStatus,
+    Status,
     TokenUsage,
 )
 
@@ -24,7 +23,7 @@ class ExecutionCache:
         self.execution_id = execution_id
         self.state: ExecutionState | None = None
         self.node_outputs: dict[str, Any] = {}
-        self.node_statuses: dict[str, NodeExecutionStatus] = {}
+        self.node_statuses: dict[str, Status] = {}
         self.node_errors: dict[str, str] = {}
         self.variables: dict[str, Any] = {}
         self.token_usage: TokenUsage | None = None
@@ -58,14 +57,14 @@ class ExecutionCache:
             self._last_access = time.time()
             self._dirty = True
     
-    async def get_node_status(self, node_id: str) -> NodeExecutionStatus | None:
+    async def get_node_status(self, node_id: str) -> Status | None:
         """Get status for a specific node."""
         async with self._local_lock:
             self._last_access = time.time()
             return self.node_statuses.get(node_id)
     
     async def set_node_status(
-        self, node_id: str, status: NodeExecutionStatus, error: str | None = None
+        self, node_id: str, status: Status, error: str | None = None
     ) -> None:
         """Set status for a specific node."""
         async with self._local_lock:
@@ -99,9 +98,10 @@ class ExecutionCache:
             else:
                 # Add token counts
                 self.token_usage = TokenUsage(
-                    prompt_tokens=self.token_usage.prompt_tokens + tokens.prompt_tokens,
-                    completion_tokens=self.token_usage.completion_tokens + tokens.completion_tokens,
-                    total_tokens=self.token_usage.total_tokens + tokens.total_tokens,
+                    input=self.token_usage.input + tokens.input,
+                    output=self.token_usage.output + tokens.output,
+                    cached=(self.token_usage.cached or 0) + (tokens.cached or 0) if tokens.cached else self.token_usage.cached,
+                    total=self.token_usage.input + tokens.input + self.token_usage.output + tokens.output,
                 )
             self._last_access = time.time()
             self._dirty = True
@@ -190,7 +190,7 @@ class ExecutionStateCache:
                 await asyncio.sleep(cleanup_interval)
                 await self._cleanup_expired_caches()
             except asyncio.CancelledError:
-                logger.info("Cleanup loop cancelled")
+                logger.debug("Cleanup loop cancelled")
                 break
             except Exception as e:
                 logger.error(f"Error in cleanup loop: {e}", exc_info=True)

@@ -39,8 +39,3 @@ def setup_routes(app: FastAPI):
     # V2 GraphQL router - temporarily disabled during migration
     # v2_graphql_router = create_v2_graphql_router(context_getter=get_request_context)
     # app.include_router(v2_graphql_router, prefix="")
-
-    # Unified SSE router (MessageRouter-based)
-    from .sse_unified import router as sse_unified_router
-
-    app.include_router(sse_unified_router)

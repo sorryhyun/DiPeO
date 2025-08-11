@@ -1,30 +1,34 @@
 
 import asyncio
 import json
+import logging
 from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core import BaseService
-from dipeo.diagram_generated.enums import ExecutionStatus
+from dipeo.diagram_generated.enums import Status
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
-    DIAGRAM_STORAGE_SERVICE,
+    DIAGRAM_SERVICE_NEW,
     API_KEY_SERVICE,
     CONVERSATION_SERVICE,
     CONVERSATION_MANAGER,
+    PREPARE_DIAGRAM_USE_CASE,
 )
 
 if TYPE_CHECKING:
     from dipeo.core.ports.message_router import MessageRouterPort
     from dipeo.core.ports.state_store import StateStorePort
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.infrastructure.adapters.storage import DiagramStorageAdapter
-    from dipeo.models import DomainDiagram
+    from dipeo.infrastructure.services.diagram import DiagramService
+    from dipeo.diagram_generated import DomainDiagram
 
     from ...registry import ServiceRegistry
     from dipeo.application.bootstrap import Container
+
+logger = logging.getLogger(__name__)
 
 class ExecuteDiagramUseCase(BaseService):
 
@@ -33,7 +37,7 @@ class ExecuteDiagramUseCase(BaseService):
         service_registry: "ServiceRegistry",
         state_store: Optional["StateStorePort"] = None,
         message_router: Optional["MessageRouterPort"] = None,
-        diagram_storage_service: Optional["DiagramStorageAdapter"] = None,
+        diagram_service: Optional["DiagramService"] = None,
         container: Optional["Container"] = None,
     ):
         super().__init__()
@@ -42,46 +46,62 @@ class ExecuteDiagramUseCase(BaseService):
         
         self.state_store = state_store or service_registry.resolve(STATE_STORE)
         self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
-        self.diagram_storage_service = diagram_storage_service or service_registry.resolve(DIAGRAM_STORAGE_SERVICE)
+        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_SERVICE_NEW)
         
         if not self.state_store:
             raise ValueError("state_store is required but not found in service registry")
         if not self.message_router:
             raise ValueError("message_router is required but not found in service registry")
-        if not self.diagram_storage_service:
-            raise ValueError("diagram_storage_service is required but not found in service registry")
+        if not self.diagram_service:
+            raise ValueError("diagram_service is required but not found in service registry")
+        
+        # Get prepare diagram service for clean deserialization -> compilation
+        self._prepare_diagram_service = None
 
     async def initialize(self):
         pass
 
     async def execute_diagram(  # type: ignore[override]
         self,
-        diagram: dict[str, Any],
+        diagram: "DomainDiagram",  # Now only accepts DomainDiagram
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
-        use_monitoring_stream: bool = False,  # Enable log capture for CLI executions
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
-        typed_diagram = await self._compile_typed_diagram(diagram)
+        # Use prepare diagram service for clean deserialization -> compilation
+        typed_diagram = await self._prepare_and_compile_diagram(diagram, options)
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
         
         # Always use unified monitoring
         from dipeo.application.execution.observers.unified_event_observer import UnifiedEventObserver
+        import logging
+
+        logger = logging.getLogger(__name__)
+        
+        # Check if this is a batch item execution (lightweight mode)
+        is_batch_item = options.get("is_batch_item", False)
         
         # If observers are provided (e.g., for sub-diagrams), use them
-        if observers is not None:
+        # Empty list means no observers needed (batch mode optimization)
+        if observers is not None and (observers or not is_batch_item):
             engine_observers = observers
+        elif observers == [] or is_batch_item:
+            # Batch mode: no observers for performance
+            engine_observers = []
+            # Don't log for each batch item to reduce noise
         else:
-            # Create unified observer for real-time updates
+            # Create unified observer for real-time updates (normal mode)
             unified_observer = UnifiedEventObserver(
                 message_router=self.message_router,
                 execution_runtime=typed_diagram,
-                capture_logs=use_monitoring_stream  # Enable log capture for CLI
+                capture_logs=True,  # Always enable log capture
+                propagate_to_sub=False  # Don't track sub-diagram nodes by default
             )
             engine_observers = [unified_observer]
+            # logger.debug(f"[ExecuteDiagram] Created UnifiedEventObserver for execution {execution_id}")
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.registry.keys import EVENT_BUS
@@ -92,14 +112,34 @@ class ExecuteDiagramUseCase(BaseService):
         event_bus = None
         if self.service_registry.has(EVENT_BUS):
             event_bus = self.service_registry.resolve(EVENT_BUS)
+            # logger.debug(f"[ExecuteDiagram] Using event bus from registry")
+            
+            # Subscribe unified observer to event bus using adapter
+            if engine_observers:
+                from dipeo.infrastructure.events.observer_adapter import ObserverToEventConsumerAdapter
+                from dipeo.core.events import EventType
+                
+                for observer in engine_observers:
+                    adapter = ObserverToEventConsumerAdapter(observer)
+                    # Subscribe to all relevant event types
+                    event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
+                    event_bus.subscribe(EventType.NODE_STARTED, adapter)
+                    event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
+                    event_bus.subscribe(EventType.NODE_FAILED, adapter)
+                    event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
+                    # logger.debug(f"[ExecuteDiagram] Subscribed observer to event bus")
+        else:
+            # logger.debug(f"[ExecuteDiagram] No event bus in registry, will use observers")
+            pass
         
-        # Create engine with event bus (or observers for backward compatibility)
+        # Create engine with event bus (no need for observers when using event bus)
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             runtime_resolver=runtime_resolver,
             event_bus=event_bus,
             observers=engine_observers if not event_bus else None,
         )
+        # logger.debug(f"[ExecuteDiagram] Created engine with event_bus={bool(event_bus)}, observers={bool(engine_observers if not event_bus else None)}")
 
         # No update iterator needed with unified monitoring
 
@@ -142,7 +182,7 @@ class ExecuteDiagramUseCase(BaseService):
         
         try:
             # Wait for execution completion and yield status
-            if use_monitoring_stream or is_batch_item or is_sub_diagram:
+            if is_batch_item or is_sub_diagram:
                 # Wait for the execution task to complete
                 try:
                     await execution_task
@@ -152,7 +192,7 @@ class ExecuteDiagramUseCase(BaseService):
                 # Get final state
                 state = await self.state_store.get_state(execution_id)
                 # Only treat FAILED and ABORTED as errors, not PENDING or RUNNING
-                is_error = state and state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
+                is_error = state and state.status in [Status.FAILED, Status.ABORTED]
                 yield {
                     "type": "execution_error" if is_error else "execution_complete",
                     "execution_id": execution_id,
@@ -165,14 +205,14 @@ class ExecuteDiagramUseCase(BaseService):
                 while True:
                     state = await self.state_store.get_state(execution_id)
                     if state and state.status in [
-                        ExecutionStatus.COMPLETED,
-                        ExecutionStatus.FAILED,
-                        ExecutionStatus.ABORTED,
+                        Status.COMPLETED,
+                        Status.FAILED,
+                        Status.ABORTED,
                     ]:
                         break
                     await asyncio.sleep(1)
                 # Only treat FAILED and ABORTED as errors
-                is_error = state.status in [ExecutionStatus.FAILED, ExecutionStatus.ABORTED]
+                is_error = state.status in [Status.FAILED, Status.ABORTED]
                 yield {
                     "type": "execution_error" if is_error else "execution_complete",
                     "execution_id": execution_id,
@@ -183,69 +223,65 @@ class ExecuteDiagramUseCase(BaseService):
             # Re-raise any exceptions
             raise
     
-    async def _compile_typed_diagram(self, diagram: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
-        """Compile diagram to typed executable format."""
-        from dipeo.models import DomainDiagram
-        from dipeo.domain.diagram.utils import dict_to_domain_diagram
-        from dipeo.infrastructure.services.diagram import DiagramConverterService
+    async def _prepare_and_compile_diagram(self, diagram: "DomainDiagram", options: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
+        """Prepare and compile diagram using the standard flow."""
+        from dipeo.diagram_generated import DomainDiagram
         
-        if isinstance(diagram, dict):
-            version = diagram.get("version")
-            format_type = diagram.get("format")
-            
-            if version in ["light", "readable"] or format_type in ["light", "readable"]:
-                converter = DiagramConverterService()
-                await converter.initialize()
-                
-                import yaml
-                yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
-                
-                format_id = version or format_type
-                domain_diagram = converter.deserialize(yaml_content, format_id)
-            else:
-                domain_diagram = dict_to_domain_diagram(diagram)
-        elif isinstance(diagram, DomainDiagram):
-            domain_diagram = diagram
+        # Try to get prepare diagram service from registry
+        if not self._prepare_diagram_service:
+            try:
+                self._prepare_diagram_service = self.service_registry.resolve(PREPARE_DIAGRAM_USE_CASE)
+            except:
+                pass
+        
+        # If we have the prepare service, use it for clean deserialization -> compilation
+        if self._prepare_diagram_service:
+            # Prepare diagram handles all format conversion and compilation
+            executable_diagram = await self._prepare_diagram_service.prepare_for_execution(
+                diagram=diagram,
+                validate=False  # Skip validation for now as mentioned in TODO
+            )
         else:
-            raise ValueError(f"Unsupported diagram type: {type(diagram)}")
-        
-        # TODO: Add updated validation logic if needed
-        # Validation has been temporarily removed while updating the flow validation system
-        
-        # Get compilation service from registry
-        from dipeo.application.registry import COMPILATION_SERVICE
-        compiler = self.service_registry.resolve(COMPILATION_SERVICE)
-        if not compiler:
-            raise RuntimeError("CompilationService not found in registry")
-        
-        api_keys = None
-        if hasattr(self.service_registry, 'resolve'):
+            # Fallback to inline implementation if service not available
+            from dipeo.application.registry import COMPILATION_SERVICE
+            
+            # Already have a DomainDiagram, just compile it
+            domain_diagram = diagram
+            
+            # Compile to ExecutableDiagram
+            compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+            if not compiler:
+                raise RuntimeError("CompilationService not found in registry")
+            
+            executable_diagram = compiler.compile(domain_diagram)
+            
+            # Add API keys
             api_key_service = self.service_registry.resolve(API_KEY_SERVICE)
             if api_key_service:
                 api_keys = self._extract_api_keys_for_typed_diagram(domain_diagram, api_key_service)
-        
-        executable_diagram = compiler.compile(domain_diagram)
-        if api_keys:
-            executable_diagram.metadata["api_keys"] = api_keys
-        
-        if domain_diagram.metadata:
-            executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
-        
-        if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
-            persons_dict = {}
-            persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
-            for person in persons_list:
-                person_id = str(person.id)
-                persons_dict[person_id] = {
-                    'name': person.label,
-                    'service': person.llm_config.service.value if hasattr(person.llm_config.service, 'value') else person.llm_config.service,
-                    'model': person.llm_config.model,
-                    'api_key_id': str(person.llm_config.api_key_id),
-                    'system_prompt': person.llm_config.system_prompt or '',
-                    'temperature': getattr(person.llm_config, 'temperature', 0.7),
-                    'max_tokens': getattr(person.llm_config, 'max_tokens', None),
-                }
-            executable_diagram.metadata['persons'] = persons_dict
+                if api_keys:
+                    executable_diagram.metadata["api_keys"] = api_keys
+            
+            # Add metadata
+            if domain_diagram.metadata:
+                executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
+            
+            # Add persons metadata
+            if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
+                persons_dict = {}
+                persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
+                for person in persons_list:
+                    person_id = str(person.id)
+                    persons_dict[person_id] = {
+                        'name': person.label,
+                        'service': person.llm_config.service.value if hasattr(person.llm_config.service, 'value') else person.llm_config.service,
+                        'model': person.llm_config.model,
+                        'api_key_id': str(person.llm_config.api_key_id),
+                        'system_prompt': person.llm_config.system_prompt or '',
+                        'temperature': getattr(person.llm_config, 'temperature', 0.7),
+                        'max_tokens': getattr(person.llm_config, 'max_tokens', None),
+                    }
+                executable_diagram.metadata['persons'] = persons_dict
         
         await self._register_typed_person_configs(executable_diagram)
         
@@ -275,6 +311,7 @@ class ExecuteDiagramUseCase(BaseService):
                 if isinstance(node, PersonJobNode) and node.person:
                     # Use the actual person_id from the node, not the node ID
                     person_id = str(node.person)
+                    # logger.debug(f"Processing PersonJobNode: node.person={node.person}, person_id={person_id}")
                     # For PersonJobNode, we need to get person config from metadata or defaults
                     # The node itself only has person_id reference
                     config = {
@@ -288,8 +325,10 @@ class ExecuteDiagramUseCase(BaseService):
                     # Try to get person config from diagram metadata if available
                     if typed_diagram.metadata and 'persons' in typed_diagram.metadata:
                         persons_metadata = typed_diagram.metadata['persons']
+                        # logger.debug(f"Found persons metadata: {persons_metadata}")
                         if person_id in persons_metadata:
                             person_data = persons_metadata[person_id]
+                            # logger.debug(f"Found person data for {person_id}: {person_data}")
                             config.update({
                                 'name': person_data.get('name', person_id),
                                 'system_prompt': person_data.get('system_prompt', ''),
@@ -299,21 +338,24 @@ class ExecuteDiagramUseCase(BaseService):
                                 'max_tokens': person_data.get('max_tokens'),
                                 'api_key_id': person_data.get('api_key_id', ''),
                             })
+                            # logger.debug(f"Updated config for {person_id}: {config}")
+                    else:
+                        pass
+                        # logger.debug(f"No persons metadata found in diagram. metadata: {typed_diagram.metadata}")
                     
                     person_configs[person_id] = config
                     
                     # Register person if conversation service supports it
                     if hasattr(conversation_service, 'register_person'):
+                        # logger.debug(f"Registering person {person_id} with config: {config}")
                         conversation_service.register_person(person_id, config)
+                        # logger.debug(f"Successfully registered person {person_id}")
                     else:
                         # For services that don't have register_person, 
                         # we can at least ensure the person memory is created
                         if hasattr(conversation_service, 'get_or_create_person_memory'):
                             conversation_service.get_or_create_person_memory(person_id)
-            
-            # Log person registrations
-            if person_configs:
-                log.debug(f"Registered {len(person_configs)} person configs for execution")
+
     
     async def _initialize_typed_execution_state(
         self,
@@ -324,12 +366,12 @@ class ExecuteDiagramUseCase(BaseService):
         """Initialize execution state for typed diagram."""
         from datetime import datetime
 
-        from dipeo.models import ExecutionState, ExecutionStatus, TokenUsage
+        from dipeo.diagram_generated import ExecutionState, Status, TokenUsage
         
         # Create initial execution state
         initial_state = ExecutionState(
             id=execution_id,
-            status=ExecutionStatus.PENDING,
+            status=Status.PENDING,
             diagram_id=typed_diagram.metadata.get('id') if typed_diagram.metadata else None,
             started_at=datetime.now().isoformat(),
             node_states={},

@@ -2,6 +2,115 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
+    "PersonJobNodeData": {
+      "additionalProperties": false,
+      "description": "Configuration data for PersonJob nodes that execute LLM agents",
+      "properties": {
+        "batch": {
+          "description": "Enable batch processing for arrays",
+          "type": "boolean"
+        },
+        "batch_input_key": {
+          "description": "Array variable name for batch processing",
+          "type": "string"
+        },
+        "batch_parallel": {
+          "description": "Execute batch items in parallel",
+          "type": "boolean"
+        },
+        "default_prompt": {
+          "description": "Prompt template using {{variable}} syntax for subsequent iterations",
+          "type": "string"
+        },
+        "first_only_prompt": {
+          "description": "Special prompt for first iteration only, supports {{variable}} syntax",
+          "type": "string"
+        },
+        "first_prompt_file": {
+          "description": "External prompt file for first iteration only (overrides first_only_prompt)",
+          "type": "string"
+        },
+        "flipped": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "max_concurrent": {
+          "description": "Maximum concurrent batch executions",
+          "type": "number"
+        },
+        "max_iteration": {
+          "description": "Maximum conversation turns (default: 1)",
+          "type": "number"
+        },
+        "memory_profile": {
+          "description": "Memory profile: GOLDFISH (2 msgs), MINIMAL (5), FOCUSED (20), FULL (all)",
+          "enum": [
+            "CUSTOM",
+            "FOCUSED",
+            "FULL",
+            "GOLDFISH",
+            "MINIMAL"
+          ],
+          "type": "string"
+        },
+        "memory_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MemorySettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Advanced memory configuration when memory_profile is CUSTOM"
+        },
+        "person": {
+          "$ref": "#/definitions/PersonID",
+          "description": "Reference to agent defined in 'persons' section"
+        },
+        "prompt_file": {
+          "description": "External prompt file in files/prompts/ (overrides inline prompts)",
+          "type": "string"
+        },
+        "text_format": {
+          "description": "Pydantic model name for structured output",
+          "type": "string"
+        },
+        "text_format_file": {
+          "description": "External Python file with Pydantic models (overrides text_format)",
+          "type": "string"
+        },
+        "tools": {
+          "description": "LLM tools to enable (web_search_preview, etc.)",
+          "enum": [
+            "image",
+            "none",
+            "websearch"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "first_only_prompt",
+        "label",
+        "max_iteration"
+      ],
+      "type": "object"
+    },
+    "MemoryView": {
+      "description": "Memory management enumerations",
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
+      ],
+      "type": "string"
+    },
     "PersonID": {
       "additionalProperties": false,
       "properties": {
@@ -35,90 +144,6 @@
         "view"
       ],
       "type": "object"
-    },
-    "PersonJobNodeData": {
-      "additionalProperties": false,
-      "properties": {
-        "batch": {
-          "type": "boolean"
-        },
-        "batch_input_key": {
-          "type": "string"
-        },
-        "batch_parallel": {
-          "type": "boolean"
-        },
-        "default_prompt": {
-          "type": "string"
-        },
-        "first_only_prompt": {
-          "type": "string"
-        },
-        "flipped": {
-          "type": "boolean"
-        },
-        "label": {
-          "type": "string"
-        },
-        "max_concurrent": {
-          "type": "number"
-        },
-        "max_iteration": {
-          "type": "number"
-        },
-        "memory_profile": {
-          "enum": [
-            "CUSTOM",
-            "FOCUSED",
-            "FULL",
-            "GOLDFISH",
-            "MINIMAL"
-          ],
-          "type": "string"
-        },
-        "memory_settings": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/MemorySettings"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "person": {
-          "$ref": "#/definitions/PersonID"
-        },
-        "prompt_file": {
-          "type": "string"
-        },
-        "tools": {
-          "enum": [
-            "image",
-            "none",
-            "websearch"
-          ],
-          "type": "string"
-        }
-      },
-      "required": [
-        "first_only_prompt",
-        "label",
-        "max_iteration"
-      ],
-      "type": "object"
-    },
-    "MemoryView": {
-      "description": "Memory management enumerations",
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
     }
   }
 }

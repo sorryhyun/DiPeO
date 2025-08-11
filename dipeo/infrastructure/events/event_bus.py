@@ -49,7 +49,7 @@ class AsyncEventBus(EventEmitter):
                 event = await queue.get()
                 await consumer.consume(event)
             except asyncio.CancelledError:
-                logger.info(f"Consumer loop cancelled for {consumer.__class__.__name__}")
+                logger.debug(f"Consumer loop cancelled for {consumer.__class__.__name__}")
                 break
             except Exception as e:
                 logger.error(
@@ -60,7 +60,6 @@ class AsyncEventBus(EventEmitter):
     async def start(self) -> None:
         """Start the event bus"""
         self._running = True
-        logger.info("AsyncEventBus started")
     
     async def stop(self) -> None:
         """Stop the event bus and clean up resources"""
@@ -78,8 +77,6 @@ class AsyncEventBus(EventEmitter):
         self._tasks.clear()
         self._subscribers.clear()
         self._queues.clear()
-        
-        logger.info("AsyncEventBus stopped")
 
 
 class NullEventBus(EventEmitter):

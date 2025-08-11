@@ -1,5 +1,3 @@
-import { Draft } from 'immer';
-import { UnifiedStore } from '../types';
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
 import { DomainArrow, DomainNode, DomainPerson } from '@/infrastructure/types';
 import {ArrowID, NodeID, PersonID} from '@dipeo/models';
@@ -9,32 +7,32 @@ type EntityId = NodeID | ArrowID | PersonID;
 type Entity = DomainNode | DomainArrow | DomainPerson;
 
 interface CrudActions<T extends Entity, ID extends EntityId> {
-  add: (state: Draft<UnifiedStore>, entity: T) => ID;
-  update: (state: Draft<UnifiedStore>, id: ID, updates: Partial<T>) => void;
-  delete: (state: Draft<UnifiedStore>, id: ID) => void;
+  add: (state: any, entity: T) => ID;
+  update: (state: any, id: ID, updates: Partial<T>) => void;
+  delete: (state: any, id: ID) => void;
 }
 
 function getEntityMap<T extends Entity, ID extends EntityId>(
-  state: Draft<UnifiedStore>,
+  state: any,
   entityType: EntityType
 ): Map<ID, T> {
   return state[entityType] as Map<ID, T>;
 }
 
 function setEntityMap<T extends Entity, ID extends EntityId>(
-  state: Draft<UnifiedStore>,
+  state: any,
   entityType: EntityType,
   map: Map<ID, T>
 ): void {
-  (state as any)[entityType] = map;
+  state[entityType] = map;
 }
 
 export function createCrudActions<T extends Entity, ID extends EntityId>(
   entityType: EntityType,
   options?: {
-    onAdd?: (state: Draft<UnifiedStore>, entity: T) => void;
-    onUpdate?: (state: Draft<UnifiedStore>, id: ID, entity: T) => void;
-    onDelete?: (state: Draft<UnifiedStore>, id: ID) => void;
+    onAdd?: (state: any, entity: T) => void;
+    onUpdate?: (state: any, id: ID, entity: T) => void;
+    onDelete?: (state: any, id: ID) => void;
   }
 ): CrudActions<T, ID> {
   return {

@@ -2,7 +2,7 @@
 
 from enum import Enum, auto
 
-from dipeo.models import MemorySettings, MemoryView as MemoryViewEnum
+from dipeo.diagram_generated import MemorySettings, MemoryView as MemoryViewEnum
 
 from .memory_filters import MemoryView
 

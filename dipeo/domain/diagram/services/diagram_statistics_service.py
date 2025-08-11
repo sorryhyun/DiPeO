@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from dipeo.models import DomainDiagram, NodeType
+from dipeo.diagram_generated import DomainDiagram, NodeType
 
 
 class DiagramStatisticsService:
@@ -17,8 +17,7 @@ class DiagramStatisticsService:
         # Count node types
         node_types = {}
         if diagram.nodes:
-            nodes_list = list(diagram.nodes.values()) if isinstance(diagram.nodes, dict) else diagram.nodes
-            for node in nodes_list:
+            for node in diagram.nodes:
                 node_type = getattr(node, "type", "unknown")
                 if isinstance(node_type, NodeType):
                     node_type_str = node_type.value
@@ -45,9 +44,8 @@ class DiagramStatisticsService:
         
         # Build adjacency list
         graph = {}
-        arrows_list = list(diagram.arrows.values()) if isinstance(diagram.arrows, dict) else diagram.arrows
         
-        for arrow in arrows_list:
+        for arrow in diagram.arrows:
             source = getattr(arrow, "source", None)
             target = getattr(arrow, "target", None)
             if source and target:
@@ -87,15 +85,13 @@ class DiagramStatisticsService:
         
         # Build undirected adjacency list
         graph = {}
-        nodes_list = list(diagram.nodes.values()) if isinstance(diagram.nodes, dict) else diagram.nodes
-        node_ids = {getattr(node, "id", str(i)) for i, node in enumerate(nodes_list)}
+        node_ids = {node.id for node in diagram.nodes}
         
         for node_id in node_ids:
             graph[node_id] = set()
         
         if diagram.arrows:
-            arrows_list = list(diagram.arrows.values()) if isinstance(diagram.arrows, dict) else diagram.arrows
-            for arrow in arrows_list:
+            for arrow in diagram.arrows:
                 source = getattr(arrow, "source", None)
                 target = getattr(arrow, "target", None)
                 if source and target and source in node_ids and target in node_ids:
@@ -122,8 +118,7 @@ class DiagramStatisticsService:
         if not diagram.nodes:
             return False
         
-        nodes_list = list(diagram.nodes.values()) if isinstance(diagram.nodes, dict) else diagram.nodes
-        for node in nodes_list:
+        for node in diagram.nodes:
             node_type = getattr(node, "type", None)
             if node_type == NodeType.START or node_type == "START":
                 return True
@@ -135,8 +130,7 @@ class DiagramStatisticsService:
         if not diagram.nodes:
             return False
         
-        nodes_list = list(diagram.nodes.values()) if isinstance(diagram.nodes, dict) else diagram.nodes
-        for node in nodes_list:
+        for node in diagram.nodes:
             node_type = getattr(node, "type", None)
             if node_type == NodeType.END or node_type == "END":
                 return True

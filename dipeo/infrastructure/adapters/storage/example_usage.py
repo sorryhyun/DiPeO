@@ -11,7 +11,6 @@ from dipeo.infrastructure.adapters.storage import (
     LocalFileSystemAdapter,
     ArtifactStoreAdapter,
     S3Adapter,
-    DiagramStorageAdapter,
 )
 
 

@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
@@ -73,10 +74,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         node = request.node
         inputs = request.inputs
 
-        # Store execution metadata
-        request.add_metadata("extract_patterns", node.extractPatterns or ['interface', 'type', 'enum'])
-        request.add_metadata("include_jsdoc", node.includeJSDoc or False)
-        request.add_metadata("parse_mode", node.parseMode or 'module')
         
         try:
             # Get source code from node config or inputs
@@ -187,18 +184,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             return DataOutput(
                 value=output_data,
                 node_id=node.id,
-                metadata={
-                    'interfaces_count': len(ast_data.get('interfaces', [])),
-                    'types_count': len(ast_data.get('types', [])),
-                    'enums_count': len(enums),
-                    'classes_count': len(ast_data.get('classes', [])),
-                    'functions_count': len(ast_data.get('functions', [])),
-                    'constants_count': len(ast_data.get('constants', [])),
-                    'transform_enums': transform_enums,
-                    'flatten_output': flatten_output,
-                    'output_format': output_format,
-                    'success': True
-                }
+                metadata=json.dumps({
+                    'output_format': output_format
+                })
             )
         
         except Exception as e:
@@ -215,15 +203,25 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     ) -> NodeOutputProtocol:
         """Post-execution hook to log parsing statistics."""
         # Log execution details if in debug mode
-        if request.metadata.get("debug"):
-            success = output.metadata.get("success", False)
-            
-            if success and isinstance(output, DataOutput):
+        if request.metadata.get("debug") and isinstance(output, DataOutput):
+            # Extract counts from the actual output data if available
+            if isinstance(output.value, dict):
                 stats = []
-                for key in ['interfaces', 'types', 'enums', 'classes', 'functions']:
-                    count = output.metadata.get(f"{key}_count", 0)
-                    if count > 0:
-                        stats.append(f"{count} {key}")
+                # Check various output formats for counts
+                if 'summary' in output.value:
+                    # for_analysis format
+                    summary = output.value['summary']
+                    for key in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
+                        count = summary.get(key, 0)
+                        if count > 0:
+                            stats.append(f"{count} {key}")
+                else:
+                    # standard or for_codegen format - count items directly
+                    for key in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
+                        if key in output.value and isinstance(output.value[key], list):
+                            count = len(output.value[key])
+                            if count > 0:
+                                stats.append(f"{count} {key}")
                 
                 if stats:
                     print(f"[TypescriptAstNode] Extracted: {', '.join(stats)}")

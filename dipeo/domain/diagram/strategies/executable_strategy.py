@@ -192,21 +192,6 @@ class ExecutableJsonStrategy(_JsonMixin, BaseConversionStrategy):
         executable = compiler.compile(diagram)
         return self.serialize_from_executable(executable)
 
-    # Required abstract methods
-    def _get_raw_nodes(self, data: dict[str, Any]) -> list[Any]:
-        """Get nodes from executable format."""
-        return data.get("nodes", [])
-    
-    def _process_node(self, node_data: Any, index: int) -> dict[str, Any] | None:
-        """Process executable format node data."""
-        # For executable format, nodes are already processed
-        return node_data if isinstance(node_data, dict) else None
-
-    def build_export_data(self, diagram: DomainDiagram) -> dict[str, Any]:
-        """Build export data by compiling first."""
-        # This method is called by serialize_from_domain
-        # We override serialize_from_domain directly, so this won't be used
-        raise NotImplementedError("Use serialize_from_domain directly")
 
     # Heuristics
     def detect_confidence(self, data: dict[str, Any]) -> float:

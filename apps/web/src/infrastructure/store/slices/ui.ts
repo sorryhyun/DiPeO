@@ -1,7 +1,6 @@
-import { StateCreator } from 'zustand';
 import { ArrowID, NodeID, PersonID } from '@/infrastructure/types';
 import { Vec2 } from '@dipeo/models';
-import { UnifiedStore } from '../types';
+import type { UnifiedStore } from '../types';
 
 export type SelectableID = NodeID | ArrowID | PersonID;
 export type SelectableType = 'node' | 'arrow' | 'person';
@@ -73,21 +72,11 @@ export interface UISlice {
   // NOTE: Modal operations removed - use local component state instead
 }
 
-// Helper to auto-switch dashboard tab based on selection
-const autoSwitchTab = (state: UnifiedStore, type: SelectableType | null) => {
-  if (type === 'person') {
-    state.dashboardTab = 'persons';
-  } else if (type === 'node' || type === 'arrow') {
-    state.dashboardTab = 'properties';
-  }
-};
-
-export const createUISlice: StateCreator<
-  UnifiedStore,
-  [['zustand/immer', never]],
-  [],
-  UISlice
-> = (set, _get) => ({
+export const createUISlice = (
+  set: (fn: (state: UnifiedStore) => void) => void,
+  _get: () => UnifiedStore,
+  _api: any
+): UISlice => ({
   // Initialize UI state
   selectedId: null,
   selectedType: null,
@@ -108,20 +97,25 @@ export const createUISlice: StateCreator<
   canvasMode: 'select',
   
   // Selection operations
-  select: (id, type) => set(state => {
+  select: (id, type) => set((state: UnifiedStore) => {
     state.selectedId = id;
     state.selectedType = type;
     state.multiSelectedIds.clear();
-    autoSwitchTab(state, type);
+    // Auto-switch tab based on selection
+    if (type === 'person') {
+      state.dashboardTab = 'persons';
+    } else if (type === 'node' || type === 'arrow') {
+      state.dashboardTab = 'properties';
+    }
   }),
   
-  multiSelect: (ids, type) => set(state => {
+  multiSelect: (ids, type) => set((state: UnifiedStore) => {
     state.selectedId = ids[0] || null;
     state.selectedType = type;
     state.multiSelectedIds = new Set(ids);
   }),
   
-  toggleSelection: (id, type) => set(state => {
+  toggleSelection: (id, type) => set((state: UnifiedStore) => {
     if (state.multiSelectedIds.has(id)) {
       state.multiSelectedIds.delete(id);
       if (state.selectedId === id) {
@@ -139,13 +133,13 @@ export const createUISlice: StateCreator<
     }
   }),
   
-  clearSelection: () => set(state => {
+  clearSelection: () => set((state: UnifiedStore) => {
     state.selectedId = null;
     state.selectedType = null;
     state.multiSelectedIds.clear();
   }),
   
-  selectAll: () => set(state => {
+  selectAll: () => set((state: UnifiedStore) => {
     const allNodeIds = Array.from(state.nodes.keys());
     state.multiSelectedIds = new Set(allNodeIds);
     state.selectedId = allNodeIds[0] || null;
@@ -153,47 +147,47 @@ export const createUISlice: StateCreator<
   }),
   
   // Highlight operations
-  highlightPerson: (personId) => set(state => {
+  highlightPerson: (personId) => set((state: UnifiedStore) => {
     state.highlightedPersonId = personId;
   }),
   
   // View operations
-  setActiveView: (view) => set(state => {
+  setActiveView: (view) => set((state: UnifiedStore) => {
     state.activeView = view;
   }),
   
-  setActiveCanvas: (canvas) => set(state => {
+  setActiveCanvas: (canvas) => set((state: UnifiedStore) => {
     state.activeCanvas = canvas;
   }),
   
-  setDashboardTab: (tab) => set(state => {
+  setDashboardTab: (tab) => set((state: UnifiedStore) => {
     state.dashboardTab = tab;
   }),
   
   // Viewport operations
-  setViewport: (zoom, position) => set(state => {
+  setViewport: (zoom, position) => set((state: UnifiedStore) => {
     state.zoom = zoom;
     state.position = position;
   }),
   
-  setZoom: (zoom) => set(state => {
+  setZoom: (zoom) => set((state: UnifiedStore) => {
     state.zoom = zoom;
   }),
   
-  setPosition: (position) => set(state => {
+  setPosition: (position) => set((state: UnifiedStore) => {
     state.position = position;
   }),
   
   // Mode operations
-  setReadOnly: (readOnly) => set(state => {
+  setReadOnly: (readOnly) => set((state: UnifiedStore) => {
     state.readOnly = readOnly;
   }),
   
-  setCanvasMode: (mode) => set(state => {
+  setCanvasMode: (mode) => set((state: UnifiedStore) => {
     state.canvasMode = mode;
   }),
   
-  setMonitorMode: (isMonitorMode) => set(state => {
+  setMonitorMode: (isMonitorMode) => set((state: UnifiedStore) => {
     state.isMonitorMode = isMonitorMode;
     // When entering monitor mode, automatically set read-only
     if (isMonitorMode) {
@@ -202,7 +196,7 @@ export const createUISlice: StateCreator<
   }),
   
   // Clear operation
-  clearUIState: () => set(state => {
+  clearUIState: () => set((state: UnifiedStore) => {
     // Reset selection state
     state.selectedId = null;
     state.selectedType = null;

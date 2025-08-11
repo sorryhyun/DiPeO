@@ -1,6 +1,6 @@
 """Business logic for valid node type connections in diagrams."""
 
-from dipeo.models import NodeType
+from dipeo.diagram_generated import NodeType
 
 
 class NodeConnectionRules:

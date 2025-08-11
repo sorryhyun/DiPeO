@@ -1,0 +1,148 @@
+# Generate Static Node Classes from Domain Models
+# Replaces dipeo/models/scripts/generate-static-nodes.ts
+# Generates Python static node classes from TypeScript domain model interfaces
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting static nodes generation from cached AST data
+
+  # Run batch parser if cache doesn't exist
+  - label: Parse TypeScript Batch
+    type: sub_diagram
+    position: {x: 200, y: 300}
+    props:
+      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # Load cached codegen mappings AST
+  - label: Load Mappings AST
+    type: db
+    position: {x: 400, y: 150}
+    props:
+      operation: read
+      sub_type: file
+      source_details: temp/codegen/mappings.ts.json
+
+  # Extract mappings
+  - label: Extract Mappings
+    type: code_job
+    position: {x: 600, y: 150}
+    props:
+      language: python
+      filePath: projects/codegen/code/shared/extract_mappings.py
+      functionName: main
+
+  # NEW: Load all node data AST files dynamically using glob patterns
+  - label: Load All Node Data AST
+    type: db
+    position: {x: 400, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      glob: true  # Enable glob pattern expansion
+      source_details:
+        # Dynamically discover all node data files
+        - "temp/core/nodes/*.data.ts.json"
+
+  # Load cached diagram AST for BaseNodeData
+  - label: Load Diagram AST
+    type: db
+    position: {x: 400, y: 450}
+    props:
+      operation: read
+      sub_type: file
+      source_details:
+        - temp/core/diagram.ts.json
+
+  # Extract BaseNodeData interface
+  - label: Extract Base Interface
+    type: code_job
+    position: {x: 600, y: 450}
+    props:
+      language: python
+      filePath: projects/codegen/code/models/extract_base_interface.py
+      functionName: extract_base_interface
+
+  # Extract node data from AST files
+  - label: Extract Node Data
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: projects/codegen/code/models/extract_node_data_from_ast.py
+      functionName: extract_node_data_from_ast
+
+  # Generate static nodes from all parsed data
+  - label: Generate Static Nodes
+    type: code_job
+    position: {x: 800, y: 300}
+    props:
+      language: python
+      filePath: projects/codegen/code/models/generate_static_nodes.py
+      functionName: generate_static_nodes
+
+  # Generate Python code using template
+  - label: Generate Python Code
+    type: template_job
+    position: {x: 1000, y: 300}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/models/static_nodes_all.j2
+      output_path: dipeo/diagram_generated_staged/generated_nodes.py
+      # Template will automatically receive inputs from connections
+      # Enum fields mapping will be passed via input connections instead
+
+  # Generate success summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1200, y: 300}
+    props:
+      language: python
+      filePath: projects/codegen/code/shared/generators/summary_generator.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 1400, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  # Run batch parser first
+  - {from: Start, to: Parse TypeScript Batch}
+  
+  # Load cached data after parsing
+  - {from: Parse TypeScript Batch, to: Load Mappings AST}
+  - {from: Parse TypeScript Batch, to: Load All Node Data AST}
+  - {from: Parse TypeScript Batch, to: Load Diagram AST}
+  
+  # Extract mappings
+  - {from: Load Mappings AST, to: Extract Mappings, content_type: object}
+  
+  # Extract node data from loaded AST files
+  - {from: Load All Node Data AST, to: Extract Node Data, content_type: object}
+  
+  # Extract base interface
+  - {from: Load Diagram AST, to: Extract Base Interface, label: diagram_ast, content_type: object}
+  
+  # Generate static nodes with all inputs
+  - {from: Extract Node Data, to: Generate Static Nodes, label: node_data, content_type: object}
+  - {from: Extract Mappings, to: Generate Static Nodes, label: mappings, content_type: object}
+  - {from: Extract Base Interface, to: Generate Static Nodes, label: base_data, content_type: object}
+  
+  # Generate Python code
+  - {from: Generate Static Nodes, to: Generate Python Code, label: static_nodes_data, content_type: object}
+  
+  # Summary and End
+  - {from: Generate Static Nodes, to: Generate Summary, label: static_nodes_data}
+  - {from: Generate Python Code, to: End}
+  - {from: Generate Summary, to: End}

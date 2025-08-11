@@ -27,16 +27,15 @@ if TYPE_CHECKING:
         PersonManagerImpl,
     )
     from dipeo.infrastructure.adapters.storage import (
-        DiagramStorageAdapter,
         BlobStoreAdapter,
         ArtifactStoreAdapter,
     )
-    from dipeo.domain.ports.storage import DiagramStoragePort
     from dipeo.infrastructure.services.diagram import DiagramService, DiagramConverterService
     from dipeo.domain.db.services import DBOperationsDomainService
     from dipeo.core.execution import ExecutionContext
     from dipeo.domain.diagram.models import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService
+    from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
     from typing import Any, Dict
 
 
@@ -50,8 +49,6 @@ EVENT_BUS = ServiceKey["EventEmitter"]("event_bus")
 # Storage Services
 BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
 ARTIFACT_STORE = ServiceKey["ArtifactStoreAdapter"]("artifact_store")
-DIAGRAM_STORAGE_SERVICE = ServiceKey["DiagramStorageAdapter"]("diagram_storage_service")
-DIAGRAM_STORAGE = ServiceKey["DiagramStoragePort"]("diagram_storage_adapter")
 FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 
 # Application Services
@@ -84,6 +81,7 @@ NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts")
 DIAGRAM_SERVICE = ServiceKey["DiagramPort"]("diagram_service")
 EXECUTION_SERVICE = ServiceKey["ExecutionService"]("execution_service")
 COMPILATION_SERVICE = ServiceKey["CompilationService"]("compilation_service")
+PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prepare_diagram_use_case")
 
 # Infrastructure Adapters
 DATABASE = ServiceKey["DatabasePort"]("database")
@@ -120,8 +118,6 @@ __all__ = [
     # Storage
     "BLOB_STORE",
     "ARTIFACT_STORE",
-    "DIAGRAM_STORAGE_SERVICE",
-    "DIAGRAM_STORAGE",
     "FILESYSTEM_ADAPTER",
     
     # Application
@@ -154,6 +150,7 @@ __all__ = [
     "DIAGRAM_SERVICE",
     "EXECUTION_SERVICE",
     "COMPILATION_SERVICE",
+    "PREPARE_DIAGRAM_USE_CASE",
     
     # Infrastructure
     "DATABASE",

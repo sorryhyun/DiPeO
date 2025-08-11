@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import logging
 import time
 from typing import Any
 
@@ -18,7 +19,8 @@ from dipeo.core.ports import LLMServicePort
 from dipeo.core.ports.apikey_port import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
 from dipeo.infrastructure.config import get_settings
-from dipeo.models import ChatResult
+from dipeo.infrastructure.utils.single_flight_cache import SingleFlightCache
+from dipeo.diagram_generated import ChatResult
 
 from .factory import create_adapter
 
@@ -30,8 +32,10 @@ class LLMInfraService(BaseService, LLMServicePort):
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
         self._adapter_pool_lock = asyncio.Lock()
+        self._adapter_cache = SingleFlightCache()  # For deduplicating adapter creation
         self._settings = get_settings()
         self._llm_domain_service = llm_domain_service or LLMDomainService()
+        self.logger = logging.getLogger(__name__)
         self._provider_mapping = {
             "gpt": "openai",
             "o1": "openai",
@@ -93,23 +97,27 @@ class LLMInfraService(BaseService, LLMServicePort):
                     return entry["adapter"]
                 else:
                     del self._adapter_pool[cache_key]
-            
-            # Special handling for Ollama - it doesn't require an API key
+        async def create_new_adapter():
             if provider == "ollama":
-                raw_key = ""  # Ollama doesn't need an API key
-                # Get Ollama host from environment or use default
+                raw_key = ""
                 base_url = self._settings.ollama_host if hasattr(self._settings, 'ollama_host') else None
                 adapter = create_adapter(provider, model, raw_key, base_url=base_url)
             else:
                 raw_key = self._get_api_key(api_key_id)
                 adapter = create_adapter(provider, model, raw_key)
             
-            self._adapter_pool[cache_key] = {
-                "adapter": adapter,
-                "created_at": time.time(),
-            }
+            async with self._adapter_pool_lock:
+                self._adapter_pool[cache_key] = {
+                    "adapter": adapter,
+                    "created_at": time.time(),
+                }
             
             return adapter
+        return await self._adapter_cache.get_or_create(
+            cache_key,
+            create_new_adapter,
+            cache_result=False
+        )
 
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
@@ -132,10 +140,8 @@ class LLMInfraService(BaseService, LLMServicePort):
             if messages is None:
                 messages = []
             
-            # Use explicitly passed service if available, otherwise infer from model
             service = kwargs.pop('service', None)
             if service:
-                # Normalize the service name if it's an enum or has a value attribute
                 if hasattr(service, 'value'):
                     service = service.value
                 service = normalize_service_name(str(service))
@@ -163,11 +169,20 @@ class LLMInfraService(BaseService, LLMServicePort):
             messages_list = messages
 
             adapter_kwargs = {**kwargs}
+            
+            if hasattr(self, 'logger'):
+                self.logger.debug(f"Messages: {len(messages_list)}")
 
             try:
-                return await self._call_llm_with_retry(
+                result = await self._call_llm_with_retry(
                     adapter, messages_list, **adapter_kwargs
                 )
+                
+                if hasattr(self, 'logger') and result:
+                    response_text = getattr(result, 'text', str(result))[:50]
+                    self.logger.debug(f"LLM response: {response_text}")
+                
+                return result
             except Exception as inner_e:
                 if hasattr(self, 'logger'):
                     self.logger.error(f"LLM call failed: {type(inner_e).__name__}: {inner_e!s}")
@@ -189,12 +204,8 @@ class LLMInfraService(BaseService, LLMServicePort):
         try:
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             service = api_key_data["service"]
-            
-            # Get an adapter for the service
-            # Use a dummy model name since we just need the adapter to list models
             adapter = await self._get_client(service, "dummy", api_key_id)
             
-            # Delegate to the adapter's get_available_models method
             return await adapter.get_available_models()
             
         except Exception as e:
@@ -203,11 +214,7 @@ class LLMInfraService(BaseService, LLMServicePort):
             )
 
     def get_token_counts(self, client_name: str, usage: Any) -> Any:
-        """Extract token usage information from provider response.
-        
-        This is typically handled by the adapters themselves,
-        but this method provides a consistent interface.
-        """
+        """Extract token usage information from provider response."""
         if hasattr(usage, 'tokenUsage'):
             return usage.tokenUsage
         elif hasattr(usage, 'token_usage'):

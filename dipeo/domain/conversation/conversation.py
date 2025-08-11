@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
-from dipeo.models import ConversationMetadata, Message
+from dipeo.diagram_generated import ConversationMetadata, Message
 
 
 class ConversationContext(TypedDict):

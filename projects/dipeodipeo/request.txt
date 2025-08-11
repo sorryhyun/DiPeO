@@ -1,0 +1,6 @@
+Create a data processing pipeline that:
+1. Loads CSV files from a directory
+2. Validates the data format
+3. Processes each file in parallel
+4. Aggregates results
+5. Saves to JSON output

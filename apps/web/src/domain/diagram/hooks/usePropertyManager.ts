@@ -3,6 +3,7 @@ import { useCanvasState, useCanvasOperations } from '@/domain/diagram';
 import { arrowId, nodeId, personId } from '@/infrastructure/types';
 import { TypedPanelFieldConfig, PanelLayoutConfig } from '@/domain/diagram/types/panel';
 import { useFormManager } from '@/infrastructure/hooks/forms';
+import { JsonDict } from '@dipeo/models';
 import type {
   FormConfig, 
   FormAutoSaveConfig,
@@ -142,9 +143,9 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
             // Don't remove memory_profile - it's a UI field that needs to be preserved
             // The domain model will ignore it, but we need it for the UI
             
-            updateNode(nodeId(entityId), { data: transformedData });
+            updateNode(nodeId(entityId), { data: transformedData as JsonDict });
           } else {
-            updateNode(nodeId(entityId), { data: nodeData });
+            updateNode(nodeId(entityId), { data: nodeData as JsonDict });
           }
         } else if (entityType === 'arrow') {
           const { content_type, label, ...restData } = data as any;

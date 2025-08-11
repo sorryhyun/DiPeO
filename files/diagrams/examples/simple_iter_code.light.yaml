@@ -19,7 +19,7 @@ nodes:
     code: |
       a+=1
       result = f"Iteration with a={a-1}"
-    code_type: python
+    language: python
 - label: Condition
   type: condition
   position: {x: 612, y: 447}
@@ -32,7 +32,7 @@ nodes:
   position: {x: 306, y: 204}
   props:
     code: a=1
-    code_type: python
+    language: python
 connections:
 - from: Code Job
   to: Condition

@@ -2,6 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import type { DomainPerson } from '@/infrastructure/types';
 import { NodeType, PersonID } from '@dipeo/models';
+import { Converters } from '@/infrastructure/converters';
 
 interface PersonsData {
   // Maps and arrays
@@ -51,7 +52,7 @@ export const usePersonsData = (): PersonsData => {
   const usedPersonIds = new Set<PersonID>();
   nodes.forEach(node => {
     if (node.type === NodeType.PERSON_JOB && node.data?.personId) {
-      usedPersonIds.add(node.data.personId);
+      usedPersonIds.add(Converters.toPersonId(node.data.personId as string));
     }
   });
   
@@ -151,7 +152,8 @@ export const usePersonUsageStats = () => {
       
       state.nodes.forEach(node => {
         if (node.type === NodeType.PERSON_JOB && node.data?.personId) {
-          usageCount[node.data.personId] = (usageCount[node.data.personId] || 0) + 1;
+          const personId = Converters.toPersonId(node.data.personId as string);
+          usageCount[personId] = (usageCount[personId] || 0) + 1;
         }
       });
       

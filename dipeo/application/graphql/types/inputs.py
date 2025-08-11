@@ -14,7 +14,7 @@ from .scalars import (
 
 # Import enums from generated modules
 from dipeo.diagram_generated.enums import (
-    NodeType, ExecutionStatus, NodeExecutionStatus,
+    NodeType, Status,
     LLMService, APIServiceType
 )
 # Import DiagramFormat with proper GraphQL mapping
@@ -100,7 +100,6 @@ class ExecuteDiagramInput:
     debug_mode: Optional[bool] = None
     max_iterations: Optional[int] = None
     timeout_seconds: Optional[int] = None
-    use_monitoring_stream: Optional[bool] = None
     use_unified_monitoring: Optional[bool] = None
 
 
@@ -114,7 +113,7 @@ class FileOperationInput:
 class UpdateNodeStateInput:
     execution_id: strawberry.ID
     node_id: strawberry.ID
-    status: NodeExecutionStatus
+    status: Status
     output: Optional[strawberry.scalars.JSON] = None
     error: Optional[str] = None
 
@@ -131,7 +130,7 @@ class DiagramFilterInput:
 @strawberry.input
 class ExecutionFilterInput:
     diagram_id: Optional[strawberry.ID] = None
-    status: Optional[ExecutionStatus] = None
+    status: Optional[Status] = None
     started_after: Optional[datetime] = None
     started_before: Optional[datetime] = None
 
@@ -157,6 +156,7 @@ class RegisterCliSessionInput:
     diagram_name: str
     diagram_format: str
     diagram_data: Optional[strawberry.scalars.JSON] = None
+    diagram_path: Optional[str] = None  # Full path to diagram file
 
 
 @strawberry.input

@@ -6,7 +6,7 @@ from typing import Optional, List
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
 from dipeo.diagram_generated.domain_models import DiagramID, DomainDiagram
-from dipeo.domain.diagram.utils import dict_to_domain_diagram
+from dipeo.domain.ports.storage import DiagramInfo
 
 from ..types.inputs import DiagramFilterInput
 
@@ -25,17 +25,8 @@ class DiagramResolver:
             service = self.registry.resolve(DIAGRAM_SERVICE_NEW)
             diagram_data = await service.get_diagram(id)
             
-            if not diagram_data:
-                return None
-            
-            # Ensure diagram_data is a dict before conversion
-            if not isinstance(diagram_data, dict):
-                logger.error(f"Diagram {id} returned non-dict data: {type(diagram_data)}")
-                return None
-                
-            # Convert to domain model
-            domain_diagram = dict_to_domain_diagram(diagram_data)
-            return domain_diagram
+            # Service now returns DomainDiagram directly
+            return diagram_data
             
         except FileNotFoundError:
             logger.warning(f"Diagram not found: {id}")
@@ -54,71 +45,29 @@ class DiagramResolver:
         try:
             service = self.registry.resolve(DIAGRAM_SERVICE_NEW)
             
-            # Get all diagram infos
-            diagram_infos = await service.list_diagrams()
-            
-            # Debug log to check what we're getting
-            if diagram_infos and len(diagram_infos) > 0:
-                logger.debug(f"First diagram info type: {type(diagram_infos[0])}")
-                # Log any non-dict entries for debugging
-                for idx, info in enumerate(diagram_infos[:5]):  # Check first 5 entries
-                    if not isinstance(info, dict):
-                        logger.debug(f"Entry {idx} is {type(info)}: {info!r}")
-            
-            # Filter out non-dict entries first
-            valid_infos = [
-                info for info in diagram_infos
-                if isinstance(info, dict)
-            ]
-            
-            # Log if we found non-dict entries
-            invalid_count = len(diagram_infos) - len(valid_infos)
-            if invalid_count > 0:
-                logger.warning(f"Found {invalid_count} non-dict entries in diagram list")
+            # Get diagram metadata
+            all_infos = await service.list_diagrams()
             
             # Apply filters if provided
-            filtered_infos = valid_infos
+            filtered_infos = all_infos
             if filter:
                 filtered_infos = [
-                    info for info in valid_infos
-                    if self._matches_filter(info, filter)
+                    info for info in all_infos
+                    if self._matches_info_filter(info, filter)
                 ]
             
             # Apply pagination
             paginated_infos = filtered_infos[offset:offset + limit]
             
-            # Convert file info to simple diagram objects without loading content
+            # Load full diagrams for the paginated results
             diagrams = []
             for info in paginated_infos:
                 try:
-                    # Create a minimal diagram object from file metadata
-                    # Use modified time for both created and modified since we only have modified time
-                    modified_time = info.get("modified", "")
-                    
-                    # Use the full path as ID to preserve extension information
-                    diagram_id = info.get("path") or info.get("id") or info.get("name", "unknown")
-                    
-                    diagram_dict = {
-                        "id": diagram_id,
-                        "metadata": {
-                            "id": diagram_id,  # Use full path as ID
-                            "name": info.get("name", ""),
-                            "description": "",  # Empty since file info doesn't have description
-                            "tags": [],  # Empty since file info doesn't have tags
-                            "created": modified_time,  # Use modified time as created
-                            "modified": modified_time,
-                            "version": "1.0.0",  # Default version
-                        },
-                        "nodes": {},
-                        "arrows": {},
-                        "handles": {},
-                        "persons": {},
-                    }
-                    
-                    domain_diagram = dict_to_domain_diagram(diagram_dict)
-                    diagrams.append(domain_diagram)
+                    diagram = await service.get_diagram(info.id)
+                    if diagram:
+                        diagrams.append(diagram)
                 except Exception as e:
-                    logger.warning(f"Failed to create diagram object from info: {e}")
+                    logger.warning(f"Failed to load diagram {info.id}: {e}")
                     continue
             
             return diagrams
@@ -129,24 +78,29 @@ class DiagramResolver:
             logger.error(f"Traceback: {traceback.format_exc()}")
             return []
     
-    def _matches_filter(self, info: dict, filter: DiagramFilterInput) -> bool:
-        """Check if a diagram info matches the filter criteria."""
-        # Ensure info is a dict
-        if not isinstance(info, dict):
-            return False
-            
-        if filter.name and filter.name.lower() not in info.get("name", "").lower():
+    def _matches_info_filter(self, info: DiagramInfo, filter: DiagramFilterInput) -> bool:
+        """Check if diagram info matches the filter criteria."""
+        # Extract name from path if metadata not available
+        name = ""
+        if info.metadata and "name" in info.metadata:
+            name = info.metadata["name"]
+        elif info.path:
+            name = info.path.stem
+        
+        if filter.name and filter.name.lower() not in name.lower():
             return False
         
-        if filter.author and filter.author != info.get("author", ""):
-            return False
-        
-        if filter.tags:
-            diagram_tags = info.get("tags", [])
-            if not any(tag in diagram_tags for tag in filter.tags):
+        if filter.author:
+            author = info.metadata.get("author", "") if info.metadata else ""
+            if filter.author != author:
                 return False
         
-        # Date filters would need metadata from full diagram
-        # Skip for now as it requires loading full diagram
+        if filter.tags:
+            tags = info.metadata.get("tags", []) if info.metadata else []
+            if not any(tag in tags for tag in filter.tags):
+                return False
+        
+        # Date filters can use info.created and info.modified
+        # TODO: Add date filtering logic if needed
         
         return True

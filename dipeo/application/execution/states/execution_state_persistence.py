@@ -5,10 +5,9 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.core.execution.execution_tracker import CompletionStatus
 from dipeo.core.execution.node_output import deserialize_protocol, serialize_protocol
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ExecutionState,
-    ExecutionStatus,
-    NodeExecutionStatus,
+    Status,
     NodeID,
     NodeState,
     TokenUsage,
@@ -71,15 +70,15 @@ class ExecutionStatePersistence:
                 total_output += state.token_usage.output
         
         # Determine overall status
-        has_failed = any(s.status == NodeExecutionStatus.FAILED for s in node_states.values())
-        has_running = any(s.status == NodeExecutionStatus.RUNNING for s in node_states.values())
+        has_failed = any(s.status == Status.FAILED for s in node_states.values())
+        has_running = any(s.status == Status.RUNNING for s in node_states.values())
         
         if has_failed:
-            status = ExecutionStatus.FAILED
+            status = Status.FAILED
         elif has_running:
-            status = ExecutionStatus.RUNNING
+            status = Status.RUNNING
         else:
-            status = ExecutionStatus.COMPLETED
+            status = Status.COMPLETED
         
         # Serialize protocol outputs for storage
         serialized_outputs = {}

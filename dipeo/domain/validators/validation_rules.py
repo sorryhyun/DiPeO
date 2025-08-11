@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Protocol
 
-from dipeo.models import HandleLabel, NodeID, NodeType
+from dipeo.diagram_generated import HandleLabel, NodeID, NodeType
 
 
 class ValidationSeverity(Enum):

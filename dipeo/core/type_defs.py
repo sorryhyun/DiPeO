@@ -1,7 +1,9 @@
 """Shared type definitions used across the DiPeO system."""
 
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
+
+from pydantic import BaseModel, RootModel
 
 T = TypeVar("T")
 E = TypeVar("E")
@@ -49,15 +51,31 @@ class Error:
         return f"[{self.code}] {self.message}"
 
 
-# Type aliases for common patterns
-JsonDict = dict[str, Any]
-JsonList = list[Any]
-JsonValue = Any
+# Option 1: Non-recursive union types with limited depth
+# This avoids Pydantic recursion issues while providing better typing than Any
+SimpleJsonValue = Union[str, int, float, bool, None]
+
+# Level 2: Dict/List containing simple values
+JsonDict = Dict[str, Union[SimpleJsonValue, List[SimpleJsonValue], Dict[str, SimpleJsonValue]]]
+JsonList = List[Union[SimpleJsonValue, Dict[str, SimpleJsonValue]]]
+
+# Top level: Can be any of the above
+JsonValue = Union[SimpleJsonValue, JsonDict, JsonList]
+
+# Alias for compatibility
+JsonPrimitive = SimpleJsonValue
+
+# For backward compatibility, keep using Any for now in generated code
+# This will be migrated gradually
+JsonAny = Any
 
 __all__ = [
     "Error",
+    "JsonAny",
     "JsonDict",
     "JsonList",
+    "JsonPrimitive",
     "JsonValue",
     "Result",
+    "SimpleJsonValue",
 ]

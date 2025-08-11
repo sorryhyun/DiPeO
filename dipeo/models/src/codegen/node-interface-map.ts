@@ -13,7 +13,6 @@ export const NODE_INTERFACE_MAP: Record<string, string> = {
   'code_job': 'CodeJobNodeData',
   'api_job': 'ApiJobNodeData',
   'user_response': 'UserResponseNodeData',
-  'notion': 'NotionNodeData',
   'hook': 'HookNodeData',
   'template_job': 'TemplateJobNodeData',
   'json_schema_validator': 'JsonSchemaValidatorNodeData',

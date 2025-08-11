@@ -1,0 +1,84 @@
+Generate a DiPeO light format diagram based on the following workflow description:
+
+{{workflow_description}}
+
+IMPORTANT GUIDELINES:
+
+1. DIAGRAM STRUCTURE:
+   - Always start with a 'start' node at position {x: 100, y: 200}
+   - End with an 'endpoint' node for file output or final results
+   - Position nodes with x-coordinates incrementing by 200-300 for readability
+   - Keep y-coordinates consistent for linear flow (200 for main path)
+
+2. NODE SELECTION:
+   - Use 'db' nodes for file I/O operations (reading/writing files)
+   - Use 'code_job' nodes for data processing, validation, transformation
+   - Use 'person_job' nodes only when LLM analysis is needed
+   - Use 'condition' nodes for branching logic
+   - Use 'sub_diagram' nodes with batch=true for parallel processing
+   - Use 'endpoint' nodes to save final results
+
+3. DATA FLOW:
+   - Always label connections with meaningful variable names
+   - Connection labels become variable names in downstream nodes
+   - Use descriptive labels like 'raw_data', 'validated_items', 'results'
+
+4. CODE_JOB BEST PRACTICES:
+   - Keep code concise and focused on single responsibility
+   - Use Python for data processing
+   - Always set result variable or use return statement
+   - Access input variables by their connection label names
+
+5. FILE OPERATIONS:
+   - For reading multiple files, use glob patterns with glob: true
+   - For CSV/JSON files, use serialize_json: true when appropriate
+   - Use relative paths from project root (e.g., "files/data/input.csv")
+
+6. PARALLEL PROCESSING:
+   - For batch operations, use sub_diagram with batch: true and batch_parallel: true
+   - Or use code_job with asyncio for concurrent processing
+
+7. ERROR HANDLING:
+   - Add validation nodes after data loading
+   - Use condition nodes to handle error cases
+   - Include logging in code_job nodes for debugging
+
+EXAMPLE PATTERNS:
+
+For file processing:
+```yaml
+- label: load_files
+  type: db
+  props:
+    operation: read
+    sub_type: file
+    glob: true
+    source_details: ["files/input/*.csv"]
+```
+
+For validation:
+```yaml
+- label: validate_data
+  type: code_job
+  props:
+    language: python
+    code: |
+      errors = []
+      for item in input_data:
+          if not validate(item):
+              errors.append(item)
+      result = {"valid": len(errors) == 0, "errors": errors}
+```
+
+For parallel processing:
+```yaml
+- label: process_batch
+  type: sub_diagram
+  props:
+    diagram_name: processors/single_item
+    batch: true
+    batch_input_key: items
+    batch_parallel: true
+```
+
+Generate a complete, executable diagram following these guidelines. Ensure all node properties are valid and the diagram can be run immediately with the dipeo command.

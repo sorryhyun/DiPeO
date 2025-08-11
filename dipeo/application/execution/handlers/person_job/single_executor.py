@@ -1,5 +1,6 @@
 """Single person job executor - handles execution for a single person."""
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -13,7 +14,7 @@ from dipeo.application.registry import (
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, PersonJobOutput
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
@@ -103,11 +104,35 @@ class SinglePersonJobExecutor:
             conversation_manager=conversation_manager,
             person_id=person_id
         )
-        
         # Check if prompt_file is specified and load the prompt from file
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
         
+        # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
+        if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+            filesystem = request.get_service("filesystem_adapter")
+            if filesystem:
+                try:
+                    # Construct path to first prompt file
+                    import os
+                    from pathlib import Path
+                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+                    first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
+                    
+                    # Read the first prompt file content
+                    if filesystem.exists(first_prompt_path):
+                        with filesystem.open(first_prompt_path, 'rb') as f:
+                            file_content = f.read().decode('utf-8')
+                            # Use file content as first only prompt
+                            first_only_content = file_content
+                            logger.info(f"[PersonJob {node.label or node.id}] Loaded first prompt from file: {node.first_prompt_file} ({len(file_content)} chars)")
+                            logger.debug(f"[PersonJob {node.label or node.id}] First prompt content preview: {file_content[:200]}...")
+                    else:
+                        logger.warning(f"[PersonJob {node.label or node.id}] First prompt file not found: {node.first_prompt_file}")
+                except Exception as e:
+                    logger.error(f"Error loading first prompt file {node.first_prompt_file}: {e}")
+        
+        # Load prompt_file if specified (for default prompt)
         if hasattr(node, 'prompt_file') and node.prompt_file:
             filesystem = request.get_service("filesystem_adapter")
             if filesystem:
@@ -124,12 +149,16 @@ class SinglePersonJobExecutor:
                             file_content = f.read().decode('utf-8')
                             # Use file content as default prompt
                             prompt_content = file_content
-                            logger.debug(f"Loaded prompt from file: {node.prompt_file}")
+                            logger.info(f"[PersonJob {node.label or node.id}] Loaded prompt from file: {node.prompt_file} ({len(file_content)} chars)")
+                            logger.debug(f"[PersonJob {node.label or node.id}] Prompt content preview: {file_content[:200]}...")
                     else:
-                        logger.warning(f"Prompt file not found: {node.prompt_file}")
+                        logger.warning(f"[PersonJob {node.label or node.id}] Prompt file not found: {node.prompt_file}")
                 except Exception as e:
                     logger.error(f"Error loading prompt file {node.prompt_file}: {e}")
 
+        # Log the prompt before building
+        logger.debug(f"[PersonJob {node.label or node.id}] Prompt before building: {prompt_content[:200] if prompt_content else 'None'}...")
+        
         # Disable auto-prepend if we have conversation input (to avoid duplication)
         built_prompt = prompt_builder.build(
             prompt=prompt_content,
@@ -138,6 +167,11 @@ class SinglePersonJobExecutor:
             template_values=template_values,
             auto_prepend_conversation=not has_conversation_input
         )
+        
+        # Log the built prompt
+        logger.debug(f"[PersonJob {node.label or node.id}] Built prompt preview: {built_prompt[:200] if built_prompt else 'None'}...")
+        if '{{' in (built_prompt or ''):
+            logger.warning(f"[PersonJob {node.label or node.id}] Template variables may not be substituted! Found '{{{{' in built prompt")
 
         # Skip if no prompt
         if not built_prompt:
@@ -145,7 +179,7 @@ class SinglePersonJobExecutor:
             return TextOutput(
                 value="",
                 node_id=node.id,
-                metadata={"skipped": True, "reason": "No prompt available"}
+                metadata="{}"  # Empty metadata - skipped status handled by empty value
             )
         
         # Execute LLM call
@@ -177,8 +211,53 @@ class SinglePersonJobExecutor:
             
             if tools_config:
                 complete_kwargs["tools"] = tools_config
+        
+        # Handle text_format configuration for structured outputs
+        # First check for text_format_file (external file takes precedence)
+        text_format_content = None
+        
+        if hasattr(node, 'text_format_file') and node.text_format_file:
+            # Load Pydantic models from external file
+            import os
+            file_path = node.text_format_file
+            
+            # Handle relative paths from project root
+            if not os.path.isabs(file_path):
+                project_root = os.environ.get('DIPEO_BASE_DIR', os.getcwd())
+                file_path = os.path.join(project_root, file_path)
+            
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r') as f:
+                        text_format_content = f.read()
+                    logger.debug(f"Loaded text_format from file: {node.text_format_file}")
+                except Exception as e:
+                    logger.error(f"Failed to read text_format_file {node.text_format_file}: {e}")
+            else:
+                logger.warning(f"text_format_file not found: {node.text_format_file}")
+        
+        # Fall back to inline text_format if no file or file failed
+        if not text_format_content and hasattr(node, 'text_format') and node.text_format:
+            text_format_content = node.text_format
+        
+        # Process the text_format content if we have any
+        if text_format_content:
+            from dipeo.application.utils.pydantic_compiler import compile_pydantic_model, is_pydantic_code
+            
+            # Check if it's Python code string that defines Pydantic models
+            if isinstance(text_format_content, str) and is_pydantic_code(text_format_content):
+                # Compile the Python code into a Pydantic BaseModel class
+                pydantic_model = compile_pydantic_model(text_format_content)
+                if pydantic_model:
+                    complete_kwargs["text_format"] = pydantic_model
+                else:
+                    logger.warning(f"Failed to compile Pydantic model from text_format")
+            else:
+                # If it's not Python code, log a warning (we no longer support JSON schema)
+                logger.warning(f"text_format must be Python code defining Pydantic models")
             
         result = await person.complete(**complete_kwargs)
+
         
         # Build and return output
         return self._build_node_output(
@@ -210,7 +289,7 @@ class SinglePersonJobExecutor:
             # Fallback: create minimal config with default LLM
             from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig
             person_config = PersonLLMConfig(
-                service=LLMService.openai,
+                service=LLMService.OPENAI,
                 model="gpt-4.1-nano",
                 api_key_id=ApiKeyID("")  # Wrap empty string with ApiKeyID
             )
@@ -293,25 +372,80 @@ class SinglePersonJobExecutor:
         return False
     
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
-        # Build metadata
-        metadata = {"model": model}
+        from dipeo.diagram_generated import TokenUsage
+        from dipeo.core.execution.node_output import TextOutput, DataOutput
+        import json
+        
+        # Extract token usage as typed field
+        token_usage = None
+        if hasattr(result, 'token_usage') and result.token_usage:
+            token_usage = TokenUsage(
+                input=result.token_usage.input,
+                output=result.token_usage.output,
+                cached=result.token_usage.cached if hasattr(result.token_usage, 'cached') else None,
+                total=result.token_usage.total if hasattr(result.token_usage, 'total') else None
+            )
+        
+        # Get person and conversation IDs
+        person_id = str(person.id) if person.id else None
+        conversation_id = None  # Person doesn't directly store conversation_id
         
         # Check if conversation output is needed
         if self._needs_conversation_output(str(node.id), diagram):
-            # Return ConversationOutput with messages
+            # Return PersonJobOutput with messages
             messages = []
             for msg in person.get_messages():
                 messages.append(msg)
             
-            return ConversationOutput(
+            return PersonJobOutput(
                 value=messages,
                 node_id=node.id,
-                metadata=metadata
+                metadata="{}",  # Empty metadata - model is now a typed field
+                token_usage=token_usage,
+                person_id=person_id,
+                conversation_id=conversation_id,
+                model=model  # Use typed field for model
             )
         else:
-            # Return TextOutput with just the text
+            # Check if we used text_format (structured output)
+            has_text_format = (hasattr(node, 'text_format') and node.text_format) or \
+                              (hasattr(node, 'text_format_file') and node.text_format_file)
+            
+            if has_text_format and hasattr(result, 'raw_response') and result.raw_response:
+                # Return structured data as DataOutput
+                # The raw_response should contain the Pydantic model instance or dict
+                raw_data = result.raw_response
+                
+                # Convert Pydantic model to dict if needed
+                if hasattr(raw_data, 'model_dump'):
+                    raw_data = raw_data.model_dump()
+                elif hasattr(raw_data, 'dict'):
+                    raw_data = raw_data.dict()
+                
+                # If it's still not a dict, try to parse the text as JSON
+                if not isinstance(raw_data, dict) and result.text:
+                    try:
+                        raw_data = json.loads(result.text)
+                    except (json.JSONDecodeError, TypeError):
+                        # Fall back to returning as text
+                        raw_data = {"response": result.text}
+                
+                if isinstance(raw_data, dict):
+                    return DataOutput(
+                        value=raw_data,
+                        node_id=node.id,
+                        metadata="{}",
+                        token_usage=token_usage,
+                        execution_time=None,
+                        retry_count=0
+                    )
+            
+            # Default: return text output
             return TextOutput(
-                value=result.text,
+                value=result.text if hasattr(result, 'text') else str(result),
                 node_id=node.id,
-                metadata=metadata
+                metadata="{}",
+                token_usage=token_usage,
+                execution_time=None,
+                retry_count=0
             )

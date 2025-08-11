@@ -18,7 +18,7 @@ from dipeo.application.registry.keys import (
     CLI_SESSION_SERVICE,
 )
 from dipeo.core.constants import FILES_DIR
-from dipeo.models import LLMService, NodeType
+from dipeo.diagram_generated import LLMService, NodeType
 from strawberry.scalars import JSON as JSONScalar
 from pathlib import Path
 

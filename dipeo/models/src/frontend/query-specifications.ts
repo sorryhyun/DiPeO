@@ -1,3 +1,5 @@
+import { QueryOperationType, CrudOperation } from './query-enums';
+
 export interface QueryField {
   name: string;
   required?: boolean;
@@ -12,7 +14,7 @@ export interface QueryVariable {
 
 export interface QuerySpecification {
   name: string;
-  operation: 'query' | 'mutation' | 'subscription';
+  operation: QueryOperationType;
   entityType: string;
   description?: string;
   variables?: QueryVariable[];
@@ -23,7 +25,7 @@ export interface QuerySpecification {
 
 export interface EntityQueryConfig {
   entity: string;
-  operations: ('get' | 'list' | 'create' | 'update' | 'delete' | 'subscribe')[];
+  operations: CrudOperation[];
   defaultFields: QueryField[];
   relationships?: {
     name: string;

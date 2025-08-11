@@ -6,11 +6,12 @@
 
 import type { NodeID, DiagramID } from './diagram.js';
 import type { Message } from './conversation.js';
-import { ExecutionStatus, NodeExecutionStatus, EventType } from './enums/execution.js';
+import { Status, EventType } from './enums/execution.js';
+import { JsonValue, JsonDict } from './types/json.js';
 
 export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
-export { ExecutionStatus, NodeExecutionStatus, EventType };
+export { Status, EventType };
 
 export interface TokenUsage {
   input: number;
@@ -20,7 +21,7 @@ export interface TokenUsage {
 }
 
 export interface NodeState {
-  status: NodeExecutionStatus;
+  status: Status;
   started_at?: string | null;
   ended_at?: string | null;
   error?: string | null;
@@ -57,17 +58,43 @@ export interface ExecutionMetrics {
 }
 
 
+export interface SerializedNodeOutput {
+  _type: string;  // "PersonJobOutput", "ConditionOutput", etc.
+  value: any;
+  node_id: string;
+  metadata: string;  // JSON string
+  timestamp?: string;
+  error?: string | null;
+  // Typed fields based on _type
+  token_usage?: TokenUsage | null;
+  execution_time?: number | null;
+  retry_count?: number;
+  // Node-specific fields
+  person_id?: string | null;
+  conversation_id?: string | null;
+  language?: string | null;
+  stdout?: string | null;
+  stderr?: string | null;
+  success?: boolean;
+  status_code?: number | null;
+  headers?: Record<string, string> | null;
+  response_time?: number | null;
+  true_output?: any;
+  false_output?: any;
+  error_type?: string | null;
+}
+
 export interface ExecutionState {
   id: ExecutionID;
-  status: ExecutionStatus;
+  status: Status;
   diagram_id?: DiagramID | null;
   started_at: string;
   ended_at?: string | null;
   node_states: Record<string, NodeState>;
-  node_outputs: Record<string, Record<string, any>>;
+  node_outputs: Record<string, SerializedNodeOutput>;
   token_usage: TokenUsage;
   error?: string | null;
-  variables?: Record<string, any>;
+  variables?: JsonDict;
   duration_seconds?: number | null;
   is_active?: boolean;
   exec_counts: Record<string, number>;
@@ -80,7 +107,7 @@ export interface ExecutionState {
 export interface ExecutionOptions {
   mode?: 'normal' | 'debug' | 'monitor';
   timeout?: number;
-  variables?: Record<string, any>;
+  variables?: JsonDict;
   debug?: boolean;
 }
 
@@ -103,8 +130,8 @@ export interface ExecutionUpdate {
   type: EventType;
   execution_id: ExecutionID;
   node_id?: NodeID;
-  status?: NodeExecutionStatus;
-  result?: any;
+  status?: Status;
+  result?: JsonValue;
   error?: string;
   timestamp?: string;
   total_tokens?: number;
@@ -136,7 +163,7 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
   const now = new Date().toISOString();
   return {
     id: executionId,
-    status: ExecutionStatus.PENDING,
+    status: Status.PENDING,
     diagram_id: diagramId ?? null,
     started_at: now,
     ended_at: null,
@@ -151,19 +178,46 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
   };
 }
 
-export function isExecutionActive(status: ExecutionStatus): boolean {
+/**
+ * Check if a status represents an active execution state
+ */
+export function isStatusActive(status: Status): boolean {
   return [
-    ExecutionStatus.PENDING,
-    ExecutionStatus.RUNNING,
-    ExecutionStatus.PAUSED
+    Status.PENDING,
+    Status.RUNNING,
+    Status.PAUSED
   ].includes(status);
 }
 
-export function isNodeExecutionActive(status: NodeExecutionStatus): boolean {
-  return [
-    NodeExecutionStatus.PENDING,
-    NodeExecutionStatus.RUNNING,
-    NodeExecutionStatus.PAUSED
-  ].includes(status);
+/**
+ * Check if a status is valid for an execution context (excludes MAXITER_REACHED)
+ */
+export function isValidExecutionStatus(status: Status): boolean {
+  return status !== Status.MAXITER_REACHED;
+}
+
+/**
+ * Check if a status represents successful completion
+ * For nodes, both COMPLETED and MAXITER_REACHED are considered successful
+ */
+export function isStatusSuccessful(status: Status, isNode: boolean = false): boolean {
+  if (isNode) {
+    return status === Status.COMPLETED || status === Status.MAXITER_REACHED;
+  }
+  return status === Status.COMPLETED;
+}
+
+/**
+ * @deprecated Use isStatusActive instead
+ */
+export function isExecutionActive(status: Status): boolean {
+  return isStatusActive(status);
+}
+
+/**
+ * @deprecated Use isStatusActive instead
+ */
+export function isNodeExecutionActive(status: Status): boolean {
+  return isStatusActive(status);
 }
 

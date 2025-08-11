@@ -18,12 +18,12 @@ class APIKeyService(BaseService, APIKeyPort):
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
         self._store: dict[str, dict] = {}
         self._logger = logging.getLogger(__name__)
-        self._logger.info(f"APIKeyService.__init__ called with file_path: {self.file_path}")
+        self._logger.debug(f"APIKeyService.__init__ called with file_path: {self.file_path}")
     
     async def initialize(self) -> None:
         self._store = await self._load_all()
         # Loaded API keys successfully
-        self._logger.info(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
+        self._logger.debug(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
     
     async def _load_all(self) -> dict[str, dict]:
         """Load all API keys from file storage."""

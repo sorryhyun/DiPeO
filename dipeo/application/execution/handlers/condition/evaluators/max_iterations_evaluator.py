@@ -1,12 +1,13 @@
 """Evaluator for max iterations condition."""
 
+import json
 import logging
 from typing import Any
 
 from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
-from dipeo.diagram_generated.enums import NodeExecutionStatus
+from dipeo.diagram_generated.enums import Status
 
 from .base import BaseConditionEvaluator, EvaluationResult
 from ..conversation_aggregator import ConversationAggregator
@@ -54,7 +55,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                 # Check node status for MAXITER_REACHED
                 node_state = context.get_node_state(node.id)
                 if node_state and hasattr(node_state, 'status'):
-                    if node_state.status != NodeExecutionStatus.MAXITER_REACHED:
+                    if node_state.status != Status.MAXITER_REACHED:
                         all_reached_max = False
                         break
                 else:

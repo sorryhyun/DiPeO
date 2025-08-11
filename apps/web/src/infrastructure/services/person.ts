@@ -17,7 +17,7 @@ import { GraphQLService } from '../api/graphql';
 import { PersonConverter } from '../converters/person-converter';
 import {
   GetPersonDocument,
-  GetPersonsDocument,
+  ListPersonsDocument,
   CreatePersonDocument,
   UpdatePersonDocument,
   DeletePersonDocument,
@@ -171,7 +171,7 @@ export class PersonService {
     
     // Fetch from backend
     const result = await GraphQLService.query(
-      GetPersonsDocument,
+      ListPersonsDocument,
       { limit: 100 },
     );
     

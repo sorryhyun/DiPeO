@@ -78,11 +78,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if not node.person:
             return "No person specified"
         
-        # Check max iteration for non-batch mode
-        if not getattr(node, 'batch', False):
-            execution_count = request.context.get_node_execution_count(request.node_id)
-            if execution_count > node.max_iteration:
-                return f"Max iteration ({node.max_iteration}) reached"
+        # Don't validate max iteration here - handle it in execute_request
+        # to allow setting MAXITER_REACHED status
         
         # Validate batch configuration
         if getattr(node, 'batch', False):
@@ -104,6 +101,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 return await self.batch_executor.execute(request)
             else:
                 # Use single executor for normal execution
+                # The engine will handle max iteration checking after execution
                 return await self.single_executor.execute(request)
         except Exception as e:
             # Let on_error handle it

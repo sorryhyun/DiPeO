@@ -334,7 +334,6 @@ class BackendFilters:
         # Special handling for specific field names based on node type
         context_mappings = {
             'method': 'HttpMethod',
-            'operation': 'NotionOperation', 
             'sub_type': 'DBBlockSubType',
             'language': 'SupportedLanguage',
             'code_type': 'SupportedLanguage',

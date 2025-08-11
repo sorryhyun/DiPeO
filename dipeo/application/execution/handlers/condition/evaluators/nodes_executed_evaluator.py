@@ -1,5 +1,6 @@
 """Evaluator for checking if specific nodes have been executed."""
 
+import json
 import logging
 from typing import Any
 

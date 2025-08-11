@@ -9,7 +9,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_SERVICE
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, APIJobOutput
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
 if TYPE_CHECKING:
@@ -44,12 +44,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         return "Makes HTTP requests to external APIs with authentication support"
 
     async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> NodeOutputProtocol:
-        """Execute the API request."""
         node = request.node
         context = request.context
         inputs = request.inputs
         services = request.services
-        # Use injected service or get from services
         api_service = self.api_service or request.get_service(API_SERVICE.name)
             
         if not api_service:
@@ -59,7 +57,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 error_type="ServiceNotAvailableError"
             )
         
-        # Direct typed access to node properties
         url = node.url
         method = node.method
         headers = node.headers or {}
@@ -69,7 +66,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         auth_type = node.auth_type or "none"
         auth_config = node.auth_config or {}
         
-        # Debug logging
         print(f"[ApiJobNode] URL: {url}")
         print(f"[ApiJobNode] Method type: {type(method)}, value: {method}")
         print(f"[ApiJobNode] Headers: {headers}")
@@ -93,7 +89,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             )
 
         try:
-            # Parse JSON strings for headers, params, body, and auth_config
             parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
             if "error" in parsed_data:
                 return ErrorOutput(
@@ -107,17 +102,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             body = parsed_data["body"]
             auth_config = parsed_data["auth_config"]
 
-            # Prepare authentication
             auth = self._prepare_auth(auth_type, auth_config)
-            
-            # Apply bearer token or API key to headers if needed
             headers = self._apply_auth_headers(headers, auth_type, auth_config)
-            
-            # Prepare request data based on method and params
             request_data = self._prepare_request_data(method, params, body)
             
-            # Execute request using API service with retry logic
-            # Get method value - handle both enum and string cases
             method_value = method.value if hasattr(method, 'value') else str(method)
             
             response_data = await api_service.execute_with_retry(
@@ -129,33 +117,30 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 retry_delay=1.0,
                 timeout=timeout,
                 auth=auth,
-                expected_status_codes=list(range(200, 300))  # 2xx status codes
+                expected_status_codes=list(range(200, 300))
             )
             
-            # Format output
-            output_value = json.dumps(response_data) if isinstance(response_data, dict) else str(response_data)
+            # Convert response to dict format for APIJobOutput
+            response_dict = response_data if isinstance(response_data, dict) else {"result": str(response_data)}
             
-            return TextOutput(
-                value=output_value,
+            # Note: In a real implementation, we'd get status_code and headers from the actual HTTP response
+            # For now, we'll use defaults since the api_service abstraction doesn't provide these
+            return APIJobOutput(
+                value=response_dict,
                 node_id=node.id,
-                metadata={
-                    "success": True,
-                    "url": url,
-                    "method": method_value
-                }
+                status_code=200,  # Default success code
+                headers={},  # Would be populated from actual response
+                metadata="{}",  # Empty metadata - url and method are now typed fields
+                url=url,  # Use typed field
+                method=method_value  # Use typed field
             )
 
         except Exception as e:
-            # API service handles retries and specific errors
-            # This catches any remaining errors
             return ErrorOutput(
                 value=str(e),
                 node_id=node.id,
                 error_type=type(e).__name__,
-                metadata={
-                    "url": url,
-                    "method": method.value if hasattr(method, 'value') else str(method)
-                }
+                metadata="{}"  # Empty metadata - error details in value and error_type
             )
 
     def _parse_json_inputs(
@@ -168,29 +153,24 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             "auth_config": auth_config or {}
         }
         
-        # Parse headers if provided as JSON string
         if isinstance(headers, str):
             try:
                 result["headers"] = json.loads(headers)
             except json.JSONDecodeError:
                 return {"error": "Invalid headers JSON format"}
         
-        # Parse params if provided as JSON string
         if isinstance(params, str):
             try:
                 result["params"] = json.loads(params)
             except json.JSONDecodeError:
                 return {"error": "Invalid params JSON format"}
         
-        # Parse body if provided as JSON string
         if isinstance(body, str) and body.strip():
             try:
                 result["body"] = json.loads(body)
             except json.JSONDecodeError:
-                # Keep as string if not JSON
                 pass
         
-        # Parse auth config if provided as JSON string
         if isinstance(auth_config, str) and auth_config.strip():
             try:
                 result["auth_config"] = json.loads(auth_config)
@@ -215,22 +195,19 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def _prepare_request_data(
         self, method: HttpMethod, params: dict, body: Any
     ) -> dict[str, Any] | None:
-        # For GET requests, params are query parameters (handled separately)
         if method == HttpMethod.GET:
             return None
             
-        # For other methods, return body data
         if body is not None:
             return body
             
-        # If no body but params exist for POST/PUT/PATCH, use params as body
         if method in [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH] and params:
             return params
             
         return None
     
     def _apply_auth_headers(self, headers: dict, auth_type: str, auth_config: dict) -> dict:
-        headers = headers.copy()  # Don't modify original
+        headers = headers.copy()
         
         if auth_type == "bearer":
             token = auth_config.get("token", "")
@@ -249,8 +226,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         request: ExecutionRequest[ApiJobNode],
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
-        """Post-execution hook to log API request details."""
-        # Log API call details if in debug mode
         if request.metadata.get("debug"):
             method = request.metadata.get("method", "unknown")
             url = request.metadata.get("url", "unknown")
@@ -266,17 +241,16 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         request: ExecutionRequest[ApiJobNode],
         error: Exception
     ) -> Optional[NodeOutputProtocol]:
-        """Handle API errors with better error messages."""
         url = request.metadata.get("url", "unknown")
         method = request.metadata.get("method", "unknown")
         
-        # Create error output with request information
-        return ErrorOutput(
+        output = ErrorOutput(
             value=f"API request failed: {str(error)}",
             node_id=request.node.id,
-            error_type=type(error).__name__,
-            metadata={
-                "url": url,
-                "method": method
-            }
+            error_type=type(error).__name__
         )
+        output.metadata = json.dumps({
+            "url": url,
+            "method": method
+        })
+        return output

@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "analyze": "pnpm build && node scripts/analyze-bundle.js",
+    "analyze": "pnpm build && echo 'Bundle analysis saved to dist/bundle-analysis.html'",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",

@@ -21,6 +21,7 @@ else:
         ).resolve()
 
 FILES_DIR: Path = BASE_DIR / "files"
+PROJECTS_DIR: Path = BASE_DIR / "projects"
 UPLOAD_DIR: Path = FILES_DIR / "uploads"
 RESULT_DIR: Path = FILES_DIR / "results"
 CONVERSATION_LOG_DIR: Path = FILES_DIR / "conversation_logs"

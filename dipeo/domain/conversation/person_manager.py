@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from dipeo.models import LLMService, PersonID, PersonLLMConfig
+from dipeo.diagram_generated import LLMService, PersonID, PersonLLMConfig
 
 from .person import Person
 

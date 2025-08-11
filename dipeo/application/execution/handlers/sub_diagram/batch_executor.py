@@ -9,6 +9,7 @@ This executor implements optimizations for batch parallel execution:
 
 from typing import TYPE_CHECKING, Any, Optional
 import asyncio
+import json
 import logging
 import uuid
 from dataclasses import replace
@@ -23,7 +24,7 @@ from dipeo.application.registry.keys import (
     STATE_STORE,
     MESSAGE_ROUTER,
     DIAGRAM_SERVICE_NEW,
-    DIAGRAM_STORAGE_SERVICE,
+    PREPARE_DIAGRAM_USE_CASE,
 )
 
 if TYPE_CHECKING:
@@ -34,7 +35,7 @@ class BatchSubDiagramExecutor:
     """Executor for batch sub-diagram execution with optimizations for parallel processing."""
     
     # Default configuration for batch execution
-    DEFAULT_MAX_CONCURRENT = 20  # Maximum concurrent executions
+    DEFAULT_MAX_CONCURRENT = 10  # Maximum concurrent executions (reduced from 20 to prevent queue overflow)
     DEFAULT_BATCH_SIZE = 100     # Maximum items to process in one batch
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
@@ -45,21 +46,21 @@ class BatchSubDiagramExecutor:
         batch_input_key = getattr(node, 'batch_input_key', 'items')
         batch_parallel = getattr(node, 'batch_parallel', True)
         max_concurrent = getattr(node, 'max_concurrent', self.DEFAULT_MAX_CONCURRENT)
-        
+
         # Extract array from inputs
         batch_items = self._extract_batch_items(request.inputs, batch_input_key)
-        
+
         if not batch_items:
             log.warning(f"Batch mode enabled but no items found for key '{batch_input_key}'")
             return DataOutput(
                 value={'total_items': 0, 'successful': 0, 'failed': 0, 'results': [], 'errors': None},
                 node_id=node.id,
-                metadata={'batch_mode': True, 'batch_parallel': batch_parallel, 'status': 'completed'}
+                metadata=json.dumps({'batch_mode': True, 'batch_parallel': batch_parallel, 'status': 'completed'})
             )
         
-        # Load diagram once for all batch items
+        # Load and prepare diagram once for all batch items
         diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
-        diagram_data = await self._load_diagram(node, diagram_service)
+        domain_diagram = await self._load_diagram(node, diagram_service)
         
         # Prepare base execution context
         base_context = await self._prepare_base_context(request)
@@ -67,11 +68,11 @@ class BatchSubDiagramExecutor:
         # Execute batch items
         if batch_parallel:
             results, errors = await self._execute_parallel(
-                batch_items, request, diagram_data, base_context, max_concurrent
+                batch_items, request, domain_diagram, base_context, max_concurrent
             )
         else:
             results, errors = await self._execute_sequential(
-                batch_items, request, diagram_data, base_context
+                batch_items, request, domain_diagram, base_context
             )
         
         # Compile batch results
@@ -82,23 +83,23 @@ class BatchSubDiagramExecutor:
             'results': [r.value if hasattr(r, 'value') else r for r in results],
             'errors': errors if errors else None
         }
-        
+
         # Return batch output
         return DataOutput(
             value=batch_output,
             node_id=node.id,
-            metadata={
+            metadata=json.dumps({
                 'batch_mode': True,
                 'batch_parallel': batch_parallel,
                 'status': 'completed' if not errors else 'partial_failure'
-            }
+            })
         )
     
     def _extract_batch_items(self, inputs: Optional[dict[str, Any]], batch_input_key: str) -> list[Any]:
         """Extract batch items from inputs."""
         if not inputs:
             return []
-        
+
         # Check if batch_input_key is in the root level or in 'default'
         if batch_input_key in inputs:
             batch_items = inputs.get(batch_input_key, [])
@@ -106,11 +107,11 @@ class BatchSubDiagramExecutor:
             batch_items = inputs['default'].get(batch_input_key, [])
         else:
             batch_items = []
-        
+
         if not isinstance(batch_items, list):
             log.warning(f"Batch input '{batch_input_key}' is not a list. Treating as single item.")
             batch_items = [batch_items]
-        
+
         return batch_items
     
     async def _prepare_base_context(self, request: ExecutionRequest[SubDiagramNode]) -> dict[str, Any]:
@@ -118,7 +119,7 @@ class BatchSubDiagramExecutor:
         # Get required services
         state_store = request.services.resolve(STATE_STORE)
         message_router = request.services.resolve(MESSAGE_ROUTER)
-        diagram_storage_service = request.services.resolve(DIAGRAM_STORAGE_SERVICE)
+        diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
         
         if not all([state_store, message_router]):
             raise ValueError("Required services not available")
@@ -137,7 +138,7 @@ class BatchSubDiagramExecutor:
         return {
             'state_store': state_store,
             'message_router': message_router,
-            'diagram_storage_service': diagram_storage_service,
+            'diagram_service': diagram_service,
             'service_registry': service_registry,
             'container': container,
             'parent_execution_id': request.execution_id
@@ -147,7 +148,7 @@ class BatchSubDiagramExecutor:
         self,
         batch_items: list[Any],
         request: ExecutionRequest[SubDiagramNode],
-        diagram_data: dict[str, Any],
+        domain_diagram: Any,  # DomainDiagram
         base_context: dict[str, Any],
         max_concurrent: int
     ) -> tuple[list[Any], list[dict[str, Any]]]:
@@ -162,7 +163,7 @@ class BatchSubDiagramExecutor:
             """Execute single item with semaphore control."""
             async with semaphore:
                 return await self._execute_single_item(
-                    item, index, len(batch_items), request, diagram_data, base_context
+                    item, index, len(batch_items), request, domain_diagram, base_context
                 )
         
         # Create tasks for all items
@@ -191,7 +192,7 @@ class BatchSubDiagramExecutor:
         self,
         batch_items: list[Any],
         request: ExecutionRequest[SubDiagramNode],
-        diagram_data: dict[str, Any],
+        domain_diagram: Any,  # DomainDiagram
         base_context: dict[str, Any]
     ) -> tuple[list[Any], list[dict[str, Any]]]:
         """Execute batch items sequentially."""
@@ -201,7 +202,7 @@ class BatchSubDiagramExecutor:
         for idx, item in enumerate(batch_items):
             try:
                 result = await self._execute_single_item(
-                    item, idx, len(batch_items), request, diagram_data, base_context
+                    item, idx, len(batch_items), request, domain_diagram, base_context
                 )
                 results.append(result)
             except Exception as e:
@@ -220,7 +221,7 @@ class BatchSubDiagramExecutor:
         index: int,
         total: int,
         original_request: ExecutionRequest[SubDiagramNode],
-        diagram_data: dict[str, Any],
+        domain_diagram: Any,  # DomainDiagram
         base_context: dict[str, Any]
     ) -> Any:
         """Execute a single item in the batch with optimized context."""
@@ -252,7 +253,7 @@ class BatchSubDiagramExecutor:
             service_registry=base_context['service_registry'],
             state_store=base_context['state_store'],
             message_router=base_context['message_router'],
-            diagram_storage_service=base_context['diagram_storage_service'],
+            diagram_service=base_context['diagram_service'],
             container=base_context['container']
         )
         
@@ -262,7 +263,7 @@ class BatchSubDiagramExecutor:
         # Execute and collect only final results
         execution_results, execution_error = await self._execute_optimized(
             execute_use_case=execute_use_case,
-            diagram_data=diagram_data,
+            domain_diagram=domain_diagram,
             options=options,
             sub_execution_id=sub_execution_id,
             parent_observers=parent_observers
@@ -278,17 +279,17 @@ class BatchSubDiagramExecutor:
         return DataOutput(
             value=output_value,
             node_id=f"{original_request.node.id}_batch_{index}",
-            metadata={
+            metadata=json.dumps({
                 "batch_index": index,
                 "sub_execution_id": sub_execution_id,
                 "status": "completed"
-            }
+            })
         )
     
     async def _execute_optimized(
         self,
         execute_use_case: "ExecuteDiagramUseCase",
-        diagram_data: dict[str, Any],
+        domain_diagram: Any,  # DomainDiagram
         options: dict[str, Any],
         sub_execution_id: str,
         parent_observers: list[Any]
@@ -299,7 +300,7 @@ class BatchSubDiagramExecutor:
         
         # Only collect essential updates for batch processing
         async for update in execute_use_case.execute_diagram(
-            diagram=diagram_data,
+            diagram=domain_diagram,
             options=options,
             execution_id=sub_execution_id,
             interactive_handler=None,
@@ -340,11 +341,18 @@ class BatchSubDiagramExecutor:
         
         return execution_results, execution_error
     
-    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> dict[str, Any]:
-        """Load the diagram to execute (cached for batch execution)."""
-        # If diagram_data is provided directly, use it
+    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> Any:
+        """Load diagram as DomainDiagram."""
+        # If diagram_data is provided directly, convert it to DomainDiagram
         if node.diagram_data:
-            return node.diagram_data
+            # diagram_data is a dict that needs conversion
+            # Use the diagram service to convert it
+            if diagram_service:
+                import yaml
+                yaml_content = yaml.dump(node.diagram_data, default_flow_style=False, sort_keys=False)
+                return diagram_service.load_diagram(yaml_content)
+            else:
+                raise ValueError("Diagram service not available for conversion")
         
         # Otherwise, load by name from storage
         if not node.diagram_name:
@@ -366,13 +374,15 @@ class BatchSubDiagramExecutor:
             format_suffix = format_map.get(node.diagram_format, '.light.yaml')
         
         # Construct full file path
-        if diagram_name.startswith('codegen/'):
+        if diagram_name.startswith('projects/'):
+            file_path = f"{diagram_name}{format_suffix}"
+        elif diagram_name.startswith('codegen/'):
             file_path = f"files/{diagram_name}{format_suffix}"
         else:
             file_path = f"files/diagrams/{diagram_name}{format_suffix}"
         
         try:
-            # Use diagram service to load the diagram
+            # Use diagram service to load the diagram - returns DomainDiagram
             diagram = await diagram_service.load_from_file(file_path)
             return diagram
             

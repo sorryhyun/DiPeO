@@ -105,9 +105,12 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   } = state;
   
   // Streaming operations (GraphQL or SSE)
+  // Use execution.executionId from state instead of ref for reactivity
+  const currentExecutionId = execution.executionId || executionIdRef.current;
+  console.log('[useExecution] Setting up streaming with executionId:', currentExecutionId);
   const streaming = useExecutionStreaming({ 
-    executionId: executionIdRef.current,
-    skip: !executionIdRef.current
+    executionId: currentExecutionId,
+    skip: !currentExecutionId
   });
   
   // Process subscription updates

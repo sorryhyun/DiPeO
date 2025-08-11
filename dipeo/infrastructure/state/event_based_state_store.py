@@ -14,12 +14,11 @@ from typing import Any, Optional
 from dipeo.core.constants import STATE_DB_PATH
 from dipeo.core.execution.node_output import serialize_protocol
 from dipeo.core.ports import StateStorePort
-from dipeo.models import (
+from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
     ExecutionState,
-    ExecutionStatus,
-    NodeExecutionStatus,
+    Status,
     NodeState,
     TokenUsage,
 )
@@ -62,7 +61,6 @@ class EventBasedStateStore(StateStorePort):
             await self._init_schema()
             await self._execution_cache.start()
             self._initialized = True
-            logger.info("EventBasedStateStore initialized")
     
     async def cleanup(self):
         """Cleanup resources."""
@@ -252,7 +250,7 @@ class EventBasedStateStore(StateStorePort):
         now = datetime.now().isoformat()
         state = ExecutionState(
             id=ExecutionID(exec_id),
-            status=ExecutionStatus.PENDING,
+            status=Status.PENDING,
             diagram_id=diag_id,
             started_at=now,
             ended_at=None,
@@ -340,6 +338,32 @@ class EventBasedStateStore(StateStorePort):
         if not row:
             return None
         
+        from dipeo.diagram_generated import SerializedNodeOutput
+        
+        # Parse node_outputs and convert to SerializedNodeOutput objects
+        raw_outputs = json.loads(row[6]) if row[6] else {}
+        node_outputs = {}
+        for node_id, output_data in raw_outputs.items():
+            if isinstance(output_data, dict):
+                # Map _protocol_type to type field (using alias)
+                if "_protocol_type" in output_data:
+                    protocol_type = output_data.pop("_protocol_type")
+                    # Map BaseNodeOutput to a valid type for SerializedNodeOutput
+                    if protocol_type == "BaseNodeOutput":
+                        output_data["_type"] = "TextOutput"  # Default fallback type
+                    else:
+                        output_data["_type"] = protocol_type
+                # Skip SerializedNodeOutput conversion due to Pydantic _type field issue
+                node_outputs[node_id] = output_data
+            else:
+                # Fallback for unexpected data - use dict instead of SerializedNodeOutput
+                node_outputs[node_id] = {
+                    "_type": "Unknown",
+                    "value": output_data,
+                    "node_id": node_id,
+                    "metadata": "{}"
+                }
+        
         state_data = {
             "id": row[0],
             "status": row[1],
@@ -347,7 +371,7 @@ class EventBasedStateStore(StateStorePort):
             "started_at": row[3],
             "ended_at": row[4],
             "node_states": json.loads(row[5]) if row[5] else {},
-            "node_outputs": json.loads(row[6]) if row[6] else {},
+            "node_outputs": node_outputs,
             "token_usage": json.loads(row[7])
             if row[7]
             else {"input": 0, "output": 0, "cached": None, "total": 0},
@@ -361,7 +385,7 @@ class EventBasedStateStore(StateStorePort):
         return ExecutionState(**state_data)
     
     async def update_status(
-        self, execution_id: str, status: ExecutionStatus, error: str | None = None
+        self, execution_id: str, status: Status, error: str | None = None
     ):
         """Update execution status."""
         state = await self.get_state(execution_id)
@@ -371,9 +395,9 @@ class EventBasedStateStore(StateStorePort):
         state.status = status
         state.error = error
         if status in [
-            ExecutionStatus.COMPLETED,
-            ExecutionStatus.FAILED,
-            ExecutionStatus.ABORTED,
+            Status.COMPLETED,
+            Status.FAILED,
+            Status.ABORTED,
         ]:
             state.ended_at = datetime.now().isoformat()
             state.is_active = False
@@ -386,7 +410,7 @@ class EventBasedStateStore(StateStorePort):
         node_id: str,
         output: Any,
         is_exception: bool = False,
-        token_usage: TokenUsage | None = None,
+        token_usage: TokenUsage | dict | None = None,
     ) -> None:
         """Update node output."""
         # Get from cache for fast update
@@ -406,7 +430,7 @@ class EventBasedStateStore(StateStorePort):
             serialized_output = output
         else:
             from dipeo.core.execution.node_output import BaseNodeOutput
-            from dipeo.models import NodeID
+            from dipeo.diagram_generated import NodeID
             
             wrapped_output = BaseNodeOutput(
                 value={"default": str(output)} if is_exception else output,
@@ -415,11 +439,20 @@ class EventBasedStateStore(StateStorePort):
             )
             serialized_output = serialize_protocol(wrapped_output)
         
+        # Convert to SerializedNodeOutput if needed
+        from dipeo.diagram_generated import SerializedNodeOutput
+        if isinstance(serialized_output, dict):
+            # Skip SerializedNodeOutput conversion for now due to Pydantic _type field issue
+            # Just use the dict directly which has all the needed fields
+            serialized_node_output = serialized_output
+        else:
+            serialized_node_output = serialized_output
+        
         # Update cache immediately
         await cache.set_node_output(node_id, serialized_output)
         
         # Update state
-        state.node_outputs[node_id] = serialized_output
+        state.node_outputs[node_id] = serialized_node_output
         
         # Update token usage if provided
         if token_usage:
@@ -432,7 +465,7 @@ class EventBasedStateStore(StateStorePort):
         self,
         execution_id: str,
         node_id: str,
-        status: NodeExecutionStatus,
+        status: Status,
         error: str | None = None,
     ):
         """Update node status."""
@@ -450,19 +483,19 @@ class EventBasedStateStore(StateStorePort):
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
-                started_at=now if status == NodeExecutionStatus.RUNNING else None,
+                started_at=now if status == Status.RUNNING else None,
                 ended_at=None,
                 error=None,
                 token_usage=None,
             )
         else:
             state.node_states[node_id].status = status
-            if status == NodeExecutionStatus.RUNNING:
+            if status == Status.RUNNING:
                 state.node_states[node_id].started_at = now
             elif status in [
-                NodeExecutionStatus.COMPLETED,
-                NodeExecutionStatus.FAILED,
-                NodeExecutionStatus.SKIPPED,
+                Status.COMPLETED,
+                Status.FAILED,
+                Status.SKIPPED,
             ]:
                 state.node_states[node_id].ended_at = now
         
@@ -514,8 +547,17 @@ class EventBasedStateStore(StateStorePort):
         state.metrics = metrics
         await self.save_state(state)
     
-    async def add_token_usage(self, execution_id: str, tokens: TokenUsage):
+    async def add_token_usage(self, execution_id: str, tokens: TokenUsage | dict):
         """Add token usage."""
+        # Convert dict to TokenUsage if needed
+        if isinstance(tokens, dict):
+            tokens = TokenUsage(
+                input=tokens.get('input', 0),
+                output=tokens.get('output', 0),
+                cached=tokens.get('cached'),
+                total=tokens.get('total', 0)
+            )
+        
         cache = await self._execution_cache.get_cache(execution_id)
         await cache.add_token_usage(tokens)
         
@@ -545,7 +587,7 @@ class EventBasedStateStore(StateStorePort):
     async def list_executions(
         self,
         diagram_id: DiagramID | None = None,
-        status: ExecutionStatus | None = None,
+        status: Status | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> list[ExecutionState]:
@@ -574,8 +616,34 @@ class EventBasedStateStore(StateStorePort):
             self._executor, cursor.fetchall
         )
         
+        from dipeo.diagram_generated import SerializedNodeOutput
+        
         executions = []
         for row in rows:
+            # Parse node_outputs and convert to SerializedNodeOutput objects
+            raw_outputs = json.loads(row[6]) if row[6] else {}
+            node_outputs = {}
+            for node_id, output_data in raw_outputs.items():
+                if isinstance(output_data, dict):
+                    # Ensure _protocol_type is preserved as _type
+                    if "_protocol_type" in output_data and "_type" not in output_data:
+                        protocol_type = output_data["_protocol_type"]
+                        # Map BaseNodeOutput to a valid type for SerializedNodeOutput
+                        if protocol_type == "BaseNodeOutput":
+                            output_data["_type"] = "TextOutput"  # Default fallback type
+                        else:
+                            output_data["_type"] = protocol_type
+                    # Skip SerializedNodeOutput conversion due to Pydantic _type field issue
+                    node_outputs[node_id] = output_data
+                else:
+                    # Fallback for unexpected data - use dict instead of SerializedNodeOutput
+                    node_outputs[node_id] = {
+                        "_protocol_type": "Unknown",
+                        "value": output_data,
+                        "node_id": node_id,
+                        "metadata": "{}"
+                    }
+            
             state_data = {
                 "id": row[0],
                 "status": row[1],
@@ -583,7 +651,7 @@ class EventBasedStateStore(StateStorePort):
                 "started_at": row[3],
                 "ended_at": row[4],
                 "node_states": json.loads(row[5]) if row[5] else {},
-                "node_outputs": json.loads(row[6]) if row[6] else {},
+                "node_outputs": node_outputs,
                 "token_usage": json.loads(row[7])
                 if row[7]
                 else {"input": 0, "output": 0, "cached": None, "total": 0},

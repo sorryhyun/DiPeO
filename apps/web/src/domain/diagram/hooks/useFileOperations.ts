@@ -164,8 +164,8 @@ export const useFileOperations = () => {
       const { data } = await convertDiagram({
         variables: {
           content: diagramContent,
-          fromFormat: DiagramFormat.NATIVE,
-          toFormat: format
+          from_format: DiagramFormat.NATIVE,
+          to_format: format
         }
       });
       
@@ -211,8 +211,8 @@ export const useFileOperations = () => {
       const { data } = await convertDiagram({
         variables: {
           content: diagramContent,
-          fromFormat: DiagramFormat.NATIVE,
-          toFormat: format
+          from_format: DiagramFormat.NATIVE,
+          to_format: format
         }
       });
       

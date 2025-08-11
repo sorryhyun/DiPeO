@@ -20,6 +20,7 @@ from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
 from .single_executor import SingleSubDiagramExecutor
 from .batch_executor import BatchSubDiagramExecutor
+from .lightweight_executor import LightweightSubDiagramExecutor
 
 if TYPE_CHECKING:
     pass
@@ -34,11 +35,15 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     This handler allows a diagram to execute another diagram as a node,
     passing inputs and receiving outputs from the sub-diagram execution.
     Routes execution to appropriate executor based on batch configuration.
+    
+    Sub-diagrams run in lightweight mode by default - they execute "inside" the
+    parent node without creating separate execution states or persistence.
     """
     
     def __init__(self):
-        """Initialize with single and batch executors."""
-        self.single_executor = SingleSubDiagramExecutor()
+        """Initialize with lightweight, single and batch executors."""
+        self.lightweight_executor = LightweightSubDiagramExecutor()
+        self.single_executor = SingleSubDiagramExecutor()  # Keep for backward compatibility
         self.batch_executor = BatchSubDiagramExecutor()
     
     @property
@@ -87,8 +92,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # Use batch executor in sequential mode
             return await self.batch_executor.execute(request)
         else:
-            # Use single executor for normal execution
-            return await self.single_executor.execute(request)
+            # Use lightweight executor for normal execution
+            # Sub-diagrams run "inside" the parent node without separate state
+            return await self.lightweight_executor.execute(request)
     
     def post_execute(
         self,

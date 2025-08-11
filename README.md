@@ -36,15 +36,11 @@ persons:
 ```
 read [example](files/diagrams/examples/simple_iter_ollama.light.yaml)
 
-## Essential Scripts
+## Integrated API supports
+- We support Notion, custom LLM with curl, ... etc, any API services
 
-### Makefile Commands
-```bash
-make dev-server                   # Start backend server
-make dev-web                      # Start frontend server
-```
 
-### `./dipeo` - Run Diagrams
+### `dipeo` - Run Diagrams with CLI
 ```bash
 # run diagram with automatically running server
 dipeo run diagrams/examples/simple_iter --debug --light --timeout=10
@@ -61,3 +57,7 @@ dipeo run files/diagrams/examples/simple_iter.light.yaml --light --debug
 - Node.js 22+ with pnpm 10+
 - Python 3.13+
 - tmux (optional, for better parallel execution)
+
+- 0.3.0 Release will include
+  - Light formatted diagram Pydantic model for automatic diagram generation
+  - Example diagram for self-evolving LLMs

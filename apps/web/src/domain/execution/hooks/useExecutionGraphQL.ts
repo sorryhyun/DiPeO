@@ -1,7 +1,5 @@
 import {
   ExecutionUpdatesDocument,
-  NodeUpdatesDocument,
-  InteractivePromptsDocument,
   ExecuteDiagramDocument,
   ControlExecutionDocument,
   SendInteractiveResponseDocument,
@@ -43,18 +41,6 @@ const useExecutionUpdatesSubscription = createEntitySubscription({
   silent: true
 });
 
-const useNodeUpdatesSubscription = createEntitySubscription({
-  entityName: 'Execution',
-  document: NodeUpdatesDocument,
-  silent: true
-});
-
-const useInteractivePromptsSubscription = createEntitySubscription({
-  entityName: 'Execution',
-  document: InteractivePromptsDocument,
-  silent: true
-});
-
 export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionGraphQLProps) {
   // Mutations - using factory-generated hooks
   const [executeDiagramMutation] = useExecuteDiagramMutation();
@@ -62,18 +48,10 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
   const [submitInteractiveResponseMutation] = useSubmitInteractiveResponseMutation();
 
   // Subscriptions - using factory-generated hooks
+  // The subscription variable is 'execution_id' not 'executionId' (underscore not camelCase)
+  // Provide a dummy execution_id when skipping to avoid GraphQL validation errors
   const { data: executionData } = useExecutionUpdatesSubscription(
-    { executionId: executionId! },
-    { skip: skip || !executionId }
-  );
-
-  const { data: nodeData } = useNodeUpdatesSubscription(
-    { executionId: executionId! },
-    { skip: skip || !executionId }
-  );
-
-  const { data: promptData } = useInteractivePromptsSubscription(
-    { executionId: executionId! },
+    { execution_id: executionId || 'dummy-id-for-skip' },
     { skip: skip || !executionId }
   );
 
@@ -85,7 +63,8 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
     
     // Subscription data
     executionUpdates: executionData?.execution_updates,
-    nodeUpdates: nodeData?.node_updates,
-    interactivePrompts: promptData?.interactive_prompts,
+    // TODO: These subscriptions no longer exist separately - data is in executionUpdates
+    nodeUpdates: undefined,
+    interactivePrompts: undefined,
   };
 }

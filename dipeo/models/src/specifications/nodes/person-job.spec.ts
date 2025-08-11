@@ -37,6 +37,17 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
+      name: "first_prompt_file",
+      type: "string",
+      required: false,
+      description: "External prompt file for first iteration only",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "example_first.txt",
+        column: 2
+      }
+    },
+    {
       name: "default_prompt",
       type: "string",
       required: false,
@@ -106,6 +117,19 @@ export const personJobSpec: NodeSpecification = {
           { value: "image", label: "Image - Image generation capabilities" },
           { value: "websearch", label: "Web Search - Search the internet" }
         ]
+      }
+    },
+    {
+      name: "text_format",
+      type: "string",
+      required: false,
+      description: "JSON schema or response format for structured outputs",
+      uiConfig: {
+        inputType: "textarea",
+        placeholder: '{"type": "object", "properties": {...}}',
+        column: 2,
+        rows: 6,
+        adjustable: true
       }
     },
     {

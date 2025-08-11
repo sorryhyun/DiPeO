@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dipeo.core.constants import FILES_DIR
+from dipeo.core.constants import FILES_DIR, PROJECTS_DIR
 
 
 class DiagramLoader:
@@ -13,7 +13,13 @@ class DiagramLoader:
 
     @staticmethod
     def resolve_diagram_path(diagram: str, format_type: str | None = None) -> str:
-        """Resolve diagram path based on format type."""
+        """Resolve diagram path based on format type.
+        
+        Search order:
+        1. Check as-is (for absolute paths or direct references)
+        2. Check in projects/ directory (new default)
+        3. Check in files/ directory (backward compatibility)
+        """
         # If it's an absolute path, use as-is
         path = Path(diagram)
         if path.is_absolute():
@@ -24,25 +30,41 @@ class DiagramLoader:
             # Check if it exists as-is
             if Path(diagram).exists():
                 return diagram
-            # Try with files/ prefix
+            
+            # Try with projects/ prefix first
+            path_with_projects = PROJECTS_DIR / diagram
+            if path_with_projects.exists():
+                return str(path_with_projects)
+            
+            # Try with files/ prefix for backward compatibility
             path_with_files = FILES_DIR / diagram
             if path_with_files.exists():
                 return str(path_with_files)
-            # If it starts with files/, also try resolving from project root
-            if diagram.startswith("files/"):
+            
+            # If it starts with files/ or projects/, also try resolving from project root
+            if diagram.startswith(("files/", "projects/")):
                 return str(FILES_DIR.parent / diagram)
 
-        # For paths without extension, auto-prepend files/ if not present
-        diagram_path = diagram[6:] if diagram.startswith("files/") else diagram
+        # For paths without extension, handle prefixes
+        if diagram.startswith("files/"):
+            diagram_path = diagram[6:]  # Remove files/ prefix
+            search_dirs = [FILES_DIR]  # Only search in files/
+        elif diagram.startswith("projects/"):
+            diagram_path = diagram[9:]  # Remove projects/ prefix
+            search_dirs = [PROJECTS_DIR]  # Only search in projects/
+        else:
+            diagram_path = diagram
+            search_dirs = [PROJECTS_DIR, FILES_DIR]  # Search both, projects first
 
         if not format_type:
             # Try to find the diagram with known extensions
             extensions = [".native.json", ".light.yaml", ".readable.yaml"]
 
-            for ext in extensions:
-                path = FILES_DIR / f"{diagram_path}{ext}"
-                if path.exists():
-                    return str(path)
+            for search_dir in search_dirs:
+                for ext in extensions:
+                    path = search_dir / f"{diagram_path}{ext}"
+                    if path.exists():
+                        return str(path)
 
             raise FileNotFoundError(f"Diagram '{diagram}' not found in any format")
 
@@ -57,8 +79,15 @@ class DiagramLoader:
         if not ext:
             raise ValueError(f"Unknown format type: {format_type}")
 
-        path = FILES_DIR / f"{diagram_path}{ext}"
-        return str(path)
+        # Try each search directory in order
+        for search_dir in search_dirs:
+            path = search_dir / f"{diagram_path}{ext}"
+            if path.exists():
+                return str(path)
+        
+        # If not found, return the path in the first search directory
+        # (for creating new diagrams)
+        return str(search_dirs[0] / f"{diagram_path}{ext}")
 
     @staticmethod
     def load_diagram(file_path: str) -> dict[str, Any]:
@@ -91,20 +120,31 @@ class DiagramLoader:
         """Extract diagram name from path for browser URL."""
         path = Path(diagram_path)
         try:
-            # Try to make path relative to FILES_DIR
-            relative_path = path.relative_to(FILES_DIR)
+            # Try to make path relative to PROJECTS_DIR first
+            relative_path = path.relative_to(PROJECTS_DIR)
             # Remove format suffix from the relative path
             path_str = str(relative_path)
             for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
                 if path_str.endswith(suffix):
                     path_str = path_str[: -len(suffix)]
                     break
-            return path_str
+            return f"projects/{path_str}"
         except ValueError:
-            # If not under FILES_DIR, use the original logic
-            name = path.name
-            for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
-                if name.endswith(suffix):
-                    name = name[: -len(suffix)]
-                    break
-            return name
+            try:
+                # Try to make path relative to FILES_DIR
+                relative_path = path.relative_to(FILES_DIR)
+                # Remove format suffix from the relative path
+                path_str = str(relative_path)
+                for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
+                    if path_str.endswith(suffix):
+                        path_str = path_str[: -len(suffix)]
+                        break
+                return f"files/{path_str}"
+            except ValueError:
+                # If not under either directory, use the original logic
+                name = path.name
+                for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
+                    if name.endswith(suffix):
+                        name = name[: -len(suffix)]
+                        break
+                return name

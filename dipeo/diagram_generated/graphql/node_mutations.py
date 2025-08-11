@@ -10,7 +10,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-06T20:32:08.918968
+Generated at: 2025-08-11T14:41:35.717557
 """
 
 import strawberry
@@ -86,7 +86,7 @@ class UpdateConditionInput:
 
 
 @strawberry.input
-class CreateDbInput:
+class CreateDBInput:
     """Input for creating a Database node"""
     diagram_id: str
     position: Vec2Input
@@ -95,7 +95,7 @@ class CreateDbInput:
     data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateDbInput:
+class UpdateDBInput:
     """Input for updating a Database node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
@@ -169,24 +169,6 @@ class CreateJsonSchemaValidatorInput:
 @strawberry.input  
 class UpdateJsonSchemaValidatorInput:
     """Input for updating a JSON Schema Validator node"""
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: Optional[strawberry.scalars.JSON] = None
-    position: Optional[Vec2Input] = None
-
-
-@strawberry.input
-class CreateNotionInput:
-    """Input for creating a Notion node"""
-    diagram_id: str
-    position: Vec2Input
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: strawberry.scalars.JSON
-
-@strawberry.input  
-class UpdateNotionInput:
-    """Input for updating a Notion node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
     data: Optional[strawberry.scalars.JSON] = None
@@ -534,8 +516,8 @@ class NodeMutations:
     async def create_db_node(
         self,
         info: Info,
-        input: CreateDbInput
-    ) -> DbDataType:
+        input: CreateDBInput
+    ) -> DBDataType:
         """Create a Db node"""
         registry: ServiceRegistry = info.context["registry"]
         
@@ -571,8 +553,8 @@ class NodeMutations:
     async def update_db_node(
         self,
         info: Info,
-        id: str, input: UpdateDbInput
-    ) -> DbDataType:
+        id: str, input: UpdateDBInput
+    ) -> DBDataType:
         """Update a Db node"""
         registry: ServiceRegistry = info.context["registry"]
         
@@ -846,74 +828,6 @@ class NodeMutations:
         id: str, input: UpdateJsonSchemaValidatorInput
     ) -> JsonSchemaValidatorDataType:
         """Update a Json Schema Validator node"""
-        registry: ServiceRegistry = info.context["registry"]
-        
-        
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
-        
-        # Update the node
-        domain_node = await integrated_service.update_node(
-            diagram_id=None,  # TODO: Need diagram_id from somewhere
-            node_id=id,
-            data=input.data
-        )
-        
-        
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
-
-
-    @strawberry.mutation
-    async def create_notion_node(
-        self,
-        info: Info,
-        input: CreateNotionInput
-    ) -> NotionDataType:
-        """Create a Notion node"""
-        registry: ServiceRegistry = info.context["registry"]
-        
-        
-        # Prepare node data
-        node_data = {
-            "type": "notion",
-            "position": input.position,
-            "data": input.data
-        }
-        
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
-        
-        # Create the node
-        domain_node = await integrated_service.create_node(
-            diagram_id=input.diagram_id,
-            node_data=node_data
-        )
-        
-        
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
-
-
-    @strawberry.mutation
-    async def update_notion_node(
-        self,
-        info: Info,
-        id: str, input: UpdateNotionInput
-    ) -> NotionDataType:
-        """Update a Notion node"""
         registry: ServiceRegistry = info.context["registry"]
         
         
@@ -1429,8 +1343,8 @@ __all__ = [
     'CreateConditionInput',
     'UpdateConditionInput',
 
-    'CreateDbInput',
-    'UpdateDbInput',
+    'CreateDBInput',
+    'UpdateDBInput',
 
     'CreateEndpointInput',
     'UpdateEndpointInput',
@@ -1443,9 +1357,6 @@ __all__ = [
 
     'CreateJsonSchemaValidatorInput',
     'UpdateJsonSchemaValidatorInput',
-
-    'CreateNotionInput',
-    'UpdateNotionInput',
 
     'CreatePersonBatchJobInput',
     'UpdatePersonBatchJobInput',

@@ -52,9 +52,13 @@ class Settings:
         self.node_ready_poll_interval = float(os.getenv("DIPEO_NODE_READY_POLL_INTERVAL", "0.01"))
         self.node_ready_max_polls = int(os.getenv("DIPEO_NODE_READY_MAX_POLLS", "100"))
         
-        # Event queue configuration
-        self.event_queue_size = int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "10000"))
-        self.monitoring_queue_size = int(os.getenv("DIPEO_MONITORING_QUEUE_SIZE", "10000"))
+        self.event_queue_size = int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "50000"))
+        self.monitoring_queue_size = int(os.getenv("DIPEO_MONITORING_QUEUE_SIZE", "50000"))
+        self.batch_broadcast_warning_threshold = float(
+            os.getenv("DIPEO_BATCH_BROADCAST_WARNING_THRESHOLD", "0.2")
+        )
+        self.batch_max_size = int(os.getenv("DIPEO_BATCH_MAX_SIZE", "50"))
+        self.batch_interval = float(os.getenv("DIPEO_BATCH_INTERVAL", "0.05"))
 
         self.cors_origins = self._parse_list(os.getenv("DIPEO_CORS_ORIGINS", "*"))
         self.allowed_file_extensions = self._parse_list(
@@ -92,7 +96,7 @@ class Settings:
         if base_dir := os.getenv("DIPEO_BASE_DIR"):
             return Path(base_dir)
 
-        # Find project root by locating pyproject.toml with dipeo directory
+        # Locate project root using pyproject.toml + dipeo directory markers
         current = Path.cwd()
         while current != current.parent:
             if (current / "pyproject.toml").exists() and (current / "dipeo").exists():
@@ -212,7 +216,6 @@ class Settings:
             }
 
 
-# Global settings instance
 settings = Settings()
 
 

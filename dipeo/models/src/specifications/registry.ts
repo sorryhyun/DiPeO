@@ -15,7 +15,6 @@ import { apiJobSpec } from './nodes/api-job.spec.js';
 import { endpointSpec } from './nodes/endpoint.spec.js';
 import { dbSpec } from './nodes/db.spec.js';
 import { userResponseSpec } from './nodes/user-response.spec.js';
-import { notionSpec } from './nodes/notion.spec.js';
 import { hookSpec } from './nodes/hook.spec.js';
 import { templateJobSpec } from './nodes/template-job.spec.js';
 import { jsonSchemaValidatorSpec } from './nodes/json-schema-validator.spec.js';
@@ -34,7 +33,6 @@ export const nodeSpecificationRegistry: NodeSpecificationRegistry = {
   endpoint: endpointSpec,
   db: dbSpec,
   user_response: userResponseSpec,
-  notion: notionSpec,
   hook: hookSpec,
   template_job: templateJobSpec,
   json_schema_validator: jsonSchemaValidatorSpec,

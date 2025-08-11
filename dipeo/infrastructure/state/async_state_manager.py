@@ -8,7 +8,7 @@ from typing import Any
 
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.core.ports import StateStorePort
-from dipeo.models import ExecutionStatus, NodeExecutionStatus
+from dipeo.diagram_generated import Status
 from .execution_state_cache import ExecutionStateCache
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AsyncStateManager(EventConsumer):
     """Processes execution events asynchronously to update state."""
     
-    def __init__(self, state_store: StateStorePort, write_interval: float = 0.1):
+    def __init__(self, state_store: StateStorePort, write_interval: float = 0.05):
         self.state_store = state_store
         self._write_buffer: dict[str, dict[str, Any]] = {}
         self._write_interval = write_interval
@@ -34,7 +34,6 @@ class AsyncStateManager(EventConsumer):
         self._running = True
         await self._execution_cache.start()
         self._write_task = asyncio.create_task(self._write_loop())
-        logger.info("AsyncStateManager started")
     
     async def stop(self) -> None:
         """Stop the async state manager and flush remaining writes."""
@@ -53,14 +52,21 @@ class AsyncStateManager(EventConsumer):
         
         # Stop execution cache
         await self._execution_cache.stop()
-        
-        logger.info("AsyncStateManager stopped")
     
     async def consume(self, event: ExecutionEvent) -> None:
         """Process events asynchronously."""
         execution_id = event.execution_id
         
-        # Buffer the event for batched writes
+        # Critical events should be persisted immediately
+        if event.type == EventType.EXECUTION_COMPLETED:
+            # Persist critical events immediately without buffering
+            try:
+                await self._persist_events(execution_id, [event])
+            except Exception as e:
+                logger.error(f"Failed to persist critical event: {e}", exc_info=True)
+            return
+        
+        # Buffer non-critical events for batched writes
         async with self._buffer_lock:
             if execution_id not in self._write_buffer:
                 self._write_buffer[execution_id] = {
@@ -79,7 +85,7 @@ class AsyncStateManager(EventConsumer):
                 await asyncio.sleep(self._write_interval)
                 await self._flush_buffer()
             except asyncio.CancelledError:
-                logger.info("Write loop cancelled")
+                logger.debug("Write loop cancelled")
                 break
             except Exception as e:
                 logger.error(f"Error in write loop: {e}", exc_info=True)
@@ -164,7 +170,7 @@ class AsyncStateManager(EventConsumer):
         # Update status to running
         await self.state_store.update_status(
             execution_id=execution_id,
-            status=ExecutionStatus.RUNNING
+            status=Status.RUNNING
         )
     
     async def _handle_node_started(
@@ -178,7 +184,7 @@ class AsyncStateManager(EventConsumer):
         await self.state_store.update_node_status(
             execution_id=execution_id,
             node_id=node_id,
-            status=NodeExecutionStatus.RUNNING
+            status=Status.RUNNING
         )
     
     async def _handle_node_completed(
@@ -207,13 +213,13 @@ class AsyncStateManager(EventConsumer):
             )
         
         # Update node status in cache
-        await cache.set_node_status(node_id, NodeExecutionStatus.COMPLETED)
+        await cache.set_node_status(node_id, Status.COMPLETED)
         
         # Update node status in store
         await self.state_store.update_node_status(
             execution_id=execution_id,
             node_id=node_id,
-            status=NodeExecutionStatus.COMPLETED
+            status=Status.COMPLETED
         )
     
     async def _handle_node_failed(
@@ -231,7 +237,7 @@ class AsyncStateManager(EventConsumer):
         await self.state_store.update_node_status(
             execution_id=execution_id,
             node_id=node_id,
-            status=NodeExecutionStatus.FAILED,
+            status=Status.FAILED,
             error=error
         )
         
@@ -263,7 +269,7 @@ class AsyncStateManager(EventConsumer):
     ) -> None:
         """Handle execution completed event."""
         data = event.data
-        status = data.get("status", ExecutionStatus.COMPLETED)
+        status = data.get("status", Status.COMPLETED)
         error = data.get("error")
         
         # Update execution status

@@ -6,7 +6,7 @@ from typing import Any
 
 from openai import AsyncOpenAI, OpenAI
 
-from dipeo.models import (
+from dipeo.diagram_generated import (
     ChatResult,
     ImageGenerationResult,
     LLMRequestOptions,
@@ -27,6 +27,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
         super().__init__(model_name, api_key, base_url)
         self.max_retries = 3
         self.retry_delay = 1.0
+        self._async_client = None
+        self._client_lock = None
 
     def _initialize_client(self) -> OpenAI:
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
@@ -37,11 +39,16 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def supports_response_api(self) -> bool:
         return 'gpt-4o-mini' in self.model_name or 'gpt-4.1' in self.model_name
+    
+    def _is_temperature_unsupported_model(self) -> bool:
+        """Check if the model doesn't support temperature parameter."""
+        return 'gpt-5-nano' in self.model_name
 
     def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
         """Prepare common API request parameters for both sync and async calls."""
         tools = kwargs.pop('tools', [])
         system_prompt_kwarg = kwargs.pop('system_prompt', None)
+        text_format = kwargs.pop('text_format', None)
 
         if not messages:
             logger.warning("No messages provided to OpenAI API call")
@@ -49,7 +56,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
 
         system_prompt, processed_messages = self._extract_system_and_messages(messages)
         
-        # Use system_prompt from kwargs if provided, otherwise use extracted one
         if system_prompt_kwarg:
             system_prompt = system_prompt_kwarg
         
@@ -57,7 +63,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if system_prompt:
             input_messages.append({"role": "developer", "content": system_prompt})
         
-        # Add other messages
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
 
@@ -74,22 +79,58 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if api_tools:
             logger.debug(f"API tools: {api_tools}")
         
-        # Use base method to extract allowed parameters
-        # Note: responses API doesn't support max_tokens parameter
-        api_params = self._extract_api_params(kwargs, ["temperature"])
+        allowed_params = []
+        if not self._is_temperature_unsupported_model():
+            allowed_params.append("temperature")
+        api_params = self._extract_api_params(kwargs, allowed_params)
+        
+        if text_format:
+            from pydantic import BaseModel
+            
+            if isinstance(text_format, type) and issubclass(text_format, BaseModel):
+                api_params["_pydantic_model"] = text_format
+                logger.debug(f"Using Pydantic model for structured output: {text_format.__name__}")
+            else:
+                logger.warning(f"text_format must be a Pydantic BaseModel class, got {type(text_format)}")
         
         return input_messages, api_tools, api_params
     
     def _process_api_response(self, response: Any) -> tuple[str, list[ToolOutput] | None, dict]:
         """Process API response to extract text, tool outputs, and token usage."""
-        text = getattr(response, 'output_text', '')
-        logger.debug(f"Output text: {text}")
+        if hasattr(response, 'output_parsed'):
+            import json
+            from pydantic import BaseModel
+            
+            parsed_output = response.output_parsed
+            if parsed_output:
+                if isinstance(parsed_output, BaseModel):
+                    text = json.dumps(parsed_output.model_dump())
+                else:
+                    text = json.dumps(parsed_output)
+            else:
+                text = ''
+            logger.debug(f"Parsed structured output: {text}")
+        elif hasattr(response, 'parsed'):
+            import json
+            from pydantic import BaseModel
+            
+            parsed_output = response.parsed
+            if parsed_output:
+                if isinstance(parsed_output, BaseModel):
+                    text = json.dumps(parsed_output.model_dump())
+                else:
+                    text = json.dumps(parsed_output)
+            else:
+                text = ''
+            logger.debug(f"Parsed structured output: {text}")
+        else:
+            text = getattr(response, 'output_text', '')
+            logger.debug(f"Output text: {text}")
         
         tool_outputs = []
         if hasattr(response, 'output') and response.output:
             for output in response.output:
                 if output.type == 'web_search_call' and hasattr(output, 'result'):
-                    # Parse web search results
                     search_results = []
                     for result in output.result:
                         search_results.append(WebSearchResult(
@@ -104,13 +145,12 @@ class ChatGPTAdapter(BaseLLMAdapter):
                         raw_response=output.result
                     ))
                 elif output.type == 'image_generation_call' and hasattr(output, 'result'):
-                    # Handle image generation result
                     tool_outputs.append(ToolOutput(
                         type=ToolType.IMAGE_GENERATION,
                         result=ImageGenerationResult(
                             image_data=output.result,  # Base64 encoded
                             format='png',
-                            width=1024,  # Default values, could be extracted from metadata
+                            width=1024,
                             height=1024
                         ),
                         raw_response=output.result
@@ -234,10 +274,22 @@ class ChatGPTAdapter(BaseLLMAdapter):
         if is_sync:
             client = self.client
         else:
-            client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+            # Initialize lock if needed (first time)
+            if self._client_lock is None:
+                self._client_lock = asyncio.Lock()
+            
+            # Use cached async client or create one
+            async with self._client_lock:
+                if self._async_client is None:
+                    logger.debug(f"Creating new AsyncOpenAI client for {self.model_name}")
+                    self._async_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+                client = self._async_client
         
         for attempt in range(self.max_retries):
             try:
+                # Check if we have a Pydantic model for structured output
+                pydantic_model = api_params.pop('_pydantic_model', None)
+                
                 # Build API call parameters
                 create_params = {
                     "model": self.model_name,
@@ -252,9 +304,21 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 
                 # Try to make the API call
                 if is_sync:
-                    return client.responses.create(**create_params)
+                    if pydantic_model:
+                        logger.debug(f"Using responses.parse() with Pydantic model: {pydantic_model.__name__}")
+                        # For Pydantic models, pass the model class directly
+                        create_params['text_format'] = pydantic_model
+                        return client.responses.parse(**create_params)
+                    else:
+                        return client.responses.create(**create_params)
                 else:
-                    return await client.responses.create(**create_params)
+                    if pydantic_model:
+                        logger.debug(f"Using responses.parse() with Pydantic model: {pydantic_model.__name__}")
+                        # For Pydantic models, pass the model class directly
+                        create_params['text_format'] = pydantic_model
+                        return await client.responses.parse(**create_params)
+                    else:
+                        return await client.responses.create(**create_params)
                 
             except Exception as e:
                 last_exception = e

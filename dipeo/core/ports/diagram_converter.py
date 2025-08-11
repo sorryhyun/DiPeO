@@ -1,63 +1,98 @@
-"""Diagram converter port definitions."""
+"""Diagram storage serialization port definitions.
+
+This module defines interfaces for serializing DomainDiagram models to/from
+string formats (JSON, YAML) for file storage purposes only.
+
+Note: GraphQL and internal APIs should use DomainDiagram directly without serialization.
+"""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dipeo.diagram_generated import DomainDiagram
 
 
-class DiagramConverter(ABC):
+class DiagramStorageSerializer(ABC):
+    """Interface for serializing diagrams to/from storage formats.
+    
+    This is used ONLY for file persistence. Internal APIs should
+    pass DomainDiagram objects directly.
+    """
     
     @abstractmethod
-    def serialize(self, diagram: dict[str, Any]) -> str:
+    def serialize_for_storage(self, diagram: "DomainDiagram", format: str) -> str:
+        """Serialize a DomainDiagram to string for file storage.
+        
+        Args:
+            diagram: The DomainDiagram to serialize
+            format: Target format ('json', 'yaml', 'light', 'readable')
+            
+        Returns:
+            String representation for file storage
+        """
         pass
 
     @abstractmethod
-    def deserialize(self, content: str) -> dict[str, Any]:
+    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+        """Deserialize file content to DomainDiagram.
+        
+        Args:
+            content: String content from file
+            format: Optional format hint, will auto-detect if not provided
+            
+        Returns:
+            DomainDiagram instance
+        """
         pass
-
+    
     def validate(self, content: str) -> tuple[bool, list[str]]:
+        """Validate that content can be deserialized."""
         try:
-            self.deserialize(content)
+            self.deserialize_from_storage(content)
             return True, []
         except Exception as e:
             return False, [str(e)]
+            
 
-    def detect_format_confidence(self, content: str) -> float:
-        try:
-            self.deserialize(content)
-            return 1.0
-        except Exception:
-            return 0.0
+# Keep old name for backward compatibility but mark as deprecated
+class DiagramConverter(DiagramStorageSerializer):
+    """DEPRECATED: Use DiagramStorageSerializer instead.
+    
+    This class exists only for backward compatibility.
+    """
+    
+    def serialize(self, diagram: "DomainDiagram") -> str:
+        """DEPRECATED: Use serialize_for_storage() instead."""
+        return self.serialize_for_storage(diagram, format="native")
+    
+    def deserialize(self, content: str) -> "DomainDiagram":
+        """DEPRECATED: Use deserialize_from_storage() instead."""
+        return self.deserialize_from_storage(content)
 
 
 class FormatStrategy(ABC):
     
     @abstractmethod
-    def parse(self, content: str) -> dict[str, Any]:
+    def parse(self, content: str) -> Any:
+        """Parse content to intermediate format (dict, Pydantic model, etc).
+        
+        The return type is Any to allow format-specific representations.
+        This is only used internally by the strategy for processing.
+        """
         pass
 
     @abstractmethod
-    def format(self, data: dict[str, Any]) -> str:
+    def format(self, data: Any) -> str:
+        """Format data to string representation.
+        
+        The data type is Any to allow format-specific representations.
+        This is only used internally by the strategy for serialization.
+        """
         pass
 
     @abstractmethod
-    def extract_nodes(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extract nodes from diagram data."""
-        pass
-
-    @abstractmethod
-    def extract_arrows(
-        self, data: dict[str, Any], nodes: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Extract arrows from diagram data."""
-        pass
-
-    @abstractmethod
-    def build_export_data(self, diagram: dict[str, Any]) -> dict[str, Any]:
-        """Build data for export."""
-        pass
-
-    @abstractmethod
-    def deserialize_to_domain(self, content: str) -> Any:
+    def deserialize_to_domain(self, content: str) -> "DomainDiagram":
         """Deserialize format-specific string to domain diagram.
         
         This method should handle the complete conversion from the format-specific
@@ -71,7 +106,7 @@ class FormatStrategy(ABC):
         pass
 
     @abstractmethod
-    def serialize_from_domain(self, diagram: Any) -> str:
+    def serialize_from_domain(self, diagram: "DomainDiagram") -> str:
         """Serialize domain diagram to format-specific string.
         
         This method should handle the complete conversion from a DomainDiagram

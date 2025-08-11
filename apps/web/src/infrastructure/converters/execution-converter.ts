@@ -13,8 +13,8 @@ import {
   type NodeState,
   type ExecutionUpdate,
   type TokenUsage,
-  ExecutionStatus,
-  NodeExecutionStatus,
+  type SerializedNodeOutput,
+  Status,
   EventType
 } from '@dipeo/models';
 import type { 
@@ -35,7 +35,7 @@ export interface StoreExecutionState {
 
 // Store-specific node state
 export interface StoreNodeState {
-  status: NodeExecutionStatus;
+  status: Status;
   error?: string;
   timestamp: number;
   skipReason?: string;
@@ -53,7 +53,7 @@ export class ExecutionConverter {
         if (state) {
           const nodeState = state as any;
           nodeStates[nodeId] = {
-            status: nodeState.status as NodeExecutionStatus,
+            status: nodeState.status as Status,
             started_at: nodeState.started_at,
             ended_at: nodeState.ended_at,
             error: nodeState.error,
@@ -65,7 +65,7 @@ export class ExecutionConverter {
     
     return {
       id: executionId(graphqlExecution.id),
-      status: graphqlExecution.status as ExecutionStatus,
+      status: graphqlExecution.status as Status,
       diagram_id: graphqlExecution.diagram_id ? diagramId(graphqlExecution.diagram_id) : null,
       started_at: graphqlExecution.started_at,
       ended_at: graphqlExecution.ended_at,
@@ -107,15 +107,15 @@ export class ExecutionConverter {
         skipReason: undefined
       });
       
-      if (state.status === NodeExecutionStatus.RUNNING) {
+      if (state.status === Status.RUNNING) {
         runningNodes.add(id);
       }
     });
     
     return {
       id: domainExecution.id,
-      isRunning: domainExecution.status === ExecutionStatus.RUNNING,
-      isPaused: domainExecution.status === ExecutionStatus.PAUSED,
+      isRunning: domainExecution.status === Status.RUNNING,
+      isPaused: domainExecution.status === Status.PAUSED,
       runningNodes,
       nodeStates,
       context: domainExecution.node_outputs
@@ -137,25 +137,25 @@ export class ExecutionConverter {
       nodeStates[nodeId] = {
         status: state.status,
         started_at: timestamp.toISOString(),
-        ended_at: state.status !== NodeExecutionStatus.RUNNING 
+        ended_at: state.status !== Status.RUNNING 
           ? timestamp.toISOString() 
           : null,
         error: state.error || null,
         token_usage: null
       };
       
-      if (state.status === NodeExecutionStatus.FAILED) {
+      if (state.status === Status.FAILED) {
         hasFailed = true;
       }
     });
     
-    let status: ExecutionStatus;
+    let status: Status;
     if (storeExecution.isPaused) {
-      status = ExecutionStatus.PAUSED;
+      status = Status.PAUSED;
     } else if (storeExecution.isRunning) {
-      status = ExecutionStatus.RUNNING;
+      status = Status.RUNNING;
     } else {
-      status = hasFailed ? ExecutionStatus.FAILED : ExecutionStatus.COMPLETED;
+      status = hasFailed ? Status.FAILED : Status.COMPLETED;
     }
     
     return {
@@ -163,11 +163,11 @@ export class ExecutionConverter {
       status,
       diagram_id: diagramId || null,
       started_at: new Date().toISOString(),
-      ended_at: status === ExecutionStatus.COMPLETED || status === ExecutionStatus.FAILED
+      ended_at: status === Status.COMPLETED || status === Status.FAILED
         ? new Date().toISOString()
         : null,
       node_states: nodeStates,
-      node_outputs: storeExecution.context as Record<string, Record<string, any>>,
+      node_outputs: {} as Record<string, SerializedNodeOutput>,
       variables: {},
       token_usage: { input: 0, output: 0, cached: null, total: 0 },
       error: null,
@@ -188,35 +188,35 @@ export class ExecutionConverter {
     // Handle different update types
     if (update.type === EventType.NODE_STATUS_CHANGED && update.data?.node_id) {
       const id = nodeId(update.data.node_id);
-      const status = update.data.status as NodeExecutionStatus;
+      const status = update.data.status as Status;
       
-      if (status === NodeExecutionStatus.RUNNING) {
+      if (status === Status.RUNNING) {
         newState.runningNodes.add(id);
         newState.nodeStates.set(id, {
-          status: NodeExecutionStatus.RUNNING,
+          status: Status.RUNNING,
           timestamp: Date.now()
         });
-      } else if (status === NodeExecutionStatus.COMPLETED) {
+      } else if (status === Status.COMPLETED) {
         newState.runningNodes.delete(id);
         const nodeState = newState.nodeStates.get(id);
         if (nodeState) {
-          nodeState.status = NodeExecutionStatus.COMPLETED;
+          nodeState.status = Status.COMPLETED;
           nodeState.timestamp = Date.now();
         }
         if (update.data.output) {
           newState.context[id] = update.data.output;
         }
-      } else if (status === NodeExecutionStatus.FAILED) {
+      } else if (status === Status.FAILED) {
         newState.runningNodes.delete(id);
         newState.nodeStates.set(id, {
-          status: NodeExecutionStatus.FAILED,
+          status: Status.FAILED,
           error: update.data.error || 'Unknown error',
           timestamp: Date.now()
         });
       }
     } else if (update.type === EventType.EXECUTION_STATUS_CHANGED) {
-      const status = update.data?.status as ExecutionStatus;
-      if (status === ExecutionStatus.COMPLETED || status === ExecutionStatus.FAILED) {
+      const status = update.data?.status as Status;
+      if (status === Status.COMPLETED || status === Status.FAILED) {
         newState.isRunning = false;
         newState.runningNodes.clear();
       }

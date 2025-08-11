@@ -1,0 +1,9 @@
+Please provide a concise summary of the following content:
+
+{{content}}
+
+Your summary should:
+- Capture the main points
+- Be no longer than 3-5 sentences
+- Use clear and simple language
+- Highlight any key insights or conclusions

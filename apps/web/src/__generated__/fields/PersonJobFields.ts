@@ -30,6 +30,15 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     showPromptFileButton: true,
   },
   {
+    name: 'first_prompt_file',
+    type: 'text',
+    label: 'First Prompt File',
+    required: false,
+    placeholder: 'example_first.txt',
+    description: 'External prompt file for first iteration only',
+    column: 2,
+  },
+  {
     name: 'default_prompt',
     type: 'textarea',
     label: 'Default Prompt',
@@ -92,6 +101,17 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     ],
   },
   {
+    name: 'text_format',
+    type: 'textarea',
+    label: 'Text Format',
+    required: false,
+    placeholder: '{\"type\": \"object\", \"properties\": {...}}',
+    description: 'JSON schema or response format for structured outputs',
+    rows: 6,
+    column: 2,
+    adjustable: true,
+  },
+  {
     name: 'memory_settings',
     type: 'group',
     label: 'Memory Settings',
@@ -107,10 +127,10 @@ export const personJobFields: UnifiedFieldDefinition[] = [
         uiConfig: {
           inputType: 'select',
           options: [
-            { value: 'full_conversation', label: 'Full Conversation' },
-            { value: 'related_conversation_pairs', label: 'Related Conversation Pairs' },
-            { value: 'direct_messages', label: 'Direct Messages' },
-            { value: 'system_and_direct', label: 'System and Direct' },
+            { value: 'FULL_CONVERSATION', label: 'Full Conversation' },
+            { value: 'RELATED_CONVERSATION_PAIRS', label: 'Related Conversation Pairs' },
+            { value: 'DIRECT_MESSAGES', label: 'Direct Messages' },
+            { value: 'SYSTEM_AND_DIRECT', label: 'System and Direct' },
           ],
         },
       },
