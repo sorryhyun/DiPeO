@@ -121,8 +121,8 @@ nodes:
 
 connections:
   - {from: Start, to: Parse TypeScript}
-  - {from: Parse TypeScript, to: Load Query Definitions}
+  - {from: Parse TypeScript, to: Load Query Definitions, content_type: object}
   - {from: Load Query Definitions, to: Prepare Query Data, label: ast_files}
-  - {from: Prepare Query Data, to: Generate Queries, label: query_data}
+  - {from: Prepare Query Data, to: Generate Queries, label: query_data, content_type: object}
   - {from: Prepare Query Data, to: Verify Generated Files, label: metadata}
   - {from: Generate Queries, to: End}

@@ -63,12 +63,12 @@ connections:
   - {from: Start, to: Parse TypeScript Batch}
     
   # Load cached AST after parsing
-  - {from: Parse TypeScript Batch, to: Load Integration AST}
+  - {from: Parse TypeScript Batch, to: Load Integration AST, content_type: object}
 
   # Extract definitions from cached AST
-  - {from: Load Integration AST, to: Extract Integrations}
+  - {from: Load Integration AST, to: Extract Integrations, content_type: object}
 
   # Pass extracted data to template
-  - {from: Extract Integrations, to: Render Integrations, label: integration_data}
+  - {from: Extract Integrations, to: Render Integrations, label: integration_data, content_type: object}
 
   - {from: Render Integrations, to: End}

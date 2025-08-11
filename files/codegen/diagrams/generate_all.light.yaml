@@ -221,8 +221,8 @@ connections:
   - {from: Parse All TypeScript, to: Generate Field Configs}
   
   # Frontend batch processing chain
-  - {from: Discover Node Specs, to: Prepare Node List}
-  - {from: Prepare Node List, to: Batch Generate Frontend}
+  - {from: Discover Node Specs, to: Prepare Node List, content_type: object}
+  - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
   
   # All generation tasks converge to Summarize Results
   - {from: Generate Python Models, to: Summarize Results}

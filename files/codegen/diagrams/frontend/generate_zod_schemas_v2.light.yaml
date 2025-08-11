@@ -63,9 +63,9 @@ nodes:
     save_to_file: false
 connections:
 - {from: start, to: parse typescript batch, content_type: raw_text}
-- {from: parse typescript batch, to: load all ast files, content_type: raw_text}
-- {from: load all ast files, to: extract mappings, content_type: raw_text, label: default}
-- {from: load all ast files, to: generate zod schemas, content_type: raw_text, label: ast_files}
-- {from: extract mappings, to: generate zod schemas, content_type: raw_text, label: mappings}
-- {from: generate zod schemas, to: render zod schemas template, content_type: raw_text}
+- {from: parse typescript batch, to: load all ast files, content_type: object}
+- {from: load all ast files, to: extract mappings, content_type: object, label: default}
+- {from: load all ast files, to: generate zod schemas, content_type: object, label: ast_files}
+- {from: extract mappings, to: generate zod schemas, content_type: object, label: mappings}
+- {from: generate zod schemas, to: render zod schemas template, content_type: object}
 - {from: render zod schemas template, to: end, content_type: raw_text}

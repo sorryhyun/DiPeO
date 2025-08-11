@@ -15,7 +15,11 @@ def extract_base_interface(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Parse AST data
     ast_data = inputs.get('diagram_ast', {})
-    if isinstance(ast_data, str):
+    
+    # Handle case where input is a list (from db node with multiple sources)
+    if isinstance(ast_data, list) and ast_data:
+        ast_data = ast_data[0] if isinstance(ast_data[0], dict) else json.loads(ast_data[0])
+    elif isinstance(ast_data, str):
         ast_data = json.loads(ast_data)
     
     # Find BaseNodeData interface

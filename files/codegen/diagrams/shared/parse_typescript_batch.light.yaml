@@ -73,5 +73,5 @@ nodes:
       
 connections:
   - {from: Start, to: Gather TypeScript Files}
-  - {from: Gather TypeScript Files, to: Batch Parse Files}
+  - {from: Gather TypeScript Files, to: Batch Parse Files, content_type: object}
   - {from: Batch Parse Files, to: End}

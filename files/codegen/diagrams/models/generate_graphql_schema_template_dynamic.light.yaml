@@ -84,10 +84,10 @@ connections:
   - {from: Parse TypeScript Batch, to: Load All AST Files}
   
   # Prepare GraphQL data
-  - {from: Load All AST Files, to: Prepare GraphQL Data}
+  - {from: Load All AST Files, to: Prepare GraphQL Data, content_type: object}
   
   # Render schema
-  - {from: Prepare GraphQL Data, to: Render GraphQL Schema}
+  - {from: Prepare GraphQL Data, to: Render GraphQL Schema, content_type: object}
   
   # Generate summary
   - {from: Prepare GraphQL Data, to: Generate Summary, label: graphql_data}

@@ -80,12 +80,12 @@ connections:
   - {from: Parse TypeScript Batch, to: Load All Spec Files}
   
   # Pass loaded AST data to extraction
-  - {from: Load All Spec Files, to: Extract Node Specs}
+  - {from: Load All Spec Files, to: Extract Node Specs, content_type: object}
   
   # Generate types
-  - {from: Extract Node Specs, to: Generate Strawberry Types, label: node_specs}
+  - {from: Extract Node Specs, to: Generate Strawberry Types, label: node_specs, content_type: object}
   
   # Pass strawberry types to template renderer
-  - {from: Generate Strawberry Types, to: Render Types Template, label: strawberry_types}
+  - {from: Generate Strawberry Types, to: Render Types Template, label: strawberry_types, content_type: object}
   
   - {from: Render Types Template, to: End}

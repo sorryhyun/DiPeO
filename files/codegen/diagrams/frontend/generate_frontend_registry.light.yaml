@@ -51,7 +51,7 @@ nodes:
 
 connections:
   - {from: Start, to: Discover Node Specs}
-  - {from: Discover Node Specs, to: Extract Node List}
+  - {from: Discover Node Specs, to: Extract Node List, content_type: object}
   - {from: Extract Node List, to: Generate Registry, label: node_list}
-  - {from: Generate Registry, to: Write Registry, label: generated_code}
+  - {from: Generate Registry, to: Write Registry, label: generated_code, content_type: object}
   - {from: Write Registry, to: End}

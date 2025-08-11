@@ -107,11 +107,11 @@ class BatchSubDiagramExecutor:
             batch_items = inputs['default'].get(batch_input_key, [])
         else:
             batch_items = []
-        print(inputs['default'][batch_input_key])
+
         if not isinstance(batch_items, list):
             log.warning(f"Batch input '{batch_input_key}' is not a list. Treating as single item.")
             batch_items = [batch_items]
-        
+
         return batch_items
     
     async def _prepare_base_context(self, request: ExecutionRequest[SubDiagramNode]) -> dict[str, Any]:

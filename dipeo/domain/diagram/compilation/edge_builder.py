@@ -200,6 +200,11 @@ class EdgeBuilder:
         """Extract transformation rules from arrow and node types."""
         rules = {}
         
+        # Add content_type to transformation rules for the transformation engine
+        content_type = self._determine_content_type(source_node, arrow)
+        if content_type:
+            rules["content_type"] = content_type.value if hasattr(content_type, 'value') else content_type
+        
         # Extract from arrow data
         if arrow.data:
             # Variable extraction rules

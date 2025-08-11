@@ -69,9 +69,9 @@ connections:
   - {from: Parse TypeScript Batch, to: Load Enums AST}
 
   # Extract enums from cached AST
-  - {from: Load Enums AST, to: Extract Enums}
+  - {from: Load Enums AST, to: Extract Enums, content_type: object}
 
   # Pass extracted enums to template renderer
-  - {from: Extract Enums, to: Render Enums Template, label: enums_data}  # This becomes available as 'enums_data' in template
+  - {from: Extract Enums, to: Render Enums Template, label: enums_data, content_type: object}  # This becomes available as 'enums_data' in template
 
   - {from: Render Enums Template, to: End}

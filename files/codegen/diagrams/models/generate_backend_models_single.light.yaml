@@ -190,7 +190,7 @@ connections:
   - {from: Parse Input, to: Extract Node Type, label: node_spec_path}
     
   # Load the cached AST
-  - {from: Extract Node Type, to: Load Cached AST, label: node_type}
+  - {from: Extract Node Type, to: Load Cached AST, label: node_type, content_type: object}
     
   # Extract specification from AST
   - {from: Load Cached AST, to: Extract Specification, label: ast_data}
@@ -205,7 +205,7 @@ connections:
   - {from: Unwrap Spec Data, to: Extract Node Naming, label: spec_data}
     
   # Pass mappings from Load Codegen Mappings to Extract Mappings
-  - {from: Load Codegen Mappings, to: Extract Mappings}
+  - {from: Load Codegen Mappings, to: Extract Mappings, content_type: object}
     
   # Prepare template context with all data
   - {from: Unwrap Spec Data, to: Prepare Template Context, label: spec_data}
@@ -213,5 +213,5 @@ connections:
   - {from: Extract Node Naming, to: Prepare Template Context, label: node_naming}
   
   # Pass context to template_job nodes (no label = auto unwrap)
-  - {from: Prepare Template Context, to: Generate Pydantic Model}
-  - {from: Prepare Template Context, to: Generate Static Node}
+  - {from: Prepare Template Context, to: Generate Pydantic Model, content_type: object}
+  - {from: Prepare Template Context, to: Generate Static Node, content_type: object}

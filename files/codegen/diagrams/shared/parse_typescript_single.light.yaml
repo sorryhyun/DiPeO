@@ -50,7 +50,7 @@ nodes:
             'file_path': file_path,
             'cache_path': cache_path
         }
-    
+
   # Load the TypeScript source file
   - label: Load TS Source
     type: db
@@ -58,6 +58,7 @@ nodes:
     props:
       operation: read
       sub_type: file
+      format: text
       source_details: "{info.file_path}"
   
   # Parse TypeScript AST
@@ -90,8 +91,8 @@ nodes:
       
 connections:
   - {from: Start, to: Extract File Info}
-  - {from: Extract File Info, to: Load TS Source, label: info}
-  - {from: Load TS Source, to: Parse TypeScript AST, label: source}
+  - {from: Extract File Info, to: Load TS Source, label: info, content_type: object}
+  - {from: Load TS Source, to: Parse TypeScript AST, label: source, content_type: object}
   - {from: Parse TypeScript AST, to: Save Cache, label: ast}
-  - {from: Extract File Info, to: Save Cache, label: info}
+  - {from: Extract File Info, to: Save Cache, label: info, content_type: object}
   - {from: Save Cache, to: End}

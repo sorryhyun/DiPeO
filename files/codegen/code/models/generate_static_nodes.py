@@ -195,21 +195,30 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     
     # In DiPeO, labeled connections come directly at the top level
     mappings = inputs.get('mappings', {})
-    node_data = inputs.get('node_data', {})
+    node_data_input = inputs.get('node_data', {})
     base_data = inputs.get('base_data', {})
 
     # Extract base interface
     base_interface = base_data.get('base_interface')
     
+    # The node_data_input contains the output from extract_node_data_from_ast
+    # which returns {'node_data': {...}} so we need to unwrap it
+    if 'node_data' in node_data_input:
+        actual_node_data = node_data_input['node_data']
+    else:
+        actual_node_data = node_data_input
+    
     # Convert node_data to parsed_nodes format
     parsed_nodes = []
-    for node_type, data in node_data.items():
+    for node_type, data in actual_node_data.items():
         if node_type != 'default':
-            parsed_nodes.append({
-                'node_type': node_type,
-                'interface_name': data['interface'].get('name'),
-                'interface': data['interface']
-            })
+            # Ensure we have the interface
+            if isinstance(data, dict) and 'interface' in data and data['interface']:
+                parsed_nodes.append({
+                    'node_type': node_type,
+                    'interface_name': data['interface'].get('name'),
+                    'interface': data['interface']
+                })
 
     # Combine all interfaces
     all_interfaces: List[Dict[str, Any]] = []

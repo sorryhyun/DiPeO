@@ -108,20 +108,20 @@ connections:
   - {from: Parse TypeScript Batch, to: Load All AST Files}
   
   # Extract mappings from the loaded files
-  - {from: Load All AST Files, to: Extract Mappings, label: default}
+  - {from: Load All AST Files, to: Extract Mappings, label: default, content_type: object}
   
   # Pass all AST files to Extract Field Configs
-  - {from: Load All AST Files, to: Extract Field Configs, label: ast_files}
-  - {from: Extract Mappings, to: Extract Field Configs, label: mappings}
+  - {from: Load All AST Files, to: Extract Field Configs, label: ast_files, content_type: object}
+  - {from: Extract Mappings, to: Extract Field Configs, label: mappings, content_type: object}
   
   # Prepare template data
-  - {from: Extract Field Configs, to: Prepare Template Data, label: node_configs}
+  - {from: Extract Field Configs, to: Prepare Template Data, label: node_configs, content_type: object}
   
   # Pass prepared data directly to template - it now handles unwrapping automatically
-  - {from: Prepare Template Data, to: Render Field Configs Template}
+  - {from: Prepare Template Data, to: Render Field Configs Template, content_type: object}
   
   # Also write JSON output
-  - {from: Extract Field Configs, to: Write Field Configs JSON, label: node_configs}
+  - {from: Extract Field Configs, to: Write Field Configs JSON, label: node_configs, content_type: object}
   
   # Generate summary
   - {from: Extract Field Configs, to: Generate Summary, label: node_configs}

@@ -90,7 +90,6 @@ def extract_enums(ast_data: dict) -> List[dict]:
 def main(inputs: dict) -> dict:
     """Main entry point for enum extraction."""
     ast_data = inputs.get('default', {})
-    
     # Handle multiple files loaded with glob
     all_enums = []
     
@@ -108,7 +107,6 @@ def main(inputs: dict) -> dict:
         # Single file or direct data
         all_enums = extract_enums(ast_data)
 
-    # Return with 'default' key to prevent unwrapping by runtime resolver
-    # The runtime resolver unwraps single-key dicts when requesting 'default' output
-    result = {'default': {'enums': all_enums}}
-    return result
+    # Return directly as dict with 'enums' key
+    # The template_job will receive this via the labeled connection
+    return {'enums': all_enums}

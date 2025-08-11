@@ -71,7 +71,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         inputs = request.inputs
         services = request.services
 
-        
         # Get filesystem adapter from services or use injected one
         filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
         if not filesystem_adapter:

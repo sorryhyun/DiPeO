@@ -50,11 +50,9 @@ def prepare_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
     #     print(f"  - {nt}")
     
     # Create array of inputs for batch processing
-    # Add 'default' wrapper to prevent unwrapping by runtime resolver
+    # Return directly with 'items' key for batch processing
     result = {
-        'default': {
-            'items': [{'node_spec_path': node_type} for node_type in sorted(node_types)]
-        }
+        'items': [{'node_spec_path': node_type} for node_type in sorted(node_types)]
     }
     
     return result

@@ -87,10 +87,10 @@ connections:
   - {from: Parse TypeScript Batch, to: Load All AST Files}
   
   # Pass all AST data to extract
-  - {from: Load All AST Files, to: Extract Raw Model Data, label: ast_files}
+  - {from: Load All AST Files, to: Extract Raw Model Data, label: ast_files, content_type: object}
   
   # Pass raw extracted data to template renderer
-  - {from: Extract Raw Model Data, to: Render Python Models Enhanced, label: model_data}  # Raw TypeScript data for template to process
+  - {from: Extract Raw Model Data, to: Render Python Models Enhanced, label: model_data, content_type: object}  # Raw TypeScript data for template to process
   
   # Generate summary with counts from extraction
   - {from: Extract Raw Model Data, to: Generate Summary, label: generation_result}
