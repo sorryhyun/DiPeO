@@ -10,7 +10,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-11T13:06:43.051823
+Generated at: 2025-08-11T14:41:35.597051
 """
 
 import strawberry
@@ -47,7 +47,7 @@ class ConditionDataType:
 
 
 @strawberry.experimental.pydantic.type(DBNodeData, all_fields=True)
-class DbDataType:
+class DBDataType:
     """Database operations - Data fields only"""
     pass
 
@@ -131,7 +131,7 @@ NodeDataUnion = strawberry.union(
 
         ConditionDataType,
 
-        DbDataType,
+        DBDataType,
 
         EndpointDataType,
 
@@ -170,7 +170,7 @@ __all__ = [
 
     'ConditionDataType',
 
-    'DbDataType',
+    'DBDataType',
 
     'EndpointDataType',
 

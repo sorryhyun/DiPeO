@@ -32,7 +32,6 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                 if diagram_data is None and (input.diagram_path or input.diagram_name):
                     # Use diagram_path if provided, otherwise fall back to diagram_name
                     diagram_path = input.diagram_path or input.diagram_name
-                    logger.info(f"No diagram_data provided for execution {input.execution_id}, attempting to load from file: {diagram_path}")
                     try:
                         # Load diagram from file using the diagram service
                         from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
@@ -56,7 +55,6 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                                 domain_diagram = converter.deserialize_from_storage(json_content, "native")
                             
                             if domain_diagram:
-                                logger.info(f"Found diagram from file, converting for frontend")
                                 # Convert DomainDiagram to dict for frontend
                                 diagram_data = {
                                     "nodes": [node.model_dump(by_alias=True) for node in domain_diagram.nodes],
@@ -72,7 +70,6 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                                 }
                                 if domain_diagram.metadata:
                                     diagram_data["metadata"] = domain_diagram.metadata.model_dump(by_alias=True)
-                                logger.info(f"Successfully converted diagram with {len(diagram_data['nodes'])} nodes")
                             else:
                                 logger.warning(f"Could not load diagram from file: {diagram_path}")
                         else:

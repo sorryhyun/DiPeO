@@ -105,7 +105,11 @@ def generate_strawberry_types(inputs: dict) -> dict:
     for spec in node_specs:
         node_type = spec['name']
         # Convert node type to class name (e.g., 'person_job' -> 'PersonJob')
-        class_name = ''.join(word.capitalize() for word in node_type.split('_'))
+        # Special handling for acronyms like 'db' that should be 'DB'
+        if node_type == 'db':
+            class_name = 'DB'
+        else:
+            class_name = ''.join(word.capitalize() for word in node_type.split('_'))
         
         # Convert to Pydantic model name (template will append "NodeData")
         pydantic_model = f"{class_name}"

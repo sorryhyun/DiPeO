@@ -47,28 +47,74 @@ nodes:
         from datetime import datetime
         
         # Debug: Print the raw response
+        print(f"Raw LLM response type: {type(generated_diagram)}")
         print(f"Raw LLM response: {generated_diagram}")
         
-        # Try to parse as JSON, handle plain text response
-        try:
-            diagram_data = json.loads(generated_diagram)
-        except json.JSONDecodeError:
-            # If not JSON, create a simple diagram structure
-            print("LLM response is not JSON, creating default structure")
-            diagram_data = {
-                "version": "light",
-                "name": "data_pipeline",
-                "description": "Generated data processing pipeline",
-                "nodes": [],
-                "connections": []
+        # Handle different response types
+        if isinstance(generated_diagram, list):
+            # If it's a list, try to get the first element or create default
+            if generated_diagram:
+                response_data = generated_diagram[0]
+            else:
+                print("Empty list response, creating default structure")
+                response_data = {
+                    "diagram": {
+                        "version": "light",
+                        "name": "data_pipeline",
+                        "description": "Generated data processing pipeline",
+                        "nodes": [],
+                        "connections": []
+                    }
+                }
+        elif isinstance(generated_diagram, dict):
+            # Already a dict, use as is
+            response_data = generated_diagram
+        elif isinstance(generated_diagram, str):
+            # Try to parse as JSON
+            try:
+                response_data = json.loads(generated_diagram)
+            except json.JSONDecodeError:
+                print(f"Failed to parse JSON string: {generated_diagram}")
+                response_data = {
+                    "diagram": {
+                        "version": "light",
+                        "name": "data_pipeline",
+                        "description": "Generated data processing pipeline",
+                        "nodes": [],
+                        "connections": []
+                    }
+                }
+        else:
+            # Unknown type, create default
+            print(f"Unknown response type: {type(generated_diagram)}")
+            response_data = {
+                "diagram": {
+                    "version": "light",
+                    "name": "data_pipeline",
+                    "description": "Generated data processing pipeline",
+                    "nodes": [],
+                    "connections": []
+                }
             }
-        diagram = diagram_data.get('diagram', diagram_data)
+        
+        # Extract diagram from response
+        diagram = response_data.get('diagram', response_data)
+        
+        # Ensure diagram has required fields with defaults
+        if not isinstance(diagram, dict):
+            diagram = {
+                'version': 'light',
+                'name': 'data_pipeline', 
+                'description': 'Generated data processing pipeline',
+                'nodes': [],
+                'connections': []
+            }
         
         # Convert to YAML format with proper structure
         yaml_structure = {
-            'version': diagram['version'],
-            'name': diagram['name'],
-            'description': diagram['description']
+            'version': diagram.get('version', 'light'),
+            'name': diagram.get('name', 'data_pipeline'),
+            'description': diagram.get('description', 'Generated pipeline')
         }
         
         # Add persons if present
@@ -77,16 +123,18 @@ nodes:
         
         # Format nodes
         yaml_structure['nodes'] = []
-        for node in diagram['nodes']:
-            node_dict = {
-                'label': node['label'],
-                'type': node['type'],
-                'position': node['position']
-            }
-            # Props should already be a dict when using proper models
-            if node.get('props'):
-                node_dict['props'] = node['props']
-            yaml_structure['nodes'].append(node_dict)
+        nodes = diagram.get('nodes', [])
+        for node in nodes:
+            if isinstance(node, dict):
+                node_dict = {
+                    'label': node.get('label', 'node'),
+                    'type': node.get('type', 'code_job'),
+                    'position': node.get('position', {'x': 100, 'y': 200})
+                }
+                # Props should already be a dict when using proper models
+                if node.get('props'):
+                    node_dict['props'] = node['props']
+                yaml_structure['nodes'].append(node_dict)
         
         # Format connections - use compact format for simple connections
         if diagram.get('connections'):
@@ -106,15 +154,16 @@ nodes:
         
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"projects/dipeodipeo/generated/{diagram['name']}_{timestamp}.light.yaml"
+        diagram_name = diagram.get('name', 'data_pipeline')
+        filename = f"projects/dipeodipeo/generated/{diagram_name}_{timestamp}.light.yaml"
         
         result = {
             "yaml_content": yaml_content,
             "filename": filename,
             "diagram_info": {
-                "name": diagram['name'],
-                "description": diagram['description'],
-                "node_count": len(diagram['nodes']),
+                "name": diagram_name,
+                "description": diagram.get('description', 'Generated pipeline'),
+                "node_count": len(nodes),
                 "connection_count": len(diagram.get('connections', []))
             }
         }
@@ -152,6 +201,6 @@ nodes:
 connections:
   - {from: start, to: load_request}
   - {from: load_request, to: generate_diagram, label: workflow_description}
-  - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: object}
+  - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: raw_text}
   - {from: format_yaml, to: save_diagram, label: yaml_content, content_type: object}
   - {from: format_yaml, to: display_info, label: diagram_output}

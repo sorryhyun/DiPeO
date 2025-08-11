@@ -10,7 +10,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-11T13:06:43.161528
+Generated at: 2025-08-11T14:41:35.717557
 """
 
 import strawberry
@@ -86,7 +86,7 @@ class UpdateConditionInput:
 
 
 @strawberry.input
-class CreateDbInput:
+class CreateDBInput:
     """Input for creating a Database node"""
     diagram_id: str
     position: Vec2Input
@@ -95,7 +95,7 @@ class CreateDbInput:
     data: strawberry.scalars.JSON
 
 @strawberry.input  
-class UpdateDbInput:
+class UpdateDBInput:
     """Input for updating a Database node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
@@ -516,8 +516,8 @@ class NodeMutations:
     async def create_db_node(
         self,
         info: Info,
-        input: CreateDbInput
-    ) -> DbDataType:
+        input: CreateDBInput
+    ) -> DBDataType:
         """Create a Db node"""
         registry: ServiceRegistry = info.context["registry"]
         
@@ -553,8 +553,8 @@ class NodeMutations:
     async def update_db_node(
         self,
         info: Info,
-        id: str, input: UpdateDbInput
-    ) -> DbDataType:
+        id: str, input: UpdateDBInput
+    ) -> DBDataType:
         """Update a Db node"""
         registry: ServiceRegistry = info.context["registry"]
         
@@ -1343,8 +1343,8 @@ __all__ = [
     'CreateConditionInput',
     'UpdateConditionInput',
 
-    'CreateDbInput',
-    'UpdateDbInput',
+    'CreateDBInput',
+    'UpdateDBInput',
 
     'CreateEndpointInput',
     'UpdateEndpointInput',

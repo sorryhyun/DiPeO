@@ -8,38 +8,80 @@
         "y": 200
       },
       "data": {
-        "custom_data": {
-          "timestamp": "2025-08-09T16:55:00Z"
-        },
+        "custom_data": {},
         "output_data_structure": {},
         "label": "start"
       }
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "db",
       "position": {
         "x": 300,
         "y": 200
       },
       "data": {
-        "default_prompt": "This is the default prompt for iterations 2+",
-        "first_only_prompt": "This inline prompt should be overridden by the file",
-        "first_prompt_file": "test_first_prompt.txt",
-        "max_iteration": 2,
-        "label": "test personjob"
+        "operation": "read",
+        "sub_type": "file",
+        "format": "text",
+        "file": "projects/dipeodipeo/request.txt",
+        "label": "load_request"
       }
     },
     {
       "id": "node_2",
-      "type": "endpoint",
+      "type": "person_job",
       "position": {
-        "x": 500,
+        "x": 600,
         "y": 200
       },
       "data": {
-        "save_to_file": false,
-        "label": "end"
+        "person": "diagram_designer",
+        "prompt_file": "diagram_generator.txt",
+        "max_iteration": 1,
+        "text_format_file": "projects/dipeodipeo/light_diagram_models.py",
+        "label": "generate_diagram",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "code_job",
+      "position": {
+        "x": 700,
+        "y": 200
+      },
+      "data": {
+        "language": "python",
+        "code": "import json\nimport yaml\nfrom datetime import datetime\n\n# Debug: Print the raw response\nprint(f\"Raw LLM response type: {type(generated_diagram)}\")\nprint(f\"Raw LLM response: {generated_diagram}\")\n\n# Handle different response types\nif isinstance(generated_diagram, list):\n    # If it's a list, try to get the first element or create default\n    if generated_diagram:\n        response_data = generated_diagram[0]\n    else:\n        print(\"Empty list response, creating default structure\")\n        response_data = {\n            \"diagram\": {\n                \"version\": \"light\",\n                \"name\": \"data_pipeline\",\n                \"description\": \"Generated data processing pipeline\",\n                \"nodes\": [],\n                \"connections\": []\n            }\n        }\nelif isinstance(generated_diagram, dict):\n    # Already a dict, use as is\n    response_data = generated_diagram\nelif isinstance(generated_diagram, str):\n    # Try to parse as JSON\n    try:\n        response_data = json.loads(generated_diagram)\n    except json.JSONDecodeError:\n        print(f\"Failed to parse JSON string: {generated_diagram}\")\n        response_data = {\n            \"diagram\": {\n                \"version\": \"light\",\n                \"name\": \"data_pipeline\",\n                \"description\": \"Generated data processing pipeline\",\n                \"nodes\": [],\n                \"connections\": []\n            }\n        }\nelse:\n    # Unknown type, create default\n    print(f\"Unknown response type: {type(generated_diagram)}\")\n    response_data = {\n        \"diagram\": {\n            \"version\": \"light\",\n            \"name\": \"data_pipeline\",\n            \"description\": \"Generated data processing pipeline\",\n            \"nodes\": [],\n            \"connections\": []\n        }\n    }\n\n# Extract diagram from response\ndiagram = response_data.get('diagram', response_data)\n\n# Ensure diagram has required fields with defaults\nif not isinstance(diagram, dict):\n    diagram = {\n        'version': 'light',\n        'name': 'data_pipeline', \n        'description': 'Generated data processing pipeline',\n        'nodes': [],\n        'connections': []\n    }\n\n# Convert to YAML format with proper structure\nyaml_structure = {\n    'version': diagram.get('version', 'light'),\n    'name': diagram.get('name', 'data_pipeline'),\n    'description': diagram.get('description', 'Generated pipeline')\n}\n\n# Add persons if present\nif diagram.get('persons'):\n    yaml_structure['persons'] = diagram['persons']\n\n# Format nodes\nyaml_structure['nodes'] = []\nnodes = diagram.get('nodes', [])\nfor node in nodes:\n    if isinstance(node, dict):\n        node_dict = {\n            'label': node.get('label', 'node'),\n            'type': node.get('type', 'code_job'),\n            'position': node.get('position', {'x': 100, 'y': 200})\n        }\n        # Props should already be a dict when using proper models\n        if node.get('props'):\n            node_dict['props'] = node['props']\n        yaml_structure['nodes'].append(node_dict)\n\n# Format connections - use compact format for simple connections\nif diagram.get('connections'):\n    yaml_structure['connections'] = []\n    for conn in diagram['connections']:\n        # Handle both 'from' and 'from_node' keys\n        from_key = conn.get('from') or conn.get('from_node')\n        conn_dict = {'from': from_key, 'to': conn['to']}\n        if conn.get('label'):\n            conn_dict['label'] = conn['label']\n        if conn.get('content_type'):\n            conn_dict['content_type'] = conn['content_type']\n        yaml_structure['connections'].append(conn_dict)\n\n# Convert to YAML string\nyaml_content = yaml.dump(yaml_structure, default_flow_style=False, sort_keys=False, width=120)\n\n# Generate filename\ntimestamp = datetime.now().strftime(\"%Y%m%d_%H%M%S\")\ndiagram_name = diagram.get('name', 'data_pipeline')\nfilename = f\"projects/dipeodipeo/generated/{diagram_name}_{timestamp}.light.yaml\"\n\nresult = {\n    \"yaml_content\": yaml_content,\n    \"filename\": filename,\n    \"diagram_info\": {\n        \"name\": diagram_name,\n        \"description\": diagram.get('description', 'Generated pipeline'),\n        \"node_count\": len(nodes),\n        \"connection_count\": len(diagram.get('connections', []))\n    }\n}\n",
+        "label": "format_yaml"
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "endpoint",
+      "position": {
+        "x": 1000,
+        "y": 200
+      },
+      "data": {
+        "file_format": "yaml",
+        "save_to_file": true,
+        "file_name": "{{filename}}",
+        "label": "save_diagram"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "code_job",
+      "position": {
+        "x": 700,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "print(\"=\" * 60)\nprint(\"DIAGRAM GENERATED SUCCESSFULLY!\")\nprint(\"=\" * 60)\ninfo = diagram_output['diagram_info']\nprint(f\"Name: {info['name']}\")\nprint(f\"Description: {info['description']}\")\nprint(f\"Nodes: {info['node_count']}\")\nprint(f\"Connections: {info['connection_count']}\")\nprint(f\"Saved to: {diagram_output['filename']}\")\nprint(\"=\" * 60)\nprint(\"\\nTo run the generated diagram:\")\nprint(f\"dipeo run {diagram_output['filename']} --light --debug\")\nprint(\"=\" * 60)\n\nresult = info\n",
+        "label": "display_info"
       }
     }
   ],
@@ -56,12 +98,49 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": null,
+      "label": "workflow_description",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "label": "generated_diagram",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_3_default_output",
+      "target": "node_4_default_input",
+      "label": "yaml_content",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_3_default_output",
+      "target": "node_5_default_input",
+      "label": "diagram_output",
       "data": null,
       "content_type": "raw_text"
     }
   ],
-  "persons": [],
+  "persons": [
+    {
+      "id": "diagram_designer",
+      "label": "diagram_designer",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are an expert DiPeO diagram designer. You create well-structured light format diagrams\nthat follow best practices for modularity, error handling, and performance.\nAlways ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -70,14 +149,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -96,12 +167,68 @@
       "position": "right"
     },
     {
+      "id": "node_2_first_input",
+      "node_id": "node_2",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
+    },
+    {
+      "id": "node_2_default_output",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_3_default_input",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_4_default_input",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
     }
   ],
   "metadata": {
@@ -109,8 +236,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-09T07:54:59.969Z",
-    "modified": "2025-08-09T07:54:59.969Z",
+    "created": "2025-08-11T05:42:50.014Z",
+    "modified": "2025-08-11T05:42:50.014Z",
     "version": "1.0.0",
     "id": null
   }
