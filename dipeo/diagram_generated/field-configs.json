@@ -439,7 +439,7 @@
         },
         {
           "name": "format",
-          "type": "text",
+          "type": "select",
           "label": "Format",
           "required": false
         },
@@ -563,7 +563,7 @@
         },
         {
           "name": "parseMode",
-          "type": "text",
+          "type": "select",
           "label": "Parsemode",
           "required": false
         }

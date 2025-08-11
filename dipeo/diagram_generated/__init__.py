@@ -113,6 +113,7 @@ __all__ = [
     "DomainPerson",
     "DomainApiKey",
     "DomainDiagram",
+    "SerializedNodeOutput",
     "DiagramMetadata",
 
     # Execution models

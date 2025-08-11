@@ -1,15 +1,36 @@
 """
 Field configurations generator for DiPeO nodes.
 Consolidates all field config generation logic into a single module.
+Uses infrastructure's type transformer for centralized type mappings.
 """
 
 import os
+import sys
 import json
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 from jinja2 import Template, StrictUndefined
+
+
+# ============================================================================
+# Infrastructure Imports (Dynamic)
+# ============================================================================
+
+def get_type_transformer():
+    """Dynamically import type transformer from infrastructure."""
+    try:
+        # Ensure DIPEO_BASE_DIR is in path
+        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        if base_dir not in sys.path:
+            sys.path.append(base_dir)
+        
+        from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
+        return map_ts_type_to_python
+    except ImportError:
+        # print("WARNING: Could not import infrastructure type transformer, using fallback")
+        return None
 
 
 # ============================================================================
@@ -24,11 +45,7 @@ def extract_mappings_from_ast(mappings_ast: dict) -> dict:
     return {
         'node_interface_map': {},
         'base_fields': ['label', 'flipped'],
-        'type_to_field': {
-            'string': 'text',
-            'number': 'number',
-            'boolean': 'checkbox'
-        }
+        'type_to_field': {}  # Will be determined dynamically
     }
 
 
@@ -41,8 +58,11 @@ def generate_label(name: str) -> str:
     return ' '.join(word.capitalize() for word in name.split('_'))
 
 
-def get_field_type(name: str, type_text: str, type_to_field: dict) -> str:
-    """Determine the appropriate field type - must match FIELD_TYPES from panel.ts"""
+def get_field_type(name: str, type_text: str, type_to_field: dict = None) -> str:
+    """Determine the appropriate field type - must match FIELD_TYPES from panel.ts
+    
+    Uses infrastructure's type transformer for consistent type mapping.
+    """
     # Special handling for specific field names
     # Check for file fields first (before checking for 'prompt' keyword)
     if name == 'filePath' or name == 'file_path' or name == 'path':
@@ -74,8 +94,27 @@ def get_field_type(name: str, type_text: str, type_to_field: dict) -> str:
     if 'PersonID' in clean_type:
         return 'personSelect'
     
-    # Check mapping
-    if clean_type in type_to_field:
+    # Get type transformer and convert to Python type for better mapping
+    type_transformer = get_type_transformer()
+    if type_transformer:
+        py_type = type_transformer(clean_type)
+        
+        # Map Python types to field types
+        if py_type == 'str':
+            return 'text'
+        elif py_type in ['int', 'float']:
+            return 'number'
+        elif py_type == 'bool':
+            return 'checkbox'
+        elif py_type.startswith('List['):
+            return 'textarea'
+        elif py_type.startswith('Dict['):
+            return 'code'
+        elif 'Union[' in py_type or 'Literal[' in py_type:
+            return 'select'  # For enum-like unions
+    
+    # Fallback to legacy type_to_field mapping if provided
+    if type_to_field and clean_type in type_to_field:
         return type_to_field[clean_type]
     
     # Handle Record types - use code editor for better editing

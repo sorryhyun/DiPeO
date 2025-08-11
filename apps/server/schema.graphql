@@ -455,7 +455,7 @@ type TestApiKeyResult {
 type TokenUsageType {
   input: Int!
   output: Int!
-  cached: Int
+  cached: Float
   total: Int
 }
 

@@ -10,7 +10,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-10T12:16:38.488849
+Generated at: 2025-08-11T12:43:36.147119
 """
 
 import strawberry
@@ -19,7 +19,7 @@ from strawberry.types import *
 
 # Import Pydantic models
 
-from ..models import *
+from ..domain_models import *
 
 
 # Import scalars
@@ -46,7 +46,7 @@ class ConditionDataType:
     pass
 
 
-@strawberry.experimental.pydantic.type(DbNodeData, all_fields=True)
+@strawberry.experimental.pydantic.type(DBNodeData, all_fields=True)
 class DbDataType:
     """Database operations - Data fields only"""
     pass

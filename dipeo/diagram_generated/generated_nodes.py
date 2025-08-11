@@ -51,7 +51,7 @@ class BaseExecutableNode:
 # Debug: Show all available variables
 # Available variables: now not defined
 # static_nodes_data exists: yes
-# static_nodes_data keys: ['node_classes', 'now']
+# static_nodes_data keys: ['node_classes', 'enum_fields', 'now']
 # Number of classes: 14
 
 @dataclass(frozen=True)
@@ -82,7 +82,7 @@ class ApiJobNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["url"] = self.url
-        data["method"] = self.method.value if self.method is not None else None
+        data["method"] = self.method
         data["headers"] = self.headers
         data["params"] = self.params
         data["body"] = self.body
@@ -117,7 +117,7 @@ class CodeJobNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["language"] = self.language.value if self.language is not None else None
+        data["language"] = self.language
         data["filePath"] = self.filePath
         data["code"] = self.code
         data["functionName"] = self.functionName
@@ -184,7 +184,7 @@ class DBNode(BaseExecutableNode):
             data["metadata"] = self.metadata
         data["file"] = self.file
         data["collection"] = self.collection
-        data["sub_type"] = self.sub_type.value if self.sub_type is not None else None
+        data["sub_type"] = self.sub_type
         data["operation"] = self.operation
         data["query"] = self.query
         data["data"] = self.data
@@ -256,13 +256,13 @@ class HookNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["hook_type"] = self.hook_type.value if self.hook_type is not None else None
+        data["hook_type"] = self.hook_type
         data["command"] = self.command
         data["args"] = self.args
         data["env"] = self.env
         data["cwd"] = self.cwd
         data["url"] = self.url
-        data["method"] = self.method.value if self.method is not None else None
+        data["method"] = self.method
         data["headers"] = self.headers
         data["script"] = self.script
         data["function_name"] = self.function_name
@@ -382,9 +382,9 @@ class PersonJobNode(BaseExecutableNode):
         data["default_prompt"] = self.default_prompt
         data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration
-        data["memory_profile"] = self.memory_profile.value if self.memory_profile is not None else None
+        data["memory_profile"] = self.memory_profile
         data["memory_settings"] = self.memory_settings
-        data["tools"] = self.tools.value if self.tools is not None else None
+        data["tools"] = self.tools
         data["text_format"] = self.text_format
         data["text_format_file"] = self.text_format_file
         data["batch"] = self.batch
@@ -419,7 +419,7 @@ class StartNode(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
-        data["trigger_mode"] = self.trigger_mode.value if self.trigger_mode is not None else None
+        data["trigger_mode"] = self.trigger_mode
         data["custom_data"] = self.custom_data
         data["output_data_structure"] = self.output_data_structure
         data["hook_event"] = self.hook_event
@@ -454,7 +454,7 @@ class SubDiagramNode(BaseExecutableNode):
         if self.metadata:
             data["metadata"] = self.metadata
         data["diagram_name"] = self.diagram_name
-        data["diagram_format"] = self.diagram_format.value if self.diagram_format is not None else None
+        data["diagram_format"] = self.diagram_format
         data["diagram_data"] = self.diagram_data
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key
@@ -597,7 +597,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             url=data.get("url"),
-            method=_to_enum(data.get("method"), HttpMethod),
+            method=data.get("method"),
             headers=data.get("headers", None),
             params=data.get("params", None),
             body=data.get("body", None),
@@ -614,7 +614,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            language=_to_enum(data.get("language"), SupportedLanguage),
+            language=data.get("language"),
             filePath=data.get("filePath", None),
             code=data.get("code", None),
             functionName=data.get("functionName", None),
@@ -644,7 +644,7 @@ def create_executable_node(
             metadata=metadata,
             file=data.get("file", None),
             collection=data.get("collection", None),
-            sub_type=_to_enum(data.get("sub_type"), DBBlockSubType),
+            sub_type=data.get("sub_type"),
             operation=data.get("operation"),
             query=data.get("query", None),
             data=data.get("data", None),
@@ -673,13 +673,13 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            hook_type=_to_enum(data.get("hook_type"), HookType),
+            hook_type=data.get("hook_type"),
             command=data.get("command", None),
             args=data.get("args", None),
             env=data.get("env", None),
             cwd=data.get("cwd", None),
             url=data.get("url", None),
-            method=_to_enum(data.get("method", None), HttpMethod),
+            method=data.get("method", None),
             headers=data.get("headers", None),
             script=data.get("script", None),
             function_name=data.get("function_name", None),
@@ -735,9 +735,9 @@ def create_executable_node(
             default_prompt=data.get("default_prompt", None),
             prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),
-            memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
+            memory_profile=data.get("memory_profile", None),
             memory_settings=data.get("memory_settings", None),
-            tools=_to_enum(data.get("tools", None), ToolSelection),
+            tools=data.get("tools", None),
             text_format=data.get("text_format", None),
             text_format_file=data.get("text_format_file", None),
             batch=data.get("batch", None),
@@ -754,7 +754,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            trigger_mode=_to_enum(data.get("trigger_mode"), HookTriggerMode),
+            trigger_mode=data.get("trigger_mode"),
             custom_data=data.get("custom_data", None),
             output_data_structure=data.get("output_data_structure", None),
             hook_event=data.get("hook_event", None),
@@ -770,7 +770,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             diagram_name=data.get("diagram_name", None),
-            diagram_format=_to_enum(data.get("diagram_format", None), DiagramFormat),
+            diagram_format=data.get("diagram_format", None),
             diagram_data=data.get("diagram_data", None),
             batch=data.get("batch", None),
             batch_input_key=data.get("batch_input_key", None),
@@ -833,9 +833,9 @@ def create_executable_node(
             default_prompt=data.get("default_prompt", None),
             prompt_file=data.get("prompt_file", None),
             max_iteration=data.get("max_iteration"),
-            memory_profile=_to_enum(data.get("memory_profile", None), MemoryProfile),
+            memory_profile=data.get("memory_profile", None),
             memory_settings=data.get("memory_settings", None),
-            tools=_to_enum(data.get("tools", None), ToolSelection),
+            tools=data.get("tools", None),
             text_format=data.get("text_format", None),
             text_format_file=data.get("text_format_file", None),
             batch=data.get("batch", None),

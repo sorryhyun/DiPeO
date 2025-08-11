@@ -6,15 +6,9 @@
       "additionalProperties": false,
       "type": "object"
     },
-    "HttpMethod": {
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH"
-      ],
-      "type": "string"
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
     },
     "JsonObject": {
       "additionalProperties": {
@@ -87,9 +81,15 @@
       ],
       "type": "object"
     },
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
+      "type": "string"
     },
     "JsonValue": {
       "anyOf": [

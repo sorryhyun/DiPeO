@@ -100,11 +100,11 @@ class ChatResult(BaseModel):
     
     text: str
     
-    token_usage: Optional[TokenUsage] = Field(default=None)
+    token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)
     
-    raw_response: Optional[Any] = Field(default=None)
+    raw_response: Optional[Union[Any, None]] = Field(default=None)
     
-    tool_outputs: Optional[List[ToolOutput]] = Field(default=None)
+    tool_outputs: Optional[Union[List[ToolOutput], None]] = Field(default=None)
     
 
     class Config:

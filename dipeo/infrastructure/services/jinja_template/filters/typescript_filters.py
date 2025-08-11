@@ -2,17 +2,35 @@
 
 This module provides filters specifically designed for converting TypeScript
 type annotations to Python type hints during code generation.
+Uses infrastructure's type transformer for centralized type mappings.
 """
 
+import os
+import sys
 import re
 from typing import Any, Dict, List, Optional, Set
+
+
+def get_infrastructure_type_transformer():
+    """Dynamically import type transformer from infrastructure."""
+    try:
+        # Ensure DIPEO_BASE_DIR is in path
+        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        if base_dir not in sys.path:
+            sys.path.append(base_dir)
+        
+        from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
+        return map_ts_type_to_python
+    except ImportError:
+        return None
 
 
 class TypeScriptToPythonFilters:
     """Collection of filters for TypeScript to Python type conversion."""
     
-    # Type mapping from TypeScript to Python
-    TYPE_MAP = {
+    # Fallback type mapping (only used if infrastructure import fails)
+    # This should eventually be removed once infrastructure is always available
+    FALLBACK_TYPE_MAP = {
         'string': 'str',
         'number': 'float',
         'boolean': 'bool',
@@ -53,6 +71,8 @@ class TypeScriptToPythonFilters:
     def ts_to_python_type(cls, ts_type: str, field_name: str = '', context: Optional[Dict] = None) -> str:
         """Convert TypeScript type to Python type.
         
+        Uses infrastructure's type transformer when available, falls back to legacy mapping.
+        
         Args:
             ts_type: TypeScript type string
             field_name: Optional field name for context-specific conversions
@@ -72,6 +92,31 @@ class TypeScriptToPythonFilters:
         # Clean the type
         ts_type = cls.strip_inline_comments(ts_type).strip()
         
+        # Try to use infrastructure's type transformer first
+        # But only for simple types, not complex nested structures
+        infrastructure_transformer = get_infrastructure_type_transformer()
+        if infrastructure_transformer and not ('Array<' in ts_type and '{' in ts_type):
+            try:
+                # Use infrastructure's centralized type mapping
+                result = infrastructure_transformer(ts_type)
+                
+                # Apply field-specific overrides (e.g., integer fields)
+                if result == 'float' and field_name in cls.INTEGER_FIELDS:
+                    result = 'int'
+                
+                # Handle deprecated types that infrastructure might not know about
+                if result in ['ExecutionStatus', 'NodeExecutionStatus']:
+                    result = 'Status'
+                
+                # Don't use result if it looks like unconverted TypeScript
+                if not any(ts_keyword in result for ts_keyword in ['string', 'number', 'boolean', 'undefined', ';']):
+                    cls._type_cache[cache_key] = result
+                    return result
+            except Exception:
+                # Fall through to legacy implementation if infrastructure fails
+                pass
+        
+        # Legacy implementation (fallback)
         # Handle complex object types with properties
         if ts_type.startswith('{') and ts_type.endswith('}'):
             result = 'Dict[str, Any]'
@@ -166,12 +211,12 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = ts_type
             return ts_type
             
-        # Handle basic types
-        if ts_type in cls.TYPE_MAP:
+        # Handle basic types using fallback map
+        if ts_type in cls.FALLBACK_TYPE_MAP:
             if ts_type == 'number' and field_name in cls.INTEGER_FIELDS:
                 result = 'int'
             else:
-                result = cls.TYPE_MAP[ts_type]
+                result = cls.FALLBACK_TYPE_MAP[ts_type]
             cls._type_cache[cache_key] = result
             return result
             

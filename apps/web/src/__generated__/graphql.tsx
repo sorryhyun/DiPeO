@@ -664,7 +664,7 @@ export type TestApiKeyResult = {
 
 export type TokenUsageType = {
   __typename?: 'TokenUsageType';
-  cached?: Maybe<Scalars['Int']['output']>;
+  cached?: Maybe<Scalars['Float']['output']>;
   input: Scalars['Int']['output'];
   output: Scalars['Int']['output'];
   total?: Maybe<Scalars['Int']['output']>;
