@@ -303,7 +303,7 @@ export const createComputedSlice: StateCreator<
     
     state.nodes.forEach(node => {
       if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id) {
-        usedPersonIds.add(node.data.person_id);
+        usedPersonIds.add(node.data.person_id as PersonID);
       }
     });
     

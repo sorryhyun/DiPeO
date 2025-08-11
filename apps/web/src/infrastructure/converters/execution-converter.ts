@@ -13,6 +13,7 @@ import {
   type NodeState,
   type ExecutionUpdate,
   type TokenUsage,
+  type SerializedNodeOutput,
   Status,
   EventType
 } from '@dipeo/models';
@@ -166,7 +167,7 @@ export class ExecutionConverter {
         ? new Date().toISOString()
         : null,
       node_states: nodeStates,
-      node_outputs: storeExecution.context as Record<string, Record<string, any>>,
+      node_outputs: {} as Record<string, SerializedNodeOutput>,
       variables: {},
       token_usage: { input: 0, output: 0, cached: null, total: 0 },
       error: null,

@@ -73,15 +73,6 @@ export interface UISlice {
   // NOTE: Modal operations removed - use local component state instead
 }
 
-// Helper to auto-switch dashboard tab based on selection
-const autoSwitchTab = (state: UnifiedStore, type: SelectableType | null) => {
-  if (type === 'person') {
-    state.dashboardTab = 'persons';
-  } else if (type === 'node' || type === 'arrow') {
-    state.dashboardTab = 'properties';
-  }
-};
-
 export const createUISlice: StateCreator<
   UnifiedStore,
   [['zustand/immer', never]],
@@ -112,7 +103,12 @@ export const createUISlice: StateCreator<
     state.selectedId = id;
     state.selectedType = type;
     state.multiSelectedIds.clear();
-    autoSwitchTab(state, type);
+    // Auto-switch tab based on selection
+    if (type === 'person') {
+      state.dashboardTab = 'persons';
+    } else if (type === 'node' || type === 'arrow') {
+      state.dashboardTab = 'properties';
+    }
   }),
   
   multiSelect: (ids, type) => set(state => {

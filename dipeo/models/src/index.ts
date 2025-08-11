@@ -5,6 +5,7 @@ export * from './core/conversation.js';
 export * from './core/integration.js';
 export * from './core/nodes/index.js';
 export * from './core/enums/index.js';
+export * from './core/types/json.js';
 
 // Specifications
 export * from './specifications/types.js';

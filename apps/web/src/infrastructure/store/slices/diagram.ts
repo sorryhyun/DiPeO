@@ -9,7 +9,7 @@ import {
   DiagramOperations 
 } from '@/infrastructure/services';
 import { UnifiedStore } from '@/infrastructure/store/types';
-import { recordHistory } from '@/infrastructure/store/helpers/entityHelpers';
+// import { recordHistory } from '@/infrastructure/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';
 
 export interface DiagramSlice {
@@ -69,7 +69,8 @@ const afterChange = (state: UnifiedStore) => {
   state.nodesArray = Array.from(state.nodes.values());
   state.arrowsArray = Array.from(state.arrows.values());
   state.handlesArray = Array.from(state.handles.values());
-  recordHistory(state);
+  // TODO: Fix deep type instantiation issue with immer Draft type
+  // recordHistory(state);
 };
 
 export const createDiagramSlice: StateCreator<

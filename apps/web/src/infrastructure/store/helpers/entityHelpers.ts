@@ -1,4 +1,4 @@
-import { Draft } from 'immer';
+import { Draft, current } from 'immer';
 import { UnifiedStore, Snapshot } from '../types';
 
 export const MAX_HISTORY_SIZE = 50;
@@ -15,10 +15,19 @@ export function createFullSnapshot(state: Partial<UnifiedStore>): Snapshot {
 
 export function recordHistory(state: Draft<UnifiedStore>) {
   if (!state.history.currentTransaction) {
-    state.history.undoStack.push(createFullSnapshot(state));
+    // Create snapshot with type assertions to avoid deep type instantiation
+    const snapshot: Snapshot = {
+      nodes: new Map(state.nodes as any),
+      arrows: new Map(state.arrows as any),
+      persons: new Map(state.persons as any),
+      handles: new Map(state.handles as any),
+      timestamp: Date.now(),
+    };
+    // Use type assertion on history operations to avoid deep type instantiation
+    (state.history.undoStack as any).push(snapshot);
     state.history.redoStack = [];
     if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
-      state.history.undoStack.shift();
+      (state.history.undoStack as any).shift();
     }
   }
 }

@@ -8,6 +8,7 @@ import {
   type HandleID,
   type HandleDirection,
   type HandleLabel,
+  type JsonDict,
   createHandleId,
   createEmptyDiagram,
   NodeType,
@@ -236,7 +237,7 @@ export class DiagramOperations {
         id: nodeId,
         type: nodeSpec.type as NodeType,
         position: nodeSpec.position,
-        data: { ...defaults, ...nodeSpec.data }
+        data: { ...defaults, ...nodeSpec.data } as JsonDict
       };
       
       // Validate node data
