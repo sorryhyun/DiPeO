@@ -23,6 +23,7 @@
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
 import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType, MemoryView } from '@/infrastructure/types';
+import { JsonDict } from '@dipeo/models';
 
 import { generateId } from '@/infrastructure/types/utilities';
 import { HandleDirection, HandleLabel } from '@dipeo/models';
@@ -166,7 +167,7 @@ export class DiagramAdapter {
     
     // Convert tools array to comma-separated string for person_job nodes
     if (node.type === NodeType.PERSON_JOB && Array.isArray(nodeData.tools)) {
-      nodeData.tools = Converters.toolsArrayToString(nodeData.tools);
+      nodeData.tools = Converters.toolsArrayToString(nodeData.tools as Array<{ type: string }>);
     }
 
     // Convert memory_settings to memory_profile for person_job nodes if memory_profile is missing
@@ -264,7 +265,7 @@ export class DiagramAdapter {
       data: {
         ...nodeData,
         label: (nodeData.label || rfNode.id) as string
-      } as Record<string, unknown>
+      } as JsonDict
     };
   }
 

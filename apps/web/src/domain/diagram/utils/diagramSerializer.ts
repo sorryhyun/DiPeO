@@ -1,4 +1,4 @@
-import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID } from '@dipeo/models';
+import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID, JsonDict } from '@dipeo/models';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/infrastructure/types';
 import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
@@ -87,7 +87,7 @@ function cleanNodeData(node: DomainNode): DomainNode {
   
   return {
     ...nodeProps,
-    data: nodeData
+    data: nodeData as JsonDict
   };
 }
 

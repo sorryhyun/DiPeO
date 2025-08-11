@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Status, EventType, type ExecutionUpdate } from '@dipeo/models';
+import { Status, EventType, type ExecutionUpdate, JsonValue } from '@dipeo/models';
 import { nodeId, executionId } from '@/infrastructure/types';
 import { useExecutionState } from './useExecutionState';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
@@ -129,7 +129,7 @@ export function useExecutionUpdates({
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(nodeIdStr),
       tokens: tokenCount, 
-      result: output, 
+      result: output as JsonValue | undefined, 
       status: Status.COMPLETED, 
       timestamp: new Date().toISOString() 
     });
