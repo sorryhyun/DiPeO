@@ -110,7 +110,9 @@ class LightweightSubDiagramExecutor:
             format_suffix = format_map.get(node.diagram_format, '.light.yaml')
         
         # Construct full file path
-        if diagram_name.startswith('codegen/'):
+        if diagram_name.startswith('projects/'):
+            file_path = f"{diagram_name}{format_suffix}"
+        elif diagram_name.startswith('codegen/'):
             file_path = f"files/{diagram_name}{format_suffix}"
         else:
             file_path = f"files/diagrams/{diagram_name}{format_suffix}"
@@ -161,7 +163,9 @@ class LightweightSubDiagramExecutor:
             format_suffix = format_map.get(node.diagram_format, '.light.yaml')
         
         # Construct full file path
-        if diagram_name.startswith('codegen/'):
+        if diagram_name.startswith('projects/'):
+            file_path = f"{diagram_name}{format_suffix}"
+        elif diagram_name.startswith('codegen/'):
             file_path = f"files/{diagram_name}{format_suffix}"
         else:
             file_path = f"files/diagrams/{diagram_name}{format_suffix}"

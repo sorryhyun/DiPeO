@@ -422,6 +422,7 @@ input RegisterCliSessionInput {
   diagram_name: String!
   diagram_format: String!
   diagram_data: JSON = null
+  diagram_path: String = null
 }
 
 enum Status {

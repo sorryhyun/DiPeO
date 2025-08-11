@@ -226,18 +226,18 @@ nodes:
 connections:
   # Initial flow
   - {from: Start, to: Load Config}
-  - {from: Load Config, to: Initialize State, label: config}
-  - {from: Initialize State, to: Generate Frontend_first}
+  - {from: Load Config, to: Initialize State, label: config, content_type: object}
+  - {from: Initialize State, to: Generate Frontend_first, content_type: object}
   
   # Generation and assessment  
-  - {from: Generate Frontend, to: Judge Code Quality, label: generated_code}
-  - {from: Judge Code Quality, to: Check Score, label: assessment}
-  - {from: Generate Frontend, to: Check Score, label: generated_code}
-  - {from: Initialize State, to: Check Score, label: config}
-  - {from: Check Score, to: Check Quality Target, label: checked}
+  - {from: Generate Frontend, to: Judge Code Quality, label: generated_code, content_type: object}
+  - {from: Judge Code Quality, to: Check Score, label: assessment, content_type: object}
+  - {from: Generate Frontend, to: Check Score, label: generated_code, content_type: object}
+  - {from: Initialize State, to: Check Score, label: config, content_type: object}
+  - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
   
   # Success path (quality target met)
-  - {from: Check Quality Target_condtrue, to: Save Final Code, label: checked}
+  - {from: Check Quality Target_condtrue, to: Save Final Code, label: checked, content_type: object}
   - {from: Save Final Code, to: Generate Summary, label: saved_code}
   - {from: Generate Summary, to: Save Summary}
   

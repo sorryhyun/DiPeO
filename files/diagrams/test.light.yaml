@@ -1,0 +1,190 @@
+{
+  "diagram": {
+    "version": "light",
+    "name": "csv_to_json_pipeline",
+    "description": "Data processing pipeline: load CSVs from directory, validate, parallel process per file, aggregate, and save as JSON.",
+    "nodes": [
+      {
+        "label": "start",
+        "type": "start",
+        "position": {
+          "x": 100,
+          "y": 200
+        },
+        "props": {
+          "label": "start",
+          "flipped": false,
+          "trigger_mode": "none",
+          "custom_data": null,
+          "output_data_structure": null,
+          "hook_event": null,
+          "hook_filters": null
+        }
+      },
+      {
+        "label": "load_files",
+        "type": "db",
+        "position": {
+          "x": 350,
+          "y": 200
+        },
+        "props": {
+          "label": "load_files",
+          "flipped": null,
+          "file": [
+            "files/data/*.csv"
+          ],
+          "collection": null,
+          "sub_type": "file",
+          "operation": "read",
+          "query": null,
+          "data": null,
+          "serialize_json": false,
+          "glob": true,
+          "format": null
+        }
+      },
+      {
+        "label": "validate_data",
+        "type": "code_job",
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "props": {
+          "label": "validate_data",
+          "flipped": null,
+          "language": "python",
+          "filePath": null,
+          "code": "import logging\nlogging.basicConfig(level=logging.INFO)\nerrors = []\nvalidated_items = []\nfor item in raw_data:\n    if not isinstance(item, dict) or not item:\n        errors.append(item)\n    else:\n        validated_items.append(item)\nresult = {\n    \"valid\": len(errors) == 0,\n    \"errors\": errors,\n    \"validated_items\": validated_items\n}\nprint(\"Validation complete, valid=\", result.get(\"valid\"))\n",
+          "functionName": null,
+          "timeout": null
+        }
+      },
+      {
+        "label": "validation_check",
+        "type": "condition",
+        "position": {
+          "x": 850,
+          "y": 200
+        },
+        "props": {
+          "label": "validation_check",
+          "flipped": null,
+          "condition_type": "custom",
+          "expression": "validation_result.get('valid', False)",
+          "node_indices": []
+        }
+      },
+      {
+        "label": "process_batch",
+        "type": "sub_diagram",
+        "position": {
+          "x": 1100,
+          "y": 200
+        },
+        "props": {
+          "label": "process_batch",
+          "flipped": null,
+          "diagram_name": "processors/process_file",
+          "diagram_format": "light",
+          "diagram_data": null,
+          "batch": true,
+          "batch_input_key": "items",
+          "batch_parallel": true,
+          "ignoreIfSub": false
+        }
+      },
+      {
+        "label": "aggregate_results",
+        "type": "code_job",
+        "position": {
+          "x": 1400,
+          "y": 200
+        },
+        "props": {
+          "label": "aggregate_results",
+          "flipped": null,
+          "language": "python",
+          "filePath": null,
+          "code": "results = []\nif isinstance(batch_results, list):\n    for item in batch_results:\n        results.append(item)\nelif batch_results is not None:\n    results.append(batch_results)\nresult = {\"results\": results, \"count\": len(results)}\n",
+          "functionName": null,
+          "timeout": null
+        }
+      },
+      {
+        "label": "endpoint_final",
+        "type": "endpoint",
+        "position": {
+          "x": 1700,
+          "y": 200
+        },
+        "props": {
+          "label": "final_output",
+          "flipped": null,
+          "save_to_file": true,
+          "file_name": "output/final_results.json"
+        }
+      },
+      {
+        "label": "endpoint_errors",
+        "type": "endpoint",
+        "position": {
+          "x": 1100,
+          "y": 260
+        },
+        "props": {
+          "label": "validation_errors",
+          "flipped": null,
+          "save_to_file": true,
+          "file_name": "output/validation_errors.json"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from": "start",
+        "to": "load_files",
+        "label": "start_trigger",
+        "content_type": "raw_text"
+      },
+      {
+        "from": "load_files",
+        "to": "validate_data",
+        "label": "raw_data",
+        "content_type": "raw_text"
+      },
+      {
+        "from": "validate_data",
+        "to": "validation_check",
+        "label": "validation_result",
+        "content_type": "raw_text"
+      },
+      {
+        "from": "validation_check",
+        "to": "process_batch",
+        "label": "validated_items",
+        "content_type": "raw_text"
+      },
+      {
+        "from": "validation_check",
+        "to": "endpoint_errors",
+        "label": "validation_errors",
+        "content_type": "raw_text"
+      },
+      {
+        "from": "process_batch",
+        "to": "aggregate_results",
+        "label": "batch_results",
+        "content_type": "raw_text"
+      },
+      {
+        "from": "aggregate_results",
+        "to": "endpoint_final",
+        "label": "final_results",
+        "content_type": "raw_text"
+      }
+    ],
+    "persons": null
+  }
+}

@@ -58,7 +58,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 200}
     props:
-      diagram_name: codegen/diagrams/shared/parse_typescript_single
+      diagram_name: projects/codegen/diagrams/shared/parse_typescript_single
       diagram_format: light
       batch: true
       batch_input_key: items

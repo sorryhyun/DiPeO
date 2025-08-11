@@ -1,6 +1,6 @@
 Generate a DiPeO light format diagram based on the following workflow description:
 
-{{default}}
+{{workflow_description}}
 
 IMPORTANT GUIDELINES:
 

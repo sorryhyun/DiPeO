@@ -136,6 +136,7 @@ class ServerManager:
                 diagram_name=diagram_name or "unknown",
                 diagram_format=diagram_format or "native",
                 diagram_data=None,  # Not needed when using diagram_id
+                diagram_path=diagram_id,  # Pass the file path
             )
 
         return execution_result
@@ -187,15 +188,17 @@ class ServerManager:
         diagram_name: str,
         diagram_format: str,
         diagram_data: dict[str, Any] | None = None,
+        diagram_path: str | None = None,
     ) -> bool:
         """Register a CLI execution session with the server."""
         mutation = """
-        mutation RegisterCliSession($executionId: String!, $diagramName: String!, $diagramFormat: String!, $diagramData: JSON) {
+        mutation RegisterCliSession($executionId: String!, $diagramName: String!, $diagramFormat: String!, $diagramData: JSON, $diagramPath: String) {
             register_cli_session(input: {
                 execution_id: $executionId,
                 diagram_name: $diagramName,
                 diagram_format: $diagramFormat,
-                diagram_data: $diagramData
+                diagram_data: $diagramData,
+                diagram_path: $diagramPath
             }) {
                 success
                 error
@@ -213,6 +216,7 @@ class ServerManager:
                         "diagramName": diagram_name,
                         "diagramFormat": diagram_format,
                         "diagramData": diagram_data,
+                        "diagramPath": diagram_path,
                     },
                 },
                 timeout=5,

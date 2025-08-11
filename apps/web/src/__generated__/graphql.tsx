@@ -620,6 +620,7 @@ export type RegisterCliSessionInput = {
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
   diagram_format: Scalars['String']['input'];
   diagram_name: Scalars['String']['input'];
+  diagram_path?: InputMaybe<Scalars['String']['input']>;
   execution_id: Scalars['String']['input'];
 };
 

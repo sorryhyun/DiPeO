@@ -52,13 +52,13 @@ install-dev: install
 # Primary code generation command (SAFE - stages changes for review)
 codegen:
 	@echo "Starting code generation..."
-	dipeo run codegen/diagrams/generate_all --light --timeout=90
+	dipeo run projects/codegen/diagrams/generate_all --light --timeout=90
 	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
 codegen-auto:
 	@echo "⚠️  WARNING: Auto-applying all changes!"
-	dipeo run codegen/diagrams/generate_all --light --timeout=90
+	dipeo run projects/codegen/diagrams/generate_all --light --timeout=90
 	@sleep 1
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
 		echo "Error: No staged directory found."; \

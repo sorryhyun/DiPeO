@@ -156,6 +156,7 @@ class RegisterCliSessionInput:
     diagram_name: str
     diagram_format: str
     diagram_data: Optional[strawberry.scalars.JSON] = None
+    diagram_path: Optional[str] = None  # Full path to diagram file
 
 
 @strawberry.input

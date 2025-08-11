@@ -24,19 +24,9 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: files/dipeodipeo/request.txt
+      source_details: projects/dipeodipeo/request.txt
       format: text
-    
-  - label: debug_input
-    type: code_job
-    position: {x: 450, y: 200}
-    props:
-      language: python
-      code: |
-        print(f"workflow_description type: {type(workflow_description)}")
-        print(f"workflow_description content: {workflow_description}")
-        result = workflow_description
-        
+
   - label: generate_diagram
     type: person_job
     position: {x: 600, y: 200}
@@ -44,7 +34,7 @@ nodes:
       person: diagram_designer
       prompt_file: diagram_generator.txt
       max_iteration: 1
-      text_format_file: files/dipeodipeo/light_diagram_models.py
+      text_format_file: projects/dipeodipeo/light_diagram_models.py
       
   - label: format_yaml
     type: code_job
@@ -116,7 +106,7 @@ nodes:
         
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"files/dipeodipeo/generated/{diagram['name']}_{timestamp}.light.yaml"
+        filename = f"projects/dipeodipeo/generated/{diagram['name']}_{timestamp}.light.yaml"
         
         result = {
             "yaml_content": yaml_content,
@@ -161,8 +151,7 @@ nodes:
 
 connections:
   - {from: start, to: load_request}
-  - {from: load_request, to: debug_input, label: workflow_description}
-  - {from: debug_input, to: generate_diagram}  # No label = default input
-  - {from: generate_diagram, to: format_yaml, label: generated_diagram}
-  - {from: format_yaml, to: save_diagram, label: yaml_content}
+  - {from: load_request, to: generate_diagram, label: workflow_description}
+  - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: object}
+  - {from: format_yaml, to: save_diagram, label: yaml_content, content_type: object}
   - {from: format_yaml, to: display_info, label: diagram_output}

@@ -16,7 +16,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 400}
     props:
-      diagram_name: codegen/diagrams/shared/parse_typescript_batch
+      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch
       diagram_format: light
       passInputData: false
 
@@ -25,7 +25,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 100}
     props:
-      diagram_name: codegen/diagrams/models/generate_python_models_dynamic
+      diagram_name: projects/codegen/diagrams/models/generate_python_models_dynamic
       diagram_format: light
       passInputData: false
 
@@ -33,7 +33,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 150}
     props:
-      diagram_name: codegen/diagrams/models/generate_enums
+      diagram_name: projects/codegen/diagrams/models/generate_enums
       diagram_format: light
       passInputData: false
 
@@ -41,7 +41,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 200}
     props:
-      diagram_name: codegen/diagrams/models/generate_integrations
+      diagram_name: projects/codegen/diagrams/models/generate_integrations
       diagram_format: light
       passInputData: false
 
@@ -49,7 +49,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 250}
     props:
-      diagram_name: codegen/diagrams/models/generate_conversions
+      diagram_name: projects/codegen/diagrams/models/generate_conversions
       diagram_format: light
       passInputData: false
 
@@ -57,7 +57,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 300}
     props:
-      diagram_name: codegen/diagrams/models/generate_backend_models
+      diagram_name: projects/codegen/diagrams/models/generate_backend_models
       diagram_format: light
       passInputData: false
 
@@ -65,7 +65,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 350}
     props:
-      diagram_name: codegen/diagrams/models/generate_graphql_schema_template_dynamic
+      diagram_name: projects/codegen/diagrams/models/generate_graphql_schema_template_dynamic
       diagram_format: light
       passInputData: false
 
@@ -73,7 +73,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 400}
     props:
-      diagram_name: codegen/diagrams/models/generate_static_nodes
+      diagram_name: projects/codegen/diagrams/models/generate_static_nodes
       diagram_format: light
       passInputData: false
 
@@ -81,7 +81,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 450}
     props:
-      diagram_name: codegen/diagrams/models/generate_strawberry_types_v2_dynamic
+      diagram_name: projects/codegen/diagrams/models/generate_strawberry_types_v2_dynamic
       diagram_format: light
       passInputData: false
 
@@ -89,7 +89,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 500}
     props:
-      diagram_name: codegen/diagrams/models/generate_strawberry_mutations_v2
+      diagram_name: projects/codegen/diagrams/models/generate_strawberry_mutations_v2
       diagram_format: light
       passInputData: false
 
@@ -97,7 +97,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 550}
     props:
-      diagram_name: codegen/diagrams/models/generate_validation_models
+      diagram_name: projects/codegen/diagrams/models/generate_validation_models
       diagram_format: light
       passInputData: false
 
@@ -133,7 +133,7 @@ nodes:
     type: sub_diagram
     position: {x: 800, y: 650}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_frontend_single
+      diagram_name: projects/codegen/diagrams/frontend/generate_frontend_single
       diagram_format: light
       batch: true
       batch_input_key: items
@@ -143,7 +143,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 700}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_frontend_registry
+      diagram_name: projects/codegen/diagrams/frontend/generate_frontend_registry
       diagram_format: light
       passInputData: false
 
@@ -151,7 +151,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 750}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_graphql_queries
+      diagram_name: projects/codegen/diagrams/frontend/generate_graphql_queries
       diagram_format: light
       passInputData: false
 
@@ -159,7 +159,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 800}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_zod_schemas_v2
+      diagram_name: projects/codegen/diagrams/frontend/generate_zod_schemas_v2
       diagram_format: light
       passInputData: false
 
@@ -167,7 +167,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 850}
     props:
-      diagram_name: codegen/diagrams/frontend/generate_field_configs_v2
+      diagram_name: projects/codegen/diagrams/frontend/generate_field_configs_v2
       diagram_format: light
       passInputData: false
 
