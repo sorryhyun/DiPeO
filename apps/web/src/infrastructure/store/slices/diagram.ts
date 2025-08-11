@@ -1,4 +1,3 @@
-import { StateCreator } from 'zustand';
 import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/infrastructure/types';
 import { generateArrowId } from '@/infrastructure/types/utilities';
 import { 
@@ -8,9 +7,9 @@ import {
   ValidationService,
   DiagramOperations 
 } from '@/infrastructure/services';
-import { UnifiedStore } from '@/infrastructure/store/types';
 // import { recordHistory } from '@/infrastructure/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';
+import type { UnifiedStore } from '../types';
 
 export interface DiagramSlice {
   // Core data structures
@@ -69,16 +68,14 @@ const afterChange = (state: UnifiedStore) => {
   state.nodesArray = Array.from(state.nodes.values());
   state.arrowsArray = Array.from(state.arrows.values());
   state.handlesArray = Array.from(state.handles.values());
-  // TODO: Fix deep type instantiation issue with immer Draft type
   // recordHistory(state);
 };
 
-export const createDiagramSlice: StateCreator<
-  UnifiedStore,
-  [['zustand/immer', never]],
-  [],
-  DiagramSlice
-> = (set, get) => ({
+export const createDiagramSlice = (
+  set: (fn: (state: UnifiedStore) => void) => void,
+  get: () => UnifiedStore,
+  _api: any
+): DiagramSlice => ({
   // Initialize data structures
   nodes: new Map(),
   arrows: new Map(),
@@ -98,16 +95,18 @@ export const createDiagramSlice: StateCreator<
       // Fall back to creating without validation for backward compatibility
       const node = NodeFactory.createNode(type, position, initialData);
       set(state => {
-        state.nodes.set(Converters.toNodeId(node.id), node);
-        afterChange(state);
+        // Use any to bypass TypeScript's deep instantiation issue with Immer
+        (state.nodes as any).set(Converters.toNodeId(node.id), node);
+        afterChange(state as any);
       });
       return Converters.toNodeId(node.id);
     }
     
     const node = result.data;
     set(state => {
-      state.nodes.set(Converters.toNodeId(node.id), node);
-      afterChange(state);
+      // Use any to bypass TypeScript's deep instantiation issue with Immer
+      (state.nodes as any).set(Converters.toNodeId(node.id), node);
+      afterChange(state as any);
     });
     return Converters.toNodeId(node.id);
   },
@@ -117,8 +116,8 @@ export const createDiagramSlice: StateCreator<
       const node = state.nodes.get(id);
       if (node) {
         const updatedNode = { ...node, ...updates };
-        state.nodes.set(id, updatedNode);
-        afterChange(state);
+        (state.nodes as any).set(id, updatedNode);
+        afterChange(state as any);
       }
     });
   },
@@ -128,7 +127,7 @@ export const createDiagramSlice: StateCreator<
       const node = state.nodes.get(id);
       if (node) {
         const updatedNode = { ...node, ...updates };
-        state.nodes.set(id, updatedNode);
+        (state.nodes as any).set(id, updatedNode);
         // Silent update - no version increment, history, or array sync
         // Used for intermediate updates during operations
       }
@@ -137,7 +136,7 @@ export const createDiagramSlice: StateCreator<
   
   deleteNode: (id) => {
     set(state => {
-      const deleted = state.nodes.delete(id);
+      const deleted = (state.nodes as any).delete(id);
       if (deleted) {
         // Remove connected arrows
         const arrowsToDelete = Array.from(state.arrows.entries())
@@ -148,7 +147,7 @@ export const createDiagramSlice: StateCreator<
           })
           .map(([arrowId]) => arrowId);
         
-        arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
+        arrowsToDelete.forEach(arrowId => (state.arrows as any).delete(arrowId));
         
         // Clear selection if deleted
         if (state.selectedId === id) {
@@ -156,7 +155,7 @@ export const createDiagramSlice: StateCreator<
           state.selectedType = null;
         }
         
-        afterChange(state);
+        afterChange(state as any);
       }
     });
     
@@ -219,8 +218,8 @@ export const createDiagramSlice: StateCreator<
         throw new Error(`Target node ${targetNodeId} not found`);
       }
       
-      state.arrows.set(Converters.toArrowId(arrow.id), arrow);
-      afterChange(state);
+      (state.arrows as any).set(Converters.toArrowId(arrow.id), arrow);
+      afterChange(state as any);
     });
     
     return Converters.toArrowId(arrow.id);
@@ -235,17 +234,17 @@ export const createDiagramSlice: StateCreator<
         if (updates.data && arrow.data) {
           updatedArrow.data = { ...arrow.data, ...updates.data };
         }
-        state.arrows.set(id, updatedArrow);
-        afterChange(state);
+        (state.arrows as any).set(id, updatedArrow);
+        afterChange(state as any);
       }
     });
   },
 
   deleteArrow: (id) => {
     set(state => {
-      const deleted = state.arrows.delete(id);
+      const deleted = (state.arrows as any).delete(id);
       if (deleted) {
-        afterChange(state);
+        afterChange(state as any);
       }
     });
   },
@@ -259,13 +258,13 @@ export const createDiagramSlice: StateCreator<
       updates.forEach(({ id, updates: nodeUpdates }) => {
         const node = state.nodes.get(id);
         if (node) {
-          state.nodes.set(id, { ...node, ...nodeUpdates });
+          (state.nodes as any).set(id, { ...node, ...nodeUpdates });
           hasChanges = true;
         }
       });
       
       if (hasChanges) {
-        afterChange(state);
+        afterChange(state as any);
       }
     });
   },
@@ -274,7 +273,7 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       let hasChanges = false;
       ids.forEach(id => {
-        if (state.nodes.delete(id)) {
+        if ((state.nodes as any).delete(id)) {
           hasChanges = true;
           
           // Remove connected arrows
@@ -286,12 +285,12 @@ export const createDiagramSlice: StateCreator<
             })
             .map(([arrowId]) => arrowId);
           
-          arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
+          arrowsToDelete.forEach(arrowId => (state.arrows as any).delete(arrowId));
         }
       });
       
       if (hasChanges) {
-        afterChange(state);
+        afterChange(state as any);
       }
     });
     
@@ -330,13 +329,13 @@ export const createDiagramSlice: StateCreator<
   
   clearDiagram: () => {
     set(state => {
-      state.nodes.clear();
-      state.arrows.clear();
+      (state.nodes as any).clear();
+      (state.arrows as any).clear();
       state.diagramName = 'Untitled';
       state.diagramDescription = '';
       state.diagramId = null;
       state.diagramFormat = null;
-      afterChange(state);
+      afterChange(state as any);
     });
   },
   
@@ -344,7 +343,7 @@ export const createDiagramSlice: StateCreator<
     set(state => {
       state.nodes = new Map(nodes);
       state.arrows = new Map(arrows);
-      afterChange(state);
+      afterChange(state as any);
     });
   },
   
@@ -355,7 +354,7 @@ export const createDiagramSlice: StateCreator<
       // Update arrays but don't increment version or record history
       state.nodesArray = Array.from(state.nodes.values());
       state.arrowsArray = Array.from(state.arrows.values());
-      state.handlesArray = Array.from(state.handles.values());
+      state.handlesArray = Array.from((state.handles as any).values());
     });
   },
   
@@ -365,7 +364,7 @@ export const createDiagramSlice: StateCreator<
       state.nodesArray = Array.from(state.nodes.values());
       state.arrowsArray = Array.from(state.arrows.values());
       state.personsArray = Array.from(state.persons.values());
-      state.handlesArray = Array.from(state.handles.values());
+      state.handlesArray = Array.from((state.handles as any).values());
       // Keep dataVersion for backward compatibility but it's not critical
       state.dataVersion += 1;
     });

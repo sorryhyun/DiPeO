@@ -1,4 +1,4 @@
-import { create, StateCreator } from "zustand";
+import { create } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { ArrowID, NodeID, PersonID, HandleID } from '@dipeo/models';
@@ -40,12 +40,7 @@ const devtoolsOptions = {
 };
 
 const createStore = () => {
-  const storeCreator: StateCreator<
-    UnifiedStore,
-    [['zustand/immer', never]],
-    [],
-    UnifiedStore
-  > = (set, get, api) => ({
+  const storeCreator = (set: (fn: (state: UnifiedStore) => void) => void, get: () => UnifiedStore, api: any): UnifiedStore => ({
         ...createDiagramSlice(set, get, api),
         ...createComputedSlice(set, get, api),
         ...createExecutionSlice(set, get, api),
@@ -75,7 +70,7 @@ const createStore = () => {
 
           const snapshot = state.history.undoStack[state.history.undoStack.length - 1];
           if (snapshot) {
-            set(state => {
+            set((state: UnifiedStore) => {
               state.history.redoStack.push(createFullSnapshot(state));
               state.history.undoStack.pop();
             });
@@ -83,7 +78,7 @@ const createStore = () => {
             state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
             state.restorePersonsSilently(snapshot.persons);
             
-            set(state => {
+            set((state: UnifiedStore) => {
               state.handles = new Map(snapshot.handles);
               state.handleIndex = rebuildHandleIndex(state.handles);
             });
@@ -99,7 +94,7 @@ const createStore = () => {
           const snapshot = state.history.redoStack[state.history.redoStack.length - 1];
           if (snapshot) {
             // Save current state to undo stack
-            set(state => {
+            set((state: UnifiedStore) => {
               state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack.pop();
             });
@@ -109,7 +104,7 @@ const createStore = () => {
             state.restorePersonsSilently(snapshot.persons);
             
             // Restore unified store data
-            set(state => {
+            set((state: UnifiedStore) => {
               state.handles = new Map(snapshot.handles);
               state.handleIndex = rebuildHandleIndex(state.handles);
             });
@@ -123,7 +118,7 @@ const createStore = () => {
         transaction: (fn) => {
           const transactionId = crypto.randomUUID();
 
-          set(state => {
+          set((state: UnifiedStore) => {
             state.history.currentTransaction = {
               id: transactionId,
               changes: [],
@@ -133,9 +128,9 @@ const createStore = () => {
 
           const result = fn();
 
-          set(state => {
+          set((state: UnifiedStore) => {
             if (state.history.currentTransaction) {
-              recordHistory(state);
+              recordHistory(state as any);
               state.history.currentTransaction = null;
             }
           });
@@ -154,7 +149,7 @@ const createStore = () => {
           state.restorePersonsSilently(snapshot.persons);
           
           // Update UnifiedStore-specific data
-          set(state => {
+          set((state: UnifiedStore) => {
             state.handles = new Map(snapshot.handles);
             state.handleIndex = rebuildHandleIndex(snapshot.handles);
           });
@@ -165,7 +160,7 @@ const createStore = () => {
 
         // Handle cleanup method for node deletion
         cleanupNodeHandles: (nodeId: NodeID) => {
-          set(state => {
+          set((state: UnifiedStore) => {
             const handleIdsToDelete: HandleID[] = [];
             state.handles.forEach((handle, handleId) => {
               if (handle.node_id === nodeId) {
@@ -190,7 +185,7 @@ const createStore = () => {
           state.clearUIState();
           
           // Clear unified store specific data
-          set(state => {
+          set((state: UnifiedStore) => {
             state.handles = new Map();
             state.handleIndex = new Map();
           });

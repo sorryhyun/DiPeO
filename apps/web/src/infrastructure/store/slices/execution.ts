@@ -1,6 +1,4 @@
-import {StateCreator} from 'zustand';
 import {NodeID} from '@/infrastructure/types';
-import {UnifiedStore} from '@/infrastructure/store/types';
 import {
   type DiagramID,
   type ExecutionID,
@@ -11,6 +9,7 @@ import {
   type ExecutionUpdate,
 } from '@dipeo/models';
 import { ExecutionConverter, type StoreNodeState, type StoreExecutionState } from '@/infrastructure/converters';
+import type { UnifiedStore } from '../types';
 
 // Re-export store types from converter
 export type { StoreNodeState as NodeState, StoreExecutionState as ExecutionState } from '@/infrastructure/converters';
@@ -82,12 +81,11 @@ const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: StoreNo
   }
 };
 
-export const createExecutionSlice: StateCreator<
-  UnifiedStore,
-  [['zustand/immer', never]],
-  [],
-  ExecutionSlice
-> = (set, _get) => ({
+export const createExecutionSlice = (
+  set: (fn: (state: UnifiedStore) => void) => void,
+  _get: () => UnifiedStore,
+  _api: any
+): ExecutionSlice => ({
   execution: {
     id: null,
     isRunning: false,
@@ -98,7 +96,7 @@ export const createExecutionSlice: StateCreator<
   },
   
   // Execution control
-  startExecution: (executionId) => set(state => {
+  startExecution: (executionId) => set((state: UnifiedStore) => {
     // Clear previous execution state before starting new one
     state.execution.nodeStates.clear();
     state.execution.runningNodes.clear();
@@ -116,7 +114,7 @@ export const createExecutionSlice: StateCreator<
     // This maintains proper slice isolation
   }),
   
-  stopExecution: () => set(state => {
+  stopExecution: () => set((state: UnifiedStore) => {
     state.execution.isRunning = false;
     state.execution.isPaused = false;
     state.execution.runningNodes.clear();
@@ -125,7 +123,7 @@ export const createExecutionSlice: StateCreator<
     // NOTE: UI state changes should be handled by UI slice listening to execution state changes
   }),
   
-  pauseExecution: () => set(state => {
+  pauseExecution: () => set((state: UnifiedStore) => {
     state.execution.isPaused = true;
     // Keep the execution state but pause all running nodes
     state.execution.runningNodes.forEach(nodeId => {
@@ -139,7 +137,7 @@ export const createExecutionSlice: StateCreator<
     });
   }),
   
-  resumeExecution: () => set(state => {
+  resumeExecution: () => set((state: UnifiedStore) => {
     state.execution.isPaused = false;
     // Resume all paused nodes
     state.execution.nodeStates.forEach((nodeState, nodeId) => {
@@ -154,12 +152,12 @@ export const createExecutionSlice: StateCreator<
   }),
   
   // Node state management
-  updateNodeExecution: (nodeId, nodeState) => set(state => {
+  updateNodeExecution: (nodeId, nodeState) => set((state: UnifiedStore) => {
     console.log('[ExecutionSlice] Updating node execution:', nodeId, nodeState);
     updateNodeState(state, nodeId, nodeState);
   }),
   
-  setNodeRunning: (nodeId) => set(state => {
+  setNodeRunning: (nodeId) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.RUNNING,
       timestamp: Date.now()
@@ -167,7 +165,7 @@ export const createExecutionSlice: StateCreator<
     updateNodeState(state, nodeId, nodeState);
   }),
   
-  setNodeCompleted: (nodeId) => set(state => {
+  setNodeCompleted: (nodeId) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.COMPLETED,
       timestamp: Date.now()
@@ -175,7 +173,7 @@ export const createExecutionSlice: StateCreator<
     updateNodeState(state, nodeId, nodeState);
   }),
   
-  setNodeFailed: (nodeId, error) => set(state => {
+  setNodeFailed: (nodeId, error) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.FAILED,
       timestamp: Date.now(),
@@ -184,7 +182,7 @@ export const createExecutionSlice: StateCreator<
     updateNodeState(state, nodeId, nodeState);
   }),
   
-  setNodeSkipped: (nodeId, reason) => set(state => {
+  setNodeSkipped: (nodeId, reason) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.SKIPPED,
       timestamp: Date.now(),
@@ -194,18 +192,18 @@ export const createExecutionSlice: StateCreator<
   }),
   
   // Context management
-  updateExecutionContext: (updates) => set(state => {
+  updateExecutionContext: (updates) => set((state: UnifiedStore) => {
     state.execution.context = {
       ...state.execution.context,
       ...updates
     };
   }),
   
-  clearExecutionContext: () => set(state => {
+  clearExecutionContext: () => set((state: UnifiedStore) => {
     state.execution.context = {};
   }),
   
-  clearExecutionState: () => set(state => {
+  clearExecutionState: () => set((state: UnifiedStore) => {
     state.execution = {
       id: null,
       isRunning: false,
@@ -217,7 +215,7 @@ export const createExecutionSlice: StateCreator<
   }),
   
   // Type-safe event handling
-  handleExecutionEvent: (event) => set(state => {
+  handleExecutionEvent: (event) => set((state: UnifiedStore) => {
     switch (event.type) {
       case EventType.EXECUTION_STATUS_CHANGED:
         // Handle execution-level status changes
