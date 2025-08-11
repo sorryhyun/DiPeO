@@ -373,6 +373,8 @@ class SinglePersonJobExecutor:
     
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
         from dipeo.diagram_generated import TokenUsage
+        from dipeo.core.execution.node_output import TextOutput, DataOutput
+        import json
         
         # Extract token usage as typed field
         token_usage = None
@@ -405,14 +407,45 @@ class SinglePersonJobExecutor:
                 model=model  # Use typed field for model
             )
         else:
-            # For text-only output, still use PersonJobOutput but with text wrapped in a message
-            # This maintains consistency for PersonJob nodes
-            return PersonJobOutput(
-                value=[],  # Empty messages list for text-only
+            # Check if we used text_format (structured output)
+            has_text_format = (hasattr(node, 'text_format') and node.text_format) or \
+                              (hasattr(node, 'text_format_file') and node.text_format_file)
+            
+            if has_text_format and hasattr(result, 'raw_response') and result.raw_response:
+                # Return structured data as DataOutput
+                # The raw_response should contain the Pydantic model instance or dict
+                raw_data = result.raw_response
+                
+                # Convert Pydantic model to dict if needed
+                if hasattr(raw_data, 'model_dump'):
+                    raw_data = raw_data.model_dump()
+                elif hasattr(raw_data, 'dict'):
+                    raw_data = raw_data.dict()
+                
+                # If it's still not a dict, try to parse the text as JSON
+                if not isinstance(raw_data, dict) and result.text:
+                    try:
+                        raw_data = json.loads(result.text)
+                    except (json.JSONDecodeError, TypeError):
+                        # Fall back to returning as text
+                        raw_data = {"response": result.text}
+                
+                if isinstance(raw_data, dict):
+                    return DataOutput(
+                        value=raw_data,
+                        node_id=node.id,
+                        metadata="{}",
+                        token_usage=token_usage,
+                        execution_time=None,
+                        retry_count=0
+                    )
+            
+            # Default: return text output
+            return TextOutput(
+                value=result.text if hasattr(result, 'text') else str(result),
                 node_id=node.id,
-                metadata="{}",  # Empty metadata - model is now a typed field
+                metadata="{}",
                 token_usage=token_usage,
-                person_id=person_id,
-                conversation_id=conversation_id,
-                model=model  # Use typed field for model
+                execution_time=None,
+                retry_count=0
             )

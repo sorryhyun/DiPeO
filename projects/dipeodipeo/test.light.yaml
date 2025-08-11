@@ -201,6 +201,6 @@ nodes:
 connections:
   - {from: start, to: load_request}
   - {from: load_request, to: generate_diagram, label: workflow_description}
-  - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: raw_text}
+  - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: object}
   - {from: format_yaml, to: save_diagram, label: yaml_content, content_type: object}
   - {from: format_yaml, to: display_info, label: diagram_output}

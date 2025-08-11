@@ -108,7 +108,7 @@
       "target": "node_3_default_input",
       "label": "generated_diagram",
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
     },
     {
       "id": "arrow_3",
@@ -236,8 +236,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-11T05:42:50.014Z",
-    "modified": "2025-08-11T05:42:50.014Z",
+    "created": "2025-08-11T05:53:58.542Z",
+    "modified": "2025-08-11T05:53:58.542Z",
     "version": "1.0.0",
     "id": null
   }
