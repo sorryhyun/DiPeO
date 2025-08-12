@@ -1,28 +1,36 @@
 """Single sub-diagram executor - handles execution of individual sub-diagrams."""
 
-from typing import TYPE_CHECKING, Any, Optional
 import json
 import logging
 import uuid
+from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
-from dipeo.application.registry.keys import (
-    STATE_STORE,
-    MESSAGE_ROUTER,
-    DIAGRAM_SERVICE_NEW,
-)
+from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 if TYPE_CHECKING:
-    from dipeo.application.registry import ServiceRegistry, ServiceKey
+    pass
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SingleSubDiagramExecutor:
-    """Executor for single sub-diagram execution."""
+    """Executor for single sub-diagram execution with state tracking."""
+    
+    def __init__(self):
+        """Initialize executor."""
+        # Services will be set by the handler
+        self._state_store = None
+        self._message_router = None
+        self._diagram_service = None
+    
+    def set_services(self, state_store, message_router, diagram_service):
+        """Set services for the executor to use."""
+        self._state_store = state_store
+        self._message_router = message_router
+        self._diagram_service = diagram_service
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute a single sub-diagram."""
@@ -37,16 +45,12 @@ class SingleSubDiagramExecutor:
                 )
         
         try:
-            # Get required services
-            state_store = request.services.resolve(STATE_STORE)
-            message_router = request.services.resolve(MESSAGE_ROUTER)
-            diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
-            
-            if not all([state_store, message_router]):
-                raise ValueError("Required services not available")
+            # Use pre-configured services (set by handler)
+            if not all([self._state_store, self._message_router, self._diagram_service]):
+                raise ValueError("Required services not configured")
             
             # Load the diagram to execute
-            domain_diagram = await self._load_diagram(node, diagram_service)
+            domain_diagram = await self._load_diagram(node)
             
             # Prepare execution options
             options = {
@@ -62,41 +66,15 @@ class SingleSubDiagramExecutor:
             # Create a unique execution ID for the sub-diagram
             sub_execution_id = self._create_sub_execution_id(request.execution_id)
             
-            # Get service registry and container
-            service_registry = request.parent_registry
-            if not service_registry:
-                from dipeo.application.registry import ServiceRegistry, ServiceKey
-                service_registry = ServiceRegistry()
-                for service_name, service in request.services.items():
-                    key = ServiceKey(service_name)
-                    service_registry.register(key, service)
-            
-            container = request.parent_container
-            
             # Create the execution use case
-            execute_use_case = ExecuteDiagramUseCase(
-                service_registry=service_registry,
-                state_store=state_store,
-                message_router=message_router,
-                diagram_service=diagram_service,
-                container=container
-            )
+            execute_use_case = self._create_execution_use_case(request)
             
-            # Get parent observers if available
-            parent_observers = options.get("observers", [])
-            
-            # Filter observers based on their propagation settings
-            from dipeo.application.execution.observers.scoped_observer import create_scoped_observers
-            filtered_observers = create_scoped_observers(
-                observers=parent_observers,
-                parent_execution_id=request.execution_id,
+            # Configure observers for sub-diagram execution
+            filtered_observers = self._configure_observers(
+                request=request,
                 sub_execution_id=sub_execution_id,
-                inherit_all=False  # Only inherit observers with propagate_to_sub=True
+                options=options
             )
-            
-            # Log sub-diagram execution start
-            if request.metadata:
-                request.add_metadata("sub_execution_id", sub_execution_id)
             
             # Execute the sub-diagram and collect results
             execution_results, execution_error = await self._execute_sub_diagram(
@@ -107,34 +85,16 @@ class SingleSubDiagramExecutor:
                 parent_observers=filtered_observers
             )
             
-            # Handle execution error
-            if execution_error:
-                return DataOutput(
-                    value={"error": execution_error},
-                    node_id=node.id,
-                    metadata=json.dumps({
-                        "sub_execution_id": sub_execution_id,
-                        "status": "failed",
-                        "error": execution_error
-                    })
-                )
-            
-            # Process output mapping
-            output_value = self._process_output_mapping(node, execution_results)
-            
-            # Return success output
-            return DataOutput(
-                value=output_value,
-                node_id=node.id,
-                metadata=json.dumps({
-                    "sub_execution_id": sub_execution_id,
-                    "status": "completed",
-                    "execution_results": execution_results
-                })
+            # Build and return output
+            return self._build_node_output(
+                node=node,
+                sub_execution_id=sub_execution_id,
+                execution_results=execution_results,
+                execution_error=execution_error
             )
             
         except Exception as e:
-            log.error(f"Error executing sub-diagram node {node.id}: {e}", exc_info=True)
+            logger.error(f"Error executing sub-diagram node {node.id}: {e}", exc_info=True)
             return DataOutput(
                 value={"error": str(e)},
                 node_id=node.id,
@@ -144,50 +104,147 @@ class SingleSubDiagramExecutor:
                 })
             )
     
+    def _create_execution_use_case(
+        self,
+        request: ExecutionRequest[SubDiagramNode]
+    ) -> ExecuteDiagramUseCase:
+        """Create the execution use case with proper service registry."""
+        from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
+        
+        # Get service registry and container
+        service_registry = request.parent_registry
+        if not service_registry:
+            from dipeo.application.registry import ServiceKey, ServiceRegistry
+            service_registry = ServiceRegistry()
+            for service_name, service in request.services.items():
+                key = ServiceKey(service_name)
+                service_registry.register(key, service)
+        
+        container = request.parent_container
+        
+        return ExecuteDiagramUseCase(
+            service_registry=service_registry,
+            state_store=self._state_store,
+            message_router=self._message_router,
+            diagram_service=self._diagram_service,
+            container=container
+        )
+    
+    def _configure_observers(
+        self,
+        request: ExecutionRequest[SubDiagramNode],
+        sub_execution_id: str,
+        options: dict[str, Any]
+    ) -> list[Any]:
+        """Configure observers for sub-diagram execution."""
+        # Get parent observers if available
+        parent_observers = options.get("observers", [])
+        
+        # Filter observers based on their propagation settings
+        from dipeo.application.execution.observers.scoped_observer import create_scoped_observers
+        filtered_observers = create_scoped_observers(
+            observers=parent_observers,
+            parent_execution_id=request.execution_id,
+            sub_execution_id=sub_execution_id,
+            inherit_all=False  # Only inherit observers with propagate_to_sub=True
+        )
+        
+        # Log sub-diagram execution start
+        if request.metadata:
+            request.add_metadata("sub_execution_id", sub_execution_id)
+        
+        return filtered_observers
+    
+    def _build_node_output(
+        self,
+        node: SubDiagramNode,
+        sub_execution_id: str,
+        execution_results: dict[str, Any],
+        execution_error: str | None
+    ) -> DataOutput:
+        """Build the node output based on execution results."""
+        if execution_error:
+            return DataOutput(
+                value={"error": execution_error},
+                node_id=node.id,
+                metadata=json.dumps({
+                    "sub_execution_id": sub_execution_id,
+                    "status": "failed",
+                    "error": execution_error
+                })
+            )
+        
+        # Process output mapping
+        output_value = self._process_output_mapping(node, execution_results)
+        
+        # Return success output
+        return DataOutput(
+            value=output_value,
+            node_id=node.id,
+            metadata=json.dumps({
+                "sub_execution_id": sub_execution_id,
+                "status": "completed",
+                "execution_results": execution_results
+            })
+        )
+    
     def _is_sub_diagram_context(self, request: ExecutionRequest[SubDiagramNode]) -> bool:
         """Check if we're running in a sub-diagram context."""
-        is_sub_diagram = False
-        
-        # Primary detection: Check metadata for sub-diagram indicators
+        # Check metadata for sub-diagram indicators
         if request.metadata:
-            if request.metadata.get('parent_execution_id'):
-                is_sub_diagram = True
-            if request.metadata.get('is_sub_diagram'):
-                is_sub_diagram = True
+            if request.metadata.get('parent_execution_id') or request.metadata.get('is_sub_diagram'):
+                return True
         
-        # Secondary detection: Check context metadata if available
+        # Check context metadata if available
         if hasattr(request.context, 'metadata') and request.context.metadata:
-            if request.context.metadata.get('is_sub_diagram'):
-                is_sub_diagram = True
-            if request.context.metadata.get('parent_execution_id'):
-                is_sub_diagram = True
+            if request.context.metadata.get('is_sub_diagram') or request.context.metadata.get('parent_execution_id'):
+                return True
         
-        return is_sub_diagram
+        return False
     
-    async def _load_diagram(self, node: SubDiagramNode, diagram_service: Any) -> Any:
+    async def _load_diagram(self, node: SubDiagramNode) -> Any:
         """Load the diagram to execute as DomainDiagram."""
         # If diagram_data is provided directly, convert it to DomainDiagram
         if node.diagram_data:
-            # diagram_data is a dict that needs conversion
-            # Use the diagram service to convert it
-            if diagram_service:
-                import yaml
-                yaml_content = yaml.dump(node.diagram_data, default_flow_style=False, sort_keys=False)
-                return diagram_service.load_diagram(yaml_content)
-            else:
-                raise ValueError("Diagram service not available for conversion")
+            return await self._load_diagram_from_data(node.diagram_data)
         
         # Otherwise, load by name from storage
         if not node.diagram_name:
             raise ValueError("No diagram specified for execution")
         
-        if not diagram_service:
+        return await self._load_diagram_from_file(node)
+    
+    async def _load_diagram_from_data(self, diagram_data: dict[str, Any]) -> Any:
+        """Load diagram from inline data."""
+        if not self._diagram_service:
+            raise ValueError("Diagram service not available for conversion")
+        
+        import yaml
+        yaml_content = yaml.dump(diagram_data, default_flow_style=False, sort_keys=False)
+        return self._diagram_service.load_diagram(yaml_content)
+    
+    async def _load_diagram_from_file(self, node: SubDiagramNode) -> Any:
+        """Load diagram from file."""
+        if not self._diagram_service:
             raise ValueError("Diagram service not available")
         
         # Construct file path based on diagram name and format
-        diagram_name = node.diagram_name
-        format_suffix = ".light.yaml"  # Default format
+        file_path = self._construct_diagram_path(node)
         
+        try:
+            # Use diagram service to load the diagram - returns DomainDiagram
+            diagram = await self._diagram_service.load_from_file(file_path)
+            return diagram
+        except Exception as e:
+            logger.error(f"Error loading diagram from '{file_path}': {e!s}")
+            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {e!s}")
+    
+    def _construct_diagram_path(self, node: SubDiagramNode) -> str:
+        """Construct the file path for a diagram."""
+        diagram_name = node.diagram_name
+        
+        # Determine format suffix
+        format_suffix = ".light.yaml"  # Default format
         if node.diagram_format:
             format_map = {
                 'light': '.light.yaml',
@@ -198,32 +255,22 @@ class SingleSubDiagramExecutor:
         
         # Construct full file path
         if diagram_name.startswith('projects/'):
-            file_path = f"{diagram_name}{format_suffix}"
+            return f"{diagram_name}{format_suffix}"
         elif diagram_name.startswith('codegen/'):
-            file_path = f"files/{diagram_name}{format_suffix}"
+            return f"files/{diagram_name}{format_suffix}"
         else:
-            file_path = f"files/diagrams/{diagram_name}{format_suffix}"
-        
-        try:
-            # Use diagram service to load the diagram - returns DomainDiagram
-            diagram = await diagram_service.load_from_file(file_path)
-            return diagram
-            
-        except Exception as e:
-            log.error(f"Error loading diagram from '{file_path}': {str(e)}")
-            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {str(e)}")
+            return f"files/diagrams/{diagram_name}{format_suffix}"
     
-    def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> dict[str, Any]:
-        """Process output mapping from sub-diagram results."""
-        # Simple output - just return all results
+    def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> Any:
+        """Process output mapping from sub-diagram results.
+        
+        Returns the appropriate output based on endpoint nodes or the last output.
+        """
         if not execution_results:
             return {}
         
         # Find endpoint outputs
-        endpoint_outputs = {
-            k: v for k, v in execution_results.items() 
-            if k.startswith("endpoint") or k.startswith("end")
-        }
+        endpoint_outputs = self._find_endpoint_outputs(execution_results)
         
         if endpoint_outputs:
             # If there's one endpoint, return its value directly
@@ -234,6 +281,13 @@ class SingleSubDiagramExecutor:
         
         # No endpoints, return the last output
         return list(execution_results.values())[-1] if execution_results else {}
+    
+    def _find_endpoint_outputs(self, execution_results: dict[str, Any]) -> dict[str, Any]:
+        """Find endpoint node outputs in execution results."""
+        return {
+            k: v for k, v in execution_results.items() 
+            if k.startswith("endpoint") or k.startswith("end")
+        }
     
     def _create_sub_execution_id(self, parent_execution_id: str) -> str:
         """Create a unique execution ID for sub-diagram."""
@@ -246,12 +300,10 @@ class SingleSubDiagramExecutor:
         options: dict[str, Any],
         sub_execution_id: str,
         parent_observers: list[Any]
-    ) -> tuple[dict[str, Any], Optional[str]]:
+    ) -> tuple[dict[str, Any], str | None]:
         """Execute the sub-diagram and return results and any error."""
         execution_results = {}
         execution_error = None
-        
-        update_count = 0
         
         async for update in execute_use_case.execute_diagram(
             diagram=domain_diagram,
@@ -260,50 +312,59 @@ class SingleSubDiagramExecutor:
             interactive_handler=None,
             observers=parent_observers
         ):
-            update_count += 1
-            
             # Process execution updates
-            update_type = update.get("type", "")
+            result, error, should_break = self._process_execution_update(update, execution_results)
             
-            if update_type == "NODE_STATUS_CHANGED":
-                # Check if this is a node completion
-                data = update.get("data", {})
-                if data.get("status") == "COMPLETED":
-                    node_id = data.get("node_id")
-                    node_output = data.get("output")
-                    if node_id and node_output:
-                        execution_results[node_id] = node_output
+            if error:
+                execution_error = error
+                logger.error(f"Sub-diagram execution failed: {execution_error}")
             
-            elif update_type == "EXECUTION_STATUS_CHANGED":
-                # Check if execution is complete
-                data = update.get("data", {})
-                if data.get("status") == "COMPLETED":
-                    break
-                elif data.get("status") == "FAILED":
-                    execution_error = data.get("error")
-                    if not execution_error:
-                        # Try to get more context from the data
-                        execution_error = f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
-                    log.error(f"Sub-diagram execution failed: {execution_error}")
-                    break
-            
-            # Legacy support for old update types
-            elif update_type == "node_complete":
-                node_id = update.get("node_id")
-                node_output = update.get("output")
-                if node_id and node_output:
-                    execution_results[node_id] = node_output
-            
-            elif update_type == "execution_complete":
-                break
-            
-            elif update_type == "execution_error":
-                execution_error = update.get("error")
-                if not execution_error:
-                    # If no error message provided, try to get status for more context
-                    status = update.get("status", "unknown")
-                    execution_error = f"Execution failed with status: {status}"
-                log.error(f"Sub-diagram execution failed: {execution_error}")
+            if should_break:
                 break
         
         return execution_results, execution_error
+    
+    def _process_execution_update(
+        self,
+        update: dict[str, Any],
+        execution_results: dict[str, Any]
+    ) -> tuple[dict | None, str | None, bool]:
+        """Process a single execution update.
+        
+        Returns: (result, error, should_break)
+        """
+        update_type = update.get("type", "")
+        
+        if update_type == "NODE_STATUS_CHANGED":
+            data = update.get("data", {})
+            if data.get("status") == "COMPLETED":
+                node_id = data.get("node_id")
+                node_output = data.get("output")
+                if node_id and node_output:
+                    execution_results[node_id] = node_output
+                    return {node_id: node_output}, None, False
+        
+        elif update_type == "EXECUTION_STATUS_CHANGED":
+            data = update.get("data", {})
+            if data.get("status") == "COMPLETED":
+                return None, None, True
+            elif data.get("status") == "FAILED":
+                error = data.get("error") or f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
+                return None, error, True
+        
+        # Legacy support for old update types
+        elif update_type == "node_complete":
+            node_id = update.get("node_id")
+            node_output = update.get("output")
+            if node_id and node_output:
+                execution_results[node_id] = node_output
+                return {node_id: node_output}, None, False
+        
+        elif update_type == "execution_complete":
+            return None, None, True
+        
+        elif update_type == "execution_error":
+            error = update.get("error") or f"Execution failed with status: {update.get('status', 'unknown')}"
+            return None, error, True
+        
+        return None, None, False

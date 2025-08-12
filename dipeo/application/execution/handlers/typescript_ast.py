@@ -24,7 +24,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         The TypeScript parser service will be injected via the service registry
         during execution, following the DI pattern.
         """
-        pass
+        # Instance variables for passing data between methods
+        self._current_debug = None
     
     @property
     def node_class(self) -> type[TypescriptAstNode]:
@@ -47,15 +48,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         return "Parses TypeScript source code and extracts AST, interfaces, types, and enums"
     
     def validate(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[str]:
-        """Validate the TypeScript AST parser configuration."""
+        """Validate the TypeScript AST parser configuration - static checks only."""
         node = request.node
         
-        # Only validate static configuration, not input data
-        # Input validation will happen during execute_request
-        # Add debug logging
-        import logging
-        logger = logging.getLogger(__name__)
-
         # Validate extract patterns
         if node.extractPatterns:
             valid_patterns = {'interface', 'type', 'enum', 'class', 'function', 'const', 'export'}
@@ -66,6 +61,22 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Validate parse mode
         if node.parseMode and node.parseMode not in ['module', 'script']:
             return f"Invalid parse mode: {node.parseMode}. Must be 'module' or 'script'"
+        
+        return None
+    
+    async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[NodeOutputProtocol]:
+        """Runtime validation and setup."""
+        # Set debug flag for later use
+        self._current_debug = False  # Will be set based on context if needed
+        
+        # Check parser service availability
+        parser_service = request.get_service("ast_parser")
+        if not parser_service:
+            return ErrorOutput(
+                value="TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
+                node_id=request.node.id,
+                error_type="ServiceError"
+            )
         
         return None
     
@@ -97,12 +108,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             
             # Get TypeScript parser from services using DI pattern
             parser_service = request.get_service("ast_parser")
-            if not parser_service:
-                return ErrorOutput(
-                    value="TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
-                    node_id=node.id,
-                    error_type="ServiceError"
-                )
             
             # Parse the TypeScript code using the parser service
             try:
@@ -202,8 +207,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
         """Post-execution hook to log parsing statistics."""
-        # Log execution details if in debug mode
-        if request.metadata.get("debug") and isinstance(output, DataOutput):
+        # Log execution details if in debug mode (using instance variable)
+        if self._current_debug and isinstance(output, DataOutput):
             # Extract counts from the actual output data if available
             if isinstance(output.value, dict):
                 stats = []

@@ -19,7 +19,12 @@ if TYPE_CHECKING:
 class StartNodeHandler(TypedNodeHandler[StartNode]):
     
     def __init__(self):
-        pass
+        # Instance variables for passing data between methods
+        self._current_trigger_mode = None
+        self._current_hook_event = None
+        self._current_hook_filters = None
+        self._current_state_store = None
+        self._current_input_variables = None
 
     @property
     def node_class(self) -> type[StartNode]:
@@ -42,6 +47,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         return ["state_store"]
 
     def validate(self, request: ExecutionRequest[StartNode]) -> Optional[str]:
+        """Static validation - structural checks only"""
         node = request.node
         
         if node.trigger_mode == HookTriggerMode.HOOK:
@@ -50,47 +56,55 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[StartNode]) -> NodeOutputProtocol:
+    async def pre_execute(self, request: ExecutionRequest[StartNode]) -> Optional[NodeOutputProtocol]:
+        """Runtime validation and setup"""
         node = request.node
-        context = request.context
-        request.add_metadata("trigger_mode", node.trigger_mode)
-        request.add_metadata("hook_event", node.hook_event)
-        request.add_metadata("hook_filters", node.hook_filters)
         
-        input_variables = {}
+        # Extract configuration
+        self._current_trigger_mode = node.trigger_mode or HookTriggerMode.NONE
+        self._current_hook_event = node.hook_event
+        self._current_hook_filters = node.hook_filters
         
+        # Get state store service
+        self._current_state_store = request.services.resolve(STATE_STORE)
+        
+        # Get input variables from execution state
+        self._current_input_variables = {}
         execution_id = None
         if request.execution_id:
             execution_id = request.execution_id
         elif request.runtime and hasattr(request.runtime, 'execution_id'):
             execution_id = request.runtime.execution_id
         
-        if execution_id:
-            state_store = request.services.resolve(STATE_STORE)
-            if state_store:
-                execution_state = await state_store.get_state(execution_id)
-                if execution_state and execution_state.variables:
-                    input_variables = execution_state.variables
+        if execution_id and self._current_state_store:
+            execution_state = await self._current_state_store.get_state(execution_id)
+            if execution_state and execution_state.variables:
+                self._current_input_variables = execution_state.variables
         
-        trigger_mode = node.trigger_mode or HookTriggerMode.NONE
+        return None
+    
+    async def execute_request(self, request: ExecutionRequest[StartNode]) -> NodeOutputProtocol:
+        """Pure execution using instance variables"""
+        node = request.node
+        context = request.context
         
-        if trigger_mode == HookTriggerMode.NONE:
-            if input_variables and 'default' in input_variables:
+        if self._current_trigger_mode == HookTriggerMode.NONE:
+            if self._current_input_variables and 'default' in self._current_input_variables:
                 return DataOutput(
-                    value=input_variables,
+                    value=self._current_input_variables,
                     node_id=node.id,
                     metadata=json.dumps({"message": "Simple start point"})
                 )
             else:
-                output_data = input_variables if input_variables else {}
+                output_data = self._current_input_variables if self._current_input_variables else {}
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
                     metadata=json.dumps({"message": "Simple start point"})
                 )
         
-        elif trigger_mode == HookTriggerMode.MANUAL:
-            output_data = {**input_variables, **(node.custom_data or {})}
+        elif self._current_trigger_mode == HookTriggerMode.MANUAL:
+            output_data = {**self._current_input_variables, **(node.custom_data or {})}
             
             return DataOutput(
                 value={"default": output_data},
@@ -98,18 +112,18 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                 metadata=json.dumps({"message": "Manual execution started"})
             )
         
-        elif trigger_mode == HookTriggerMode.HOOK:
+        elif self._current_trigger_mode == HookTriggerMode.HOOK:
             hook_data = await self._get_hook_event_data(node, context, request.services)
             
             if hook_data:
-                output_data = {**input_variables, **(node.custom_data or {}), **hook_data}
+                output_data = {**self._current_input_variables, **(node.custom_data or {}), **hook_data}
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
-                    metadata=json.dumps({"message": f"Triggered by hook event: {node.hook_event}"})
+                    metadata=json.dumps({"message": f"Triggered by hook event: {self._current_hook_event}"})
                 )
             else:
-                output_data = {**input_variables, **(node.custom_data or {})}
+                output_data = {**self._current_input_variables, **(node.custom_data or {})}
                 return DataOutput(
                     value={"default": output_data},
                     node_id=node.id,
@@ -130,7 +144,8 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         request: ExecutionRequest[StartNode],
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
-        if request.metadata.get("debug"):
-            print(f"[StartNode] Executed with trigger mode: {request.metadata.get('trigger_mode')}")
+        # Debug logging without using request.metadata
+        if self._current_trigger_mode:
+            print(f"[StartNode] Executed with trigger mode: {self._current_trigger_mode}")
         
         return output

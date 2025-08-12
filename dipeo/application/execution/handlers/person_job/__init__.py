@@ -45,6 +45,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         # Initialize executors
         self.single_executor = SinglePersonJobExecutor(self._person_cache)
         self.batch_executor = BatchPersonJobExecutor(self._person_cache)
+        
+        # Instance variable for debug flag
+        self._current_debug = False
+        
+        # Services for executors (will be set in pre_execute)
+        self._services_configured = False
 
     @property
     def node_class(self) -> type[PersonJobNode]:
@@ -88,9 +94,40 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         return None
     
     async def pre_execute(self, request: ExecutionRequest[PersonJobNode]) -> Optional[NodeOutputProtocol]:
-        """Pre-execution hook to check max_iteration limit."""
+        """Pre-execution hook to check max_iteration limit and configure services."""
         node = request.node
         context = request.context
+        
+        # Set debug flag for later use (could be from context or environment)
+        self._current_debug = False  # Will be set based on context if needed
+        
+        # Configure services for executors on first execution
+        if not self._services_configured:
+            from dipeo.application.registry import (
+                LLM_SERVICE,
+                DIAGRAM,
+                CONVERSATION_MANAGER,
+                PROMPT_BUILDER,
+                FILESYSTEM_ADAPTER
+            )
+            
+            llm_service = request.services.resolve(LLM_SERVICE)
+            diagram = request.services.resolve(DIAGRAM)
+            conversation_manager = request.services.resolve(CONVERSATION_MANAGER)
+            prompt_builder = request.services.resolve(PROMPT_BUILDER)
+            filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
+            
+            # Set services on executors
+            self.single_executor.set_services(
+                llm_service=llm_service,
+                diagram=diagram,
+                conversation_manager=conversation_manager,
+                prompt_builder=prompt_builder,
+                filesystem_adapter=filesystem_adapter
+            )
+            
+            # BatchExecutor uses SingleExecutor internally, so it inherits the services
+            self._services_configured = True
         
         # Check if we've reached max_iteration BEFORE executing
         execution_count = context.get_node_execution_count(node.id)
@@ -161,8 +198,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
         """Post-execution hook to log execution details."""
-        # Log execution details if in debug mode
-        if request.metadata and request.metadata.get("debug"):
+        # Log execution details if in debug mode (using instance variable)
+        if self._current_debug:
             is_batch = getattr(request.node, 'batch', False)
             if is_batch:
                 batch_info = output.value if hasattr(output, 'value') else {}

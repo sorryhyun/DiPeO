@@ -10,6 +10,7 @@ from dipeo.domain.ports.storage import FileSystemPort
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, TemplateJobOutput
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
@@ -80,7 +81,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         services = request.services
         
         # Get filesystem adapter from services or use injected one
-        filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
+        filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
             return ErrorOutput(
                 value="Filesystem adapter is required for template job execution",

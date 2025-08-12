@@ -11,7 +11,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
-from dipeo.core.execution.node_output import ConditionOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import ConditionOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
 
 from .evaluators import (
@@ -37,6 +37,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "check_nodes_executed": NodesExecutedEvaluator(),
             "custom": CustomExpressionEvaluator(),
         }
+        # Instance variables for passing data between methods
+        self._current_evaluator = None
+        self._current_diagram = None
 
     @property
     def node_class(self) -> type[ConditionNode]:
@@ -89,14 +92,12 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Validate diagram service is available
         diagram = request.get_service(DIAGRAM.name)
         if not diagram:
-            return ConditionOutput(
-                value=False,
+            return ErrorOutput(
+                value="Diagram service not available",
                 node_id=node.id,
-                true_output=None,
-                false_output=request.inputs if request.inputs else {},
+                error_type="ServiceError",
                 metadata=json.dumps({
-                    "condition_type": condition_type,
-                    "error": "Diagram service not available"
+                    "condition_type": condition_type
                 })
             )
         
@@ -104,21 +105,18 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         evaluator = self._evaluators.get(condition_type)
         if not evaluator:
             logger.error(f"No evaluator found for condition type: {condition_type}")
-            return ConditionOutput(
-                value=False,
+            return ErrorOutput(
+                value=f"No evaluator for condition type: {condition_type}",
                 node_id=node.id,
-                true_output=None,
-                false_output=request.inputs if request.inputs else {},
+                error_type="ConfigurationError",
                 metadata=json.dumps({
-                    "condition_type": condition_type,
-                    "error": f"No evaluator for condition type: {condition_type}"
+                    "condition_type": condition_type
                 })
             )
         
-        # Store evaluator and diagram in metadata for execute_request
-        request.metadata = request.metadata or {}
-        request.metadata['evaluator'] = evaluator
-        request.metadata['diagram'] = diagram
+        # Store evaluator and diagram in instance variables for execute_request
+        self._current_evaluator = evaluator
+        self._current_diagram = diagram
         
         # No early return - proceed to execute_request
         return None
@@ -128,16 +126,17 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         context = request.context
         inputs = request.inputs
         
-        # Get evaluator and diagram from metadata (set in pre_execute)
-        evaluator = request.metadata.get('evaluator')
-        diagram = request.metadata.get('diagram')
+        # Use evaluator and diagram from instance variables (set in pre_execute)
+        evaluator = self._current_evaluator
+        diagram = self._current_diagram
         
         # Execute evaluation with pre-selected evaluator
         eval_result = await evaluator.evaluate(node, context, diagram, inputs)
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
         
-        request.add_metadata("evaluation_metadata", eval_result["metadata"])
+        # Store evaluation metadata in instance variable instead of request.metadata
+        self._current_evaluation_metadata = eval_result["metadata"]
         
         true_output = output_value.get("condtrue") if result else None
         false_output = output_value.get("condfalse") if not result else None
@@ -154,10 +153,10 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             true_output=true_output,
             false_output=false_output
         )
-        # Set metadata as JSON string
+        # Set metadata as JSON string using instance variable
         output.metadata = json.dumps({
             "condition_type": node.condition_type,
-            "evaluation_metadata": request.metadata.get("evaluation_metadata", {})
+            "evaluation_metadata": self._current_evaluation_metadata
         })
         return output
     
@@ -166,14 +165,13 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         request: ExecutionRequest[ConditionNode],
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
-        if request.metadata.get("debug"):
-            condition_type = request.node.condition_type
-            result = output.value if hasattr(output, 'value') else None
-            print(f"[ConditionNode] Evaluated {condition_type} condition - Result: {result}")
-            
-            eval_metadata = output.metadata.get("evaluation_metadata") if hasattr(output, 'metadata') else None
-            if eval_metadata:
-                print(f"[ConditionNode] Evaluation details: {eval_metadata}")
+        # Debug logging without using request.metadata
+        condition_type = request.node.condition_type
+        result = output.value if hasattr(output, 'value') else None
+        print(f"[ConditionNode] Evaluated {condition_type} condition - Result: {result}")
+        
+        if self._current_evaluation_metadata:
+            print(f"[ConditionNode] Evaluation details: {self._current_evaluation_metadata}")
         
         return output
     

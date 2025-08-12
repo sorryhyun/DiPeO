@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         ASTParserPort,
         IntegratedApiServicePort,
     )
+    from dipeo.domain.ports.storage import FileSystemPort
     from dipeo.core.events import EventEmitter
     from dipeo.application.services import (
         ConversationManagerImpl,

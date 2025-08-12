@@ -8,8 +8,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
@@ -62,9 +63,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         # Check filesystem adapter availability if saving is enabled
         if node.save_to_file:
-            from dipeo.application.registry import ServiceKey
-            fs_key = ServiceKey("filesystem_adapter")
-            filesystem_adapter = self.filesystem_adapter or services.get(fs_key)
+            filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
             
             if not filesystem_adapter:
                 from dipeo.core.execution.node_output import ErrorOutput
@@ -148,10 +147,12 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                         metadata=json.dumps({"saved_to": file_name})
                     )
                 except Exception as exc:
-                    return DataOutput(
-                        value={"default": result_data},
+                    # Return error when save fails
+                    return ErrorOutput(
+                        value=f"Failed to save to file {file_name}: {str(exc)}",
                         node_id=node.id,
-                        metadata=json.dumps({"save_error": str(exc)})
+                        error_type="SaveError",
+                        metadata=json.dumps({"attempted_file": file_name})
                     )
 
         return DataOutput(

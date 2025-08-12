@@ -12,6 +12,7 @@ from dipeo.domain.ports.storage import FileSystemPort
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
@@ -107,9 +108,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     error_type="MissingFilePath"
                 )
             # Get filesystem adapter for file hooks
-            from dipeo.application.registry import ServiceKey
-            fs_key = ServiceKey("filesystem_adapter")
-            filesystem_adapter = self.filesystem_adapter or request.services.get(fs_key)
+            filesystem_adapter = self.filesystem_adapter or request.services.resolve(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
                 return ErrorOutput(
                     value="Filesystem adapter is required for file hooks",

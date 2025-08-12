@@ -4,48 +4,45 @@ This executor treats sub-diagrams as running "inside" the parent node,
 without creating separate execution contexts or state persistence.
 """
 
-from typing import TYPE_CHECKING, Any, Optional
 import json
 import logging
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
-from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
+from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, TokenUsage
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
-from dipeo.diagram_generated import ExecutionState, Status, NodeState, NodeID, DomainDiagram, TokenUsage, ExecutionID
 from dipeo.infrastructure.events import NullEventBus
-from dipeo.application.registry.keys import PREPARE_DIAGRAM_USE_CASE
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class LightweightSubDiagramExecutor:
     """Executes sub-diagrams without state persistence, treating them as internal node operations."""
+    
+    def __init__(self):
+        """Initialize executor."""
+        # Services will be set by the handler
+        self._prepare_use_case = None
+        self._diagram_service = None
+    
+    def set_services(self, prepare_use_case, diagram_service):
+        """Set services for the executor to use."""
+        self._prepare_use_case = prepare_use_case
+        self._diagram_service = diagram_service
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute a sub-diagram in lightweight mode without state persistence."""
         node = request.node
         
         try:
-            # Get the prepare diagram use case from the registry
-            prepare_use_case = request.services.resolve(PREPARE_DIAGRAM_USE_CASE)
-            if not prepare_use_case:
-                # Fallback to old implementation if service not available
-                log.warning("PrepareDiagramForExecutionUseCase not found, using fallback implementation")
-                diagram_data = await self._load_diagram_fallback(node, request)
-                executable_diagram = await self._compile_diagram_fallback(diagram_data)
-            else:
-                # Use the prepare use case for loading and compilation
-                diagram_input = await self._get_diagram_input(node, request)
-                executable_diagram = await prepare_use_case.prepare_for_execution(
-                    diagram=diagram_input,
-                    validate=False  # Skip validation for lightweight execution
-                )
+            # Load and compile the diagram
+            executable_diagram = await self._prepare_diagram(node, request)
             
             # Create minimal in-memory execution state
             execution_state = self._create_in_memory_state(
@@ -60,21 +57,14 @@ class LightweightSubDiagramExecutor:
                 request=request
             )
             
-            # Process output mapping
-            output_value = self._process_output_mapping(node, execution_results)
-            
-            # Return output
-            return DataOutput(
-                value=output_value,
-                node_id=node.id,
-                metadata=json.dumps({
-                    "execution_mode": "lightweight",
-                    "status": "completed"
-                })
+            # Build and return output
+            return self._build_node_output(
+                node=node,
+                execution_results=execution_results
             )
             
         except Exception as e:
-            log.error(f"Error in lightweight sub-diagram execution for node {node.id}: {e}", exc_info=True)
+            logger.error(f"Error in lightweight sub-diagram execution for node {node.id}: {e}", exc_info=True)
             return DataOutput(
                 value={"error": str(e)},
                 node_id=node.id,
@@ -85,7 +75,22 @@ class LightweightSubDiagramExecutor:
                 })
             )
     
-    async def _get_diagram_input(self, node: SubDiagramNode, request: ExecutionRequest) -> Any:
+    async def _prepare_diagram(self, node: SubDiagramNode, request: ExecutionRequest) -> "ExecutableDiagram":
+        """Prepare the diagram for execution (load and compile)."""
+        if self._prepare_use_case:
+            # Use the prepare use case for loading and compilation
+            diagram_input = await self._get_diagram_input(node)
+            return await self._prepare_use_case.prepare_for_execution(
+                diagram=diagram_input,
+                validate=False  # Skip validation for lightweight execution
+            )
+        else:
+            # Fallback to old implementation if service not available
+            logger.warning("PrepareDiagramForExecutionUseCase not found, using fallback implementation")
+            diagram_data = await self._load_diagram_fallback(node)
+            return await self._compile_diagram_fallback(diagram_data)
+    
+    async def _get_diagram_input(self, node: SubDiagramNode) -> Any:
         """Get the diagram input for preparation.
         
         Returns either diagram_data dict, a DomainDiagram, or a string ID/path.
@@ -98,43 +103,24 @@ class LightweightSubDiagramExecutor:
         if not node.diagram_name:
             raise ValueError("No diagram specified for execution")
         
-        diagram_name = node.diagram_name
-        format_suffix = ".light.yaml"  # Default format
+        # Construct file path
+        file_path = self._construct_diagram_path(node)
         
-        if node.diagram_format:
-            format_map = {
-                'light': '.light.yaml',
-                'native': '.native.json',
-                'readable': '.readable.yaml'
-            }
-            format_suffix = format_map.get(node.diagram_format, '.light.yaml')
-        
-        # Construct full file path
-        if diagram_name.startswith('projects/'):
-            file_path = f"{diagram_name}{format_suffix}"
-        elif diagram_name.startswith('codegen/'):
-            file_path = f"files/{diagram_name}{format_suffix}"
+        # Try to load using diagram service if available
+        if self._diagram_service:
+            try:
+                # Load the diagram - this returns a DomainDiagram
+                diagram = await self._diagram_service.load_from_file(file_path)
+                return diagram
+            except Exception as e:
+                logger.error(f"Error loading diagram from '{file_path}': {e!s}")
+                # Return the path and let prepare use case try to load it
+                return file_path
         else:
-            file_path = f"files/diagrams/{diagram_name}{format_suffix}"
-        
-        # Load the diagram using the diagram service
-        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
-        diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
-        
-        if not diagram_service:
             # Return the path and let the prepare use case handle loading
             return file_path
-        
-        try:
-            # Load the diagram - this returns a DomainDiagram
-            diagram = await diagram_service.load_from_file(file_path)
-            return diagram
-        except Exception as e:
-            log.error(f"Error loading diagram from '{file_path}': {str(e)}")
-            # Return the path and let prepare use case try to load it
-            return file_path
     
-    async def _load_diagram_fallback(self, node: SubDiagramNode, request: ExecutionRequest) -> Any:
+    async def _load_diagram_fallback(self, node: SubDiagramNode) -> Any:
         """Fallback diagram loading (old implementation)."""
         # If diagram_data is provided directly, use it
         if node.diagram_data:
@@ -144,16 +130,26 @@ class LightweightSubDiagramExecutor:
         if not node.diagram_name:
             raise ValueError("No diagram specified for execution")
         
-        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
-        diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
-        
-        if not diagram_service:
+        if not self._diagram_service:
             raise ValueError("Diagram service not available")
         
-        # Construct file path based on diagram name and format
-        diagram_name = node.diagram_name
-        format_suffix = ".light.yaml"  # Default format
+        # Construct file path
+        file_path = self._construct_diagram_path(node)
         
+        try:
+            # Load the diagram - this returns a DomainDiagram
+            diagram = await self._diagram_service.load_from_file(file_path)
+            return diagram
+        except Exception as e:
+            logger.error(f"Error loading diagram from '{file_path}': {e!s}")
+            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {e!s}")
+    
+    def _construct_diagram_path(self, node: SubDiagramNode) -> str:
+        """Construct the file path for a diagram."""
+        diagram_name = node.diagram_name
+        
+        # Determine format suffix
+        format_suffix = ".light.yaml"  # Default format
         if node.diagram_format:
             format_map = {
                 'light': '.light.yaml',
@@ -164,19 +160,11 @@ class LightweightSubDiagramExecutor:
         
         # Construct full file path
         if diagram_name.startswith('projects/'):
-            file_path = f"{diagram_name}{format_suffix}"
+            return f"{diagram_name}{format_suffix}"
         elif diagram_name.startswith('codegen/'):
-            file_path = f"files/{diagram_name}{format_suffix}"
+            return f"files/{diagram_name}{format_suffix}"
         else:
-            file_path = f"files/diagrams/{diagram_name}{format_suffix}"
-        
-        try:
-            # Load the diagram - this returns a DomainDiagram
-            diagram = await diagram_service.load_from_file(file_path)
-            return diagram
-        except Exception as e:
-            log.error(f"Error loading diagram from '{file_path}': {str(e)}")
-            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {str(e)}")
+            return f"files/diagrams/{diagram_name}{format_suffix}"
     
     async def _compile_diagram_fallback(self, diagram_data: Any) -> "ExecutableDiagram":
         """Fallback diagram compilation (old implementation)."""
@@ -241,8 +229,8 @@ class LightweightSubDiagramExecutor:
         request: ExecutionRequest
     ) -> dict[str, Any]:
         """Run the execution engine without observers or state persistence."""
-        from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
+        from dipeo.application.execution.typed_engine import TypedExecutionEngine
         
         # Create a minimal runtime resolver
         runtime_resolver = StandardRuntimeResolver()
@@ -268,32 +256,68 @@ class LightweightSubDiagramExecutor:
             container=request.parent_container,
             interactive_handler=None
         ):
-            # The engine yields step results
-            if update.get("type") == "step_complete":
-                # After each step, check for completed nodes and collect outputs
-                for node_id_str, node_state in execution_state.node_states.items():
-                    if node_state.status == Status.COMPLETED and node_state.output:
-                        if node_id_str not in execution_results:
-                            execution_results[node_id_str] = node_state.output
+            # Process updates and collect outputs
+            self._process_execution_update(update, execution_state, execution_results)
         
-        # Also collect any remaining outputs after execution completes
+        # Collect any remaining outputs after execution completes
+        self._collect_final_outputs(execution_state, execution_results)
+        
+        return execution_results
+    
+    def _process_execution_update(
+        self,
+        update: dict[str, Any],
+        execution_state: ExecutionState,
+        execution_results: dict[str, Any]
+    ) -> None:
+        """Process execution updates and collect completed outputs."""
+        if update.get("type") == "step_complete":
+            # After each step, check for completed nodes and collect outputs
+            for node_id_str, node_state in execution_state.node_states.items():
+                if node_state.status == Status.COMPLETED and node_state.output:
+                    if node_id_str not in execution_results:
+                        execution_results[node_id_str] = node_state.output
+    
+    def _collect_final_outputs(
+        self,
+        execution_state: ExecutionState,
+        execution_results: dict[str, Any]
+    ) -> None:
+        """Collect any remaining outputs after execution completes."""
         for node_id_str, node_state in execution_state.node_states.items():
             if node_state.status == Status.COMPLETED and node_state.output:
                 if node_id_str not in execution_results:
                     execution_results[node_id_str] = node_state.output
-        
-        return execution_results
     
-    def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> dict[str, Any]:
-        """Process output mapping from sub-diagram results."""
+    def _build_node_output(
+        self,
+        node: SubDiagramNode,
+        execution_results: dict[str, Any]
+    ) -> DataOutput:
+        """Build the node output based on execution results."""
+        # Process output mapping
+        output_value = self._process_output_mapping(node, execution_results)
+        
+        # Return output
+        return DataOutput(
+            value=output_value,
+            node_id=node.id,
+            metadata=json.dumps({
+                "execution_mode": "lightweight",
+                "status": "completed"
+            })
+        )
+    
+    def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> Any:
+        """Process output mapping from sub-diagram results.
+        
+        Returns the appropriate output based on endpoint nodes or the last output.
+        """
         if not execution_results:
             return {}
         
         # Find endpoint outputs
-        endpoint_outputs = {
-            k: v for k, v in execution_results.items() 
-            if k.startswith("endpoint") or k.startswith("end")
-        }
+        endpoint_outputs = self._find_endpoint_outputs(execution_results)
         
         if endpoint_outputs:
             # If there's one endpoint, return its value directly
@@ -304,3 +328,10 @@ class LightweightSubDiagramExecutor:
         
         # No endpoints, return the last output
         return list(execution_results.values())[-1] if execution_results else {}
+    
+    def _find_endpoint_outputs(self, execution_results: dict[str, Any]) -> dict[str, Any]:
+        """Find endpoint node outputs in execution results."""
+        return {
+            k: v for k, v in execution_results.items() 
+            if k.startswith("endpoint") or k.startswith("end")
+        }
