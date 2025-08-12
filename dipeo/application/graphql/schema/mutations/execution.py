@@ -42,7 +42,9 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 from dipeo.diagram_generated import DomainDiagram
                 
                 domain_diagram = None
+                diagram_source_path = None  # Track the original source path
                 if input.diagram_id:
+                    diagram_source_path = input.diagram_id  # Store the original path
                     # Load diagram model by ID
                     if hasattr(integrated_service, 'get_diagram_model'):
                         domain_diagram = await integrated_service.get_diagram_model(input.diagram_id)
@@ -97,6 +99,10 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                     "max_iterations": input.max_iterations or 100,
                     "timeout_seconds": input.timeout_seconds or 3600,
                 }
+                
+                # Add diagram source path if available
+                if diagram_source_path:
+                    options["diagram_source_path"] = diagram_source_path
                 
                 # Generate execution ID
                 from dipeo.diagram_generated.domain_models import ExecutionID

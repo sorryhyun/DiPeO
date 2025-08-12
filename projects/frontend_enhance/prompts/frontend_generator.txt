@@ -1,66 +1,26 @@
-You are an expert frontend developer specializing in modern web applications.
+You are using the generated prompt to create frontend code. Your task is to generate code exactly as the prompt instructs.
 
-Generate complete, production-ready frontend code based on the following requirements:
+===== GENERATED PROMPT TO USE =====
+{{generated_prompt}}
+===== END OF PROMPT =====
 
-## Application Details
-- **Type**: {{app_type}}
-- **Framework**: {{framework}}
-- **Styling**: {{styling_approach}}
-- **Features**: {{features}}
-- **Target Audience**: {{target_audience}}
+Configuration:
+- Target Framework: {{config.target_framework}}
+- Prompt Type: {{config.prompt_type}}
 
-## Technical Requirements
+IMPORTANT: Follow the generated prompt above EXACTLY to generate the frontend code.
 
-### Core Implementation
-- Use {{framework}} with best practices
-- Implement {{styling_approach}} for styling
-- Ensure fully responsive design (mobile-first)
-- Follow accessibility standards (WCAG 2.1 AA)
-- Include proper SEO meta tags
+Generate a complete, realistic example that demonstrates:
+1. How well the prompt guides code generation
+2. The quality of code that results from following the prompt
+3. Any ambiguities or gaps in the prompt instructions
 
-### Code Quality Standards
-- Clean, modular component structure
-- Proper state management
-- Error handling and edge cases
-- Loading states and feedback
-- Type safety (TypeScript if applicable)
+The generated code should be:
+- A realistic component/feature that would be used in production
+- Complete with all imports and dependencies
+- Following the framework's best practices
+- Properly typed (if using TypeScript)
+- Including appropriate error handling
+- Well-structured and maintainable
 
-### Performance Targets
-- Lighthouse score > 90
-- First Contentful Paint < 1.5s
-- Time to Interactive < 3.5s
-- Bundle size optimization
-
-### Features to Include
-{{#each features}}
-- {{this}}
-{{/each}}
-
-## Output Format
-
-Generate:
-1. **Complete application code** (single file or structured files)
-2. **All necessary components**
-3. **Styling and animations**
-4. **Interactive functionality**
-5. **Comments for complex logic**
-
-### File Structure (if multi-file):
-```
-/src
-  /components
-  /styles
-  /utils
-  /hooks (if React)
-  /stores (if state management)
-index.html or App.tsx
-```
-
-### Code Requirements:
-- Production-ready (no TODOs or placeholders)
-- Proper error boundaries
-- Responsive across all devices
-- Cross-browser compatible
-- Optimized for performance
-
-Return the complete code in properly formatted markdown code blocks with appropriate language tags.
+Output the complete code implementation that results from following the generated prompt.

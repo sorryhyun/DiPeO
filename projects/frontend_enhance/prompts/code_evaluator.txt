@@ -1,0 +1,68 @@
+Evaluate the quality of the generated frontend code and provide feedback on how to improve the prompt that generated it.
+
+===== ORIGINAL PROMPT =====
+{{generated_prompt}}
+===== END PROMPT =====
+
+===== GENERATED CODE =====
+{{generated_code}}
+===== END CODE =====
+
+Framework: {{config.target_framework}}
+Target Score: {{config.target_score}}/100
+
+## Evaluation Criteria
+
+Evaluate the generated code against these criteria:
+
+### 1. Code Correctness (25 points)
+- Does the code compile/run without errors?
+- Are imports and dependencies correct?
+- Is the logic implemented correctly?
+- Are there any obvious bugs or issues?
+
+### 2. Best Practices (25 points)
+- Does it follow {{config.target_framework}} best practices?
+- Is the component structure appropriate?
+- Is state management handled properly?
+- Are hooks/lifecycle methods used correctly?
+
+### 3. Code Quality (25 points)
+- Is the code clean and maintainable?
+- Is it properly typed (if TypeScript)?
+- Is error handling implemented?
+- Are edge cases considered?
+- Is the code DRY (Don't Repeat Yourself)?
+
+### 4. Production Readiness (25 points)
+- Is the code performant?
+- Is it accessible (a11y)?
+- Is it responsive?
+- Would this code be acceptable in a production codebase?
+- Are there security considerations handled?
+
+## Required Analysis
+
+1. **Code Quality Assessment**: Analyze each criterion above
+2. **Prompt Effectiveness**: How well did the prompt guide the code generation?
+3. **Prompt Gaps**: What important instructions were missing from the prompt?
+4. **Improvement Suggestions**: Specific changes to make the prompt generate better code
+
+## Output Format
+
+Score: [NUMBER]/100
+Status: [production ready/needs improvement]
+
+### Code Quality Analysis
+[Detailed evaluation of the generated code]
+
+### Prompt Effectiveness
+[How well the prompt guided the generation]
+
+### Prompt Improvements Needed
+[Specific suggestions to improve the prompt to generate better code]
+
+### Critical Issues to Address
+[Any major problems that must be fixed in the prompt]
+
+IMPORTANT: Focus your feedback on how to improve the PROMPT to generate better code, not just on the code itself.

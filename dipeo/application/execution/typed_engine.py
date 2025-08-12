@@ -301,14 +301,21 @@ class TypedExecutionEngine:
                 # Resolve inputs
                 inputs = context.resolve_node_inputs(node)
                 
-                # Create ExecutionRequest
+                # Create ExecutionRequest with diagram metadata
                 from dipeo.application.execution.execution_request import ExecutionRequest
+                
+                # Include diagram metadata in request metadata
+                request_metadata = {}
+                if hasattr(context.diagram, 'metadata') and context.diagram.metadata:
+                    request_metadata['diagram_source_path'] = context.diagram.metadata.get('diagram_source_path')
+                    request_metadata['diagram_id'] = context.diagram.metadata.get('diagram_id')
+                
                 request = ExecutionRequest(
                     node=node,
                     context=context,  # Pass the context directly
                     inputs=inputs,
                     services=self.service_registry,
-                    metadata={},
+                    metadata=request_metadata,
                     execution_id=context.execution_id,
                     parent_container=context.container,
                     parent_registry=self.service_registry

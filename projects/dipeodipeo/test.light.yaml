@@ -41,35 +41,8 @@ nodes:
     position: {x: 700, y: 200}
     props:
       language: python
-      code: |
-        import yaml
-        from datetime import datetime
-
-        # Extract the complete diagram YAML string from response
-        diagram_yaml_string = generated_diagram['output'][1]['content'][0]['text']
-        
-        # Parse the YAML string to extract metadata
-        diagram_dict = yaml.safe_load(diagram_yaml_string)
-        
-        # Generate filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        diagram_name = diagram_dict.get('name', 'data_pipeline')
-        filename = f"projects/dipeodipeo/generated/{diagram_name}_{timestamp}.light.yaml"
-        
-        # Count nodes and connections for info display
-        node_count = len(diagram_dict.get('nodes', []))
-        connection_count = len(diagram_dict.get('connections', []))
-        
-        result = {
-            "yaml_content": diagram_yaml_string,  # The raw YAML string to save
-            "filename": filename,
-            "diagram_info": {
-                "name": diagram_name,
-                "description": diagram_dict.get('description', 'Generated pipeline'),
-                "node_count": node_count,
-                "connection_count": connection_count
-            }
-        }
+      filePath: projects/dipeodipeo/process.py
+      functionName: process_diagram
   
   - label: save_diagram
     type: db
@@ -77,34 +50,12 @@ nodes:
     props:
       operation: write
       sub_type: file
-      format: text
-      source_details: "{{diagram_output.filename}}"
-  
-  - label: display_info
-    type: code_job
-    position: {x: 700, y: 400}
-    props:
-      language: python
-      code: |       
-        print("=" * 60)
-        print("DIAGRAM GENERATED SUCCESSFULLY!")
-        print("=" * 60)
-        info = diagram_output['diagram_info']
-        print(f"Name: {info['name']}")
-        print(f"Description: {info['description']}")
-        print(f"Nodes: {info['node_count']}")
-        print(f"Connections: {info['connection_count']}")
-        print(f"Saved to: {diagram_output['filename']}")
-        print("=" * 60)
-        print("\nTo run the generated diagram:")
-        print(f"dipeo run {diagram_output['filename']} --light --debug")
-        print("=" * 60)
-        
-        result = info
+      format: yaml
+      source_details: projects/dipeodipeo/generated/diagram.light.yaml
+
 
 connections:
   - {from: start, to: load_request}
   - {from: load_request, to: generate_diagram, label: workflow_description}
   - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: object}
-  - {from: format_yaml, to: save_diagram, label: diagram_output, content_type: raw_text}
-  - {from: format_yaml, to: display_info, label: diagram_output}
+  - {from: format_yaml, to: save_diagram, label: diagram_output, content_type: object}

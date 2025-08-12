@@ -117,7 +117,58 @@ class SinglePersonJobExecutor:
                     import os
                     from pathlib import Path
                     base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
+                    
+                    # Try to get diagram source path from request metadata or context
+                    diagram_source_path = None
+                    source_path = None
+                    
+                    # First, check request.metadata (passed from TypedExecutionEngine)
+                    if request.metadata:
+                        source_path = request.metadata.get('diagram_source_path')
+                        if not source_path:
+                            source_path = request.metadata.get('diagram_id')
+                        if source_path:
+                            logger.debug(f"[PersonJob {node.label or node.id}] Source path from request metadata: {source_path}")
+                    
+                    # Fallback to checking context.diagram.metadata
+                    if not source_path and hasattr(request.context, 'diagram') and request.context.diagram:
+                        if hasattr(request.context.diagram, 'metadata') and request.context.diagram.metadata:
+                            source_path = request.context.diagram.metadata.get('diagram_source_path')
+                            if not source_path:
+                                source_path = request.context.diagram.metadata.get('diagram_id')
+                            if source_path:
+                                logger.debug(f"[PersonJob {node.label or node.id}] Source path from context.diagram.metadata: {source_path}")
+                    
+                    # Process the source path if found
+                    if source_path:
+                        # Convert to absolute path if relative
+                        if not os.path.isabs(source_path):
+                            abs_source_path = os.path.join(base_dir, source_path)
+                            logger.debug(f"[PersonJob {node.label or node.id}] Converted relative path {source_path} to absolute: {abs_source_path}")
+                            source_path = abs_source_path
+                        
+                        logger.debug(f"[PersonJob {node.label or node.id}] Checking if source path exists: {source_path}")
+                        if os.path.exists(source_path):
+                            # Use the directory of the diagram file as base for relative paths
+                            diagram_source_path = Path(source_path).parent
+                            logger.debug(f"[PersonJob {node.label or node.id}] Diagram source directory: {diagram_source_path}")
+                        else:
+                            logger.debug(f"[PersonJob {node.label or node.id}] Source path does not exist: {source_path}")
+                    
+                    # Resolve prompt path
+                    if diagram_source_path:
+                        # First try relative to diagram directory
+                        first_prompt_path = diagram_source_path / 'prompts' / node.first_prompt_file
+                        logger.debug(f"[PersonJob {node.label or node.id}] Checking local prompt path: {first_prompt_path}")
+                        if not filesystem.exists(first_prompt_path):
+                            logger.debug(f"[PersonJob {node.label or node.id}] Local prompt not found, falling back to global")
+                            # Fall back to global prompts directory
+                            first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
+                        else:
+                            logger.debug(f"[PersonJob {node.label or node.id}] Using local prompt from: {first_prompt_path}")
+                    else:
+                        # Default to global prompts directory
+                        first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
                     
                     # Read the first prompt file content
                     if filesystem.exists(first_prompt_path):
@@ -125,10 +176,10 @@ class SinglePersonJobExecutor:
                             file_content = f.read().decode('utf-8')
                             # Use file content as first only prompt
                             first_only_content = file_content
-                            logger.info(f"[PersonJob {node.label or node.id}] Loaded first prompt from file: {node.first_prompt_file} ({len(file_content)} chars)")
+                            logger.info(f"[PersonJob {node.label or node.id}] Loaded first prompt from file: {first_prompt_path} ({len(file_content)} chars)")
                             logger.debug(f"[PersonJob {node.label or node.id}] First prompt content preview: {file_content[:200]}...")
                     else:
-                        logger.warning(f"[PersonJob {node.label or node.id}] First prompt file not found: {node.first_prompt_file}")
+                        logger.warning(f"[PersonJob {node.label or node.id}] First prompt file not found: {first_prompt_path}")
                 except Exception as e:
                     logger.error(f"Error loading first prompt file {node.first_prompt_file}: {e}")
         
@@ -141,7 +192,59 @@ class SinglePersonJobExecutor:
                     import os
                     from pathlib import Path
                     base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    prompt_path = Path(base_dir) / 'files' / 'prompts' / node.prompt_file
+                    
+                    # Try to get diagram source path from request metadata or context
+                    diagram_source_path = None
+                    source_path = None
+                    
+                    # First, check request.metadata (passed from TypedExecutionEngine)
+                    if request.metadata:
+                        source_path = request.metadata.get('diagram_source_path')
+                        if not source_path:
+                            source_path = request.metadata.get('diagram_id')
+                        if source_path:
+                            logger.debug(f"[PersonJob {node.label or node.id}] Source path from request metadata: {source_path}")
+                    
+                    # Fallback to checking context.diagram.metadata
+                    if not source_path and hasattr(request.context, 'diagram') and request.context.diagram:
+                        if hasattr(request.context.diagram, 'metadata') and request.context.diagram.metadata:
+                            source_path = request.context.diagram.metadata.get('diagram_source_path')
+                            if not source_path:
+                                source_path = request.context.diagram.metadata.get('diagram_id')
+                            if source_path:
+                                logger.debug(f"[PersonJob {node.label or node.id}] Source path from context.diagram.metadata: {source_path}")
+                    
+                    # Process the source path if found
+                    if source_path:
+                        # Convert to absolute path if relative
+                        if not os.path.isabs(source_path):
+                            abs_source_path = os.path.join(base_dir, source_path)
+                            logger.debug(f"[PersonJob {node.label or node.id}] Converted relative path {source_path} to absolute: {abs_source_path}")
+                            source_path = abs_source_path
+                        
+                        logger.debug(f"[PersonJob {node.label or node.id}] Checking if source path exists: {source_path}")
+                        if os.path.exists(source_path):
+                            # Use the directory of the diagram file as base for relative paths
+                            diagram_source_path = Path(source_path).parent
+                            logger.debug(f"[PersonJob {node.label or node.id}] Diagram source directory: {diagram_source_path}")
+                        else:
+                            logger.debug(f"[PersonJob {node.label or node.id}] Source path does not exist: {source_path}")
+                    
+                    # Resolve prompt path
+                    if diagram_source_path:
+                        # First try relative to diagram directory
+                        prompt_path = diagram_source_path / 'prompts' / node.prompt_file
+                        logger.debug(f"[PersonJob {node.label or node.id}] Checking local prompt path: {prompt_path}")
+                        if not filesystem.exists(prompt_path):
+                            logger.debug(f"[PersonJob {node.label or node.id}] Local prompt not found, falling back to global")
+                            # Fall back to global prompts directory
+                            prompt_path = Path(base_dir) / 'files' / 'prompts' / node.prompt_file
+                        else:
+                            logger.debug(f"[PersonJob {node.label or node.id}] Using local prompt from: {prompt_path}")
+                    else:
+                        # Default to global prompts directory
+                        logger.debug(f"[PersonJob {node.label or node.id}] No diagram source path found, using global prompts directory")
+                        prompt_path = Path(base_dir) / 'files' / 'prompts' / node.prompt_file
                     
                     # Read the prompt file content
                     if filesystem.exists(prompt_path):
@@ -149,10 +252,10 @@ class SinglePersonJobExecutor:
                             file_content = f.read().decode('utf-8')
                             # Use file content as default prompt
                             prompt_content = file_content
-                            logger.info(f"[PersonJob {node.label or node.id}] Loaded prompt from file: {node.prompt_file} ({len(file_content)} chars)")
+                            logger.info(f"[PersonJob {node.label or node.id}] Loaded prompt from file: {prompt_path} ({len(file_content)} chars)")
                             logger.debug(f"[PersonJob {node.label or node.id}] Prompt content preview: {file_content[:200]}...")
                     else:
-                        logger.warning(f"[PersonJob {node.label or node.id}] Prompt file not found: {node.prompt_file}")
+                        logger.warning(f"[PersonJob {node.label or node.id}] Prompt file not found: {prompt_path}")
                 except Exception as e:
                     logger.error(f"Error loading prompt file {node.prompt_file}: {e}")
 
