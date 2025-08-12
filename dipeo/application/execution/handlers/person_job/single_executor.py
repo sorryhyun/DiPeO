@@ -78,11 +78,16 @@ class SinglePersonJobExecutor:
         memory_settings = None
         
         # Check if memory_profile is set (new way)
+        is_goldfish = False
         if hasattr(node, 'memory_profile') and node.memory_profile:
             try:
                 # Convert string to MemoryProfile enum
                 profile_enum = MemoryProfile[node.memory_profile]
-                if profile_enum != MemoryProfile.CUSTOM:
+                if profile_enum == MemoryProfile.GOLDFISH:
+                    is_goldfish = True
+                    # For GOLDFISH, we'll handle memory specially
+                    memory_settings = MemoryProfileFactory.get_settings(profile_enum)
+                elif profile_enum != MemoryProfile.CUSTOM:
                     # Get settings from profile
                     memory_settings = MemoryProfileFactory.get_settings(profile_enum)
                 else:
@@ -104,6 +109,11 @@ class SinglePersonJobExecutor:
                 person.apply_memory_settings(memory_settings)
             else:
                 person.apply_memory_settings(memory_settings)
+        
+        # Special handling for GOLDFISH - ensure no memory at all
+        if is_goldfish:
+            # Set memory to truly forget everything except current input
+            person.forget_all_messages()
         
         # Use inputs directly
         transformed_inputs = inputs
@@ -143,12 +153,13 @@ class SinglePersonJobExecutor:
                 prompt_content = loaded_content
 
         # Disable auto-prepend if we have conversation input (to avoid duplication)
+        # Also disable for GOLDFISH memory profile (true goldfish - no memory)
         built_prompt = self._prompt_builder.build(
             prompt=prompt_content,
             first_only_prompt=first_only_content,
             execution_count=execution_count,
             template_values=template_values,
-            auto_prepend_conversation=not has_conversation_input
+            auto_prepend_conversation=(not has_conversation_input and not is_goldfish)
         )
         
         # Log the built prompt

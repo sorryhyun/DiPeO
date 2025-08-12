@@ -179,7 +179,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
         """Transition a node to max iterations state."""
-        logger.info(f"[MAXITER] Transitioning {node_id} to MAXITER_REACHED")
+        logger.debug(f"[MAXITER] Transitioning {node_id} to MAXITER_REACHED")
         with self._state_lock:
             self._node_states[node_id] = NodeState(status=Status.MAXITER_REACHED)
             self._tracker.complete_execution(
@@ -210,9 +210,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
             PersonJobNode,
             StartNode,
         )
-        
-        logger.info(f"[RESET CHECK] Checking downstream nodes for {node_id}")
-        
+
         # Get the node that just completed
         completed_node = self.diagram.get_node(node_id)
         

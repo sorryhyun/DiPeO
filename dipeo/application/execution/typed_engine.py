@@ -122,9 +122,6 @@ class TypedExecutionEngine:
                 # Execute ready nodes
                 results = await self._execute_nodes(ready_nodes, context)
                 
-                # After executing nodes, check if any PersonJob nodes should be reset for cycles
-                self._check_and_reset_person_jobs_for_cycles(context)
-                
                 # Calculate progress
                 progress = context.calculate_progress()
                 
@@ -178,23 +175,6 @@ class TypedExecutionEngine:
             # Stop event bus if we're managing it
             if self._managed_event_bus:
                 await self.event_bus.stop()
-    
-    def _check_and_reset_person_jobs_for_cycles(self, context: TypedExecutionContext) -> None:
-        """Check if any PersonJob nodes should be reset for another cycle iteration.
-        
-        This method is called after nodes execute. It should NOT reset PersonJob nodes
-        immediately after they complete. Instead, PersonJob nodes should only be considered
-        for reset when their dependencies change (i.e., when upstream nodes complete again
-        in a subsequent execution loop iteration).
-        
-        The key insight: We don't reset PersonJob nodes in the same execution loop
-        iteration where they just completed. This prevents them from running multiple
-        times in a row.
-        """
-        # Currently, we don't do any resets here. PersonJob cycle handling is done
-        # in the readiness checker when evaluating which nodes are ready to run.
-        # This prevents immediate re-execution within the same loop iteration.
-        pass
     
     def _get_ready_nodes_from_context(self, context: TypedExecutionContext) -> list[ExecutableNode]:
         """Get ready nodes using the order calculator."""

@@ -83,7 +83,7 @@ nodes:
       first_prompt_file: prompt_generator_first.txt
       prompt_file: prompt_generator.txt
       max_iteration: 3
-      memory_profile: FOCUSED
+      memory_profile: GOLDFISH
 
   - label: Generate Frontend Code
     type: person_job
@@ -159,20 +159,9 @@ nodes:
         
         
         # Save main prompt file
-        prompt_file = output_path / f"frontend_generator.txt"
+        prompt_file = output_path / f"frontend_generator.json"
         with open(prompt_file, 'w', encoding='utf-8') as f:
-            f.write(inputs["prompt"])
-        
-        # Save evaluation report
-        report_file = output_path / f"code_quality_report.txt"
-        with open(report_file, 'w', encoding='utf-8') as f:
-            f.write(inputs["evaluation"])
-        
-        # Save generated code sample
-        code_file = output_path / f"sample_generated.tsx"
-        with open(code_file, 'w', encoding='utf-8') as f:
-            f.write(inputs["generated_code"])
-
+            json.dump(inputs, f)
 
   - label: Save Summary
     type: endpoint

@@ -4,8 +4,8 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
-        "y": 200
+        "x": 50,
+        "y": 400
       },
       "data": {
         "trigger_mode": "manual",
@@ -16,82 +16,172 @@
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "db",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 200,
+        "y": 400
       },
       "data": {
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "printer",
-        "first_only_prompt": ""
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/frontend_enhance_config.json",
+        "label": "load config"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "code_job",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 400,
+        "y": 400
       },
       "data": {
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
-        ],
-        "label": "condition"
+        "language": "python",
+        "code": "import json\n\n# Parse the loaded config\nif isinstance(config, str):\n    config_data = json.loads(config)\nelse:\n    config_data = config\n\niteration_count = 0\ncurrent_score = 0\nimprovements_history = []\n\nresult = {\n    \"history\": improvements_history,\n    \"prompt_type\": config_data[\"prompt_type\"],\n    \"target_framework\": config_data[\"framework\"],\n    \"prompt_requirements\": config_data[\"prompt_requirements\"],\n    \"evaluation_criteria\": config_data[\"evaluation_criteria\"],\n    \"prompt_sections\": config_data[\"prompt_sections\"],\n}\n",
+        "label": "initialize state"
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "person_job",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 600,
+        "y": 400
       },
       "data": {
-        "file_format": "txt",
-        "save_to_file": true,
-        "flipped": [
-          true,
-          false
-        ],
-        "file_name": "files/results/total.txt",
-        "label": "endpoint"
+        "person": "Prompt Designer",
+        "first_prompt_file": "prompt_generator_first.txt",
+        "prompt_file": "prompt_generator.txt",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "generate prompt",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_4",
       "type": "person_job",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 800,
+        "y": 400
       },
       "data": {
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
-        ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person 1",
+        "person": "Frontend Generator",
+        "default_prompt": "{{generated_prompt}}",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
         "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
         },
-        "label": "ask",
+        "label": "generate frontend code",
         "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "person_job",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "person": "Code Evaluator",
+        "prompt_file": "code_evaluator.txt",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "evaluate generated code",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "code_job",
+      "position": {
+        "x": 1200,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "import re\n# Extract score from code evaluation\nscore_match = re.search(r'Score:\\s*(\\d+)', code_evaluation, re.IGNORECASE)\nif score_match:\n    score = int(score_match.group(1))\n\n# Check if ready for production\nready = \"production ready\" in code_evaluation.lower() or score >= 80\n\nresult = {\n    \"score\": score,\n    \"ready_for_production\": ready,\n    \"code_evaluation\": code_evaluation\n}\n",
+        "label": "check score"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "condition",
+      "position": {
+        "x": 1400,
+        "y": 400
+      },
+      "data": {
+        "condition_type": "custom",
+        "expression": "checked.ready_for_production == True",
+        "label": "check quality target"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "condition",
+      "position": {
+        "x": 1200,
+        "y": 600
+      },
+      "data": {
+        "condition_type": "detect_max_iterations",
+        "label": "detect max iterations"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "endpoint",
+      "position": {
+        "x": 1000,
+        "y": 700
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": false,
+        "label": "stop if max iterations"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "code_job",
+      "position": {
+        "x": 1600,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "import os\nfrom pathlib import Path\nimport json\n\noutput_path = Path(\"./generated\")\noutput_path.mkdir(parents=True, exist_ok=True)\n\n\n# Save main prompt file\nprompt_file = output_path / f\"frontend_generator.json\"\nwith open(prompt_file, 'w', encoding='utf-8') as f:\n    json.dump(inputs, f)\n",
+        "label": "save enhanced prompt"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "endpoint",
+      "position": {
+        "x": 2000,
+        "y": 400
+      },
+      "data": {
+        "file_format": "md",
+        "save_to_file": true,
+        "file_name": "projects/frontend_enhance/generated/README.md",
+        "label": "save summary"
       }
     }
   ],
@@ -108,48 +198,132 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": null,
+      "label": "config",
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "object"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
+      "source": "node_2_default_output",
+      "target": "node_3_first_input",
       "label": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "conversation_state"
+      "data": null,
+      "content_type": "object"
     },
     {
       "id": "arrow_3",
-      "source": "node_2_condtrue_output",
+      "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "label": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "conversation_state"
+      "label": "generated_prompt",
+      "data": null,
+      "content_type": "object"
     },
     {
       "id": "arrow_4",
       "source": "node_4_default_output",
-      "target": "node_3_default_input",
+      "target": "node_5_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
+      "label": "code_evaluation",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "label": "checked",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_7_condtrue_output",
+      "target": "node_10_default_input",
       "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_10_default_output",
+      "target": "node_11_default_input",
+      "label": "saved_prompt",
       "data": null,
       "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_7_condfalse_output",
+      "target": "node_8_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_8_condtrue_output",
+      "target": "node_9_default_input",
+      "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_8_condfalse_output",
+      "target": "node_3_default_input",
+      "label": "feedback",
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "object"
     }
   ],
   "persons": [
     {
-      "id": "person 1",
-      "label": "person 1",
+      "id": "Prompt Designer",
+      "label": "prompt designer",
       "llm_config": {
         "service": "openai",
         "model": "gpt-5-nano-2025-08-07",
         "api_key_id": "APIKEY_52609F",
-        "system_prompt": null,
+        "system_prompt": "You are an expert in prompt engineering for code generation.\nCreate clear, comprehensive, and effective prompts for frontend code generators.\nFocus on specificity, completeness, and actionable instructions.\nDo not add any suggestions which are not requested.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Frontend Generator",
+      "label": "frontend generator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are an expert frontend developer specializing in React and modern web development.\nGenerate production-ready frontend code based on the provided prompts.\nFollow best practices for component structure, state management, and code organization.\nDo not add any suggestions which are not requested.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Code Evaluator",
+      "label": "code evaluator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a frontend code quality expert.\nEvaluate generated frontend code for correctness, best practices, performance, and maintainability.\nProvide feedback on how the prompt should be improved to generate better code.\nDo not add any suggestions which are not requested.\n",
         "prompt_file": null
       },
       "type": "person"
@@ -163,14 +337,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -197,20 +363,20 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_3_default_input",
@@ -219,6 +385,14 @@
       "direction": "input",
       "data_type": "any",
       "position": "left"
+    },
+    {
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
     },
     {
       "id": "node_4_first_input",
@@ -243,6 +417,126 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_first_input",
+      "node_id": "node_5",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_condtrue_output",
+      "node_id": "node_7",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_7_condfalse_output",
+      "node_id": "node_7",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_condtrue_output",
+      "node_id": "node_8",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_8_condfalse_output",
+      "node_id": "node_8",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -250,8 +544,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-12T13:48:39.817Z",
-    "modified": "2025-08-12T13:48:39.817Z",
+    "created": "2025-08-12T15:00:19.262Z",
+    "modified": "2025-08-12T15:00:19.262Z",
     "version": "1.0.0",
     "id": null
   }

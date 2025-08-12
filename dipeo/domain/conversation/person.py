@@ -151,7 +151,7 @@ class Person:
         memory_view = view_mapping.get(settings.view, MemoryView.ALL_INVOLVED)
         self.set_memory_view(memory_view)
         
-        if settings.max_messages and settings.max_messages > 0:
+        if settings.max_messages is not None and settings.max_messages > 0:
             self.set_memory_limit(
                 int(settings.max_messages), 
                 preserve_system=settings.preserve_system if settings.preserve_system is not None else True

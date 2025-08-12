@@ -34,9 +34,9 @@ class MemoryProfileFactory:
             preserve_system=True
         ),
         MemoryProfile.GOLDFISH: MemorySettings(
-            view=MemoryViewEnum.CONVERSATION_PAIRS,
-            max_messages=2,
-            preserve_system=False
+            view=MemoryViewEnum.SENT_TO_ME,
+            max_messages=1,
+            preserve_system=True
         ),
     }
     

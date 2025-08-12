@@ -71,7 +71,8 @@ class ExecutionOrchestrator(ConversationManager):
             llm_config = PersonLLMConfig(
                 service=LLMService(config.get('service', 'openai')),
                 model=config.get('model', 'gpt-5-nano-2025-08-07'),
-                api_key_id=ApiKeyID(api_key_id_value)
+                api_key_id=ApiKeyID(api_key_id_value),
+                system_prompt=config.get('system_prompt', '')  # Include system_prompt from config
             )
             
             person = self._person_repo.create(

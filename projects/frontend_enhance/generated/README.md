@@ -1,3 +1,3 @@
 {
-  "saved_prompt": "'prompt'"
+  "saved_prompt": "None"
 }
