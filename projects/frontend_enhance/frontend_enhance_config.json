@@ -1,6 +1,7 @@
 {
   "app_type": "dashboard",
   "framework": "react",
+  "target_framework": "react",
   "styling_approach": "tailwind",
   "features": [
     "responsive navigation",
@@ -12,5 +13,33 @@
   "target_audience": "business analysts",
   "target_score": 85,
   "max_iterations": 3,
-  "output_dir": "./generated_frontend_enhanced"
+  "output_dir": "./generated_frontend_enhanced",
+  "prompt_type": "frontend_component_generator",
+  "prompt_requirements": [
+    "Generate modern, production-ready React components",
+    "Follow React best practices and patterns",
+    "Include proper TypeScript types",
+    "Implement responsive design with Tailwind CSS",
+    "Ensure accessibility (WCAG 2.1 AA compliance)",
+    "Optimize for performance and bundle size"
+  ],
+  "evaluation_criteria": [
+    "Code quality and maintainability",
+    "Component reusability and composability",
+    "Type safety and error handling",
+    "Performance optimization",
+    "Accessibility compliance",
+    "Responsive design implementation",
+    "Best practices adherence"
+  ],
+  "prompt_sections": [
+    "Component Requirements",
+    "Technical Specifications",
+    "Design System Integration",
+    "State Management",
+    "Error Handling",
+    "Performance Considerations",
+    "Accessibility Requirements",
+    "Testing Guidelines"
+  ]
 }

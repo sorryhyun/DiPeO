@@ -20,11 +20,13 @@ warnings.filterwarnings("ignore", message="The config `workers` has no affect wh
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
 warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
+log_level = os.environ.get("LOG_LEVEL", "INFO")
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO"),
+    level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
+# Always suppress these noisy loggers
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -34,14 +36,16 @@ logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
 logging.getLogger("multipart").setLevel(logging.WARNING)
 logging.getLogger("python_multipart").setLevel(logging.WARNING)
 
-# Reduce verbose debug logging from execution components
-logging.getLogger("dipeo.application.execution.observers.unified_event_observer").setLevel(logging.INFO)
-logging.getLogger("dipeo.infrastructure.events.observer_adapter").setLevel(logging.INFO)
-logging.getLogger("dipeo.infrastructure.utils.single_flight_cache").setLevel(logging.WARNING)
-logging.getLogger("dipeo.infrastructure.adapters.llm.openai").setLevel(logging.INFO)
-logging.getLogger("dipeo.application.execution.states.node_readiness_checker").setLevel(logging.INFO)
-logging.getLogger("dipeo.application.execution.handlers.person_job.single_executor").setLevel(logging.INFO)
-logging.getLogger("dipeo.application.execution.handlers.condition.evaluators").setLevel(logging.INFO)
+# Only reduce verbose logging if not in DEBUG mode
+if log_level != "DEBUG":
+    # Reduce verbose debug logging from execution components
+    logging.getLogger("dipeo.application.execution.observers.unified_event_observer").setLevel(logging.INFO)
+    logging.getLogger("dipeo.infrastructure.events.observer_adapter").setLevel(logging.INFO)
+    logging.getLogger("dipeo.infrastructure.utils.single_flight_cache").setLevel(logging.WARNING)
+    logging.getLogger("dipeo.infrastructure.adapters.llm.openai").setLevel(logging.INFO)
+    logging.getLogger("dipeo.application.execution.states.node_readiness_checker").setLevel(logging.INFO)
+    logging.getLogger("dipeo.application.execution.handlers.person_job.single_executor").setLevel(logging.INFO)
+    logging.getLogger("dipeo.application.execution.handlers.condition.evaluators").setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 

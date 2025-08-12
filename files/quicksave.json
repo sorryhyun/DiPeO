@@ -4,10 +4,11 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 100,
-        "y": 200
+        "x": 50,
+        "y": 400
       },
       "data": {
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -17,60 +18,183 @@
       "id": "node_1",
       "type": "db",
       "position": {
-        "x": 300,
-        "y": 200
+        "x": 200,
+        "y": 400
       },
       "data": {
         "operation": "read",
         "sub_type": "file",
-        "format": "text",
-        "file": "projects/dipeodipeo/request.txt",
-        "label": "load_request"
+        "format": "json",
+        "file": "projects/frontend_enhance/frontend_enhance_config.json",
+        "label": "load config"
       }
     },
     {
       "id": "node_2",
-      "type": "person_job",
+      "type": "code_job",
       "position": {
-        "x": 600,
-        "y": 200
+        "x": 400,
+        "y": 400
       },
       "data": {
-        "person": "diagram_designer",
-        "prompt_file": "diagram_generator.txt",
-        "max_iteration": 1,
-        "text_format_file": "projects/dipeodipeo/light_diagram_models.py",
-        "label": "generate_diagram",
-        "first_only_prompt": ""
+        "language": "python",
+        "code": "import json\n\n# Parse the loaded config\nif isinstance(config, str):\n    config_data = json.loads(config)\nelse:\n    config_data = config\n\niteration_count = 0\ncurrent_score = 0\nimprovements_history = []\n\nresult = {\n    \"history\": improvements_history,\n    \"prompt_type\": config_data[\"prompt_type\"],\n    \"target_framework\": config_data[\"framework\"],\n    \"prompt_requirements\": config_data[\"prompt_requirements\"],\n    \"evaluation_criteria\": config_data[\"evaluation_criteria\"],\n    \"prompt_sections\": config_data[\"prompt_sections\"],\n}\n",
+        "label": "initialize state"
       }
     },
     {
       "id": "node_3",
-      "type": "code_job",
+      "type": "person_job",
       "position": {
-        "x": 700,
-        "y": 200
+        "x": 600,
+        "y": 400
       },
       "data": {
-        "language": "python",
-        "filePath": "projects/dipeodipeo/process.py",
-        "functionName": "process_diagram",
-        "label": "format_yaml"
+        "person": "Prompt Designer",
+        "first_prompt_file": "prompt_generator_first.txt",
+        "prompt_file": "prompt_generator.txt",
+        "max_iteration": 3,
+        "memory_profile": "FOCUSED",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 20,
+          "preserve_system": true
+        },
+        "label": "generate prompt",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_4",
-      "type": "db",
+      "type": "person_job",
       "position": {
-        "x": 1000,
-        "y": 200
+        "x": 800,
+        "y": 400
       },
       "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "yaml",
-        "file": "projects/dipeodipeo/generated/diagram.light.yaml",
-        "label": "save_diagram"
+        "person": "Frontend Generator",
+        "default_prompt": "{{generated_prompt}}",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "generate frontend code",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "person_job",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "person": "Code Evaluator",
+        "prompt_file": "code_evaluator.txt",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "evaluate generated code",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "code_job",
+      "position": {
+        "x": 1200,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "import re\n# Extract score from code evaluation\nscore_match = re.search(r'Score:\\s*(\\d+)', code_evaluation, re.IGNORECASE)\nif score_match:\n    score = int(score_match.group(1))\nelse:\n    score = 70  # Default score\n\n# Check if ready for production\nready = \"production ready\" in code_evaluation.lower() or score >= 70\n\nresult = {\n    \"score\": score,\n    \"ready_for_production\": ready,\n}\n",
+        "label": "check score"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "condition",
+      "position": {
+        "x": 1400,
+        "y": 400
+      },
+      "data": {
+        "condition_type": "custom",
+        "expression": "checked[\"ready_for_production\"] is True",
+        "label": "check quality target"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "condition",
+      "position": {
+        "x": 1200,
+        "y": 600
+      },
+      "data": {
+        "condition_type": "detect_max_iterations",
+        "label": "detect max iterations"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "endpoint",
+      "position": {
+        "x": 1000,
+        "y": 700
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": false,
+        "label": "stop if max iterations"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "code_job",
+      "position": {
+        "x": 1600,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "import os\nfrom pathlib import Path\nimport json\n\noutput_path = Path(\"./generated\")\noutput_path.mkdir(parents=True, exist_ok=True)\n\n# Save the enhanced prompt for frontend generation\nprompt_type = checked[\"config\"][\"prompt_type\"]\nframework = checked[\"config\"][\"target_framework\"]\n\n# Save main prompt file\nprompt_file = output_path / f\"frontend_{framework}_generator.txt\"\nwith open(prompt_file, 'w', encoding='utf-8') as f:\n    f.write(checked[\"prompt\"])\n\n# Save evaluation report\nreport_file = output_path / f\"code_quality_report_{framework}.txt\"\nwith open(report_file, 'w', encoding='utf-8') as f:\n    f.write(checked[\"evaluation\"])\n\n# Save generated code sample\ncode_file = output_path / f\"sample_generated_{framework}.tsx\"\nwith open(code_file, 'w', encoding='utf-8') as f:\n    f.write(checked[\"generated_code\"])\n\n# Save metadata\nmetadata_file = output_path / f\"prompt_metadata_{framework}.json\"\nwith open(metadata_file, 'w', encoding='utf-8') as f:\n    json.dump({\n        \"score\": checked[\"score\"],\n        \"ready_for_production\": checked[\"ready_for_production\"],\n        \"prompt_type\": prompt_type,\n        \"target_framework\": framework,\n        \"sections\": checked[\"config\"][\"prompt_sections\"]\n    }, f, indent=2)\n\nresult = {\n    \"prompt_file\": str(prompt_file),\n    \"output_dir\": str(output_path),\n    \"final_score\": checked[\"score\"],\n    \"prompt_type\": prompt_type,\n    \"target_framework\": framework,\n    \"ready_for_production\": checked[\"ready_for_production\"],\n    \"config\": checked[\"config\"]\n}\n",
+        "label": "save enhanced prompt"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "code_job",
+      "position": {
+        "x": 1800,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "config = saved_prompt['config']\ntarget_score = config['target_score']\nprompt_sections = config['prompt_sections']\n\nsummary_lines = [\n    \"# Prompt Enhancement Complete!\",\n    \"\",\n    \"## Results\",\n    f\"- Final Score: {saved_prompt['final_score']}/100\",\n    f\"- Production Ready: {'Yes' if saved_prompt['ready_for_production'] else 'Needs Review'}\",\n    f\"- Prompt Type: {saved_prompt['prompt_type']}\",\n    f\"- Target Framework: {saved_prompt['target_framework']}\",\n    \"\",\n    \"## Generated Files\",\n    f\"- Enhanced Prompt: {saved_prompt['prompt_file']}\",\n    f\"- Code Quality Report: {saved_prompt['output_dir']}/code_quality_report_{saved_prompt['target_framework']}.txt\",\n    f\"- Sample Generated Code: {saved_prompt['output_dir']}/sample_generated_{saved_prompt['target_framework']}.tsx\",\n    f\"- Metadata: {saved_prompt['output_dir']}/prompt_metadata_{saved_prompt['target_framework']}.json\",\n    \"\",\n    \"## Prompt Sections Included:\",\n]\n\nfor section in prompt_sections:\n    summary_lines.append(f\"- {section}\")\n\nsummary = '\\n'.join(summary_lines)\nprint(summary)\nresult = summary\n",
+        "label": "generate summary"
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "endpoint",
+      "position": {
+        "x": 2000,
+        "y": 400
+      },
+      "data": {
+        "file_format": "md",
+        "save_to_file": true,
+        "file_name": "files/prompts/enhanced/README.md",
+        "label": "save summary"
       }
     }
   ],
@@ -87,15 +211,15 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": "workflow_description",
+      "label": "config",
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
     },
     {
       "id": "arrow_2",
       "source": "node_2_default_output",
-      "target": "node_3_default_input",
-      "label": "generated_diagram",
+      "target": "node_3_first_input",
+      "label": null,
       "data": null,
       "content_type": "object"
     },
@@ -103,20 +227,124 @@
       "id": "arrow_3",
       "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "label": "diagram_output",
+      "label": "generated_prompt",
       "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_4_default_output",
+      "target": "node_5_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
+      "label": "code_evaluation",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "label": "checked",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_7_condtrue_output",
+      "target": "node_10_default_input",
+      "label": "checked",
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_10_default_output",
+      "target": "node_11_default_input",
+      "label": "saved_prompt",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_11_default_output",
+      "target": "node_12_default_input",
+      "label": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_7_condfalse_output",
+      "target": "node_8_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_8_condtrue_output",
+      "target": "node_9_default_input",
+      "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_8_condfalse_output",
+      "target": "node_3_default_input",
+      "label": "feedback",
+      "data": {
+        "branch": "false"
+      },
       "content_type": "object"
     }
   ],
   "persons": [
     {
-      "id": "diagram_designer",
-      "label": "diagram_designer",
+      "id": "Prompt Designer",
+      "label": "prompt designer",
       "llm_config": {
         "service": "openai",
         "model": "gpt-5-nano-2025-08-07",
         "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert DiPeO diagram designer. You create well-structured light format diagrams\nthat follow best practices for modularity, error handling, and performance.\nAlways ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.\n",
+        "system_prompt": "You are an expert in prompt engineering for code generation.\nCreate clear, comprehensive, and effective prompts for frontend code generators.\nFocus on specificity, completeness, and actionable instructions.\nDo not add any suggestions which are not requested.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Frontend Generator",
+      "label": "frontend generator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are an expert frontend developer specializing in React and modern web development.\nGenerate production-ready frontend code based on the provided prompts.\nFollow best practices for component structure, state management, and code organization.\nDo not add any suggestions which are not requested.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Code Evaluator",
+      "label": "code evaluator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a frontend code quality expert.\nEvaluate generated frontend code for correctness, best practices, performance, and maintainability.\nProvide feedback on how the prompt should be improved to generate better code.\nDo not add any suggestions which are not requested.\n",
         "prompt_file": null
       },
       "type": "person"
@@ -148,14 +376,6 @@
       "position": "right"
     },
     {
-      "id": "node_2_first_input",
-      "node_id": "node_2",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
@@ -170,6 +390,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_3_default_input",
@@ -188,6 +416,14 @@
       "position": "right"
     },
     {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_4_default_input",
       "node_id": "node_4",
       "label": "default",
@@ -202,6 +438,142 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_first_input",
+      "node_id": "node_5",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_condtrue_output",
+      "node_id": "node_7",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_7_condfalse_output",
+      "node_id": "node_7",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_condtrue_output",
+      "node_id": "node_8",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_8_condfalse_output",
+      "node_id": "node_8",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -209,8 +581,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-12T03:07:11.165Z",
-    "modified": "2025-08-12T03:07:11.165Z",
+    "created": "2025-08-12T04:27:05.152Z",
+    "modified": "2025-08-12T04:27:05.152Z",
     "version": "1.0.0",
     "id": null
   }

@@ -66,8 +66,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         for msg in processed_messages:
             input_messages.append({"role": msg["role"], "content": msg["content"]})
 
-        logger.debug(f"Input messages: {input_messages}")
-        
         api_tools = []
         if tools:
             for tool in tools:
@@ -89,7 +87,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
             
             if isinstance(text_format, type) and issubclass(text_format, BaseModel):
                 api_params["_pydantic_model"] = text_format
-                logger.debug(f"Using Pydantic model for structured output: {text_format.__name__}")
             else:
                 logger.warning(f"text_format must be a Pydantic BaseModel class, got {type(text_format)}")
         
@@ -109,7 +106,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
                     text = json.dumps(parsed_output)
             else:
                 text = ''
-            logger.debug(f"Parsed structured output: {text}")
         elif hasattr(response, 'parsed'):
             import json
             from pydantic import BaseModel
@@ -122,11 +118,9 @@ class ChatGPTAdapter(BaseLLMAdapter):
                     text = json.dumps(parsed_output)
             else:
                 text = ''
-            logger.debug(f"Parsed structured output: {text}")
         else:
             text = getattr(response, 'output_text', '')
-            logger.debug(f"Output text: {text}")
-        
+
         tool_outputs = []
         if hasattr(response, 'output') and response.output:
             for output in response.output:
@@ -171,7 +165,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         
         if not input_messages:
             return ChatResult(text='', raw_response=None)
-        
         # Make response API call with retry logic
         response = self._make_api_call_with_retry(
             input_messages=input_messages,
@@ -281,7 +274,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
             # Use cached async client or create one
             async with self._client_lock:
                 if self._async_client is None:
-                    logger.debug(f"Creating new AsyncOpenAI client for {self.model_name}")
                     self._async_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
                 client = self._async_client
         

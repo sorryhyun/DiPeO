@@ -43,15 +43,10 @@ class SinglePersonJobExecutor:
         person_id = node.person
 
         # Get services using request helper methods
-        llm_service = request.get_service(LLM_SERVICE.name)
-        diagram = request.get_service(DIAGRAM.name)
-        conversation_manager = request.get_service(CONVERSATION_MANAGER.name)
-        prompt_builder = request.get_service(PROMPT_BUILDER.name)
-        
-        if not all([llm_service, diagram, conversation_manager, prompt_builder]):
-            raise ValueError("Required services not available")
-        
-
+        llm_service = request.services.resolve(LLM_SERVICE)
+        diagram = request.services.resolve(DIAGRAM)
+        conversation_manager = request.services.resolve(CONVERSATION_MANAGER)
+        prompt_builder = request.services.resolve(PROMPT_BUILDER)
         execution_count = context.get_node_execution_count(node.id)
 
         # Get or create person
@@ -127,45 +122,32 @@ class SinglePersonJobExecutor:
                         source_path = request.metadata.get('diagram_source_path')
                         if not source_path:
                             source_path = request.metadata.get('diagram_id')
-                        if source_path:
-                            logger.debug(f"[PersonJob {node.label or node.id}] Source path from request metadata: {source_path}")
-                    
+
                     # Fallback to checking context.diagram.metadata
                     if not source_path and hasattr(request.context, 'diagram') and request.context.diagram:
                         if hasattr(request.context.diagram, 'metadata') and request.context.diagram.metadata:
                             source_path = request.context.diagram.metadata.get('diagram_source_path')
                             if not source_path:
                                 source_path = request.context.diagram.metadata.get('diagram_id')
-                            if source_path:
-                                logger.debug(f"[PersonJob {node.label or node.id}] Source path from context.diagram.metadata: {source_path}")
-                    
+
                     # Process the source path if found
                     if source_path:
                         # Convert to absolute path if relative
                         if not os.path.isabs(source_path):
                             abs_source_path = os.path.join(base_dir, source_path)
-                            logger.debug(f"[PersonJob {node.label or node.id}] Converted relative path {source_path} to absolute: {abs_source_path}")
                             source_path = abs_source_path
                         
-                        logger.debug(f"[PersonJob {node.label or node.id}] Checking if source path exists: {source_path}")
                         if os.path.exists(source_path):
                             # Use the directory of the diagram file as base for relative paths
                             diagram_source_path = Path(source_path).parent
-                            logger.debug(f"[PersonJob {node.label or node.id}] Diagram source directory: {diagram_source_path}")
-                        else:
-                            logger.debug(f"[PersonJob {node.label or node.id}] Source path does not exist: {source_path}")
-                    
+
                     # Resolve prompt path
                     if diagram_source_path:
                         # First try relative to diagram directory
                         first_prompt_path = diagram_source_path / 'prompts' / node.first_prompt_file
-                        logger.debug(f"[PersonJob {node.label or node.id}] Checking local prompt path: {first_prompt_path}")
                         if not filesystem.exists(first_prompt_path):
-                            logger.debug(f"[PersonJob {node.label or node.id}] Local prompt not found, falling back to global")
                             # Fall back to global prompts directory
                             first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
-                        else:
-                            logger.debug(f"[PersonJob {node.label or node.id}] Using local prompt from: {first_prompt_path}")
                     else:
                         # Default to global prompts directory
                         first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
@@ -176,8 +158,6 @@ class SinglePersonJobExecutor:
                             file_content = f.read().decode('utf-8')
                             # Use file content as first only prompt
                             first_only_content = file_content
-                            logger.info(f"[PersonJob {node.label or node.id}] Loaded first prompt from file: {first_prompt_path} ({len(file_content)} chars)")
-                            logger.debug(f"[PersonJob {node.label or node.id}] First prompt content preview: {file_content[:200]}...")
                     else:
                         logger.warning(f"[PersonJob {node.label or node.id}] First prompt file not found: {first_prompt_path}")
                 except Exception as e:
@@ -211,39 +191,27 @@ class SinglePersonJobExecutor:
                             source_path = request.context.diagram.metadata.get('diagram_source_path')
                             if not source_path:
                                 source_path = request.context.diagram.metadata.get('diagram_id')
-                            if source_path:
-                                logger.debug(f"[PersonJob {node.label or node.id}] Source path from context.diagram.metadata: {source_path}")
-                    
+
                     # Process the source path if found
                     if source_path:
                         # Convert to absolute path if relative
                         if not os.path.isabs(source_path):
                             abs_source_path = os.path.join(base_dir, source_path)
-                            logger.debug(f"[PersonJob {node.label or node.id}] Converted relative path {source_path} to absolute: {abs_source_path}")
                             source_path = abs_source_path
                         
-                        logger.debug(f"[PersonJob {node.label or node.id}] Checking if source path exists: {source_path}")
                         if os.path.exists(source_path):
                             # Use the directory of the diagram file as base for relative paths
                             diagram_source_path = Path(source_path).parent
-                            logger.debug(f"[PersonJob {node.label or node.id}] Diagram source directory: {diagram_source_path}")
-                        else:
-                            logger.debug(f"[PersonJob {node.label or node.id}] Source path does not exist: {source_path}")
-                    
+
                     # Resolve prompt path
                     if diagram_source_path:
                         # First try relative to diagram directory
                         prompt_path = diagram_source_path / 'prompts' / node.prompt_file
-                        logger.debug(f"[PersonJob {node.label or node.id}] Checking local prompt path: {prompt_path}")
                         if not filesystem.exists(prompt_path):
-                            logger.debug(f"[PersonJob {node.label or node.id}] Local prompt not found, falling back to global")
                             # Fall back to global prompts directory
                             prompt_path = Path(base_dir) / 'files' / 'prompts' / node.prompt_file
-                        else:
-                            logger.debug(f"[PersonJob {node.label or node.id}] Using local prompt from: {prompt_path}")
                     else:
                         # Default to global prompts directory
-                        logger.debug(f"[PersonJob {node.label or node.id}] No diagram source path found, using global prompts directory")
                         prompt_path = Path(base_dir) / 'files' / 'prompts' / node.prompt_file
                     
                     # Read the prompt file content
@@ -252,16 +220,11 @@ class SinglePersonJobExecutor:
                             file_content = f.read().decode('utf-8')
                             # Use file content as default prompt
                             prompt_content = file_content
-                            logger.info(f"[PersonJob {node.label or node.id}] Loaded prompt from file: {prompt_path} ({len(file_content)} chars)")
-                            logger.debug(f"[PersonJob {node.label or node.id}] Prompt content preview: {file_content[:200]}...")
                     else:
                         logger.warning(f"[PersonJob {node.label or node.id}] Prompt file not found: {prompt_path}")
                 except Exception as e:
                     logger.error(f"Error loading prompt file {node.prompt_file}: {e}")
 
-        # Log the prompt before building
-        logger.debug(f"[PersonJob {node.label or node.id}] Prompt before building: {prompt_content[:200] if prompt_content else 'None'}...")
-        
         # Disable auto-prepend if we have conversation input (to avoid duplication)
         built_prompt = prompt_builder.build(
             prompt=prompt_content,
@@ -272,7 +235,6 @@ class SinglePersonJobExecutor:
         )
         
         # Log the built prompt
-        logger.debug(f"[PersonJob {node.label or node.id}] Built prompt preview: {built_prompt[:200] if built_prompt else 'None'}...")
         if '{{' in (built_prompt or ''):
             logger.warning(f"[PersonJob {node.label or node.id}] Template variables may not be substituted! Found '{{{{' in built prompt")
 
@@ -333,7 +295,6 @@ class SinglePersonJobExecutor:
                 try:
                     with open(file_path, 'r') as f:
                         text_format_content = f.read()
-                    logger.debug(f"Loaded text_format from file: {node.text_format_file}")
                 except Exception as e:
                     logger.error(f"Failed to read text_format_file {node.text_format_file}: {e}")
             else:

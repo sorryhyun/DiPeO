@@ -9,6 +9,7 @@ persons:
       You are an expert in prompt engineering for code generation.
       Create clear, comprehensive, and effective prompts for frontend code generators.
       Focus on specificity, completeness, and actionable instructions.
+      Do not add any suggestions which are not requested.
       
   Frontend Generator:
     service: openai
@@ -18,6 +19,8 @@ persons:
       You are an expert frontend developer specializing in React and modern web development.
       Generate production-ready frontend code based on the provided prompts.
       Follow best practices for component structure, state management, and code organization.
+      Do not add any suggestions which are not requested.
+
       
   Code Evaluator:
     service: openai
@@ -27,15 +30,7 @@ persons:
       You are a frontend code quality expert.
       Evaluate generated frontend code for correctness, best practices, performance, and maintainability.
       Provide feedback on how the prompt should be improved to generate better code.
-      
-  Prompt Optimizer:
-    service: openai
-    model: gpt-5-nano-2025-08-07
-    api_key_id: APIKEY_52609F
-    system_prompt: |
-      You are a prompt refinement specialist.
-      Enhance prompts based on evaluation feedback to achieve production-ready quality.
-      Ensure prompts generate consistent, high-quality frontend code.
+      Do not add any suggestions which are not requested.
 
 nodes:
   - label: Start
@@ -51,7 +46,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_enhance/prompt_enhance_config.json
+      source_details: projects/frontend_enhance/frontend_enhance_config.json
 
   - label: Initialize State
     type: code_job
@@ -85,7 +80,7 @@ nodes:
     position: {x: 600, y: 400}
     props:
       person: Prompt Designer
-      first_prompt_file: prompt_generator.txt
+      first_prompt_file: prompt_generator_first.txt
       prompt_file: prompt_generator.txt
       max_iteration: 3
       memory_profile: FOCUSED
@@ -95,9 +90,9 @@ nodes:
     position: {x: 800, y: 400}
     props:
       person: Frontend Generator
-      prompt_file: frontend_generator.txt
-      max_iteration: 1
-      memory_profile: MINIMAL
+      default_prompt: "{{generated_prompt}}"
+      max_iteration: 3
+      memory_profile: GOLDFISH
 
   - label: Evaluate Generated Code
     type: person_job
@@ -105,8 +100,8 @@ nodes:
     props:
       person: Code Evaluator
       prompt_file: code_evaluator.txt
-      max_iteration: 1
-      memory_profile: MINIMAL
+      max_iteration: 3
+      memory_profile: GOLDFISH
 
   - label: Check Score
     type: code_job
@@ -123,15 +118,11 @@ nodes:
             score = 70  # Default score
         
         # Check if ready for production
-        ready = "production ready" in code_evaluation.lower() or score >= config["target_score"]
+        ready = "production ready" in code_evaluation.lower() or score >= 70
         
         result = {
             "score": score,
             "ready_for_production": ready,
-            "prompt": generated_prompt,
-            "generated_code": generated_code,
-            "config": config,
-            "evaluation": code_evaluation
         }
 
   - label: Check Quality Target
@@ -139,9 +130,7 @@ nodes:
     position: {x: 1400, y: 400}
     props:
       condition_type: custom
-      expression: |
-        checked["score"] >= checked["config"]["target_score"] or 
-        checked["ready_for_production"]
+      expression: checked["ready_for_production"] is True
 
   - label: Detect Max Iterations
     type: condition
@@ -166,7 +155,7 @@ nodes:
         from pathlib import Path
         import json
         
-        output_path = Path("./files/prompts/enhanced")
+        output_path = Path("./generated")
         output_path.mkdir(parents=True, exist_ok=True)
         
         # Save the enhanced prompt for frontend generation
@@ -261,11 +250,7 @@ connections:
   # Generation and evaluation flow
   - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: object}
   - {from: Generate Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
-  - {from: Generate Prompt, to: Evaluate Generated Code, label: generated_prompt, content_type: object}
   - {from: Evaluate Generated Code, to: Check Score, label: code_evaluation, content_type: object}
-  - {from: Generate Frontend Code, to: Check Score, label: generated_code, content_type: object}
-  - {from: Generate Prompt, to: Check Score, label: generated_prompt, content_type: object}
-  - {from: Initialize State, to: Check Score, label: config, content_type: object}
   - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
   
   # Success path (quality target met)
@@ -276,5 +261,5 @@ connections:
   # Check if max iterations reached
   - {from: Check Quality Target_condfalse, to: Detect Max Iterations}
   - {from: Detect Max Iterations_condtrue, to: Stop if Max Iterations}
-  - {from: Detect Max Iterations_condfalse, to: Generate Prompt}
+  - {from: Detect Max Iterations_condfalse, to: Generate Prompt, label: feedback}
 

@@ -114,7 +114,7 @@ class LLMDomainService:
         # Try provider-specific defaults
         if provider.lower() == LLMService.OPENAI.value and model.startswith("gpt-"):
             # Default for unknown GPT models
-            return TokenLimits(context_window=8192, max_output_tokens=4096)
+            return TokenLimits(context_window=400000, max_output_tokens=128000)
         elif provider.lower() == LLMService.ANTHROPIC.value and model.startswith("claude-"):
             # Default for unknown Claude models
             return TokenLimits(context_window=100000, max_output_tokens=4096)
@@ -222,7 +222,7 @@ class LLMDomainService:
         """Create a validated ModelConfig instance."""
         # Apply provider-specific defaults
         if temperature is None:
-            temperature = 0.7
+            temperature = 0.2
         
         # Get token limits to set sensible max_tokens default
         if max_tokens is None:

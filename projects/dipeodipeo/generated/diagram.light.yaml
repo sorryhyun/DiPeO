@@ -1,1 +1,137 @@
-string indices must be integers, not 'str'
+version: light
+name: data_processing_pipeline
+description: A data processing pipeline that loads CSV files, validates data, processes files in parallel, aggregates results,
+  and saves final results to JSON.
+nodes:
+- label: start
+  type: start
+  position:
+    x: 100
+    y: 200
+  props:
+    trigger_mode: manual
+    custom_data:
+      note: Begin data pipeline
+- label: load_files
+  type: db
+  position:
+    x: 360
+    y: 200
+  props:
+    file:
+    - files/data/*.csv
+    sub_type: file
+    operation: read
+    serialize_json: false
+    glob: true
+- label: validate_data
+  type: code_job
+  position:
+    x: 620
+    y: 200
+  props:
+    language: python
+    code: |-
+      validation_result = {}
+      validated = []
+      erors = []
+      for item in input_data:
+          if isinstance(item, dict) and 'filename' in item:
+              validated.append(item)
+          else:
+              errors.append(item)
+      validation_result = {'valid': len(errors) == 0, 'errors': errors, 'validated_items': validated}
+      result = validation_result
+    timeout: 60
+- label: validate_condition
+  type: condition
+  position:
+    x: 880
+    y: 200
+  props:
+    condition_type: custom
+    expression: validation_result.get('valid', False)
+- label: process_batch
+  type: sub_diagram
+  position:
+    x: 1140
+    y: 200
+  props:
+    diagram_name: processors/single_item
+    diagram_format: light
+    batch: true
+    batch_input_key: items
+    batch_parallel: true
+    ignoreIfSub: false
+- label: log_errors
+  type: code_job
+  position:
+    x: 980
+    y: 360
+  props:
+    language: python
+    code: |-
+      import logging
+      logger = logging.getLogger(__name__)
+      validation_result = validation_result if 'validation_result' in locals() else {}
+      errors = validation_result.get('errors', []) if isinstance(validation_result, dict) else []
+      for e in errors:
+          logger.error(f'Validation error: {e}')
+      result = {'status': 'validation_failed', 'errors': errors}
+    timeout: 60
+- label: aggregate_results
+  type: code_job
+  position:
+    x: 1320
+    y: 200
+  props:
+    language: python
+    code: |-
+      batch_results = input_data if isinstance(input_data, list) else []
+      total = len(batch_results)
+      ok = sum(1 for r in batch_results if isinstance(r, dict) and r.get('status') == 'ok')
+      failures = [r for r in batch_results if not (isinstance(r, dict) and r.get('status') == 'ok')]
+      summary = {'total': total, 'ok': ok, 'failures': len(failures)}
+      result = {'status': 'completed', 'summary': summary, 'results': batch_results}
+    timeout: 60
+- label: endpoint
+  type: endpoint
+  position:
+    x: 1560
+    y: 200
+  props:
+    save_to_file: true
+    file_name: files/output/final_results.json
+connections:
+- from: start
+  to: load_files
+  label: trigger
+  content_type: raw_text
+- from: load_files
+  to: validate_data
+  label: raw_data
+  content_type: object
+- from: validate_data
+  to: validate_condition
+  label: validation_result
+  content_type: object
+- from: validate_condition
+  to: process_batch
+  label: 'true'
+  content_type: object
+- from: validate_condition
+  to: log_errors
+  label: 'false'
+  content_type: object
+- from: process_batch
+  to: aggregate_results
+  label: batch_results
+  content_type: object
+- from: aggregate_results
+  to: endpoint
+  label: results
+  content_type: object
+- from: log_errors
+  to: endpoint
+  label: results
+  content_type: object

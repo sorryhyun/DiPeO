@@ -172,7 +172,6 @@ class LLMInfraService(BaseService, LLMServicePort):
             
             if hasattr(self, 'logger'):
                 self.logger.debug(f"Messages: {len(messages_list)}")
-
             try:
                 result = await self._call_llm_with_retry(
                     adapter, messages_list, **adapter_kwargs

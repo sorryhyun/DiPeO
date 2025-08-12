@@ -1,15 +1,8 @@
 Evaluate the quality of the generated frontend code and provide feedback on how to improve the prompt that generated it.
 
-===== ORIGINAL PROMPT =====
-{{generated_prompt}}
-===== END PROMPT =====
-
 ===== GENERATED CODE =====
 {{generated_code}}
 ===== END CODE =====
-
-Framework: {{config.target_framework}}
-Target Score: {{config.target_score}}/100
 
 ## Evaluation Criteria
 
@@ -22,7 +15,7 @@ Evaluate the generated code against these criteria:
 - Are there any obvious bugs or issues?
 
 ### 2. Best Practices (25 points)
-- Does it follow {{config.target_framework}} best practices?
+- Does it follow target_framework best practices?
 - Is the component structure appropriate?
 - Is state management handled properly?
 - Are hooks/lifecycle methods used correctly?
