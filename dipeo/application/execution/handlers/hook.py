@@ -14,7 +14,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
 
 if TYPE_CHECKING:
@@ -23,9 +23,18 @@ if TYPE_CHECKING:
 
 @register_handler
 class HookNodeHandler(TypedNodeHandler[HookNode]):
+    """
+    Clean separation of concerns:
+    1. validate() - Static/structural validation (compile-time checks)
+    2. pre_execute() - Runtime validation and setup
+    3. execute_request() - Core execution logic
+    """
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
         self.filesystem_adapter = filesystem_adapter
+        # Instance variables for passing data between methods
+        self._current_filesystem_adapter = None
+        self._current_timeout = None
 
     
     @property
@@ -49,21 +58,88 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     def requires_services(self) -> list[str]:
         return ["filesystem_adapter"]
     
+    async def pre_execute(self, request: ExecutionRequest[HookNode]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution setup: validate hook configuration and prepare resources.
+        
+        Moves hook validation, configuration parsing, and service resolution
+        out of execute_request for cleaner separation of concerns.
+        """
+        node = request.node
+        
+        # Validate hook type
+        valid_hook_types = {HookType.SHELL, HookType.WEBHOOK, HookType.PYTHON, HookType.FILE}
+        if node.hook_type not in valid_hook_types:
+            return ErrorOutput(
+                value=f"Unknown hook type: {node.hook_type}",
+                node_id=node.id,
+                error_type="InvalidHookType"
+            )
+        
+        # Validate configuration based on hook type
+        config = node.config or {}
+        
+        if node.hook_type == HookType.SHELL:
+            if not config.get("command"):
+                return ErrorOutput(
+                    value="Shell hook requires 'command' in config",
+                    node_id=node.id,
+                    error_type="MissingCommand"
+                )
+        elif node.hook_type == HookType.WEBHOOK:
+            if not config.get("url"):
+                return ErrorOutput(
+                    value="Webhook hook requires 'url' in config",
+                    node_id=node.id,
+                    error_type="MissingURL"
+                )
+        elif node.hook_type == HookType.PYTHON:
+            if not config.get("script"):
+                return ErrorOutput(
+                    value="Python hook requires 'script' in config",
+                    node_id=node.id,
+                    error_type="MissingScript"
+                )
+        elif node.hook_type == HookType.FILE:
+            if not config.get("file_path"):
+                return ErrorOutput(
+                    value="File hook requires 'file_path' in config",
+                    node_id=node.id,
+                    error_type="MissingFilePath"
+                )
+            # Get filesystem adapter for file hooks
+            from dipeo.application.registry import ServiceKey
+            fs_key = ServiceKey("filesystem_adapter")
+            filesystem_adapter = self.filesystem_adapter or request.services.get(fs_key)
+            if not filesystem_adapter:
+                return ErrorOutput(
+                    value="Filesystem adapter is required for file hooks",
+                    node_id=node.id,
+                    error_type="MissingFilesystemAdapter"
+                )
+            # Store in instance variable for execute_request
+            self._current_filesystem_adapter = filesystem_adapter
+        else:
+            # Clear filesystem adapter for non-file hooks
+            self._current_filesystem_adapter = None
+        
+        # Store timeout configuration in instance variable
+        self._current_timeout = node.timeout or 30
+        
+        # No early return - proceed to execute_request
+        return None
+    
     async def execute_request(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
+        """Pure execution using instance variables set in pre_execute."""
         return await self._execute_hook_node(request)
     
     async def _execute_hook_node(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
         # Extract properties from request
         node = request.node
-        context = request.context
         inputs = request.inputs
         
-        # Get filesystem adapter from services for file hooks
-        if node.hook_type == HookType.file:
-            filesystem_adapter = self.filesystem_adapter or request.services.resolve("filesystem_adapter")
-            if not filesystem_adapter:
-                raise NodeExecutionError("Filesystem adapter is required for file hooks")
-            self._temp_filesystem_adapter = filesystem_adapter
+        # Filesystem adapter already available in instance variable if needed (set in pre_execute for file hooks)
+        if node.hook_type == HookType.FILE:
+            self._temp_filesystem_adapter = self._current_filesystem_adapter
         
         try:
             result = await self._execute_hook(node, inputs)
@@ -79,6 +155,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 delattr(self, '_temp_filesystem_adapter')
     
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        # Hook type already validated in pre_execute
         if node.hook_type == HookType.SHELL:
             return await self._execute_shell_hook(node, inputs)
         elif node.hook_type == HookType.WEBHOOK:
@@ -88,13 +165,13 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         elif node.hook_type == HookType.FILE:
             return await self._execute_file_hook(node, inputs)
         else:
+            # This should never happen since validation occurs in pre_execute
             raise InvalidDiagramError(f"Unknown hook type: {node.hook_type}")
     
     async def _execute_shell_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        # Configuration already validated in pre_execute
         config = node.config
         command = config.get("command")
-        if not command:
-            raise InvalidDiagramError("Shell hook requires 'command' in config")
         
         # Prepare environment variables
         env = os.environ.copy()
@@ -120,7 +197,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             )
             
             # Apply timeout if specified
-            timeout = node.timeout or 30
+            timeout = self._current_timeout or 30
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(),
                 timeout=timeout
@@ -142,10 +219,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds")
     
     async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        # Configuration already validated in pre_execute
         config = node.config
         url = config.get("url")
-        if not url:
-            raise InvalidDiagramError("Webhook hook requires 'url' in config")
         
         method = config.get("method", "POST")
         headers = config.get("headers", {})
@@ -158,7 +234,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             "node_id": node.label
         }
         
-        timeout = aiohttp.ClientTimeout(total=node.timeout or 30)
+        timeout = aiohttp.ClientTimeout(total=self._current_timeout or 30)
         
         async with aiohttp.ClientSession(timeout=timeout) as session:
             try:
@@ -174,10 +250,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 raise NodeExecutionError(f"Webhook request failed: {e!s}")
     
     async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        # Configuration already validated in pre_execute
         config = node.config
         script = config.get("script")
-        if not script:
-            raise InvalidDiagramError("Python hook requires 'script' in config")
         
         function_name = config.get("function_name", "hook")
         
@@ -201,7 +276,7 @@ print(json.dumps(result))
                 stderr=subprocess.PIPE
             )
             
-            timeout = node.timeout or 30
+            timeout = self._current_timeout or 30
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(),
                 timeout=timeout
@@ -220,10 +295,9 @@ print(json.dumps(result))
             raise NodeExecutionError(f"Failed to parse Python script output: {e!s}")
     
     async def _execute_file_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        # Configuration already validated in pre_execute
         config = node.config
         file_path = config.get("file_path")
-        if not file_path:
-            raise InvalidDiagramError("File hook requires 'file_path' in config")
         
         format_type = config.get("format", "json")
         

@@ -77,34 +77,73 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             
         return None
     
+    async def pre_execute(self, request: ExecutionRequest[ConditionNode]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution setup: validate services and select evaluator.
+        
+        Moves evaluator selection and service validation out of execute_request
+        for cleaner separation of concerns.
+        """
+        node = request.node
+        condition_type = node.condition_type
+        
+        # Validate diagram service is available
+        diagram = request.get_service(DIAGRAM.name)
+        if not diagram:
+            return ConditionOutput(
+                value=False,
+                node_id=node.id,
+                true_output=None,
+                false_output=request.inputs if request.inputs else {},
+                metadata=json.dumps({
+                    "condition_type": condition_type,
+                    "error": "Diagram service not available"
+                })
+            )
+        
+        # Select and validate evaluator
+        evaluator = self._evaluators.get(condition_type)
+        if not evaluator:
+            logger.error(f"No evaluator found for condition type: {condition_type}")
+            return ConditionOutput(
+                value=False,
+                node_id=node.id,
+                true_output=None,
+                false_output=request.inputs if request.inputs else {},
+                metadata=json.dumps({
+                    "condition_type": condition_type,
+                    "error": f"No evaluator for condition type: {condition_type}"
+                })
+            )
+        
+        # Store evaluator and diagram in metadata for execute_request
+        request.metadata = request.metadata or {}
+        request.metadata['evaluator'] = evaluator
+        request.metadata['diagram'] = diagram
+        
+        # No early return - proceed to execute_request
+        return None
+    
     async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> NodeOutputProtocol:
         node = request.node
         context = request.context
         inputs = request.inputs
         
-        diagram = request.get_service(DIAGRAM.name)
-        if not diagram:
-            raise ValueError("Diagram service not available")
+        # Get evaluator and diagram from metadata (set in pre_execute)
+        evaluator = request.metadata.get('evaluator')
+        diagram = request.metadata.get('diagram')
         
-        condition_type = node.condition_type
-        evaluator = self._evaluators.get(condition_type)
+        # Execute evaluation with pre-selected evaluator
+        eval_result = await evaluator.evaluate(node, context, diagram, inputs)
+        result = eval_result["result"]
+        output_value = eval_result["output_data"] or {}
         
-        if not evaluator:
-            logger.error(f"No evaluator found for condition type: {condition_type}")
-            result = False
-            output_value = {"condfalse": inputs if inputs else {}}
-        else:
-            eval_result = await evaluator.evaluate(node, context, diagram, inputs)
-            result = eval_result["result"]
-            output_value = eval_result["output_data"] or {}
-            
-            request.add_metadata("evaluation_metadata", eval_result["metadata"])
+        request.add_metadata("evaluation_metadata", eval_result["metadata"])
         
         true_output = output_value.get("condtrue") if result else None
         false_output = output_value.get("condfalse") if not result else None
         
         logger.debug(
-            f"ConditionNode {node.id}: type={condition_type}, "
+            f"ConditionNode {node.id}: type={node.condition_type}, "
             f"result={result}, has_true_output={true_output is not None}, "
             f"has_false_output={false_output is not None}"
         )
@@ -117,7 +156,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         )
         # Set metadata as JSON string
         output.metadata = json.dumps({
-            "condition_type": condition_type,
+            "condition_type": node.condition_type,
             "evaluation_metadata": request.metadata.get("evaluation_metadata", {})
         })
         return output
